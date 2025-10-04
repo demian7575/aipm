@@ -45,7 +45,7 @@ export interface MergeRequestRoot {
 }
 
 export interface MindmapSnapshot {
-  root: MergeRequestRoot;
+  mergeRequests: MergeRequestRoot[];
   acceptanceTestLog: AcceptanceTestLogEntry[];
 }
 

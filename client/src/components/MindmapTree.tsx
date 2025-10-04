@@ -17,18 +17,22 @@ export function MindmapTree({ userStories, onSelectStory, selectedId }: MindmapT
   return (
     <div className="mindmap-tree" aria-label="Mindmap navigation">
       <h2 className="panel-title">Mindmap Overview</h2>
-      <ul className="mindmap-tree__list">
-        {orderedStories.map((story) => (
-          <TreeNode
-            key={story.id}
-            story={story}
-            level={0}
-            onSelectStory={onSelectStory}
-            isSelected={story.id === selectedId}
-            selectedId={selectedId}
-          />
-        ))}
-      </ul>
+      {orderedStories.length === 0 ? (
+        <p className="panel-empty">No user stories are attached to this merge request yet.</p>
+      ) : (
+        <ul className="mindmap-tree__list">
+          {orderedStories.map((story) => (
+            <TreeNode
+              key={story.id}
+              story={story}
+              level={0}
+              onSelectStory={onSelectStory}
+              isSelected={story.id === selectedId}
+              selectedId={selectedId}
+            />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

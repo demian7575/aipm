@@ -39,7 +39,10 @@ export function githubWebhookHandler(req: Request, res: Response) {
     userStories: [],
   };
 
-  mindmapSnapshot.root = newRoot;
+  mindmapSnapshot.mergeRequests = [
+    newRoot,
+    ...mindmapSnapshot.mergeRequests.filter((existing) => existing.id !== newRoot.id),
+  ];
 
   return res.status(201).json({ status: 'queued', message: 'MR payload captured for processing', rootId: newRoot.id });
 }

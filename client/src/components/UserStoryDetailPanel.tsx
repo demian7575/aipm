@@ -2,10 +2,11 @@ import { AcceptanceTestDraft, UserStoryNode } from '../types/mindmap';
 
 interface UserStoryDetailPanelProps {
   story?: UserStoryNode;
-  onOpenModal: (story: UserStoryNode) => void;
+  onAddChild: (story: UserStoryNode) => void;
+  onAttachAcceptanceTest: (story: UserStoryNode) => void;
 }
 
-export function UserStoryDetailPanel({ story, onOpenModal }: UserStoryDetailPanelProps) {
+export function UserStoryDetailPanel({ story, onAddChild, onAttachAcceptanceTest }: UserStoryDetailPanelProps) {
   if (!story) {
     return (
       <section className="panel">
@@ -24,9 +25,18 @@ export function UserStoryDetailPanel({ story, onOpenModal }: UserStoryDetailPane
             As a {story.asA}, I want {story.iWant}, so that {story.soThat}.
           </p>
         </div>
-        <button type="button" className="button" onClick={() => onOpenModal(story)}>
-          Draft Child Story
-        </button>
+        <div className="panel-actions">
+          <button type="button" className="button" onClick={() => onAddChild(story)}>
+            Add Child User Story
+          </button>
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={() => onAttachAcceptanceTest(story)}
+          >
+            Attach Acceptance Test
+          </button>
+        </div>
       </header>
       <dl className="definition-list">
         <div>

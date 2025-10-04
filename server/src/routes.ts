@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { githubWebhookHandler } from './githubWebhook.js';
 import { mindmapSnapshot } from './mockData.js';
-import { AcceptanceTestDraft, MindmapSnapshot, UserStoryNode } from './types.js';
+import { AcceptanceTestDraft, MergeRequestRoot, MindmapSnapshot, UserStoryNode } from './types.js';
 
 const router = Router();
 
@@ -13,6 +13,7 @@ router.get('/mindmap', (_req, res) => {
 
 const createStorySchema = z.object({
   parentId: z.string(),
+  parentType: z.enum(['mr', 'userStory']).default('userStory'),
   asA: z.string().min(3),
   iWant: z.string().min(3),
   soThat: z.string().min(3),
@@ -30,16 +31,19 @@ router.post('/mindmap/nodes', (req, res) => {
     return res.status(422).json({ status: 'error', issues: parseResult.error.issues });
   }
 
-  const { parentId, asA, iWant, soThat, acceptanceTest } = parseResult.data;
-  const parentStory = findStoryById(mindmapSnapshot.root.userStories, parentId);
+  const { parentId, parentType, asA, iWant, soThat, acceptanceTest } = parseResult.data;
+  const container =
+    parentType === 'mr'
+      ? findMergeRequestById(mindmapSnapshot.mergeRequests, parentId)
+      : findStoryById(mindmapSnapshot.mergeRequests, parentId);
 
-  if (!parentStory) {
-    return res.status(404).json({ status: 'error', message: 'Parent story not found' });
+  if (!container) {
+    return res.status(404).json({ status: 'error', message: 'Parent node not found' });
   }
 
   const newStory: UserStoryNode = {
     id: `us-${Date.now()}`,
-    parentId: parentStory.id,
+    parentId: parentType === 'mr' ? null : container.id,
     type: 'UserStory',
     title: `${asA} — ${iWant.substring(0, 42)}…`,
     asA,
@@ -62,26 +66,46 @@ router.post('/mindmap/nodes', (req, res) => {
   };
 
   newStory.acceptanceTests.push(newAcceptanceTest);
-  parentStory.children.push(newStory);
+
+  if (parentType === 'mr') {
+    container.userStories.push(newStory);
+  } else {
+    container.children.push(newStory);
+  }
 
   return res.status(201).json({ status: 'created', story: newStory, acceptanceTest: newAcceptanceTest });
 });
 
 router.post('/github/webhook', githubWebhookHandler);
 
-function findStoryById(stories: UserStoryNode[], id: string): UserStoryNode | undefined {
+function findStoryById(mergeRequests: MergeRequestRoot[], id: string): UserStoryNode | undefined {
+  for (const mr of mergeRequests) {
+    const match = traverseStories(mr.userStories, id);
+    if (match) {
+      return match;
+    }
+  }
+
+  return undefined;
+}
+
+function traverseStories(stories: UserStoryNode[], id: string): UserStoryNode | undefined {
   for (const story of stories) {
     if (story.id === id) {
       return story;
     }
 
-    const childHit = findStoryById(story.children, id);
+    const childHit = traverseStories(story.children, id);
     if (childHit) {
       return childHit;
     }
   }
 
   return undefined;
+}
+
+function findMergeRequestById(mergeRequests: MergeRequestRoot[], id: string): MergeRequestRoot | undefined {
+  return mergeRequests.find((mr) => mr.id === id);
 }
 
 export default router;
