@@ -27,6 +27,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /Create MR/i })).toBeInTheDocument();
     expect(screen.getByText(/Acceptance Test Activity/i)).toBeInTheDocument();
     expect(screen.getByText(/MR: Bootstrap AI Project Manager Mindmap/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Mindmap graph view/i)).toBeInTheDocument();
   });
 
   it('opens the create story modal from the detail panel', async () => {

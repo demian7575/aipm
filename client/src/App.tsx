@@ -125,7 +125,7 @@ function App() {
                 </dl>
               </header>
               <MindmapTree
-                userStories={activeMergeRequest.userStories}
+                mergeRequest={activeMergeRequest}
                 onSelectStory={handleSelectStory}
                 selectedId={activeStory?.id}
               />
