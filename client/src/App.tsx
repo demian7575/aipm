@@ -5,18 +5,20 @@ import { UserStoryDetailPanel } from './components/UserStoryDetailPanel';
 import { AcceptanceTestLog } from './components/AcceptanceTestLog';
 import { CreateStoryModal, ParentReference } from './components/CreateStoryModal';
 import { useMindmapSnapshot } from './hooks/useMindmapSnapshot';
-import { MergeRequestRoot, UserStoryNode } from './types/mindmap';
+import { MergeRequestRoot, ReferenceRepositoryConfig, UserStoryNode } from './types/mindmap';
 import { MergeRequestSidebar } from './components/MergeRequestSidebar';
 import { CreateAcceptanceTestModal } from './components/CreateAcceptanceTestModal';
 import { CreateMergeRequestModal } from './components/CreateMergeRequestModal';
+import { ReferenceRepositoryModal } from './components/ReferenceRepositoryModal';
 
 function App() {
-  const { snapshot, isLoading, error } = useMindmapSnapshot();
+  const { snapshot, isLoading, error, saveReferenceRepository } = useMindmapSnapshot();
   const [selectedMrId, setSelectedMrId] = useState<string | undefined>(() => snapshot.mergeRequests.at(0)?.id);
   const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>(undefined);
   const [storyModalParent, setStoryModalParent] = useState<ParentReference | null>(null);
   const [acceptanceModalStory, setAcceptanceModalStory] = useState<UserStoryNode | null>(null);
   const [isMrModalOpen, setMrModalOpen] = useState(false);
+  const [isReferenceModalOpen, setReferenceModalOpen] = useState(false);
 
   const activeMergeRequest = useMemo<MergeRequestRoot | undefined>(() => {
     if (!selectedMrId) {
@@ -61,6 +63,14 @@ function App() {
     setSelectedStoryId(mr.userStories.at(0)?.id);
   }, []);
 
+  const handleReferenceRepositorySave = useCallback(
+    (config: ReferenceRepositoryConfig) => {
+      void saveReferenceRepository(config);
+      setReferenceModalOpen(false);
+    },
+    [saveReferenceRepository],
+  );
+
   return (
     <div className="app">
       <header className="app__header">
@@ -70,6 +80,34 @@ function App() {
           <p className="app__description">
             Create merge requests, user stories, and acceptance tests with ChatGPT-style guidance before saving.
           </p>
+          <div className="app__reference">
+            <span className="app__reference-label">Reference documents:</span>
+            {snapshot.referenceRepository ? (
+              <>
+                <a
+                  href={snapshot.referenceRepository.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="app__reference-link"
+                >
+                  {snapshot.referenceRepository.label}
+                </a>
+                {snapshot.referenceRepository.description && (
+                  <span className="app__reference-description">{snapshot.referenceRepository.description}</span>
+                )}
+              </>
+            ) : (
+              <span className="app__reference-missing">Not configured</span>
+            )}
+            <button
+              type="button"
+              className="button button--tertiary"
+              onClick={() => setReferenceModalOpen(true)}
+              aria-label="Configure reference documents repository"
+            >
+              Configure
+            </button>
+          </div>
         </div>
         <div className="app__cta">
           <button type="button" className="button" onClick={() => setMrModalOpen(true)}>
@@ -157,6 +195,15 @@ function App() {
       )}
 
       {isMrModalOpen && <CreateMergeRequestModal isOpen={isMrModalOpen} onClose={() => setMrModalOpen(false)} />}
+
+      {isReferenceModalOpen && (
+        <ReferenceRepositoryModal
+          isOpen={isReferenceModalOpen}
+          initialValue={snapshot.referenceRepository}
+          onClose={() => setReferenceModalOpen(false)}
+          onSave={handleReferenceRepositorySave}
+        />
+      )}
     </div>
   );
 }

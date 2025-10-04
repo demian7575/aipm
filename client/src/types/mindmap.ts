@@ -33,6 +33,12 @@ export interface UserStoryNode {
   children: UserStoryNode[];
 }
 
+export interface ReferenceRepositoryConfig {
+  label: string;
+  url: string;
+  description?: string;
+}
+
 export interface MergeRequestRoot {
   id: string;
   type: Extract<NodeType, 'MR'>;
@@ -47,6 +53,7 @@ export interface MergeRequestRoot {
 export interface MindmapSnapshot {
   mergeRequests: MergeRequestRoot[];
   acceptanceTestLog: AcceptanceTestLogEntry[];
+  referenceRepository?: ReferenceRepositoryConfig | null;
 }
 
 export interface AcceptanceTestLogEntry {

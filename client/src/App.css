@@ -54,6 +54,43 @@ body {
   color: #475569;
 }
 
+.app__reference {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.08);
+  color: #4338ca;
+}
+
+.app__reference-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.app__reference-link {
+  color: inherit;
+  font-weight: 600;
+}
+
+.app__reference-link:hover {
+  text-decoration: underline;
+}
+
+.app__reference-missing {
+  font-style: italic;
+  color: rgba(67, 56, 202, 0.7);
+}
+
+.app__reference-description {
+  font-size: 0.85rem;
+  color: rgba(67, 56, 202, 0.8);
+}
+
 .app__meta {
   display: grid;
   gap: 0.75rem;
@@ -391,6 +428,19 @@ body {
   box-shadow: none;
 }
 
+.button--tertiary {
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  border: 0;
+  padding: 0.25rem 0.5rem;
+  font-weight: 500;
+}
+
+.button--tertiary:hover {
+  text-decoration: underline;
+}
+
 .status-dot {
   width: 0.75rem;
   height: 0.75rem;
@@ -525,6 +575,11 @@ body {
   color: #475569;
 }
 
+.modal__hint {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
 .modal__body {
   display: flex;
   flex-direction: column;
@@ -551,6 +606,15 @@ body {
   margin: 0 0 0.5rem;
   color: #64748b;
   font-size: 0.85rem;
+}
+
+.form-error {
+  margin: 0 0 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  font-weight: 500;
 }
 
 .review-grid {

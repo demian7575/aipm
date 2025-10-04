@@ -2,7 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { githubWebhookHandler } from './githubWebhook.js';
 import { mindmapSnapshot } from './mockData.js';
-import { AcceptanceTestDraft, MergeRequestRoot, MindmapSnapshot, UserStoryNode } from './types.js';
+import {
+  AcceptanceTestDraft,
+  MergeRequestRoot,
+  MindmapSnapshot,
+  ReferenceRepositoryConfig,
+  UserStoryNode,
+} from './types.js';
 
 const router = Router();
 
@@ -22,6 +28,12 @@ const createStorySchema = z.object({
     when: z.string().min(3),
     then: z.string().min(3),
   }),
+});
+
+const referenceRepositorySchema = z.object({
+  label: z.string().min(1),
+  url: z.string().url(),
+  description: z.string().optional(),
 });
 
 router.post('/mindmap/nodes', (req, res) => {
@@ -74,6 +86,19 @@ router.post('/mindmap/nodes', (req, res) => {
   }
 
   return res.status(201).json({ status: 'created', story: newStory, acceptanceTest: newAcceptanceTest });
+});
+
+router.patch('/mindmap/reference-repository', (req, res) => {
+  const parseResult = referenceRepositorySchema.safeParse(req.body);
+
+  if (!parseResult.success) {
+    return res.status(422).json({ status: 'error', issues: parseResult.error.issues });
+  }
+
+  const config: ReferenceRepositoryConfig = parseResult.data;
+  mindmapSnapshot.referenceRepository = config;
+
+  return res.status(200).json({ status: 'updated', referenceRepository: config });
 });
 
 router.post('/github/webhook', githubWebhookHandler);

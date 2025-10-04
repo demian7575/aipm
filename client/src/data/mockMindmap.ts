@@ -1,6 +1,11 @@
 import { MindmapSnapshot } from '../types/mindmap';
 
 export const mockMindmap: MindmapSnapshot = {
+  referenceRepository: {
+    label: 'AI PM Reference Docs',
+    url: 'https://github.com/example/aipm-reference-docs',
+    description: 'Source of truth for requirements, personas, and acceptance criteria playbooks.',
+  },
   mergeRequests: [
     {
       id: 'mr-2024-01',

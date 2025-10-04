@@ -49,6 +49,14 @@ AI Project Manager Mindmap(AIPM)은 Merge Request(MR)를 기반으로 한 계층
    npm run dev:server
    ```
 
+   빠르게 최신 코드를 받고 전체 스택을 실행하려면 루트에서 다음 스크립트를 사용할 수 있습니다.
+
+   ```bash
+   npm run dev:stack
+   ```
+
+   위 스크립트는 `git pull` → `npm install` → `npm run build` 순으로 실행한 뒤 프론트엔드와 Mock API 서버를 동시에 구동합니다. Ctrl+C를 누르면 두 프로세스가 함께 종료됩니다.
+
 3. 린트 및 테스트
 
    ```bash
@@ -60,6 +68,7 @@ npm test
 
 - `GET /api/mindmap` – Mindmap 루트 및 계층형 사용자 스토리/인수 테스트 스냅샷 제공
 - `POST /api/mindmap/nodes` – 상위 스토리에 자식 스토리와 초안 인수 테스트를 추가 (Mock)
+- `PATCH /api/mindmap/reference-repository` – Reference Document 저장소 URL/설명을 업데이트
 - `POST /api/github/webhook` – GitHub MR 이벤트를 받아 새로운 Mindmap 루트를 준비
 
 > Mock API는 인메모리 스냅샷을 사용하므로 서버 재시작 시 초기 상태로 되돌아갑니다.
@@ -69,6 +78,13 @@ npm test
 - 정적 Mindmap 데이터를 기반으로 한 3패널 레이아웃(트리, 상세 패널, 테스트 로그)
 - 사용자 스토리 초안 모달에서 INVEST 자동 검증 및 Given/When/Then 검토 지원
 - 인수 테스트 실행 로그 표 시각화 및 상태 배지
+- MR 헤더에서 Reference Document 저장소 URL을 지정·수정할 수 있는 구성 모달 제공
+
+## Reference Document 저장소 설정
+
+- 대시보드 헤더의 **Configure** 버튼을 클릭하면 레퍼런스 문서를 보관하는 GitHub 저장소(또는 다른 URL)를 지정할 수 있습니다.
+- 저장 시 URL 형식 검증을 수행하며, Mock API가 실행 중인 경우 `/api/mindmap/reference-repository` 엔드포인트에 저장됩니다.
+- Mock API가 실행되지 않은 상태에서는 UI에만 반영되며, 헤더에 “Reference documents” 배지가 업데이트됩니다.
 
 ## GitHub로 변경 사항 푸시하기
 

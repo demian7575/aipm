@@ -28,6 +28,8 @@ describe('App', () => {
     expect(screen.getByText(/Acceptance Test Activity/i)).toBeInTheDocument();
     expect(screen.getByText(/MR: Bootstrap AI Project Manager Mindmap/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Mindmap graph view/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reference documents:/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Configure reference documents repository/i })).toBeInTheDocument();
   });
 
   it('opens the create story modal from the detail panel', async () => {
@@ -38,5 +40,15 @@ describe('App', () => {
 
     expect(screen.getByRole('dialog', { name: /Create User Story/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/As a/i)).toBeInTheDocument();
+  });
+
+  it('allows configuring the reference repository', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /Configure reference documents repository/i }));
+
+    expect(screen.getByRole('dialog', { name: /Configure reference documents/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Display label/i)).toBeInTheDocument();
   });
 });
