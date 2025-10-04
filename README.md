@@ -70,6 +70,34 @@ npm test
 - 사용자 스토리 초안 모달에서 INVEST 자동 검증 및 Given/When/Then 검토 지원
 - 인수 테스트 실행 로그 표 시각화 및 상태 배지
 
+## GitHub로 변경 사항 푸시하기
+
+모든 개발 내용은 로컬 커밋만으로는 공유되지 않습니다. 원격 저장소로 푸시하려면 다음 절차를 따르세요.
+
+1. **원격(origin) 설정**  
+   아직 원격이 없다면 GitHub에서 빈 저장소를 만든 뒤 URL을 이용해 연결합니다.
+
+   ```bash
+   git remote add origin https://github.com/<your-account>/<your-repo>.git
+   ```
+
+   이미 원격이 있다면 `git remote -v`로 설정을 확인할 수 있습니다.
+
+2. **브랜치 푸시**  
+   현재 브랜치(예: `work`)의 커밋을 GitHub로 올립니다.
+
+   ```bash
+   git push -u origin work
+   ```
+
+   다른 브랜치를 사용 중이라면 `work` 대신 해당 브랜치 이름을 넣어 주세요. 최초 푸시 이후에는 `git push`만 실행하면 됩니다.
+
+3. **Pull Request 생성(선택)**  
+   협업 중이라면 GitHub에서 Pull Request를 열어 코드 리뷰와 CI 결과를 공유하세요.
+
+4. **최신 코드 동기화**  
+   다른 환경에서 작업을 시작할 때는 `git clone`으로 저장소를 내려받거나, 기존 복사본에서는 `git pull`로 최신 커밋을 가져옵니다.
+
 ## CI 파이프라인
 
 `.github/workflows/ci.yml`은 GitHub Actions에서 Node.js 환경을 설정하고 린트/테스트/빌드를 실행합니다. 워크플로는 모든 Pull Request와 `main` 브랜치 푸시에 대해 자동으로 실행됩니다.
