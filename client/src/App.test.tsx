@@ -29,7 +29,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /Create MR/i })).toBeInTheDocument();
     expect(screen.getByText(/Acceptance Test Activity/i)).toBeInTheDocument();
     expect(screen.getByText(/MR: Bootstrap AI Project Manager Mindmap/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Mindmap graph view/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Interactive mindmap canvas/i)).toBeInTheDocument();
     expect(screen.getByText(/Reference documents:/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Configure reference documents repository/i })).toBeInTheDocument();
   });

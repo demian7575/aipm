@@ -73,11 +73,15 @@ npm test
 - `PATCH /api/mindmap/reference-repository` – Reference Document 저장소 URL/설명을 업데이트
 - `POST /api/github/webhook` – GitHub MR 이벤트를 받아 새로운 Mindmap 루트를 준비
 
-> Mock API는 인메모리 스냅샷을 사용하므로 서버 재시작 시 초기 상태로 되돌아갑니다.
+### 로컬 실행과 지속성
+
+- Mock API는 인메모리 스냅샷을 사용하므로 **로컬 PC를 끄거나 Node.js 프로세스를 종료하면 서비스가 멈추고 데이터가 초기화**됩니다.
+- 장기적으로 Mindmap 데이터를 유지하려면 서버를 별도 호스트에 배포하거나 데이터베이스(예: SQLite, PostgreSQL)를 연동하도록 확장해야 합니다.
+- 개발 단계에서는 Mock API를 다시 실행하면 초기 샘플 데이터가 로드되며, 프론트엔드는 서버가 내려가 있을 경우 번들된 목 데이터를 사용합니다.
 
 ## 프론트엔드 프로토타입
 
-- 정적 Mindmap 데이터를 기반으로 한 3패널 레이아웃(트리, 상세 패널, 테스트 로그)
+- 중앙 MR을 기준으로 좌우로 가지가 뻗는 **인터랙티브 Mindmap** 캔버스 (React Flow 기반, 드래그 가능)
 - 사용자 스토리 초안 모달에서 INVEST 자동 검증 및 Given/When/Then 검토 지원
 - 인수 테스트 실행 로그 표 시각화 및 상태 배지
 - MR 헤더에서 Reference Document 저장소 URL을 지정·수정할 수 있는 구성 모달 제공
