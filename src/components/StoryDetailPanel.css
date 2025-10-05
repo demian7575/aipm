@@ -1,0 +1,129 @@
+.story-panel {
+  width: 360px;
+  background: rgba(15, 23, 42, 0.82);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  border-left: 1px solid rgba(148, 163, 184, 0.15);
+  overflow-y: auto;
+}
+
+.story-panel__section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.story-panel__header h2,
+.story-panel__header h3,
+.story-panel__header h4 {
+  margin: 0;
+}
+
+.story-panel__header p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.story-panel__template {
+  margin: 0;
+  background: rgba(30, 41, 59, 0.65);
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  line-height: 1.4;
+}
+
+.story-panel__notes {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.story-panel__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.story-panel__tests ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.story-panel__test-card {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(30, 41, 59, 0.65);
+  padding: 0.75rem 1rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.story-panel__test-card header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.story-panel__test-card h5 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.story-panel__test-card dl {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.story-panel__test-card dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.story-panel__test-card dd {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.story-panel__status {
+  width: fit-content;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.story-panel__status--draft {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.story-panel__status--in-progress {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.story-panel__status--passed {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.story-panel__status--blocked {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.story-panel__empty {
+  margin: 0;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.story-panel--empty {
+  opacity: 0.75;
+}

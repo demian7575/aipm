@@ -1,0 +1,45 @@
+.mindmap-canvas {
+  flex: 1;
+  position: relative;
+  background: radial-gradient(circle at center, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.95));
+  border-left: 1px solid rgba(148, 163, 184, 0.1);
+  border-right: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.mindmap-canvas .react-flow__renderer {
+  font-family: inherit;
+  color: inherit;
+}
+
+.mindmap-canvas .react-flow__edge-path {
+  stroke: rgba(148, 163, 184, 0.55);
+  stroke-width: 2px;
+}
+
+.mindmap-canvas .react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 8 8;
+  animation: dash 1.2s linear infinite;
+  stroke: rgba(45, 212, 191, 0.75);
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.mindmap-canvas .react-flow__controls {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.mindmap-canvas .react-flow__minimap {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.mindmap-canvas .react-flow__background {
+  opacity: 0.35;
+}
