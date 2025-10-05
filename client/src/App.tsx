@@ -10,6 +10,7 @@ import { MergeRequestSidebar } from './components/MergeRequestSidebar';
 import { CreateAcceptanceTestModal } from './components/CreateAcceptanceTestModal';
 import { CreateMergeRequestModal } from './components/CreateMergeRequestModal';
 import { ReferenceRepositoryModal } from './components/ReferenceRepositoryModal';
+import { APP_VERSION } from './version';
 
 function App() {
   const { snapshot, isLoading, error, saveReferenceRepository } = useMindmapSnapshot();
@@ -75,6 +76,9 @@ function App() {
     <div className="app">
       <header className="app__header">
         <div>
+          <span className="app__version" aria-label={`Application version ${APP_VERSION}`}>
+            v{APP_VERSION}
+          </span>
           <p className="app__eyebrow">AI Project Manager</p>
           <h1>Mindmap dashboard</h1>
           <p className="app__description">

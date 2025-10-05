@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, vi } from 'vitest';
 import App from './App';
 import { mockMindmap } from './data/mockMindmap';
+import { APP_VERSION } from './version';
 
 const mockResponse = {
   json: async () => mockMindmap,
@@ -23,6 +24,7 @@ describe('App', () => {
     render(<App />);
 
     expect(screen.getByRole('heading', { name: /Mindmap dashboard/i })).toBeInTheDocument();
+    expect(screen.getByText(`v${APP_VERSION}`)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Merge Requests/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Create MR/i })).toBeInTheDocument();
     expect(screen.getByText(/Acceptance Test Activity/i)).toBeInTheDocument();
