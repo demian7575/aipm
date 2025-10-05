@@ -23,11 +23,6 @@ interface MindmapTreeNode {
 
 const RADIUS_STEP = 220;
 
-interface LayoutResult {
-  nodes: Node<MindmapNodeData>[];
-  edges: Edge[];
-}
-
 interface PositionedNode {
   node: MindmapTreeNode;
   depth: number;
@@ -116,30 +111,52 @@ function createAcceptanceNode(test: AcceptanceTest): MindmapTreeNode {
   };
 }
 
+interface EdgeDecoration {
+  tone: string;
+  className: string;
+  animated: boolean;
+}
+
 function collectEdges(node: MindmapTreeNode): Edge[] {
   const edges: Edge[] = [];
   for (const child of node.children) {
-    const tone = resolveEdgeTone(node.kind, child.kind);
+    const decoration = resolveEdgeDecoration(node.kind, child.kind);
     edges.push({
       id: `${node.id}-${child.id}`,
       source: node.id,
       target: child.id,
-      animated: child.kind === 'acceptance',
-      style: { stroke: tone, strokeWidth: 2 }
+      animated: decoration.animated,
+      className: decoration.className,
+      style: { stroke: decoration.tone, strokeWidth: 2 }
     });
     edges.push(...collectEdges(child));
   }
   return edges;
 }
 
-function resolveEdgeTone(parent: MindmapTreeNode['kind'], child: MindmapTreeNode['kind']): string {
+function resolveEdgeDecoration(
+  parent: MindmapTreeNode['kind'],
+  child: MindmapTreeNode['kind']
+): EdgeDecoration {
   if (parent === 'story' && child === 'story') {
-    return '#38bdf8';
+    return {
+      tone: '#38bdf8',
+      className: 'edge-story-hierarchy',
+      animated: false
+    };
   }
   if (child === 'acceptance') {
-    return '#f97316';
+    return {
+      tone: '#f97316',
+      className: 'edge-acceptance-link',
+      animated: true
+    };
   }
-  return '#c084fc';
+  return {
+    tone: '#c084fc',
+    className: 'edge-merge-request',
+    animated: false
+  };
 }
 
 function positionTree(root: MindmapTreeNode): PositionedNode[] {
