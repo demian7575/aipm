@@ -38,6 +38,14 @@ export default function App() {
     dispatch(action);
   }
 
+  const toggleStoryChildren = (storyId: string) => {
+    handleDispatch({ type: 'toggleStoryChildren', storyId });
+  };
+
+  const toggleAcceptanceTests = (storyId: string) => {
+    handleDispatch({ type: 'toggleAcceptanceTests', storyId });
+  };
+
   return (
     <div className="app-shell">
       <header className="app-shell__header">
@@ -77,6 +85,8 @@ export default function App() {
               }
             }
           }}
+          onToggleStoryChildren={toggleStoryChildren}
+          onToggleAcceptanceTests={toggleAcceptanceTests}
         />
         <StoryDetailPanel
           mergeRequest={selectedMergeRequest}
@@ -88,11 +98,11 @@ export default function App() {
           acceptanceCollapsed={acceptanceCollapsed}
           onToggleChildStories={() => {
             if (!selectedStory) return;
-            handleDispatch({ type: 'toggleStoryChildren', storyId: selectedStory.id });
+            toggleStoryChildren(selectedStory.id);
           }}
           onToggleAcceptance={() => {
             if (!selectedStory) return;
-            handleDispatch({ type: 'toggleAcceptanceTests', storyId: selectedStory.id });
+            toggleAcceptanceTests(selectedStory.id);
           }}
         />
       </main>

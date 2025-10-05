@@ -1,5 +1,6 @@
 import type { Edge, Node } from 'reactflow';
 import type { AppState, AcceptanceTest, MergeRequest, UserStory } from '../state/types';
+import type { MindmapNodeData } from '../components/MindmapNode';
 
 interface MindmapTreeNode {
   id: string;
@@ -12,12 +13,18 @@ interface MindmapTreeNode {
     hiddenStoryChildren: number;
     hiddenAcceptanceTests: number;
   };
+  controls?: {
+    storyChildrenCollapsed: boolean;
+    storyChildCount: number;
+    acceptanceCollapsed: boolean;
+    acceptanceCount: number;
+  };
 }
 
 const RADIUS_STEP = 220;
 
 interface LayoutResult {
-  nodes: Node[];
+  nodes: Node<MindmapNodeData>[];
   edges: Edge[];
 }
 
@@ -59,14 +66,17 @@ function buildStoryNode(
   collapsedStoryChildren: Record<string, boolean>,
   collapsedAcceptanceTests: Record<string, boolean>
 ): MindmapTreeNode {
-  const acceptanceChildren = collapsedAcceptanceTests[story.id]
+  const storyChildrenCollapsed = !!collapsedStoryChildren[story.id];
+  const acceptanceCollapsed = !!collapsedAcceptanceTests[story.id];
+
+  const acceptanceChildren = acceptanceCollapsed
     ? []
     : story.acceptanceTestIds
         .map((id) => state.acceptanceTests[id])
         .filter(Boolean)
         .map((test) => createAcceptanceNode(test));
 
-  const storyChildren = collapsedStoryChildren[story.id]
+  const storyChildren = storyChildrenCollapsed
     ? []
     : story.childStoryIds
         .map((id) => state.userStories[id])
@@ -83,8 +93,14 @@ function buildStoryNode(
     referenceId: story.id,
     children: [...storyChildren, ...acceptanceChildren],
     meta: {
-      hiddenStoryChildren: collapsedStoryChildren[story.id] ? story.childStoryIds.length : 0,
-      hiddenAcceptanceTests: collapsedAcceptanceTests[story.id] ? story.acceptanceTestIds.length : 0
+      hiddenStoryChildren: storyChildrenCollapsed ? story.childStoryIds.length : 0,
+      hiddenAcceptanceTests: acceptanceCollapsed ? story.acceptanceTestIds.length : 0
+    },
+    controls: {
+      storyChildrenCollapsed: storyChildrenCollapsed,
+      storyChildCount: story.childStoryIds.length,
+      acceptanceCollapsed: acceptanceCollapsed,
+      acceptanceCount: story.acceptanceTestIds.length
     }
   };
 }
@@ -160,7 +176,7 @@ function positionTree(root: MindmapTreeNode): PositionedNode[] {
   return positioned;
 }
 
-function createFlowNode({ node, depth, angle }: PositionedNode): Node {
+function createFlowNode({ node, depth, angle }: PositionedNode): Node<MindmapNodeData> {
   const radius = depth * RADIUS_STEP;
   const x = radius * Math.cos(angle);
   const y = radius * Math.sin(angle);
@@ -182,7 +198,8 @@ function createFlowNode({ node, depth, angle }: PositionedNode): Node {
       kind: node.kind,
       tone,
       referenceId: node.referenceId,
-      meta: node.meta
+      meta: node.meta,
+      controls: node.controls
     }
   };
 }

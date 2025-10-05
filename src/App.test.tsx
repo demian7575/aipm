@@ -9,5 +9,7 @@ describe('App', () => {
     expect(screen.getByText(/AI Project Manager Workspace/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Create MR/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/AI planning mindmap/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Collapse child stories/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Collapse acceptance tests/i })).toBeInTheDocument();
   });
 });
