@@ -7,6 +7,10 @@ interface StoryDetailPanelProps {
   acceptanceTests: AcceptanceTest[];
   onAttachStory: (parentStoryId: string | null) => void;
   onAttachAcceptance: (storyId: string) => void;
+  childStoriesCollapsed: boolean;
+  acceptanceCollapsed: boolean;
+  onToggleChildStories: () => void;
+  onToggleAcceptance: () => void;
 }
 
 export function StoryDetailPanel({
@@ -14,7 +18,11 @@ export function StoryDetailPanel({
   story,
   acceptanceTests,
   onAttachStory,
-  onAttachAcceptance
+  onAttachAcceptance,
+  childStoriesCollapsed,
+  acceptanceCollapsed,
+  onToggleChildStories,
+  onToggleAcceptance
 }: StoryDetailPanelProps) {
   if (!mergeRequest) {
     return (
@@ -56,11 +64,35 @@ export function StoryDetailPanel({
                 Attach Acceptance Test
               </button>
             </div>
+            <div className="story-panel__toggles">
+              {story.childStoryIds.length > 0 ? (
+                <button
+                  type="button"
+                  className="btn btn--toggle"
+                  onClick={onToggleChildStories}
+                  aria-pressed={!childStoriesCollapsed}
+                >
+                  {childStoriesCollapsed ? 'Expand Child User Stories' : 'Collapse Child User Stories'}
+                </button>
+              ) : null}
+              {story.acceptanceTestIds.length > 0 ? (
+                <button
+                  type="button"
+                  className="btn btn--toggle"
+                  onClick={onToggleAcceptance}
+                  aria-pressed={!acceptanceCollapsed}
+                >
+                  {acceptanceCollapsed ? 'Expand Acceptance Tests' : 'Collapse Acceptance Tests'}
+                </button>
+              ) : null}
+            </div>
           </header>
           <section className="story-panel__tests">
             <h4>Acceptance Tests</h4>
             {acceptanceTests.length === 0 ? (
               <p className="story-panel__empty">No acceptance tests yet. Attach at least one to stay testable.</p>
+            ) : acceptanceCollapsed ? (
+              <p className="story-panel__empty">Acceptance tests are collapsed. Expand to review Given/When/Then coverage.</p>
             ) : (
               <ul>
                 {acceptanceTests.map((test) => (

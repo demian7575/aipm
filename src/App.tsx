@@ -26,6 +26,8 @@ export default function App() {
   const acceptanceTests = selectedStory
     ? selectedStory.acceptanceTestIds.map((id) => state.acceptanceTests[id]).filter(Boolean)
     : [];
+  const childStoriesCollapsed = selectedStory ? !!state.collapsedStoryChildren[selectedStory.id] : false;
+  const acceptanceCollapsed = selectedStory ? !!state.collapsedAcceptanceTests[selectedStory.id] : false;
 
   const { nodes, edges } = useMemo(
     () => buildMindmap(state, selectedMergeRequest),
@@ -82,6 +84,16 @@ export default function App() {
           acceptanceTests={acceptanceTests}
           onAttachStory={(parentStoryId) => setShowStoryModal({ parent: parentStoryId })}
           onAttachAcceptance={(storyId) => setShowAcceptanceModal(storyId)}
+          childStoriesCollapsed={childStoriesCollapsed}
+          acceptanceCollapsed={acceptanceCollapsed}
+          onToggleChildStories={() => {
+            if (!selectedStory) return;
+            handleDispatch({ type: 'toggleStoryChildren', storyId: selectedStory.id });
+          }}
+          onToggleAcceptance={() => {
+            if (!selectedStory) return;
+            handleDispatch({ type: 'toggleAcceptanceTests', storyId: selectedStory.id });
+          }}
         />
       </main>
 

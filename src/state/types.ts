@@ -42,4 +42,6 @@ export interface AppState {
   acceptanceTests: Record<string, AcceptanceTest>;
   selectedMergeRequestId: string | null;
   selectedStoryId: string | null;
+  collapsedStoryChildren: Record<string, boolean>;
+  collapsedAcceptanceTests: Record<string, boolean>;
 }

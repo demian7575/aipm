@@ -45,6 +45,12 @@
   flex-wrap: wrap;
 }
 
+.story-panel__toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .story-panel__tests ul {
   list-style: none;
   margin: 0;

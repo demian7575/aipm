@@ -22,7 +22,9 @@ export type AppAction =
       when: string;
       then: string;
       notes?: string;
-    };
+    }
+  | { type: 'toggleStoryChildren'; storyId: string }
+  | { type: 'toggleAcceptanceTests'; storyId: string };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -123,6 +125,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         acceptanceTests,
         userStories
       };
+    }
+    case 'toggleStoryChildren': {
+      const next = { ...state.collapsedStoryChildren };
+      next[action.storyId] = !next[action.storyId];
+      return { ...state, collapsedStoryChildren: next };
+    }
+    case 'toggleAcceptanceTests': {
+      const next = { ...state.collapsedAcceptanceTests };
+      next[action.storyId] = !next[action.storyId];
+      return { ...state, collapsedAcceptanceTests: next };
     }
     default:
       return state;

@@ -45,6 +45,21 @@
   line-height: 1.3;
 }
 
+.mindmap-node__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+}
+
+.mindmap-node__meta-chip {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .mindmap-node--selected {
   border-color: rgba(129, 140, 248, 0.9);
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.35);

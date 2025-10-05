@@ -8,6 +8,10 @@ interface MindmapTreeNode {
   status: string;
   referenceId: string;
   children: MindmapTreeNode[];
+  meta?: {
+    hiddenStoryChildren: number;
+    hiddenAcceptanceTests: number;
+  };
 }
 
 const RADIUS_STEP = 220;
@@ -37,7 +41,9 @@ export function buildMindmap(state: AppState, mergeRequest: MergeRequest | null)
     children: mergeRequest.storyIds
       .map((storyId) => state.userStories[storyId])
       .filter(Boolean)
-      .map((story) => buildStoryNode(story, state))
+      .map((story) =>
+        buildStoryNode(story, state, state.collapsedStoryChildren, state.collapsedAcceptanceTests)
+      )
   };
 
   const positioned = positionTree(root);
@@ -47,16 +53,27 @@ export function buildMindmap(state: AppState, mergeRequest: MergeRequest | null)
   return { nodes, edges };
 }
 
-function buildStoryNode(story: UserStory, state: AppState): MindmapTreeNode {
-  const acceptanceChildren = story.acceptanceTestIds
-    .map((id) => state.acceptanceTests[id])
-    .filter(Boolean)
-    .map((test) => createAcceptanceNode(test));
+function buildStoryNode(
+  story: UserStory,
+  state: AppState,
+  collapsedStoryChildren: Record<string, boolean>,
+  collapsedAcceptanceTests: Record<string, boolean>
+): MindmapTreeNode {
+  const acceptanceChildren = collapsedAcceptanceTests[story.id]
+    ? []
+    : story.acceptanceTestIds
+        .map((id) => state.acceptanceTests[id])
+        .filter(Boolean)
+        .map((test) => createAcceptanceNode(test));
 
-  const storyChildren = story.childStoryIds
-    .map((id) => state.userStories[id])
-    .filter(Boolean)
-    .map((child) => buildStoryNode(child, state));
+  const storyChildren = collapsedStoryChildren[story.id]
+    ? []
+    : story.childStoryIds
+        .map((id) => state.userStories[id])
+        .filter(Boolean)
+        .map((child) =>
+          buildStoryNode(child, state, collapsedStoryChildren, collapsedAcceptanceTests)
+        );
 
   return {
     id: `story-${story.id}`,
@@ -64,7 +81,11 @@ function buildStoryNode(story: UserStory, state: AppState): MindmapTreeNode {
     label: `${story.asA} / ${story.iWant}`,
     status: story.status,
     referenceId: story.id,
-    children: [...storyChildren, ...acceptanceChildren]
+    children: [...storyChildren, ...acceptanceChildren],
+    meta: {
+      hiddenStoryChildren: collapsedStoryChildren[story.id] ? story.childStoryIds.length : 0,
+      hiddenAcceptanceTests: collapsedAcceptanceTests[story.id] ? story.acceptanceTestIds.length : 0
+    }
   };
 }
 
@@ -82,10 +103,27 @@ function createAcceptanceNode(test: AcceptanceTest): MindmapTreeNode {
 function collectEdges(node: MindmapTreeNode): Edge[] {
   const edges: Edge[] = [];
   for (const child of node.children) {
-    edges.push({ id: `${node.id}-${child.id}`, source: node.id, target: child.id, animated: child.kind === 'acceptance' });
+    const tone = resolveEdgeTone(node.kind, child.kind);
+    edges.push({
+      id: `${node.id}-${child.id}`,
+      source: node.id,
+      target: child.id,
+      animated: child.kind === 'acceptance',
+      style: { stroke: tone, strokeWidth: 2 }
+    });
     edges.push(...collectEdges(child));
   }
   return edges;
+}
+
+function resolveEdgeTone(parent: MindmapTreeNode['kind'], child: MindmapTreeNode['kind']): string {
+  if (parent === 'story' && child === 'story') {
+    return '#38bdf8';
+  }
+  if (child === 'acceptance') {
+    return '#f97316';
+  }
+  return '#c084fc';
 }
 
 function positionTree(root: MindmapTreeNode): PositionedNode[] {
@@ -143,7 +181,8 @@ function createFlowNode({ node, depth, angle }: PositionedNode): Node {
       status: node.status,
       kind: node.kind,
       tone,
-      referenceId: node.referenceId
+      referenceId: node.referenceId,
+      meta: node.meta
     }
   };
 }

@@ -55,5 +55,7 @@ export const initialState: AppState = {
     }
   },
   selectedMergeRequestId: mrId,
-  selectedStoryId: storyRoot
+  selectedStoryId: storyRoot,
+  collapsedStoryChildren: {},
+  collapsedAcceptanceTests: {}
 };
