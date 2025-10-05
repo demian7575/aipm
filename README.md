@@ -88,30 +88,58 @@ npm test
 
 ## GitHub로 변경 사항 푸시하기
 
-모든 개발 내용은 로컬 커밋만으로는 공유되지 않습니다. 원격 저장소로 푸시하려면 다음 절차를 따르세요.
+### Personal Access Token(PAT) 준비
 
-1. **원격(origin) 설정**  
-   아직 원격이 없다면 GitHub에서 빈 저장소를 만든 뒤 URL을 이용해 연결합니다.
+GitHub는 HTTPS Git 푸시에 계정 비밀번호를 허용하지 않으므로 PAT 또는 SSH 인증이 필요합니다. **Settings → Developer settings → Personal access tokens**에서 토큰을 발급하고, 다음 권한을 포함시키세요.
 
+- **Classic PAT**: `repo` 범위 전체
+- **Fine-grained PAT**: 대상 저장소(`demian7575/aipm` 등)를 지정하고 *Repository permissions → Contents: Read and write* 활성화
+
+생성된 토큰은 이후 `git push` 시 비밀번호 대신 입력하거나, 환경 변수에 저장해 자동화 스크립트와 함께 사용할 수 있습니다.
+
+### push-to-github 스크립트 사용
+
+루트 `package.json`에 `npm run push:github` 스크립트를 추가해 두었습니다. 이 스크립트는 다음을 수행합니다.
+
+1. 작업 디렉터리에 남은 변경 사항이 없는지 확인합니다.
+2. 지정된 원격이 없으면 `GITHUB_PUSH_URL` 환경 변수(또는 명령행 인자)로 전달된 URL을 사용해 원격을 추가하거나 갱신합니다.
+3. 현재 체크아웃된 브랜치를 원격에 푸시하며, 업스트림이 없으면 자동으로 `--set-upstream`을 사용합니다.
+
+사용 예시는 다음과 같습니다.
+
+```bash
+# 최초 1회: 토큰을 포함한 URL을 환경 변수로 지정 (세션 종료 시 초기화됨)
+export GITHUB_PUSH_URL="https://<github-username>:<personal-access-token>@github.com/<github-username>/<repo>.git"
+
+# 현재 브랜치를 origin으로 푸시 (기본값 origin, 현재 브랜치)
+npm run push:github
+
+# 원격/브랜치/URL을 명령 인자로 명시하고 싶을 때
+bash scripts/push-to-github.sh upstream main https://github.com/acme/aipm.git
+```
+
+원격이 이미 설정되어 있다면 환경 변수를 지정하지 않아도 됩니다. 단, 토큰이 포함된 URL은 커맨드 히스토리에 남을 수 있으므로 보안에 유의하세요. SSH 키를 사용한다면 `git remote set-url origin git@github.com:<user>/<repo>.git`로 전환한 뒤 `npm run push:github`를 실행하면 됩니다.
+
+### 수동으로 푸시하기
+
+스크립트를 사용하지 않고 직접 푸시하려면 다음 단계를 참고하세요.
+
+1. **원격(origin) 설정**
    ```bash
    git remote add origin https://github.com/<your-account>/<your-repo>.git
    ```
-
    이미 원격이 있다면 `git remote -v`로 설정을 확인할 수 있습니다.
 
-2. **브랜치 푸시**  
-   현재 브랜치(예: `work`)의 커밋을 GitHub로 올립니다.
-
+2. **브랜치 푸시**
    ```bash
    git push -u origin work
    ```
-
    다른 브랜치를 사용 중이라면 `work` 대신 해당 브랜치 이름을 넣어 주세요. 최초 푸시 이후에는 `git push`만 실행하면 됩니다.
 
-3. **Pull Request 생성(선택)**  
+3. **Pull Request 생성(선택)**
    협업 중이라면 GitHub에서 Pull Request를 열어 코드 리뷰와 CI 결과를 공유하세요.
 
-4. **최신 코드 동기화**  
+4. **최신 코드 동기화**
    다른 환경에서 작업을 시작할 때는 `git clone`으로 저장소를 내려받거나, 기존 복사본에서는 `git pull`로 최신 커밋을 가져옵니다.
 
 ## CI 파이프라인
