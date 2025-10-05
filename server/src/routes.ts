@@ -44,18 +44,23 @@ router.post('/mindmap/nodes', (req, res) => {
   }
 
   const { parentId, parentType, asA, iWant, soThat, acceptanceTest } = parseResult.data;
-  const container =
-    parentType === 'mr'
-      ? findMergeRequestById(mindmapSnapshot.mergeRequests, parentId)
-      : findStoryById(mindmapSnapshot.mergeRequests, parentId);
 
-  if (!container) {
-    return res.status(404).json({ status: 'error', message: 'Parent node not found' });
+  const parentMergeRequest =
+    parentType === 'mr' ? findMergeRequestById(mindmapSnapshot.mergeRequests, parentId) : undefined;
+  const parentStory =
+    parentType === 'userStory' ? findStoryById(mindmapSnapshot.mergeRequests, parentId) : undefined;
+
+  if (parentType === 'mr' && !parentMergeRequest) {
+    return res.status(404).json({ status: 'error', message: 'Parent merge request not found' });
+  }
+
+  if (parentType === 'userStory' && !parentStory) {
+    return res.status(404).json({ status: 'error', message: 'Parent user story not found' });
   }
 
   const newStory: UserStoryNode = {
     id: `us-${Date.now()}`,
-    parentId: parentType === 'mr' ? null : container.id,
+    parentId: parentStory ? parentStory.id : null,
     type: 'UserStory',
     title: `${asA} — ${iWant.substring(0, 42)}…`,
     asA,
@@ -79,10 +84,12 @@ router.post('/mindmap/nodes', (req, res) => {
 
   newStory.acceptanceTests.push(newAcceptanceTest);
 
-  if (parentType === 'mr') {
-    container.userStories.push(newStory);
-  } else {
-    container.children.push(newStory);
+  if (parentMergeRequest) {
+    parentMergeRequest.userStories.push(newStory);
+  }
+
+  if (parentStory) {
+    parentStory.children.push(newStory);
   }
 
   return res.status(201).json({ status: 'created', story: newStory, acceptanceTest: newAcceptanceTest });
