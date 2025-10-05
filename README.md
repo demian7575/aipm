@@ -57,6 +57,8 @@ AI Project Manager Mindmap(AIPM)은 Merge Request(MR)를 기반으로 한 계층
 
    위 스크립트는 `git pull` → `npm install` → `npm run build` 순으로 실행한 뒤 프론트엔드와 Mock API 서버를 동시에 구동합니다. Ctrl+C를 누르면 두 프로세스가 함께 종료됩니다.
 
+   > **참고**: 프론트엔드 화면에서 “Falling back to local mock data. Start the mock API to enable live updates.” 메시지가 보인다면 Mock API가 실행되지 않은 상태입니다. 새 터미널에서 `npm run dev:server`를 먼저 실행한 뒤 프론트엔드를 새로고침하면 실시간 데이터가 로드됩니다.
+
 3. 린트 및 테스트
 
    ```bash
