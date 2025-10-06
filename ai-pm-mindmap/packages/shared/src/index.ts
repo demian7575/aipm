@@ -4,9 +4,14 @@ import {
   OpenApiGeneratorV3,
   extendZodWithOpenApi,
 } from '@asteasolutions/zod-to-openapi';
-import type { OpenAPIObject, PathsObject } from 'openapi3-ts';
 
 extendZodWithOpenApi(z);
+
+type GeneratedOpenApiDocument = ReturnType<OpenApiGeneratorV3['generateDocument']>;
+type DocumentPaths = GeneratedOpenApiDocument extends { paths?: infer P }
+  ? P
+  : Record<string, unknown>;
+type NormalizedPaths = DocumentPaths extends undefined ? Record<string, unknown> : DocumentPaths;
 
 export const MergeRequestStatusSchema = z.enum(['open', 'merged', 'closed']);
 export type MergeRequestStatus = z.infer<typeof MergeRequestStatusSchema>;
@@ -251,7 +256,7 @@ export interface OpenApiBuilderOptions {
 export interface OpenApiBuilder {
   registry: OpenAPIRegistry;
   registerSchema<T extends z.ZodTypeAny>(name: string, schema: T): T;
-  build(paths: PathsObject): OpenAPIObject;
+  build(paths: NormalizedPaths): GeneratedOpenApiDocument;
 }
 
 export const createOpenApiBuilder = (
@@ -264,7 +269,7 @@ export const createOpenApiBuilder = (
     return schema;
   };
 
-  const build = (paths: PathsObject): OpenAPIObject => {
+  const build = (paths: NormalizedPaths): GeneratedOpenApiDocument => {
     const generator = new OpenApiGeneratorV3(registry.definitions);
     const document = generator.generateDocument({
       openapi: '3.0.3',
@@ -275,8 +280,7 @@ export const createOpenApiBuilder = (
           options.description ?? 'OpenAPI specification generated from shared schemas and routes.',
       },
     });
-    document.paths = paths;
-    return document;
+    return { ...document, paths } as GeneratedOpenApiDocument;
   };
 
   return {
