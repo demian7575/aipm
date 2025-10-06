@@ -42,11 +42,16 @@ Follow these commands in order when you need a production build and locally host
    pnpm build
    ```
 
-3. Serve the compiled frontend assets. In a separate terminal you can start the backend API if needed:
+3. Start the compiled backend API (terminal #1):
+
+   ```bash
+   pnpm --filter backend start
+   ```
+
+4. Serve the compiled frontend assets in another terminal:
 
    ```bash
    pnpm preview
-   pnpm --filter backend start   # optional: run API alongside the preview server
    ```
 
 ## Testing & Quality
