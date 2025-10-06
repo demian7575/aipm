@@ -4,7 +4,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "pnpm exec tsx watch src/server.ts",
     "build": "tsup src/server.ts --format esm,cjs --dts --out-dir dist",
     "start": "node dist/server.js",
     "test": "vitest run",
