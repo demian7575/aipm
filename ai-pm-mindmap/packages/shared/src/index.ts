@@ -3,7 +3,7 @@ import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
   extendZodWithOpenApi,
-} from 'zod-to-openapi';
+} from '@asteasolutions/zod-to-openapi';
 
 extendZodWithOpenApi(z);
 
