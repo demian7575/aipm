@@ -135,7 +135,9 @@ export const evaluateInvest = (
     context.children.length <= config.maxChildren;
   const testable = context.tests.length > 0;
 
-  const entries: [keyof Omit<InvestResult, 'summary'>, boolean, string][] = [
+  type InvestKey = keyof Omit<InvestResult, 'summary'>;
+
+  const entries: [InvestKey, boolean, string][] = [
     [
       'independent',
       independent,
@@ -178,15 +180,22 @@ export const evaluateInvest = (
     ],
   ];
 
-  const result = Object.fromEntries(
-    entries.map(([key, satisfied, message]) => [key, { satisfied, message }]),
-  ) as InvestResult;
+  const dimensions = entries.reduce<Record<InvestKey, InvestResultEntry>>(
+    (acc, [key, satisfied, message]) => {
+      acc[key] = { satisfied, message };
+      return acc;
+    },
+    {} as Record<InvestKey, InvestResultEntry>,
+  );
 
   const score = entries.filter(([, satisfied]) => satisfied).length;
 
-  result.summary = {
-    score,
-    total: entries.length,
+  const result: InvestResult = {
+    ...dimensions,
+    summary: {
+      score,
+      total: entries.length,
+    },
   };
 
   return result;
@@ -248,7 +257,7 @@ export const createOpenApiBuilder = (options: OpenApiBuilderOptions = {}) => {
 
   const build = (paths: Record<string, any>) => {
     const generator = new OpenApiGeneratorV3(registry.definitions);
-    return generator.generateDocument({
+    const document = generator.generateDocument({
       openapi: '3.0.3',
       info: {
         title: options.title ?? 'AI PM Mindmap API',
@@ -256,8 +265,9 @@ export const createOpenApiBuilder = (options: OpenApiBuilderOptions = {}) => {
         description:
           options.description ?? 'OpenAPI specification generated from shared schemas and routes.',
       },
-      paths,
     });
+    document.paths = paths;
+    return document;
   };
 
   return {
@@ -266,12 +276,6 @@ export const createOpenApiBuilder = (options: OpenApiBuilderOptions = {}) => {
     build,
   };
 };
-
-export interface ErrorResponse {
-  code: string;
-  message: string;
-  details?: unknown;
-}
 
 export const ErrorResponseSchema = z.object({
   code: z.string(),
