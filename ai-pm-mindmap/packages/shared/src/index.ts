@@ -4,6 +4,7 @@ import {
   OpenApiGeneratorV3,
   extendZodWithOpenApi,
 } from '@asteasolutions/zod-to-openapi';
+import type { OpenAPIObject } from 'openapi3-ts/oas30';
 
 extendZodWithOpenApi(z);
 
@@ -255,7 +256,7 @@ export const createOpenApiBuilder = (options: OpenApiBuilderOptions = {}) => {
     return schema;
   };
 
-  const build = (paths: Record<string, any>) => {
+  const build = (paths: OpenAPIObject['paths']): OpenAPIObject => {
     const generator = new OpenApiGeneratorV3(registry.definitions);
     const document = generator.generateDocument({
       openapi: '3.0.3',
