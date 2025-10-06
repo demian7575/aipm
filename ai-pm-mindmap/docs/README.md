@@ -26,6 +26,29 @@ pnpm dev
 
 Backend will run on `http://localhost:3333` and frontend on `http://localhost:5173`.
 
+## Build & Run Sequence
+
+Follow these commands in order when you need a production build and locally hosted preview:
+
+1. Install dependencies (only required once or after dependency updates):
+
+   ```bash
+   pnpm install
+   ```
+
+2. Build all workspaces (shared, backend, frontend):
+
+   ```bash
+   pnpm build
+   ```
+
+3. Serve the compiled frontend assets. In a separate terminal you can start the backend API if needed:
+
+   ```bash
+   pnpm preview
+   pnpm --filter backend start   # optional: run API alongside the preview server
+   ```
+
 ## Testing & Quality
 
 ```bash

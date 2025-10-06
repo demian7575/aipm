@@ -10,12 +10,26 @@ This repository hosts the full-stack AI PM Mindmap workspace with a Vite + React
 
 ## Quick Start
 
-```bash
-pnpm install
-pnpm dev
-```
+1. Install dependencies from the monorepo root:
 
-The command starts both backend (`3333`) and frontend (`5173`) servers concurrently.
+   ```bash
+   pnpm install
+   ```
+
+2. For live development, run the combined dev server (starts backend on `3333` and frontend on `5173`):
+
+   ```bash
+   pnpm dev
+   ```
+
+3. To build production bundles and run them locally, execute:
+
+   ```bash
+   pnpm build
+   pnpm preview
+   ```
+
+   `pnpm build` compiles the shared package followed by backend and frontend apps. `pnpm preview` serves the built frontend while the backend can be started with `pnpm --filter backend start` if you need the API separately.
 
 ## Testing & Quality
 
