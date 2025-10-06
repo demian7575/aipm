@@ -30,7 +30,7 @@ Backend will run on `http://localhost:3333` and frontend on `http://localhost:51
 
 Need only the API while testing or integrating another client? From the repo root you can:
 
-- **Development:** `pnpm --filter backend dev` – runs the Express server with hot reload on port `3333`.
+- **Development:** `pnpm --filter backend dev` – runs the Express server with `tsx` hot reload on port `3333`.
 - **Production:** `pnpm --filter backend start` – executes the compiled server from `apps/backend/dist` on port `3333` (run `pnpm build` first).
 
 ## Build & Run Sequence
