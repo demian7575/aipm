@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Backend integration tests
+        run: pnpm --filter @ai-pm-mindmap/backend test:integration
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Bundle size guard
+        run: node tools/bundle-check.cjs
+
+      - name: Install Playwright Browsers
+        run: pnpm --filter @ai-pm-mindmap/frontend exec playwright install --with-deps
+
+      - name: E2E smoke tests
+        env:
+          CI: true
+        run: pnpm e2e
+
+      - name: Generate OpenAPI
+        run: pnpm generate:openapi
+
+      - name: Upload OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: docs/openapi.json
