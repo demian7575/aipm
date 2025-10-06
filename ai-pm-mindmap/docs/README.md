@@ -9,6 +9,9 @@ This monorepo contains a lightweight backend API, a React Vite frontend, and sha
 
 ## Setup
 
+Ensure you are at the monorepo root (the folder containing `package.json`) before installing dependencies. If you cloned into a
+parent workspace, `cd ai-pm-mindmap` first.
+
 ```bash
 pnpm install
 ```
