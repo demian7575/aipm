@@ -4,7 +4,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only --esm src/server.ts",
     "build": "tsup src/server.ts --format esm,cjs --dts --out-dir dist",
     "start": "node dist/server.js",
     "test": "vitest run",
