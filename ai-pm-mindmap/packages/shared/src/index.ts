@@ -248,7 +248,15 @@ export interface OpenApiBuilderOptions {
   description?: string;
 }
 
-export const createOpenApiBuilder = (options: OpenApiBuilderOptions = {}) => {
+export interface OpenApiBuilder {
+  registry: OpenAPIRegistry;
+  registerSchema<T extends z.ZodTypeAny>(name: string, schema: T): T;
+  build(paths: OpenAPIObject['paths']): OpenAPIObject;
+}
+
+export const createOpenApiBuilder = (
+  options: OpenApiBuilderOptions = {},
+): OpenApiBuilder => {
   const registry = new OpenAPIRegistry();
 
   const registerSchema = <T extends z.ZodTypeAny>(name: string, schema: T) => {
