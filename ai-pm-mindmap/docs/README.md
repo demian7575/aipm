@@ -83,10 +83,18 @@ The command resets the in-memory data set with sample merge requests, stories, a
    git remote add origin https://github.com/<org>/<repo>.git
    ```
 
-5. Push your branch to GitHub:
+5. Pull the latest commits from GitHub before pushing (avoids conflicts):
+
+   ```bash
+   git pull --rebase origin <branch-name>
+   ```
+
+   For example, if you are working on `main`, run `git pull --rebase origin main`.
+
+6. Push your branch to GitHub:
 
    ```bash
    git push -u origin <branch-name>
    ```
 
-If the branch already exists remotely, you can simply run `git push`. When collaborating, pull the latest commits before pushing by running `git pull --rebase origin <branch-name>`.
+If the branch already exists remotely, you can simply run `git push`. When collaborating, pulling with `--rebase` keeps your history linear while incorporating remote updates.
