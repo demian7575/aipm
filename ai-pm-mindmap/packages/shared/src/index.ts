@@ -7,11 +7,20 @@ import {
 
 extendZodWithOpenApi(z);
 
-type GeneratedOpenApiDocument = ReturnType<OpenApiGeneratorV3['generateDocument']>;
-type DocumentPaths = GeneratedOpenApiDocument extends { paths?: infer P }
-  ? P
-  : Record<string, unknown>;
-type NormalizedPaths = DocumentPaths extends undefined ? Record<string, unknown> : DocumentPaths;
+export type NormalizedPaths = Record<string, unknown>;
+
+export interface GeneratedOpenApiDocument {
+  openapi: string;
+  info: {
+    title: string;
+    version: string;
+    description?: string;
+    [key: string]: unknown;
+  };
+  paths: NormalizedPaths;
+  components?: Record<string, unknown>;
+  [key: string]: unknown;
+}
 
 export const MergeRequestStatusSchema = z.enum(['open', 'merged', 'closed']);
 export type MergeRequestStatus = z.infer<typeof MergeRequestStatusSchema>;
@@ -280,7 +289,10 @@ export const createOpenApiBuilder = (
           options.description ?? 'OpenAPI specification generated from shared schemas and routes.',
       },
     });
-    return { ...document, paths } as GeneratedOpenApiDocument;
+    return {
+      ...document,
+      paths,
+    } as GeneratedOpenApiDocument;
   };
 
   return {

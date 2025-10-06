@@ -5,8 +5,12 @@ import {
   UserStorySchema,
   createOpenApiBuilder,
 } from '@ai-pm-mindmap/shared';
+import type {
+  GeneratedOpenApiDocument,
+  NormalizedPaths,
+} from '@ai-pm-mindmap/shared';
 
-export const buildOpenApiDocument = () => {
+export const buildOpenApiDocument = (): GeneratedOpenApiDocument => {
   const builder = createOpenApiBuilder({
     title: 'AI PM Mindmap API',
     version: '1.0.0',
@@ -19,7 +23,7 @@ export const buildOpenApiDocument = () => {
   builder.registerSchema('AcceptanceTest', AcceptanceTestSchema);
   builder.registerSchema('ErrorResponse', ErrorResponseSchema);
 
-  const paths = {
+  const paths: NormalizedPaths = {
     '/api/merge-requests': {
       get: {
         summary: 'List merge requests',
