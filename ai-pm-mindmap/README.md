@@ -48,7 +48,7 @@ Run steps 3 and 4 in separate terminals so the API and preview server stay activ
 
 Need just the backend? Use one of the following commands from the repository root:
 
-- **Development (hot reload):** `pnpm --filter backend dev` – runs the Express API via Node's native watcher with `ts-node`, providing fast TypeScript reloads on port `3333`.
+- **Development (hot reload):** `pnpm --filter backend dev` – runs the Express API with `ts-node-dev`, providing fast TypeScript reloads on port `3333`.
 - **Production (after build):** `pnpm --filter backend start` – runs the compiled output from `apps/backend/dist` on port `3333`.
 
 If this is your first time running the backend in isolation, ensure the shared package has been built with `pnpm --filter shared build` or run the full `pnpm build` first.
