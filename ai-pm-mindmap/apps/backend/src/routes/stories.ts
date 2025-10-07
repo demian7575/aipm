@@ -4,7 +4,7 @@ import {
   UserStorySchema,
   UserStoryStatusSchema,
 } from '@ai-pm-mindmap/shared';
-import { store } from '../repositories/state';
+import { store } from '../repositories/state.js';
 
 const router = Router();
 

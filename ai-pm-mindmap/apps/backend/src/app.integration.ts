@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { describe, expect, it, beforeEach } from 'vitest';
-import { createApp } from './app';
-import { store } from './repositories/state';
+import { createApp } from './app.js';
+import { store } from './repositories/state.js';
 
 const app = createApp();
 

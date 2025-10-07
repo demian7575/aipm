@@ -10,7 +10,7 @@ import {
   evaluateInvest,
   analyzeStoryAmbiguity,
 } from '@ai-pm-mindmap/shared';
-import { createSeedState } from '../seed/data';
+import { createSeedState } from '../seed/data.js';
 
 export interface AppState {
   mergeRequests: MergeRequest[];

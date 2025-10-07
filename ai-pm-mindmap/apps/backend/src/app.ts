@@ -2,12 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import pinoHttp from 'pino-http';
 import { randomUUID } from 'crypto';
-import { router as mergeRequestRouter } from './routes/mergeRequests';
-import { router as storyRouter } from './routes/stories';
-import { router as testRouter } from './routes/tests';
-import { router as stateRouter } from './routes/state';
-import { router as docsRouter } from './routes/docs';
-import logger from './utils/logger';
+import { router as mergeRequestRouter } from './routes/mergeRequests.js';
+import { router as storyRouter } from './routes/stories.js';
+import { router as testRouter } from './routes/tests.js';
+import { router as stateRouter } from './routes/state.js';
+import { router as docsRouter } from './routes/docs.js';
+import logger from './utils/logger.js';
 
 export const createApp = () => {
   const app = express();

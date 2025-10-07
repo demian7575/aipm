@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { store } from '../repositories/state';
+import { store } from '../repositories/state.js';
 
 const router = Router();
 

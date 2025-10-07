@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { InMemoryStore, DEFAULT_DEPTH_LIMIT } from './state';
+import { InMemoryStore, DEFAULT_DEPTH_LIMIT } from './state.js';
 
 let store: InMemoryStore;
 

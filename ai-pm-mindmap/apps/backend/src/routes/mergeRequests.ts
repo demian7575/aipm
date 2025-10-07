@@ -4,7 +4,7 @@ import {
   MergeRequestStatusSchema,
   MergeRequest,
 } from '@ai-pm-mindmap/shared';
-import { store } from '../repositories/state';
+import { store } from '../repositories/state.js';
 import { z } from 'zod';
 
 const router = Router();
