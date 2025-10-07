@@ -4,7 +4,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "node --watch --loader ts-node/esm --experimental-specifier-resolution=node src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsup src/server.ts --format esm,cjs --dts --out-dir dist",
     "start": "node dist/server.js",
     "test": "vitest run",
@@ -29,6 +29,7 @@
     "@types/uuid": "9.0.7",
     "supertest": "6.3.4",
     "ts-node": "10.9.2",
+    "tsx": "4.7.3",
     "tsup": "7.2.0",
     "typescript": "5.4.2",
     "vitest": "1.4.0"
