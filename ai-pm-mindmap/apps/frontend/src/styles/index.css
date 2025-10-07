@@ -68,13 +68,44 @@ main {
 .root-column {
   position: relative;
   padding-right: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
 
-.root-column::after {
+.tree-toolbar {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tree-toolbar button {
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: #1f2933;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.tree-toolbar button:hover,
+.tree-toolbar button:focus-visible {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.root-card-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.root-card-wrapper::after {
   content: '';
   position: absolute;
   top: 1.25rem;
-  right: 0;
+  right: -1.25rem;
   width: 1.25rem;
   height: 2px;
   background: #cbd5f5;

@@ -36,6 +36,15 @@ export function OutlineTree({ onPersistExpansion }: OutlineTreeProps) {
   });
 
   const nodes = useMemo(() => tree, [tree]);
+  const allStoryIds = useMemo(() => {
+    const ids: string[] = [];
+    const walk = (node: TreeNode) => {
+      ids.push(node.id);
+      node.children.forEach(walk);
+    };
+    nodes.forEach(walk);
+    return ids;
+  }, [nodes]);
   const testsByStory = useMemo(() => {
     const map = new Map<string, AcceptanceTest[]>();
     tests.forEach((test) => {
@@ -84,28 +93,65 @@ export function OutlineTree({ onPersistExpansion }: OutlineTreeProps) {
     onPersistExpansion?.(clone);
   };
 
+  const handleExpandAll = () => {
+    const clone: Record<string, boolean> = { ...expanded };
+    if (rootKey) {
+      clone[rootKey] = true;
+    }
+    allStoryIds.forEach((id) => {
+      clone[id] = true;
+    });
+    setExpanded(clone);
+    onPersistExpansion?.(clone);
+  };
+
+  const handleCollapseAll = () => {
+    const clone: Record<string, boolean> = { ...expanded };
+    if (rootKey) {
+      clone[rootKey] = false;
+    }
+    allStoryIds.forEach((id) => {
+      clone[id] = false;
+    });
+    setExpanded(clone);
+    onPersistExpansion?.(clone);
+  };
+
   const hasStories = nodes.length > 0;
+  const toolbar = selectedMr ? (
+    <div className="tree-toolbar">
+      <button type="button" onClick={handleExpandAll} aria-label="Expand all nodes">
+        Expand all
+      </button>
+      <button type="button" onClick={handleCollapseAll} aria-label="Collapse all nodes">
+        Collapse all
+      </button>
+    </div>
+  ) : null;
+
   const rootCard = selectedMr ? (
-    <div className="story-node root-node" aria-hidden>
-      {hasStories ? (
-        <button
-          type="button"
-          className="toggle"
-          aria-label={rootExpanded ? 'Collapse stories' : 'Expand stories'}
-          onClick={(event) => {
-            event.stopPropagation();
-            handleRootToggle(event.shiftKey);
-          }}
-        >
-          {rootExpanded ? '▾' : '▸'}
-        </button>
-      ) : (
-        <span className="node-spacer" aria-hidden />
-      )}
-      <span className="node-chip root">MR</span>
-      <div className="node-content">
-        <div className="node-title">{selectedMr.title}</div>
-        <div className="node-subtitle">{selectedMr.id}</div>
+    <div className="root-card-wrapper">
+      <div className="story-node root-node" aria-hidden>
+        {hasStories ? (
+          <button
+            type="button"
+            className="toggle"
+            aria-label={rootExpanded ? 'Collapse stories' : 'Expand stories'}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleRootToggle(event.shiftKey);
+            }}
+          >
+            {rootExpanded ? '▾' : '▸'}
+          </button>
+        ) : (
+          <span className="node-spacer" aria-hidden />
+        )}
+        <span className="node-chip root">MR</span>
+        <div className="node-content">
+          <div className="node-title">{selectedMr.title}</div>
+          <div className="node-subtitle">{selectedMr.id}</div>
+        </div>
       </div>
     </div>
   ) : null;
@@ -117,14 +163,20 @@ export function OutlineTree({ onPersistExpansion }: OutlineTreeProps) {
           <div className="empty-state">No merge request selected</div>
         ) : !hasStories ? (
           <div className="tree-layout">
-            <div className="root-column">{rootCard}</div>
+            <div className="root-column">
+              {toolbar}
+              {rootCard}
+            </div>
             <div className="branches-column empty">
               <div className="empty-state">No stories yet</div>
             </div>
           </div>
         ) : (
           <div className="tree-layout">
-            <div className="root-column">{rootCard}</div>
+            <div className="root-column">
+              {toolbar}
+              {rootCard}
+            </div>
             <div className={clsx('branches-column', { collapsed: !rootExpanded })}>
               {rootExpanded && (
                 <ul
