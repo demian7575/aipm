@@ -1,0 +1,39 @@
+{
+  "name": "ai-pm-mindmap",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AI PM Mindmap monorepo",
+  "scripts": {
+    "build": "npm run build -w apps/backend && npm run build -w apps/frontend",
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm run dev -w apps/backend",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "lint": "npm run lint -w apps/backend && npm run lint -w apps/frontend && npm run lint -w packages/shared",
+    "test": "npm run test -w packages/shared && npm run test -w apps/backend && npm run test -w apps/frontend",
+    "test:unit": "npm run test:unit -w packages/shared && npm run test:unit -w apps/backend && npm run test:unit -w apps/frontend",
+    "test:integration": "npm run test:integration -w apps/backend && npm run test:integration -w apps/frontend",
+    "e2e": "npm run e2e -w apps/frontend",
+    "format": "prettier --write .",
+    "generate:openapi": "npm run generate:openapi -w apps/backend",
+    "seed": "npm run seed -w apps/backend",
+    "bundle:check": "node ./scripts/check-bundle-size.js",
+    "prepare": "husky install"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "20.12.7",
+    "concurrently": "8.2.2",
+    "eslint": "9.1.0",
+    "eslint-config-prettier": "9.1.0",
+    "husky": "9.0.11",
+    "lint-staged": "15.2.2",
+    "prettier": "3.2.5",
+    "typescript": "5.4.5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,css}": "prettier --write"
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "mergeRequests": [
+    {
+      "id": "mr-1",
+      "title": "Improve onboarding journey",
+      "description": "Streamline the onboarding flow for new teams.",
+      "repository": "ai/mindmap",
+      "branch": "feature/onboarding",
+      "status": "open",
+      "drift": false,
+      "lastSyncAt": "2024-03-01T10:00:00.000Z",
+      "createdAt": "2024-02-27T10:00:00.000Z",
+      "updatedAt": "2024-03-01T10:00:00.000Z"
+    }
+  ],
+  "stories": [
+    {
+      "id": "story-1",
+      "mrId": "mr-1",
+      "parentId": null,
+      "title": "As an admin I want to invite teammates so that we can collaborate",
+      "role": "As an admin",
+      "action": "I want to invite teammates",
+      "reason": "So that we can collaborate",
+      "gwt": {
+        "given": "Given I am on the workspace settings page",
+        "when": "When I send an invitation",
+        "then": "Then the teammate receives an email within 2 minutes"
+      },
+      "estimateDays": 1,
+      "status": "ready",
+      "depth": 0,
+      "order": 0,
+      "createdAt": "2024-03-01T10:00:00.000Z",
+      "updatedAt": "2024-03-01T10:00:00.000Z"
+    },
+    {
+      "id": "story-2",
+      "mrId": "mr-1",
+      "parentId": "story-1",
+      "title": "As a teammate I want to accept invites fast",
+      "role": "As a teammate",
+      "action": "I want to accept invites quickly",
+      "reason": "So that I can join",
+      "gwt": {
+        "given": "Given I open the invite email",
+        "when": "When I click the link",
+        "then": "Then I should access the app smoothly"
+      },
+      "estimateDays": 3,
+      "status": "draft",
+      "depth": 1,
+      "order": 0,
+      "createdAt": "2024-03-01T10:10:00.000Z",
+      "updatedAt": "2024-03-01T10:10:00.000Z"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test-1",
+      "storyId": "story-1",
+      "title": "Invitation email contains workspace link",
+      "steps": [
+        "Open admin dashboard",
+        "Send invite",
+        "Check that email is delivered with link"
+      ],
+      "status": "passing",
+      "createdAt": "2024-03-01T10:30:00.000Z",
+      "updatedAt": "2024-03-01T10:30:00.000Z"
+    },
+    {
+      "id": "test-2",
+      "storyId": "story-2",
+      "title": "Teammate can create password quickly",
+      "steps": [
+        "Open invite email",
+        "Click acceptance link",
+        "Complete signup maybe later"
+      ],
+      "status": "failing",
+      "createdAt": "2024-03-01T11:00:00.000Z",
+      "updatedAt": "2024-03-01T11:00:00.000Z"
+    },
+    {
+      "id": "test-3",
+      "storyId": "story-2",
+      "title": "Teammate sees success screen",
+      "steps": [
+        "Click invite",
+        "Set password",
+        "See success screen within 10 seconds"
+      ],
+      "status": "pending",
+      "createdAt": "2024-03-01T11:05:00.000Z",
+      "updatedAt": "2024-03-01T11:05:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI PM Mindmap API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "http://localhost:4000" }
+  ],
+  "paths": {
+    "/api/merge-requests": {
+      "get": {
+        "operationId": "listMergeRequests",
+        "summary": "List merge requests",
+        "responses": {
+          "200": {
+            "description": "List merge requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MergeRequest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stories": {
+      "get": {
+        "operationId": "listStories",
+        "summary": "List user stories",
+        "responses": {
+          "200": {
+            "description": "List user stories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserStory"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tests": {
+      "get": {
+        "operationId": "listTests",
+        "summary": "List acceptance tests",
+        "responses": {
+          "200": {
+            "description": "List acceptance tests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AcceptanceTest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MergeRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "repository",
+          "branch",
+          "status",
+          "drift",
+          "lastSyncAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "repository": { "type": "string" },
+          "branch": { "type": "string" },
+          "status": { "type": "string", "enum": ["open", "review", "merged", "closed"] },
+          "drift": { "type": "boolean" },
+          "lastSyncAt": { "type": "string", "format": "date-time", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UserStory": {
+        "type": "object",
+        "required": [
+          "id",
+          "mrId",
+          "parentId",
+          "title",
+          "role",
+          "action",
+          "reason",
+          "gwt",
+          "status",
+          "depth",
+          "order",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "mrId": { "type": "string" },
+          "parentId": { "type": "string", "nullable": true },
+          "title": { "type": "string" },
+          "role": { "type": "string" },
+          "action": { "type": "string" },
+          "reason": { "type": "string" },
+          "gwt": {
+            "type": "object",
+            "required": ["given", "when", "then"],
+            "properties": {
+              "given": { "type": "string" },
+              "when": { "type": "string" },
+              "then": { "type": "string" }
+            }
+          },
+          "estimateDays": { "type": "number", "nullable": true },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "ready", "in-progress", "blocked", "done"]
+          },
+          "depth": { "type": "integer" },
+          "order": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AcceptanceTest": {
+        "type": "object",
+        "required": ["id", "storyId", "title", "steps", "status", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "storyId": { "type": "string" },
+          "title": { "type": "string" },
+          "steps": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["pending", "failing", "passing"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm install
+      - name: Lint
+        run: npm run lint
+      - name: Unit and integration tests
+        run: npm run test
+      - name: Build packages
+        run: npm run build
+      - name: Bundle size guard
+        run: npm run bundle:check
+      - name: Generate OpenAPI
+        run: npm run generate:openapi
+      - name: Upload OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: docs/openapi.json
+      - name: Start backend
+        run: npm run dev:backend &
+      - name: Start frontend
+        run: npm run dev:frontend &
+      - name: Wait for services
+        run: |
+          npx wait-on http://127.0.0.1:4000/api/state http://127.0.0.1:5173
+      - name: Playwright install browsers
+        run: npx playwright install --with-deps
+      - name: E2E smoke test
+        run: npm run e2e
+      - name: Kill servers
+        if: always()
+        run: |
+          pkill -f "ts-node-dev" || true
+          pkill -f "vite" || true

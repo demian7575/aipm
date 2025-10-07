@@ -1,0 +1,25 @@
+{
+  "name": "@ai-pm-mindmap/shared",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/index.ts --dts",
+    "dev": "tsup src/index.ts --watch",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "zod": "3.23.8",
+    "zod-to-openapi": "6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.12.7",
+    "tsup": "8.0.2",
+    "typescript": "5.4.5",
+    "vitest": "1.5.0"
+  }
+}
