@@ -4,8 +4,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    include: ['tests/**/*.test.ts'],
     coverage: {
-      reporter: ['text', 'json', 'html']
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      reportsDirectory: '../../coverage/backend'
     }
   }
 });

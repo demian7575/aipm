@@ -1,31 +1,67 @@
-import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import OutlineTree from '../components/OutlineTree';
-import { AcceptanceTest, UserStory } from '@ai-pm-mindmap/shared';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { OutlineTree } from '../components/OutlineTree';
+import { useStoryStore } from '../store/useStoryStore';
+
+const mockTree = [
+  {
+    id: 's1',
+    title: 'Root story',
+    parentId: null,
+    depth: 0,
+    order: 0,
+    mrId: 'mr',
+    role: 'As a user',
+    action: 'I want to see',
+    reason: 'So that I know',
+    gwt: { given: 'Given', when: 'When', then: 'Then response in 2 seconds' },
+    estimateDays: 1,
+    status: 'draft',
+    createdAt: '',
+    updatedAt: '',
+    children: [
+      {
+        id: 's2',
+        title: 'Child story',
+        parentId: 's1',
+        depth: 1,
+        order: 0,
+        mrId: 'mr',
+        role: 'As a user',
+        action: 'I want to test',
+        reason: 'So that I know',
+        gwt: { given: 'Given', when: 'When', then: 'Then response in 2 seconds' },
+        estimateDays: 1,
+        status: 'draft',
+        createdAt: '',
+        updatedAt: '',
+        children: []
+      }
+    ]
+  }
+];
 
 describe('OutlineTree', () => {
-  const stories: UserStory[] = [
-    {
-      id: 'story-1',
-      mrId: 'mr-1',
-      parentId: null,
-      title: 'As a user I want things fast',
-      role: 'As a user',
-      action: 'I want to do things fast',
-      reason: 'So that I am happy',
-      gwt: { given: 'Given context', when: 'When action', then: 'Then result in 5 seconds' },
-      estimateDays: 1,
-      status: 'draft',
-      depth: 0,
-      order: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ];
-  const tests: AcceptanceTest[] = [];
+  beforeEach(() => {
+    useStoryStore.setState((state) => ({
+      ...state,
+      tree: mockTree as any,
+      expanded: { s1: true } as Record<string, boolean>,
+      selectStory: vi.fn() as any,
+      toggleExpanded: vi.fn() as any
+    }));
+  });
 
-  it('renders tree role', () => {
-    render(<OutlineTree stories={stories} tests={tests} />);
-    expect(screen.getByRole('tree')).toBeInTheDocument();
+  it('renders nodes', () => {
+    render(<OutlineTree />);
+    expect(screen.getByText('Root story')).toBeInTheDocument();
+    expect(screen.getByText('Child story')).toBeInTheDocument();
+  });
+
+  it('handles keyboard navigation', () => {
+    render(<OutlineTree />);
+    const tree = screen.getByRole('tree');
+    fireEvent.keyDown(tree, { key: 'ArrowRight' });
+    expect(useStoryStore.getState().toggleExpanded).toHaveBeenCalled();
   });
 });

@@ -1,8 +1,8 @@
-import { writeFileSync } from 'fs';
-import { resolve } from 'path';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { buildOpenApiDocument } from '@ai-pm-mindmap/shared';
 
-const document = buildOpenApiDocument({ title: 'AI PM Mindmap API', version: '1.0.0' });
-const target = resolve(process.cwd(), '..', '..', 'docs', 'openapi.json');
-writeFileSync(target, JSON.stringify(document, null, 2));
-console.log(`OpenAPI document written to ${target}`);
+const openapi = buildOpenApiDocument();
+const outputPath = join(process.cwd(), 'docs', 'openapi.json');
+writeFileSync(outputPath, JSON.stringify(openapi, null, 2));
+console.log('OpenAPI spec generated at', outputPath);

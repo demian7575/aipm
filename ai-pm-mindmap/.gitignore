@@ -1,9 +1,15 @@
 node_modules
 pnpm-lock.yaml
-dist
+yarn.lock
+package-lock.json
+.DS_Store
 coverage
+dist
+build
 apps/frontend/dist
 apps/backend/dist
-.DS_Store
-.idea
-.vscode
+
+# Playwright
+playwright-report
+
+.env

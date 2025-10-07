@@ -1,25 +1,217 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 :root {
   color-scheme: light dark;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  background: #0f172a;
-  color: #f8fafc;
+  background: #f5f7fb;
+  color: #1f2933;
 }
 
 a {
   color: inherit;
 }
 
-button:focus-visible,
-[role='treeitem']:focus-visible {
-  outline: 2px solid #38bdf8;
-  outline-offset: 2px;
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #111827;
+  color: white;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 320px 1fr 320px;
+  gap: 1rem;
+  padding: 1rem 1.5rem 2rem;
+}
+
+.panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.tree-container {
+  height: calc(100vh - 160px);
+  overflow: auto;
+}
+
+button {
+  font: inherit;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  background: #e5e7eb;
+  color: #1f2933;
+}
+
+.badge.warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.switch {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding: 0.25rem;
+}
+
+.switch button {
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0.75rem;
+  color: white;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+.switch button.active {
+  background: white;
+  color: #111827;
+  font-weight: 600;
+}
+
+.mindmap-canvas {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 200px);
+}
+
+.mindmap-node {
+  position: absolute;
+  background: white;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  text-align: center;
+}
+
+.mindmap-node.selected {
+  transform: scale(1.05);
+  border: 2px solid #2563eb;
+}
+
+ul.story-tree {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.story-node {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+}
+
+.story-node button.toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+}
+
+.story-node.focused {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.story-node .title {
+  flex: 1;
+  text-align: left;
+}
+
+.detail-section {
+  margin-bottom: 1rem;
+}
+
+.detail-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.detail-section ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.git-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-dot.on {
+  background: #22c55e;
+}
+
+.status-dot.off {
+  background: #f97316;
+}
+
+kbd {
+  background: #111827;
+  color: white;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.keyboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
 }

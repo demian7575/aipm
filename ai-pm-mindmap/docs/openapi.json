@@ -8,19 +8,20 @@
     { "url": "http://localhost:4000" }
   ],
   "paths": {
-    "/api/merge-requests": {
+    "/api/state": {
       "get": {
-        "operationId": "listMergeRequests",
-        "summary": "List merge requests",
+        "summary": "Get full state snapshot",
         "responses": {
           "200": {
-            "description": "List merge requests",
+            "description": "Application state",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MergeRequest"
+                  "type": "object",
+                  "properties": {
+                    "mergeRequests": { "type": "array", "items": { "$ref": "#/components/schemas/MergeRequest" } },
+                    "stories": { "type": "array", "items": { "$ref": "#/components/schemas/UserStory" } },
+                    "tests": { "type": "array", "items": { "$ref": "#/components/schemas/AcceptanceTest" } }
                   }
                 }
               }
@@ -28,118 +29,61 @@
           }
         }
       }
+    },
+    "/api/merge-requests": {
+      "get": { "summary": "List merge requests", "responses": { "200": { "description": "List", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/MergeRequest" } } } } } } },
+      "post": { "summary": "Create merge request", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MergeRequest" } } } }, "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MergeRequest" } } } } } }
     },
     "/api/stories": {
-      "get": {
-        "operationId": "listStories",
-        "summary": "List user stories",
-        "responses": {
-          "200": {
-            "description": "List user stories",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserStory"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+      "get": { "summary": "List stories", "responses": { "200": { "description": "Stories", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/UserStory" } } } } } } },
+      "post": { "summary": "Create story", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserStory" } } } }, "responses": { "201": { "description": "Created" } } }
     },
     "/api/tests": {
-      "get": {
-        "operationId": "listTests",
-        "summary": "List acceptance tests",
-        "responses": {
-          "200": {
-            "description": "List acceptance tests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AcceptanceTest"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+      "get": { "summary": "List tests", "responses": { "200": { "description": "Tests", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AcceptanceTest" } } } } } } },
+      "post": { "summary": "Create acceptance test", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AcceptanceTest" } } } }, "responses": { "201": { "description": "Created" } } }
     }
   },
   "components": {
     "schemas": {
       "MergeRequest": {
         "type": "object",
-        "required": [
-          "id",
-          "title",
-          "description",
-          "repository",
-          "branch",
-          "status",
-          "drift",
-          "lastSyncAt",
-          "createdAt",
-          "updatedAt"
-        ],
+        "required": ["id", "title", "description", "repository", "branch", "status", "drift", "lastSyncAt", "createdAt", "updatedAt"],
         "properties": {
           "id": { "type": "string" },
           "title": { "type": "string" },
           "description": { "type": "string" },
           "repository": { "type": "string" },
           "branch": { "type": "string" },
-          "status": { "type": "string", "enum": ["open", "review", "merged", "closed"] },
+          "status": { "type": "string", "enum": ["open", "merged", "closed"] },
           "drift": { "type": "boolean" },
-          "lastSyncAt": { "type": "string", "format": "date-time", "nullable": true },
+          "lastSyncAt": { "type": "string", "format": "date-time" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
       },
+      "StoryGWT": {
+        "type": "object",
+        "required": ["given", "when", "then"],
+        "properties": {
+          "given": { "type": "string" },
+          "when": { "type": "string" },
+          "then": { "type": "string" }
+        }
+      },
       "UserStory": {
         "type": "object",
-        "required": [
-          "id",
-          "mrId",
-          "parentId",
-          "title",
-          "role",
-          "action",
-          "reason",
-          "gwt",
-          "status",
-          "depth",
-          "order",
-          "createdAt",
-          "updatedAt"
-        ],
+        "required": ["id", "mrId", "parentId", "title", "role", "action", "reason", "gwt", "estimateDays", "status", "depth", "order", "createdAt", "updatedAt"],
         "properties": {
           "id": { "type": "string" },
           "mrId": { "type": "string" },
-          "parentId": { "type": "string", "nullable": true },
+          "parentId": { "type": ["string", "null"] },
           "title": { "type": "string" },
           "role": { "type": "string" },
           "action": { "type": "string" },
           "reason": { "type": "string" },
-          "gwt": {
-            "type": "object",
-            "required": ["given", "when", "then"],
-            "properties": {
-              "given": { "type": "string" },
-              "when": { "type": "string" },
-              "then": { "type": "string" }
-            }
-          },
-          "estimateDays": { "type": "number", "nullable": true },
-          "status": {
-            "type": "string",
-            "enum": ["draft", "ready", "in-progress", "blocked", "done"]
-          },
+          "gwt": { "$ref": "#/components/schemas/StoryGWT" },
+          "estimateDays": { "type": "integer" },
+          "status": { "type": "string", "enum": ["draft", "ready", "in-progress", "done", "blocked"] },
           "depth": { "type": "integer" },
           "order": { "type": "integer" },
           "createdAt": { "type": "string", "format": "date-time" },
@@ -154,7 +98,7 @@
           "storyId": { "type": "string" },
           "title": { "type": "string" },
           "steps": { "type": "array", "items": { "type": "string" } },
-          "status": { "type": "string", "enum": ["pending", "failing", "passing"] },
+          "status": { "type": "string", "enum": ["pending", "passing", "failing"] },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }

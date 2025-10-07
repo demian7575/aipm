@@ -1,9 +1,7 @@
 # Product Requirements Summary
 
-- Provide a monorepo containing backend, frontend, and shared packages.
-- Manage merge requests, user stories, and acceptance tests with INVEST validation and ambiguity detection.
-- Support outline tree and mindmap visualisations with keyboard accessibility, drag and drop, and persistence.
-- Deliver in-memory backend with REST endpoints for CRUD, tree operations, state reset, and OpenAPI documentation.
-- Include seed data demonstrating INVEST and ambiguity warnings.
-- Supply unit, integration, and Playwright E2E smoke tests verifying the core product flow.
-- Provide CI workflow for linting, testing, building, E2E smoke, bundle guard, and OpenAPI artifact.
+- Provide a monorepo named `ai-pm-mindmap` with frontend, backend, and shared packages.
+- Support Merge Requests, User Stories, and Acceptance Tests with INVEST validation, ambiguity detection, and measurement checks.
+- Offer REST API endpoints with JSON responses, OpenAPI documentation, and seed/reset flows.
+- Deliver a React frontend with outline tree and mindmap views, detail analytics, GitHub simulation panel, and keyboard/i18n support.
+- Include documentation, automated tests (unit, integration, e2e), linting, formatting, CI, and bundle guard scripts.

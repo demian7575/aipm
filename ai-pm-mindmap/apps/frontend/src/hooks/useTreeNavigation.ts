@@ -1,70 +1,63 @@
-import { useCallback, type KeyboardEvent } from 'react';
-import { useStoryStore } from '../store/useStoryStore';
+import { useEffect, useState } from 'react';
+import type { TreeNode } from '../store/useStoryStore';
 
-export interface TreeNodeRef {
-  id: string;
-  parentId: string | null;
-  hasChildren: boolean;
-  isExpanded: boolean;
+interface Options {
+  onSelect: (id: string) => void;
+  onToggle: (id: string) => void;
+  expanded: Record<string, boolean>;
 }
 
-export function useTreeNavigation(nodes: TreeNodeRef[]) {
-  const { toggleExpanded, selectStory } = useStoryStore();
+export function useTreeNavigation(nodes: TreeNode[], options: Options) {
+  const [focused, setFocused] = useState<string | null>(null);
 
-  const findIndex = (id: string) => nodes.findIndex((node) => node.id === id);
+  useEffect(() => {
+    if (!focused && nodes.length > 0) {
+      setFocused(nodes[0].id);
+    }
+  }, [nodes, focused]);
 
-  const onKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLElement>, id: string) => {
-      const index = findIndex(id);
-      if (index === -1) return;
-      const node = nodes[index];
-      switch (event.key) {
-        case 'ArrowDown': {
-          const next = nodes[index + 1];
-          if (next) {
-            document.querySelector<HTMLElement>(`[data-tree-id="${next.id}"]`)?.focus();
-            selectStory(next.id);
-            event.preventDefault();
-          }
-          break;
-        }
-        case 'ArrowUp': {
-          const prev = nodes[index - 1];
-          if (prev) {
-            document.querySelector<HTMLElement>(`[data-tree-id="${prev.id}"]`)?.focus();
-            selectStory(prev.id);
-            event.preventDefault();
-          }
-          break;
-        }
-        case 'ArrowRight': {
-          if (node.hasChildren && !node.isExpanded) {
-            toggleExpanded(node.id, true);
-          }
-          event.preventDefault();
-          break;
-        }
-        case 'ArrowLeft': {
-          if (node.hasChildren && node.isExpanded) {
-            toggleExpanded(node.id, false);
-          } else if (node.parentId) {
-            document.querySelector<HTMLElement>(`[data-tree-id="${node.parentId}"]`)?.focus();
-            selectStory(node.parentId);
-          }
-          event.preventDefault();
-          break;
-        }
-        case 'Enter': {
-          toggleExpanded(node.id);
-          event.preventDefault();
-          break;
-        }
-        default:
-          break;
+  const flatList = flatten(nodes, options.expanded);
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!focused) return;
+    const currentIndex = flatList.findIndex((item) => item.id === focused);
+    if (event.key === 'ArrowDown') {
+      const next = flatList[currentIndex + 1];
+      if (next) setFocused(next.id);
+      event.preventDefault();
+    } else if (event.key === 'ArrowUp') {
+      const prev = flatList[currentIndex - 1];
+      if (prev) setFocused(prev.id);
+      event.preventDefault();
+    } else if (event.key === 'ArrowRight') {
+      if (!options.expanded[focused]) {
+        options.onToggle(focused);
       }
-    },
-    [nodes, selectStory, toggleExpanded]
-  );
+      event.preventDefault();
+    } else if (event.key === 'ArrowLeft') {
+      if (options.expanded[focused]) {
+        options.onToggle(focused);
+      }
+      event.preventDefault();
+    } else if (event.key === 'Enter') {
+      options.onSelect(focused);
+      event.preventDefault();
+    }
+  };
 
-  return { onKeyDown };
+  return {
+    focused,
+    setFocused,
+    onKeyDown
+  };
+}
+
+function flatten(nodes: TreeNode[], expanded: Record<string, boolean>, acc: TreeNode[] = []) {
+  for (const node of nodes) {
+    acc.push(node);
+    if (expanded[node.id]) {
+      flatten(node.children, expanded, acc);
+    }
+  }
+  return acc;
 }

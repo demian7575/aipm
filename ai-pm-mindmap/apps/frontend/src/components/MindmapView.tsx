@@ -1,99 +1,85 @@
 import { useMemo } from 'react';
-import { AcceptanceTest, UserStory } from '@ai-pm-mindmap/shared';
-import * as d3 from 'd3';
-import clsx from 'clsx';
-import { evaluateInvest } from '../lib/validation';
+import type { TreeNode } from '../store/useStoryStore';
 
 interface MindmapViewProps {
-  stories: UserStory[];
-  tests: AcceptanceTest[];
+  tree: TreeNode[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
 }
 
-interface MindmapNode extends d3.HierarchyPointNode<UserStory> {
-  tests: AcceptanceTest[];
+interface PositionedNode extends TreeNode {
+  x: number;
+  y: number;
 }
 
-export default function MindmapView({ stories, tests }: MindmapViewProps) {
-  const root = useMemo(() => buildHierarchy(stories, tests), [stories, tests]);
-  if (!root) {
-    return (
-      <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 text-sm text-slate-400">
-        No stories yet. Add stories from the outline view.
-      </div>
-    );
-  }
-  const radius = 260;
+export function MindmapView({ tree, selectedId, onSelect }: MindmapViewProps) {
+  const nodes = useMemo(() => layout(tree), [tree]);
 
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 overflow-auto" aria-label="Mindmap view">
-      <svg width={radius * 2 + 40} height={radius * 2 + 40} className="mx-auto block">
-        <g transform={`translate(${radius + 20},${radius + 20})`}>
-          {root.links().map((link) => (
-            <path
-              key={`${link.source.data.id}-${link.target.data.id}`}
-              d={d3.linkRadial()({
-                source: [link.source.x, link.source.y],
-                target: [link.target.x, link.target.y]
-              }) as string}
-              className="fill-none stroke-slate-700"
-            />
-          ))}
-          {root.descendants().map((node) => (
-            <MindmapNodeBubble key={node.data.id} node={node as MindmapNode} />
-          ))}
-        </g>
-      </svg>
+    <div className="mindmap-canvas" role="presentation">
+      {nodes.map((node) => (
+        <div
+          key={node.id}
+          className={`mindmap-node ${selectedId === node.id ? 'selected' : ''}`}
+          style={{
+            left: `${node.x * 50 + 50}%`,
+            top: `${node.y * 50 + 50}%`,
+            transform: 'translate(-50%, -50%)'
+          }}
+          onClick={() => onSelect(node.id)}
+        >
+          <div style={{ fontWeight: 600 }}>{node.title}</div>
+          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{node.status}</div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function MindmapNodeBubble({ node }: { node: MindmapNode }) {
-  const invest = evaluateInvest(node.data, node.children?.length ?? 0);
-  const angle = node.x - Math.PI / 2;
-  const x = node.y * Math.cos(angle);
-  const y = node.y * Math.sin(angle);
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <circle
-        r={32}
-        className={clsx('fill-slate-800 stroke-2', {
-          'stroke-sky-400': invest.passed,
-          'stroke-amber-400': !invest.passed
-        })}
-      />
-      <text
-        textAnchor="middle"
-        alignmentBaseline="middle"
-        className="fill-slate-100 text-xs"
-        style={{ pointerEvents: 'none' }}
-      >
-        {node.data.title.slice(0, 20)}
-      </text>
-      <text textAnchor="middle" alignmentBaseline="hanging" dy={24} className="fill-slate-400 text-[10px]">
-        {node.data.status}
-      </text>
-      {node.tests.length > 0 && (
-        <text textAnchor="middle" alignmentBaseline="hanging" dy={36} className="fill-emerald-400 text-[10px]">
-          🧪 {node.tests.length}
-        </text>
-      )}
-    </g>
-  );
-}
+function layout(tree: TreeNode[]): PositionedNode[] {
+  const positioned: PositionedNode[] = [];
+  const radiusStep = 0.3;
 
-function buildHierarchy(stories: UserStory[], tests: AcceptanceTest[]) {
-  if (stories.length === 0) {
-    return null;
+  function traverse(nodes: TreeNode[], depth: number, startAngle: number, endAngle: number) {
+    const span = endAngle - startAngle;
+    nodes.forEach((node, index) => {
+      const angle = startAngle + (span / Math.max(nodes.length, 1)) * (index + 0.5);
+      const radius = depth * radiusStep;
+      positioned.push({
+        ...node,
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+        children: node.children
+      });
+      if (node.children.length > 0) {
+        traverse(node.children, depth + 1, angle - span / nodes.length / 2, angle + span / nodes.length / 2);
+      }
+    });
   }
-  const tree = d3
-    .stratify<UserStory>()
-    .id((d) => d.id)
-    .parentId((d) => d.parentId ?? undefined)(stories);
 
-  const radial = d3.tree<UserStory>().size([2 * Math.PI, 260]);
-  const root = radial(tree);
-  root.each((node) => {
-    (node as MindmapNode).tests = tests.filter((test) => test.storyId === node.data.id);
+  if (tree.length === 0) {
+    return positioned;
+  }
+
+  positioned.push({
+    ...tree[0],
+    x: 0,
+    y: 0,
+    children: tree[0].children
   });
-  return root as MindmapNode;
+  if (tree[0].children.length > 0) {
+    traverse(tree[0].children, 1, 0, Math.PI * 2);
+  }
+
+  for (let i = 1; i < tree.length; i++) {
+    const angle = (Math.PI * 2 * i) / tree.length;
+    const radius = 0.4;
+    const node = tree[i];
+    positioned.push({ ...node, x: Math.cos(angle) * radius, y: Math.sin(angle) * radius, children: node.children });
+    if (node.children.length > 0) {
+      traverse(node.children, 1, angle - Math.PI / tree.length, angle + Math.PI / tree.length);
+    }
+  }
+
+  return positioned;
 }

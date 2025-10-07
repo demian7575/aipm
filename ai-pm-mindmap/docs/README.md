@@ -1,48 +1,58 @@
 # AI PM Mindmap
 
-## Prerequisites
-- Node.js 18+
-- npm 9+
+## Getting Started
 
-## Installation
 ```bash
 npm install
-```
-
-## Development
-```bash
 npm run dev
 ```
-This command runs the backend on port 4000 and the frontend on port 5173.
 
-## Building
-```bash
-npm run build
+This launches the backend on http://localhost:4000 and the frontend on http://localhost:5173.
+
+## Available Commands
+
+- `npm run build` – build shared package, backend, and frontend bundles.
+- `npm run dev` – start backend and frontend in watch mode.
+- `npm run lint` – run ESLint across workspaces.
+- `npm run test` – execute unit and integration test suites.
+- `npm run e2e` – run Playwright smoke tests.
+- `npm run generate:openapi` – regenerate OpenAPI specification from schemas.
+- `npm run seed` – reseed the in-memory backend store.
+- `npm run bundle:check` – enforce bundle size guard for the frontend build.
+
+## Project Structure
+
+```
+ai-pm-mindmap/
+  apps/
+    backend/
+    frontend/
+  packages/
+    shared/
+  docs/
+  scripts/
+  .github/workflows/
 ```
 
-## Testing
-```bash
-npm run test
-npm run e2e
-```
+## Environment Variables
 
-## Linting
-```bash
-npm run lint
-```
+- `MAX_STORY_DEPTH` – optional override for the story tree depth limit (default `4`).
+- `INVEST_MAX_DAYS` – override the INVEST "Small" threshold in dev-days (default `2`).
+- `INVEST_MAX_CHILDREN` – override the INVEST child limit (default `5`).
 
-## OpenAPI
-```bash
-npm run generate:openapi
-```
-The generated specification is saved to `docs/openapi.json` and served from `/api/openapi.json`.
+## Docs
 
-## Seeding
-```bash
-npm run seed
-```
-Resets the in-memory store to the sample dataset.
-
-## Documentation
 - Product requirements: [`docs/requirements/PRD.md`](requirements/PRD.md)
-- GWT acceptance criteria: [`docs/requirements/GWT.md`](requirements/GWT.md)
+- Gherkin acceptance criteria: [`docs/requirements/GWT.md`](requirements/GWT.md)
+- Generated OpenAPI spec: [`docs/openapi.json`](openapi.json)
+
+## Accessibility & UX
+
+- Outline tree view exposes ARIA `role="tree"` metadata.
+- Keyboard shortcuts: arrow keys for navigation, Enter to edit, A/S/T to add, Delete to remove.
+- Mindmap view mirrors the selected merge request and stories with a radial layout.
+- Detail panel surfaces INVEST, ambiguity, and measurement validation hints.
+
+## CI
+
+GitHub Actions pipeline runs lint, unit/integration tests, build, bundle guard, OpenAPI generation, and Playwright smoke tests.

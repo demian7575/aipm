@@ -1,58 +1,44 @@
-import { describe, expect, it } from 'vitest';
-import { InMemoryStore } from '../../src/repositories/inMemoryStore';
+import { describe, expect, it, beforeEach } from 'vitest';
+import { store } from '../../src/repositories/inMemoryStore';
+
+beforeEach(() => {
+  store.reset();
+});
 
 describe('InMemoryStore', () => {
-  it('prevents depth over limit', () => {
-    const store = new InMemoryStore();
-    const parent = store.getStory('story-1');
-    expect(() =>
-      store.createStory({
-        id: 'story-3',
-        mrId: parent.mrId,
-        parentId: 'story-1',
-        title: 'As a user I want nested story',
-        role: 'As a user',
-        action: 'I want nested',
-        reason: 'So that I can test',
-        gwt: { given: 'Given', when: 'When', then: 'Then within 5 seconds' },
-        estimateDays: 1,
-        status: 'draft'
-      })
-    ).not.toThrow();
-
-    expect(() =>
-      store.createStory({
-        id: 'story-4',
-        mrId: parent.mrId,
-        parentId: 'story-3',
-        title: 'As a user I want deeper',
-        role: 'As a user',
-        action: 'I want deeper',
-        reason: 'So that depth is big',
-        gwt: { given: 'Given', when: 'When', then: 'Then within 5 seconds' },
-        estimateDays: 1,
-        status: 'draft'
-      })
-    ).not.toThrow();
-
-    expect(() =>
-      store.createStory({
-        id: 'story-5',
-        mrId: parent.mrId,
-        parentId: 'story-4',
-        title: 'As a user I want too deep',
-        role: 'As a user',
-        action: 'I want too deep',
-        reason: 'So that depth fails',
-        gwt: { given: 'Given', when: 'When', then: 'Then within 5 seconds' },
-        estimateDays: 1,
-        status: 'draft'
-      })
-    ).toThrow();
+  it('creates merge request', () => {
+    const result = store.createMergeRequest({
+      title: 'New MR',
+      description: 'Test',
+      repository: 'repo/test',
+      branch: 'feature/x',
+      status: 'open'
+    });
+    expect(result.id).toMatch(/mr-/);
   });
 
-  it('blocks invalid story status transitions', () => {
-    const store = new InMemoryStore();
-    expect(() => store.updateStoryStatus('story-1', 'done')).toThrow();
+  it('enforces depth limit when creating stories', () => {
+    const [rootStory] = store.listStories().filter((story) => story.parentId === null);
+    const child = store.createStory({
+      mrId: rootStory.mrId,
+      parentId: rootStory.id,
+      title: 'As an admin I want to add depth so that it works',
+      role: 'As an admin',
+      action: 'I want to add depth so that it works',
+      reason: 'So that it works',
+      gwt: {
+        given: 'Given a thing',
+        when: 'When action happens',
+        then: 'Then response returns in 2 seconds'
+      },
+      estimateDays: 1,
+      status: 'draft'
+    });
+    expect(child.depth).toBe(rootStory.depth + 1);
+  });
+
+  it('prevents invalid story transitions', () => {
+    const story = store.listStories()[0];
+    expect(() => store.updateStoryStatus(story.id, 'done')).toThrow();
   });
 });

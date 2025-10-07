@@ -1,74 +1,65 @@
 import { describe, expect, it } from 'vitest';
 import {
-  UserStorySchema,
-  checkInvest,
+  analyzeStory,
+  analyzeTest,
   detectAmbiguity,
-  hasMeasurableValue,
-  validateStoryNarrative
+  evaluateInvest,
+  measurementUnits
 } from '../src/index';
 
-describe('UserStorySchema', () => {
-  it('validates a proper story', () => {
-    const result = UserStorySchema.safeParse({
-      id: 's1',
-      mrId: 'mr1',
-      parentId: null,
-      title: 'As an admin I want to invite teammates',
-      role: 'As an admin',
-      action: 'I want to invite teammates',
-      reason: 'So that we can collaborate',
-      gwt: {
-        given: 'Given I am on the team page',
-        when: 'When I click invite',
-        then: 'Then users receive an email within 5 minutes'
-      },
-      estimateDays: 1,
-      status: 'draft',
-      depth: 0,
-      order: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    });
+const sampleStory = {
+  title: 'As an admin I want to invite users quickly so that onboarding is fast',
+  action: 'I want to invite users quickly',
+  reason: 'So that collaboration improves',
+  role: 'As an admin',
+  estimateDays: 1,
+  gwt: {
+    given: 'Given I am on the workspace page',
+    when: 'When I click invite',
+    then: 'Then the teammate receives an email in 2 minutes'
+  }
+};
 
-    expect(result.success).toBe(true);
+describe('evaluateInvest', () => {
+  it('passes INVEST when thresholds met', () => {
+    const result = evaluateInvest(sampleStory, { childCount: 1 });
+    expect(result.compliant).toBe(true);
+  });
+
+  it('fails when estimate exceeds limit', () => {
+    const result = evaluateInvest({ ...sampleStory, estimateDays: 10 }, { maxDays: 2 });
+    expect(result.compliant).toBe(false);
+    expect(result.issues.some((issue) => issue.includes('Small threshold'))).toBe(true);
   });
 });
 
-describe('checkInvest', () => {
-  it('flags large estimates', () => {
-    const { passed, issues } = checkInvest({ title: 'Test', estimateDays: 4 });
-    expect(passed).toBe(false);
-    expect(issues.some((issue) => issue.includes('Estimate'))).toBe(true);
+describe('detectAmbiguity', () => {
+  it('flags dictionary words', () => {
+    const flags = detectAmbiguity('This should maybe work asap');
+    expect(flags.map((f) => f.text)).toContain('should');
   });
 });
 
-describe('ambiguity', () => {
-  it('detects ambiguous language', () => {
-    expect(detectAmbiguity('We should maybe do this fast')).toContain('should');
-  });
-
-  it('checks measurability', () => {
-    expect(hasMeasurableValue('respond within 5 seconds')).toBe(true);
-    expect(hasMeasurableValue('respond quickly')).toBe(false);
+describe('analyzeStory', () => {
+  it('detects missing measurements', () => {
+    const story = {
+      ...sampleStory,
+      gwt: { ...sampleStory.gwt, then: 'Then response returns in 5' }
+    };
+    const analysis = analyzeStory(story, {});
+    expect(analysis.ambiguity.some((flag) => flag.reason === 'missing-measurement')).toBe(true);
   });
 });
 
-describe('validateStoryNarrative', () => {
-  it('aggregates validation feedback', () => {
-    const result = validateStoryNarrative({
-      title: 'Improve performance',
-      role: 'As a user',
-      action: 'I want the app to be fast',
-      reason: 'So that I am happy',
-      gwt: {
-        given: 'Given the app is slow',
-        when: 'When we optimize maybe later',
-        then: 'Then it should be optimal'
-      }
-    });
+describe('analyzeTest', () => {
+  it('highlights ambiguous steps', () => {
+    const analysis = analyzeTest({ title: 'Should be fast', steps: ['Complete flow asap'] });
+    expect(analysis.ambiguity.length).toBeGreaterThan(0);
+  });
+});
 
-    expect(result.invest.passed).toBe(false);
-    expect(result.ambiguities.length).toBeGreaterThan(0);
-    expect(result.measurable.length).toBeGreaterThan(0);
+describe('measurement units', () => {
+  it('includes percentage unit', () => {
+    expect(measurementUnits).toContain('%');
   });
 });

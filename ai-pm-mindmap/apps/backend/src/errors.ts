@@ -1,30 +1,19 @@
-import { ErrorResponse } from '@ai-pm-mindmap/shared';
-
 export class ApiError extends Error {
-  code: string;
-  details?: unknown;
-  status: number;
-
-  constructor(status: number, code: string, message: string, details?: unknown) {
+  constructor(public status: number, message: string, public code = 'ERROR', public details?: unknown) {
     super(message);
-    this.status = status;
-    this.code = code;
-    this.details = details;
   }
 
-  toJSON(): ErrorResponse {
-    return { code: this.code, message: this.message, details: this.details };
+  toJSON() {
+    return {
+      code: this.code,
+      message: this.message,
+      details: this.details
+    };
   }
 }
 
-export const notFound = (message = 'Not found', details?: unknown) =>
-  new ApiError(404, 'NOT_FOUND', message, details);
-
+export const notFound = (message = 'Not found') => new ApiError(404, message, 'NOT_FOUND');
 export const badRequest = (message = 'Bad request', details?: unknown) =>
-  new ApiError(400, 'BAD_REQUEST', message, details);
-
+  new ApiError(400, message, 'BAD_REQUEST', details);
 export const conflict = (message = 'Conflict', details?: unknown) =>
-  new ApiError(409, 'CONFLICT', message, details);
-
-export const unprocessable = (message = 'Unprocessable', details?: unknown) =>
-  new ApiError(422, 'UNPROCESSABLE_ENTITY', message, details);
+  new ApiError(409, message, 'CONFLICT', details);

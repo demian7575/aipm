@@ -37,14 +37,13 @@ jobs:
       - name: Start frontend
         run: npm run dev:frontend &
       - name: Wait for services
-        run: |
-          npx wait-on http://127.0.0.1:4000/api/state http://127.0.0.1:5173
-      - name: Playwright install browsers
+        run: npx wait-on http://127.0.0.1:4000/api/state http://127.0.0.1:5173
+      - name: Install Playwright browsers
         run: npx playwright install --with-deps
-      - name: E2E smoke test
+      - name: E2E smoke tests
         run: npm run e2e
-      - name: Kill servers
+      - name: Stop services
         if: always()
         run: |
-          pkill -f "ts-node-dev" || true
+          pkill -f "ts-node" || true
           pkill -f "vite" || true

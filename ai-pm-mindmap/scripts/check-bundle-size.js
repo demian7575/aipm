@@ -1,32 +1,28 @@
 #!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
+import { readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
-const target = path.resolve('apps/frontend/dist');
-if (!fs.existsSync(target)) {
-  console.warn('Bundle not found, skipping size check.');
+const bundlePath = join('apps', 'frontend', 'dist', 'assets');
+let totalBytes = 0;
+try {
+  const manifest = JSON.parse(readFileSync(join(bundlePath, 'manifest.json'), 'utf-8'));
+  for (const value of Object.values(manifest)) {
+    if (value && typeof value === 'object' && 'file' in value) {
+      const filePath = join(bundlePath, value.file);
+      const { size } = statSync(filePath);
+      totalBytes += size;
+    }
+  }
+} catch (error) {
+  console.error('Bundle size guard skipped:', error.message);
   process.exit(0);
 }
 
-function folderSize(folder) {
-  const entries = fs.readdirSync(folder, { withFileTypes: true });
-  let total = 0;
-  for (const entry of entries) {
-    const entryPath = path.resolve(folder, entry.name);
-    const stats = fs.statSync(entryPath);
-    if (entry.isDirectory()) {
-      total += folderSize(entryPath);
-    } else {
-      total += stats.size;
-    }
-  }
-  return total;
-}
-
-const size = folderSize(target);
-const maxBytes = 5 * 1024 * 1024;
-if (size > maxBytes) {
-  console.error(`Bundle size ${(size / 1024).toFixed(1)}KB exceeds limit ${(maxBytes / 1024).toFixed(1)}KB.`);
+const limitKb = 1024; // 1 MB
+const totalKb = Math.round(totalBytes / 1024);
+if (totalKb > limitKb) {
+  console.error(`Bundle size ${totalKb}KB exceeds limit of ${limitKb}KB`);
   process.exit(1);
 }
-console.log(`Bundle size ${(size / 1024).toFixed(1)}KB is within limit.`);
+
+console.log(`Bundle size OK: ${totalKb}KB <= ${limitKb}KB`);

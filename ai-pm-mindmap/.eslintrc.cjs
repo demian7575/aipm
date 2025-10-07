@@ -1,19 +1,27 @@
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', 'react', 'react-hooks'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
+    'plugin:jsx-a11y/recommended',
     'prettier'
   ],
-  env: {
-    node: true,
-    es2021: true,
-    browser: true
+  settings: {
+    react: {
+      version: 'detect'
+    }
   },
-  ignorePatterns: ['dist', 'build', 'coverage'],
-  rules: {
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }]
-  }
+  ignorePatterns: ['dist', 'coverage', 'build'],
+  overrides: [
+    {
+      files: ['*.ts', '*.tsx'],
+      parserOptions: {
+        project: './tsconfig.base.json'
+      }
+    }
+  ]
 };

@@ -1,11 +1,10 @@
-import http from 'http';
+import { createServer } from 'node:http';
 import { createApp } from './app';
+import { PORT } from './config';
 
-const port = Number(process.env.PORT ?? 4000);
 const app = createApp();
+const server = createServer(app);
 
-const server = http.createServer(app);
-
-server.listen(port, () => {
-  console.log(`Backend server listening on http://localhost:${port}`);
+server.listen(PORT, () => {
+  console.log(`Backend listening on http://localhost:${PORT}`);
 });

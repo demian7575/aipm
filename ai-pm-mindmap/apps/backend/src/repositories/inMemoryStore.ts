@@ -1,422 +1,418 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { customAlphabet } from 'nanoid';
 import {
   AcceptanceTest,
   AcceptanceTestSchema,
   MergeRequest,
   MergeRequestSchema,
-  StoryStatus,
   UserStory,
   UserStorySchema,
-  validateStoryNarrative,
-  checkInvest,
-  detectAmbiguity,
-  hasMeasurableValue
+  analyzeStory,
+  analyzeTest
 } from '@ai-pm-mindmap/shared';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
-import { DEPTH_LIMIT, INVEST_MAX_CHILDREN, INVEST_SMALL_DAYS } from '../config';
-import { badRequest, conflict, notFound, unprocessable } from '../errors';
+import { MAX_STORY_DEPTH } from '../config';
+import { badRequest, conflict, notFound } from '../errors';
 
-export interface DatabaseState {
+interface DatabaseState {
   mergeRequests: MergeRequest[];
   stories: UserStory[];
   tests: AcceptanceTest[];
 }
 
-const STORY_STATUS_TRANSITIONS: Record<StoryStatus, StoryStatus[]> = {
-  draft: ['ready', 'blocked'],
+const idNanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 10);
+
+function loadSeed(): DatabaseState {
+  const seedPath = join(process.cwd(), 'apps', 'backend', 'seed', 'data.json');
+  const data = JSON.parse(readFileSync(seedPath, 'utf-8')) as DatabaseState;
+  return structuredClone(data);
+}
+
+function now() {
+  return new Date().toISOString();
+}
+
+const STORY_STATUS_TRANSITIONS: Record<UserStory['status'], UserStory['status'][]> = {
+  draft: ['ready', 'in-progress', 'blocked'],
   ready: ['in-progress', 'blocked'],
-  'in-progress': ['blocked', 'done'],
-  blocked: ['ready', 'in-progress'],
-  done: []
+  'in-progress': ['done', 'blocked'],
+  blocked: ['in-progress'],
+  done: ['in-progress']
 };
 
-export class InMemoryStore {
-  private mergeRequests = new Map<string, MergeRequest>();
-  private stories = new Map<string, UserStory>();
-  private tests = new Map<string, AcceptanceTest>();
+const TEST_STATUS_TRANSITIONS: Record<AcceptanceTest['status'], AcceptanceTest['status'][]> = {
+  pending: ['passing', 'failing'],
+  passing: ['failing', 'pending'],
+  failing: ['passing', 'pending']
+};
 
-  constructor() {
-    this.reset();
-  }
+function cloneState(state: DatabaseState): DatabaseState {
+  return {
+    mergeRequests: structuredClone(state.mergeRequests),
+    stories: structuredClone(state.stories),
+    tests: structuredClone(state.tests)
+  };
+}
+
+class InMemoryStore {
+  private state: DatabaseState = loadSeed();
 
   reset() {
-    const file = resolve(__dirname, '..', '..', 'seed', 'data.json');
-    const raw = JSON.parse(readFileSync(file, 'utf-8')) as DatabaseState;
-    this.mergeRequests.clear();
-    this.stories.clear();
-    this.tests.clear();
-
-    raw.mergeRequests.forEach((mr) => this.mergeRequests.set(mr.id, mr));
-    raw.stories.forEach((story) => this.stories.set(story.id, story));
-    raw.tests.forEach((test) => this.tests.set(test.id, test));
+    this.state = loadSeed();
   }
 
   getState(): DatabaseState {
-    return {
-      mergeRequests: Array.from(this.mergeRequests.values()),
-      stories: Array.from(this.stories.values()),
-      tests: Array.from(this.tests.values())
+    return cloneState(this.state);
+  }
+
+  // Merge Requests
+  listMergeRequests() {
+    return structuredClone(this.state.mergeRequests);
+  }
+
+  getMergeRequest(id: string) {
+    const mr = this.state.mergeRequests.find((item) => item.id === id);
+    if (!mr) throw notFound('Merge request not found');
+    return structuredClone(mr);
+  }
+
+  createMergeRequest(data: Omit<MergeRequest, 'id' | 'createdAt' | 'updatedAt' | 'lastSyncAt' | 'drift'>) {
+    const parsed = MergeRequestSchema.omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      lastSyncAt: true,
+      drift: true
+    }).parse(data);
+    const mr: MergeRequest = {
+      ...parsed,
+      id: `mr-${idNanoid()}`,
+      createdAt: now(),
+      updatedAt: now(),
+      lastSyncAt: now(),
+      drift: false
     };
+    this.state.mergeRequests.push(mr);
+    return structuredClone(mr);
   }
 
-  // Merge Request CRUD
-  listMergeRequests(): MergeRequest[] {
-    return Array.from(this.mergeRequests.values());
-  }
-
-  getMergeRequest(id: string): MergeRequest {
-    const value = this.mergeRequests.get(id);
-    if (!value) throw notFound('Merge request not found');
-    return value;
-  }
-
-  createMergeRequest(payload: MergeRequest): MergeRequest {
-    if (this.mergeRequests.has(payload.id)) {
-      throw conflict('Merge request already exists');
-    }
-    const parsed = MergeRequestSchema.parse(payload);
-    this.mergeRequests.set(parsed.id, parsed);
-    return parsed;
-  }
-
-  updateMergeRequest(id: string, payload: Partial<MergeRequest>): MergeRequest {
-    const existing = this.getMergeRequest(id);
-    const updated = { ...existing, ...payload, updatedAt: new Date().toISOString() };
-    const parsed = MergeRequestSchema.parse(updated);
-    this.mergeRequests.set(parsed.id, parsed);
-    return parsed;
+  updateMergeRequest(id: string, data: Partial<MergeRequest>) {
+    const mr = this.state.mergeRequests.find((item) => item.id === id);
+    if (!mr) throw notFound('Merge request not found');
+    const merged = { ...mr, ...data, id: mr.id, updatedAt: now() };
+    const validated = MergeRequestSchema.parse(merged);
+    Object.assign(mr, validated);
+    return structuredClone(mr);
   }
 
   deleteMergeRequest(id: string) {
-    if (!this.mergeRequests.delete(id)) {
-      throw notFound('Merge request not found');
+    const index = this.state.mergeRequests.findIndex((item) => item.id === id);
+    if (index === -1) throw notFound('Merge request not found');
+    this.state.mergeRequests.splice(index, 1);
+    const storyIds = this.state.stories.filter((story) => story.mrId === id).map((story) => story.id);
+    this.state.stories = this.state.stories.filter((story) => story.mrId !== id);
+    this.state.tests = this.state.tests.filter((test) => !storyIds.includes(test.storyId));
+  }
+
+  updateMergeRequestStatus(id: string, status: MergeRequest['status']) {
+    const mr = this.state.mergeRequests.find((item) => item.id === id);
+    if (!mr) throw notFound('Merge request not found');
+    mr.status = status;
+    mr.updatedAt = now();
+    return structuredClone(mr);
+  }
+
+  toggleDrift(id: string) {
+    const mr = this.state.mergeRequests.find((item) => item.id === id);
+    if (!mr) throw notFound('Merge request not found');
+    mr.drift = !mr.drift;
+    mr.lastSyncAt = now();
+    mr.updatedAt = now();
+    return structuredClone(mr);
+  }
+
+  // Stories
+  listStories() {
+    return structuredClone(this.state.stories);
+  }
+
+  private ensureDepth(parentId: string | null) {
+    if (!parentId) return 0;
+    const parent = this.state.stories.find((story) => story.id === parentId);
+    if (!parent) throw badRequest('Parent story not found');
+    if (parent.depth + 1 > MAX_STORY_DEPTH) {
+      throw badRequest(`Depth limit of ${MAX_STORY_DEPTH} exceeded`);
     }
-    for (const story of this.listStoriesByMergeRequest(id)) {
-      this.deleteStory(story.id, { cascade: true });
+    return parent.depth + 1;
+  }
+
+  private ensureNoCycle(storyId: string, parentId: string | null) {
+    if (!parentId) return;
+    if (parentId === storyId) throw conflict('Cannot set story as its own parent');
+    let currentParent = parentId;
+    while (currentParent) {
+      if (currentParent === storyId) {
+        throw conflict('Cannot create cyclical relationships');
+      }
+      const parent = this.state.stories.find((story) => story.id === currentParent);
+      currentParent = parent?.parentId ?? null;
     }
   }
 
-  updateMergeRequestStatus(id: string, status: MergeRequest['status']): MergeRequest {
-    const allowedTransitions: Record<MergeRequest['status'], MergeRequest['status'][]> = {
-      open: ['review', 'closed'],
-      review: ['merged', 'closed'],
-      merged: [],
-      closed: []
-    };
-    const existing = this.getMergeRequest(id);
-    if (!allowedTransitions[existing.status].includes(status)) {
-      throw unprocessable('Invalid status transition', { from: existing.status, to: status });
-    }
-    return this.updateMergeRequest(id, { status });
+  private childCount(parentId: string | null) {
+    return this.state.stories.filter((story) => story.parentId === parentId).length;
   }
 
-  toggleDrift(id: string): MergeRequest {
-    const mr = this.getMergeRequest(id);
-    return this.updateMergeRequest(id, {
-      drift: !mr.drift,
-      lastSyncAt: new Date().toISOString()
+  private orderForParent(parentId: string | null) {
+    const siblings = this.state.stories.filter((story) => story.parentId === parentId);
+    return siblings.length;
+  }
+
+  createStory(data: Omit<UserStory, 'id' | 'depth' | 'order' | 'createdAt' | 'updatedAt'>) {
+    const parsed = UserStorySchema.omit({
+      id: true,
+      depth: true,
+      order: true,
+      createdAt: true,
+      updatedAt: true
+    }).parse(data);
+
+    const depth = this.ensureDepth(parsed.parentId);
+    this.ensureNoCycle('new', parsed.parentId);
+
+    const invest = analyzeStory({
+      title: parsed.title,
+      action: parsed.action,
+      reason: parsed.reason,
+      role: parsed.role,
+      estimateDays: parsed.estimateDays,
+      gwt: parsed.gwt
     });
-  }
 
-  // Story operations
-  listStories(): UserStory[] {
-    return Array.from(this.stories.values());
-  }
-
-  listStoriesByMergeRequest(mrId: string): UserStory[] {
-    return this.listStories().filter((story) => story.mrId === mrId);
-  }
-
-  getStory(id: string): UserStory {
-    const story = this.stories.get(id);
-    if (!story) throw notFound('Story not found');
-    return story;
-  }
-
-  createStory(payload: Omit<UserStory, 'createdAt' | 'updatedAt' | 'depth' | 'order'>): UserStory {
-    const parent = payload.parentId ? this.getStory(payload.parentId) : null;
-    const depth = parent ? parent.depth + 1 : 0;
-    if (depth >= DEPTH_LIMIT) {
-      throw unprocessable('Depth limit exceeded', { depth, limit: DEPTH_LIMIT });
+    if (!invest.invest.compliant) {
+      throw badRequest('Story fails INVEST validation', invest.invest.issues);
     }
-    const siblingCount = this.getChildren(payload.parentId).length;
-    if (parent && siblingCount + 1 > INVEST_MAX_CHILDREN) {
-      throw unprocessable('Parent would exceed child limit', {
-        parentId: parent.id,
-        limit: INVEST_MAX_CHILDREN
-      });
-    }
-    const order = siblingCount;
-    const now = new Date().toISOString();
-    const story: UserStory = UserStorySchema.parse({
-      ...payload,
+
+    const story: UserStory = {
+      ...parsed,
+      id: `story-${idNanoid()}`,
       depth,
-      order,
-      createdAt: now,
-      updatedAt: now
+      order: this.orderForParent(parsed.parentId),
+      createdAt: now(),
+      updatedAt: now()
+    };
+
+    this.state.stories.push(story);
+    return structuredClone(story);
+  }
+
+  getStory(id: string) {
+    const story = this.state.stories.find((item) => item.id === id);
+    if (!story) throw notFound('Story not found');
+    return structuredClone(story);
+  }
+
+  updateStory(id: string, data: Partial<UserStory>) {
+    const story = this.state.stories.find((item) => item.id === id);
+    if (!story) throw notFound('Story not found');
+
+    const next = { ...story, ...data, id: story.id };
+    const validated = UserStorySchema.parse({ ...next, updatedAt: story.updatedAt, createdAt: story.createdAt });
+
+    const invest = analyzeStory({
+      title: validated.title,
+      action: validated.action,
+      reason: validated.reason,
+      role: validated.role,
+      estimateDays: validated.estimateDays,
+      gwt: validated.gwt
     });
+    if (!invest.invest.compliant) {
+      throw badRequest('Story fails INVEST validation', invest.invest.issues);
+    }
 
-    this.ensureInvestCompliance(story);
-
-    this.stories.set(story.id, story);
-    return story;
+    Object.assign(story, { ...validated, updatedAt: now() });
+    return structuredClone(story);
   }
 
-  updateStory(id: string, payload: Partial<UserStory>): UserStory {
-    const existing = this.getStory(id);
-    const updated = UserStorySchema.parse({
-      ...existing,
-      ...payload,
-      updatedAt: new Date().toISOString()
-    });
-
-    this.ensureInvestCompliance(updated);
-
-    this.stories.set(updated.id, updated);
-    return updated;
+  updateStoryStatus(id: string, status: UserStory['status']) {
+    const story = this.state.stories.find((item) => item.id === id);
+    if (!story) throw notFound('Story not found');
+    const allowed = STORY_STATUS_TRANSITIONS[story.status] ?? [];
+    if (!allowed.includes(status)) {
+      throw conflict(`Cannot transition story from ${story.status} to ${status}`);
+    }
+    story.status = status;
+    story.updatedAt = now();
+    return structuredClone(story);
   }
 
-  deleteStory(id: string, options: { cascade?: boolean } = {}) {
-    const story = this.getStory(id);
-    const parentId = story.parentId;
-    if (!options.cascade && this.getChildren(id).length > 0) {
-      throw conflict('Cannot delete a story with children');
-    }
-    this.stories.delete(id);
-    if (options.cascade) {
-      for (const child of this.getChildren(id)) {
-        this.deleteStory(child.id, { cascade: true });
-      }
-    }
-    for (const test of this.listTestsByStory(id)) {
-      this.deleteTest(test.id);
-    }
-    this.normalizeOrder(parentId);
+  deleteStory(id: string) {
+    const story = this.state.stories.find((item) => item.id === id);
+    if (!story) throw notFound('Story not found');
+    const descendants = this.collectDescendants(id);
+    this.state.stories = this.state.stories.filter((item) => item.id !== id && !descendants.includes(item.id));
+    this.state.tests = this.state.tests.filter((test) => ![id, ...descendants].includes(test.storyId));
   }
 
-  updateStoryStatus(id: string, status: StoryStatus): UserStory {
-    const story = this.getStory(id);
-    if (!STORY_STATUS_TRANSITIONS[story.status].includes(status)) {
-      throw unprocessable('Invalid story status transition', {
-        from: story.status,
-        to: status
-      });
-    }
-    return this.updateStory(id, { status });
-  }
+  moveStory(id: string, parentId: string | null, index: number) {
+    const story = this.state.stories.find((item) => item.id === id);
+    if (!story) throw notFound('Story not found');
+    this.ensureNoCycle(id, parentId);
+    const newDepth = this.calculateDepthForMove(parentId);
 
-  moveStory(id: string, parentId: string | null, index: number): UserStory {
-    const story = this.getStory(id);
     const oldParentId = story.parentId;
-    if (story.parentId === parentId && index === story.order) {
-      return story;
-    }
-    if (id === parentId) {
-      throw badRequest('Story cannot be its own parent');
-    }
-    const parent = parentId ? this.getStory(parentId) : null;
-    if (parent) {
-      if (this.isDescendant(parentId, id)) {
-        throw conflict('Cannot move story into its descendant');
-      }
-      if (parent.depth + 1 >= DEPTH_LIMIT) {
-        throw unprocessable('Depth limit exceeded', { depth: parent.depth + 1, limit: DEPTH_LIMIT });
-      }
-    }
-    const siblings = this.getChildren(parentId);
-    const newIndex = Math.max(0, Math.min(index, siblings.length));
+    story.parentId = parentId;
+    story.updatedAt = now();
 
-    const movedSiblings = siblings.filter((s) => s.id !== id);
-    movedSiblings.splice(newIndex, 0, story);
-    if (parent && movedSiblings.length > INVEST_MAX_CHILDREN) {
-      throw unprocessable('Parent would exceed child limit', {
-        parentId,
-        limit: INVEST_MAX_CHILDREN
-      });
-    }
-    movedSiblings.forEach((s, idx) => {
-      const target = this.getStory(s.id);
-      this.stories.set(s.id, { ...target, order: idx });
+    const oldSiblings = this.state.stories
+      .filter((item) => item.parentId === oldParentId && item.id !== id)
+      .sort((a, b) => a.order - b.order);
+    oldSiblings.forEach((sibling, order) => {
+      sibling.order = order;
     });
 
-    const depth = parent ? parent.depth + 1 : 0;
-    const updated = { ...story, parentId, depth, order: newIndex, updatedAt: new Date().toISOString() };
-    this.stories.set(id, updated);
+    const siblings = this.state.stories
+      .filter((item) => item.parentId === parentId && item.id !== id)
+      .sort((a, b) => a.order - b.order);
+    const targetIndex = Math.min(Math.max(index, 0), siblings.length);
+    siblings.splice(targetIndex, 0, story);
+    siblings.forEach((sibling, order) => {
+      sibling.order = order;
+    });
 
-    for (const child of this.getChildren(id)) {
-      this.updateDepthRecursive(child.id, updated.depth + 1);
-    }
-
-    if (oldParentId !== parentId) {
-      this.normalizeOrder(oldParentId);
-    }
-
-    this.normalizeOrder(parentId);
-
-    return updated;
+    this.updateDepths(story, newDepth);
+    return structuredClone(story);
   }
 
   reorderChildren(parentId: string | null, order: string[]) {
-    const children = this.getChildren(parentId);
-    if (children.length !== order.length || new Set(children.map((c) => c.id)).size !== order.length) {
+    const siblings = this.state.stories.filter((story) => story.parentId === parentId);
+    if (order.length !== siblings.length) {
       throw badRequest('Order length mismatch');
     }
-    const idSet = new Set(order);
-    children.forEach((child) => {
-      if (!idSet.has(child.id)) {
-        throw badRequest('Invalid child id in order');
-      }
-    });
-    order.forEach((childId, idx) => {
-      const child = this.getStory(childId);
-      this.stories.set(childId, { ...child, order: idx, updatedAt: new Date().toISOString() });
+    const siblingMap = new Map(siblings.map((story) => [story.id, story]));
+    order.forEach((id, index) => {
+      const sibling = siblingMap.get(id);
+      if (!sibling) throw badRequest('Invalid story id in order');
+      sibling.order = index;
+      sibling.updatedAt = now();
     });
   }
 
-  getStoryPath(id: string): UserStory[] {
-    const story = this.getStory(id);
-    const path: UserStory[] = [story];
-    let current = story;
-    while (current.parentId) {
-      current = this.getStory(current.parentId);
-      path.unshift(current);
+  private calculateDepthForMove(parentId: string | null) {
+    if (!parentId) return 0;
+    const parent = this.state.stories.find((story) => story.id === parentId);
+    if (!parent) throw badRequest('Parent story not found');
+    if (parent.depth + 1 > MAX_STORY_DEPTH) {
+      throw badRequest(`Depth limit of ${MAX_STORY_DEPTH} exceeded`);
+    }
+    return parent.depth + 1;
+  }
+
+  private collectDescendants(id: string, acc: string[] = []) {
+    const children = this.state.stories.filter((story) => story.parentId === id);
+    for (const child of children) {
+      acc.push(child.id);
+      this.collectDescendants(child.id, acc);
+    }
+    return acc;
+  }
+
+  private updateDepths(story: UserStory, depth: number) {
+    if (depth > MAX_STORY_DEPTH) {
+      throw badRequest(`Depth limit of ${MAX_STORY_DEPTH} exceeded`);
+    }
+    story.depth = depth;
+    const children = this.state.stories.filter((item) => item.parentId === story.id);
+    children.forEach((child) => this.updateDepths(child, depth + 1));
+  }
+
+  getStoryTree(mrId: string) {
+    const stories = this.state.stories.filter((story) => story.mrId === mrId);
+    const map = new Map<string, (UserStory & { children: UserStory[] })>();
+    const root: (UserStory & { children: UserStory[] })[] = [];
+    for (const story of stories) {
+      map.set(story.id, { ...story, children: [] });
+    }
+    for (const story of stories) {
+      const node = map.get(story.id)!;
+      if (story.parentId && map.has(story.parentId)) {
+        map.get(story.parentId)!.children.push(node);
+      } else {
+        root.push(node);
+      }
+    }
+    const sortRecursive = (nodes: (UserStory & { children: UserStory[] })[]) => {
+      nodes.sort((a, b) => a.order - b.order);
+      nodes.forEach((child) => sortRecursive(child.children));
+    };
+    sortRecursive(root);
+    return root;
+  }
+
+  getStoryPath(id: string) {
+    const path: UserStory[] = [];
+    let current: UserStory | undefined = this.state.stories.find((story) => story.id === id);
+    if (!current) throw notFound('Story not found');
+    while (current) {
+      path.unshift(structuredClone(current));
+      current = current.parentId ? this.state.stories.find((story) => story.id === current!.parentId) : undefined;
     }
     return path;
   }
 
   // Tests
-  listTests(): AcceptanceTest[] {
-    return Array.from(this.tests.values());
+  listTests() {
+    return structuredClone(this.state.tests);
   }
 
-  listTestsByStory(storyId: string): AcceptanceTest[] {
-    return this.listTests().filter((test) => test.storyId === storyId);
+  createTest(data: Omit<AcceptanceTest, 'id' | 'createdAt' | 'updatedAt'>) {
+    const parsed = AcceptanceTestSchema.omit({ id: true, createdAt: true, updatedAt: true }).parse(data);
+    const story = this.state.stories.find((item) => item.id === parsed.storyId);
+    if (!story) throw badRequest('Story not found for test');
+    const analysis = analyzeTest({ title: parsed.title, steps: parsed.steps });
+    if (analysis.ambiguity.length > 0) {
+      throw badRequest('Acceptance test contains ambiguous steps', analysis.ambiguity);
+    }
+    const test: AcceptanceTest = {
+      ...parsed,
+      id: `test-${idNanoid()}`,
+      createdAt: now(),
+      updatedAt: now()
+    };
+    this.state.tests.push(test);
+    return structuredClone(test);
   }
 
-  getTest(id: string): AcceptanceTest {
-    const test = this.tests.get(id);
+  updateTest(id: string, data: Partial<AcceptanceTest>) {
+    const test = this.state.tests.find((item) => item.id === id);
     if (!test) throw notFound('Test not found');
-    return test;
+    const next = { ...test, ...data, id: test.id };
+    const validated = AcceptanceTestSchema.parse({ ...next, updatedAt: test.updatedAt, createdAt: test.createdAt });
+    const analysis = analyzeTest({ title: validated.title, steps: validated.steps });
+    if (analysis.ambiguity.length > 0) {
+      throw badRequest('Acceptance test contains ambiguous steps', analysis.ambiguity);
+    }
+    Object.assign(test, { ...validated, updatedAt: now() });
+    return structuredClone(test);
   }
 
-  createTest(payload: Omit<AcceptanceTest, 'createdAt' | 'updatedAt'>): AcceptanceTest {
-    const story = this.getStory(payload.storyId);
-    this.ensureInvestCompliance(story);
-    this.ensureTestable(payload);
-    const now = new Date().toISOString();
-    const test = AcceptanceTestSchema.parse({
-      ...payload,
-      createdAt: now,
-      updatedAt: now
-    });
-    this.tests.set(test.id, test);
-    return test;
-  }
-
-  updateTest(id: string, payload: Partial<AcceptanceTest>): AcceptanceTest {
-    const existing = this.getTest(id);
-    this.ensureTestable({ ...existing, ...payload });
-    const updated = AcceptanceTestSchema.parse({
-      ...existing,
-      ...payload,
-      updatedAt: new Date().toISOString()
-    });
-    this.tests.set(id, updated);
-    return updated;
+  updateTestStatus(id: string, status: AcceptanceTest['status']) {
+    const test = this.state.tests.find((item) => item.id === id);
+    if (!test) throw notFound('Test not found');
+    const allowed = TEST_STATUS_TRANSITIONS[test.status] ?? [];
+    if (!allowed.includes(status)) {
+      throw conflict(`Cannot transition test from ${test.status} to ${status}`);
+    }
+    test.status = status;
+    test.updatedAt = now();
+    return structuredClone(test);
   }
 
   deleteTest(id: string) {
-    if (!this.tests.delete(id)) {
-      throw notFound('Test not found');
-    }
-  }
-
-  private getChildren(parentId: string | null): UserStory[] {
-    return this.listStories()
-      .filter((story) => story.parentId === parentId)
-      .sort((a, b) => a.order - b.order);
-  }
-
-  private normalizeOrder(parentId: string | null) {
-    const children = this.getChildren(parentId);
-    children.forEach((child, index) => {
-      if (child.order !== index) {
-        this.stories.set(child.id, { ...child, order: index });
-      }
-    });
-  }
-
-  getStoryTree(mrId: string) {
-    const stories = this.listStoriesByMergeRequest(mrId).sort((a, b) => a.order - b.order);
-    const map = new Map<string, UserStory & { children: UserStory[] }>();
-    const roots: (UserStory & { children: UserStory[] })[] = [];
-    stories.forEach((story) => map.set(story.id, { ...story, children: [] }));
-    stories.forEach((story) => {
-      const node = map.get(story.id)!;
-      if (story.parentId) {
-        const parent = map.get(story.parentId);
-        if (parent) {
-          parent.children.push(node);
-        }
-      } else {
-        roots.push(node);
-      }
-    });
-    return roots;
-  }
-
-  private updateDepthRecursive(id: string, depth: number) {
-    const story = this.getStory(id);
-    if (depth >= DEPTH_LIMIT) {
-      throw unprocessable('Depth limit exceeded', { depth, limit: DEPTH_LIMIT });
-    }
-    const updated = { ...story, depth };
-    this.stories.set(id, updated);
-    for (const child of this.getChildren(id)) {
-      this.updateDepthRecursive(child.id, depth + 1);
-    }
-  }
-
-  private isDescendant(targetId: string, potentialAncestorId: string): boolean {
-    let current = this.getStory(targetId);
-    while (current.parentId) {
-      if (current.parentId === potentialAncestorId) return true;
-      current = this.getStory(current.parentId);
-    }
-    return false;
-  }
-
-  private ensureInvestCompliance(story: UserStory) {
-    const validation = validateStoryNarrative(story, 'en');
-    if (!validation.invest.passed) {
-      throw unprocessable('INVEST check failed', validation);
-    }
-    const childrenCount = this.getChildren(story.id).length;
-    const invest = checkInvest(
-      {
-        title: story.title,
-        estimateDays: story.estimateDays,
-        childrenCount
-      },
-      {
-        smallEstimateDays: INVEST_SMALL_DAYS,
-        maxChildren: INVEST_MAX_CHILDREN
-      }
-    );
-    if (!invest.passed) {
-      throw unprocessable('Story violates INVEST rules', invest);
-    }
-  }
-
-  private ensureTestable(test: Pick<AcceptanceTest, 'title' | 'steps'>) {
-    const ambiguous = detectAmbiguity(test.title).length;
-    const measurable = hasMeasurableValue(test.title) || test.steps.some(hasMeasurableValue);
-    if (ambiguous > 0) {
-      throw unprocessable('Acceptance test title is ambiguous', test.title);
-    }
-    if (!measurable) {
-      throw unprocessable('Acceptance test must include measurable expectations', test.steps);
-    }
+    const index = this.state.tests.findIndex((item) => item.id === id);
+    if (index === -1) throw notFound('Test not found');
+    this.state.tests.splice(index, 1);
   }
 }
 
