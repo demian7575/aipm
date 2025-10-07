@@ -45,6 +45,19 @@ describe('OutlineTree', () => {
   beforeEach(() => {
     useStoryStore.setState((state) => ({
       ...state,
+      mergeRequests: [{
+        id: 'mr',
+        title: 'Mock MR',
+        description: '',
+        repository: '',
+        branch: '',
+        status: 'open',
+        drift: false,
+        lastSyncAt: '',
+        createdAt: '',
+        updatedAt: ''
+      }] as any,
+      selectedMrId: 'mr',
       tree: mockTree as any,
       expanded: { s1: true } as Record<string, boolean>,
       selectStory: vi.fn() as any,
