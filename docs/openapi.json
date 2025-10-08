@@ -2,566 +2,266 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Project Manager Mindmap API",
-    "description": "Domain schemas for merge requests, user stories, and acceptance tests used by the AI Project Manager Mindmap.",
-    "version": "0.1.0"
+    "version": "0.2.0",
+    "description": "Endpoints for managing merge requests, user stories, and acceptance tests."
   },
-  "servers": [
-    {
-      "url": "http://localhost:3000",
-      "description": "Local development server"
+  "paths": {
+    "/api/merge-requests": {
+      "get": {
+        "summary": "List merge requests",
+        "responses": {
+          "200": {
+            "description": "Merge requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MergeRequest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create merge request",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "summary", "branch"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "summary": { "type": "string" },
+                  "branch": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MergeRequest" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/merge-requests/{id}": {
+      "get": {
+        "summary": "Get merge request",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Merge request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MergeRequest" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stories": {
+      "get": {
+        "summary": "List stories",
+        "parameters": [
+          { "name": "mrId", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/UserStory" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create story",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["mrId", "parentId", "order", "depth", "title", "asA", "iWant", "soThat"],
+                "properties": {
+                  "mrId": { "type": "string", "format": "uuid" },
+                  "parentId": { "type": ["string", "null"], "format": "uuid" },
+                  "order": { "type": "integer" },
+                  "depth": { "type": "integer" },
+                  "title": { "type": "string" },
+                  "asA": { "type": "string" },
+                  "iWant": { "type": "string" },
+                  "soThat": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Story",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserStory" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stories/tree": {
+      "get": {
+        "summary": "Get story tree",
+        "parameters": [
+          { "name": "mrId", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rollup tree",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tree": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/RollupResult" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tests": {
+      "post": {
+        "summary": "Create acceptance test",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["storyId"],
+                "properties": {
+                  "storyId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AcceptanceTest" }
+              }
+            }
+          }
+        }
+      }
     }
-  ],
-  "paths": {},
+  },
   "components": {
     "schemas": {
+      "InvestChecklist": {
+        "type": "object",
+        "properties": {
+          "independent": { "type": "boolean" },
+          "negotiable": { "type": "boolean" },
+          "valuable": { "type": "boolean" },
+          "estimable": { "type": "boolean" },
+          "small": { "type": "boolean" },
+          "testable": { "type": "boolean" }
+        }
+      },
       "MergeRequest": {
         "type": "object",
-        "required": [
-          "id",
-          "title",
-          "summary",
-          "status",
-          "branch",
-          "drift",
-          "lastSyncAt",
-          "storyIds",
-          "createdAt",
-          "updatedAt",
-          "version"
-        ],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 120
-          },
-          "summary": {
-            "type": "string",
-            "maxLength": 500
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "Draft",
-              "Ready",
-              "InReview",
-              "Merged",
-              "Closed"
-            ]
-          },
-          "branch": {
-            "type": "string"
-          },
-          "drift": {
-            "type": "boolean"
-          },
-          "lastSyncAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "storyIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "version": {
-            "type": "integer",
-            "minimum": 0
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "status": { "type": "string", "enum": ["Draft", "Ready", "InReview", "Merged", "Closed"] },
+          "branch": { "type": "string" },
+          "drift": { "type": "boolean" },
+          "lastSyncAt": { "type": "string", "format": "date-time" },
+          "storyIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "version": { "type": "integer" }
         }
       },
       "UserStory": {
         "type": "object",
-        "required": [
-          "id",
-          "mrId",
-          "parentId",
-          "order",
-          "depth",
-          "title",
-          "asA",
-          "iWant",
-          "soThat",
-          "invest",
-          "childrenIds",
-          "testIds",
-          "status",
-          "createdAt",
-          "updatedAt",
-          "version"
-        ],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "mrId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "parentId": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "order": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "depth": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 160
-          },
-          "asA": {
-            "type": "string"
-          },
-          "iWant": {
-            "type": "string"
-          },
-          "soThat": {
-            "type": "string"
-          },
-          "invest": {
-            "type": "object",
-            "required": [
-              "independent",
-              "negotiable",
-              "valuable",
-              "estimable",
-              "small",
-              "testable"
-            ],
-            "properties": {
-              "independent": {
-                "type": "boolean"
-              },
-              "negotiable": {
-                "type": "boolean"
-              },
-              "valuable": {
-                "type": "boolean"
-              },
-              "estimable": {
-                "type": "boolean"
-              },
-              "small": {
-                "type": "boolean"
-              },
-              "testable": {
-                "type": "boolean"
-              }
-            }
-          },
-          "childrenIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "testIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "Draft",
-              "Ready",
-              "Approved"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "version": {
-            "type": "integer",
-            "minimum": 0
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "mrId": { "type": "string", "format": "uuid" },
+          "parentId": { "type": ["string", "null"], "format": "uuid" },
+          "order": { "type": "integer" },
+          "depth": { "type": "integer" },
+          "title": { "type": "string" },
+          "asA": { "type": "string" },
+          "iWant": { "type": "string" },
+          "soThat": { "type": "string" },
+          "invest": { "$ref": "#/components/schemas/InvestChecklist" },
+          "estimateDays": { "type": "number" },
+          "childrenIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "testIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "status": { "type": "string", "enum": ["Draft", "Ready", "Approved"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "version": { "type": "integer" }
         }
       },
       "AcceptanceTest": {
         "type": "object",
-        "required": [
-          "id",
-          "storyId",
-          "given",
-          "when",
-          "then",
-          "ambiguityFlags",
-          "status",
-          "createdAt",
-          "updatedAt",
-          "version"
-        ],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "storyId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "given": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "minItems": 1
-          },
-          "when": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "minItems": 1
-          },
-          "then": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "minItems": 1
-          },
-          "ambiguityFlags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "Draft",
-              "Ready",
-              "Pass",
-              "Fail",
-              "Blocked"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "version": {
-            "type": "integer",
-            "minimum": 0
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "storyId": { "type": "string", "format": "uuid" },
+          "given": { "type": "array", "items": { "type": "string" } },
+          "when": { "type": "array", "items": { "type": "string" } },
+          "then": { "type": "array", "items": { "type": "string" } },
+          "ambiguityFlags": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["Draft", "Ready", "Pass", "Fail", "Blocked"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "version": { "type": "integer" }
         }
       },
-      "MergeRequestList": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "id",
-            "title",
-            "summary",
-            "status",
-            "branch",
-            "drift",
-            "lastSyncAt",
-            "storyIds",
-            "createdAt",
-            "updatedAt",
-            "version"
-          ],
-          "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "title": {
-              "type": "string",
-              "maxLength": 120
-            },
-            "summary": {
-              "type": "string",
-              "maxLength": 500
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "Draft",
-                "Ready",
-                "InReview",
-                "Merged",
-                "Closed"
-              ]
-            },
-            "branch": {
-              "type": "string"
-            },
-            "drift": {
-              "type": "boolean"
-            },
-            "lastSyncAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "storyIds": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "format": "uuid"
-              }
-            },
-            "createdAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "version": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
-        }
-      },
-      "UserStoryList": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "id",
-            "mrId",
-            "parentId",
-            "order",
-            "depth",
-            "title",
-            "asA",
-            "iWant",
-            "soThat",
-            "invest",
-            "childrenIds",
-            "testIds",
-            "status",
-            "createdAt",
-            "updatedAt",
-            "version"
-          ],
-          "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "mrId": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "parentId": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "order": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "depth": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "title": {
-              "type": "string",
-              "maxLength": 160
-            },
-            "asA": {
-              "type": "string"
-            },
-            "iWant": {
-              "type": "string"
-            },
-            "soThat": {
-              "type": "string"
-            },
-            "invest": {
-              "type": "object",
-              "required": [
-                "independent",
-                "negotiable",
-                "valuable",
-                "estimable",
-                "small",
-                "testable"
-              ],
-              "properties": {
-                "independent": {
-                  "type": "boolean"
-                },
-                "negotiable": {
-                  "type": "boolean"
-                },
-                "valuable": {
-                  "type": "boolean"
-                },
-                "estimable": {
-                  "type": "boolean"
-                },
-                "small": {
-                  "type": "boolean"
-                },
-                "testable": {
-                  "type": "boolean"
-                }
-              }
-            },
-            "childrenIds": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "format": "uuid"
-              }
-            },
-            "testIds": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "format": "uuid"
-              }
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "Draft",
-                "Ready",
-                "Approved"
-              ]
-            },
-            "createdAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "version": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
-        }
-      },
-      "AcceptanceTestList": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "id",
-            "storyId",
-            "given",
-            "when",
-            "then",
-            "ambiguityFlags",
-            "status",
-            "createdAt",
-            "updatedAt",
-            "version"
-          ],
-          "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "storyId": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "given": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "minItems": 1
-            },
-            "when": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "minItems": 1
-            },
-            "then": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "minItems": 1
-            },
-            "ambiguityFlags": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "status": {
-              "type": "string",
-              "enum": [
-                "Draft",
-                "Ready",
-                "Pass",
-                "Fail",
-                "Blocked"
-              ]
-            },
-            "createdAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "version": {
-              "type": "integer",
-              "minimum": 0
-            }
+      "RollupResult": {
+        "type": "object",
+        "properties": {
+          "storyId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string" },
+          "tests": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AcceptanceTest" }
+          },
+          "children": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RollupResult" }
           }
         }
       }

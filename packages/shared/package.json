@@ -1,14 +1,37 @@
 {
   "name": "@ai-pm/shared",
-  "version": "0.1.0",
-  "description": "Shared validation utilities for AI Project Manager Mindmap",
-  "main": "src/index.js",
+  "version": "0.2.0",
+  "private": false,
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "node src/validation.test.js",
-    "lint": "node ../shared/scripts/lint.js",
-    "build": "node ../shared/scripts/build.js",
-    "dev": "node ../shared/scripts/dev.js",
-    "generate:openapi": "node src/openapi/generate.js"
+    "build": "tsup src/index.ts --dts --format esm,cjs --out-dir dist",
+    "dev": "tsup src/index.ts --dts --format esm,cjs --out-dir dist --watch",
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "generate:openapi": "ts-node src/openapi/generate.ts"
+  },
+  "dependencies": {
+    "@types/uuid": "9.0.7",
+    "date-fns": "3.6.1",
+    "uuid": "9.0.1",
+    "zod": "3.23.8",
+    "zod-to-openapi": "6.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.12.7",
+    "eslint": "8.57.0",
+    "eslint-config-prettier": "9.1.0",
+    "eslint-plugin-import": "2.29.1",
+    "eslint-plugin-jsx-a11y": "6.8.0",
+    "eslint-plugin-react": "7.34.1",
+    "eslint-plugin-react-hooks": "4.6.0",
+    "prettier": "3.2.5",
+    "ts-node": "10.9.2",
+    "tsup": "7.2.0",
+    "typescript": "5.4.5",
+    "vitest": "1.5.0"
   }
 }
