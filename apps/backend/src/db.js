@@ -1,24 +1,39 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, existsSync, openSync, closeSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const dataDir = resolve(__dirname, '../data');
-if (!existsSync(dataDir)) {
-  mkdirSync(dataDir, { recursive: true });
-}
-
 export const dbPath = resolve(dataDir, 'app.sqlite');
 
-const runSqlite = (args, input = '') => {
+const ensureDatabaseFile = () => {
+  if (!existsSync(dataDir)) {
+    mkdirSync(dataDir, { recursive: true });
+  }
+  if (!existsSync(dbPath)) {
+    closeSync(openSync(dbPath, 'a'));
+  }
+};
+
+const runSqlite = (args, input = '', attemptedRetry = false) => {
+  ensureDatabaseFile();
   const result = spawnSync('sqlite3', args, {
     input,
     encoding: 'utf8'
   });
   if (result.status !== 0) {
-    const error = new Error(result.stderr || 'Failed to execute sqlite3 command');
-    error.details = { args, input };
+    const errorMessage = result.stderr?.trim() || 'Failed to execute sqlite3 command';
+    if (!attemptedRetry && /unable to open database file/i.test(errorMessage)) {
+      // ensure the directory exists and retry once for transient races
+      mkdirSync(dirname(dbPath), { recursive: true });
+      if (!existsSync(dbPath)) {
+        closeSync(openSync(dbPath, 'a'));
+      }
+      return runSqlite(args, input, true);
+    }
+    const error = new Error(errorMessage);
+    error.details = { args, input, stderr: result.stderr };
     throw error;
   }
   return result.stdout;
