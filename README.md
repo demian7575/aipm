@@ -4,28 +4,28 @@ An interactive planning surface combining merge requests, user stories, and acce
 
 ## Getting Started
 ```bash
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
-The command launches the backend on port 4000 and the Vite frontend on port 5173.
+The development server exposes the JSON API and serves the static frontend at `http://localhost:4000`.
 
 ## Scripts
-- `pnpm dev` – run backend and frontend in parallel
-- `pnpm build` – build all packages and apps
-- `pnpm test` – run shared, backend, and frontend unit tests
-- `pnpm e2e` – execute Playwright smoke scenarios
-- `pnpm generate:openapi` – regenerate `docs/openapi.json`
+- `npm run dev` – launch the backend API (serving the SPA assets)
+- `npm run build` – copy backend/frontend assets into `dist/` and regenerate OpenAPI docs
+- `npm run test` – execute shared validation tests and backend API tests
+- `npm run e2e` – run a Node-based smoke scenario covering authoring flows
+- `npm run generate:openapi` – rebuild `docs/openapi.json`
 
 ## Features
-- **Outline Tree** with ARIA semantics, keyboard shortcuts, virtual scrolling, and URL-driven expansion presets.
-- **Radial Mindmap** powered by React Flow and a d3-cluster worker for performant layouts.
-- **Detail & GitHub Panels** exposing INVEST diagnostics, acceptance tests, drift state, and branch update simulation.
-- **Validation Engine** shared between client and server for INVEST heuristics, ambiguity checks, and roll-up status computation.
-- **In-memory Backend** with Fastify, OpenAPI docs, and rich tree operations (move, reorder, path lookup).
+- **Outline Tree** with ARIA semantics, keyboard navigation, expand/collapse depth presets, and persistent state.
+- **Radial Mindmap** rendered in SVG with a custom polar layout and drag-to-reparent interactions guarded by the backend.
+- **Detail & GitHub Panels** exposing INVEST diagnostics, acceptance tests, drift status, and branch update simulation.
+- **Validation Engine** shared between client and server for INVEST heuristics, ambiguity checks, measurability, and roll-up status computation.
+- **In-memory Backend** implemented with native Node HTTP primitives enforcing depth/cycle guards and returning structured errors.
 
 ## Testing & CI
-- Vitest covers shared validations, backend guards, and frontend render behaviors.
-- Playwright smoke suite validates end-to-end authoring flows.
-- GitHub Actions workflow (`ci.yml`) runs linting, testing, builds, OpenAPI generation, Playwright, and size guard.
+- Node's built-in test runner covers shared validation utilities and backend route handlers.
+- A lightweight E2E script spins up the API and exercises create/update flows through HTTP requests.
+- GitHub Actions workflow (`ci.yml`) runs tests, builds artifacts, and regenerates the OpenAPI document.
 
 Refer to [docs/README.md](docs/README.md) for architecture diagrams, keyboard map, and API references.

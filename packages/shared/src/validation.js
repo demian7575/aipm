@@ -14,6 +14,9 @@ import {
   userStorySchema,
   conjunctionTerms
 } from './schemas.js';
+import { randomUUID } from 'node:crypto';
+
+const nowIso = () => new Date().toISOString();
 
 export const ValidationPolicies = { WARN: 'warn', BLOCK: 'block' };
 
@@ -179,6 +182,53 @@ export const rollupStatus = (mergeRequest, stories, tests) => {
   };
 };
 
+export const createStory = (input) => {
+  const now = nowIso();
+  const id = randomUUID();
+  return {
+    id,
+    mrId: input.mrId,
+    parentId: input.parentId ?? null,
+    order: input.order ?? 0,
+    depth: input.depth ?? 0,
+    title: input.title,
+    asA: input.asA,
+    iWant: input.iWant,
+    soThat: input.soThat,
+    invest: {
+      independent: true,
+      negotiable: true,
+      valuable: true,
+      estimable: true,
+      small: true,
+      testable: false
+    },
+    childrenIds: [],
+    testIds: [],
+    status: 'Draft',
+    createdAt: now,
+    updatedAt: now,
+    version: 0
+  };
+};
+
+export const createAcceptanceTest = (storyId) => {
+  const now = nowIso();
+  const id = randomUUID();
+  return {
+    id,
+    storyId,
+    given: ['context is prepared'],
+    when: ['action is triggered'],
+    then: ['result observed within 5 seconds'],
+    ambiguityFlags: [],
+    status: 'Draft',
+    createdAt: now,
+    updatedAt: now,
+    version: 0
+  };
+};
+
 export const schemasForOpenApi = {
   components: openApiComponents,
   references: {
@@ -187,3 +237,13 @@ export const schemasForOpenApi = {
     acceptanceTestSchema
   }
 };
+export const validateAcceptanceTest = (test) => {
+  const ambiguity = detectAmbiguity([...test.given, ...test.when, ...test.then]);
+  const measurability = requireMeasurable(test.then);
+  return {
+    ambiguity,
+    measurability,
+    ok: ambiguity.hasIssues === false && measurability.ok
+  };
+};
+

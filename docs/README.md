@@ -2,24 +2,24 @@
 
 ## Prerequisites
 - Node.js 20+
-- pnpm 8+
+- npm 10+
 - Modern browser for running the frontend
 
 ## Workspace Commands
 ```bash
-pnpm install
-pnpm dev            # runs backend (port 4000) and frontend (port 5173)
-pnpm build          # builds all packages and apps
-pnpm test           # runs unit and integration tests
-pnpm e2e            # executes Playwright smoke tests
-pnpm generate:openapi
-pnpm seed           # reseed backend in-memory data
+npm install
+npm run dev         # serves API + SPA from http://localhost:4000
+npm run build       # copies backend/frontend assets into dist/ and regenerates OpenAPI
+npm run test        # shared + backend test suites
+npm run e2e         # Node-based smoke against local API
+npm run generate:openapi
+npm run seed        # reseed backend in-memory data
 ```
 
 ## Architecture Overview
-- **packages/shared** – Zod schemas, validation utilities (INVEST, ambiguity detection, measurability), and OpenAPI builder.
-- **apps/backend** – Fastify-based API with in-memory repositories, validation enforcement, Swagger UI, and seed data.
-- **apps/frontend** – Vite + React application featuring outline tree, radial mindmap (React Flow + d3 cluster), detail and GitHub panels, and Zustand-powered workspace state.
+- **packages/shared** – Dependency-free schema guards, INVEST/ambiguity/measurability validators, and OpenAPI builder utilities.
+- **apps/backend** – Native Node HTTP server exposing REST endpoints, depth/cycle guards, roll-up helpers, and static asset hosting.
+- **apps/frontend** – Vanilla JavaScript single-page app (SVG mindmap + outline tree) served from `apps/frontend/public`.
 - **docs** – OpenAPI specification and implementation roadmap.
 
 ```
@@ -37,9 +37,6 @@ ai-pm-mindmap/
 - `→`: Expand current story
 - `←`: Collapse current story
 - `Enter`: Focus detail panel
-- `A`: Add child story
-- `S`: Add root-level sibling story
-- `T`: Add acceptance test for selected story
 - `Shift + Click`: Recursively toggle descendants
 
 ## URL Parameters
@@ -48,8 +45,8 @@ ai-pm-mindmap/
 - `?expand=depth:N` – expand to a given depth (root = 1)
 
 ## API Reference
-- Swagger UI: `http://localhost:4000/api/docs`
+- OpenAPI JSON: `http://localhost:4000/api/openapi.json`
 - OpenAPI JSON: `http://localhost:4000/api/openapi.json`
 
 ## Branch Protection Guidance
-The CI workflow (`.github/workflows/ci.yml`) runs lint, tests, builds, Playwright smoke, size guard, and OpenAPI generation. Protect `main` with mandatory status checks on the `ci` workflow.
+The CI workflow (`.github/workflows/ci.yml`) runs tests, builds, and OpenAPI generation. Protect `main` with mandatory status checks on the `ci` workflow.
