@@ -33,6 +33,7 @@ advancing.
 - Support add child/sibling/test shortcuts, deletion, and numbering display (`US1`, `AT1-A`, etc.).
 - Synchronize tree changes with backend move/reorder endpoints; handle optimistic updates and error rollback.
 - Deliverable: Outline view fully interactive with keyboard/mouse parity, passing accessibility lint checks and frontend unit tests.
+- _Status_: Blocked until Phases 2 and 3 provide the backend endpoints and frontend shell. See `docs/status/phase4-blockers.md` for details.
 
 ## Phase 5 – Mindmap Visualization
 - Integrate React Flow with radial layout computed via `d3-hierarchy` cluster; map API data to nodes/edges.

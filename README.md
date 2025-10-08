@@ -18,6 +18,13 @@ OpenAPI snapshot for downstream services.
 Later phases will introduce the backend API, frontend applications, visualization layers,
 and CI pipeline as described in the implementation plan.
 
+### Why Phase 4 is currently blocked
+
+The outline tree work in Phase 4 depends on the backend endpoints (Phase 2) and the frontend
+application shell (Phase 3). Until those foundations exist, attempting Phase 4 would require
+building the missing layers out of sequence. A detailed breakdown of the blockers is available
+in `docs/status/phase4-blockers.md`.
+
 ## Local development
 
 The repository intentionally avoids external npm dependencies so that validation can run in
