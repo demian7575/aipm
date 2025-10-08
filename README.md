@@ -28,10 +28,10 @@ The frontend is a static bundle located in `apps/frontend/public`. The build ste
 
 ## Features
 - **Outline Tree** with ARIA semantics, keyboard navigation, expand/collapse depth presets, and persistent state.
-- **Radial Mindmap** rendered in SVG with a custom polar layout and drag-to-reparent interactions guarded by the backend.
-- **Detail & GitHub Panels** exposing INVEST diagnostics, acceptance tests, drift status, and branch update simulation.
+- **Right-expanding Mindmap** rendered in SVG with a horizontal layout, drag-to-reparent interactions, and synchronized detail updates.
+- **Detail & GitHub Panels** exposing INVEST diagnostics, acceptance tests, drift status, branch update simulation, and hierarchical add/remove forms.
 - **Validation Engine** shared between client and server for INVEST heuristics, ambiguity checks, measurability, and roll-up status computation.
-- **In-memory Backend** implemented with native Node HTTP primitives enforcing depth/cycle guards and returning structured errors.
+- **SQLite-backed Backend** implemented with native Node HTTP primitives enforcing depth/cycle guards, persisting data, and returning structured errors.
 
 ## Testing & CI
 - Node's built-in test runner covers shared validation utilities and backend route handlers.

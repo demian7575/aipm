@@ -6,6 +6,7 @@ import {
   validateStoryInvest,
   validateAcceptanceTest
 } from '@ai-pm/shared';
+import { execStatements, queryRows } from './db.js';
 import { INVEST_POLICY, MAX_DEPTH } from './config.js';
 
 const nowIso = () => new Date().toISOString();
@@ -18,6 +19,16 @@ const ensure = (condition, code, message, details) => {
     error.code = code;
     if (details !== undefined) error.details = details;
     throw error;
+  }
+};
+
+const quote = (value) => `'${String(value).replace(/'/g, "''")}'`;
+const jsonQuote = (value) => quote(JSON.stringify(value));
+const parseJson = (value, fallback) => {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return fallback;
   }
 };
 
@@ -41,12 +52,14 @@ export class InMemoryStore {
     this.mergeRequests = new Map();
     this.stories = new Map();
     this.tests = new Map();
+    this.#loadFromDb();
   }
 
   reset() {
     this.mergeRequests.clear();
     this.stories.clear();
     this.tests.clear();
+    execStatements(['BEGIN;', 'DELETE FROM tests;', 'DELETE FROM stories;', 'DELETE FROM merge_requests;', 'COMMIT;']);
   }
 
   seed() {
@@ -156,6 +169,7 @@ export class InMemoryStore {
 
     this.#refreshChildren();
     stories.forEach((story) => this.#recalculateInvest(story.id));
+    this.#persistAll();
   }
 
   #refreshChildren() {
@@ -168,6 +182,140 @@ export class InMemoryStore {
         if (parent) parent.childrenIds.push(story.id);
       }
     });
+  }
+
+  #loadFromDb() {
+    try {
+      const tables = queryRows("SELECT name FROM sqlite_master WHERE type='table'");
+      const names = new Set(tables.map((row) => row.name));
+      if (!names.has('merge_requests') || !names.has('stories') || !names.has('tests')) {
+        return;
+      }
+    } catch (error) {
+      return;
+    }
+
+    this.mergeRequests.clear();
+    this.stories.clear();
+    this.tests.clear();
+
+    const mergeRequests = queryRows('SELECT * FROM merge_requests');
+    mergeRequests.forEach((row) => {
+      const mr = {
+        id: row.id,
+        title: row.title,
+        summary: row.summary,
+        status: row.status,
+        branch: row.branch,
+        drift: Boolean(row.drift),
+        lastSyncAt: row.lastSyncAt,
+        storyIds: parseJson(row.storyIds, []),
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        version: row.version
+      };
+      this.mergeRequests.set(mr.id, mr);
+    });
+
+    const stories = queryRows('SELECT * FROM stories');
+    stories.forEach((row) => {
+      const story = {
+        id: row.id,
+        mrId: row.mrId,
+        parentId: row.parentId ?? null,
+        order: row.order,
+        depth: row.depth,
+        title: row.title,
+        asA: row.asA,
+        iWant: row.iWant,
+        soThat: row.soThat,
+        invest: parseJson(row.invest, {}),
+        childrenIds: parseJson(row.childrenIds, []),
+        testIds: parseJson(row.testIds, []),
+        status: row.status,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        version: row.version
+      };
+      this.stories.set(story.id, story);
+    });
+
+    const tests = queryRows('SELECT * FROM tests');
+    tests.forEach((row) => {
+      const test = {
+        id: row.id,
+        storyId: row.storyId,
+        given: parseJson(row.given, []),
+        when: parseJson(row.when, []),
+        then: parseJson(row.then, []),
+        ambiguityFlags: parseJson(row.ambiguityFlags, []),
+        status: row.status,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        version: row.version
+      };
+      this.tests.set(test.id, test);
+    });
+    this.#refreshChildren();
+    this.stories.forEach((story) => this.#recalculateInvest(story.id));
+  }
+
+  #persistAll() {
+    const statements = ['BEGIN;', 'DELETE FROM tests;', 'DELETE FROM stories;', 'DELETE FROM merge_requests;'];
+    this.mergeRequests.forEach((mr) => {
+      statements.push(
+        `INSERT INTO merge_requests (id, title, summary, status, branch, drift, lastSyncAt, storyIds, createdAt, updatedAt, version) VALUES (${quote(
+          mr.id
+        )}, ${quote(mr.title)}, ${quote(mr.summary)}, ${quote(mr.status)}, ${quote(mr.branch)}, ${mr.drift ? 1 : 0}, ${quote(
+          mr.lastSyncAt
+        )}, ${jsonQuote(mr.storyIds)}, ${quote(mr.createdAt)}, ${quote(mr.updatedAt)}, ${mr.version});`
+      );
+    });
+    this.stories.forEach((story) => {
+      statements.push(
+        `INSERT INTO stories (id, mrId, parentId, "order", depth, title, asA, iWant, soThat, invest, childrenIds, testIds, status, createdAt, updatedAt, version) VALUES (${quote(
+          story.id
+        )}, ${quote(story.mrId)}, ${story.parentId ? quote(story.parentId) : 'NULL'}, ${story.order}, ${story.depth}, ${quote(
+          story.title
+        )}, ${quote(story.asA)}, ${quote(story.iWant)}, ${quote(story.soThat)}, ${jsonQuote(story.invest)}, ${jsonQuote(
+          story.childrenIds
+        )}, ${jsonQuote(story.testIds)}, ${quote(story.status)}, ${quote(story.createdAt)}, ${quote(story.updatedAt)}, ${story.version});`
+      );
+    });
+    this.tests.forEach((test) => {
+      statements.push(
+        `INSERT INTO tests (id, storyId, "given", "when", "then", ambiguityFlags, status, createdAt, updatedAt, version) VALUES (${quote(
+          test.id
+        )}, ${quote(test.storyId)}, ${jsonQuote(test.given)}, ${jsonQuote(test.when)}, ${jsonQuote(test.then)}, ${jsonQuote(
+          test.ambiguityFlags
+        )}, ${quote(test.status)}, ${quote(test.createdAt)}, ${quote(test.updatedAt)}, ${test.version});`
+      );
+    });
+    statements.push('COMMIT;');
+    execStatements(statements);
+  }
+
+  #deleteStoryRecursive(id) {
+    const story = this.stories.get(id);
+    ensure(story, 'story.notFound', 'Story not found');
+    const children = Array.from(this.stories.values()).filter((candidate) => candidate.parentId === id);
+    children.forEach((child) => this.#deleteStoryRecursive(child.id));
+    story.testIds.forEach((testId) => this.tests.delete(testId));
+    if (story.parentId) {
+      const parent = this.stories.get(story.parentId);
+      if (parent) {
+        parent.childrenIds = parent.childrenIds.filter((childId) => childId !== id);
+        this.#syncOrdersForParent(story.mrId, story.parentId);
+        this.#recalculateInvest(parent.id);
+      }
+    } else {
+      const mr = this.mergeRequests.get(story.mrId);
+      if (mr) {
+        mr.storyIds = mr.storyIds.filter((storyId) => storyId !== id);
+        this.#syncOrdersForParent(story.mrId, null);
+      }
+    }
+    this.stories.delete(id);
   }
 
   getState() {
@@ -209,6 +357,7 @@ export class InMemoryStore {
       version: 0
     };
     this.mergeRequests.set(mr.id, mr);
+    this.#persistAll();
     return clone(mr);
   }
 
@@ -235,6 +384,7 @@ export class InMemoryStore {
     }
     mr.updatedAt = nowIso();
     mr.version += 1;
+    this.#persistAll();
     return clone(mr);
   }
 
@@ -246,6 +396,7 @@ export class InMemoryStore {
     mr.status = status;
     mr.updatedAt = nowIso();
     mr.version += 1;
+    this.#persistAll();
     return clone(mr);
   }
 
@@ -256,6 +407,7 @@ export class InMemoryStore {
     mr.lastSyncAt = nowIso();
     mr.updatedAt = mr.lastSyncAt;
     mr.version += 1;
+    this.#persistAll();
     return clone(mr);
   }
 
@@ -268,6 +420,7 @@ export class InMemoryStore {
       story.testIds.forEach((testId) => this.tests.delete(testId));
     });
     this.mergeRequests.delete(id);
+    this.#persistAll();
     return { ok: true };
   }
 
@@ -336,6 +489,7 @@ export class InMemoryStore {
     mr.updatedAt = nowIso();
     mr.version += 1;
     this.#applyInvestResult(story, validation);
+    this.#persistAll();
     return clone(story);
   }
 
@@ -368,7 +522,7 @@ export class InMemoryStore {
     const policy = validateStoryInvest(story, { stories: contextStories, tests: contextTests });
     ensure(policy.ok || INVEST_POLICY === 'warn', 'story.invest', 'INVEST validation failed', policy);
     this.#applyInvestResult(story, policy);
-
+    this.#persistAll();
     return clone(story);
   }
 
@@ -380,26 +534,13 @@ export class InMemoryStore {
     story.status = status;
     story.updatedAt = nowIso();
     story.version += 1;
+    this.#persistAll();
     return clone(story);
   }
 
   deleteStory(id) {
-    const story = this.stories.get(id);
-    ensure(story, 'story.notFound', 'Story not found');
-    const children = this.listStories().filter((candidate) => candidate.parentId === id);
-    children.forEach((child) => this.deleteStory(child.id));
-    story.testIds.forEach((testId) => this.tests.delete(testId));
-    if (story.parentId) {
-      const parent = this.stories.get(story.parentId);
-      parent.childrenIds = parent.childrenIds.filter((childId) => childId !== id);
-      this.#syncOrdersForParent(story.mrId, story.parentId);
-      this.#recalculateInvest(parent.id);
-    } else {
-      const mr = this.mergeRequests.get(story.mrId);
-      mr.storyIds = mr.storyIds.filter((storyId) => storyId !== id);
-      this.#syncOrdersForParent(story.mrId, null);
-    }
-    this.stories.delete(id);
+    this.#deleteStoryRecursive(id);
+    this.#persistAll();
     return { ok: true };
   }
 
@@ -447,6 +588,7 @@ export class InMemoryStore {
     story.updatedAt = nowIso();
     story.version += 1;
     this.#refreshChildren();
+    this.#persistAll();
     return clone(story);
   }
 
@@ -469,6 +611,7 @@ export class InMemoryStore {
     story.order = order;
     story.updatedAt = nowIso();
     story.version += 1;
+    this.#persistAll();
     return clone(story);
   }
 
@@ -541,6 +684,7 @@ export class InMemoryStore {
     story.testIds.push(test.id);
     story.updatedAt = nowIso();
     this.#recalculateInvest(story.id);
+    this.#persistAll();
     return clone(test);
   }
 
@@ -561,6 +705,7 @@ export class InMemoryStore {
     }
     test.ambiguityFlags = validation.ambiguity.issues.map((issue) => issue.term);
     this.#recalculateInvest(test.storyId);
+    this.#persistAll();
     return clone(test);
   }
 
@@ -576,6 +721,7 @@ export class InMemoryStore {
       story.invest.testable = story.testIds.length > 0;
       this.#recalculateInvest(story.id);
     }
+    this.#persistAll();
     return { ok: true };
   }
 
