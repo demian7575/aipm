@@ -1,0 +1,14 @@
+{
+  "name": "ai-pm-mindmap",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Project Manager Mindmap monorepo",
+  "packageManager": "npm@10.8.2",
+  "scripts": {
+    "test": "node packages/shared/src/validation.test.js",
+    "lint": "node packages/shared/scripts/lint.js",
+    "build": "node packages/shared/scripts/build.js",
+    "dev": "node packages/shared/scripts/dev.js",
+    "generate:openapi": "node packages/shared/src/openapi/generate.js"
+  }
+}

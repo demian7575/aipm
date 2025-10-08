@@ -1,0 +1,14 @@
+{
+  "name": "@ai-pm/shared",
+  "version": "0.1.0",
+  "description": "Shared validation utilities for AI Project Manager Mindmap",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node src/validation.test.js",
+    "lint": "node ../shared/scripts/lint.js",
+    "build": "node ../shared/scripts/build.js",
+    "dev": "node ../shared/scripts/dev.js",
+    "generate:openapi": "node src/openapi/generate.js"
+  }
+}
