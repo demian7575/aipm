@@ -9,8 +9,8 @@
 # Install Python deps
 pip install -r apps/backend/requirements.txt
 
-# Install Node workspaces
-yarn install || npm install
+# Install Node workspaces (verifies you are at the repo root before running npm install)
+./scripts/bootstrap.sh
 ```
 
 ## Development

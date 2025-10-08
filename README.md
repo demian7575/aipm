@@ -14,8 +14,12 @@ Monorepo containing a FastAPI backend and React + TypeScript frontend to manage 
 pip install -r apps/backend/requirements.txt
 
 # JavaScript workspaces (frontend + shared)
-npm install
+# (runs npm install from the repository root and fails fast if you are in the wrong folder)
+./scripts/bootstrap.sh
 ```
+
+> **Tip:** If you prefer to run `npm install` manually, make sure your current directory contains `package.json`.
+> A common `ENOENT: no such file or directory, open '.../package.json'` error means you are not at the repo root.
 
 ## Run in Development
 
