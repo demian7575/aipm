@@ -172,6 +172,27 @@ export class InMemoryStore {
     this.#persistAll();
   }
 
+  seedIfEmpty() {
+    if (this.mergeRequests.size > 0) {
+      return;
+    }
+
+    let existing = 0;
+    try {
+      const [row] = queryRows('SELECT COUNT(*) as count FROM merge_requests');
+      existing = Number(row?.count ?? row?.['COUNT(*)'] ?? 0);
+    } catch (error) {
+      existing = 0;
+    }
+
+    if (existing > 0) {
+      this.#loadFromDb();
+      return;
+    }
+
+    this.seed();
+  }
+
   #refreshChildren() {
     this.stories.forEach((story) => {
       story.childrenIds = [];

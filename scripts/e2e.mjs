@@ -1,6 +1,6 @@
 import { startServer } from '../apps/backend/src/server.js';
 
-const server = await startServer(4100);
+const server = await startServer({ port: 4100, forceSeed: true });
 const baseURL = 'http://127.0.0.1:4100';
 
 const fetchJSON = async (path, options) => {

@@ -16,6 +16,10 @@ npm run generate:openapi
 npm run seed        # reseed SQLite-backed data store
 ```
 
+### Persistence notes
+- The backend automatically seeds the database only when it detects an empty store.
+- Existing records remain intact across restarts; run `npm run seed` or `POST /api/reset` when you need a clean slate.
+
 ## Client build & preview
 ```bash
 npm run build       # copies SPA into dist/frontend alongside backend bundle

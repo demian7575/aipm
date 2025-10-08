@@ -31,7 +31,7 @@ The frontend is a static bundle located in `apps/frontend/public`. The build ste
 - **Right-expanding Mindmap** rendered in SVG with a horizontal layout, drag-to-reparent interactions, and synchronized detail updates.
 - **Detail & GitHub Panels** exposing INVEST diagnostics, acceptance tests, drift status, branch update simulation, and hierarchical add/remove forms.
 - **Validation Engine** shared between client and server for INVEST heuristics, ambiguity checks, measurability, and roll-up status computation.
-- **SQLite-backed Backend** implemented with native Node HTTP primitives enforcing depth/cycle guards, persisting data, and returning structured errors.
+- **SQLite-backed Backend** implemented with native Node HTTP primitives enforcing depth/cycle guards, persisting data across restarts, and returning structured errors. The store only reseeds when empty; use the Reset button or `npm run seed` to restore the baseline dataset.
 
 ## Testing & CI
 - Node's built-in test runner covers shared validation utilities and backend route handlers.

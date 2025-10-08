@@ -268,8 +268,23 @@ const server = createServer(async (req, res) => {
   serveStatic(req, res);
 });
 
-export const startServer = (port = Number(process.env.PORT ?? 4000)) => {
-  store.seed();
+const normalizeOptions = (options) => {
+  if (typeof options === 'number') {
+    return { port: options };
+  }
+  return options ?? {};
+};
+
+export const startServer = (options) => {
+  const config = normalizeOptions(options);
+  const port = Number(config.port ?? process.env.PORT ?? 4000);
+
+  if (config.forceSeed) {
+    store.seed();
+  } else if (config.seed !== false) {
+    store.seedIfEmpty();
+  }
+
   return new Promise((resolve) => {
     server.listen(port, '0.0.0.0', () => {
       console.log(`Backend listening on http://localhost:${port}`);
