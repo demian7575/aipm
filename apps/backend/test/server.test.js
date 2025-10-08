@@ -91,4 +91,52 @@ test.describe('HTTP API', () => {
     assert.ok(tree.length >= 1);
     assert.ok(tree[0].children.every((node) => node.story.parentId === tree[0].story.id));
   });
+
+  test('reject acceptance test without required steps', async () => {
+    const [mr] = store.listMergeRequests();
+    const [story] = store.listStories({ mrId: mr.id });
+    const response = await fetch(`${baseURL}/api/tests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storyId: story.id,
+        given: ['   '],
+        when: [''],
+        then: ['   ']
+      })
+    });
+    assert.equal(response.status, 400);
+    const body = await response.json();
+    assert.equal(body.code, 'test.givenRequired');
+  });
+
+  test('prevent updates that clear acceptance test steps', async () => {
+    const [mr] = store.listMergeRequests();
+    const [story] = store.listStories({ mrId: mr.id });
+    const createResponse = await fetch(`${baseURL}/api/tests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storyId: story.id,
+        given: ['Given a valid test'],
+        when: ['When validation runs'],
+        then: ['Then metrics are captured within 2 seconds']
+      })
+    });
+    assert.equal(createResponse.status, 201);
+    const testPayload = await createResponse.json();
+
+    const updateResponse = await fetch(`${baseURL}/api/tests/${testPayload.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        given: ['   '],
+        when: ['When validation still runs'],
+        then: ['Then metrics are captured within 2 seconds']
+      })
+    });
+    assert.equal(updateResponse.status, 400);
+    const updateBody = await updateResponse.json();
+    assert.equal(updateBody.code, 'test.givenRequired');
+  });
 });

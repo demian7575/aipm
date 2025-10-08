@@ -509,9 +509,18 @@ const renderDetail = () => {
     formEl.addEventListener('submit', async (event) => {
       event.preventDefault();
       const body = {
-        given: formEl.elements.given.value.split('\n').filter(Boolean),
-        when: formEl.elements.when.value.split('\n').filter(Boolean),
-        then: formEl.elements.then.value.split('\n').filter(Boolean),
+        given: formEl.elements.given.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+        when: formEl.elements.when.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+        then: formEl.elements.then.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
         status: formEl.elements.status.value
       };
       try {
@@ -595,9 +604,18 @@ const renderDetail = () => {
     event.preventDefault();
     const body = {
       storyId: story.id,
-      given: newTestForm.elements.given.value.split('\n').filter(Boolean),
-      when: newTestForm.elements.when.value.split('\n').filter(Boolean),
-      then: newTestForm.elements.then.value.split('\n').filter(Boolean)
+      given: newTestForm.elements.given.value
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+      when: newTestForm.elements.when.value
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+      then: newTestForm.elements.then.value
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
     };
     try {
       await fetchJSON('/api/tests', { method: 'POST', body: JSON.stringify(body) });

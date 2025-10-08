@@ -693,9 +693,13 @@ export class InMemoryStore {
     const story = this.stories.get(payload.storyId);
     ensure(story, 'story.notFound', 'Story not found for test');
     const test = this.#createAcceptanceTestInternal(payload.storyId);
-    if (payload.given) test.given = payload.given;
-    if (payload.when) test.when = payload.when;
-    if (payload.then) test.then = payload.then;
+    if (payload.given) test.given = payload.given.map((step) => step.trim()).filter(Boolean);
+    if (payload.when) test.when = payload.when.map((step) => step.trim()).filter(Boolean);
+    if (payload.then) test.then = payload.then.map((step) => step.trim()).filter(Boolean);
+
+    ensure(test.given.length > 0, 'test.givenRequired', 'At least one Given step is required');
+    ensure(test.when.length > 0, 'test.whenRequired', 'At least one When step is required');
+    ensure(test.then.length > 0, 'test.thenRequired', 'At least one Then step is required');
 
     const validation = validateAcceptanceTest(test);
     ensure(validation.measurability.ok, 'test.measurable', 'Then steps must be measurable', validation);
@@ -712,9 +716,12 @@ export class InMemoryStore {
   updateTest(id, patch) {
     const test = this.tests.get(id);
     ensure(test, 'test.notFound', 'Acceptance test not found');
-    if (patch.given) test.given = patch.given;
-    if (patch.when) test.when = patch.when;
-    if (patch.then) test.then = patch.then;
+    if (patch.given) test.given = patch.given.map((step) => step.trim()).filter(Boolean);
+    if (patch.when) test.when = patch.when.map((step) => step.trim()).filter(Boolean);
+    if (patch.then) test.then = patch.then.map((step) => step.trim()).filter(Boolean);
+    ensure(test.given.length > 0, 'test.givenRequired', 'At least one Given step is required');
+    ensure(test.when.length > 0, 'test.whenRequired', 'At least one When step is required');
+    ensure(test.then.length > 0, 'test.thenRequired', 'At least one Then step is required');
     if (patch.status) test.status = patch.status;
     test.updatedAt = nowIso();
     test.version += 1;
