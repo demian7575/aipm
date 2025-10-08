@@ -9,6 +9,16 @@ npm run dev
 ```
 The development server exposes the JSON API and serves the static frontend at `http://localhost:4000`.
 
+### Building and running the client only
+
+```bash
+npm run build            # copies SPA assets into dist/frontend
+npm run preview          # serves the built assets from http://localhost:4000
+```
+
+The frontend is a static bundle located in `apps/frontend/public`. The build step copies those files into `dist/frontend`, and
+`npm run preview` boots a lightweight HTTP server that serves them without starting the API.
+
 ## Scripts
 - `npm run dev` – launch the backend API (serving the SPA assets)
 - `npm run build` – copy backend/frontend assets into `dist/` and regenerate OpenAPI docs

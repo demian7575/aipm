@@ -16,6 +16,14 @@ npm run generate:openapi
 npm run seed        # reseed backend in-memory data
 ```
 
+## Client build & preview
+```bash
+npm run build       # copies SPA into dist/frontend alongside backend bundle
+npm run preview     # serves dist/frontend on http://localhost:4000 without API
+```
+The frontend lives in `apps/frontend/public`. The build script mirrors those assets to `dist/frontend`, and the preview command
+spins up a static file server so you can inspect the client bundle in isolation.
+
 ## Architecture Overview
 - **packages/shared** – Dependency-free schema guards, INVEST/ambiguity/measurability validators, and OpenAPI builder utilities.
 - **apps/backend** – Native Node HTTP server exposing REST endpoints, depth/cycle guards, roll-up helpers, and static asset hosting.
