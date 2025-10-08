@@ -1,0 +1,7 @@
+[
+  {
+    "name": "app",
+    "path": "dist/assets/index-*.js",
+    "limit": "300 KB"
+  }
+]

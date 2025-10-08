@@ -1,0 +1,106 @@
+{
+  "mergeRequests": [
+    {
+      "id": "MR-9000",
+      "title": "Mindmap initial implementation",
+      "description": "Deliver outline and mindmap views",
+      "status": "in_progress",
+      "repo": "ai/pm-mindmap",
+      "branch": "feature/mindmap",
+      "drift": true,
+      "lastSyncAt": "2024-01-10T09:30:00Z"
+    }
+  ],
+  "stories": [
+    {
+      "id": "US-1",
+      "mergeRequestId": "MR-9000",
+      "title": "Outline tree view",
+      "role": "As a product manager",
+      "goal": "I want to explore stories in a tree",
+      "benefit": "So that I can understand hierarchy",
+      "status": "in_progress",
+      "order": 0
+    },
+    {
+      "id": "US-1-1",
+      "mergeRequestId": "MR-9000",
+      "parentId": "US-1",
+      "title": "Expand and collapse",
+      "role": "As a user",
+      "goal": "I want to toggle nodes",
+      "benefit": "So that I can focus on relevant items",
+      "status": "review",
+      "order": 0
+    },
+    {
+      "id": "US-1-2",
+      "mergeRequestId": "MR-9000",
+      "parentId": "US-1",
+      "title": "Keyboard navigation",
+      "role": "As a keyboard user",
+      "goal": "I want to use arrow keys",
+      "benefit": "So that I can navigate efficiently",
+      "status": "in_progress",
+      "order": 1
+    },
+    {
+      "id": "US-1-3",
+      "mergeRequestId": "MR-9000",
+      "parentId": "US-1",
+      "title": "Drag and drop reordering",
+      "role": "As a maintainer",
+      "goal": "I want to reposition stories",
+      "benefit": "So that the plan stays organised",
+      "status": "draft",
+      "order": 2
+    },
+    {
+      "id": "US-2",
+      "mergeRequestId": "MR-9000",
+      "title": "Mindmap canvas",
+      "role": "As a visual thinker",
+      "goal": "I want to view the tree as a mindmap",
+      "benefit": "So that patterns are obvious",
+      "status": "draft",
+      "order": 1
+    },
+    {
+      "id": "US-3",
+      "mergeRequestId": "MR-9000",
+      "title": "Validation warnings",
+      "role": "As a coach",
+      "goal": "I want to see INVEST feedback",
+      "benefit": "So that stories are actionable",
+      "status": "draft",
+      "order": 2
+    },
+    {
+      "id": "US-3-1",
+      "mergeRequestId": "MR-9000",
+      "parentId": "US-3",
+      "title": "Ambiguous copy",
+      "role": "As a reviewer",
+      "goal": "I want to know it works quickly",
+      "benefit": "So that stakeholders are happy sometime",
+      "status": "in_progress",
+      "order": 0
+    }
+  ],
+  "tests": [
+    {
+      "id": "AT-1",
+      "storyId": "US-1-1",
+      "given": "the tree is rendered",
+      "when": "the user presses the arrow key",
+      "then": "the focused node expands"
+    },
+    {
+      "id": "AT-2",
+      "storyId": "US-3-1",
+      "given": "the ambiguity detector runs",
+      "when": "stories contain vague language",
+      "then": "warnings are displayed"
+    }
+  ]
+}

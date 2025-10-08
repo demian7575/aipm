@@ -1,0 +1,22 @@
+{
+  "name": "ai-pm-mindmap",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/frontend",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run serve:backend\" \"npm run dev --workspace apps/frontend\"",
+    "serve:backend": "uvicorn app.main:app --app-dir apps/backend/app --reload --port 8000",
+    "build": "npm run build --workspace apps/frontend",
+    "lint": "npm run lint --workspace apps/frontend",
+    "test": "npm run test --workspace apps/frontend && pytest apps/backend",
+    "e2e": "npm run test:e2e --workspace apps/frontend",
+    "generate:openapi": "python apps/backend/app/openapi_export.py",
+    "seed": "python apps/backend/app/seed.py"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

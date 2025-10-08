@@ -1,0 +1,25 @@
+[project]
+name = "ai-pm-mindmap-backend"
+version = "0.1.0"
+description = "FastAPI backend for ai-pm-mindmap"
+authors = [{name = "AI PM"}]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.23",
+    "pydantic>=1.10",
+    "python-multipart>=0.0.6",
+    "structlog>=23.1",
+    "typing-extensions>=4.8"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4",
+    "pytest-asyncio>=0.21",
+    "httpx>=0.26"
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"

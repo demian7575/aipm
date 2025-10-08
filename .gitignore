@@ -1,0 +1,15 @@
+node_modules/
+.vite/
+dist/
+.env
+__pycache__/
+*.pyc
+.python-version
+.coverage
+.playwright
+apps/frontend/playwright-report
+apps/frontend/test-results
+.eggs/
+*.egg-info/
+.idea/
+.DS_Store
