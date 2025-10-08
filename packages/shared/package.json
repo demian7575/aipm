@@ -1,0 +1,14 @@
+{
+  "name": "@ai-pm/shared",
+  "version": "0.2.0",
+  "private": false,
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test src/validation.test.js",
+    "generate:openapi": "node src/openapi/generate.js"
+  }
+}

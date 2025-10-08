@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI Project Manager Mindmap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>AI Project Manager Mindmap</h1>
+      <div class="header-actions">
+        <button id="refresh-button" type="button">Refresh</button>
+        <button id="reset-button" type="button">Reset Seed</button>
+      </div>
+    </header>
+    <main class="layout">
+      <section class="panel outline" aria-label="Outline tree">
+        <div class="panel-header">
+          <h2>Outline</h2>
+          <div class="outline-controls">
+            <button id="expand-all" type="button">Expand All</button>
+            <button id="collapse-all" type="button">Collapse All</button>
+            <label>
+              Depth
+              <input id="expand-depth" type="number" min="1" max="8" value="2" />
+              <button id="apply-depth" type="button">Apply</button>
+            </label>
+          </div>
+        </div>
+        <div id="outline-tree" class="tree" role="tree" aria-label="User stories"></div>
+      </section>
+      <section class="panel mindmap" aria-label="Mindmap visualization">
+        <div class="panel-header">
+          <h2>Mindmap</h2>
+          <div class="mindmap-controls">
+            <label>
+              Radius
+              <input id="mindmap-radius" type="range" min="200" max="600" value="360" />
+            </label>
+          </div>
+        </div>
+        <svg id="mindmap-canvas" tabindex="0" aria-label="Mindmap canvas"></svg>
+      </section>
+      <aside class="panel detail" aria-label="Story details">
+        <div class="panel-header">
+          <h2>Details</h2>
+        </div>
+        <div id="detail-content" class="detail-content">
+          <p class="placeholder">Select a story to edit details and acceptance tests.</p>
+        </div>
+      </aside>
+      <aside class="panel github" aria-label="GitHub status">
+        <div class="panel-header">
+          <h2>Branch Status</h2>
+        </div>
+        <div id="github-status" class="github-content"></div>
+      </aside>
+    </main>
+    <template id="story-form-template">
+      <form id="story-form" class="story-form" autocomplete="off">
+        <label>
+          Title
+          <input name="title" required maxlength="160" />
+        </label>
+        <label>
+          As a
+          <input name="asA" required />
+        </label>
+        <label>
+          I want
+          <textarea name="iWant" required></textarea>
+        </label>
+        <label>
+          So that
+          <textarea name="soThat" required></textarea>
+        </label>
+        <fieldset>
+          <legend>INVEST</legend>
+          <ul id="invest-messages"></ul>
+        </fieldset>
+        <div class="form-actions">
+          <button type="submit">Save Story</button>
+          <button type="button" id="add-child">Add Child</button>
+          <button type="button" id="add-test">Add Test</button>
+        </div>
+        <section>
+          <h3>Acceptance Tests</h3>
+          <ul id="test-list"></ul>
+        </section>
+      </form>
+    </template>
+    <template id="test-form-template">
+      <form class="test-form" data-test-id="">
+        <label>
+          Given
+          <textarea name="given" required></textarea>
+        </label>
+        <label>
+          When
+          <textarea name="when" required></textarea>
+        </label>
+        <label>
+          Then
+          <textarea name="then" required></textarea>
+        </label>
+        <label>
+          Status
+          <select name="status">
+            <option value="Draft">Draft</option>
+            <option value="Ready">Ready</option>
+            <option value="Pass">Pass</option>
+            <option value="Fail">Fail</option>
+            <option value="Blocked">Blocked</option>
+          </select>
+        </label>
+        <div class="test-actions">
+          <button type="submit">Save Test</button>
+          <button type="button" class="delete-test">Delete</button>
+        </div>
+        <p class="test-flags" aria-live="polite"></p>
+      </form>
+    </template>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
