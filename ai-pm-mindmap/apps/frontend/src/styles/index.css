@@ -313,26 +313,54 @@ button {
   align-items: center;
 }
 
-.switch {
+.view-switch {
   display: inline-flex;
+  align-items: center;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
   padding: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.switch button {
+.view-switch--panel {
+  background: rgba(17, 24, 39, 0.06);
+  border-color: rgba(17, 24, 39, 0.1);
+}
+
+.view-switch__option {
   background: transparent;
   border: none;
-  padding: 0.35rem 0.75rem;
-  color: white;
+  padding: 0.35rem 0.9rem;
+  color: inherit;
   border-radius: 9999px;
   cursor: pointer;
+  font-weight: 500;
 }
 
-.switch button.active {
+.view-switch--header .view-switch__option {
+  color: white;
+}
+
+.view-switch__option.is-active {
   background: white;
   color: #111827;
   font-weight: 600;
+}
+
+.view-switch--panel .view-switch__option.is-active {
+  background: #111827;
+  color: white;
+}
+
+.view-switch-row {
+  display: flex;
+  justify-content: flex-end;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
 }
 
 .mindmap-canvas {

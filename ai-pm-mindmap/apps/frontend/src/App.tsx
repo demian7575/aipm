@@ -3,6 +3,7 @@ import { OutlineTree } from './components/OutlineTree';
 import { MindmapView } from './components/MindmapView';
 import { DetailPanel } from './components/DetailPanel';
 import { GitHubPanel } from './components/GitHubPanel';
+import { ViewSwitch } from './components/ViewSwitch';
 import {
   useStoryStore,
   selectCurrentMergeRequest,
@@ -73,24 +74,7 @@ export default function App() {
           <div style={{ fontSize: '0.85rem', opacity: 0.8 }}>Plan merge requests, stories, and tests</div>
         </div>
         <div className="toolbar">
-          <div className="switch" role="tablist">
-            <button
-              className={store.view === 'outline' ? 'active' : ''}
-              role="tab"
-              aria-selected={store.view === 'outline'}
-              onClick={() => store.toggleView('outline')}
-            >
-              {t('outlineView')}
-            </button>
-            <button
-              className={store.view === 'mindmap' ? 'active' : ''}
-              role="tab"
-              aria-selected={store.view === 'mindmap'}
-              onClick={() => store.toggleView('mindmap')}
-            >
-              {t('mindmapView')}
-            </button>
-          </div>
+          <ViewSwitch />
           <select value={locale} onChange={(event) => setLocaleState(event.target.value as 'en' | 'ko')}>
             <option value="en">English</option>
             <option value="ko">한국어</option>
@@ -148,8 +132,17 @@ export default function App() {
           {store.view === 'outline' ? (
             <OutlineTree onPersistExpansion={persistExpansion} />
           ) : (
-            <div className="panel">
-              <MindmapView tree={tree} selectedId={store.selectedStoryId} onSelect={(id) => store.selectStory(id)} />
+            <div className="panel tree-panel">
+              <div className="tree-container">
+                <div className="view-switch-row">
+                  <ViewSwitch variant="panel" />
+                </div>
+                <MindmapView
+                  tree={tree}
+                  selectedId={store.selectedStoryId}
+                  onSelect={(id) => store.selectStory(id)}
+                />
+              </div>
             </div>
           )}
         </div>

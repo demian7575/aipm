@@ -4,6 +4,7 @@ import type { AcceptanceTest } from '@ai-pm-mindmap/shared';
 import type { TreeNode } from '../store/useStoryStore';
 import { selectCurrentMergeRequest, useStoryStore } from '../store/useStoryStore';
 import { useTreeNavigation } from '../hooks/useTreeNavigation';
+import { ViewSwitch } from './ViewSwitch';
 
 interface OutlineTreeProps {
   onPersistExpansion?: (expanded: Record<string, boolean>) => void;
@@ -159,6 +160,9 @@ export function OutlineTree({ onPersistExpansion }: OutlineTreeProps) {
   return (
     <div className="panel tree-panel">
       <div className="tree-container">
+        <div className="view-switch-row">
+          <ViewSwitch variant="panel" />
+        </div>
         {!selectedMr ? (
           <div className="empty-state">No merge request selected</div>
         ) : !hasStories ? (

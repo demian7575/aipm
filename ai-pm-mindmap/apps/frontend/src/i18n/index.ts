@@ -21,7 +21,8 @@ const translations: Record<Locale, TranslationMap> = {
     addTest: 'Add test',
     delete: 'Delete',
     expandAll: 'Expand all',
-    collapseAll: 'Collapse all'
+    collapseAll: 'Collapse all',
+    viewMode: 'View mode'
   },
   ko: {
     outlineView: '아웃라인 트리',
@@ -41,7 +42,8 @@ const translations: Record<Locale, TranslationMap> = {
     addTest: '테스트 추가',
     delete: '삭제',
     expandAll: '전체 확장',
-    collapseAll: '전체 접기'
+    collapseAll: '전체 접기',
+    viewMode: '뷰 전환'
   }
 };
 
