@@ -56,3 +56,9 @@ ai-pm-mindmap/
 ## CI
 
 GitHub Actions pipeline runs lint, unit/integration tests, build, bundle guard, OpenAPI generation, and Playwright smoke tests.
+
+## Branch Management
+
+- Default working branch: `work`. Confirm with `git status -sb`.
+- If you expected updates from a remote, fetch them explicitly: `git fetch origin work:work`.
+- After pulling new changes, run `npm install` to ensure dependency consistency before rebuilding.
