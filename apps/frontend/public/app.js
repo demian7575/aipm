@@ -147,6 +147,17 @@ const fetchJSON = async (url, options) => {
   return response.status === 204 ? null : response.json();
 };
 
+const formatInvestError = (error, prefix) => {
+  const violations = Array.isArray(error.details?.violations) ? error.details.violations : [];
+  if (violations.length === 0) {
+    return `${prefix}: ${error.message}`;
+  }
+  const lines = violations.map(
+    (violation) => `• ${violation.label ?? violation.principle}: ${violation.suggestion ?? violation.message}`
+  );
+  return `${prefix}. INVEST feedback:\n${lines.join('\n')}`;
+};
+
 const loadState = async () => {
   const data = await fetchJSON('/api/state');
   state.mergeRequests = data.mergeRequests;
@@ -604,7 +615,7 @@ const renderDetail = () => {
       renderMindmap();
       renderDetail();
     } catch (error) {
-      alert(`Failed to save story: ${error.message}`);
+      alert(formatInvestError(error, 'Failed to save story'));
     }
   });
 
@@ -718,7 +729,7 @@ const renderDetail = () => {
       renderMindmap();
       renderDetail();
     } catch (error) {
-      alert(`Unable to create child story: ${error.message}`);
+      alert(formatInvestError(error, 'Unable to create child story'));
     }
   });
 

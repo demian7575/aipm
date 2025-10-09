@@ -32,6 +32,35 @@ const parseJson = (value, fallback) => {
   }
 };
 
+const INVEST_LABELS = {
+  independent: 'Independent',
+  negotiable: 'Negotiable',
+  valuable: 'Valuable',
+  estimable: 'Estimable',
+  small: 'Small',
+  testable: 'Testable'
+};
+
+const summarizeInvestResult = (result) => {
+  const violations = Object.entries(result.principles ?? {})
+    .filter(([, value]) => !value.ok)
+    .map(([principle, value]) => ({
+      principle,
+      label: INVEST_LABELS[principle] ?? principle,
+      message: value.message ?? `Adjust the story to satisfy the ${INVEST_LABELS[principle] ?? principle} criterion.`,
+      suggestion: value.message ?? `Adjust the story to satisfy the ${INVEST_LABELS[principle] ?? principle} criterion.`
+    }));
+
+  const summary =
+    violations.length === 0
+      ? 'Story satisfies INVEST.'
+      : `Story fails INVEST validation: ${violations
+          .map((violation) => `${violation.label} – ${violation.message}`)
+          .join('; ')}`;
+
+  return { summary, violations };
+};
+
 const isDescendant = (stories, candidateId, parentId) => {
   const visited = new Set();
   const stack = [candidateId];
@@ -489,9 +518,12 @@ export class InMemoryStore {
     const story = this.#createStoryInternal(payload);
     const storyList = [...Array.from(this.stories.values()).filter((s) => s.mrId === payload.mrId), story];
     const validation = validateStoryInvest(story, { stories: storyList, tests: Array.from(this.tests.values()) });
-    const failingPrinciples = Object.entries(validation.principles).filter(([, value]) => !value.ok);
-    const blocking = failingPrinciples.filter(([key]) => key !== 'testable');
-    ensure(blocking.length === 0, 'story.invest', 'Story fails INVEST requirements', validation);
+    const investSummary = summarizeInvestResult(validation);
+    const blocking = investSummary.violations.filter((item) => item.principle !== 'testable');
+    ensure(blocking.length === 0, 'story.invest', investSummary.summary, {
+      ...validation,
+      violations: investSummary.violations
+    });
 
     this.stories.set(story.id, story);
     if (story.parentId) {
@@ -541,7 +573,11 @@ export class InMemoryStore {
     const contextStories = Array.from(this.stories.values()).filter((s) => s.mrId === story.mrId);
     const contextTests = Array.from(this.tests.values());
     const policy = validateStoryInvest(story, { stories: contextStories, tests: contextTests });
-    ensure(policy.ok || INVEST_POLICY === 'warn', 'story.invest', 'INVEST validation failed', policy);
+    const investSummary = summarizeInvestResult(policy);
+    ensure(policy.ok || INVEST_POLICY === 'warn', 'story.invest', investSummary.summary, {
+      ...policy,
+      violations: investSummary.violations
+    });
     this.#applyInvestResult(story, policy);
     this.#persistAll();
     return clone(story);
