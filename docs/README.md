@@ -51,6 +51,11 @@ ai-pm-mindmap/
 - `Enter`: Focus detail panel
 - `Shift + Click`: Recursively toggle descendants
 
+## Mindmap Interactions
+- Click any story rectangle (red title) to select it and open the editable detail panel.
+- Drag a story to reposition it; custom coordinates are saved per merge request in `localStorage`.
+- Hold `Alt` (or `Ctrl/Cmd`) while dragging to reparent the dragged story under the hovered target node.
+
 ## URL Parameters
 - `?expand=all` – expand entire tree on load
 - `?expand=none` – collapse tree on load

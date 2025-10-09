@@ -3,6 +3,7 @@ const STORAGE_KEY = 'ai-pm-expanded';
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 60;
+const POSITION_STORAGE_PREFIX = 'ai-pm-mindmap-positions:';
 
 const state = {
   mergeRequests: [],
@@ -12,7 +13,8 @@ const state = {
   selectedStoryId: null,
   expanded: new Set(),
   radius: 360,
-  drag: null
+  drag: null,
+  customPositions: new Map()
 };
 
 let pointerListenerBound = false;
@@ -50,6 +52,52 @@ const saveExpanded = () => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(state.expanded)));
 };
 
+const positionStorageKey = (mrId) => `${POSITION_STORAGE_PREFIX}${mrId}`;
+
+const loadPositions = (mrId) => {
+  if (!mrId) return new Map();
+  try {
+    const raw = localStorage.getItem(positionStorageKey(mrId));
+    if (!raw) return new Map();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Map();
+    return new Map(
+      parsed
+        .map((entry) => {
+          if (!entry || typeof entry !== 'object') return null;
+          const { id, x, y } = entry;
+          if (typeof id !== 'string' || typeof x !== 'number' || typeof y !== 'number') return null;
+          return [id, { x, y }];
+        })
+        .filter(Boolean)
+    );
+  } catch (error) {
+    return new Map();
+  }
+};
+
+const savePositions = () => {
+  if (!state.activeMrId) return;
+  const entries = Array.from(state.customPositions.entries()).map(([id, value]) => ({
+    id,
+    x: Number.isFinite(value.x) ? value.x : 0,
+    y: Number.isFinite(value.y) ? value.y : 0
+  }));
+  localStorage.setItem(positionStorageKey(state.activeMrId), JSON.stringify(entries));
+};
+
+const pruneCustomPositions = () => {
+  if (!state.activeMrId) return;
+  const filtered = new Map();
+  state.customPositions.forEach((value, id) => {
+    if (state.stories.has(id)) {
+      filtered.set(id, value);
+    }
+  });
+  state.customPositions = filtered;
+  savePositions();
+};
+
 const handleStorySelection = (storyId) => {
   if (!storyId) return;
   const story = state.stories.get(storyId);
@@ -68,6 +116,10 @@ const handleStorySelection = (storyId) => {
     ancestorId = parent?.parentId ?? null;
   }
   if (changed) saveExpanded();
+  if (previousMr !== state.activeMrId) {
+    state.customPositions = loadPositions(state.activeMrId);
+    pruneCustomPositions();
+  }
   renderOutline();
   renderMindmap();
   renderDetail();
@@ -100,11 +152,19 @@ const loadState = async () => {
   state.mergeRequests = data.mergeRequests;
   state.stories = new Map(data.stories.map((story) => [story.id, story]));
   state.tests = new Map(data.tests.map((test) => [test.id, test]));
+  const previousMr = state.activeMrId;
   if (!state.activeMrId && data.mergeRequests.length > 0) {
     state.activeMrId = data.mergeRequests[0].id;
   }
   if (state.selectedStoryId && !state.stories.has(state.selectedStoryId)) {
     state.selectedStoryId = null;
+  }
+  if (previousMr !== state.activeMrId) {
+    state.customPositions = loadPositions(state.activeMrId);
+    pruneCustomPositions();
+  } else if (state.activeMrId) {
+    state.customPositions = loadPositions(state.activeMrId);
+    pruneCustomPositions();
   }
 };
 
@@ -296,7 +356,12 @@ const computeLayout = (nodes) => {
 
 const renderMindmap = () => {
   const tree = buildStoryTree(rootStories());
-  const nodes = computeLayout(tree);
+  const defaultNodes = computeLayout(tree);
+  const nodes = defaultNodes.map((node) => {
+    const override = state.customPositions.get(node.id);
+    if (!override) return node;
+    return { ...node, x: override.x, y: override.y };
+  });
   mindmapEl.innerHTML = '';
   if (nodes.length === 0) {
     mindmapEl.setAttribute('viewBox', '-200 -200 400 400');
@@ -365,18 +430,28 @@ const renderMindmap = () => {
 
     group.addEventListener('pointerdown', (event) => {
       event.preventDefault();
+      const point = clientToSvgPoint(event);
       mindmapEl.setPointerCapture(event.pointerId);
-      state.drag = { storyId: node.id, origin: { x: event.clientX, y: event.clientY }, dropTarget: null };
+      state.drag = {
+        storyId: node.id,
+        origin: point,
+        start: { x: node.x, y: node.y },
+        dropTarget: null,
+        group,
+        mode: event.altKey || event.ctrlKey || event.metaKey ? 'reparent' : 'position',
+        current: null,
+        moved: false
+      };
     });
 
     group.addEventListener('pointerenter', () => {
-      if (state.drag && state.drag.storyId !== node.id) {
+      if (state.drag && state.drag.mode === 'reparent' && state.drag.storyId !== node.id) {
         state.drag.dropTarget = node.id;
       }
     });
 
     group.addEventListener('pointerleave', () => {
-      if (state.drag && state.drag.dropTarget === node.id) {
+      if (state.drag && state.drag.mode === 'reparent' && state.drag.dropTarget === node.id) {
         state.drag.dropTarget = null;
       }
     });
@@ -387,6 +462,23 @@ const renderMindmap = () => {
   mindmapEl.appendChild(nodesGroup);
 
   if (!pointerListenerBound) {
+    mindmapEl.addEventListener('pointermove', (event) => {
+      if (!state.drag || state.drag.mode !== 'position') return;
+      const point = clientToSvgPoint(event);
+      if (!point) return;
+      const dx = point.x - state.drag.origin.x;
+      const dy = point.y - state.drag.origin.y;
+      const x = Math.max(0, state.drag.start.x + dx);
+      const y = state.drag.start.y + dy;
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+        state.drag.moved = true;
+      }
+      state.drag.current = { x, y };
+      if (state.drag.group) {
+        state.drag.group.setAttribute('transform', `translate(${x.toFixed(2)}, ${y.toFixed(2)})`);
+      }
+    });
+
     mindmapEl.addEventListener('pointerup', async (event) => {
       if (!state.drag) return;
       try {
@@ -394,28 +486,47 @@ const renderMindmap = () => {
       } catch (error) {
         // ignore when capture was not set
       }
-      const { storyId, dropTarget } = state.drag;
+      const { storyId, dropTarget, mode, current } = state.drag;
       state.drag = null;
-      if (!dropTarget || dropTarget === storyId) return;
-      try {
-        await fetchJSON(`/api/stories/${storyId}/move`, {
-          method: 'PATCH',
-          body: JSON.stringify({ parentId: dropTarget })
-        });
-        await loadState();
-        renderOutline();
+      if (mode === 'reparent') {
+        if (!dropTarget || dropTarget === storyId) return;
+        try {
+          await fetchJSON(`/api/stories/${storyId}/move`, {
+            method: 'PATCH',
+            body: JSON.stringify({ parentId: dropTarget })
+          });
+          await loadState();
+          renderOutline();
+          renderMindmap();
+          renderDetail();
+        } catch (error) {
+          alert(`Unable to move story: ${error.message}`);
+        }
+      } else if (current) {
+        state.customPositions.set(storyId, current);
+        savePositions();
         renderMindmap();
-        renderDetail();
-      } catch (error) {
-        alert(`Unable to move story: ${error.message}`);
       }
     });
 
     mindmapEl.addEventListener('pointercancel', () => {
+      if (state.drag?.mode === 'position') {
+        renderMindmap();
+      }
       state.drag = null;
     });
     pointerListenerBound = true;
   }
+};
+
+const clientToSvgPoint = (event) => {
+  const point = mindmapEl.createSVGPoint();
+  point.x = event.clientX;
+  point.y = event.clientY;
+  const ctm = mindmapEl.getScreenCTM();
+  if (!ctm) return { x: 0, y: 0 };
+  const transformed = point.matrixTransform(ctm.inverse());
+  return { x: transformed.x, y: transformed.y };
 };
 
 const renderGithubStatus = () => {
@@ -710,6 +821,7 @@ const bootstrap = async () => {
   loadExpanded();
   initializeEvents();
   await loadState();
+  state.customPositions = loadPositions(state.activeMrId);
   if (rootStories().length > 0) {
     rootStories().forEach((story) => state.expanded.add(story.id));
   }
