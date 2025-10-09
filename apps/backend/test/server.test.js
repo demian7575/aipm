@@ -161,4 +161,31 @@ test.describe('HTTP API', () => {
     const updateBody = await updateResponse.json();
     assert.equal(updateBody.code, 'test.givenRequired');
   });
+
+  test('surface measurability guidance for acceptance tests', async () => {
+    const [mr] = store.listMergeRequests();
+    const [story] = store.listStories({ mrId: mr.id });
+    const response = await fetch(`${baseURL}/api/tests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storyId: story.id,
+        given: ['Given a user is ready'],
+        when: ['When the job finishes'],
+        then: ['Then the dashboard looks great']
+      })
+    });
+
+    assert.equal(response.status, 400);
+    const body = await response.json();
+    assert.equal(body.code, 'test.measurable');
+    assert.match(body.message, /measurability failed/i);
+    const issues = body.details?.feedback?.issues ?? [];
+    assert.ok(Array.isArray(issues));
+    assert.ok(issues.length >= 1, 'should include at least one measurability issue');
+    const first = issues[0];
+    assert.equal(first.index, 0);
+    assert.match(first.text, /dashboard looks great/);
+    assert.match(first.suggestion.toLowerCase(), /numeric|time|threshold/);
+  });
 });

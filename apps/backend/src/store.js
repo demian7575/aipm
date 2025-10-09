@@ -61,6 +61,32 @@ const summarizeInvestResult = (result) => {
   return { summary, violations };
 };
 
+const summarizeMeasurabilityResult = (result) => {
+  if (!result || result.ok) {
+    return { summary: 'Then steps are measurable.', issues: [] };
+  }
+
+  const issues = result.offending.map((item) => ({
+    index: item.index,
+    text: item.text,
+    suggestion:
+      'Add a concrete verification such as a time limit, numeric threshold, percentage, or exact value to this Then step.'
+  }));
+
+  const summaryPrefix = 'Acceptance test measurability failed';
+  const summarySuffix =
+    issues.length === 0
+      ? ' – add measurable outcomes to the Then steps.'
+      : ` – ${issues
+          .map((issue) => `step ${issue.index + 1} "${issue.text}" lacks a numeric or verifiable outcome`)
+          .join('; ')}.`;
+
+  return {
+    summary: `${summaryPrefix}${summarySuffix}`,
+    issues
+  };
+};
+
 const isDescendant = (stories, candidateId, parentId) => {
   const visited = new Set();
   const stack = [candidateId];
@@ -738,7 +764,13 @@ export class InMemoryStore {
     ensure(test.then.length > 0, 'test.thenRequired', 'At least one Then step is required');
 
     const validation = validateAcceptanceTest(test);
-    ensure(validation.measurability.ok, 'test.measurable', 'Then steps must be measurable', validation);
+    const measurabilityFeedback = summarizeMeasurabilityResult(validation.measurability);
+    ensure(
+      validation.measurability.ok,
+      'test.measurable',
+      measurabilityFeedback.summary,
+      { ...validation, feedback: measurabilityFeedback }
+    );
     test.ambiguityFlags = validation.ambiguity.issues.map((issue) => issue.term);
 
     this.tests.set(test.id, test);
@@ -763,7 +795,13 @@ export class InMemoryStore {
     test.version += 1;
 
     const validation = validateAcceptanceTest(test);
-    ensure(validation.measurability.ok, 'test.measurable', 'Then steps must be measurable', validation);
+    const measurabilityFeedback = summarizeMeasurabilityResult(validation.measurability);
+    ensure(
+      validation.measurability.ok,
+      'test.measurable',
+      measurabilityFeedback.summary,
+      { ...validation, feedback: measurabilityFeedback }
+    );
     if (validation.ambiguity.hasIssues && INVEST_POLICY === 'block') {
       ensure(false, 'test.ambiguity', 'Ambiguous statements detected', validation);
     }

@@ -158,6 +158,31 @@ const formatInvestError = (error, prefix) => {
   return `${prefix}. INVEST feedback:\n${lines.join('\n')}`;
 };
 
+const formatTestabilityError = (error, prefix) => {
+  const feedback = error.details?.feedback ?? error.details?.measurabilityFeedback;
+  const issues = Array.isArray(feedback?.issues)
+    ? feedback.issues
+    : Array.isArray(error.details?.measurability?.offending)
+    ? error.details.measurability.offending.map((issue) => ({
+        index: issue.index,
+        text: issue.text,
+        suggestion: `Add a measurable outcome to "${issue.text}" (e.g., include a numeric threshold or time limit).`
+      }))
+    : [];
+
+  if (issues.length === 0) {
+    return `${prefix}: ${error.message}`;
+  }
+
+  const lines = issues.map((issue) => {
+    const stepLabel = issue.index === undefined ? 'Step' : `Step ${issue.index + 1}`;
+    const detail = issue.suggestion ?? `Add a measurable outcome to "${issue.text}".`;
+    return `• ${stepLabel}: ${detail}`;
+  });
+
+  return `${prefix}. Testability feedback:\n${lines.join('\n')}`;
+};
+
 const loadState = async () => {
   const data = await fetchJSON('/api/state');
   state.mergeRequests = data.mergeRequests;
@@ -675,7 +700,7 @@ const renderDetail = () => {
         renderOutline();
         renderMindmap();
       } catch (error) {
-        alert(`Failed to save test: ${error.message}`);
+        alert(formatTestabilityError(error, 'Failed to save test'));
       }
     });
 
@@ -770,7 +795,7 @@ const renderDetail = () => {
       renderOutline();
       renderMindmap();
     } catch (error) {
-      alert(`Unable to create acceptance test: ${error.message}`);
+      alert(formatTestabilityError(error, 'Unable to create acceptance test'));
     }
   });
 
