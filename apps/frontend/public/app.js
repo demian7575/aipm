@@ -486,7 +486,7 @@ const renderMindmap = () => {
       } catch (error) {
         // ignore when capture was not set
       }
-      const { storyId, dropTarget, mode, current } = state.drag;
+      const { storyId, dropTarget, mode, current, moved } = state.drag;
       state.drag = null;
       if (mode === 'reparent') {
         if (!dropTarget || dropTarget === storyId) return;
@@ -502,6 +502,8 @@ const renderMindmap = () => {
         } catch (error) {
           alert(`Unable to move story: ${error.message}`);
         }
+      } else if (!moved) {
+        handleStorySelection(storyId);
       } else if (current) {
         state.customPositions.set(storyId, current);
         savePositions();
