@@ -50,6 +50,32 @@ const saveExpanded = () => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(state.expanded)));
 };
 
+const handleStorySelection = (storyId) => {
+  if (!storyId) return;
+  const story = state.stories.get(storyId);
+  if (!story) return;
+  const previousMr = state.activeMrId;
+  state.activeMrId = story.mrId;
+  state.selectedStoryId = storyId;
+  let changed = false;
+  let ancestorId = story.parentId;
+  while (ancestorId) {
+    if (!state.expanded.has(ancestorId)) {
+      state.expanded.add(ancestorId);
+      changed = true;
+    }
+    const parent = state.stories.get(ancestorId);
+    ancestorId = parent?.parentId ?? null;
+  }
+  if (changed) saveExpanded();
+  renderOutline();
+  renderMindmap();
+  renderDetail();
+  if (previousMr !== state.activeMrId) {
+    renderGithubStatus();
+  }
+};
+
 const fetchJSON = async (url, options) => {
   const response = await fetch(`${API_BASE}${url}`, {
     headers: { 'Content-Type': 'application/json', ...(options?.headers ?? {}) },
@@ -162,10 +188,7 @@ const buildTreeDom = (nodes, level = 1) => {
     nodeEl.appendChild(label);
 
     nodeEl.addEventListener('click', () => {
-      state.selectedStoryId = node.story.id;
-      renderOutline();
-      renderMindmap();
-      renderDetail();
+      handleStorySelection(node.story.id);
     });
 
     nodeEl.addEventListener('dblclick', () => toggleExpanded(node.story.id));
@@ -224,11 +247,7 @@ const bindOutlineKeyboard = () => {
         }
         case 'Enter': {
           event.preventDefault();
-          const id = node.dataset.id;
-          state.selectedStoryId = id;
-          renderOutline();
-          renderMindmap();
-          renderDetail();
+          handleStorySelection(node.dataset.id);
           break;
         }
         default:
@@ -338,17 +357,10 @@ const renderMindmap = () => {
     text.setAttribute('dominant-baseline', 'middle');
     group.appendChild(text);
 
-    const selectStory = () => {
-      state.selectedStoryId = node.id;
-      renderOutline();
-      renderMindmap();
-      renderDetail();
-    };
-
-    group.addEventListener('click', selectStory);
+    group.addEventListener('click', () => handleStorySelection(node.id));
     rect.addEventListener('click', (event) => {
       event.stopPropagation();
-      selectStory();
+      handleStorySelection(node.id);
     });
 
     group.addEventListener('pointerdown', (event) => {
