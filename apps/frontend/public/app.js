@@ -1,6 +1,9 @@
 const API_BASE = '';
 const STORAGE_KEY = 'ai-pm-expanded';
 
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 60;
+
 const state = {
   mergeRequests: [],
   stories: new Map(),
@@ -283,7 +286,7 @@ const renderMindmap = () => {
 
   const padding = 120;
   const minX = Math.min(...nodes.map((node) => node.x));
-  const maxX = Math.max(...nodes.map((node) => node.x));
+  const maxX = Math.max(...nodes.map((node) => node.x + NODE_WIDTH));
   const minY = Math.min(...nodes.map((node) => node.y));
   const maxY = Math.max(...nodes.map((node) => node.y));
   const width = maxX - minX + padding * 2;
@@ -297,7 +300,7 @@ const renderMindmap = () => {
       const parent = nodes.find((candidate) => candidate.id === story.parentId);
       if (parent) {
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', parent.x.toFixed(2));
+        line.setAttribute('x1', (parent.x + NODE_WIDTH).toFixed(2));
         line.setAttribute('y1', parent.y.toFixed(2));
         line.setAttribute('x2', node.x.toFixed(2));
         line.setAttribute('y2', node.y.toFixed(2));
@@ -317,16 +320,22 @@ const renderMindmap = () => {
     group.setAttribute('transform', `translate(${node.x.toFixed(2)}, ${node.y.toFixed(2)})`);
     group.dataset.id = node.id;
 
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('r', '28');
-    group.appendChild(circle);
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('width', NODE_WIDTH.toString());
+    rect.setAttribute('height', NODE_HEIGHT.toString());
+    rect.setAttribute('x', '0');
+    rect.setAttribute('y', (-NODE_HEIGHT / 2).toString());
+    rect.setAttribute('rx', '14');
+    rect.setAttribute('ry', '14');
+    group.appendChild(rect);
 
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.textContent = node.story.title;
     text.setAttribute('pointer-events', 'none');
-    text.setAttribute('x', '40');
-    text.setAttribute('y', '4');
+    text.setAttribute('x', '16');
+    text.setAttribute('y', '0');
     text.setAttribute('text-anchor', 'start');
+    text.setAttribute('dominant-baseline', 'middle');
     group.appendChild(text);
 
     const selectStory = () => {
@@ -337,7 +346,7 @@ const renderMindmap = () => {
     };
 
     group.addEventListener('click', selectStory);
-    circle.addEventListener('click', (event) => {
+    rect.addEventListener('click', (event) => {
       event.stopPropagation();
       selectStory();
     });
