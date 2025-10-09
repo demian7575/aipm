@@ -43,12 +43,28 @@ export const detectAmbiguity = (texts, dictionary = defaultValidationConfig.ambi
   return { issues, hasIssues: issues.length > 0 };
 };
 
+const measurabilityExamples = [
+  'response time ≤ 500 ms',
+  'error rate < 1%',
+  'at least 3 notifications recorded',
+  'downloaded CSV contains "invoiceId" column',
+  'status updated within 2 minutes'
+];
+
 export const requireMeasurable = (steps) => {
   const offending = [];
   steps.forEach((step, index) => {
-    const matchesPattern = numericUnitPatterns.some((pattern) => pattern.test(step));
+    const text = step.trim();
+    const matchesPattern = numericUnitPatterns.some((pattern) => pattern.test(text));
     if (!matchesPattern) {
-      offending.push({ text: step, index });
+      offending.push({
+        text,
+        index,
+        reason: 'missingQuantifiableOutcome',
+        guidance:
+          'Specify an observable result with numeric thresholds, ranges, explicit fields, or time limits so the step can be verified.',
+        examples: measurabilityExamples
+      });
     }
   });
   return { ok: offending.length === 0, offending };

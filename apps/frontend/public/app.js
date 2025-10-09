@@ -166,7 +166,13 @@ const formatTestabilityError = (error, prefix) => {
     ? error.details.measurability.offending.map((issue) => ({
         index: issue.index,
         text: issue.text,
-        suggestion: `Add a measurable outcome to "${issue.text}" (e.g., include a numeric threshold or time limit).`
+        criteria: 'Then step must describe a measurable, verifiable outcome.',
+        suggestion: `Add a measurable outcome to "${issue.text}" (e.g., include a numeric threshold or time limit).`,
+        examples: [
+          'response time ≤ 500 ms',
+          'success rate ≥ 95%',
+          'audit log entry contains requestId'
+        ]
       }))
     : [];
 
@@ -177,8 +183,18 @@ const formatTestabilityError = (error, prefix) => {
   const lines = issues.map((issue) => {
     const stepLabel = issue.index === undefined ? 'Step' : `Step ${issue.index + 1}`;
     const detail = issue.suggestion ?? `Add a measurable outcome to "${issue.text}".`;
-    return `• ${stepLabel}: ${detail}`;
+    const criteria = issue.criteria ? `${issue.criteria} ` : '';
+    const examples = Array.isArray(issue.examples) && issue.examples.length > 0
+      ? ` Examples: ${issue.examples.slice(0, 3).join(', ')}.`
+      : '';
+    return `• ${stepLabel}: ${criteria}${detail}${examples}`;
   });
+
+  if (Array.isArray(feedback?.examples) && feedback.examples.length > 0) {
+    lines.push(
+      `• Suggested measurable parameters: ${feedback.examples.slice(0, 5).join(', ')}`
+    );
+  }
 
   return `${prefix}. Testability feedback:\n${lines.join('\n')}`;
 };

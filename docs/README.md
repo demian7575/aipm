@@ -31,7 +31,7 @@ The frontend lives in `apps/frontend/public`. The build script mirrors those ass
 spins up a static file server so you can inspect the client bundle in isolation.
 
 ## Architecture Overview
-- **packages/shared** – Dependency-free schema guards, INVEST/ambiguity/measurability validators, and OpenAPI builder utilities.
+- **packages/shared** – Dependency-free schema guards, INVEST/ambiguity/measurability validators, and OpenAPI builder utilities. Measurability failures list the affected Then steps with actionable guidance plus sample metrics (e.g., time limits, numeric thresholds, identifiable fields) returned to the client.
 - **apps/backend** – Native Node HTTP server exposing REST endpoints, SQLite persistence, depth/cycle guards, roll-up helpers, and static asset hosting.
 - **apps/frontend** – Vanilla JavaScript single-page app (SVG mindmap + outline tree) served from `apps/frontend/public`.
 - **docs** – OpenAPI specification and implementation roadmap.

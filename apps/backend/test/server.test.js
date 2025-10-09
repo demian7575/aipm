@@ -187,5 +187,11 @@ test.describe('HTTP API', () => {
     assert.equal(first.index, 0);
     assert.match(first.text, /dashboard looks great/);
     assert.match(first.suggestion.toLowerCase(), /numeric|time|threshold/);
+    assert.equal(first.criteria, 'Then step must describe a measurable, verifiable outcome.');
+    assert.ok(Array.isArray(first.examples));
+    assert.ok(first.examples.length > 0);
+    const aggregatedExamples = body.details?.feedback?.examples ?? [];
+    assert.ok(Array.isArray(aggregatedExamples));
+    assert.ok(aggregatedExamples.length > 0);
   });
 });

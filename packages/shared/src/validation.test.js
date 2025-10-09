@@ -64,6 +64,11 @@ test('requireMeasurable flags non-measurable statements', () => {
   const result = requireMeasurable(['Then the report is generated quickly']);
   assert.equal(result.ok, false);
   assert.equal(result.offending.length, 1);
+  const issue = result.offending[0];
+  assert.equal(issue.reason, 'missingQuantifiableOutcome');
+  assert.ok(issue.guidance.toLowerCase().includes('numeric'));
+  assert.ok(Array.isArray(issue.examples));
+  assert.ok(issue.examples.length > 0);
 });
 
 test('requireMeasurable accepts measurable statements', () => {

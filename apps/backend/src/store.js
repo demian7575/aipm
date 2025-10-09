@@ -63,27 +63,47 @@ const summarizeInvestResult = (result) => {
 
 const summarizeMeasurabilityResult = (result) => {
   if (!result || result.ok) {
-    return { summary: 'Then steps are measurable.', issues: [] };
+    return { summary: 'Then steps are measurable.', issues: [], examples: [] };
   }
 
-  const issues = result.offending.map((item) => ({
-    index: item.index,
-    text: item.text,
-    suggestion:
-      'Add a concrete verification such as a time limit, numeric threshold, percentage, or exact value to this Then step.'
-  }));
+  const issues = result.offending.map((item) => {
+    const examples = Array.isArray(item.examples) ? item.examples : [];
+    return {
+      index: item.index,
+      text: item.text,
+      criteria: 'Then step must describe a measurable, verifiable outcome.',
+      suggestion:
+        item.guidance ??
+        'Add a concrete verification such as a time limit, numeric threshold, percentage, or explicit field to this Then step.',
+      examples
+    };
+  });
 
   const summaryPrefix = 'Acceptance test measurability failed';
   const summarySuffix =
     issues.length === 0
       ? ' – add measurable outcomes to the Then steps.'
       : ` – ${issues
-          .map((issue) => `step ${issue.index + 1} "${issue.text}" lacks a numeric or verifiable outcome`)
-          .join('; ')}.`;
+          .map((issue) => {
+            const exampleHint = issue.examples && issue.examples.length > 0
+              ? ` Try values such as ${issue.examples.slice(0, 3).join(', ')}.`
+              : '';
+            return `step ${issue.index + 1} "${issue.text}" lacks a measurable target.${exampleHint}`;
+          })
+          .join(' ')} `;
+
+  const aggregatedExamples = Array.from(
+    new Set(
+      issues
+        .flatMap((issue) => issue.examples ?? [])
+        .slice(0, 5)
+    )
+  );
 
   return {
-    summary: `${summaryPrefix}${summarySuffix}`,
-    issues
+    summary: `${summaryPrefix}${summarySuffix.trim()}`,
+    issues,
+    examples: aggregatedExamples
   };
 };
 

@@ -34,9 +34,17 @@ export interface InvestValidationResult {
   canSave: boolean;
 }
 
+export interface MeasurabilityIssue {
+  text: string;
+  index: number;
+  reason: 'missingQuantifiableOutcome';
+  guidance: string;
+  examples: string[];
+}
+
 export interface MeasurabilityResult {
   ok: boolean;
-  missing: string[];
+  offending: MeasurabilityIssue[];
 }
 
 export interface AcceptanceTestValidationResult {
@@ -65,11 +73,32 @@ export function detectAmbiguity(values: string[]): string[] {
   return Array.from(flags);
 }
 
+const MEASURABILITY_EXAMPLES = [
+  'response time ≤ 500 ms',
+  'error rate < 1%',
+  'at least 3 notifications recorded',
+  'downloaded CSV contains "invoiceId" column',
+  'status updated within 2 minutes'
+];
+
 export function requireMeasurable(values: string[]): MeasurabilityResult {
-  const missing = values.filter((value) => !NUMERIC_WITH_UNIT.test(value));
+  const offending: MeasurabilityIssue[] = [];
+  values.forEach((value, index) => {
+    const text = value.trim();
+    if (!NUMERIC_WITH_UNIT.test(text)) {
+      offending.push({
+        text,
+        index,
+        reason: 'missingQuantifiableOutcome',
+        guidance:
+          'Specify an observable result with numeric thresholds, ranges, explicit fields, or time limits so the step can be verified.',
+        examples: MEASURABILITY_EXAMPLES
+      });
+    }
+  });
   return {
-    ok: missing.length === 0,
-    missing
+    ok: offending.length === 0,
+    offending
   };
 }
 

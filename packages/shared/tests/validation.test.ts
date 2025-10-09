@@ -52,6 +52,13 @@ describe('validation helpers', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('returns guidance when measurability fails', () => {
+    const result = requireMeasurable(['looks great']);
+    expect(result.ok).toBe(false);
+    expect(result.offending[0].reason).toBe('missingQuantifiableOutcome');
+    expect(result.offending[0].examples.length).toBeGreaterThan(0);
+  });
+
   it('validates acceptance tests for ambiguity and measurability', () => {
     const result = validateAcceptanceTest({
       given: ['a context exists'],
