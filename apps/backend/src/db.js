@@ -1,60 +1,39 @@
-import { spawnSync } from 'node:child_process';
-import { mkdirSync, existsSync, openSync, closeSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { mkdirSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DatabaseSync } from 'node:sqlite';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const dataDir = resolve(__dirname, '../data');
 export const dbPath = resolve(dataDir, 'app.sqlite');
 
-const ensureDatabaseFile = () => {
+const ensureDataDirectory = () => {
   if (!existsSync(dataDir)) {
     mkdirSync(dataDir, { recursive: true });
   }
-  if (!existsSync(dbPath)) {
-    closeSync(openSync(dbPath, 'a'));
-  }
 };
 
-const runSqlite = (args, input = '', attemptedRetry = false) => {
-  ensureDatabaseFile();
-  const result = spawnSync('sqlite3', args, {
-    input,
-    encoding: 'utf8'
-  });
-  if (result.status !== 0) {
-    const errorMessage = result.stderr?.trim() || 'Failed to execute sqlite3 command';
-    if (!attemptedRetry && /unable to open database file/i.test(errorMessage)) {
-      // ensure the directory exists and retry once for transient races
-      mkdirSync(dirname(dbPath), { recursive: true });
-      if (!existsSync(dbPath)) {
-        closeSync(openSync(dbPath, 'a'));
-      }
-      return runSqlite(args, input, true);
-    }
-    const error = new Error(errorMessage);
-    error.details = { args, input, stderr: result.stderr };
-    throw error;
-  }
-  return result.stdout;
-};
+ensureDataDirectory();
 
-const detectJsonSupport = () => {
-  if (process.env.SQLITE_JSON_DISABLED === '1') {
-    return false;
-  }
+let database;
+try {
+  database = new DatabaseSync(dbPath);
+} catch (cause) {
+  const error = new Error('Failed to open SQLite database');
+  error.cause = cause;
+  throw error;
+}
+
+database.exec('PRAGMA journal_mode=WAL;');
+database.exec('PRAGMA foreign_keys=ON;');
+
+process.on('exit', () => {
   try {
-    const probe = spawnSync('sqlite3', ['-json', ':memory:'], {
-      input: 'SELECT 1;\n',
-      encoding: 'utf8'
-    });
-    return probe.status === 0;
+    database.close();
   } catch (error) {
-    return false;
+    // ignore shutdown errors
   }
-};
-
-const supportsJsonOutput = detectJsonSupport();
+});
 
 const ensureStatementTerminated = (sql) => {
   const trimmed = sql.trim();
@@ -62,53 +41,25 @@ const ensureStatementTerminated = (sql) => {
   return trimmed.endsWith(';') ? trimmed : `${trimmed};`;
 };
 
-const parseTabularRows = (output) => {
-  const lines = output
-    .split('\n')
-    .map((line) => line.trimEnd())
-    .filter((line) => line.length > 0);
-  if (lines.length <= 1) return [];
-  const headers = lines[0].split('\t');
-  return lines.slice(1).map((line) => {
-    const values = line.split('\t');
-    const record = {};
-    headers.forEach((header, index) => {
-      const value = values[index] ?? '';
-      if (value === 'NULL') {
-        record[header] = null;
-      } else if (/^-?\d+$/.test(value)) {
-        record[header] = Number(value);
-      } else if (/^-?\d*\.\d+$/.test(value)) {
-        record[header] = Number(value);
-      } else {
-        record[header] = value;
-      }
-    });
-    return record;
-  });
+const normalizeStatements = (statements) => {
+  const parts = Array.isArray(statements) ? statements : [statements];
+  return parts
+    .map((part) => ensureStatementTerminated(part))
+    .filter((part) => part.length > 0)
+    .join('\n');
 };
 
 export const execStatements = (statements) => {
-  const joined = Array.isArray(statements) ? statements.join('\n') : statements;
-  if (!joined.trim()) return;
-  runSqlite([dbPath], `${joined}\n`);
+  const payload = normalizeStatements(statements);
+  if (!payload) return;
+  database.exec(payload);
 };
 
 export const queryRows = (statement) => {
   const normalized = ensureStatementTerminated(statement);
-  if (!normalized) {
-    return [];
-  }
-  if (supportsJsonOutput) {
-    const output = runSqlite(['-json', dbPath, normalized]);
-    if (!output.trim()) return [];
-    return JSON.parse(output);
-  }
-  const raw = runSqlite(
-    [dbPath],
-    `.mode tabs\n.headers on\n.nullvalue NULL\n${normalized}\n`
-  );
-  return parseTabularRows(raw);
+  if (!normalized) return [];
+  const prepared = database.prepare(normalized);
+  return prepared.all();
 };
 
 const mergeRequestColumns = [
@@ -226,7 +177,7 @@ const ensureTableSchema = (name, createStatement, expectedColumns) => {
 };
 
 const initialize = () => {
-  execStatements(['PRAGMA journal_mode=WAL;', 'PRAGMA foreign_keys=ON;']);
+  execStatements(['PRAGMA foreign_keys=ON;']);
   ensureTableSchema('merge_requests', mergeRequestsCreate, mergeRequestColumns);
   ensureTableSchema('stories', storiesCreate, storiesColumns);
   ensureTableSchema('tests', testsCreate, testsColumns);

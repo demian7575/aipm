@@ -1,7 +1,7 @@
 # AI Project Manager Mindmap – Developer Guide
 
 ## Prerequisites
-- Node.js 20+
+- Node.js 22+
 - npm 10+
 - Modern browser for running the frontend
 

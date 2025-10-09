@@ -3,6 +3,8 @@
 An interactive planning surface combining merge requests, user stories, and acceptance tests with INVEST validation, ambiguity detection, and synchronized outline/mindmap views.
 
 ## Getting Started
+> **Runtime requirement:** The backend relies on Node.js 22+ for the built-in `node:sqlite` module. Earlier runtimes will fail to
+> load the database driver.
 ```bash
 npm install
 npm run dev
