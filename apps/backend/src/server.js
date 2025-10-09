@@ -242,7 +242,7 @@ const serveStatic = (req, res) => {
   }
 };
 
-const server = createServer(async (req, res) => {
+const requestListener = async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -266,7 +266,19 @@ const server = createServer(async (req, res) => {
   }
 
   serveStatic(req, res);
-});
+};
+
+const createHttpServer = () =>
+  createServer((req, res) => {
+    requestListener(req, res).catch((error) => {
+      console.error('Unhandled request error', error);
+      if (!res.headersSent) {
+        jsonResponse(res, 500, { code: 'internal', message: 'Unexpected error' });
+      } else {
+        res.destroy(error);
+      }
+    });
+  });
 
 const normalizeOptions = (options) => {
   if (typeof options === 'number') {
@@ -277,7 +289,9 @@ const normalizeOptions = (options) => {
 
 export const startServer = (options) => {
   const config = normalizeOptions(options);
-  const port = Number(config.port ?? process.env.PORT ?? 4000);
+  const basePort = Number(config.port ?? process.env.PORT ?? 4000);
+  const allowPortSearch = config.port == null && process.env.PORT == null;
+  const maxAttempts = allowPortSearch ? Number(config.maxPortSearch ?? 10) : 1;
 
   if (config.forceSeed) {
     store.seed();
@@ -285,12 +299,39 @@ export const startServer = (options) => {
     store.seedIfEmpty();
   }
 
-  return new Promise((resolve) => {
-    server.listen(port, '0.0.0.0', () => {
-      console.log(`Backend listening on http://localhost:${port}`);
-      resolve(server);
+  const attemptListen = (attempt, port) =>
+    new Promise((resolve, reject) => {
+      const server = createHttpServer();
+      const handleError = (error) => {
+        if (error?.code === 'EADDRINUSE' && allowPortSearch && attempt + 1 < maxAttempts) {
+          console.warn(`Port ${port} in use, retrying on ${port + 1}`);
+          server.off('error', handleError);
+          server.close(() => {
+            resolve(attemptListen(attempt + 1, port + 1));
+          });
+          return;
+        }
+        if (error?.code === 'EADDRINUSE') {
+          server.off('error', handleError);
+          const wrapped = new Error(`Port ${port} is already in use. Set PORT or pass a different port to startServer.`);
+          wrapped.code = error.code;
+          wrapped.cause = error;
+          server.close(() => reject(wrapped));
+          return;
+        }
+        server.off('error', handleError);
+        reject(error);
+      };
+
+      server.once('error', handleError);
+      server.listen(port, '0.0.0.0', () => {
+        server.off('error', handleError);
+        console.log(`Backend listening on http://localhost:${port}`);
+        resolve(server);
+      });
     });
-  });
+
+  return attemptListen(0, basePort);
 };
 
 if (import.meta.url === `file://${process.argv[1]}`) {

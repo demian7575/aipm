@@ -10,6 +10,7 @@ npm install
 npm run dev
 ```
 The development server exposes the JSON API and serves the static frontend at `http://localhost:4000`.
+If that port is occupied the backend automatically advances to the next open port and logs the chosen address.
 
 ### Building and running the client only
 

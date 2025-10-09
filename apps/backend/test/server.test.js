@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createServer as createNetServer } from 'node:net';
 import { startServer } from '../src/server.js';
 import { InMemoryStore, store } from '../src/store.js';
 
@@ -30,6 +31,27 @@ test('seedIfEmpty preserves existing SQLite rows', () => {
   assert.equal(persistedCount, afterCreate, 'new store instance should load persisted stories');
 
   store.reset();
+});
+
+test('startServer retries on occupied default port', async () => {
+  const blocker = createNetServer();
+  await new Promise((resolve, reject) => {
+    blocker.once('error', reject);
+    blocker.listen(4000, '127.0.0.1', resolve);
+  });
+
+  let server;
+  try {
+    server = await startServer({ seed: false });
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+    assert.notEqual(address.port, 4000, 'server should shift away from occupied default port');
+  } finally {
+    await new Promise((resolve) => blocker.close(resolve));
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  }
 });
 
 test.describe('HTTP API', () => {
