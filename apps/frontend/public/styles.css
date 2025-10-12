@@ -335,6 +335,57 @@ textarea {
   font-size: 1.05rem;
 }
 
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vertical-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #e5e9f5;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.vertical-table th,
+.vertical-table td {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.92rem;
+  border-bottom: 1px solid #e5e9f5;
+  text-align: left;
+}
+
+.vertical-table th {
+  width: 8.5rem;
+  background: #f8fafc;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.vertical-table tr:last-child th,
+.vertical-table tr:last-child td {
+  border-bottom: none;
+}
+
+.vertical-table td {
+  white-space: pre-line;
+}
+
+.vertical-table .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.empty-state {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #4b5563;
+}
+
 .table-list {
   width: 100%;
   border-collapse: collapse;

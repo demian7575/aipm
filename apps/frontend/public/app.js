@@ -649,54 +649,58 @@ function renderDetails() {
       <button type="button" class="secondary" id="add-test-btn">Create Acceptance Test</button>
     </div>
   `;
-  const acceptanceTable = document.createElement('table');
-  acceptanceTable.className = 'table-list';
-  acceptanceTable.innerHTML = `
-    <thead>
-      <tr>
-        <th>Given</th>
-        <th>When</th>
-        <th>Then</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${
-        story.acceptanceTests && story.acceptanceTests.length
-          ? story.acceptanceTests
-              .map((test) => {
-                const warningNote =
-                  test.measurabilityWarnings && test.measurabilityWarnings.length
-                    ? `<div class="error-banner" style="margin-top:0.5rem;">${test.measurabilityWarnings
-                        .map((warn) => warn.message)
-                        .join('<br />')}</div>`
-                    : '';
-                return `
+  const acceptanceList = document.createElement('div');
+  acceptanceList.className = 'record-list';
+  if (story.acceptanceTests && story.acceptanceTests.length) {
+    acceptanceList.innerHTML = story.acceptanceTests
+      .map((test) => {
+        const warningNote =
+          test.measurabilityWarnings && test.measurabilityWarnings.length
+            ? `<div class="error-banner" style="margin-top:0.5rem;">${test.measurabilityWarnings
+                .map((warn) => escapeHtml(warn.message))
+                .join('<br />')}</div>`
+            : '';
+        return `
+          <table class="vertical-table" data-test-id="${test.id}">
+            <tbody>
               <tr>
-                <td>${escapeHtml(test.given.join('\\n'))}</td>
-                <td>${escapeHtml(test.when.join('\\n'))}</td>
-                <td>${escapeHtml(test.then.join('\\n'))}${warningNote}</td>
+                <th scope="row">Given</th>
+                <td>${formatMultilineText(test.given)}</td>
+              </tr>
+              <tr>
+                <th scope="row">When</th>
+                <td>${formatMultilineText(test.when)}</td>
+              </tr>
+              <tr>
+                <th scope="row">Then</th>
+                <td>${formatMultilineText(test.then)}${warningNote}</td>
+              </tr>
+              <tr>
+                <th scope="row">Status</th>
                 <td>${escapeHtml(test.status)}</td>
+              </tr>
+              <tr>
+                <th scope="row">Actions</th>
                 <td class="actions">
                   <button type="button" class="danger" data-action="delete-test" data-test-id="${test.id}">Delete</button>
                 </td>
               </tr>
-            `;
-              })
-              .join('')
-          : '<tr><td colspan="5">No acceptance tests yet.</td></tr>'
-      }
-    </tbody>
-  `;
-  acceptanceSection.appendChild(acceptanceTable);
+            </tbody>
+          </table>
+        `;
+      })
+      .join('');
+  } else {
+    acceptanceList.innerHTML = '<p class="empty-state">No acceptance tests yet.</p>';
+  }
+  acceptanceSection.appendChild(acceptanceList);
   detailsContent.appendChild(acceptanceSection);
 
   acceptanceSection
     .querySelector('#add-test-btn')
     .addEventListener('click', () => openAcceptanceTestModal(story.id));
 
-  acceptanceTable.querySelectorAll('[data-action="delete-test"]').forEach((button) => {
+  acceptanceList.querySelectorAll('[data-action="delete-test"]').forEach((button) => {
     button.addEventListener('click', async () => {
       const testId = Number(button.getAttribute('data-test-id'));
       if (!Number.isFinite(testId)) return;
@@ -718,47 +722,49 @@ function renderDetails() {
       <button type="button" class="secondary" id="add-child-btn">Create Child Story</button>
     </div>
   `;
-  const childTable = document.createElement('table');
-  childTable.className = 'table-list';
-  childTable.innerHTML = `
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Story Point</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${
-        story.children && story.children.length
-          ? story.children
-              .map(
-                (child) => `
-            <tr>
-              <td>${escapeHtml(child.title)}</td>
-              <td>${child.storyPoint != null ? child.storyPoint : '—'}</td>
-              <td>${escapeHtml(child.status || 'Draft')}</td>
-              <td class="actions">
-                <button type="button" class="secondary" data-action="select-story" data-story-id="${child.id}">Select</button>
-                <button type="button" class="danger" data-action="delete-story" data-story-id="${child.id}">Delete</button>
-              </td>
-            </tr>
-          `
-              )
-              .join('')
-          : '<tr><td colspan="4">No child stories yet.</td></tr>'
-      }
-    </tbody>
-  `;
-  childrenSection.appendChild(childTable);
+  const childList = document.createElement('div');
+  childList.className = 'record-list';
+  if (story.children && story.children.length) {
+    childList.innerHTML = story.children
+      .map(
+        (child) => `
+          <table class="vertical-table" data-story-id="${child.id}">
+            <tbody>
+              <tr>
+                <th scope="row">Title</th>
+                <td>${escapeHtml(child.title)}</td>
+              </tr>
+              <tr>
+                <th scope="row">Story Point</th>
+                <td>${child.storyPoint != null ? child.storyPoint : '—'}</td>
+              </tr>
+              <tr>
+                <th scope="row">Status</th>
+                <td>${escapeHtml(child.status || 'Draft')}</td>
+              </tr>
+              <tr>
+                <th scope="row">Actions</th>
+                <td class="actions">
+                  <button type="button" class="secondary" data-action="select-story" data-story-id="${child.id}">Select</button>
+                  <button type="button" class="danger" data-action="delete-story" data-story-id="${child.id}">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        `
+      )
+      .join('');
+  } else {
+    childList.innerHTML = '<p class="empty-state">No child stories yet.</p>';
+  }
+  childrenSection.appendChild(childList);
   detailsContent.appendChild(childrenSection);
 
   childrenSection
     .querySelector('#add-child-btn')
     .addEventListener('click', () => openChildStoryModal(story.id));
 
-  childTable.querySelectorAll('[data-action="select-story"]').forEach((button) => {
+  childList.querySelectorAll('[data-action="select-story"]').forEach((button) => {
     button.addEventListener('click', () => {
       const storyId = Number(button.getAttribute('data-story-id'));
       const target = storyIndex.get(storyId);
@@ -768,7 +774,7 @@ function renderDetails() {
     });
   });
 
-  childTable.querySelectorAll('[data-action="delete-story"]').forEach((button) => {
+  childList.querySelectorAll('[data-action="delete-story"]').forEach((button) => {
     button.addEventListener('click', async () => {
       const storyId = Number(button.getAttribute('data-story-id'));
       if (!Number.isFinite(storyId)) return;
@@ -840,6 +846,12 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function formatMultilineText(value) {
+  const lines = Array.isArray(value) ? value : [value ?? ''];
+  const escaped = escapeHtml(lines.join('\n'));
+  return escaped.replace(/\n/g, '<br />');
 }
 
 function showToast(message, type = 'info') {
