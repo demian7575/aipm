@@ -36,6 +36,11 @@ const detailEl = document.getElementById('detail-content');
 const githubEl = document.getElementById('github-status');
 const layoutEl = document.querySelector('.layout');
 
+const storyFailsInvest = (story) => {
+  if (!story || !story.invest) return false;
+  return Object.values(story.invest).some((value) => !value);
+};
+
 const panelElements = {
   outline: document.querySelector('.panel.outline'),
   mindmap: document.querySelector('.panel.mindmap'),
@@ -486,6 +491,10 @@ const buildTreeDom = (nodes, level = 1) => {
     nodeEl.setAttribute('tabindex', '-1');
     nodeEl.setAttribute('aria-expanded', state.expanded.has(node.story.id));
     nodeEl.setAttribute('aria-selected', state.selectedStoryId === node.story.id);
+    if (storyFailsInvest(node.story)) {
+      nodeEl.classList.add('invest-warning');
+      nodeEl.setAttribute('data-invest-warning', 'true');
+    }
 
     const toggle = document.createElement('button');
     toggle.type = 'button';
@@ -677,6 +686,9 @@ const renderMindmap = () => {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     group.classList.add('mindmap-node');
     if (node.id === state.selectedStoryId) group.classList.add('selected');
+    if (storyFailsInvest(node.story)) {
+      group.classList.add('invest-warning');
+    }
     group.setAttribute('transform', `translate(${node.x.toFixed(2)}, ${node.y.toFixed(2)})`);
     group.dataset.id = node.id;
 

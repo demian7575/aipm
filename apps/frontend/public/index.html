@@ -71,18 +71,28 @@
           Title
           <input name="title" required maxlength="160" />
         </label>
-        <label>
-          As a
-          <input name="asA" required />
-        </label>
-        <label>
-          I want
-          <textarea name="iWant" required></textarea>
-        </label>
-        <label>
-          So that
-          <textarea name="soThat" required></textarea>
-        </label>
+        <table class="story-statement-table" role="presentation">
+          <thead>
+            <tr>
+              <th scope="col">As a</th>
+              <th scope="col">I want</th>
+              <th scope="col">So that</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <input name="asA" required />
+              </td>
+              <td>
+                <textarea name="iWant" required></textarea>
+              </td>
+              <td>
+                <textarea name="soThat" required></textarea>
+              </td>
+            </tr>
+          </tbody>
+        </table>
         <fieldset>
           <legend>INVEST</legend>
           <ul id="invest-messages"></ul>
