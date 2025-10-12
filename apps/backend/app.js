@@ -66,6 +66,31 @@ function measurabilityWarnings(thenSteps) {
   return { warnings, suggestions };
 }
 
+function tableColumns(db, table) {
+  return db.prepare(`PRAGMA table_info(${table})`).all();
+}
+
+function ensureColumn(db, table, name, definition) {
+  const existing = tableColumns(db, table).some((column) => column.name === name);
+  if (!existing) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition};`);
+  }
+}
+
+function ensureNotNullDefaults(db) {
+  db.exec(`
+    UPDATE user_stories SET description = '' WHERE description IS NULL;
+    UPDATE user_stories SET as_a = '' WHERE as_a IS NULL;
+    UPDATE user_stories SET i_want = '' WHERE i_want IS NULL;
+    UPDATE user_stories SET so_that = '' WHERE so_that IS NULL;
+    UPDATE user_stories SET assignee_email = '' WHERE assignee_email IS NULL;
+    UPDATE user_stories SET status = 'Draft' WHERE status IS NULL;
+    UPDATE acceptance_tests SET status = 'Draft' WHERE status IS NULL;
+    UPDATE reference_documents SET name = '' WHERE name IS NULL;
+    UPDATE reference_documents SET url = '' WHERE url IS NULL;
+  `);
+}
+
 async function ensureDatabase() {
   await mkdir(DATA_DIR, { recursive: true });
   const db = new DatabaseSync(DATABASE_PATH);
@@ -109,6 +134,32 @@ async function ensureDatabase() {
       FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
     );
   `);
+
+  ensureColumn(db, 'user_stories', 'mr_id', 'mr_id INTEGER DEFAULT 1');
+  ensureColumn(db, 'user_stories', 'parent_id', 'parent_id INTEGER');
+  ensureColumn(db, 'user_stories', 'description', "description TEXT DEFAULT ''");
+  ensureColumn(db, 'user_stories', 'as_a', "as_a TEXT DEFAULT ''");
+  ensureColumn(db, 'user_stories', 'i_want', "i_want TEXT DEFAULT ''");
+  ensureColumn(db, 'user_stories', 'so_that', "so_that TEXT DEFAULT ''");
+  ensureColumn(db, 'user_stories', 'story_point', 'story_point INTEGER');
+  ensureColumn(db, 'user_stories', 'assignee_email', "assignee_email TEXT DEFAULT ''");
+  ensureColumn(db, 'user_stories', 'status', "status TEXT DEFAULT 'Draft'");
+  ensureColumn(db, 'user_stories', 'created_at', 'created_at TEXT');
+  ensureColumn(db, 'user_stories', 'updated_at', 'updated_at TEXT');
+
+  ensureColumn(db, 'acceptance_tests', 'given', "given TEXT NOT NULL DEFAULT '[]'");
+  ensureColumn(db, 'acceptance_tests', 'when_step', "when_step TEXT NOT NULL DEFAULT '[]'");
+  ensureColumn(db, 'acceptance_tests', 'then_step', "then_step TEXT NOT NULL DEFAULT '[]'");
+  ensureColumn(db, 'acceptance_tests', 'status', "status TEXT DEFAULT 'Draft'");
+  ensureColumn(db, 'acceptance_tests', 'created_at', 'created_at TEXT');
+  ensureColumn(db, 'acceptance_tests', 'updated_at', 'updated_at TEXT');
+
+  ensureColumn(db, 'reference_documents', 'name', "name TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'reference_documents', 'url', "url TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'reference_documents', 'created_at', 'created_at TEXT');
+  ensureColumn(db, 'reference_documents', 'updated_at', 'updated_at TEXT');
+
+  ensureNotNullDefaults(db);
 
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM user_stories');
   const { count } = countStmt.get();
