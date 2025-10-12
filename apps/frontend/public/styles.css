@@ -351,6 +351,17 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.story-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.story-form .email-assignee {
+  align-self: flex-start;
+  margin-top: -0.25rem;
+}
+
 .story-form input,
 .story-form textarea,
 .test-form textarea,
@@ -403,6 +414,74 @@ body {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.detail-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.reference-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: min(520px, 80vw);
+}
+
+.reference-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.reference-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.reference-item a {
+  flex: 1;
+  color: #93c5fd;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.reference-item a:hover,
+.reference-item a:focus {
+  text-decoration: underline;
+}
+
+.reference-delete {
+  background: rgba(248, 113, 113, 0.25);
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.reference-delete:hover,
+.reference-delete:focus {
+  background: rgba(248, 113, 113, 0.4);
+}
+
+.reference-empty {
+  font-style: italic;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.modal-note {
+  margin-bottom: 0.75rem;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.reference-form .modal-actions {
+  justify-content: flex-end;
 }
 
 button {

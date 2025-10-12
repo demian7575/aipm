@@ -904,6 +904,7 @@ const renderDetail = () => {
   const story = state.stories.get(state.selectedStoryId);
   if (!story) return;
   const tests = story.testIds.map((id) => state.tests.get(id)).filter(Boolean);
+  const referenceDocs = Array.isArray(story.referenceDocuments) ? [...story.referenceDocuments] : [];
 
   const template = document.getElementById('story-form-template');
   const form = template.content.firstElementChild.cloneNode(true);
@@ -911,6 +912,15 @@ const renderDetail = () => {
   form.elements.asA.value = story.asA;
   form.elements.iWant.value = story.iWant;
   form.elements.soThat.value = story.soThat;
+  if (form.elements.storyPoint) {
+    form.elements.storyPoint.value = story.storyPoint ?? '';
+  }
+  if (form.elements.assigneeName) {
+    form.elements.assigneeName.value = story.assignee?.name ?? '';
+  }
+  if (form.elements.assigneeEmail) {
+    form.elements.assigneeEmail.value = story.assignee?.email ?? '';
+  }
 
   const investMessages = form.querySelector('#invest-messages');
   investMessages.innerHTML = '';
@@ -929,6 +939,15 @@ const renderDetail = () => {
       iWant: form.elements.iWant.value,
       soThat: form.elements.soThat.value
     };
+    if (form.elements.storyPoint) {
+      const storyPointRaw = form.elements.storyPoint.value;
+      body.storyPoint = storyPointRaw === '' ? null : Number(storyPointRaw);
+    }
+    if (form.elements.assigneeName || form.elements.assigneeEmail) {
+      const name = form.elements.assigneeName ? form.elements.assigneeName.value.trim() : '';
+      const email = form.elements.assigneeEmail ? form.elements.assigneeEmail.value.trim() : '';
+      body.assignee = name || email ? { name, email } : null;
+    }
     try {
       await fetchJSON(`/api/stories/${story.id}`, { method: 'PATCH', body: JSON.stringify(body) });
       await loadState();
@@ -939,6 +958,41 @@ const renderDetail = () => {
       alert(formatInvestError(error, 'Failed to save story'));
     }
   });
+
+  const emailButton = form.querySelector('.email-assignee');
+  if (emailButton) {
+    emailButton.addEventListener('click', () => {
+      const currentEmail = form.elements.assigneeEmail ? form.elements.assigneeEmail.value.trim() : '';
+      const currentName = form.elements.assigneeName ? form.elements.assigneeName.value.trim() : story.assignee?.name ?? '';
+      if (!currentEmail) {
+        alert('Set an assignee email before composing a message.');
+        return;
+      }
+      const modalContent = document.createElement('form');
+      modalContent.className = 'modal-form';
+      modalContent.innerHTML = `
+        <p class="modal-note">Send a quick note to ${currentName || 'the assignee'}.</p>
+        <label>Subject<input name="subject" value="${story.title.replace(/"/g, '&quot;')}" /></label>
+        <label>Message<textarea name="message" rows="5">Hello ${currentName || ''},\n\n</textarea></label>
+        <div class="modal-actions">
+          <button type="button" class="modal-cancel">Cancel</button>
+          <button type="submit">Open Email</button>
+        </div>
+      `;
+      const close = openModal({ title: 'Email Assignee', content: modalContent });
+      modalContent.querySelector('.modal-cancel').addEventListener('click', () => close());
+      modalContent.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const subject = modalContent.elements.subject.value;
+        const message = modalContent.elements.message.value;
+        const mailto = `mailto:${encodeURIComponent(currentEmail)}?subject=${encodeURIComponent(
+          subject
+        )}&body=${encodeURIComponent(message)}`;
+        window.open(mailto, '_blank', 'noopener');
+        close();
+      });
+    });
+  }
 
   form.querySelector('.delete-story').addEventListener('click', async () => {
     if (!confirm('Delete this story and all descendants?')) return;
@@ -959,6 +1013,113 @@ const renderDetail = () => {
   const testTemplate = document.getElementById('test-form-template');
 
   detailEl.appendChild(form);
+
+  const referenceToolbar = document.createElement('div');
+  referenceToolbar.className = 'detail-toolbar';
+  const referenceButton = document.createElement('button');
+  referenceButton.type = 'button';
+  referenceButton.className = 'open-reference-modal';
+  referenceButton.textContent = 'Reference Document';
+  referenceToolbar.appendChild(referenceButton);
+  detailEl.appendChild(referenceToolbar);
+
+  referenceButton.addEventListener('click', () => {
+    let docs = [...referenceDocs];
+
+    const renderList = (listEl) => {
+      listEl.innerHTML = '';
+      if (docs.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'reference-empty';
+        empty.textContent = 'No reference documents registered.';
+        listEl.appendChild(empty);
+        return;
+      }
+      docs.forEach((doc) => {
+        const item = document.createElement('div');
+        item.className = 'reference-item';
+        const link = document.createElement('a');
+        link.href = doc.url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = doc.title;
+        link.addEventListener('click', () => {
+          window.open(doc.url, '_blank', 'noopener');
+        });
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'reference-delete';
+        deleteButton.textContent = 'Remove';
+        deleteButton.addEventListener('click', async () => {
+          const nextDocs = docs.filter((item) => item.id !== doc.id);
+          try {
+            await fetchJSON(`/api/stories/${story.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ referenceDocuments: nextDocs })
+            });
+            await loadState();
+            docs = [...(state.stories.get(story.id)?.referenceDocuments ?? [])];
+            renderDetail();
+            renderList(listEl);
+          } catch (error) {
+            alert(`Failed to remove reference: ${error.message}`);
+          }
+        });
+        item.append(link, deleteButton);
+        listEl.appendChild(item);
+      });
+    };
+
+    const container = document.createElement('div');
+    container.className = 'reference-container';
+    const listEl = document.createElement('div');
+    listEl.className = 'reference-list';
+    renderList(listEl);
+
+    const formEl = document.createElement('form');
+    formEl.className = 'modal-form reference-form';
+    formEl.innerHTML = `
+      <label>Title<input name="title" required maxlength="200" /></label>
+      <label>URL<input name="url" required type="url" /></label>
+      <div class="modal-actions">
+        <button type="button" class="modal-cancel">Cancel</button>
+        <button type="submit">Add Document</button>
+      </div>
+    `;
+
+    const close = openModal({ title: 'Reference document list', content: () => {
+      container.append(listEl, formEl);
+      return container;
+    }});
+
+    formEl.querySelector('.modal-cancel').addEventListener('click', () => close());
+
+    formEl.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const title = formEl.elements.title.value.trim();
+      const url = formEl.elements.url.value.trim();
+      if (!title || !url) return;
+      const newDoc = {
+        id: crypto.randomUUID(),
+        title,
+        url
+      };
+      const nextDocs = [...docs, newDoc];
+      try {
+        await fetchJSON(`/api/stories/${story.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ referenceDocuments: nextDocs })
+        });
+        formEl.reset();
+        await loadState();
+        docs = [...(state.stories.get(story.id)?.referenceDocuments ?? [])];
+        renderDetail();
+        renderList(listEl);
+      } catch (error) {
+        alert(`Failed to add reference: ${error.message}`);
+      }
+    });
+  });
 
   const createHeaderRow = (labels) => {
     const row = document.createElement('div');
@@ -1333,7 +1494,7 @@ const renderDetail = () => {
     });
   });
 
-  detailEl.append(childSection, testsSection);
+  detailEl.append(testsSection, childSection);
 };
 
 const initializeEvents = () => {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer as createNetServer } from 'node:net';
+import { randomUUID } from 'node:crypto';
 import { startServer } from '../src/server.js';
 import { InMemoryStore, store } from '../src/store.js';
 
@@ -196,6 +197,59 @@ test.describe('HTTP API', () => {
     const created = await retryResponse.json();
     assert.ok(Array.isArray(created.then));
     assert.equal(created.then[0], payload.then[0]);
+  });
+
+  test('update story metadata with story point, assignee, and references', async () => {
+    const [mr] = store.listMergeRequests();
+    const createStoryResponse = await fetch(`${baseURL}/api/stories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mrId: mr.id,
+        title: 'Metadata enrichment story',
+        asA: 'As a planner',
+        iWant: 'I want to capture metadata',
+        soThat: 'I can coordinate teams better',
+        acceptWarnings: true
+      })
+    });
+    assert.equal(createStoryResponse.status, 201);
+    const story = await createStoryResponse.json();
+
+    const ensureTestResponse = await fetch(`${baseURL}/api/tests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storyId: story.id,
+        given: ['Given a planning workspace'],
+        when: ['When the story metadata is updated'],
+        then: ['Then the status recalculates within 2 seconds']
+      })
+    });
+    if (ensureTestResponse.status !== 201 && ensureTestResponse.status !== 400) {
+      assert.fail(`Unexpected status creating acceptance test: ${ensureTestResponse.status}`);
+    }
+    const reference = {
+      id: randomUUID(),
+      title: 'Product requirements',
+      url: 'https://example.com/prd.pdf'
+    };
+    const response = await fetch(`${baseURL}/api/stories/${story.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storyPoint: 8,
+        assignee: { name: 'Jordan PM', email: 'jordan@example.com' },
+        referenceDocuments: [reference]
+      })
+    });
+
+    assert.equal(response.status, 200);
+    const updated = await response.json();
+    assert.equal(updated.storyPoint, 8);
+    assert.equal(updated.assignee.email, 'jordan@example.com');
+    assert.equal(updated.referenceDocuments.length, 1);
+    assert.equal(updated.referenceDocuments[0].title, reference.title);
   });
 
   test('prevent updates that clear acceptance test steps', async () => {

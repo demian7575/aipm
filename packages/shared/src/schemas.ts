@@ -33,6 +33,22 @@ export const userStorySchema = z.object({
   iWant: z.string().trim().min(3),
   soThat: z.string().trim().min(3),
   invest: investChecklistSchema,
+  storyPoint: z.number().nonnegative().max(100).nullable(),
+  assignee: z
+    .object({
+      name: z.string().trim().min(1).max(120),
+      email: z.string().trim().email()
+    })
+    .nullable(),
+  referenceDocuments: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        title: z.string().trim().min(1).max(200),
+        url: z.string().trim().url()
+      })
+    )
+    .default([]),
   estimateDays: z.number().positive().max(30).optional(),
   childrenIds: z.array(z.string().uuid()),
   testIds: z.array(z.string().uuid()),

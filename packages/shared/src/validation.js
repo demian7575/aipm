@@ -219,6 +219,23 @@ export const createStory = (input) => {
       small: true,
       testable: false
     },
+    storyPoint:
+      typeof input.storyPoint === 'number' && Number.isFinite(input.storyPoint)
+        ? Math.max(0, Math.min(100, input.storyPoint))
+        : null,
+    assignee: input.assignee
+      ? {
+          name: input.assignee.name.trim(),
+          email: input.assignee.email.trim()
+        }
+      : null,
+    referenceDocuments: Array.isArray(input.referenceDocuments)
+      ? input.referenceDocuments.map((doc) => ({
+          id: doc.id,
+          title: doc.title,
+          url: doc.url
+        }))
+      : [],
     childrenIds: [],
     testIds: [],
     status: 'Draft',

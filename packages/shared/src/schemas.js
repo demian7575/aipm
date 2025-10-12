@@ -135,6 +135,9 @@ export const userStorySchema = {
     'iWant',
     'soThat',
     'invest',
+    'storyPoint',
+    'assignee',
+    'referenceDocuments',
     'childrenIds',
     'testIds',
     'status',
@@ -162,6 +165,32 @@ export const userStorySchema = {
         estimable: { type: 'boolean' },
         small: { type: 'boolean' },
         testable: { type: 'boolean' }
+      }
+    },
+    storyPoint: { anyOf: [{ type: 'number', minimum: 0, maximum: 100 }, { type: 'null' }] },
+    assignee: {
+      anyOf: [
+        {
+          type: 'object',
+          required: ['name', 'email'],
+          properties: {
+            name: { type: 'string', maxLength: 120 },
+            email: { type: 'string', format: 'email' }
+          }
+        },
+        { type: 'null' }
+      ]
+    },
+    referenceDocuments: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['id', 'title', 'url'],
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          title: { type: 'string', maxLength: 200 },
+          url: { type: 'string', format: 'uri' }
+        }
       }
     },
     childrenIds: { type: 'array', items: { type: 'string', format: 'uuid' } },

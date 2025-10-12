@@ -32,6 +32,48 @@ const parseJson = (value, fallback) => {
   }
 };
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const normalizeStoryPoint = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const number = Number(value);
+  ensure(Number.isFinite(number) && number >= 0 && number <= 100, 'story.invalid', 'Story point must be between 0 and 100');
+  return number;
+};
+
+const normalizeAssignee = (value) => {
+  if (value === undefined || value === null) return null;
+  ensure(typeof value === 'object', 'story.invalid', 'Assignee payload must be an object');
+  const name = typeof value.name === 'string' ? value.name.trim() : '';
+  const email = typeof value.email === 'string' ? value.email.trim() : '';
+  ensure(name.length > 0, 'story.invalid', 'Assignee name is required');
+  ensure(email.length > 0, 'story.invalid', 'Assignee email is required');
+  ensure(emailPattern.test(email), 'story.invalid', 'Assignee email must be valid');
+  return { name, email };
+};
+
+const normalizeReferenceDocuments = (value) => {
+  if (value === undefined) return undefined;
+  ensure(Array.isArray(value), 'story.invalid', 'Reference documents must be an array');
+  return value.map((doc) => {
+    ensure(doc && typeof doc === 'object', 'story.invalid', 'Reference document must be an object');
+    const id = typeof doc.id === 'string' ? doc.id : '';
+    ensure(uuidPattern.test(id), 'story.invalid', 'Reference document id must be a UUID');
+    const title = typeof doc.title === 'string' ? doc.title.trim() : '';
+    ensure(title.length > 0, 'story.invalid', 'Reference document title is required');
+    const url = typeof doc.url === 'string' ? doc.url.trim() : '';
+    ensure(url.length > 0, 'story.invalid', 'Reference document url is required');
+    let normalizedUrl;
+    try {
+      normalizedUrl = new URL(url).toString();
+    } catch (error) {
+      ensure(false, 'story.invalid', 'Reference document url must be valid');
+    }
+    return { id, title, url: normalizedUrl };
+  });
+};
+
 const INVEST_LABELS = {
   independent: 'Independent',
   negotiable: 'Negotiable',
@@ -326,6 +368,9 @@ export class InMemoryStore {
         iWant: row.iWant,
         soThat: row.soThat,
         invest: parseJson(row.invest, {}),
+        storyPoint: row.storyPoint === null || row.storyPoint === undefined ? null : Number(row.storyPoint),
+        assignee: row.assignee ? parseJson(row.assignee, null) : null,
+        referenceDocuments: parseJson(row.referenceDocuments, []),
         childrenIds: parseJson(row.childrenIds, []),
         testIds: parseJson(row.testIds, []),
         status: row.status,
@@ -369,13 +414,17 @@ export class InMemoryStore {
     });
     this.stories.forEach((story) => {
       statements.push(
-        `INSERT INTO stories (id, mrId, parentId, "order", depth, title, asA, iWant, soThat, invest, childrenIds, testIds, status, createdAt, updatedAt, version) VALUES (${quote(
+        `INSERT INTO stories (id, mrId, parentId, "order", depth, title, asA, iWant, soThat, invest, storyPoint, assignee, referenceDocuments, childrenIds, testIds, status, createdAt, updatedAt, version) VALUES (${quote(
           story.id
         )}, ${quote(story.mrId)}, ${story.parentId ? quote(story.parentId) : 'NULL'}, ${story.order}, ${story.depth}, ${quote(
           story.title
-        )}, ${quote(story.asA)}, ${quote(story.iWant)}, ${quote(story.soThat)}, ${jsonQuote(story.invest)}, ${jsonQuote(
-          story.childrenIds
-        )}, ${jsonQuote(story.testIds)}, ${quote(story.status)}, ${quote(story.createdAt)}, ${quote(story.updatedAt)}, ${story.version});`
+        )}, ${quote(story.asA)}, ${quote(story.iWant)}, ${quote(story.soThat)}, ${jsonQuote(story.invest)}, ${
+          story.storyPoint === null || story.storyPoint === undefined ? 'NULL' : story.storyPoint
+        }, ${story.assignee ? jsonQuote(story.assignee) : 'NULL'}, ${jsonQuote(
+          story.referenceDocuments
+        )}, ${jsonQuote(story.childrenIds)}, ${jsonQuote(story.testIds)}, ${quote(story.status)}, ${quote(
+          story.createdAt
+        )}, ${quote(story.updatedAt)}, ${story.version});`
       );
     });
     this.tests.forEach((test) => {
@@ -539,6 +588,9 @@ export class InMemoryStore {
         ? parent.depth + 1
         : input.depth ?? 0
       : 0;
+    const storyPoint = normalizeStoryPoint(input.storyPoint);
+    const assignee = normalizeAssignee(input.assignee ?? null);
+    const referenceDocuments = normalizeReferenceDocuments(input.referenceDocuments) ?? [];
     const story = sharedCreateStory({
       mrId: input.mrId,
       parentId: input.parentId ?? null,
@@ -547,7 +599,10 @@ export class InMemoryStore {
       title: input.title,
       asA: input.asA,
       iWant: input.iWant,
-      soThat: input.soThat
+      soThat: input.soThat,
+      storyPoint,
+      assignee,
+      referenceDocuments
     });
     return story;
   }
@@ -618,6 +673,16 @@ export class InMemoryStore {
     if (patch.soThat !== undefined) {
       ensure(typeof patch.soThat === 'string' && patch.soThat.length > 0, 'story.invalid', 'So that required');
       story.soThat = patch.soThat;
+    }
+    if (patch.storyPoint !== undefined) {
+      story.storyPoint = normalizeStoryPoint(patch.storyPoint);
+    }
+    if (patch.assignee !== undefined) {
+      story.assignee = normalizeAssignee(patch.assignee);
+    }
+    if (patch.referenceDocuments !== undefined) {
+      const docs = normalizeReferenceDocuments(patch.referenceDocuments);
+      story.referenceDocuments = docs ?? story.referenceDocuments;
     }
 
     story.updatedAt = nowIso();

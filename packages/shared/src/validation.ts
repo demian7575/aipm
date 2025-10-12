@@ -232,6 +232,9 @@ export interface StoryFactoryInput {
   asA: string;
   iWant: string;
   soThat: string;
+  storyPoint?: number | null;
+  assignee?: { name: string; email: string } | null;
+  referenceDocuments?: { id: string; title: string; url: string }[];
 }
 
 export function createStory(input: StoryFactoryInput): UserStory {
@@ -255,6 +258,23 @@ export function createStory(input: StoryFactoryInput): UserStory {
       small: true,
       testable: false
     },
+    storyPoint:
+      typeof input.storyPoint === 'number' && Number.isFinite(input.storyPoint)
+        ? Math.max(0, Math.min(100, input.storyPoint))
+        : null,
+    assignee: input.assignee
+      ? {
+          name: input.assignee.name.trim(),
+          email: input.assignee.email.trim()
+        }
+      : null,
+    referenceDocuments: Array.isArray(input.referenceDocuments)
+      ? input.referenceDocuments.map((doc) => ({
+          id: doc.id,
+          title: doc.title,
+          url: doc.url
+        }))
+      : [],
     estimateDays: undefined,
     childrenIds: [],
     testIds: [],

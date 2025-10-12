@@ -71,6 +71,21 @@
           Title
           <input name="title" required maxlength="160" />
         </label>
+        <div class="story-meta-grid">
+          <label>
+            Story Point
+            <input name="storyPoint" type="number" min="0" max="100" step="0.5" />
+          </label>
+          <label>
+            Assignee Name
+            <input name="assigneeName" maxlength="120" />
+          </label>
+          <label>
+            Assignee Email
+            <input name="assigneeEmail" type="email" />
+          </label>
+        </div>
+        <button type="button" class="email-assignee">Email Assignee</button>
         <table class="story-statement-table" role="presentation">
           <thead>
             <tr>
