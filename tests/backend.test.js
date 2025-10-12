@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { createApp, DATABASE_PATH } from '../apps/backend/app.js';
 
 async function startServer() {
@@ -94,4 +96,79 @@ test('stories CRUD with reference documents', async (t) => {
   const finalStories = await fetch(`${baseUrl}/api/stories`);
   const finalData = await finalStories.json();
   assert.equal(finalData[0].referenceDocuments.length, 2);
+});
+
+test('acceptance tests can be created when legacy title column exists', async (t) => {
+  await fs.rm(DATABASE_PATH, { force: true });
+  await fs.mkdir(path.dirname(DATABASE_PATH), { recursive: true });
+  const db = new DatabaseSync(DATABASE_PATH);
+  db.exec(`
+    PRAGMA journal_mode = WAL;
+    PRAGMA foreign_keys = ON;
+    CREATE TABLE user_stories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mr_id INTEGER DEFAULT 1,
+      parent_id INTEGER,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      as_a TEXT DEFAULT '',
+      i_want TEXT DEFAULT '',
+      so_that TEXT DEFAULT '',
+      story_point INTEGER,
+      assignee_email TEXT DEFAULT '',
+      status TEXT DEFAULT 'Draft',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE acceptance_tests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      story_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      given TEXT NOT NULL,
+      when_step TEXT NOT NULL,
+      then_step TEXT NOT NULL,
+      status TEXT DEFAULT 'Draft',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE reference_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      story_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  db.close();
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(stories.length > 0);
+  const story = stories[0];
+
+  const createResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tests`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      given: ['a signed-in customer'],
+      when: ['they reset their MFA device'],
+      then: ['recovery completes within 30 seconds'],
+    }),
+  });
+  assert.equal(createResponse.status, 201);
+  const created = await createResponse.json();
+  assert.deepEqual(created.given, ['a signed-in customer']);
+  assert.ok(Object.prototype.hasOwnProperty.call(created, 'title'));
+  assert.ok(String(created.title || '').length > 0);
 });

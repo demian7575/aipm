@@ -10,6 +10,8 @@ const FRONTEND_DIR = path.join(__dirname, '..', 'frontend', 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 export const DATABASE_PATH = path.join(DATA_DIR, 'app.sqlite');
 
+let acceptanceTestsHasTitleColumn = false;
+
 function now() {
   return new Date().toISOString();
 }
@@ -81,6 +83,46 @@ function measurabilityWarnings(thenSteps) {
     }
   });
   return { warnings, suggestions };
+}
+
+function acceptanceTestColumnsForInsert() {
+  if (acceptanceTestsHasTitleColumn) {
+    return {
+      columns:
+        'story_id, title, given, when_step, then_step, status, created_at, updated_at', // prettier-ignore
+      placeholders: '?, ?, ?, ?, ?, ?, ?, ?',
+    };
+  }
+  return {
+    columns: 'story_id, given, when_step, then_step, status, created_at, updated_at',
+    placeholders: '?, ?, ?, ?, ?, ?, ?',
+  };
+}
+
+function insertAcceptanceTest(db, { storyId, title = '', given, when, then, status = 'Draft', timestamp = now() }) {
+  const { columns, placeholders } = acceptanceTestColumnsForInsert();
+  const statement = db.prepare(`INSERT INTO acceptance_tests (${columns}) VALUES (${placeholders})`);
+  const params = acceptanceTestsHasTitleColumn
+    ? [
+        storyId,
+        title,
+        JSON.stringify(given),
+        JSON.stringify(when),
+        JSON.stringify(then),
+        status,
+        timestamp,
+        timestamp,
+      ]
+    : [
+        storyId,
+        JSON.stringify(given),
+        JSON.stringify(when),
+        JSON.stringify(then),
+        status,
+        timestamp,
+        timestamp,
+      ];
+  return statement.run(...params);
 }
 
 function tableColumns(db, table) {
@@ -176,6 +218,11 @@ async function ensureDatabase() {
   ensureColumn(db, 'reference_documents', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'reference_documents', 'updated_at', 'updated_at TEXT');
 
+  acceptanceTestsHasTitleColumn = tableColumns(db, 'acceptance_tests').some((column) => column.name === 'title');
+  if (acceptanceTestsHasTitleColumn) {
+    db.exec("UPDATE acceptance_tests SET title = COALESCE(title, '')");
+  }
+
   ensureNotNullDefaults(db);
 
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM user_stories');
@@ -215,18 +262,15 @@ async function ensureDatabase() {
       timestamp
     );
 
-    const insertTest = db.prepare(
-      'INSERT INTO acceptance_tests (story_id, given, when_step, then_step, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
-    );
-    insertTest.run(
-      rootId,
-      JSON.stringify(['A customer with valid credentials']),
-      JSON.stringify(['They submit the login form']),
-      JSON.stringify(['Dashboard loads within 2000 ms']),
-      'Ready',
+    insertAcceptanceTest(db, {
+      storyId: rootId,
+      title: 'Happy path login',
+      given: ['A customer with valid credentials'],
+      when: ['They submit the login form'],
+      then: ['Dashboard loads within 2000 ms'],
+      status: 'Ready',
       timestamp,
-      timestamp
-    );
+    });
 
     const insertDoc = db.prepare(
       'INSERT INTO reference_documents (story_id, name, url, created_at, updated_at) VALUES (?, ?, ?, ?, ?)' // prettier-ignore
@@ -308,6 +352,7 @@ function loadStories(db) {
     story.acceptanceTests.push({
       id: row.id,
       storyId: row.story_id,
+      title: acceptanceTestsHasTitleColumn ? row.title ?? '' : '',
       given,
       when,
       then,
@@ -569,21 +614,27 @@ export async function createApp() {
           });
           return;
         }
-        const statement = db.prepare(
-          'INSERT INTO acceptance_tests (story_id, given, when_step, then_step, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
-        );
+        const allStories = flattenStories(loadStories(db));
+        const story = allStories.find((node) => node.id === storyId);
+        if (!story) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        const desiredTitle = acceptanceTestsHasTitleColumn
+          ? String(payload.title ?? '').trim() || `AT-${story.id}-${story.acceptanceTests.length + 1}`
+          : '';
         const timestamp = now();
-        const { lastInsertRowid } = statement.run(
+        const { lastInsertRowid } = insertAcceptanceTest(db, {
           storyId,
-          JSON.stringify(given),
-          JSON.stringify(when),
-          JSON.stringify(then),
-          payload.status ? String(payload.status) : 'Draft',
+          title: desiredTitle,
+          given,
+          when,
+          then,
+          status: payload.status ? String(payload.status) : 'Draft',
           timestamp,
-          timestamp
-        );
-        const story = flattenStories(loadStories(db)).find((node) => node.id === storyId);
-        const created = story?.acceptanceTests.find((item) => item.id === Number(lastInsertRowid)) ?? null;
+        });
+        const refreshedStory = flattenStories(loadStories(db)).find((node) => node.id === storyId);
+        const created = refreshedStory?.acceptanceTests.find((item) => item.id === Number(lastInsertRowid)) ?? null;
         sendJson(res, 201, created);
       } catch (error) {
         const status = error.statusCode ?? 500;
