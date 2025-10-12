@@ -64,6 +64,82 @@ const panelToggles = {
   github: document.getElementById('toggle-github')
 };
 
+const openModal = ({ title, content, onClose }) => {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const header = document.createElement('div');
+  header.className = 'modal-header';
+  const heading = document.createElement('h2');
+  const headingId = `modal-title-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  heading.id = headingId;
+  heading.textContent = title;
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'modal-close';
+  closeButton.setAttribute('aria-label', 'Close dialog');
+  closeButton.textContent = '×';
+  header.appendChild(heading);
+  header.appendChild(closeButton);
+
+  overlay.setAttribute('aria-labelledby', headingId);
+
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+  if (typeof content === 'function') {
+    const node = content();
+    if (node) body.appendChild(node);
+  } else if (content) {
+    body.appendChild(content);
+  }
+
+  modal.appendChild(header);
+  modal.appendChild(body);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const remove = () => {
+    document.removeEventListener('keydown', onKeyDown);
+    if (overlay.parentNode) {
+      overlay.parentNode.removeChild(overlay);
+    }
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  };
+
+  const onKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      remove();
+    }
+  };
+
+  document.addEventListener('keydown', onKeyDown);
+
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) {
+      remove();
+    }
+  });
+
+  closeButton.addEventListener('click', () => remove());
+
+  const firstInput = modal.querySelector('input, textarea, select, button');
+  if (firstInput) {
+    setTimeout(() => {
+      firstInput.focus();
+    }, 0);
+  }
+
+  return remove;
+};
+
 const loadExpanded = () => {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
@@ -927,118 +1003,148 @@ const renderDetail = () => {
   const childSection = document.createElement('section');
   childSection.className = 'creation-section';
   childSection.innerHTML = `
-    <h3>Add Child Story</h3>
-    <form class="child-story-form">
+    <h3>Child Stories</h3>
+    <button type="button" class="open-child-modal">Add Child Story</button>
+  `;
+  const openChildModalButton = childSection.querySelector('.open-child-modal');
+  openChildModalButton.addEventListener('click', () => {
+    const form = document.createElement('form');
+    form.className = 'modal-form';
+    form.innerHTML = `
       <label>Title<input name="title" required maxlength="160" /></label>
       <label>As a<input name="asA" required /></label>
       <label>I want<textarea name="iWant" required></textarea></label>
       <label>So that<textarea name="soThat" required></textarea></label>
-      <button type="submit">Create Child Story</button>
-    </form>
-  `;
-  const childForm = childSection.querySelector('form');
-  childForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const basePayload = {
-      mrId: story.mrId,
-      parentId: story.id,
-      title: childForm.elements.title.value,
-      asA: childForm.elements.asA.value,
-      iWant: childForm.elements.iWant.value,
-      soThat: childForm.elements.soThat.value
-    };
+      <div class="modal-actions">
+        <button type="button" class="modal-cancel">Cancel</button>
+        <button type="submit">Create Child Story</button>
+      </div>
+    `;
 
-    const refreshAfterCreate = async () => {
-      childForm.reset();
-      state.expanded.add(story.id);
-      saveExpanded();
-      await loadState();
-      renderOutline();
-      renderMindmap();
-      renderDetail();
-    };
+    const close = openModal({ title: 'Add Child Story', content: form });
 
-    try {
-      await fetchJSON('/api/stories', { method: 'POST', body: JSON.stringify(basePayload) });
-      await refreshAfterCreate();
-    } catch (error) {
-      if (error.code === 'story.invest' && (error.allowOverride || error.details?.allowOverride)) {
-        const message = formatInvestError(error, 'Unable to create child story');
-        const proceed = confirm(`${message}\n\nCreate the story anyway?`);
-        if (!proceed) return;
-        try {
-          await fetchJSON('/api/stories', {
-            method: 'POST',
-            body: JSON.stringify({ ...basePayload, acceptWarnings: true })
-          });
-          await refreshAfterCreate();
-        } catch (retryError) {
-          alert(formatInvestError(retryError, 'Unable to create child story'));
+    const cancelButton = form.querySelector('.modal-cancel');
+    cancelButton.addEventListener('click', () => close());
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const basePayload = {
+        mrId: story.mrId,
+        parentId: story.id,
+        title: form.elements.title.value,
+        asA: form.elements.asA.value,
+        iWant: form.elements.iWant.value,
+        soThat: form.elements.soThat.value
+      };
+
+      const refreshAfterCreate = async () => {
+        form.reset();
+        state.expanded.add(story.id);
+        saveExpanded();
+        await loadState();
+        renderOutline();
+        renderMindmap();
+        renderDetail();
+        close();
+      };
+
+      try {
+        await fetchJSON('/api/stories', { method: 'POST', body: JSON.stringify(basePayload) });
+        await refreshAfterCreate();
+      } catch (error) {
+        if (error.code === 'story.invest' && (error.allowOverride || error.details?.allowOverride)) {
+          const message = formatInvestError(error, 'Unable to create child story');
+          const proceed = confirm(`${message}\n\nCreate the story anyway?`);
+          if (!proceed) return;
+          try {
+            await fetchJSON('/api/stories', {
+              method: 'POST',
+              body: JSON.stringify({ ...basePayload, acceptWarnings: true })
+            });
+            await refreshAfterCreate();
+          } catch (retryError) {
+            alert(formatInvestError(retryError, 'Unable to create child story'));
+          }
+          return;
         }
-        return;
+        alert(formatInvestError(error, 'Unable to create child story'));
       }
-      alert(formatInvestError(error, 'Unable to create child story'));
-    }
+    });
   });
 
   const testSection = document.createElement('section');
   testSection.className = 'creation-section';
   testSection.innerHTML = `
-    <h3>Add Acceptance Test</h3>
-    <form class="new-test-form">
+    <h3>Acceptance Tests</h3>
+    <button type="button" class="open-test-modal">Add Acceptance Test</button>
+  `;
+  const openTestModalButton = testSection.querySelector('.open-test-modal');
+  openTestModalButton.addEventListener('click', () => {
+    const form = document.createElement('form');
+    form.className = 'modal-form';
+    form.innerHTML = `
       <label>Given<textarea name="given" required></textarea></label>
       <label>When<textarea name="when" required></textarea></label>
       <label>Then<textarea name="then" required></textarea></label>
-      <button type="submit">Create Acceptance Test</button>
-    </form>
-  `;
-  const newTestForm = testSection.querySelector('form');
-  newTestForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const basePayload = {
-      storyId: story.id,
-      given: newTestForm.elements.given.value
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean),
-      when: newTestForm.elements.when.value
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean),
-      then: newTestForm.elements.then.value
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
-    };
-    const refreshAfterCreate = async () => {
-      newTestForm.reset();
-      await loadState();
-      renderDetail();
-      renderOutline();
-      renderMindmap();
-    };
+      <div class="modal-actions">
+        <button type="button" class="modal-cancel">Cancel</button>
+        <button type="submit">Create Acceptance Test</button>
+      </div>
+    `;
 
-    try {
-      await fetchJSON('/api/tests', { method: 'POST', body: JSON.stringify(basePayload) });
-      await refreshAfterCreate();
-    } catch (error) {
-      if (error.code === 'test.measurable' && (error.allowOverride || error.details?.allowOverride)) {
-        const message = formatTestabilityError(error, 'Unable to create acceptance test');
-        const proceed = confirm(`${message}\n\nCreate the acceptance test anyway?`);
-        if (!proceed) return;
-        try {
-          await fetchJSON('/api/tests', {
-            method: 'POST',
-            body: JSON.stringify({ ...basePayload, acceptWarnings: true })
-          });
-          await refreshAfterCreate();
-        } catch (retryError) {
-          alert(formatTestabilityError(retryError, 'Unable to create acceptance test'));
+    const close = openModal({ title: 'Add Acceptance Test', content: form });
+
+    const cancelButton = form.querySelector('.modal-cancel');
+    cancelButton.addEventListener('click', () => close());
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const basePayload = {
+        storyId: story.id,
+        given: form.elements.given.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+        when: form.elements.when.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+        then: form.elements.then.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+      };
+      const refreshAfterCreate = async () => {
+        form.reset();
+        await loadState();
+        renderDetail();
+        renderOutline();
+        renderMindmap();
+        close();
+      };
+
+      try {
+        await fetchJSON('/api/tests', { method: 'POST', body: JSON.stringify(basePayload) });
+        await refreshAfterCreate();
+      } catch (error) {
+        if (error.code === 'test.measurable' && (error.allowOverride || error.details?.allowOverride)) {
+          const message = formatTestabilityError(error, 'Unable to create acceptance test');
+          const proceed = confirm(`${message}\n\nCreate the acceptance test anyway?`);
+          if (!proceed) return;
+          try {
+            await fetchJSON('/api/tests', {
+              method: 'POST',
+              body: JSON.stringify({ ...basePayload, acceptWarnings: true })
+            });
+            await refreshAfterCreate();
+          } catch (retryError) {
+            alert(formatTestabilityError(retryError, 'Unable to create acceptance test'));
+          }
+          return;
         }
-        return;
+        alert(formatTestabilityError(error, 'Unable to create acceptance test'));
       }
-      alert(formatTestabilityError(error, 'Unable to create acceptance test'));
-    }
+    });
   });
 
   detailEl.append(childSection, testSection);
