@@ -6,6 +6,8 @@ const NODE_WIDTH = 200;
 const NODE_HEIGHT = 60;
 const POSITION_STORAGE_PREFIX = 'ai-pm-mindmap-positions:';
 const AUTO_LAYOUT_STORAGE_PREFIX = 'ai-pm-mindmap-auto-layout:';
+const AUTO_LAYOUT_MARGIN_X = 200;
+const AUTO_LAYOUT_MARGIN_Y = 80;
 
 const state = {
   mergeRequests: [],
@@ -22,7 +24,7 @@ const state = {
     outline: true,
     mindmap: true,
     detail: true,
-    github: true
+    github: false
   }
 };
 
@@ -81,7 +83,7 @@ const defaultVisibility = () => ({
   outline: true,
   mindmap: true,
   detail: true,
-  github: true
+  github: false
 });
 
 const loadPanelVisibility = () => {
@@ -504,12 +506,24 @@ const computeLayout = (nodes) => {
     if (node.children.length === 0) {
       const y = nextY;
       nextY += verticalGap;
-      placements.push({ id: node.story.id, x: depth * horizontalGap, y, story: node.story, depth });
+      placements.push({
+        id: node.story.id,
+        x: AUTO_LAYOUT_MARGIN_X + depth * horizontalGap,
+        y,
+        story: node.story,
+        depth
+      });
       return y;
     }
     const childPositions = node.children.map((child) => assign(child, depth + 1));
     const y = childPositions.reduce((sum, value) => sum + value, 0) / childPositions.length;
-    placements.push({ id: node.story.id, x: depth * horizontalGap, y, story: node.story, depth });
+    placements.push({
+      id: node.story.id,
+      x: AUTO_LAYOUT_MARGIN_X + depth * horizontalGap,
+      y,
+      story: node.story,
+      depth
+    });
     return y;
   };
 
@@ -526,7 +540,10 @@ const computeLayout = (nodes) => {
 
   const totalHeight = Math.max(nextY - verticalGap, verticalGap);
   const offsetY = totalHeight / 2;
-  return placements.map((placement) => ({ ...placement, y: placement.y - offsetY }));
+  return placements.map((placement) => ({
+    ...placement,
+    y: placement.y - offsetY + (state.autoLayout ? AUTO_LAYOUT_MARGIN_Y : 0)
+  }));
 };
 
 const renderMindmap = () => {
@@ -546,7 +563,7 @@ const renderMindmap = () => {
     return;
   }
 
-  const padding = 120;
+  const padding = state.autoLayout ? 200 : 120;
   const minX = Math.min(...nodes.map((node) => node.x));
   const maxX = Math.max(...nodes.map((node) => node.x + NODE_WIDTH));
   const minY = Math.min(...nodes.map((node) => node.y));
@@ -616,6 +633,10 @@ const renderMindmap = () => {
       toggleLabel.setAttribute('text-anchor', 'middle');
       toggleLabel.setAttribute('dominant-baseline', 'middle');
       toggle.appendChild(toggleLabel);
+
+      toggle.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
 
       toggle.addEventListener('click', (event) => {
         event.stopPropagation();
