@@ -35,6 +35,27 @@ const VERTICAL_STEP = 150;
 const X_OFFSET = 80;
 const Y_OFFSET = 80;
 
+function parseStoryPointInput(raw) {
+  if (raw == null) {
+    return { value: null, error: null };
+  }
+  const trimmed = String(raw).trim();
+  if (trimmed === '') {
+    return { value: null, error: null };
+  }
+  const numeric = Number(trimmed);
+  if (!Number.isFinite(numeric)) {
+    return { value: null, error: 'Story point must be a number.' };
+  }
+  if (!Number.isInteger(numeric)) {
+    return { value: null, error: 'Story point must be a whole number.' };
+  }
+  if (numeric < 0) {
+    return { value: null, error: 'Story point cannot be negative.' };
+  }
+  return { value: numeric, error: null };
+}
+
 const state = {
   stories: [],
   expanded: new Set(),
@@ -573,9 +594,14 @@ function renderDetails() {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const formData = new FormData(form);
+    const storyPointResult = parseStoryPointInput(formData.get('storyPoint'));
+    if (storyPointResult.error) {
+      showToast(storyPointResult.error, 'error');
+      return;
+    }
     const payload = {
       title: formData.get('title').trim(),
-      storyPoint: formData.get('storyPoint') ? Number(formData.get('storyPoint')) : null,
+      storyPoint: storyPointResult.value,
       assigneeEmail: formData.get('assigneeEmail').trim(),
       description: formData.get('description').trim(),
       asA: formData.get('asA').trim(),
@@ -892,12 +918,17 @@ function openChildStoryModal(parentId) {
             showToast('Title is required', 'error');
             return false;
           }
+          const storyPointResult = parseStoryPointInput(
+            container.querySelector('#child-point').value
+          );
+          if (storyPointResult.error) {
+            showToast(storyPointResult.error, 'error');
+            return false;
+          }
           const payload = {
             title,
             parentId,
-            storyPoint: container.querySelector('#child-point').value
-              ? Number(container.querySelector('#child-point').value)
-              : null,
+            storyPoint: storyPointResult.value,
             assigneeEmail: container.querySelector('#child-assignee').value.trim(),
             description: container.querySelector('#child-description').value.trim(),
             asA: container.querySelector('#child-asa').value.trim(),
