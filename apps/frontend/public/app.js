@@ -5,6 +5,7 @@ const PANEL_STORAGE_KEY = 'ai-pm-panels';
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 60;
 const POSITION_STORAGE_PREFIX = 'ai-pm-mindmap-positions:';
+const AUTO_LAYOUT_STORAGE_PREFIX = 'ai-pm-mindmap-auto-layout:';
 
 const state = {
   mergeRequests: [],
@@ -16,6 +17,7 @@ const state = {
   radius: 360,
   drag: null,
   customPositions: new Map(),
+  autoLayout: true,
   panelVisibility: {
     outline: true,
     mindmap: true,
@@ -48,7 +50,9 @@ const outlineControls = {
 const headerControls = {
   refresh: document.getElementById('refresh-button'),
   reset: document.getElementById('reset-button'),
-  radius: document.getElementById('mindmap-radius')
+  radius: document.getElementById('mindmap-radius'),
+  autoArrange: document.getElementById('auto-arrange'),
+  layoutStatus: document.getElementById('layout-status')
 };
 
 const panelToggles = {
@@ -142,13 +146,46 @@ const loadPositions = (mrId) => {
 };
 
 const savePositions = () => {
-  if (!state.activeMrId) return;
+  if (!state.activeMrId || state.autoLayout) return;
   const entries = Array.from(state.customPositions.entries()).map(([id, value]) => ({
     id,
     x: Number.isFinite(value.x) ? value.x : 0,
     y: Number.isFinite(value.y) ? value.y : 0
   }));
   localStorage.setItem(positionStorageKey(state.activeMrId), JSON.stringify(entries));
+};
+
+const clearPositions = (mrId) => {
+  if (!mrId) return;
+  localStorage.removeItem(positionStorageKey(mrId));
+};
+
+const autoLayoutStorageKey = (mrId) => `${AUTO_LAYOUT_STORAGE_PREFIX}${mrId}`;
+
+const loadAutoLayout = (mrId) => {
+  if (!mrId) return true;
+  const raw = localStorage.getItem(autoLayoutStorageKey(mrId));
+  if (raw === null) return true;
+  return raw !== 'false';
+};
+
+const saveAutoLayout = () => {
+  if (!state.activeMrId) return;
+  localStorage.setItem(autoLayoutStorageKey(state.activeMrId), state.autoLayout ? 'true' : 'false');
+};
+
+const updateAutoLayoutControls = () => {
+  if (headerControls.autoArrange) {
+    headerControls.autoArrange.textContent = state.autoLayout
+      ? 'Re-run Auto Layout'
+      : 'Restore Auto Layout';
+    headerControls.autoArrange.setAttribute('aria-pressed', state.autoLayout ? 'true' : 'false');
+  }
+  if (headerControls.layoutStatus) {
+    headerControls.layoutStatus.textContent = state.autoLayout
+      ? 'Layout: Automatic'
+      : 'Layout: Manual (drag to reposition)';
+  }
 };
 
 const pruneCustomPositions = () => {
@@ -160,7 +197,9 @@ const pruneCustomPositions = () => {
     }
   });
   state.customPositions = filtered;
-  savePositions();
+  if (!state.autoLayout) {
+    savePositions();
+  }
 };
 
 const handleStorySelection = (storyId) => {
@@ -182,8 +221,14 @@ const handleStorySelection = (storyId) => {
   }
   if (changed) saveExpanded();
   if (previousMr !== state.activeMrId) {
-    state.customPositions = loadPositions(state.activeMrId);
-    pruneCustomPositions();
+    state.autoLayout = loadAutoLayout(state.activeMrId);
+    state.customPositions = state.autoLayout ? new Map() : loadPositions(state.activeMrId);
+    if (!state.autoLayout) {
+      pruneCustomPositions();
+    } else {
+      clearPositions(state.activeMrId);
+    }
+    updateAutoLayoutControls();
   }
   renderOutline();
   renderMindmap();
@@ -276,13 +321,14 @@ const loadState = async () => {
   if (state.selectedStoryId && !state.stories.has(state.selectedStoryId)) {
     state.selectedStoryId = null;
   }
-  if (previousMr !== state.activeMrId) {
-    state.customPositions = loadPositions(state.activeMrId);
-    pruneCustomPositions();
+  state.autoLayout = loadAutoLayout(state.activeMrId);
+  if (state.autoLayout) {
+    state.customPositions = new Map();
   } else if (state.activeMrId) {
     state.customPositions = loadPositions(state.activeMrId);
     pruneCustomPositions();
   }
+  updateAutoLayoutControls();
 };
 
 const storyChildren = (storyId) =>
@@ -474,11 +520,14 @@ const computeLayout = (nodes) => {
 const renderMindmap = () => {
   const tree = buildStoryTree(rootStories());
   const defaultNodes = computeLayout(tree);
-  const nodes = defaultNodes.map((node) => {
-    const override = state.customPositions.get(node.id);
-    if (!override) return node;
-    return { ...node, x: override.x, y: override.y };
-  });
+  const nodes = state.autoLayout
+    ? defaultNodes
+    : defaultNodes.map((node) => {
+        const override = state.customPositions.get(node.id);
+        if (!override) return node;
+        return { ...node, x: override.x, y: override.y };
+      });
+  updateAutoLayoutControls();
   mindmapEl.innerHTML = '';
   if (nodes.length === 0) {
     mindmapEl.setAttribute('viewBox', '-200 -200 400 400');
@@ -547,6 +596,16 @@ const renderMindmap = () => {
 
     group.addEventListener('pointerdown', (event) => {
       event.preventDefault();
+      const isReparent = event.altKey || event.ctrlKey || event.metaKey;
+      if (!isReparent && state.autoLayout) {
+        state.autoLayout = false;
+        state.customPositions = new Map(
+          nodes.map((placement) => [placement.id, { x: placement.x, y: placement.y }])
+        );
+        saveAutoLayout();
+        savePositions();
+        updateAutoLayoutControls();
+      }
       const point = clientToSvgPoint(event);
       mindmapEl.setPointerCapture(event.pointerId);
       state.drag = {
@@ -555,7 +614,7 @@ const renderMindmap = () => {
         start: { x: node.x, y: node.y },
         dropTarget: null,
         group,
-        mode: event.altKey || event.ctrlKey || event.metaKey ? 'reparent' : 'position',
+        mode: isReparent ? 'reparent' : 'position',
         current: null,
         moved: false
       };
@@ -959,6 +1018,18 @@ const initializeEvents = () => {
     state.radius = Number(event.target.value);
     renderMindmap();
   });
+
+  if (headerControls.autoArrange) {
+    headerControls.autoArrange.addEventListener('click', () => {
+      state.autoLayout = true;
+      if (state.activeMrId) {
+        clearPositions(state.activeMrId);
+      }
+      state.customPositions.clear();
+      saveAutoLayout();
+      renderMindmap();
+    });
+  }
 };
 
 const bootstrap = async () => {
@@ -967,7 +1038,6 @@ const bootstrap = async () => {
   applyPanelVisibility();
   initializeEvents();
   await loadState();
-  state.customPositions = loadPositions(state.activeMrId);
   if (rootStories().length > 0) {
     rootStories().forEach((story) => state.expanded.add(story.id));
   }

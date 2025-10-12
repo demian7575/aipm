@@ -139,6 +139,34 @@ body {
   position: relative;
 }
 
+.mindmap-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.mindmap-controls button {
+  padding: 0.35rem 0.9rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.75);
+  color: #f8fafc;
+  cursor: pointer;
+  transition: background 0.2s ease, border 0.2s ease;
+}
+
+.mindmap-controls button:hover,
+.mindmap-controls button:focus {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: rgba(191, 219, 254, 0.9);
+}
+
+.layout-status {
+  font-size: 0.85rem;
+  color: rgba(191, 219, 254, 0.85);
+}
+
 #mindmap-canvas {
   flex: 1;
   width: 100%;
