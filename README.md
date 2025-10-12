@@ -1,49 +1,45 @@
-# AI Project Manager Mindmap
+# AI PM Mindmap (Simplified)
 
-An interactive planning surface combining merge requests, user stories, and acceptance tests with INVEST validation, ambiguity detection, and synchronized outline/mindmap views.
+This project provides a lightweight interface for managing user stories with story points, assignees, and reference documents backed by SQLite.
 
-## Getting Started
-> **Runtime requirement:** Node.js 22+ is recommended so the backend can use the built-in `node:sqlite` module. On earlier runtimes install the `sqlite3` CLI (available via most package managers) and the server will automatically fall back to it. Set `AI_PM_FORCE_SQLITE_CLI=1` to force the CLI path even when the native driver exists.
+## Setup
+
 ```bash
 npm install
-npm run dev
 ```
-The development server exposes the JSON API and serves the static frontend at `http://localhost:4000`.
-If that port is occupied the backend automatically advances to the next open port and logs the chosen address.
 
-### Building and running the client only
+## Development
 
 ```bash
-npm run build            # copies SPA assets into dist/frontend
-npm run preview          # serves the built assets from http://localhost:4000
+npm run dev
 ```
 
-The frontend is a static bundle located in `apps/frontend/public`. The build step copies those files into `dist/frontend`, and
-`npm run preview` boots a lightweight HTTP server that serves them without starting the API.
+The command starts the Express backend on port 4000 and serves the static frontend from `apps/frontend/public`.
 
-## Scripts
-- `npm run dev` – launch the backend API (serving the SPA assets)
-- `npm run build` – copy backend/frontend assets into `dist/` and regenerate OpenAPI docs
-- `npm run test` – execute shared validation tests and backend API tests
-- `npm run e2e` – run a Node-based smoke scenario covering authoring flows
-- `npm run generate:openapi` – rebuild `docs/openapi.json`
+## Testing
+
+```bash
+npm test
+```
 
 ## Features
-- **Outline Tree** with ARIA semantics, keyboard navigation, expand/collapse depth presets, and persistent state.
-- **Right-expanding Mindmap** rendered in SVG with fixed-width rectangular nodes, red story titles, click-to-edit selection, draggable positioning, and in-canvas expand/collapse toggles that mirror the outline tree. Hold `Alt` (or `Ctrl/Cmd`) while dragging to reparent under a new parent story.
-- **Detail & GitHub Panels** exposing INVEST diagnostics, acceptance tests, drift status, branch update simulation, and hierarchical add/remove forms.
-- **Panel Visibility Toggles** in the header let you show or hide the Outline, Mindmap, Details, and Branch panels individually. Selections persist per browser via `localStorage`.
-- **Validation Engine** shared between client and server for INVEST heuristics, ambiguity checks, measurability, and roll-up status computation. Acceptance test errors list the specific Then steps that failed plus actionable tips and example parameters (e.g., `response time ≤ 500 ms`, `success rate ≥ 95%`, `CSV includes "invoiceId"`).
-- **SQLite-backed Backend** implemented with native Node HTTP primitives enforcing depth/cycle guards, persisting data across restarts, and returning structured errors. The store only reseeds when empty; use the Reset button or `npm run seed` to restore the baseline dataset.
-- **Validation Overrides** surface INVEST or measurability guidance before creation and let you proceed (or cancel) after reviewing detailed suggestions.
 
-### Where is the SQLite database stored?
+- Create and update user stories with story points and assignee email addresses.
+- Launch an email composition window for the selected assignee via `mailto:`.
+- Manage reference documents for each story through a modal dialog.
+- View acceptance tests associated with each story.
 
-The persisted database file lives at `apps/backend/data/app.sqlite`. Delete this file to force a reseed on the next startup, or open it with any SQLite client for inspection.
+## Project Structure
 
-## Testing & CI
-- Node's built-in test runner covers shared validation utilities and backend route handlers.
-- A lightweight E2E script spins up the API and exercises create/update flows through HTTP requests.
-- GitHub Actions workflow (`ci.yml`) runs tests, builds artifacts, and regenerates the OpenAPI document.
+```
+apps/
+  backend/
+    server.js
+  frontend/
+    public/
+      index.html
+      styles.css
+      app.js
+```
 
-Refer to [docs/README.md](docs/README.md) for architecture diagrams, keyboard map, and API references.
+The SQLite database is stored at `apps/backend/data/app.sqlite`.

@@ -2,153 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>AI Project Manager Mindmap</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI PM Mindmap</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="app-header">
-      <h1>AI Project Manager Mindmap</h1>
-      <div class="header-actions">
-        <button id="refresh-button" type="button">Refresh</button>
-        <button id="reset-button" type="button">Reset Seed</button>
-      </div>
-      <div class="panel-toggle-group" role="group" aria-label="Toggle panels">
-        <label><input id="toggle-outline" type="checkbox" checked /> Outline</label>
-        <label><input id="toggle-mindmap" type="checkbox" checked /> Mindmap</label>
-        <label><input id="toggle-detail" type="checkbox" checked /> Details</label>
-        <label><input id="toggle-github" type="checkbox" /> Branch</label>
-      </div>
+    <header>
+      <h1>AI Project Manager Stories</h1>
+      <button id="refresh-btn" type="button">Refresh</button>
     </header>
-    <main class="layout">
-      <section class="panel outline" aria-label="Outline tree">
-        <div class="panel-header">
-          <h2>Outline</h2>
-          <div class="outline-controls">
-            <button id="expand-all" type="button">Expand All</button>
-            <button id="collapse-all" type="button">Collapse All</button>
-            <label>
-              Depth
-              <input id="expand-depth" type="number" min="1" max="8" value="2" />
-              <button id="apply-depth" type="button">Apply</button>
-            </label>
-          </div>
-        </div>
-        <div id="outline-tree" class="tree" role="tree" aria-label="User stories"></div>
+    <main>
+      <section class="story-list" aria-label="User Stories">
+        <ul id="story-list"></ul>
       </section>
-      <section class="panel mindmap" aria-label="Mindmap visualization">
-        <div class="panel-header">
-          <h2>Mindmap</h2>
-          <div class="mindmap-controls">
-            <label>
-              Radius
-              <input id="mindmap-radius" type="range" min="200" max="600" value="360" />
-            </label>
-            <button id="auto-arrange" type="button" aria-pressed="true">Re-run Auto Layout</button>
-            <span id="layout-status" class="layout-status" aria-live="polite">Layout: Automatic</span>
-          </div>
-        </div>
-        <svg id="mindmap-canvas" tabindex="0" aria-label="Mindmap canvas"></svg>
+      <section class="story-details" aria-live="polite">
+        <div id="details-placeholder">Select a story to see details.</div>
       </section>
-      <aside class="panel detail" aria-label="Story details">
-        <div class="panel-header">
-          <h2>Details</h2>
-        </div>
-        <div id="detail-content" class="detail-content">
-          <p class="placeholder">Select a story to edit details and acceptance tests.</p>
-        </div>
-      </aside>
-      <aside class="panel github is-hidden" aria-label="GitHub status" aria-hidden="true">
-        <div class="panel-header">
-          <h2>Branch Status</h2>
-        </div>
-        <div id="github-status" class="github-content"></div>
-      </aside>
     </main>
-    <template id="story-form-template">
-      <form id="story-form" class="story-form" autocomplete="off">
-        <label>
-          Title
-          <input name="title" required maxlength="160" />
-        </label>
-        <div class="story-meta-grid">
-          <label>
-            Story Point
-            <input name="storyPoint" type="number" min="0" max="100" step="0.5" />
-          </label>
-          <label>
-            Assignee Name
-            <input name="assigneeName" maxlength="120" />
-          </label>
-          <label>
-            Assignee Email
-            <input name="assigneeEmail" type="email" />
-          </label>
+
+    <div id="modal-backdrop" class="hidden" role="presentation"></div>
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title"></h2>
+          <button id="modal-close" class="close-btn" type="button" aria-label="Close">×</button>
         </div>
-        <button type="button" class="email-assignee">Email Assignee</button>
-        <table class="story-statement-table" role="presentation">
-          <thead>
-            <tr>
-              <th scope="col">As a</th>
-              <th scope="col">I want</th>
-              <th scope="col">So that</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <input name="asA" required />
-              </td>
-              <td>
-                <textarea name="iWant" required></textarea>
-              </td>
-              <td>
-                <textarea name="soThat" required></textarea>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <fieldset>
-          <legend>INVEST</legend>
-          <ul id="invest-messages"></ul>
-        </fieldset>
-        <div class="form-actions">
-          <button type="submit">Save Story</button>
-          <button type="button" class="delete-story">Delete Story</button>
-        </div>
-      </form>
-    </template>
-    <template id="test-form-template">
-      <form class="test-form" data-test-id="">
-        <label>
-          Given
-          <textarea name="given" required></textarea>
-        </label>
-        <label>
-          When
-          <textarea name="when" required></textarea>
-        </label>
-        <label>
-          Then
-          <textarea name="then" required></textarea>
-        </label>
-        <label>
-          Status
-          <select name="status">
-            <option value="Draft">Draft</option>
-            <option value="Ready">Ready</option>
-            <option value="Pass">Pass</option>
-            <option value="Fail">Fail</option>
-            <option value="Blocked">Blocked</option>
-          </select>
-        </label>
-        <div class="test-actions">
-          <button type="submit">Save Test</button>
-          <button type="button" class="delete-test">Delete</button>
-        </div>
-        <p class="test-flags" aria-live="polite"></p>
-      </form>
-    </template>
-    <script type="module" src="app.js"></script>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <script src="app.js" type="module"></script>
   </body>
 </html>

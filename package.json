@@ -2,17 +2,16 @@
   "name": "ai-pm-mindmap",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "npm@10.8.2",
-  "description": "AI Project Manager Mindmap monorepo",
-  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "node scripts/build-all.mjs",
-    "lint": "node scripts/noop-lint.mjs",
-    "test": "node scripts/test-all.mjs",
-    "e2e": "node scripts/e2e.mjs",
-    "preview": "node scripts/serve-frontend.mjs",
-    "generate:openapi": "node apps/backend/src/openapi.js",
-    "seed": "node apps/backend/src/seed.js"
+    "dev": "node apps/backend/server.js",
+    "start": "node apps/backend/server.js",
+    "test": "node --test",
+    "lint": "echo 'No lint step configured'"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   }
 }

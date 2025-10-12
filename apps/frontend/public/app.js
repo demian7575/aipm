@@ -1,1700 +1,321 @@
-const API_BASE = '';
-const STORAGE_KEY = 'ai-pm-expanded';
-const PANEL_STORAGE_KEY = 'ai-pm-panels';
+const storyListEl = document.getElementById('story-list');
+const detailsContainer = document.querySelector('.story-details');
+const detailsPlaceholder = document.getElementById('details-placeholder');
+const refreshBtn = document.getElementById('refresh-btn');
+const modalBackdrop = document.getElementById('modal-backdrop');
+const modalEl = document.getElementById('modal');
+const modalTitle = document.getElementById('modal-title');
+const modalCloseBtn = document.getElementById('modal-close');
+const modalBody = document.getElementById('modal-body');
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 60;
-const POSITION_STORAGE_PREFIX = 'ai-pm-mindmap-positions:';
-const AUTO_LAYOUT_STORAGE_PREFIX = 'ai-pm-mindmap-auto-layout:';
-const AUTO_LAYOUT_MARGIN_X = 200;
-const AUTO_LAYOUT_MARGIN_Y = 80;
+let stories = [];
+let selectedStoryId = null;
 
-const state = {
-  mergeRequests: [],
-  stories: new Map(),
-  tests: new Map(),
-  activeMrId: null,
-  selectedStoryId: null,
-  expanded: new Set(),
-  radius: 360,
-  drag: null,
-  customPositions: new Map(),
-  autoLayout: true,
-  panelVisibility: {
-    outline: true,
-    mindmap: true,
-    detail: true,
-    github: false
+async function loadStories() {
+  const response = await fetch('/api/stories');
+  if (!response.ok) {
+    throw new Error('Failed to load stories');
   }
-};
-
-let pointerListenerBound = false;
-
-const outlineEl = document.getElementById('outline-tree');
-const mindmapEl = document.getElementById('mindmap-canvas');
-const detailEl = document.getElementById('detail-content');
-const githubEl = document.getElementById('github-status');
-const layoutEl = document.querySelector('.layout');
-
-const normalizeErrorMessage = (error) => {
-  if (!error) return 'Unknown error occurred.';
-  if (typeof error === 'string') return error;
-  if (error && typeof error.message === 'string' && error.message.trim().length > 0) {
-    return error.message;
-  }
-  if (error && typeof error.toString === 'function') {
-    return error.toString();
-  }
-  return 'Unexpected error occurred.';
-};
-
-const wrapSvgMessage = (message, limit = 52) => {
-  if (!message) return [];
-  const words = message.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [message];
-  const lines = [];
-  let current = '';
-  words.forEach((word) => {
-    const prospective = current.length === 0 ? word : `${current} ${word}`;
-    if (prospective.length > limit && current.length > 0) {
-      lines.push(current);
-      current = word;
+  stories = await response.json();
+  renderStoryList();
+  if (selectedStoryId) {
+    const story = stories.find((item) => item.id === selectedStoryId);
+    if (story) {
+      renderStoryDetails(story);
     } else {
-      current = prospective;
+      selectedStoryId = null;
+      renderEmptyDetails();
     }
+  }
+}
+
+function renderStoryList() {
+  storyListEl.innerHTML = '';
+  stories.forEach((story) => {
+    const li = document.createElement('li');
+    li.textContent = `${story.title} (SP: ${story.storyPoint ?? '—'})`;
+    li.dataset.storyId = story.id;
+    if (story.id === selectedStoryId) {
+      li.classList.add('active');
+    }
+    li.addEventListener('click', () => {
+      selectedStoryId = story.id;
+      renderStoryList();
+      renderStoryDetails(story);
+    });
+    storyListEl.appendChild(li);
   });
-  if (current.length > 0) {
-    lines.push(current);
-  }
-  return lines;
-};
+}
 
-const showGlobalError = (error) => {
-  const baseMessage = normalizeErrorMessage(error);
-  const message = `${baseMessage} Please ensure the backend server is running and reachable, then try Refresh.`;
+function renderEmptyDetails() {
+  detailsContainer.innerHTML = '';
+  detailsContainer.appendChild(detailsPlaceholder);
+  detailsPlaceholder.classList.remove('hidden');
+}
 
-  if (outlineEl) {
-    outlineEl.innerHTML = '';
-    const paragraph = document.createElement('p');
-    paragraph.className = 'error-message';
-    paragraph.textContent = message;
-    outlineEl.appendChild(paragraph);
-  }
-
-  if (detailEl) {
-    detailEl.innerHTML = '';
-    const paragraph = document.createElement('p');
-    paragraph.className = 'error-message';
-    paragraph.textContent = message;
-    detailEl.appendChild(paragraph);
-  }
-
-  if (mindmapEl) {
-    while (mindmapEl.firstChild) {
-      mindmapEl.removeChild(mindmapEl.firstChild);
-    }
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', '16');
-    text.setAttribute('y', '32');
-    text.setAttribute('class', 'svg-message');
-    const lines = wrapSvgMessage(message);
-    if (lines.length === 0) {
-      text.textContent = message;
-    } else {
-      lines.forEach((line, index) => {
-        const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        span.setAttribute('x', '16');
-        span.setAttribute('dy', index === 0 ? '0' : '1.4em');
-        span.textContent = line;
-        text.appendChild(span);
-      });
-    }
-    mindmapEl.appendChild(text);
-  }
-};
-
-const storyFailsInvest = (story) => {
-  if (!story || !story.invest) return false;
-  return Object.values(story.invest).some((value) => !value);
-};
-
-const panelElements = {
-  outline: document.querySelector('.panel.outline'),
-  mindmap: document.querySelector('.panel.mindmap'),
-  detail: document.querySelector('.panel.detail'),
-  github: document.querySelector('.panel.github')
-};
-
-const outlineControls = {
-  expandAll: document.getElementById('expand-all'),
-  collapseAll: document.getElementById('collapse-all'),
-  depthInput: document.getElementById('expand-depth'),
-  applyDepth: document.getElementById('apply-depth')
-};
-
-const headerControls = {
-  refresh: document.getElementById('refresh-button'),
-  reset: document.getElementById('reset-button'),
-  radius: document.getElementById('mindmap-radius'),
-  autoArrange: document.getElementById('auto-arrange'),
-  layoutStatus: document.getElementById('layout-status')
-};
-
-const panelToggles = {
-  outline: document.getElementById('toggle-outline'),
-  mindmap: document.getElementById('toggle-mindmap'),
-  detail: document.getElementById('toggle-detail'),
-  github: document.getElementById('toggle-github')
-};
-
-const openModal = ({ title, content, onClose }) => {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-
-  const modal = document.createElement('div');
-  modal.className = 'modal';
+function renderStoryDetails(story) {
+  detailsPlaceholder.classList.add('hidden');
+  detailsContainer.innerHTML = '';
 
   const header = document.createElement('div');
-  header.className = 'modal-header';
-  const heading = document.createElement('h2');
-  const headingId = `modal-title-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  heading.id = headingId;
-  heading.textContent = title;
-  const closeButton = document.createElement('button');
-  closeButton.type = 'button';
-  closeButton.className = 'modal-close';
-  closeButton.setAttribute('aria-label', 'Close dialog');
-  closeButton.textContent = '×';
-  header.appendChild(heading);
-  header.appendChild(closeButton);
+  header.className = 'details-header';
+  const title = document.createElement('h2');
+  title.textContent = story.title;
+  header.appendChild(title);
 
-  overlay.setAttribute('aria-labelledby', headingId);
+  const form = document.createElement('form');
+  form.className = 'details-grid';
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = {
+      title: formData.get('title').trim(),
+      description: formData.get('description').trim(),
+      storyPoint: formData.get('storyPoint') ? Number(formData.get('storyPoint')) : null,
+      assigneeEmail: formData.get('assigneeEmail').trim(),
+    };
 
-  const body = document.createElement('div');
-  body.className = 'modal-body';
-  if (typeof content === 'function') {
-    const node = content();
-    if (node) body.appendChild(node);
-  } else if (content) {
-    body.appendChild(content);
-  }
+    const response = await fetch(`/api/stories/${story.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-  modal.appendChild(header);
-  modal.appendChild(body);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-
-  const remove = () => {
-    document.removeEventListener('keydown', onKeyDown);
-    if (overlay.parentNode) {
-      overlay.parentNode.removeChild(overlay);
-    }
-    if (typeof onClose === 'function') {
-      onClose();
-    }
-  };
-
-  const onKeyDown = (event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      remove();
-    }
-  };
-
-  document.addEventListener('keydown', onKeyDown);
-
-  overlay.addEventListener('click', (event) => {
-    if (event.target === overlay) {
-      remove();
-    }
-  });
-
-  closeButton.addEventListener('click', () => remove());
-
-  const firstInput = modal.querySelector('input, textarea, select, button');
-  if (firstInput) {
-    setTimeout(() => {
-      firstInput.focus();
-    }, 0);
-  }
-
-  return remove;
-};
-
-const loadExpanded = () => {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
-    if (Array.isArray(saved)) {
-      state.expanded = new Set(saved);
-    }
-  } catch (error) {
-    state.expanded = new Set();
-  }
-};
-
-const saveExpanded = () => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(state.expanded)));
-};
-
-const defaultVisibility = () => ({
-  outline: true,
-  mindmap: true,
-  detail: true,
-  github: false
-});
-
-const loadPanelVisibility = () => {
-  try {
-    const raw = localStorage.getItem(PANEL_STORAGE_KEY);
-    if (!raw) {
-      state.panelVisibility = defaultVisibility();
+    if (!response.ok) {
+      alert('Failed to save story');
       return;
     }
-    const parsed = JSON.parse(raw);
-    const next = defaultVisibility();
-    Object.keys(next).forEach((key) => {
-      if (Object.prototype.hasOwnProperty.call(parsed, key)) {
-        next[key] = Boolean(parsed[key]);
-      }
-    });
-    state.panelVisibility = next;
-  } catch (error) {
-    state.panelVisibility = defaultVisibility();
-  }
-};
 
-const savePanelVisibility = () => {
-  localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify(state.panelVisibility));
-};
-
-const applyPanelVisibility = () => {
-  Object.entries(panelElements).forEach(([key, element]) => {
-    if (!element) return;
-    const visible = state.panelVisibility[key] !== false;
-    element.classList.toggle('is-hidden', !visible);
-    element.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    const updated = await response.json();
+    const index = stories.findIndex((item) => item.id === story.id);
+    stories[index] = { ...stories[index], ...updated };
+    renderStoryList();
+    renderStoryDetails({ ...stories[index], acceptanceTests: story.acceptanceTests, referenceDocuments: story.referenceDocuments });
   });
-  Object.entries(panelToggles).forEach(([key, input]) => {
-    if (!input) return;
-    input.checked = state.panelVisibility[key] !== false;
+
+  form.innerHTML = `
+    <div class="field-group">
+      <label for="title-input">Title</label>
+      <input id="title-input" name="title" type="text" value="${escapeHtml(story.title)}" required />
+    </div>
+    <div class="field-group">
+      <label for="story-point-input">Story Point</label>
+      <input id="story-point-input" name="storyPoint" type="number" min="0" value="${story.storyPoint ?? ''}" />
+    </div>
+    <div class="field-group">
+      <label for="assignee-email-input">Assignee Email</label>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <input id="assignee-email-input" name="assigneeEmail" type="text" value="${escapeHtml(story.assigneeEmail ?? '')}" placeholder="name@example.com" />
+        <button type="button" class="secondary" ${story.assigneeEmail ? '' : 'disabled'} data-action="email">Email</button>
+      </div>
+    </div>
+    <div class="field-group">
+      <label for="description-input">Description</label>
+      <textarea id="description-input" name="description">${escapeHtml(story.description || '')}</textarea>
+    </div>
+    <div style="grid-column: span 2; display:flex; gap:0.5rem;">
+      <button type="submit">Save Story</button>
+      <button type="button" class="secondary" data-action="reference">Reference Documents</button>
+    </div>
+  `;
+
+  form.querySelector('[data-action="email"]').addEventListener('click', () => {
+    const email = form.assigneeEmail.value.trim();
+    if (!email) return;
+    window.open(`mailto:${email}`);
   });
-  if (layoutEl) {
-    const showGithub = state.panelVisibility.github !== false;
-    layoutEl.classList.toggle('layout-no-github', !showGithub);
-  }
-};
 
-const positionStorageKey = (mrId) => `${POSITION_STORAGE_PREFIX}${mrId}`;
-
-const loadPositions = (mrId) => {
-  if (!mrId) return new Map();
-  try {
-    const raw = localStorage.getItem(positionStorageKey(mrId));
-    if (!raw) return new Map();
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return new Map();
-    return new Map(
-      parsed
-        .map((entry) => {
-          if (!entry || typeof entry !== 'object') return null;
-          const { id, x, y } = entry;
-          if (typeof id !== 'string' || typeof x !== 'number' || typeof y !== 'number') return null;
-          return [id, { x, y }];
-        })
-        .filter(Boolean)
-    );
-  } catch (error) {
-    return new Map();
-  }
-};
-
-const savePositions = () => {
-  if (!state.activeMrId || state.autoLayout) return;
-  const entries = Array.from(state.customPositions.entries()).map(([id, value]) => ({
-    id,
-    x: Number.isFinite(value.x) ? value.x : 0,
-    y: Number.isFinite(value.y) ? value.y : 0
-  }));
-  localStorage.setItem(positionStorageKey(state.activeMrId), JSON.stringify(entries));
-};
-
-const clearPositions = (mrId) => {
-  if (!mrId) return;
-  localStorage.removeItem(positionStorageKey(mrId));
-};
-
-const autoLayoutStorageKey = (mrId) => `${AUTO_LAYOUT_STORAGE_PREFIX}${mrId}`;
-
-const loadAutoLayout = (mrId) => {
-  if (!mrId) return true;
-  const raw = localStorage.getItem(autoLayoutStorageKey(mrId));
-  if (raw === null) return true;
-  return raw !== 'false';
-};
-
-const saveAutoLayout = () => {
-  if (!state.activeMrId) return;
-  localStorage.setItem(autoLayoutStorageKey(state.activeMrId), state.autoLayout ? 'true' : 'false');
-};
-
-const updateAutoLayoutControls = () => {
-  if (headerControls.autoArrange) {
-    headerControls.autoArrange.textContent = state.autoLayout
-      ? 'Re-run Auto Layout'
-      : 'Restore Auto Layout';
-    headerControls.autoArrange.setAttribute('aria-pressed', state.autoLayout ? 'true' : 'false');
-  }
-  if (headerControls.layoutStatus) {
-    headerControls.layoutStatus.textContent = state.autoLayout
-      ? 'Layout: Automatic'
-      : 'Layout: Manual (drag to reposition)';
-  }
-};
-
-const pruneCustomPositions = () => {
-  if (!state.activeMrId) return;
-  const filtered = new Map();
-  state.customPositions.forEach((value, id) => {
-    if (state.stories.has(id)) {
-      filtered.set(id, value);
-    }
+  form.querySelector('[data-action="reference"]').addEventListener('click', () => {
+    openReferenceModal(story.id);
   });
-  state.customPositions = filtered;
-  if (!state.autoLayout) {
-    savePositions();
-  }
-};
 
-const handleStorySelection = (storyId) => {
-  if (!storyId) return;
-  const story = state.stories.get(storyId);
+  const acceptanceSection = document.createElement('div');
+  acceptanceSection.innerHTML = '<h3>Acceptance Tests</h3>';
+  const acceptanceTable = document.createElement('table');
+  acceptanceTable.className = 'table-list';
+  acceptanceTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Expected Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${story.acceptanceTests && story.acceptanceTests.length
+        ? story.acceptanceTests
+            .map(
+              (test) => `
+          <tr>
+            <td>${escapeHtml(test.title)}</td>
+            <td>${escapeHtml(test.expectedResult)}</td>
+          </tr>
+        `
+            )
+            .join('')
+        : '<tr><td colspan="2">No acceptance tests yet.</td></tr>'}
+    </tbody>
+  `;
+  acceptanceSection.appendChild(acceptanceTable);
+
+  const referenceSection = document.createElement('div');
+  referenceSection.innerHTML = '<h3>Reference Documents</h3>';
+  const referenceTable = document.createElement('table');
+  referenceTable.className = 'table-list';
+  referenceTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>URL</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${story.referenceDocuments && story.referenceDocuments.length
+        ? story.referenceDocuments
+            .map(
+              (doc) => `
+          <tr>
+            <td>${escapeHtml(doc.name)}</td>
+            <td><a href="${doc.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(doc.url)}</a></td>
+          </tr>
+        `
+            )
+            .join('')
+        : '<tr><td colspan="2">No reference documents yet.</td></tr>'}
+    </tbody>
+  `;
+  referenceSection.appendChild(referenceTable);
+
+  detailsContainer.appendChild(header);
+  detailsContainer.appendChild(form);
+  detailsContainer.appendChild(acceptanceSection);
+  detailsContainer.appendChild(referenceSection);
+}
+
+function escapeHtml(value) {
+  const text = value == null ? '' : String(value);
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function openModal(title, bodyContent) {
+  modalTitle.textContent = title;
+  modalBody.innerHTML = '';
+  modalBody.appendChild(bodyContent);
+  modalBackdrop.classList.remove('hidden');
+  modalEl.classList.remove('hidden');
+  modalCloseBtn.focus();
+}
+
+function closeModal() {
+  modalBackdrop.classList.add('hidden');
+  modalEl.classList.add('hidden');
+}
+
+modalBackdrop.addEventListener('click', closeModal);
+modalCloseBtn.addEventListener('click', closeModal);
+
+async function openReferenceModal(storyId) {
+  const story = stories.find((item) => item.id === storyId);
   if (!story) return;
-  const previousMr = state.activeMrId;
-  state.activeMrId = story.mrId;
-  state.selectedStoryId = storyId;
-  let changed = false;
-  let ancestorId = story.parentId;
-  while (ancestorId) {
-    if (!state.expanded.has(ancestorId)) {
-      state.expanded.add(ancestorId);
-      changed = true;
+
+  const container = document.createElement('div');
+  container.className = 'reference-list';
+
+  const listWrapper = document.createElement('div');
+  listWrapper.className = 'reference-list';
+
+  function renderDocs() {
+    listWrapper.innerHTML = '';
+    if (!story.referenceDocuments || story.referenceDocuments.length === 0) {
+      const empty = document.createElement('p');
+      empty.textContent = 'No reference documents yet.';
+      listWrapper.appendChild(empty);
+      return;
     }
-    const parent = state.stories.get(ancestorId);
-    ancestorId = parent?.parentId ?? null;
-  }
-  if (changed) saveExpanded();
-  if (previousMr !== state.activeMrId) {
-    state.autoLayout = loadAutoLayout(state.activeMrId);
-    state.customPositions = state.autoLayout ? new Map() : loadPositions(state.activeMrId);
-    if (!state.autoLayout) {
-      pruneCustomPositions();
-    } else {
-      clearPositions(state.activeMrId);
-    }
-    updateAutoLayoutControls();
-  }
-  renderOutline();
-  renderMindmap();
-  renderDetail();
-  if (previousMr !== state.activeMrId) {
-    renderGithubStatus();
-  }
-};
+    story.referenceDocuments.forEach((doc) => {
+      const item = document.createElement('div');
+      item.className = 'reference-item';
 
-const fetchJSON = async (url, options) => {
-  const response = await fetch(`${API_BASE}${url}`, {
-    headers: { 'Content-Type': 'application/json', ...(options?.headers ?? {}) },
-    ...options
-  });
-  if (!response.ok) {
-    let details = await response.text();
-    try {
-      details = JSON.parse(details);
-    } catch (error) {
-      details = { message: details };
-    }
-    const payload = typeof details === 'object' && details !== null ? details : { message: details };
-    const err = new Error(payload.message ?? 'Request failed');
-    err.code = payload.code ?? null;
-    err.payload = payload;
-    err.details = payload.details && typeof payload.details === 'object' ? payload.details : payload;
-    if (err.details && typeof err.details === 'object' && 'allowOverride' in err.details) {
-      err.allowOverride = Boolean(err.details.allowOverride);
-    }
-    throw err;
-  }
-  return response.status === 204 ? null : response.json();
-};
+      const link = document.createElement('a');
+      link.href = doc.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = doc.name;
 
-const formatInvestError = (error, prefix) => {
-  const violations = Array.isArray(error.details?.violations) ? error.details.violations : [];
-  if (violations.length === 0) {
-    return `${prefix}: ${error.message}`;
-  }
-  const lines = violations.map(
-    (violation) => `• ${violation.label ?? violation.principle}: ${violation.suggestion ?? violation.message}`
-  );
-  return `${prefix}. INVEST feedback:\n${lines.join('\n')}`;
-};
-
-const formatTestabilityError = (error, prefix) => {
-  const feedback = error.details?.feedback ?? error.details?.measurabilityFeedback;
-  const issues = Array.isArray(feedback?.issues)
-    ? feedback.issues
-    : Array.isArray(error.details?.measurability?.offending)
-    ? error.details.measurability.offending.map((issue) => ({
-        index: issue.index,
-        text: issue.text,
-        criteria: 'Then step must describe a measurable, verifiable outcome.',
-        suggestion: `Add a measurable outcome to "${issue.text}" (e.g., include a numeric threshold or time limit).`,
-        examples: [
-          'response time ≤ 500 ms',
-          'success rate ≥ 95%',
-          'audit log entry contains requestId'
-        ]
-      }))
-    : [];
-
-  if (issues.length === 0) {
-    return `${prefix}: ${error.message}`;
-  }
-
-  const lines = issues.map((issue) => {
-    const stepLabel = issue.index === undefined ? 'Step' : `Step ${issue.index + 1}`;
-    const detail = issue.suggestion ?? `Add a measurable outcome to "${issue.text}".`;
-    const criteria = issue.criteria ? `${issue.criteria} ` : '';
-    const examples = Array.isArray(issue.examples) && issue.examples.length > 0
-      ? ` Examples: ${issue.examples.slice(0, 3).join(', ')}.`
-      : '';
-    return `• ${stepLabel}: ${criteria}${detail}${examples}`;
-  });
-
-  if (Array.isArray(feedback?.examples) && feedback.examples.length > 0) {
-    lines.push(
-      `• Suggested measurable parameters: ${feedback.examples.slice(0, 5).join(', ')}`
-    );
-  }
-
-  return `${prefix}. Testability feedback:\n${lines.join('\n')}`;
-};
-
-const loadState = async () => {
-  const data = await fetchJSON('/api/state');
-  state.mergeRequests = data.mergeRequests;
-  state.stories = new Map(data.stories.map((story) => [story.id, story]));
-  state.tests = new Map(data.tests.map((test) => [test.id, test]));
-  const previousMr = state.activeMrId;
-  if (!state.activeMrId && data.mergeRequests.length > 0) {
-    state.activeMrId = data.mergeRequests[0].id;
-  }
-  if (state.selectedStoryId && !state.stories.has(state.selectedStoryId)) {
-    state.selectedStoryId = null;
-  }
-  state.autoLayout = loadAutoLayout(state.activeMrId);
-  if (state.autoLayout) {
-    state.customPositions = new Map();
-  } else if (state.activeMrId) {
-    state.customPositions = loadPositions(state.activeMrId);
-    pruneCustomPositions();
-  }
-  updateAutoLayoutControls();
-};
-
-const storyChildren = (storyId) =>
-  Array.from(state.stories.values()).filter((story) => story.parentId === storyId).sort((a, b) => a.order - b.order);
-
-const rootStories = () =>
-  Array.from(state.stories.values())
-    .filter((story) => story.mrId === state.activeMrId && story.parentId === null)
-    .sort((a, b) => a.order - b.order);
-
-const buildStoryTree = (stories) =>
-  stories.map((story) => ({ story, children: buildStoryTree(storyChildren(story.id)) }));
-
-const buildMindmapTree = (stories) =>
-  stories.map((story) => ({
-    story,
-    children: state.expanded.has(story.id) ? buildMindmapTree(storyChildren(story.id)) : []
-  }));
-
-const toggleSubtree = (storyId, expanded) => {
-  const stack = [storyId];
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (expanded) state.expanded.add(current);
-    else state.expanded.delete(current);
-    storyChildren(current).forEach((child) => stack.push(child.id));
-  }
-  saveExpanded();
-  renderOutline();
-  renderMindmap();
-};
-
-const toggleExpanded = (storyId, expanded = !state.expanded.has(storyId)) => {
-  if (expanded) state.expanded.add(storyId);
-  else state.expanded.delete(storyId);
-  saveExpanded();
-  renderOutline();
-  renderMindmap();
-};
-
-const expandToDepth = (depth) => {
-  state.expanded.clear();
-  const traverse = (nodes, level) => {
-    if (level > depth) return;
-    nodes.forEach((node) => {
-      state.expanded.add(node.story.id);
-      traverse(node.children, level + 1);
-    });
-  };
-  traverse(buildStoryTree(rootStories()), 1);
-  saveExpanded();
-  renderOutline();
-  renderMindmap();
-};
-
-const buildTreeDom = (nodes, level = 1) => {
-  const list = document.createElement('div');
-  nodes.forEach((node) => {
-    const item = document.createElement('div');
-    item.className = 'tree-item';
-    const nodeEl = document.createElement('div');
-    nodeEl.className = 'tree-node';
-    nodeEl.setAttribute('role', 'treeitem');
-    nodeEl.setAttribute('aria-level', String(level));
-    nodeEl.setAttribute('data-id', node.story.id);
-    nodeEl.setAttribute('tabindex', '-1');
-    nodeEl.setAttribute('aria-expanded', state.expanded.has(node.story.id));
-    nodeEl.setAttribute('aria-selected', state.selectedStoryId === node.story.id);
-    if (storyFailsInvest(node.story)) {
-      nodeEl.classList.add('invest-warning');
-      nodeEl.setAttribute('data-invest-warning', 'true');
-    }
-
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'toggle';
-    toggle.textContent = state.expanded.has(node.story.id) ? '−' : '+';
-    toggle.addEventListener('click', (event) => {
-      event.stopPropagation();
-      if (event.shiftKey) {
-        toggleSubtree(node.story.id, !state.expanded.has(node.story.id));
-      } else {
-        toggleExpanded(node.story.id);
-      }
-    });
-    nodeEl.appendChild(toggle);
-
-    const label = document.createElement('span');
-    label.textContent = node.story.title;
-    nodeEl.appendChild(label);
-
-    nodeEl.addEventListener('click', () => {
-      handleStorySelection(node.story.id);
-    });
-
-    nodeEl.addEventListener('dblclick', () => toggleExpanded(node.story.id));
-
-    item.appendChild(nodeEl);
-
-    if (node.children.length > 0 && state.expanded.has(node.story.id)) {
-      const childrenEl = document.createElement('div');
-      childrenEl.className = 'tree-children';
-      childrenEl.setAttribute('role', 'group');
-      childrenEl.appendChild(buildTreeDom(node.children, level + 1));
-      item.appendChild(childrenEl);
-    }
-
-    list.appendChild(item);
-  });
-  return list;
-};
-
-const renderOutline = () => {
-  outlineEl.innerHTML = '';
-  const tree = buildStoryTree(rootStories());
-  outlineEl.appendChild(buildTreeDom(tree));
-  bindOutlineKeyboard();
-};
-
-const bindOutlineKeyboard = () => {
-  const nodes = Array.from(outlineEl.querySelectorAll('.tree-node'));
-  nodes.forEach((node) => {
-    node.addEventListener('keydown', (event) => {
-      const currentIndex = nodes.indexOf(node);
-      switch (event.key) {
-        case 'ArrowDown': {
-          event.preventDefault();
-          const next = nodes[currentIndex + 1];
-          if (next) next.focus();
-          break;
-        }
-        case 'ArrowUp': {
-          event.preventDefault();
-          const prev = nodes[currentIndex - 1];
-          if (prev) prev.focus();
-          break;
-        }
-        case 'ArrowRight': {
-          event.preventDefault();
-          const id = node.dataset.id;
-          if (!state.expanded.has(id)) toggleExpanded(id, true);
-          break;
-        }
-        case 'ArrowLeft': {
-          event.preventDefault();
-          const id = node.dataset.id;
-          if (state.expanded.has(id)) toggleExpanded(id, false);
-          break;
-        }
-        case 'Enter': {
-          event.preventDefault();
-          handleStorySelection(node.dataset.id);
-          break;
-        }
-        default:
-          break;
-      }
-    });
-  });
-  const selected = nodes.find((node) => node.dataset.id === state.selectedStoryId);
-  (selected ?? nodes[0])?.focus();
-};
-
-const computeLayout = (nodes) => {
-  const placements = [];
-  const horizontalGap = Math.max(state.radius / 2, 160);
-  const verticalGap = 90;
-  let nextY = 0;
-
-  const assign = (node, depth) => {
-    if (node.children.length === 0) {
-      const y = nextY;
-      nextY += verticalGap;
-      placements.push({
-        id: node.story.id,
-        x: AUTO_LAYOUT_MARGIN_X + depth * horizontalGap,
-        y,
-        story: node.story,
-        depth
-      });
-      return y;
-    }
-    const childPositions = node.children.map((child) => assign(child, depth + 1));
-    const y = childPositions.reduce((sum, value) => sum + value, 0) / childPositions.length;
-    placements.push({
-      id: node.story.id,
-      x: AUTO_LAYOUT_MARGIN_X + depth * horizontalGap,
-      y,
-      story: node.story,
-      depth
-    });
-    return y;
-  };
-
-  nodes.forEach((node, index) => {
-    assign(node, 0);
-    if (index < nodes.length - 1) {
-      nextY += verticalGap;
-    }
-  });
-
-  if (placements.length === 0) {
-    return placements;
-  }
-
-  const totalHeight = Math.max(nextY - verticalGap, verticalGap);
-  const offsetY = totalHeight / 2;
-  return placements.map((placement) => ({
-    ...placement,
-    y: placement.y - offsetY + (state.autoLayout ? AUTO_LAYOUT_MARGIN_Y : 0)
-  }));
-};
-
-const renderMindmap = () => {
-  const tree = buildMindmapTree(rootStories());
-  const defaultNodes = computeLayout(tree);
-  const nodes = state.autoLayout
-    ? defaultNodes
-    : defaultNodes.map((node) => {
-        const override = state.customPositions.get(node.id);
-        if (!override) return node;
-        return { ...node, x: override.x, y: override.y };
-      });
-  updateAutoLayoutControls();
-  mindmapEl.innerHTML = '';
-  if (nodes.length === 0) {
-    mindmapEl.setAttribute('viewBox', '-200 -200 400 400');
-    return;
-  }
-
-  const padding = state.autoLayout ? 200 : 120;
-  const minX = Math.min(...nodes.map((node) => node.x));
-  const maxX = Math.max(...nodes.map((node) => node.x + NODE_WIDTH));
-  const minY = Math.min(...nodes.map((node) => node.y));
-  const maxY = Math.max(...nodes.map((node) => node.y));
-  const width = maxX - minX + padding * 2;
-  const height = maxY - minY + padding * 2;
-  mindmapEl.setAttribute('viewBox', `${(minX - padding).toFixed(2)} ${(minY - padding).toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)}`);
-
-  const edgesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  nodes.forEach((node) => {
-    const story = state.stories.get(node.id);
-    if (story.parentId) {
-      const parent = nodes.find((candidate) => candidate.id === story.parentId);
-      if (parent) {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', (parent.x + NODE_WIDTH).toFixed(2));
-        line.setAttribute('y1', parent.y.toFixed(2));
-        line.setAttribute('x2', node.x.toFixed(2));
-        line.setAttribute('y2', node.y.toFixed(2));
-        line.setAttribute('stroke', 'rgba(148,163,184,0.4)');
-        line.setAttribute('stroke-width', '2');
-        edgesGroup.appendChild(line);
-      }
-    }
-  });
-  mindmapEl.appendChild(edgesGroup);
-
-  const nodesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  nodes.forEach((node) => {
-    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    group.classList.add('mindmap-node');
-    if (node.id === state.selectedStoryId) group.classList.add('selected');
-    if (storyFailsInvest(node.story)) {
-      group.classList.add('invest-warning');
-    }
-    group.setAttribute('transform', `translate(${node.x.toFixed(2)}, ${node.y.toFixed(2)})`);
-    group.dataset.id = node.id;
-
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('width', NODE_WIDTH.toString());
-    rect.setAttribute('height', NODE_HEIGHT.toString());
-    rect.setAttribute('x', '0');
-    rect.setAttribute('y', (-NODE_HEIGHT / 2).toString());
-    rect.setAttribute('rx', '14');
-    rect.setAttribute('ry', '14');
-    group.appendChild(rect);
-
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.textContent = node.story.title;
-    text.setAttribute('pointer-events', 'none');
-    text.setAttribute('x', '16');
-    text.setAttribute('y', '0');
-    text.setAttribute('text-anchor', 'start');
-    text.setAttribute('dominant-baseline', 'middle');
-    group.appendChild(text);
-
-    if (storyChildren(node.id).length > 0) {
-      const toggle = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      toggle.classList.add('mindmap-toggle');
-      const toggleCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      toggleCircle.setAttribute('cx', (NODE_WIDTH - 16).toString());
-      toggleCircle.setAttribute('cy', (-NODE_HEIGHT / 2 + 16).toString());
-      toggleCircle.setAttribute('r', '12');
-      toggle.appendChild(toggleCircle);
-
-      const toggleLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      toggleLabel.textContent = state.expanded.has(node.id) ? '−' : '+';
-      toggleLabel.setAttribute('x', (NODE_WIDTH - 16).toString());
-      toggleLabel.setAttribute('y', (-NODE_HEIGHT / 2 + 16).toString());
-      toggleLabel.setAttribute('text-anchor', 'middle');
-      toggleLabel.setAttribute('dominant-baseline', 'middle');
-      toggle.appendChild(toggleLabel);
-
-      toggle.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', async () => {
+        await fetch(`/api/stories/${storyId}/reference-documents/${doc.id}`, {
+          method: 'DELETE',
+        });
+        story.referenceDocuments = story.referenceDocuments.filter((item) => item.id !== doc.id);
+        renderDocs();
+        renderStoryDetails({ ...story });
       });
 
-      toggle.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const currentlyExpanded = state.expanded.has(node.id);
-        if (event.shiftKey) {
-          toggleSubtree(node.id, !currentlyExpanded);
-        } else {
-          toggleExpanded(node.id, !currentlyExpanded);
-        }
-      });
-
-      group.appendChild(toggle);
-    }
-
-    group.addEventListener('click', () => handleStorySelection(node.id));
-    rect.addEventListener('click', (event) => {
-      event.stopPropagation();
-      handleStorySelection(node.id);
+      item.append(link, removeBtn);
+      listWrapper.appendChild(item);
     });
-
-    group.addEventListener('pointerdown', (event) => {
-      event.preventDefault();
-      const isReparent = event.altKey || event.ctrlKey || event.metaKey;
-      if (!isReparent && state.autoLayout) {
-        state.autoLayout = false;
-        state.customPositions = new Map(
-          nodes.map((placement) => [placement.id, { x: placement.x, y: placement.y }])
-        );
-        saveAutoLayout();
-        savePositions();
-        updateAutoLayoutControls();
-      }
-      const point = clientToSvgPoint(event);
-      mindmapEl.setPointerCapture(event.pointerId);
-      state.drag = {
-        storyId: node.id,
-        origin: point,
-        start: { x: node.x, y: node.y },
-        dropTarget: null,
-        group,
-        mode: isReparent ? 'reparent' : 'position',
-        current: null,
-        moved: false
-      };
-    });
-
-    group.addEventListener('pointerenter', () => {
-      if (state.drag && state.drag.mode === 'reparent' && state.drag.storyId !== node.id) {
-        state.drag.dropTarget = node.id;
-      }
-    });
-
-    group.addEventListener('pointerleave', () => {
-      if (state.drag && state.drag.mode === 'reparent' && state.drag.dropTarget === node.id) {
-        state.drag.dropTarget = null;
-      }
-    });
-
-    nodesGroup.appendChild(group);
-  });
-
-  mindmapEl.appendChild(nodesGroup);
-
-  if (!pointerListenerBound) {
-    mindmapEl.addEventListener('pointermove', (event) => {
-      if (!state.drag || state.drag.mode !== 'position') return;
-      const point = clientToSvgPoint(event);
-      if (!point) return;
-      const dx = point.x - state.drag.origin.x;
-      const dy = point.y - state.drag.origin.y;
-      const x = Math.max(0, state.drag.start.x + dx);
-      const y = state.drag.start.y + dy;
-      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-        state.drag.moved = true;
-      }
-      state.drag.current = { x, y };
-      if (state.drag.group) {
-        state.drag.group.setAttribute('transform', `translate(${x.toFixed(2)}, ${y.toFixed(2)})`);
-      }
-    });
-
-    mindmapEl.addEventListener('pointerup', async (event) => {
-      if (!state.drag) return;
-      try {
-        mindmapEl.releasePointerCapture(event.pointerId);
-      } catch (error) {
-        // ignore when capture was not set
-      }
-      const { storyId, dropTarget, mode, current, moved } = state.drag;
-      state.drag = null;
-      if (mode === 'reparent') {
-        if (!dropTarget || dropTarget === storyId) return;
-        try {
-          await fetchJSON(`/api/stories/${storyId}/move`, {
-            method: 'PATCH',
-            body: JSON.stringify({ parentId: dropTarget })
-          });
-          await loadState();
-          renderOutline();
-          renderMindmap();
-          renderDetail();
-        } catch (error) {
-          alert(`Unable to move story: ${error.message}`);
-        }
-      } else if (!moved) {
-        handleStorySelection(storyId);
-      } else if (current) {
-        state.customPositions.set(storyId, current);
-        savePositions();
-        renderMindmap();
-      }
-    });
-
-    mindmapEl.addEventListener('pointercancel', () => {
-      if (state.drag?.mode === 'position') {
-        renderMindmap();
-      }
-      state.drag = null;
-    });
-    pointerListenerBound = true;
-  }
-};
-
-const clientToSvgPoint = (event) => {
-  const point = mindmapEl.createSVGPoint();
-  point.x = event.clientX;
-  point.y = event.clientY;
-  const ctm = mindmapEl.getScreenCTM();
-  if (!ctm) return { x: 0, y: 0 };
-  const transformed = point.matrixTransform(ctm.inverse());
-  return { x: transformed.x, y: transformed.y };
-};
-
-const renderGithubStatus = () => {
-  githubEl.innerHTML = '';
-  if (!state.activeMrId) return;
-  const mr = state.mergeRequests.find((item) => item.id === state.activeMrId);
-  if (!mr) return;
-  const branchRow = document.createElement('div');
-  branchRow.className = 'github-row';
-  branchRow.innerHTML = `<span>Branch</span><strong>${mr.branch}</strong>`;
-  const driftRow = document.createElement('div');
-  driftRow.className = 'github-row';
-  driftRow.innerHTML = `<span>Drift</span><strong>${mr.drift ? 'Yes' : 'No'}</strong>`;
-  const syncRow = document.createElement('div');
-  syncRow.className = 'github-row';
-  syncRow.innerHTML = `<span>Last Sync</span><strong>${new Date(mr.lastSyncAt).toLocaleString()}</strong>`;
-  const button = document.createElement('button');
-  button.textContent = 'Update Branch';
-  button.addEventListener('click', async () => {
-    try {
-      await fetchJSON(`/api/merge-requests/${mr.id}/update-branch`, { method: 'POST' });
-      await loadState();
-      renderGithubStatus();
-    } catch (error) {
-      alert(`Update branch failed: ${error.message}`);
-    }
-  });
-
-  githubEl.append(branchRow, driftRow, syncRow, button);
-};
-
-const renderDetail = () => {
-  detailEl.innerHTML = '';
-  if (!state.selectedStoryId) {
-    const placeholder = document.createElement('p');
-    placeholder.className = 'placeholder';
-    placeholder.textContent = 'Select a story to view details.';
-    detailEl.appendChild(placeholder);
-    return;
-  }
-  const story = state.stories.get(state.selectedStoryId);
-  if (!story) return;
-  const tests = story.testIds.map((id) => state.tests.get(id)).filter(Boolean);
-  const referenceDocs = Array.isArray(story.referenceDocuments) ? [...story.referenceDocuments] : [];
-
-  const template = document.getElementById('story-form-template');
-  const form = template.content.firstElementChild.cloneNode(true);
-  form.elements.title.value = story.title;
-  form.elements.asA.value = story.asA;
-  form.elements.iWant.value = story.iWant;
-  form.elements.soThat.value = story.soThat;
-  if (form.elements.storyPoint) {
-    form.elements.storyPoint.value = story.storyPoint ?? '';
-  }
-  if (form.elements.assigneeName) {
-    form.elements.assigneeName.value = story.assignee?.name ?? '';
-  }
-  if (form.elements.assigneeEmail) {
-    form.elements.assigneeEmail.value = story.assignee?.email ?? '';
   }
 
-  const investMessages = form.querySelector('#invest-messages');
-  investMessages.innerHTML = '';
-  const investEntries = Object.entries(story.invest);
-  investEntries.forEach(([key, value]) => {
-    const item = document.createElement('li');
-    item.textContent = `${key.toUpperCase()}: ${value ? '✅' : '⚠️'}`;
-    investMessages.appendChild(item);
-  });
+  const form = document.createElement('form');
+  form.className = 'reference-form';
+  form.innerHTML = `
+    <div class="field-group">
+      <label for="doc-name">Name</label>
+      <input id="doc-name" name="name" type="text" required />
+    </div>
+    <div class="field-group">
+      <label for="doc-url">URL</label>
+      <input id="doc-url" name="url" type="text" required />
+    </div>
+    <button type="submit">Add Document</button>
+  `;
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const body = {
-      title: form.elements.title.value,
-      asA: form.elements.asA.value,
-      iWant: form.elements.iWant.value,
-      soThat: form.elements.soThat.value
+    const formData = new FormData(form);
+    const payload = {
+      name: formData.get('name').trim(),
+      url: formData.get('url').trim(),
     };
-    if (form.elements.storyPoint) {
-      const storyPointRaw = form.elements.storyPoint.value;
-      body.storyPoint = storyPointRaw === '' ? null : Number(storyPointRaw);
-    }
-    if (form.elements.assigneeName || form.elements.assigneeEmail) {
-      const name = form.elements.assigneeName ? form.elements.assigneeName.value.trim() : '';
-      const email = form.elements.assigneeEmail ? form.elements.assigneeEmail.value.trim() : '';
-      body.assignee = name || email ? { name, email } : null;
-    }
-    try {
-      await fetchJSON(`/api/stories/${story.id}`, { method: 'PATCH', body: JSON.stringify(body) });
-      await loadState();
-      renderOutline();
-      renderMindmap();
-      renderDetail();
-    } catch (error) {
-      alert(formatInvestError(error, 'Failed to save story'));
-    }
-  });
-
-  const emailButton = form.querySelector('.email-assignee');
-  if (emailButton) {
-    emailButton.addEventListener('click', () => {
-      const currentEmail = form.elements.assigneeEmail ? form.elements.assigneeEmail.value.trim() : '';
-      const currentName = form.elements.assigneeName ? form.elements.assigneeName.value.trim() : story.assignee?.name ?? '';
-      if (!currentEmail) {
-        alert('Set an assignee email before composing a message.');
-        return;
-      }
-      const modalContent = document.createElement('form');
-      modalContent.className = 'modal-form';
-      modalContent.innerHTML = `
-        <p class="modal-note">Send a quick note to ${currentName || 'the assignee'}.</p>
-        <label>Subject<input name="subject" value="${story.title.replace(/"/g, '&quot;')}" /></label>
-        <label>Message<textarea name="message" rows="5">Hello ${currentName || ''},\n\n</textarea></label>
-        <div class="modal-actions">
-          <button type="button" class="modal-cancel">Cancel</button>
-          <button type="submit">Open Email</button>
-        </div>
-      `;
-      const close = openModal({ title: 'Email Assignee', content: modalContent });
-      modalContent.querySelector('.modal-cancel').addEventListener('click', () => close());
-      modalContent.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const subject = modalContent.elements.subject.value;
-        const message = modalContent.elements.message.value;
-        const mailto = `mailto:${encodeURIComponent(currentEmail)}?subject=${encodeURIComponent(
-          subject
-        )}&body=${encodeURIComponent(message)}`;
-        window.open(mailto, '_blank', 'noopener');
-        close();
-      });
-    });
-  }
-
-  form.querySelector('.delete-story').addEventListener('click', async () => {
-    if (!confirm('Delete this story and all descendants?')) return;
-    try {
-      await fetchJSON(`/api/stories/${story.id}`, { method: 'DELETE' });
-      await loadState();
-      state.expanded = new Set(Array.from(state.expanded).filter((id) => state.stories.has(id)));
-      saveExpanded();
-      state.selectedStoryId = null;
-      renderOutline();
-      renderMindmap();
-      renderDetail();
-    } catch (error) {
-      alert(`Unable to delete story: ${error.message}`);
-    }
-  });
-
-  const testTemplate = document.getElementById('test-form-template');
-
-  detailEl.appendChild(form);
-
-  const referenceToolbar = document.createElement('div');
-  referenceToolbar.className = 'detail-toolbar';
-  const referenceButton = document.createElement('button');
-  referenceButton.type = 'button';
-  referenceButton.className = 'open-reference-modal';
-  referenceButton.textContent = 'Reference Document';
-  referenceToolbar.appendChild(referenceButton);
-  detailEl.appendChild(referenceToolbar);
-
-  referenceButton.addEventListener('click', () => {
-    let docs = [...referenceDocs];
-
-    const renderList = (listEl) => {
-      listEl.innerHTML = '';
-      if (docs.length === 0) {
-        const empty = document.createElement('p');
-        empty.className = 'reference-empty';
-        empty.textContent = 'No reference documents registered.';
-        listEl.appendChild(empty);
-        return;
-      }
-      docs.forEach((doc) => {
-        const item = document.createElement('div');
-        item.className = 'reference-item';
-        const link = document.createElement('a');
-        link.href = doc.url;
-        link.target = '_blank';
-        link.rel = 'noopener';
-        link.textContent = doc.title;
-        link.addEventListener('click', () => {
-          window.open(doc.url, '_blank', 'noopener');
-        });
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'reference-delete';
-        deleteButton.textContent = 'Remove';
-        deleteButton.addEventListener('click', async () => {
-          const nextDocs = docs.filter((item) => item.id !== doc.id);
-          try {
-            await fetchJSON(`/api/stories/${story.id}`, {
-              method: 'PATCH',
-              body: JSON.stringify({ referenceDocuments: nextDocs })
-            });
-            await loadState();
-            docs = [...(state.stories.get(story.id)?.referenceDocuments ?? [])];
-            renderDetail();
-            renderList(listEl);
-          } catch (error) {
-            alert(`Failed to remove reference: ${error.message}`);
-          }
-        });
-        item.append(link, deleteButton);
-        listEl.appendChild(item);
-      });
-    };
-
-    const container = document.createElement('div');
-    container.className = 'reference-container';
-    const listEl = document.createElement('div');
-    listEl.className = 'reference-list';
-    renderList(listEl);
-
-    const formEl = document.createElement('form');
-    formEl.className = 'modal-form reference-form';
-    formEl.innerHTML = `
-      <label>Title<input name="title" required maxlength="200" /></label>
-      <label>URL<input name="url" required type="url" /></label>
-      <div class="modal-actions">
-        <button type="button" class="modal-cancel">Cancel</button>
-        <button type="submit">Add Document</button>
-      </div>
-    `;
-
-    const close = openModal({ title: 'Reference document list', content: () => {
-      container.append(listEl, formEl);
-      return container;
-    }});
-
-    formEl.querySelector('.modal-cancel').addEventListener('click', () => close());
-
-    formEl.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const title = formEl.elements.title.value.trim();
-      const url = formEl.elements.url.value.trim();
-      if (!title || !url) return;
-      const newDoc = {
-        id: crypto.randomUUID(),
-        title,
-        url
-      };
-      const nextDocs = [...docs, newDoc];
-      try {
-        await fetchJSON(`/api/stories/${story.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ referenceDocuments: nextDocs })
-        });
-        formEl.reset();
-        await loadState();
-        docs = [...(state.stories.get(story.id)?.referenceDocuments ?? [])];
-        renderDetail();
-        renderList(listEl);
-      } catch (error) {
-        alert(`Failed to add reference: ${error.message}`);
-      }
-    });
-  });
-
-  const createHeaderRow = (labels) => {
-    const row = document.createElement('div');
-    row.className = 'detail-table-row detail-table-header';
-    labels.forEach((label) => {
-      const cell = document.createElement('span');
-      cell.className = 'detail-table-cell';
-      cell.textContent = label;
-      row.appendChild(cell);
-    });
-    return row;
-  };
-
-  const createEmptyRow = (message) => {
-    const row = document.createElement('div');
-    row.className = 'detail-table-row detail-table-empty';
-    const cell = document.createElement('span');
-    cell.className = 'detail-table-cell';
-    cell.style.gridColumn = '1 / -1';
-    cell.textContent = message;
-    row.appendChild(cell);
-    return row;
-  };
-
-  const childSection = document.createElement('section');
-  childSection.className = 'detail-table-section';
-  const childActions = document.createElement('div');
-  childActions.className = 'detail-table-actions';
-  const openChildModalButton = document.createElement('button');
-  openChildModalButton.type = 'button';
-  openChildModalButton.className = 'open-child-modal';
-  openChildModalButton.textContent = 'Create Child Story';
-  childActions.appendChild(openChildModalButton);
-
-  const childTable = document.createElement('div');
-  childTable.className = 'detail-table';
-  childTable.setAttribute('role', 'table');
-  childTable.setAttribute('aria-label', 'Child stories');
-  childTable.appendChild(createHeaderRow(['Child Story', 'Status', 'Actions']));
-
-  const children = story.childrenIds
-    .map((id) => state.stories.get(id))
-    .filter(Boolean)
-    .sort((a, b) => a.order - b.order);
-
-  if (children.length === 0) {
-    childTable.appendChild(createEmptyRow('No child stories yet.'));
-  } else {
-    children.forEach((child) => {
-      const row = document.createElement('div');
-      row.className = 'detail-table-row';
-
-      const nameCell = document.createElement('span');
-      nameCell.className = 'detail-table-cell detail-table-primary';
-      const selectButton = document.createElement('button');
-      selectButton.type = 'button';
-      selectButton.className = 'detail-table-link';
-      selectButton.textContent = child.title;
-      selectButton.addEventListener('click', () => handleStorySelection(child.id));
-      nameCell.appendChild(selectButton);
-
-      const statusCell = document.createElement('span');
-      statusCell.className = 'detail-table-cell';
-      statusCell.textContent = child.status;
-
-      const actionsCell = document.createElement('span');
-      actionsCell.className = 'detail-table-cell detail-table-actions-cell';
-      const deleteButton = document.createElement('button');
-      deleteButton.type = 'button';
-      deleteButton.textContent = 'Delete';
-      deleteButton.addEventListener('click', async () => {
-        if (!confirm('Delete this story and all descendants?')) return;
-        try {
-          await fetchJSON(`/api/stories/${child.id}`, { method: 'DELETE' });
-          await loadState();
-          state.expanded = new Set(Array.from(state.expanded).filter((id) => state.stories.has(id)));
-          saveExpanded();
-          if (!state.stories.has(state.selectedStoryId)) {
-            state.selectedStoryId = story.id;
-          }
-          renderOutline();
-          renderMindmap();
-          renderDetail();
-        } catch (error) {
-          alert(`Unable to delete story: ${error.message}`);
-        }
-      });
-      actionsCell.appendChild(deleteButton);
-
-      row.append(nameCell, statusCell, actionsCell);
-      childTable.appendChild(row);
-    });
-  }
-
-  childSection.append(childActions, childTable);
-
-  openChildModalButton.addEventListener('click', () => {
-    const form = document.createElement('form');
-    form.className = 'modal-form';
-    form.innerHTML = `
-      <label>Title<input name="title" required maxlength="160" /></label>
-      <label>As a<input name="asA" required /></label>
-      <label>I want<textarea name="iWant" required></textarea></label>
-      <label>So that<textarea name="soThat" required></textarea></label>
-      <div class="modal-actions">
-        <button type="button" class="modal-cancel">Cancel</button>
-        <button type="submit">Create Child Story</button>
-      </div>
-    `;
-
-    const close = openModal({ title: 'Create Child Story', content: form });
-
-    const cancelButton = form.querySelector('.modal-cancel');
-    cancelButton.addEventListener('click', () => close());
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const basePayload = {
-        mrId: story.mrId,
-        parentId: story.id,
-        title: form.elements.title.value,
-        asA: form.elements.asA.value,
-        iWant: form.elements.iWant.value,
-        soThat: form.elements.soThat.value
-      };
-
-      const refreshAfterCreate = async () => {
-        form.reset();
-        state.expanded.add(story.id);
-        saveExpanded();
-        await loadState();
-        renderOutline();
-        renderMindmap();
-        renderDetail();
-        close();
-      };
-
-      try {
-        await fetchJSON('/api/stories', { method: 'POST', body: JSON.stringify(basePayload) });
-        await refreshAfterCreate();
-      } catch (error) {
-        if (error.code === 'story.invest' && (error.allowOverride || error.details?.allowOverride)) {
-          const message = formatInvestError(error, 'Unable to create child story');
-          const proceed = confirm(`${message}\n\nCreate the story anyway?`);
-          if (!proceed) return;
-          try {
-            await fetchJSON('/api/stories', {
-              method: 'POST',
-              body: JSON.stringify({ ...basePayload, acceptWarnings: true })
-            });
-            await refreshAfterCreate();
-          } catch (retryError) {
-            alert(formatInvestError(retryError, 'Unable to create child story'));
-          }
-          return;
-        }
-        alert(formatInvestError(error, 'Unable to create child story'));
-      }
-    });
-  });
-
-  const testsSection = document.createElement('section');
-  testsSection.className = 'detail-table-section';
-  const testActions = document.createElement('div');
-  testActions.className = 'detail-table-actions';
-  const openTestModalButton = document.createElement('button');
-  openTestModalButton.type = 'button';
-  openTestModalButton.className = 'open-test-modal';
-  openTestModalButton.textContent = 'Create Acceptance Test';
-  testActions.appendChild(openTestModalButton);
-
-  const testTable = document.createElement('div');
-  testTable.className = 'detail-table';
-  testTable.setAttribute('role', 'table');
-  testTable.setAttribute('aria-label', 'Acceptance tests');
-  testTable.appendChild(createHeaderRow(['Acceptance Test', 'Status', 'Actions']));
-
-  const summariseTest = (test) => test.then[0] || test.when[0] || test.given[0] || 'No steps provided';
-
-  const openEditTestModal = (test) => {
-    const formEl = testTemplate.content.firstElementChild.cloneNode(true);
-    formEl.classList.add('modal-form');
-    formEl.elements.given.value = test.given.join('\n');
-    formEl.elements.when.value = test.when.join('\n');
-    formEl.elements.then.value = test.then.join('\n');
-    formEl.elements.status.value = test.status;
-    const flagsEl = formEl.querySelector('.test-flags');
-    if (test.ambiguityFlags.length > 0) {
-      flagsEl.textContent = `Ambiguity: ${test.ambiguityFlags.join(', ')}`;
-    } else {
-      flagsEl.textContent = 'No ambiguity detected';
+    if (!payload.name || !payload.url) {
+      return;
     }
 
-    const close = openModal({ title: 'Edit Acceptance Test', content: formEl });
-
-    formEl.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const body = {
-        given: formEl.elements.given.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
-        when: formEl.elements.when.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
-        then: formEl.elements.then.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
-        status: formEl.elements.status.value
-      };
-      try {
-        await fetchJSON(`/api/tests/${test.id}`, { method: 'PATCH', body: JSON.stringify(body) });
-        await loadState();
-        renderDetail();
-        renderOutline();
-        renderMindmap();
-        close();
-      } catch (error) {
-        alert(formatTestabilityError(error, 'Failed to save test'));
-      }
+    const response = await fetch(`/api/stories/${storyId}/reference-documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
 
-    const deleteButton = formEl.querySelector('.delete-test');
-    if (deleteButton) {
-      deleteButton.addEventListener('click', async (event) => {
-        event.preventDefault();
-        if (!confirm('Delete this acceptance test?')) return;
-        try {
-          await fetchJSON(`/api/tests/${test.id}`, { method: 'DELETE' });
-          await loadState();
-          if (!state.stories.has(state.selectedStoryId)) {
-            state.selectedStoryId = story.id;
-          }
-          renderDetail();
-          renderOutline();
-          renderMindmap();
-          close();
-        } catch (error) {
-          alert(`Failed to delete test: ${error.message}`);
-        }
-      });
+    if (!response.ok) {
+      alert('Failed to add document');
+      return;
     }
-  };
 
-  if (tests.length === 0) {
-    testTable.appendChild(createEmptyRow('No acceptance tests yet.'));
-  } else {
-    tests.forEach((test, index) => {
-      const row = document.createElement('div');
-      row.className = 'detail-table-row';
-
-      const nameCell = document.createElement('span');
-      nameCell.className = 'detail-table-cell detail-table-primary';
-      const label = document.createElement('strong');
-      label.textContent = `AT ${index + 1}`;
-      const summary = document.createElement('span');
-      summary.className = 'detail-table-subtext';
-      summary.textContent = summariseTest(test);
-      nameCell.append(label, summary);
-      if (test.ambiguityFlags.length > 0) {
-        const warning = document.createElement('span');
-        warning.className = 'detail-table-subtext warning';
-        warning.textContent = `Ambiguity: ${test.ambiguityFlags.join(', ')}`;
-        nameCell.appendChild(warning);
-      }
-
-      const statusCell = document.createElement('span');
-      statusCell.className = 'detail-table-cell';
-      statusCell.textContent = test.status;
-
-      const actionsCell = document.createElement('span');
-      actionsCell.className = 'detail-table-cell detail-table-actions-cell';
-      const editButton = document.createElement('button');
-      editButton.type = 'button';
-      editButton.textContent = 'Edit';
-      editButton.addEventListener('click', () => openEditTestModal(test));
-      const deleteButton = document.createElement('button');
-      deleteButton.type = 'button';
-      deleteButton.textContent = 'Delete';
-      deleteButton.addEventListener('click', async () => {
-        if (!confirm('Delete this acceptance test?')) return;
-        try {
-          await fetchJSON(`/api/tests/${test.id}`, { method: 'DELETE' });
-          await loadState();
-          if (!state.stories.has(state.selectedStoryId)) {
-            state.selectedStoryId = story.id;
-          }
-          renderDetail();
-          renderOutline();
-          renderMindmap();
-        } catch (error) {
-          alert(`Failed to delete test: ${error.message}`);
-        }
-      });
-      actionsCell.append(editButton, deleteButton);
-
-      row.append(nameCell, statusCell, actionsCell);
-      testTable.appendChild(row);
-    });
-  }
-
-  testsSection.append(testActions, testTable);
-  detailEl.appendChild(testsSection);
-
-  openTestModalButton.addEventListener('click', () => {
-    const form = document.createElement('form');
-    form.className = 'modal-form';
-    form.innerHTML = `
-      <label>Given<textarea name="given" required></textarea></label>
-      <label>When<textarea name="when" required></textarea></label>
-      <label>Then<textarea name="then" required></textarea></label>
-      <div class="modal-actions">
-        <button type="button" class="modal-cancel">Cancel</button>
-        <button type="submit">Create Acceptance Test</button>
-      </div>
-    `;
-
-    const close = openModal({ title: 'Create Acceptance Test', content: form });
-
-    const cancelButton = form.querySelector('.modal-cancel');
-    cancelButton.addEventListener('click', () => close());
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const basePayload = {
-        storyId: story.id,
-        given: form.elements.given.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
-        when: form.elements.when.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
-        then: form.elements.then.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean)
-      };
-      const refreshAfterCreate = async () => {
-        form.reset();
-        await loadState();
-        renderDetail();
-        renderOutline();
-        renderMindmap();
-        close();
-      };
-
-      try {
-        await fetchJSON('/api/tests', { method: 'POST', body: JSON.stringify(basePayload) });
-        await refreshAfterCreate();
-      } catch (error) {
-        if (error.code === 'test.measurable' && (error.allowOverride || error.details?.allowOverride)) {
-          const message = formatTestabilityError(error, 'Unable to create acceptance test');
-          const proceed = confirm(`${message}\n\nCreate the acceptance test anyway?`);
-          if (!proceed) return;
-          try {
-            await fetchJSON('/api/tests', {
-              method: 'POST',
-              body: JSON.stringify({ ...basePayload, acceptWarnings: true })
-            });
-            await refreshAfterCreate();
-          } catch (retryError) {
-            alert(formatTestabilityError(retryError, 'Unable to create acceptance test'));
-          }
-          return;
-        }
-        alert(formatTestabilityError(error, 'Unable to create acceptance test'));
-      }
-    });
+    const doc = await response.json();
+    story.referenceDocuments = [...(story.referenceDocuments || []), doc];
+    form.reset();
+    renderDocs();
+    renderStoryDetails({ ...story });
   });
 
-  detailEl.append(testsSection, childSection);
-};
+  renderDocs();
+  container.appendChild(listWrapper);
+  container.appendChild(form);
+  openModal('Reference Document List', container);
+}
 
-const initializeEvents = () => {
-  Object.entries(panelToggles).forEach(([key, input]) => {
-    if (!input) return;
-    input.addEventListener('change', () => {
-      state.panelVisibility[key] = input.checked;
-      savePanelVisibility();
-      applyPanelVisibility();
-      switch (key) {
-        case 'outline':
-          renderOutline();
-          break;
-        case 'mindmap':
-          renderMindmap();
-          break;
-        case 'detail':
-          renderDetail();
-          break;
-        case 'github':
-          renderGithubStatus();
-          break;
-        default:
-          break;
-      }
-    });
-  });
+refreshBtn.addEventListener('click', () => {
+  loadStories().catch((error) => alert(error.message));
+});
 
-  outlineControls.expandAll.addEventListener('click', () => {
-    const tree = buildStoryTree(rootStories());
-    const gather = (nodes) => {
-      nodes.forEach((node) => {
-        state.expanded.add(node.story.id);
-        gather(node.children);
-      });
-    };
-    state.expanded.clear();
-    gather(tree);
-    saveExpanded();
-    renderOutline();
-    renderMindmap();
-  });
-
-  outlineControls.collapseAll.addEventListener('click', () => {
-    state.expanded.clear();
-    saveExpanded();
-    renderOutline();
-    renderMindmap();
-  });
-
-  outlineControls.applyDepth.addEventListener('click', () => {
-    const depth = Number(outlineControls.depthInput.value) || 1;
-    expandToDepth(depth);
-  });
-
-  headerControls.refresh.addEventListener('click', async () => {
-    try {
-      await loadState();
-      renderOutline();
-      renderMindmap();
-      renderDetail();
-      renderGithubStatus();
-    } catch (error) {
-      console.error('Failed to refresh workspace data', error);
-      alert(`Unable to load latest workspace data: ${normalizeErrorMessage(error)}`);
-    }
-  });
-
-  headerControls.reset.addEventListener('click', async () => {
-    if (!confirm('Reset in-memory data to seed state?')) return;
-    try {
-      await fetchJSON('/api/reset', { method: 'POST' });
-      await loadState();
-      state.selectedStoryId = null;
-      renderOutline();
-      renderMindmap();
-      renderDetail();
-      renderGithubStatus();
-    } catch (error) {
-      console.error('Failed to reset workspace data', error);
-      alert(`Reset failed: ${normalizeErrorMessage(error)}`);
-    }
-  });
-
-  headerControls.radius.addEventListener('input', (event) => {
-    state.radius = Number(event.target.value);
-    renderMindmap();
-  });
-
-  if (headerControls.autoArrange) {
-    headerControls.autoArrange.addEventListener('click', () => {
-      state.autoLayout = true;
-      if (state.activeMrId) {
-        clearPositions(state.activeMrId);
-      }
-      state.customPositions.clear();
-      saveAutoLayout();
-      renderMindmap();
-    });
-  }
-};
-
-const bootstrap = async () => {
-  loadExpanded();
-  loadPanelVisibility();
-  applyPanelVisibility();
-  initializeEvents();
-  try {
-    await loadState();
-  } catch (error) {
-    console.error('Failed to load initial workspace data', error);
-    showGlobalError(error);
-    return;
-  }
-
-  if (rootStories().length > 0) {
-    rootStories().forEach((story) => state.expanded.add(story.id));
-  }
-  saveExpanded();
-  renderOutline();
-  renderMindmap();
-  renderDetail();
-  renderGithubStatus();
-};
-
-bootstrap();
+loadStories().catch((error) => {
+  alert(error.message);
+});
