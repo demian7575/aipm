@@ -1086,6 +1086,7 @@ function openReferenceModal(storyId) {
   const urlInput = form.querySelector('#doc-url');
   const fileInput = form.querySelector('#doc-file');
   let uploading = false;
+  let uploadedUrl = null;
 
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files && fileInput.files[0];
@@ -1094,6 +1095,7 @@ function openReferenceModal(storyId) {
     try {
       showToast('Uploading document…');
       const result = await uploadReferenceFile(file);
+      uploadedUrl = result.url;
       urlInput.value = result.url;
       if (!nameInput.value) {
         nameInput.value = result.originalName || file.name;
@@ -1116,9 +1118,16 @@ function openReferenceModal(storyId) {
         return;
       }
       const name = nameInput.value.trim();
-      const url = urlInput.value.trim();
-      if (!name || !url) {
-        showToast('Name and URL are required.', 'error');
+      let url = urlInput.value.trim();
+      if (!name) {
+        showToast('Name is required.', 'error');
+        return;
+      }
+      if (!url) {
+        url = uploadedUrl || '';
+      }
+      if (!url) {
+        showToast('Provide a URL or upload a file.', 'error');
         return;
       }
       try {
@@ -1127,6 +1136,7 @@ function openReferenceModal(storyId) {
           body: { name, url },
         });
         form.reset();
+        uploadedUrl = null;
         await refreshModalContent();
         showToast('Reference document added', 'success');
       } catch (error) {
