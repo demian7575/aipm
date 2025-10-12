@@ -193,6 +193,23 @@ body {
   dominant-baseline: middle;
 }
 
+.mindmap-node .mindmap-toggle {
+  cursor: pointer;
+}
+
+.mindmap-node .mindmap-toggle circle {
+  fill: rgba(59, 130, 246, 0.65);
+  stroke: rgba(191, 219, 254, 0.9);
+  stroke-width: 1.5;
+}
+
+.mindmap-node .mindmap-toggle text {
+  fill: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
 .mindmap-node.selected rect {
   fill: rgba(59, 130, 246, 0.25);
   stroke: rgba(191, 219, 254, 0.9);

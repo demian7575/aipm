@@ -250,8 +250,14 @@ const fetchJSON = async (url, options) => {
     } catch (error) {
       details = { message: details };
     }
-    const err = new Error(details.message ?? 'Request failed');
-    err.details = details;
+    const payload = typeof details === 'object' && details !== null ? details : { message: details };
+    const err = new Error(payload.message ?? 'Request failed');
+    err.code = payload.code ?? null;
+    err.payload = payload;
+    err.details = payload.details && typeof payload.details === 'object' ? payload.details : payload;
+    if (err.details && typeof err.details === 'object' && 'allowOverride' in err.details) {
+      err.allowOverride = Boolean(err.details.allowOverride);
+    }
     throw err;
   }
   return response.status === 204 ? null : response.json();
@@ -341,6 +347,12 @@ const rootStories = () =>
 
 const buildStoryTree = (stories) =>
   stories.map((story) => ({ story, children: buildStoryTree(storyChildren(story.id)) }));
+
+const buildMindmapTree = (stories) =>
+  stories.map((story) => ({
+    story,
+    children: state.expanded.has(story.id) ? buildMindmapTree(storyChildren(story.id)) : []
+  }));
 
 const toggleSubtree = (storyId, expanded) => {
   const stack = [storyId];
@@ -518,7 +530,7 @@ const computeLayout = (nodes) => {
 };
 
 const renderMindmap = () => {
-  const tree = buildStoryTree(rootStories());
+  const tree = buildMindmapTree(rootStories());
   const defaultNodes = computeLayout(tree);
   const nodes = state.autoLayout
     ? defaultNodes
@@ -587,6 +599,36 @@ const renderMindmap = () => {
     text.setAttribute('text-anchor', 'start');
     text.setAttribute('dominant-baseline', 'middle');
     group.appendChild(text);
+
+    if (storyChildren(node.id).length > 0) {
+      const toggle = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      toggle.classList.add('mindmap-toggle');
+      const toggleCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      toggleCircle.setAttribute('cx', (NODE_WIDTH - 16).toString());
+      toggleCircle.setAttribute('cy', (-NODE_HEIGHT / 2 + 16).toString());
+      toggleCircle.setAttribute('r', '12');
+      toggle.appendChild(toggleCircle);
+
+      const toggleLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      toggleLabel.textContent = state.expanded.has(node.id) ? '−' : '+';
+      toggleLabel.setAttribute('x', (NODE_WIDTH - 16).toString());
+      toggleLabel.setAttribute('y', (-NODE_HEIGHT / 2 + 16).toString());
+      toggleLabel.setAttribute('text-anchor', 'middle');
+      toggleLabel.setAttribute('dominant-baseline', 'middle');
+      toggle.appendChild(toggleLabel);
+
+      toggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const currentlyExpanded = state.expanded.has(node.id);
+        if (event.shiftKey) {
+          toggleSubtree(node.id, !currentlyExpanded);
+        } else {
+          toggleExpanded(node.id, !currentlyExpanded);
+        }
+      });
+
+      group.appendChild(toggle);
+    }
 
     group.addEventListener('click', () => handleStorySelection(node.id));
     rect.addEventListener('click', (event) => {
@@ -876,7 +918,7 @@ const renderDetail = () => {
   const childForm = childSection.querySelector('form');
   childForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const body = {
+    const basePayload = {
       mrId: story.mrId,
       parentId: story.id,
       title: childForm.elements.title.value,
@@ -884,8 +926,8 @@ const renderDetail = () => {
       iWant: childForm.elements.iWant.value,
       soThat: childForm.elements.soThat.value
     };
-    try {
-      await fetchJSON('/api/stories', { method: 'POST', body: JSON.stringify(body) });
+
+    const refreshAfterCreate = async () => {
       childForm.reset();
       state.expanded.add(story.id);
       saveExpanded();
@@ -893,7 +935,27 @@ const renderDetail = () => {
       renderOutline();
       renderMindmap();
       renderDetail();
+    };
+
+    try {
+      await fetchJSON('/api/stories', { method: 'POST', body: JSON.stringify(basePayload) });
+      await refreshAfterCreate();
     } catch (error) {
+      if (error.code === 'story.invest' && (error.allowOverride || error.details?.allowOverride)) {
+        const message = formatInvestError(error, 'Unable to create child story');
+        const proceed = confirm(`${message}\n\nCreate the story anyway?`);
+        if (!proceed) return;
+        try {
+          await fetchJSON('/api/stories', {
+            method: 'POST',
+            body: JSON.stringify({ ...basePayload, acceptWarnings: true })
+          });
+          await refreshAfterCreate();
+        } catch (retryError) {
+          alert(formatInvestError(retryError, 'Unable to create child story'));
+        }
+        return;
+      }
       alert(formatInvestError(error, 'Unable to create child story'));
     }
   });
@@ -912,7 +974,7 @@ const renderDetail = () => {
   const newTestForm = testSection.querySelector('form');
   newTestForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const body = {
+    const basePayload = {
       storyId: story.id,
       given: newTestForm.elements.given.value
         .split('\n')
@@ -927,14 +989,33 @@ const renderDetail = () => {
         .map((line) => line.trim())
         .filter(Boolean)
     };
-    try {
-      await fetchJSON('/api/tests', { method: 'POST', body: JSON.stringify(body) });
+    const refreshAfterCreate = async () => {
       newTestForm.reset();
       await loadState();
       renderDetail();
       renderOutline();
       renderMindmap();
+    };
+
+    try {
+      await fetchJSON('/api/tests', { method: 'POST', body: JSON.stringify(basePayload) });
+      await refreshAfterCreate();
     } catch (error) {
+      if (error.code === 'test.measurable' && (error.allowOverride || error.details?.allowOverride)) {
+        const message = formatTestabilityError(error, 'Unable to create acceptance test');
+        const proceed = confirm(`${message}\n\nCreate the acceptance test anyway?`);
+        if (!proceed) return;
+        try {
+          await fetchJSON('/api/tests', {
+            method: 'POST',
+            body: JSON.stringify({ ...basePayload, acceptWarnings: true })
+          });
+          await refreshAfterCreate();
+        } catch (retryError) {
+          alert(formatTestabilityError(retryError, 'Unable to create acceptance test'));
+        }
+        return;
+      }
       alert(formatTestabilityError(error, 'Unable to create acceptance test'));
     }
   });

@@ -58,10 +58,14 @@ ai-pm-mindmap/
 - Click any story rectangle (red title) to select it and open the editable detail panel.
 - Drag a story to reposition it; custom coordinates are saved per merge request in `localStorage`.
 - Hold `Alt` (or `Ctrl/Cmd`) while dragging to reparent the dragged story under the hovered target node.
+- Use the `+`/`−` toggle on each node to expand or collapse its children directly from the canvas (shift-click toggles entire subtrees).
 
 ## Panel Visibility Controls
 - Toggle buttons in the header let you independently show or hide the Outline, Mindmap, Details, and Branch panels.
 - Panel visibility is persisted per browser in `localStorage` so your layout preference sticks between sessions.
+
+## Validation Overrides
+- Story and acceptance test creation surfaces detailed INVEST or measurability guidance; after reviewing the warning you can confirm to save anyway or cancel and adjust the content first.
 
 ## URL Parameters
 - `?expand=all` – expand entire tree on load

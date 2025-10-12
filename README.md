@@ -31,11 +31,12 @@ The frontend is a static bundle located in `apps/frontend/public`. The build ste
 
 ## Features
 - **Outline Tree** with ARIA semantics, keyboard navigation, expand/collapse depth presets, and persistent state.
-- **Right-expanding Mindmap** rendered in SVG with fixed-width rectangular nodes, red story titles, click-to-edit selection, and draggable positioning. Hold `Alt` (or `Ctrl/Cmd`) while dragging to reparent under a new parent story.
+- **Right-expanding Mindmap** rendered in SVG with fixed-width rectangular nodes, red story titles, click-to-edit selection, draggable positioning, and in-canvas expand/collapse toggles that mirror the outline tree. Hold `Alt` (or `Ctrl/Cmd`) while dragging to reparent under a new parent story.
 - **Detail & GitHub Panels** exposing INVEST diagnostics, acceptance tests, drift status, branch update simulation, and hierarchical add/remove forms.
 - **Panel Visibility Toggles** in the header let you show or hide the Outline, Mindmap, Details, and Branch panels individually. Selections persist per browser via `localStorage`.
 - **Validation Engine** shared between client and server for INVEST heuristics, ambiguity checks, measurability, and roll-up status computation. Acceptance test errors list the specific Then steps that failed plus actionable tips and example parameters (e.g., `response time ≤ 500 ms`, `success rate ≥ 95%`, `CSV includes "invoiceId"`).
 - **SQLite-backed Backend** implemented with native Node HTTP primitives enforcing depth/cycle guards, persisting data across restarts, and returning structured errors. The store only reseeds when empty; use the Reset button or `npm run seed` to restore the baseline dataset.
+- **Validation Overrides** surface INVEST or measurability guidance before creation and let you proceed (or cancel) after reviewing detailed suggestions.
 
 ### Where is the SQLite database stored?
 

@@ -96,6 +96,39 @@ test.describe('HTTP API', () => {
     assert.equal(story.title, payload.title);
   });
 
+  test('allow overriding INVEST warnings on story create', async () => {
+    const [mr] = store.listMergeRequests();
+    const payload = {
+      mrId: mr.id,
+      title: 'Huge rewrite initiative',
+      asA: 'As a platform engineer',
+      iWant: 'I want to rebuild everything at once',
+      soThat: 'fast'
+    };
+
+    const firstResponse = await fetch(`${baseURL}/api/stories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    assert.equal(firstResponse.status, 400);
+    const firstBody = await firstResponse.json();
+    assert.equal(firstBody.code, 'story.invest');
+    assert.equal(firstBody.details?.allowOverride, true);
+
+    const retryResponse = await fetch(`${baseURL}/api/stories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, acceptWarnings: true })
+    });
+
+    assert.equal(retryResponse.status, 201);
+    const created = await retryResponse.json();
+    assert.equal(created.title, payload.title);
+    assert.equal(created.soThat, payload.soThat);
+  });
+
   test('update branch toggles drift state', async () => {
     const [mr] = store.listMergeRequests();
     const response = await fetch(`${baseURL}/api/merge-requests/${mr.id}/update-branch`, { method: 'POST' });
@@ -130,6 +163,39 @@ test.describe('HTTP API', () => {
     assert.equal(response.status, 400);
     const body = await response.json();
     assert.equal(body.code, 'test.givenRequired');
+  });
+
+  test('allow overriding measurability warnings on test create', async () => {
+    const [mr] = store.listMergeRequests();
+    const [story] = store.listStories({ mrId: mr.id });
+    const payload = {
+      storyId: story.id,
+      given: ['Given a deployment is queued'],
+      when: ['When the job finishes'],
+      then: ['Then the dashboard looks great']
+    };
+
+    const firstResponse = await fetch(`${baseURL}/api/tests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    assert.equal(firstResponse.status, 400);
+    const firstBody = await firstResponse.json();
+    assert.equal(firstBody.code, 'test.measurable');
+    assert.equal(firstBody.details?.allowOverride, true);
+
+    const retryResponse = await fetch(`${baseURL}/api/tests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, acceptWarnings: true })
+    });
+
+    assert.equal(retryResponse.status, 201);
+    const created = await retryResponse.json();
+    assert.ok(Array.isArray(created.then));
+    assert.equal(created.then[0], payload.then[0]);
   });
 
   test('prevent updates that clear acceptance test steps', async () => {

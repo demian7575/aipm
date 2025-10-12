@@ -553,34 +553,41 @@ export class InMemoryStore {
   }
 
   createStory(payload) {
-    const mr = this.mergeRequests.get(payload.mrId);
+    const { acceptWarnings = false, ...input } = payload ?? {};
+    const mr = this.mergeRequests.get(input.mrId);
     ensure(mr, 'mergeRequest.notFound', 'Parent merge request not found');
-    if (payload.parentId) {
-      const parent = this.stories.get(payload.parentId);
+    if (input.parentId) {
+      const parent = this.stories.get(input.parentId);
       ensure(parent, 'story.parentMissing', 'Parent story not found');
       ensure(parent.depth + 1 <= MAX_DEPTH, 'story.depthExceeded', `Maximum depth ${MAX_DEPTH} exceeded`);
     }
 
-    const story = this.#createStoryInternal(payload);
-    const storyList = [...Array.from(this.stories.values()).filter((s) => s.mrId === payload.mrId), story];
+    const story = this.#createStoryInternal(input);
+    const storyList = [...Array.from(this.stories.values()).filter((s) => s.mrId === input.mrId), story];
     const validation = validateStoryInvest(story, { stories: storyList, tests: Array.from(this.tests.values()) });
     const investSummary = summarizeInvestResult(validation);
     const blocking = investSummary.violations.filter((item) => item.principle !== 'testable');
-    ensure(blocking.length === 0, 'story.invest', investSummary.summary, {
-      ...validation,
-      violations: investSummary.violations
-    });
+    if (blocking.length > 0 && !acceptWarnings) {
+      const error = new Error(investSummary.summary);
+      error.code = 'story.invest';
+      error.details = {
+        ...validation,
+        violations: investSummary.violations,
+        allowOverride: true
+      };
+      throw error;
+    }
 
     this.stories.set(story.id, story);
     if (story.parentId) {
       const parent = this.stories.get(story.parentId);
-      const targetIndex = payload.order ?? parent.childrenIds.length;
+      const targetIndex = input.order ?? parent.childrenIds.length;
       parent.childrenIds.splice(targetIndex, 0, story.id);
       story.order = targetIndex;
       this.#syncOrdersForParent(story.mrId, story.parentId);
       this.#recalculateInvest(parent.id);
     } else {
-      const targetIndex = payload.order ?? mr.storyIds.length;
+      const targetIndex = input.order ?? mr.storyIds.length;
       mr.storyIds.splice(targetIndex, 0, story.id);
       story.order = targetIndex;
       this.#syncOrdersForParent(story.mrId, null);
@@ -772,12 +779,13 @@ export class InMemoryStore {
   }
 
   createTest(payload) {
-    const story = this.stories.get(payload.storyId);
+    const { acceptWarnings = false, ...input } = payload ?? {};
+    const story = this.stories.get(input.storyId);
     ensure(story, 'story.notFound', 'Story not found for test');
-    const test = this.#createAcceptanceTestInternal(payload.storyId);
-    if (payload.given) test.given = payload.given.map((step) => step.trim()).filter(Boolean);
-    if (payload.when) test.when = payload.when.map((step) => step.trim()).filter(Boolean);
-    if (payload.then) test.then = payload.then.map((step) => step.trim()).filter(Boolean);
+    const test = this.#createAcceptanceTestInternal(input.storyId);
+    if (input.given) test.given = input.given.map((step) => step.trim()).filter(Boolean);
+    if (input.when) test.when = input.when.map((step) => step.trim()).filter(Boolean);
+    if (input.then) test.then = input.then.map((step) => step.trim()).filter(Boolean);
 
     ensure(test.given.length > 0, 'test.givenRequired', 'At least one Given step is required');
     ensure(test.when.length > 0, 'test.whenRequired', 'At least one When step is required');
@@ -785,12 +793,12 @@ export class InMemoryStore {
 
     const validation = validateAcceptanceTest(test);
     const measurabilityFeedback = summarizeMeasurabilityResult(validation.measurability);
-    ensure(
-      validation.measurability.ok,
-      'test.measurable',
-      measurabilityFeedback.summary,
-      { ...validation, feedback: measurabilityFeedback }
-    );
+    if (!validation.measurability.ok && !acceptWarnings) {
+      const error = new Error(measurabilityFeedback.summary);
+      error.code = 'test.measurable';
+      error.details = { ...validation, feedback: measurabilityFeedback, allowOverride: true };
+      throw error;
+    }
     test.ambiguityFlags = validation.ambiguity.issues.map((issue) => issue.term);
 
     this.tests.set(test.id, test);
