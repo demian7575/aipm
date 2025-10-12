@@ -1,5 +1,6 @@
 const API_BASE = '';
 const STORAGE_KEY = 'ai-pm-expanded';
+const PANEL_STORAGE_KEY = 'ai-pm-panels';
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 60;
@@ -14,7 +15,13 @@ const state = {
   expanded: new Set(),
   radius: 360,
   drag: null,
-  customPositions: new Map()
+  customPositions: new Map(),
+  panelVisibility: {
+    outline: true,
+    mindmap: true,
+    detail: true,
+    github: true
+  }
 };
 
 let pointerListenerBound = false;
@@ -23,6 +30,13 @@ const outlineEl = document.getElementById('outline-tree');
 const mindmapEl = document.getElementById('mindmap-canvas');
 const detailEl = document.getElementById('detail-content');
 const githubEl = document.getElementById('github-status');
+
+const panelElements = {
+  outline: document.querySelector('.panel.outline'),
+  mindmap: document.querySelector('.panel.mindmap'),
+  detail: document.querySelector('.panel.detail'),
+  github: document.querySelector('.panel.github')
+};
 
 const outlineControls = {
   expandAll: document.getElementById('expand-all'),
@@ -35,6 +49,13 @@ const headerControls = {
   refresh: document.getElementById('refresh-button'),
   reset: document.getElementById('reset-button'),
   radius: document.getElementById('mindmap-radius')
+};
+
+const panelToggles = {
+  outline: document.getElementById('toggle-outline'),
+  mindmap: document.getElementById('toggle-mindmap'),
+  detail: document.getElementById('toggle-detail'),
+  github: document.getElementById('toggle-github')
 };
 
 const loadExpanded = () => {
@@ -50,6 +71,50 @@ const loadExpanded = () => {
 
 const saveExpanded = () => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(state.expanded)));
+};
+
+const defaultVisibility = () => ({
+  outline: true,
+  mindmap: true,
+  detail: true,
+  github: true
+});
+
+const loadPanelVisibility = () => {
+  try {
+    const raw = localStorage.getItem(PANEL_STORAGE_KEY);
+    if (!raw) {
+      state.panelVisibility = defaultVisibility();
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    const next = defaultVisibility();
+    Object.keys(next).forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(parsed, key)) {
+        next[key] = Boolean(parsed[key]);
+      }
+    });
+    state.panelVisibility = next;
+  } catch (error) {
+    state.panelVisibility = defaultVisibility();
+  }
+};
+
+const savePanelVisibility = () => {
+  localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify(state.panelVisibility));
+};
+
+const applyPanelVisibility = () => {
+  Object.entries(panelElements).forEach(([key, element]) => {
+    if (!element) return;
+    const visible = state.panelVisibility[key] !== false;
+    element.classList.toggle('is-hidden', !visible);
+    element.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  });
+  Object.entries(panelToggles).forEach(([key, input]) => {
+    if (!input) return;
+    input.checked = state.panelVisibility[key] !== false;
+  });
 };
 
 const positionStorageKey = (mrId) => `${POSITION_STORAGE_PREFIX}${mrId}`;
@@ -819,6 +884,31 @@ const renderDetail = () => {
 };
 
 const initializeEvents = () => {
+  Object.entries(panelToggles).forEach(([key, input]) => {
+    if (!input) return;
+    input.addEventListener('change', () => {
+      state.panelVisibility[key] = input.checked;
+      savePanelVisibility();
+      applyPanelVisibility();
+      switch (key) {
+        case 'outline':
+          renderOutline();
+          break;
+        case 'mindmap':
+          renderMindmap();
+          break;
+        case 'detail':
+          renderDetail();
+          break;
+        case 'github':
+          renderGithubStatus();
+          break;
+        default:
+          break;
+      }
+    });
+  });
+
   outlineControls.expandAll.addEventListener('click', () => {
     const tree = buildStoryTree(rootStories());
     const gather = (nodes) => {
@@ -873,6 +963,8 @@ const initializeEvents = () => {
 
 const bootstrap = async () => {
   loadExpanded();
+  loadPanelVisibility();
+  applyPanelVisibility();
   initializeEvents();
   await loadState();
   state.customPositions = loadPositions(state.activeMrId);

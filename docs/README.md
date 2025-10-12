@@ -21,6 +21,7 @@ If port 4000 is unavailable the backend automatically increments to the next fre
 ### Persistence notes
 - The backend automatically seeds the database only when it detects an empty store.
 - Existing records remain intact across restarts; run `npm run seed` or `POST /api/reset` when you need a clean slate.
+- SQLite data lives in `apps/backend/data/app.sqlite`. Remove the file to reseed on the next launch or inspect it directly with any SQLite client.
 
 ## Client build & preview
 ```bash
@@ -57,6 +58,10 @@ ai-pm-mindmap/
 - Click any story rectangle (red title) to select it and open the editable detail panel.
 - Drag a story to reposition it; custom coordinates are saved per merge request in `localStorage`.
 - Hold `Alt` (or `Ctrl/Cmd`) while dragging to reparent the dragged story under the hovered target node.
+
+## Panel Visibility Controls
+- Toggle buttons in the header let you independently show or hide the Outline, Mindmap, Details, and Branch panels.
+- Panel visibility is persisted per browser in `localStorage` so your layout preference sticks between sessions.
 
 ## URL Parameters
 - `?expand=all` – expand entire tree on load
