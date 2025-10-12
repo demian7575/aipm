@@ -1,7 +1,7 @@
 # AI Project Manager Mindmap – Developer Guide
 
 ## Prerequisites
-- Node.js 22+
+- Node.js 22+ (or Node 18+/20+ with the `sqlite3` CLI installed; the backend falls back automatically and you can set `AI_PM_FORCE_SQLITE_CLI=1` to force CLI mode)
 - npm 10+
 - Modern browser for running the frontend
 

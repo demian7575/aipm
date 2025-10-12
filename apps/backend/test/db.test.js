@@ -26,7 +26,7 @@ test('database initializes storage directory automatically', () => {
   assert.ok(parsed.count >= 0, 'should provide merge request count');
 });
 
-test('database persists records via node:sqlite', () => {
+test('database persists records', () => {
   const resetResult = spawnSync('rm', ['-f', 'data/app.sqlite'], { cwd: backendRoot });
   assert.equal(resetResult.status, 0, resetResult.stderr?.toString() ?? '');
   const createScript = `
@@ -53,4 +53,35 @@ console.log(mr.id);
   assert.equal(reloadResult.status, 0, reloadResult.stderr);
   const parsed = JSON.parse(reloadResult.stdout.trim());
   assert.ok(parsed.count > 0, 'should retain at least one merge request');
+});
+
+test('falls back to sqlite3 CLI when requested', () => {
+  const resetResult = spawnSync('rm', ['-f', 'data/app.sqlite'], { cwd: backendRoot });
+  assert.equal(resetResult.status, 0, resetResult.stderr?.toString() ?? '');
+
+  const script = `
+import { store } from './src/store.js';
+const before = store.listMergeRequests().length;
+store.createMergeRequest({
+  title: 'CLI fallback MR',
+  summary: 'ensure CLI fallback writes data',
+  branch: 'cli/fallback'
+});
+const after = store.listMergeRequests().length;
+console.log(JSON.stringify({ before, after }));
+`;
+
+  const result = spawnSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      cwd: backendRoot,
+      encoding: 'utf8',
+      env: { ...process.env, AI_PM_FORCE_SQLITE_CLI: '1' }
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout.trim());
+  assert.ok(payload.after > payload.before, 'CLI fallback should allow creating merge requests');
 });

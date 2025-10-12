@@ -3,8 +3,7 @@
 An interactive planning surface combining merge requests, user stories, and acceptance tests with INVEST validation, ambiguity detection, and synchronized outline/mindmap views.
 
 ## Getting Started
-> **Runtime requirement:** The backend relies on Node.js 22+ for the built-in `node:sqlite` module. Earlier runtimes will fail to
-> load the database driver.
+> **Runtime requirement:** Node.js 22+ is recommended so the backend can use the built-in `node:sqlite` module. On earlier runtimes install the `sqlite3` CLI (available via most package managers) and the server will automatically fall back to it. Set `AI_PM_FORCE_SQLITE_CLI=1` to force the CLI path even when the native driver exists.
 ```bash
 npm install
 npm run dev

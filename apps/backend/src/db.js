@@ -1,11 +1,13 @@
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DatabaseSync } from 'node:sqlite';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const dataDir = resolve(__dirname, '../data');
 export const dbPath = resolve(dataDir, 'app.sqlite');
+
+const preferCli = process.env.AI_PM_FORCE_SQLITE_CLI === '1';
 
 const ensureDataDirectory = () => {
   if (!existsSync(dataDir)) {
@@ -16,24 +18,135 @@ const ensureDataDirectory = () => {
 ensureDataDirectory();
 
 let database;
-try {
-  database = new DatabaseSync(dbPath);
-} catch (cause) {
-  const error = new Error('Failed to open SQLite database');
-  error.cause = cause;
-  throw error;
+let usingDatabaseSync = false;
+
+let DatabaseSyncModule = null;
+if (!preferCli) {
+  try {
+    DatabaseSyncModule = await import('node:sqlite');
+  } catch (error) {
+    DatabaseSyncModule = null;
+  }
 }
 
-database.exec('PRAGMA journal_mode=WAL;');
-database.exec('PRAGMA foreign_keys=ON;');
-
-process.on('exit', () => {
+if (DatabaseSyncModule?.DatabaseSync && !preferCli) {
   try {
-    database.close();
-  } catch (error) {
-    // ignore shutdown errors
+    database = new DatabaseSyncModule.DatabaseSync(dbPath);
+    usingDatabaseSync = true;
+  } catch (cause) {
+    const error = new Error('Failed to open SQLite database');
+    error.cause = cause;
+    throw error;
   }
-});
+
+  process.on('exit', () => {
+    try {
+      database.close();
+    } catch (error) {
+      // ignore shutdown errors
+    }
+  });
+}
+
+let cliAvailableChecked = false;
+const ensureCliAvailable = () => {
+  if (cliAvailableChecked || usingDatabaseSync) return;
+  const result = spawnSync('sqlite3', ['-version'], { encoding: 'utf-8' });
+  if (result.error || result.status !== 0) {
+    const message =
+      result.error?.message ?? result.stderr?.toString()?.trim() ?? 'sqlite3 CLI is required but could not be executed.';
+    const error = new Error(
+      `${message} Install sqlite3 or upgrade to Node.js 22 to use the built-in SQLite driver.`
+    );
+    error.details = { command: 'sqlite3 -version', stderr: result.stderr?.toString() ?? '' };
+    throw error;
+  }
+  cliAvailableChecked = true;
+};
+
+if (!usingDatabaseSync) {
+  ensureCliAvailable();
+}
+
+let cliJsonSupported = null;
+const detectCliJsonSupport = () => {
+  if (usingDatabaseSync) return false;
+  if (cliJsonSupported !== null) return cliJsonSupported;
+  ensureCliAvailable();
+  const result = spawnSync('sqlite3', ['-json', ':memory:', 'SELECT 1;'], { encoding: 'utf-8' });
+  cliJsonSupported = result.status === 0;
+  return cliJsonSupported;
+};
+
+const runSqliteCli = (sql, args = []) => {
+  ensureCliAvailable();
+  const result = spawnSync('sqlite3', [dbPath, ...args], { input: sql, encoding: 'utf-8' });
+  if (result.status !== 0) {
+    const message = result.stderr?.toString()?.trim() || 'Failed to execute sqlite3 command';
+    const error = new Error(message);
+    error.details = { args: [dbPath, ...args], sql, stderr: result.stderr?.toString() ?? '' };
+    throw error;
+  }
+  return result.stdout ?? '';
+};
+
+const parseCsvRow = (line) => {
+  const values = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (line[i + 1] === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      values.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  values.push(current);
+  return values;
+};
+
+const querySqliteCli = (sql) => {
+  if (detectCliJsonSupport()) {
+    const output = runSqliteCli(sql, ['-json']).trim();
+    if (!output) return [];
+    try {
+      return JSON.parse(output);
+    } catch (cause) {
+      const error = new Error('Unable to parse sqlite3 JSON output');
+      error.cause = cause;
+      error.details = { output };
+      throw error;
+    }
+  }
+  const output = runSqliteCli(sql, ['-header', '-csv']).trim();
+  if (!output) return [];
+  const lines = output.split(/\r?\n/).filter(Boolean);
+  if (lines.length === 0) return [];
+  const headers = parseCsvRow(lines.shift());
+  return lines.map((line) => {
+    const values = parseCsvRow(line);
+    const record = {};
+    headers.forEach((header, index) => {
+      record[header] = values[index] ?? '';
+    });
+    return record;
+  });
+};
 
 const ensureStatementTerminated = (sql) => {
   const trimmed = sql.trim();
@@ -52,14 +165,21 @@ const normalizeStatements = (statements) => {
 export const execStatements = (statements) => {
   const payload = normalizeStatements(statements);
   if (!payload) return;
-  database.exec(payload);
+  if (usingDatabaseSync) {
+    database.exec(payload);
+  } else {
+    runSqliteCli(payload);
+  }
 };
 
 export const queryRows = (statement) => {
   const normalized = ensureStatementTerminated(statement);
   if (!normalized) return [];
-  const prepared = database.prepare(normalized);
-  return prepared.all();
+  if (usingDatabaseSync) {
+    const prepared = database.prepare(normalized);
+    return prepared.all();
+  }
+  return querySqliteCli(normalized);
 };
 
 const mergeRequestColumns = [
@@ -183,7 +303,7 @@ const ensureTableSchema = (name, createStatement, expectedColumns) => {
 };
 
 const initialize = () => {
-  execStatements(['PRAGMA foreign_keys=ON;']);
+  execStatements(['PRAGMA journal_mode=WAL;', 'PRAGMA foreign_keys=ON;']);
   ensureTableSchema('merge_requests', mergeRequestsCreate, mergeRequestColumns);
   ensureTableSchema('stories', storiesCreate, storiesColumns);
   ensureTableSchema('tests', testsCreate, testsColumns);
