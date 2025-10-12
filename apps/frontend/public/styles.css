@@ -300,12 +300,27 @@ textarea {
   text-align: left;
 }
 
-.story-form th {
-  text-transform: uppercase;
-  font-size: 0.72rem;
-  letter-spacing: 0.05em;
-  background: #f8fafc;
+.story-brief {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.story-brief th {
+  width: 120px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
   color: #475569;
+  padding: 0.35rem 0.75rem 0.35rem 0;
+  vertical-align: top;
+}
+
+.story-brief td {
+  padding: 0.35rem 0;
+}
+
+.story-brief textarea {
+  min-height: 3.25rem;
 }
 
 .section-heading {

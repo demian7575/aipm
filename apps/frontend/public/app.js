@@ -569,17 +569,17 @@ function renderDetails() {
     </div>
     <div class="full">
       <table class="story-brief">
-        <thead>
-          <tr>
-            <th>As a</th>
-            <th>I want</th>
-            <th>So that</th>
-          </tr>
-        </thead>
         <tbody>
           <tr>
+            <th scope="row">As a</th>
             <td><textarea name="asA">${escapeHtml(story.asA || '')}</textarea></td>
+          </tr>
+          <tr>
+            <th scope="row">I want</th>
             <td><textarea name="iWant">${escapeHtml(story.iWant || '')}</textarea></td>
+          </tr>
+          <tr>
+            <th scope="row">So that</th>
             <td><textarea name="soThat">${escapeHtml(story.soThat || '')}</textarea></td>
           </tr>
         </tbody>
@@ -897,12 +897,20 @@ function openChildStoryModal(parentId) {
     <label>Assignee Email<input id="child-assignee" type="email" placeholder="name@example.com" /></label>
     <label>Description<textarea id="child-description"></textarea></label>
     <table class="story-brief">
-      <thead><tr><th>As a</th><th>I want</th><th>So that</th></tr></thead>
-      <tbody><tr>
-        <td><textarea id="child-asa"></textarea></td>
-        <td><textarea id="child-iwant"></textarea></td>
-        <td><textarea id="child-sothat"></textarea></td>
-      </tr></tbody>
+      <tbody>
+        <tr>
+          <th scope="row">As a</th>
+          <td><textarea id="child-asa"></textarea></td>
+        </tr>
+        <tr>
+          <th scope="row">I want</th>
+          <td><textarea id="child-iwant"></textarea></td>
+        </tr>
+        <tr>
+          <th scope="row">So that</th>
+          <td><textarea id="child-sothat"></textarea></td>
+        </tr>
+      </tbody>
     </table>
   `;
 
