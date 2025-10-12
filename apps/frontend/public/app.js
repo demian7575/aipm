@@ -1004,7 +1004,7 @@ const renderDetail = () => {
   childSection.className = 'creation-section';
   childSection.innerHTML = `
     <h3>Child Stories</h3>
-    <button type="button" class="open-child-modal">Add Child Story</button>
+    <button type="button" class="open-child-modal">Create Child Story</button>
   `;
   const openChildModalButton = childSection.querySelector('.open-child-modal');
   openChildModalButton.addEventListener('click', () => {
@@ -1021,7 +1021,7 @@ const renderDetail = () => {
       </div>
     `;
 
-    const close = openModal({ title: 'Add Child Story', content: form });
+    const close = openModal({ title: 'Create Child Story', content: form });
 
     const cancelButton = form.querySelector('.modal-cancel');
     cancelButton.addEventListener('click', () => close());
@@ -1076,7 +1076,7 @@ const renderDetail = () => {
   testSection.className = 'creation-section';
   testSection.innerHTML = `
     <h3>Acceptance Tests</h3>
-    <button type="button" class="open-test-modal">Add Acceptance Test</button>
+    <button type="button" class="open-test-modal">Create Acceptance Test</button>
   `;
   const openTestModalButton = testSection.querySelector('.open-test-modal');
   openTestModalButton.addEventListener('click', () => {
@@ -1092,7 +1092,7 @@ const renderDetail = () => {
       </div>
     `;
 
-    const close = openModal({ title: 'Add Acceptance Test', content: form });
+    const close = openModal({ title: 'Create Acceptance Test', content: form });
 
     const cancelButton = form.querySelector('.modal-cancel');
     cancelButton.addEventListener('click', () => close());
