@@ -1,89 +1,31 @@
-import express from 'express';
-import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import { createServer } from 'node:http';
+import { readFile, stat, mkdir } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { DatabaseSync } from 'node:sqlite';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-export const DATABASE_PATH = path.join(__dirname, 'data', 'app.sqlite');
+const FRONTEND_DIR = path.join(__dirname, '..', 'frontend', 'public');
+const DATA_DIR = path.join(__dirname, 'data');
+export const DATABASE_PATH = path.join(DATA_DIR, 'app.sqlite');
 
-export async function createDatabase() {
-  const db = await open({
-    filename: DATABASE_PATH,
-    driver: sqlite3.Database,
-  });
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS user_stories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      story_point INTEGER DEFAULT NULL,
-      assignee_email TEXT DEFAULT '',
-      created_at TEXT NOT NULL
-    );
-  `);
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS acceptance_tests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      story_id INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      expected_result TEXT DEFAULT '',
-      created_at TEXT NOT NULL,
-      FOREIGN KEY (story_id) REFERENCES user_stories(id) ON DELETE CASCADE
-    );
-  `);
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS reference_documents (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      story_id INTEGER NOT NULL,
-      name TEXT NOT NULL,
-      url TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      FOREIGN KEY (story_id) REFERENCES user_stories(id) ON DELETE CASCADE
-    );
-  `);
-
-  const existingStories = await db.get('SELECT COUNT(*) as count FROM user_stories');
-  if (existingStories.count === 0) {
-    const now = new Date().toISOString();
-    const { lastID: storyId } = await db.run(
-      'INSERT INTO user_stories (title, description, story_point, assignee_email, created_at) VALUES (?, ?, ?, ?, ?)',
-      [
-        'Enable user login',
-        'As a user I want to login so that I can access my dashboard.',
-        5,
-        'pm@example.com',
-        now,
-      ]
-    );
-
-    await db.run(
-      'INSERT INTO acceptance_tests (story_id, title, expected_result, created_at) VALUES (?, ?, ?, ?)',
-      [
-        storyId,
-        'Given valid credentials when submitting login form then dashboard appears within 2 seconds',
-        'Dashboard appears',
-        now,
-      ]
-    );
-
-    await db.run(
-      'INSERT INTO reference_documents (story_id, name, url, created_at) VALUES (?, ?, ?, ?)',
-      [
-        storyId,
-        'Design Spec',
-        'https://example.com/design',
-        now,
-      ]
-    );
+function contentTypeFor(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case '.html':
+      return 'text/html; charset=utf-8';
+    case '.css':
+      return 'text/css; charset=utf-8';
+    case '.js':
+      return 'application/javascript; charset=utf-8';
+    case '.json':
+      return 'application/json; charset=utf-8';
+    case '.svg':
+      return 'image/svg+xml';
+    default:
+      return 'application/octet-stream';
   }
-
-  return db;
 }
 
 function mapStory(row) {
@@ -97,165 +39,403 @@ function mapStory(row) {
   };
 }
 
-export async function createApp() {
-  const app = express();
-  const db = await createDatabase();
+async function ensureDatabase() {
+  await mkdir(DATA_DIR, { recursive: true });
+  const db = new DatabaseSync(DATABASE_PATH);
+  db.exec(`
+    PRAGMA foreign_keys = ON;
+    CREATE TABLE IF NOT EXISTS user_stories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      story_point INTEGER DEFAULT NULL,
+      assignee_email TEXT DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS acceptance_tests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      story_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      expected_result TEXT DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS reference_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      story_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+    );
+  `);
 
-  app.use(cors());
-  app.use(express.json());
+  const countStmt = db.prepare('SELECT COUNT(*) AS count FROM user_stories');
+  const { count } = countStmt.get();
+  if (count === 0) {
+    const now = new Date().toISOString();
+    const insertStory = db.prepare(
+      'INSERT INTO user_stories (title, description, story_point, assignee_email, created_at) VALUES (?, ?, ?, ?, ?)' // prettier-ignore
+    );
+    const { lastInsertRowid: storyId } = insertStory.run(
+      'Enable user login',
+      'As a user I want to login so that I can access my dashboard.',
+      5,
+      'pm@example.com',
+      now
+    );
 
-  app.get('/api/stories', async (_req, res) => {
-    const stories = await db.all('SELECT * FROM user_stories ORDER BY id');
+    const insertTest = db.prepare(
+      'INSERT INTO acceptance_tests (story_id, title, expected_result, created_at) VALUES (?, ?, ?, ?)' // prettier-ignore
+    );
+    insertTest.run(
+      storyId,
+      'Given valid credentials when submitting login form then dashboard appears within 2 seconds',
+      'Dashboard appears',
+      now
+    );
+
+    const insertDoc = db.prepare(
+      'INSERT INTO reference_documents (story_id, name, url, created_at) VALUES (?, ?, ?, ?)' // prettier-ignore
+    );
+    insertDoc.run(storyId, 'Design Spec', 'https://example.com/design', now);
+  }
+
+  return db;
+}
+
+function sendJson(res, status, payload) {
+  const body = JSON.stringify(payload);
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  });
+  res.end(body);
+}
+
+async function parseJsonBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+  if (chunks.length === 0) return {};
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    throw new Error('Invalid JSON body');
+  }
+}
+
+async function handleApiRequest(req, res, db) {
+  const url = new URL(req.url, 'http://localhost');
+  const { pathname } = url;
+  const method = req.method ?? 'GET';
+
+  if (method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    });
+    res.end();
+    return true;
+  }
+
+  if (pathname === '/api/stories' && method === 'GET') {
+    const stories = db.prepare('SELECT * FROM user_stories ORDER BY id').all();
     const storyIds = stories.map((story) => story.id);
     let acceptanceTests = [];
-    let references = [];
-    if (storyIds.length) {
+    let referenceDocs = [];
+    if (storyIds.length > 0) {
       const placeholders = storyIds.map(() => '?').join(',');
-      acceptanceTests = await db.all(
-        `SELECT * FROM acceptance_tests WHERE story_id IN (${placeholders}) ORDER BY id`,
-        storyIds
-      );
-      references = await db.all(
-        `SELECT * FROM reference_documents WHERE story_id IN (${placeholders}) ORDER BY id`,
-        storyIds
-      );
+      acceptanceTests = db
+        .prepare(`SELECT * FROM acceptance_tests WHERE story_id IN (${placeholders}) ORDER BY id`)
+        .all(...storyIds);
+      referenceDocs = db
+        .prepare(`SELECT * FROM reference_documents WHERE story_id IN (${placeholders}) ORDER BY id`)
+        .all(...storyIds);
     }
 
-    const groupedTests = acceptanceTests.reduce((acc, test) => {
-      acc[test.story_id] = acc[test.story_id] || [];
-      acc[test.story_id].push({
+    const testsByStory = new Map();
+    for (const test of acceptanceTests) {
+      const existing = testsByStory.get(test.story_id) ?? [];
+      existing.push({
         id: test.id,
         title: test.title,
         expectedResult: test.expected_result,
         createdAt: test.created_at,
       });
-      return acc;
-    }, {});
+      testsByStory.set(test.story_id, existing);
+    }
 
-    const groupedDocs = references.reduce((acc, doc) => {
-      acc[doc.story_id] = acc[doc.story_id] || [];
-      acc[doc.story_id].push({
+    const docsByStory = new Map();
+    for (const doc of referenceDocs) {
+      const existing = docsByStory.get(doc.story_id) ?? [];
+      existing.push({
         id: doc.id,
         name: doc.name,
         url: doc.url,
         createdAt: doc.created_at,
       });
-      return acc;
-    }, {});
+      docsByStory.set(doc.story_id, existing);
+    }
 
-    res.json(
+    sendJson(
+      res,
+      200,
       stories.map((story) => ({
         ...mapStory(story),
-        acceptanceTests: groupedTests[story.id] || [],
-        referenceDocuments: groupedDocs[story.id] || [],
+        acceptanceTests: testsByStory.get(story.id) ?? [],
+        referenceDocuments: docsByStory.get(story.id) ?? [],
       }))
     );
-  });
+    return true;
+  }
 
-  app.post('/api/stories', async (req, res) => {
-    const { title, description = '', storyPoint = null, assigneeEmail = '' } = req.body;
+  if (pathname === '/api/stories' && method === 'POST') {
+    let payload;
+    try {
+      payload = await parseJsonBody(req);
+    } catch (error) {
+      sendJson(res, 400, { message: error.message });
+      return true;
+    }
+
+    const title = typeof payload.title === 'string' ? payload.title.trim() : '';
     if (!title) {
-      res.status(400).json({ message: 'Title is required' });
-      return;
+      sendJson(res, 400, { message: 'Title is required' });
+      return true;
     }
+
+    const description = typeof payload.description === 'string' ? payload.description : '';
+    const storyPoint = Number.isFinite(payload.storyPoint) ? Number(payload.storyPoint) : null;
+    const assigneeEmail = typeof payload.assigneeEmail === 'string' ? payload.assigneeEmail.trim() : '';
+
     const now = new Date().toISOString();
-    const result = await db.run(
-      'INSERT INTO user_stories (title, description, story_point, assignee_email, created_at) VALUES (?, ?, ?, ?, ?)',
-      [title, description, storyPoint, assigneeEmail, now]
-    );
-    const story = await db.get('SELECT * FROM user_stories WHERE id = ?', [result.lastID]);
-    res.status(201).json(mapStory(story));
-  });
+    const result = db
+      .prepare(
+        'INSERT INTO user_stories (title, description, story_point, assignee_email, created_at) VALUES (?, ?, ?, ?, ?)' // prettier-ignore
+      )
+      .run(title, description, storyPoint, assigneeEmail, now);
+    const story = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(result.lastInsertRowid);
+    sendJson(res, 201, mapStory(story));
+    return true;
+  }
 
-  app.patch('/api/stories/:id', async (req, res) => {
-    const storyId = Number(req.params.id);
-    const story = await db.get('SELECT * FROM user_stories WHERE id = ?', [storyId]);
+  const storyMatch = pathname.match(/^\/api\/stories\/(\d+)(.*)$/);
+  if (storyMatch) {
+    const storyId = Number(storyMatch[1]);
+    const remainder = storyMatch[2];
+    const story = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
     if (!story) {
-      res.status(404).json({ message: 'Story not found' });
-      return;
+      sendJson(res, 404, { message: 'Story not found' });
+      return true;
     }
 
-    const {
-      title = story.title,
-      description = story.description,
-      storyPoint = story.story_point,
-      assigneeEmail = story.assignee_email,
-    } = req.body;
+    if ((remainder === '' || remainder === '/') && method === 'PATCH') {
+      let payload;
+      try {
+        payload = await parseJsonBody(req);
+      } catch (error) {
+        sendJson(res, 400, { message: error.message });
+        return true;
+      }
 
-    await db.run(
-      'UPDATE user_stories SET title = ?, description = ?, story_point = ?, assignee_email = ? WHERE id = ?',
-      [title, description, storyPoint, assigneeEmail, storyId]
-    );
+      const title = typeof payload.title === 'string' ? payload.title.trim() : story.title;
+      const description = typeof payload.description === 'string' ? payload.description : story.description;
+      const storyPoint =
+        payload.storyPoint === null || payload.storyPoint === ''
+          ? null
+          : Number.isFinite(Number(payload.storyPoint))
+          ? Number(payload.storyPoint)
+          : story.story_point;
+      const assigneeEmail =
+        typeof payload.assigneeEmail === 'string' ? payload.assigneeEmail.trim() : story.assignee_email;
 
-    const updated = await db.get('SELECT * FROM user_stories WHERE id = ?', [storyId]);
-    res.json(mapStory(updated));
-  });
+      db
+        .prepare(
+          'UPDATE user_stories SET title = ?, description = ?, story_point = ?, assignee_email = ? WHERE id = ?'
+        )
+        .run(title, description, storyPoint, assigneeEmail, storyId);
 
-  app.post('/api/stories/:id/acceptance-tests', async (req, res) => {
-    const storyId = Number(req.params.id);
-    const story = await db.get('SELECT * FROM user_stories WHERE id = ?', [storyId]);
-    if (!story) {
-      res.status(404).json({ message: 'Story not found' });
+      const updated = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
+      sendJson(res, 200, mapStory(updated));
+      return true;
+    }
+
+    if (remainder.startsWith('/acceptance-tests')) {
+      const testMatch = remainder.match(/^\/acceptance-tests(?:\/(\d+))?$/);
+      if (!testMatch) {
+        sendJson(res, 404, { message: 'Not found' });
+        return true;
+      }
+
+      if (!testMatch[1] && method === 'POST') {
+        let payload;
+        try {
+          payload = await parseJsonBody(req);
+        } catch (error) {
+          sendJson(res, 400, { message: error.message });
+          return true;
+        }
+
+        const title = typeof payload.title === 'string' ? payload.title.trim() : '';
+        if (!title) {
+          sendJson(res, 400, { message: 'Title is required' });
+          return true;
+        }
+        const expectedResult =
+          typeof payload.expectedResult === 'string' ? payload.expectedResult.trim() : '';
+        const now = new Date().toISOString();
+        const result = db
+          .prepare(
+            'INSERT INTO acceptance_tests (story_id, title, expected_result, created_at) VALUES (?, ?, ?, ?)' // prettier-ignore
+          )
+          .run(storyId, title, expectedResult, now);
+        sendJson(res, 201, {
+          id: result.lastInsertRowid,
+          storyId,
+          title,
+          expectedResult,
+          createdAt: now,
+        });
+        return true;
+      }
+
+      if (testMatch[1] && method === 'DELETE') {
+        const testId = Number(testMatch[1]);
+        db.prepare('DELETE FROM acceptance_tests WHERE id = ?').run(testId);
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        });
+        res.end();
+        return true;
+      }
+    }
+
+    if (remainder.startsWith('/reference-documents')) {
+      const docMatch = remainder.match(/^\/reference-documents(?:\/(\d+))?$/);
+      if (!docMatch) {
+        sendJson(res, 404, { message: 'Not found' });
+        return true;
+      }
+
+      if (!docMatch[1] && method === 'POST') {
+        let payload;
+        try {
+          payload = await parseJsonBody(req);
+        } catch (error) {
+          sendJson(res, 400, { message: error.message });
+          return true;
+        }
+
+        const name = typeof payload.name === 'string' ? payload.name.trim() : '';
+        const urlValue = typeof payload.url === 'string' ? payload.url.trim() : '';
+        if (!name || !urlValue) {
+          sendJson(res, 400, { message: 'Name and URL are required' });
+          return true;
+        }
+        const now = new Date().toISOString();
+        const result = db
+          .prepare('INSERT INTO reference_documents (story_id, name, url, created_at) VALUES (?, ?, ?, ?)')
+          .run(storyId, name, urlValue, now);
+        sendJson(res, 201, {
+          id: result.lastInsertRowid,
+          storyId,
+          name,
+          url: urlValue,
+          createdAt: now,
+        });
+        return true;
+      }
+
+      if (docMatch[1] && method === 'DELETE') {
+        const docId = Number(docMatch[1]);
+        db.prepare('DELETE FROM reference_documents WHERE id = ?').run(docId);
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        });
+        res.end();
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+async function serveStatic(req, res) {
+  const url = new URL(req.url, 'http://localhost');
+  let relativePath = url.pathname;
+  if (relativePath === '/') {
+    relativePath = '/index.html';
+  }
+  const safePath = path.normalize(relativePath).replace(/^\.\/+/, '');
+  const filePath = path.join(FRONTEND_DIR, safePath);
+  if (!filePath.startsWith(FRONTEND_DIR)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Forbidden');
+    return;
+  }
+
+  try {
+    const stats = await stat(filePath);
+    if (stats.isDirectory()) {
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Forbidden');
       return;
     }
-    const { title, expectedResult = '' } = req.body;
-    if (!title) {
-      res.status(400).json({ message: 'Title is required' });
-      return;
+    const body = await readFile(filePath);
+    res.writeHead(200, { 'Content-Type': contentTypeFor(filePath) });
+    res.end(body);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+    } else {
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Internal server error');
     }
-    const now = new Date().toISOString();
-    const result = await db.run(
-      'INSERT INTO acceptance_tests (story_id, title, expected_result, created_at) VALUES (?, ?, ?, ?)',
-      [storyId, title, expectedResult, now]
-    );
-    res.status(201).json({
-      id: result.lastID,
-      storyId,
-      title,
-      expectedResult,
-      createdAt: now,
-    });
+  }
+}
+
+export async function createApp() {
+  const db = await ensureDatabase();
+  const server = createServer((req, res) => {
+    handleApiRequest(req, res, db)
+      .then((handled) => {
+        if (handled) {
+          return;
+        }
+        return serveStatic(req, res);
+      })
+      .catch((error) => {
+        console.error('Unhandled request error', error);
+        if (!res.headersSent) {
+          res.writeHead(500, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          });
+        }
+        res.end(JSON.stringify({ message: 'Internal server error' }));
+      });
   });
 
-  app.delete('/api/stories/:id/acceptance-tests/:testId', async (req, res) => {
-    const testId = Number(req.params.testId);
-    await db.run('DELETE FROM acceptance_tests WHERE id = ?', [testId]);
-    res.status(204).end();
-  });
-
-  app.post('/api/stories/:id/reference-documents', async (req, res) => {
-    const storyId = Number(req.params.id);
-    const story = await db.get('SELECT * FROM user_stories WHERE id = ?', [storyId]);
-    if (!story) {
-      res.status(404).json({ message: 'Story not found' });
-      return;
+  server.on('close', () => {
+    try {
+      db.close();
+    } catch (error) {
+      console.error('Failed to close database', error);
     }
-    const { name, url } = req.body;
-    if (!name || !url) {
-      res.status(400).json({ message: 'Name and URL are required' });
-      return;
-    }
-    const now = new Date().toISOString();
-    const result = await db.run(
-      'INSERT INTO reference_documents (story_id, name, url, created_at) VALUES (?, ?, ?, ?)',
-      [storyId, name, url, now]
-    );
-    res.status(201).json({
-      id: result.lastID,
-      storyId,
-      name,
-      url,
-      createdAt: now,
-    });
   });
 
-  app.delete('/api/stories/:id/reference-documents/:docId', async (req, res) => {
-    const docId = Number(req.params.docId);
-    await db.run('DELETE FROM reference_documents WHERE id = ?', [docId]);
-    res.status(204).end();
-  });
-
-  app.use(express.static(path.join(__dirname, '..', 'frontend', 'public')));
-
-  return app;
+  return server;
 }

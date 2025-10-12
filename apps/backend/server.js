@@ -1,10 +1,10 @@
 import { createApp } from './app.js';
 
-const port = process.env.PORT || 4000;
+const port = Number(process.env.PORT || 4000);
 
 createApp()
-  .then((app) => {
-    app.listen(port, () => {
+  .then((server) => {
+    server.listen(port, () => {
       console.log(`Server running on http://localhost:${port}`);
     });
   })
