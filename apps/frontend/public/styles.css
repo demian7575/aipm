@@ -518,6 +518,23 @@ button:focus {
   margin: auto 0;
 }
 
+.error-message {
+  background: rgba(254, 226, 226, 0.7);
+  color: #b91c1c;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(248, 113, 113, 0.6);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.svg-message {
+  fill: #b91c1c;
+  font-size: 16px;
+  font-weight: 600;
+  max-width: 480px;
+}
+
 @media (max-width: 1400px) {
   .layout {
     grid-template-columns: 320px minmax(0, 1fr);

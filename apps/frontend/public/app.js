@@ -36,6 +36,83 @@ const detailEl = document.getElementById('detail-content');
 const githubEl = document.getElementById('github-status');
 const layoutEl = document.querySelector('.layout');
 
+const normalizeErrorMessage = (error) => {
+  if (!error) return 'Unknown error occurred.';
+  if (typeof error === 'string') return error;
+  if (error && typeof error.message === 'string' && error.message.trim().length > 0) {
+    return error.message;
+  }
+  if (error && typeof error.toString === 'function') {
+    return error.toString();
+  }
+  return 'Unexpected error occurred.';
+};
+
+const wrapSvgMessage = (message, limit = 52) => {
+  if (!message) return [];
+  const words = message.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [message];
+  const lines = [];
+  let current = '';
+  words.forEach((word) => {
+    const prospective = current.length === 0 ? word : `${current} ${word}`;
+    if (prospective.length > limit && current.length > 0) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = prospective;
+    }
+  });
+  if (current.length > 0) {
+    lines.push(current);
+  }
+  return lines;
+};
+
+const showGlobalError = (error) => {
+  const baseMessage = normalizeErrorMessage(error);
+  const message = `${baseMessage} Please ensure the backend server is running and reachable, then try Refresh.`;
+
+  if (outlineEl) {
+    outlineEl.innerHTML = '';
+    const paragraph = document.createElement('p');
+    paragraph.className = 'error-message';
+    paragraph.textContent = message;
+    outlineEl.appendChild(paragraph);
+  }
+
+  if (detailEl) {
+    detailEl.innerHTML = '';
+    const paragraph = document.createElement('p');
+    paragraph.className = 'error-message';
+    paragraph.textContent = message;
+    detailEl.appendChild(paragraph);
+  }
+
+  if (mindmapEl) {
+    while (mindmapEl.firstChild) {
+      mindmapEl.removeChild(mindmapEl.firstChild);
+    }
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', '16');
+    text.setAttribute('y', '32');
+    text.setAttribute('class', 'svg-message');
+    const lines = wrapSvgMessage(message);
+    if (lines.length === 0) {
+      text.textContent = message;
+    } else {
+      lines.forEach((line, index) => {
+        const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        span.setAttribute('x', '16');
+        span.setAttribute('dy', index === 0 ? '0' : '1.4em');
+        span.textContent = line;
+        text.appendChild(span);
+      });
+    }
+    mindmapEl.appendChild(text);
+  }
+};
+
 const storyFailsInvest = (story) => {
   if (!story || !story.invest) return false;
   return Object.values(story.invest).some((value) => !value);
@@ -1551,22 +1628,32 @@ const initializeEvents = () => {
   });
 
   headerControls.refresh.addEventListener('click', async () => {
-    await loadState();
-    renderOutline();
-    renderMindmap();
-    renderDetail();
-    renderGithubStatus();
+    try {
+      await loadState();
+      renderOutline();
+      renderMindmap();
+      renderDetail();
+      renderGithubStatus();
+    } catch (error) {
+      console.error('Failed to refresh workspace data', error);
+      alert(`Unable to load latest workspace data: ${normalizeErrorMessage(error)}`);
+    }
   });
 
   headerControls.reset.addEventListener('click', async () => {
     if (!confirm('Reset in-memory data to seed state?')) return;
-    await fetchJSON('/api/reset', { method: 'POST' });
-    await loadState();
-    state.selectedStoryId = null;
-    renderOutline();
-    renderMindmap();
-    renderDetail();
-    renderGithubStatus();
+    try {
+      await fetchJSON('/api/reset', { method: 'POST' });
+      await loadState();
+      state.selectedStoryId = null;
+      renderOutline();
+      renderMindmap();
+      renderDetail();
+      renderGithubStatus();
+    } catch (error) {
+      console.error('Failed to reset workspace data', error);
+      alert(`Reset failed: ${normalizeErrorMessage(error)}`);
+    }
   });
 
   headerControls.radius.addEventListener('input', (event) => {
@@ -1592,7 +1679,14 @@ const bootstrap = async () => {
   loadPanelVisibility();
   applyPanelVisibility();
   initializeEvents();
-  await loadState();
+  try {
+    await loadState();
+  } catch (error) {
+    console.error('Failed to load initial workspace data', error);
+    showGlobalError(error);
+    return;
+  }
+
   if (rootStories().length > 0) {
     rootStories().forEach((story) => state.expanded.add(story.id));
   }
