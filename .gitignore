@@ -1,5 +1,6 @@
 node_modules/
 data/
 apps/backend/data/
+apps/backend/uploads/
 dist/
 .DS_Store

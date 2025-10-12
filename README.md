@@ -41,7 +41,7 @@ Additional controls inside the panels include:
 - **Auto Layout toggle** – Switch between deterministic radial layout and manual drag positioning (positions persist per story).
 - **Expand All / Collapse All** – Adjust outline and mindmap expansion states together.
 - **Create Acceptance Test / Create Child Story** – Launch modal forms that support warning overrides for INVEST and measurability policies.
-- **Reference Document List** – Modal for adding, opening, and deleting linked documentation.
+- **Reference Document List** – Modal for adding, opening, and deleting linked documentation, including direct file uploads stored on the server.
 
 ## Building
 
@@ -81,7 +81,7 @@ tests/
 
 ## Data Storage
 
-Runtime data is stored in `apps/backend/data/app.sqlite`. The development server seeds:
+Runtime data is stored in `apps/backend/data/app.sqlite`. Uploaded reference files are written to `apps/backend/uploads/` and served back at `/uploads/<file>`. The development server seeds:
 
 - A root story with INVEST-compliant metadata and acceptance test.
 - A child story to demonstrate hierarchy.

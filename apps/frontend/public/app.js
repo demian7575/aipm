@@ -1012,9 +1012,11 @@ function openReferenceModal(storyId) {
 
   const form = document.createElement('form');
   form.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:0.5rem;">
-      <label>Name<input id="doc-name" required /></label>
-      <label>URL<input id="doc-url" type="url" required placeholder="https://example.com/doc" /></label>
+    <div style="display:flex; flex-direction:column; gap:0.75rem;">
+      <label>Name<input id="doc-name" placeholder="Security checklist" /></label>
+      <label>URL<input id="doc-url" type="url" placeholder="https://example.com/doc or uploaded link" /></label>
+      <label class="file-picker">Upload File<input id="doc-file" type="file" /></label>
+      <p class="form-hint">Selecting a file uploads it immediately and fills the URL field.</p>
       <button type="submit">Add Document</button>
     </div>
   `;
@@ -1056,6 +1058,15 @@ function openReferenceModal(storyId) {
     `;
     listEl.innerHTML = '';
     listEl.appendChild(table);
+    table.querySelectorAll('.reference-link').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const href = link.getAttribute('href');
+        if (href) {
+          window.open(href, '_blank', 'noopener,noreferrer');
+        }
+      });
+    });
     table.querySelectorAll('button[data-doc-id]').forEach((button) => {
       button.addEventListener('click', async () => {
         const docId = Number(button.getAttribute('data-doc-id'));
@@ -1071,26 +1082,59 @@ function openReferenceModal(storyId) {
     });
   }
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const name = form.querySelector('#doc-name').value.trim();
-    const url = form.querySelector('#doc-url').value.trim();
-    if (!name || !url) {
-      showToast('Name and URL are required.', 'error');
-      return;
-    }
+  const nameInput = form.querySelector('#doc-name');
+  const urlInput = form.querySelector('#doc-url');
+  const fileInput = form.querySelector('#doc-file');
+  let uploading = false;
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    uploading = true;
     try {
-      await sendJson(`/api/stories/${storyId}/reference-documents`, {
-        method: 'POST',
-        body: { name, url },
-      });
-      form.reset();
-      await refreshModalContent();
-      showToast('Reference document added', 'success');
+      showToast('Uploading document…');
+      const result = await uploadReferenceFile(file);
+      urlInput.value = result.url;
+      if (!nameInput.value) {
+        nameInput.value = result.originalName || file.name;
+      }
+      showToast('File uploaded. Click "Add Document" to save it.', 'success');
     } catch (error) {
-      showToast(error.message || 'Failed to add reference document', 'error');
+      showToast(error.message || 'Failed to upload file', 'error');
+      fileInput.value = '';
+    } finally {
+      uploading = false;
     }
   });
+
+  form.addEventListener(
+    'submit',
+    async (event) => {
+      event.preventDefault();
+      if (uploading) {
+        showToast('Please wait for the upload to finish.', 'error');
+        return;
+      }
+      const name = nameInput.value.trim();
+      const url = urlInput.value.trim();
+      if (!name || !url) {
+        showToast('Name and URL are required.', 'error');
+        return;
+      }
+      try {
+        await sendJson(`/api/stories/${storyId}/reference-documents`, {
+          method: 'POST',
+          body: { name, url },
+        });
+        form.reset();
+        await refreshModalContent();
+        showToast('Reference document added', 'success');
+      } catch (error) {
+        showToast(error.message || 'Failed to add reference document', 'error');
+      }
+    },
+    { capture: false }
+  );
 
   const story = storyIndex.get(storyId);
   if (story) {
@@ -1152,6 +1196,30 @@ async function createAcceptanceTest(storyId, payload) {
     }
     throw error;
   }
+}
+
+async function uploadReferenceFile(file) {
+  const params = new URLSearchParams({ filename: file.name || 'document' });
+  const response = await fetch(`/api/uploads?${params}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+    },
+    body: file,
+  });
+  if (!response.ok) {
+    let message = 'Failed to upload file';
+    try {
+      const body = await response.json();
+      if (body && body.message) {
+        message = body.message;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(message);
+  }
+  return await response.json();
 }
 
 function formatInvestWarnings(warnings) {

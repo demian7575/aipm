@@ -93,6 +93,38 @@ test('stories CRUD with reference documents', async (t) => {
   const doc = await docResponse.json();
   assert.equal(doc.name, 'API Spec');
 
+  const uploadResponse = await fetch(`${baseUrl}/api/uploads?filename=checklist.txt`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: Buffer.from('Security review must cover 5 controls'),
+  });
+  assert.equal(uploadResponse.status, 201);
+  const uploadInfo = await uploadResponse.json();
+  assert.ok(uploadInfo.url.startsWith('/uploads/'));
+  const uploadsDir = path.join(path.dirname(DATABASE_PATH), '..', 'uploads');
+  const uploadPath = path.join(uploadsDir, path.basename(uploadInfo.url));
+  await fs.access(uploadPath);
+
+  const localDocResponse = await fetch(`${baseUrl}/api/stories/${story.id}/reference-documents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'Uploaded Checklist', url: uploadInfo.url }),
+  });
+  assert.equal(localDocResponse.status, 201);
+  const localDoc = await localDocResponse.json();
+  assert.equal(localDoc.name, 'Uploaded Checklist');
+
+  const fileFetch = await fetch(`${baseUrl}${uploadInfo.url}`);
+  assert.equal(fileFetch.status, 200);
+  const fileText = await fileFetch.text();
+  assert.match(fileText, /Security review/);
+
+  const deleteLocal = await fetch(`${baseUrl}/api/reference-documents/${localDoc.id}`, {
+    method: 'DELETE',
+  });
+  assert.equal(deleteLocal.status, 204);
+  await assert.rejects(fs.stat(uploadPath));
+
   const finalStories = await fetch(`${baseUrl}/api/stories`);
   const finalData = await finalStories.json();
   assert.equal(finalData[0].referenceDocuments.length, 2);

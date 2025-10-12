@@ -342,6 +342,16 @@ textarea {
   gap: 0.5rem;
 }
 
+.form-hint {
+  font-size: 0.85rem;
+  color: #4b5563;
+  margin: 0;
+}
+
+.file-picker input[type='file'] {
+  margin-top: 0.4rem;
+}
+
 .reference-link {
   color: #2563eb;
   text-decoration: none;

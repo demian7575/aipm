@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
-import { readFile, stat, mkdir } from 'node:fs/promises';
+import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
@@ -8,7 +9,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const FRONTEND_DIR = path.join(__dirname, '..', 'frontend', 'public');
 const DATA_DIR = path.join(__dirname, 'data');
+const UPLOAD_DIR = path.join(__dirname, 'uploads');
 export const DATABASE_PATH = path.join(DATA_DIR, 'app.sqlite');
+
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 
 let acceptanceTestsHasTitleColumn = false;
 
@@ -30,6 +34,28 @@ function parseJsonArray(value) {
   } catch {
     return [];
   }
+}
+
+function sanitizeFilename(name) {
+  return name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+}
+
+function isLocalUpload(urlPath) {
+  return typeof urlPath === 'string' && urlPath.startsWith('/uploads/');
+}
+
+function resolveUploadPath(urlPath) {
+  if (!isLocalUpload(urlPath)) return null;
+  const relative = urlPath.replace(/^\/uploads\//, '');
+  const safeSegments = relative
+    .split(/[/\\]+/)
+    .filter(Boolean)
+    .map((segment) => sanitizeFilename(segment));
+  const resolved = path.join(UPLOAD_DIR, ...safeSegments);
+  if (!resolved.startsWith(UPLOAD_DIR)) {
+    return null;
+  }
+  return resolved;
 }
 
 function investWarnings(story) {
@@ -150,8 +176,20 @@ function ensureNotNullDefaults(db) {
   `);
 }
 
+async function removeUploadIfLocal(urlPath) {
+  const filePath = resolveUploadPath(urlPath);
+  if (!filePath) return;
+  try {
+    await unlink(filePath);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
 async function ensureDatabase() {
-  await mkdir(DATA_DIR, { recursive: true });
+  await Promise.all([mkdir(DATA_DIR, { recursive: true }), mkdir(UPLOAD_DIR, { recursive: true })]);
   const db = new DatabaseSync(DATABASE_PATH);
   db.exec(`
     PRAGMA journal_mode = WAL;
@@ -448,6 +486,90 @@ async function serveStatic(req, res) {
   }
 }
 
+async function serveUpload(pathname, res) {
+  const relative = pathname.replace(/^\/uploads\//, '');
+  const filePath = resolveUploadPath(`/uploads/${relative}`);
+  if (!filePath) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Invalid path');
+    return;
+  }
+  try {
+    const stats = await stat(filePath);
+    if (stats.isDirectory()) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+      return;
+    }
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType =
+      ext === '.pdf'
+        ? 'application/pdf'
+        : ext === '.txt'
+        ? 'text/plain; charset=utf-8'
+        : ext === '.png'
+        ? 'image/png'
+        : ext === '.jpg' || ext === '.jpeg'
+        ? 'image/jpeg'
+        : ext === '.csv'
+        ? 'text/csv; charset=utf-8'
+        : ext === '.json'
+        ? 'application/json; charset=utf-8'
+        : 'application/octet-stream';
+    const body = await readFile(filePath);
+    res.writeHead(200, { 'Content-Type': contentType });
+    res.end(body);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found');
+      return;
+    }
+    res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Internal server error');
+  }
+}
+
+async function handleFileUpload(req, res, url) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { message: 'Method not allowed' });
+    return;
+  }
+  const filename = url.searchParams.get('filename');
+  if (!filename) {
+    sendJson(res, 400, { message: 'filename query parameter is required' });
+    return;
+  }
+  const sanitizedBase = sanitizeFilename(filename) || 'upload';
+  const ext = path.extname(sanitizedBase);
+  const uniqueName = `${Date.now()}-${randomUUID()}${ext}`;
+  const destPath = resolveUploadPath(`/uploads/${uniqueName}`);
+  if (!destPath) {
+    sendJson(res, 400, { message: 'Invalid filename' });
+    return;
+  }
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of req) {
+    total += chunk.length;
+    if (total > MAX_UPLOAD_SIZE) {
+      sendJson(res, 413, { message: 'File too large (max 10MB)' });
+      return;
+    }
+    chunks.push(chunk);
+  }
+  if (total === 0) {
+    sendJson(res, 400, { message: 'Empty file upload' });
+    return;
+  }
+  await writeFile(destPath, Buffer.concat(chunks));
+  sendJson(res, 201, {
+    url: `/uploads/${uniqueName}`,
+    originalName: sanitizedBase,
+    size: total,
+  });
+}
+
 export async function createApp() {
   const db = await ensureDatabase();
 
@@ -463,6 +585,16 @@ export async function createApp() {
         'Access-Control-Allow-Headers': 'Content-Type',
       });
       res.end();
+      return;
+    }
+
+    if (pathname.startsWith('/uploads/')) {
+      await serveUpload(pathname, res);
+      return;
+    }
+
+    if (pathname === '/api/uploads') {
+      await handleFileUpload(req, res, url);
       return;
     }
 
@@ -707,6 +839,18 @@ export async function createApp() {
         if (!name || !urlValue) {
           throw Object.assign(new Error('Name and URL are required'), { statusCode: 400 });
         }
+        if (!isLocalUpload(urlValue)) {
+          try {
+            const parsed = new URL(urlValue);
+            if (!(parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
+              throw new Error('Only http(s) URLs are allowed');
+            }
+          } catch {
+            throw Object.assign(new Error('URL must be http(s) or an uploaded document'), {
+              statusCode: 400,
+            });
+          }
+        }
         const statement = db.prepare(
           'INSERT INTO reference_documents (story_id, name, url, created_at, updated_at) VALUES (?, ?, ?, ?, ?)' // prettier-ignore
         );
@@ -725,11 +869,17 @@ export async function createApp() {
     const docIdMatch = pathname.match(/^\/api\/reference-documents\/(\d+)$/);
     if (docIdMatch && method === 'DELETE') {
       const docId = Number(docIdMatch[1]);
-      const statement = db.prepare('DELETE FROM reference_documents WHERE id = ?');
-      const result = statement.run(docId);
-      if (result.changes === 0) {
+      const existing = db.prepare('SELECT * FROM reference_documents WHERE id = ?').get(docId);
+      if (!existing) {
         sendJson(res, 404, { message: 'Reference document not found' });
       } else {
+        const statement = db.prepare('DELETE FROM reference_documents WHERE id = ?');
+        statement.run(docId);
+        try {
+          await removeUploadIfLocal(existing.url);
+        } catch (error) {
+          console.error('Failed to remove uploaded file', error);
+        }
         sendJson(res, 204, {});
       }
       return;
