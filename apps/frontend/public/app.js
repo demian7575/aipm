@@ -525,7 +525,7 @@ function renderDetails() {
     </div>
     <div>
       <label>Story Point</label>
-      <input name="storyPoint" type="number" min="0" value="${
+      <input name="storyPoint" type="number" min="0" step="1" placeholder="Estimate" value="${
         story.storyPoint != null ? story.storyPoint : ''
       }" />
     </div>
@@ -867,7 +867,7 @@ function openChildStoryModal(parentId) {
   const container = document.createElement('div');
   container.innerHTML = `
     <label>Title<input id="child-title" /></label>
-    <label>Story Point<input id="child-point" type="number" min="0" /></label>
+    <label>Story Point<input id="child-point" type="number" min="0" step="1" placeholder="Estimate" /></label>
     <label>Assignee Email<input id="child-assignee" type="email" placeholder="name@example.com" /></label>
     <label>Description<textarea id="child-description"></textarea></label>
     <table class="story-brief">

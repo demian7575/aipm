@@ -49,6 +49,39 @@ test('stories CRUD with reference documents', async (t) => {
   assert.equal(updated.storyPoint, 8);
   assert.equal(updated.assigneeEmail, 'owner@example.com');
 
+  const childResponse = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Child estimation',
+      parentId: story.id,
+      storyPoint: 3,
+      assigneeEmail: 'engineer@example.com',
+      description: 'Implements supporting UI',
+      asA: 'User',
+      iWant: 'complete a two-factor login',
+      soThat: 'my account stays safe',
+    }),
+  });
+  assert.equal(childResponse.status, 201);
+  const child = await childResponse.json();
+  assert.equal(child.storyPoint, 3);
+
+  const invalidStoryPoint = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Bad estimation',
+      storyPoint: -2,
+      asA: 'User',
+      iWant: 'do something',
+      soThat: 'it works',
+    }),
+  });
+  assert.equal(invalidStoryPoint.status, 400);
+  const invalidBody = await invalidStoryPoint.json();
+  assert.match(invalidBody.message, /Story point/i);
+
   const docResponse = await fetch(`${baseUrl}/api/stories/${story.id}/reference-documents`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

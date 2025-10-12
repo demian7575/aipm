@@ -93,7 +93,7 @@ The database file is recreated automatically if missing. Delete the file to rese
 
 - **Right-growing mindmap** with rectangular user story nodes, red-highlighted titles, and ancestor expansion synced to the outline.
 - **Outline tree** with keyboard-accessible expand/collapse controls and selection synchronization.
-- **Details panel** showing INVEST warnings, story point editing, assignee email launch, acceptance test tables, and child story lists.
+- **Details panel** showing INVEST warnings, story point editing with non-negative integer validation, assignee email launch, acceptance test tables, and child story lists.
 - **Modal workflows** for creating child stories, acceptance tests (with measurability hints), and reference documents.
 - **Warning overrides** that allow saving despite INVEST or measurability warnings after user confirmation.
 - **Persistent layout state** including panel visibility, expanded nodes, manual mindmap coordinates, and the last selected story.

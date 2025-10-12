@@ -47,6 +47,23 @@ function investWarnings(story) {
   return warnings;
 }
 
+function normalizeStoryPoint(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    throw Object.assign(new Error('Story point must be a number'), { statusCode: 400 });
+  }
+  if (!Number.isInteger(numeric)) {
+    throw Object.assign(new Error('Story point must be an integer'), { statusCode: 400 });
+  }
+  if (numeric < 0) {
+    throw Object.assign(new Error('Story point cannot be negative'), { statusCode: 400 });
+  }
+  return numeric;
+}
+
 const MEASURABLE_PATTERN = /([0-9]+\s*(ms|s|sec|seconds?|minutes?|hours?|%|percent|users?|items?|requests?|errors?))/i;
 
 function measurabilityWarnings(thenSteps) {
@@ -421,7 +438,7 @@ export async function createApp() {
         const iWant = String(payload.iWant ?? '').trim();
         const soThat = String(payload.soThat ?? '').trim();
         const description = String(payload.description ?? '').trim();
-        const storyPoint = payload.storyPoint == null || payload.storyPoint === '' ? null : Number(payload.storyPoint);
+        const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
         const warnings = investWarnings({ asA, iWant, soThat, title });
@@ -471,7 +488,6 @@ export async function createApp() {
           throw Object.assign(new Error('Title is required'), { statusCode: 400 });
         }
         const description = String(payload.description ?? '').trim();
-        const storyPoint = payload.storyPoint == null || payload.storyPoint === '' ? null : Number(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const asA = payload.asA != null ? String(payload.asA).trim() : undefined;
         const iWant = payload.iWant != null ? String(payload.iWant).trim() : undefined;
@@ -482,6 +498,9 @@ export async function createApp() {
         if (!existing) {
           throw Object.assign(new Error('Story not found'), { statusCode: 404 });
         }
+
+        const storyPoint =
+          payload.storyPoint === undefined ? existing.story_point : normalizeStoryPoint(payload.storyPoint);
 
         const storyForValidation = {
           title,
