@@ -34,6 +34,7 @@ const outlineEl = document.getElementById('outline-tree');
 const mindmapEl = document.getElementById('mindmap-canvas');
 const detailEl = document.getElementById('detail-content');
 const githubEl = document.getElementById('github-status');
+const layoutEl = document.querySelector('.layout');
 
 const panelElements = {
   outline: document.querySelector('.panel.outline'),
@@ -197,6 +198,10 @@ const applyPanelVisibility = () => {
     if (!input) return;
     input.checked = state.panelVisibility[key] !== false;
   });
+  if (layoutEl) {
+    const showGithub = state.panelVisibility.github !== false;
+    layoutEl.classList.toggle('layout-no-github', !showGithub);
+  }
 };
 
 const positionStorageKey = (mrId) => `${POSITION_STORAGE_PREFIX}${mrId}`;
@@ -939,74 +944,105 @@ const renderDetail = () => {
     }
   });
 
-  const testList = form.querySelector('#test-list');
   const testTemplate = document.getElementById('test-form-template');
-  tests.forEach((test) => {
-    const formEl = testTemplate.content.firstElementChild.cloneNode(true);
-    formEl.dataset.testId = test.id;
-    formEl.elements.given.value = test.given.join('\n');
-    formEl.elements.when.value = test.when.join('\n');
-    formEl.elements.then.value = test.then.join('\n');
-    formEl.elements.status.value = test.status;
-    const flagsEl = formEl.querySelector('.test-flags');
-    if (test.ambiguityFlags.length > 0) {
-      flagsEl.textContent = `Ambiguity: ${test.ambiguityFlags.join(', ')}`;
-    } else {
-      flagsEl.textContent = 'No ambiguity detected';
-    }
-
-    formEl.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const body = {
-        given: formEl.elements.given.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
-        when: formEl.elements.when.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
-        then: formEl.elements.then.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
-        status: formEl.elements.status.value
-      };
-      try {
-        await fetchJSON(`/api/tests/${test.id}`, { method: 'PATCH', body: JSON.stringify(body) });
-        await loadState();
-        renderDetail();
-        renderOutline();
-        renderMindmap();
-      } catch (error) {
-        alert(formatTestabilityError(error, 'Failed to save test'));
-      }
-    });
-
-    formEl.querySelector('.delete-test').addEventListener('click', async () => {
-      try {
-        await fetchJSON(`/api/tests/${test.id}`, { method: 'DELETE' });
-        await loadState();
-        renderDetail();
-        renderOutline();
-        renderMindmap();
-      } catch (error) {
-        alert(`Failed to delete test: ${error.message}`);
-      }
-    });
-
-    testList.appendChild(formEl);
-  });
 
   detailEl.appendChild(form);
 
+  const createHeaderRow = (labels) => {
+    const row = document.createElement('div');
+    row.className = 'detail-table-row detail-table-header';
+    labels.forEach((label) => {
+      const cell = document.createElement('span');
+      cell.className = 'detail-table-cell';
+      cell.textContent = label;
+      row.appendChild(cell);
+    });
+    return row;
+  };
+
+  const createEmptyRow = (message) => {
+    const row = document.createElement('div');
+    row.className = 'detail-table-row detail-table-empty';
+    const cell = document.createElement('span');
+    cell.className = 'detail-table-cell';
+    cell.style.gridColumn = '1 / -1';
+    cell.textContent = message;
+    row.appendChild(cell);
+    return row;
+  };
+
   const childSection = document.createElement('section');
-  childSection.className = 'creation-section';
-  childSection.innerHTML = `
-    <h3>Child Stories</h3>
-    <button type="button" class="open-child-modal">Create Child Story</button>
-  `;
-  const openChildModalButton = childSection.querySelector('.open-child-modal');
+  childSection.className = 'detail-table-section';
+  const childActions = document.createElement('div');
+  childActions.className = 'detail-table-actions';
+  const openChildModalButton = document.createElement('button');
+  openChildModalButton.type = 'button';
+  openChildModalButton.className = 'open-child-modal';
+  openChildModalButton.textContent = 'Create Child Story';
+  childActions.appendChild(openChildModalButton);
+
+  const childTable = document.createElement('div');
+  childTable.className = 'detail-table';
+  childTable.setAttribute('role', 'table');
+  childTable.setAttribute('aria-label', 'Child stories');
+  childTable.appendChild(createHeaderRow(['Child Story', 'Status', 'Actions']));
+
+  const children = story.childrenIds
+    .map((id) => state.stories.get(id))
+    .filter(Boolean)
+    .sort((a, b) => a.order - b.order);
+
+  if (children.length === 0) {
+    childTable.appendChild(createEmptyRow('No child stories yet.'));
+  } else {
+    children.forEach((child) => {
+      const row = document.createElement('div');
+      row.className = 'detail-table-row';
+
+      const nameCell = document.createElement('span');
+      nameCell.className = 'detail-table-cell detail-table-primary';
+      const selectButton = document.createElement('button');
+      selectButton.type = 'button';
+      selectButton.className = 'detail-table-link';
+      selectButton.textContent = child.title;
+      selectButton.addEventListener('click', () => handleStorySelection(child.id));
+      nameCell.appendChild(selectButton);
+
+      const statusCell = document.createElement('span');
+      statusCell.className = 'detail-table-cell';
+      statusCell.textContent = child.status;
+
+      const actionsCell = document.createElement('span');
+      actionsCell.className = 'detail-table-cell detail-table-actions-cell';
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', async () => {
+        if (!confirm('Delete this story and all descendants?')) return;
+        try {
+          await fetchJSON(`/api/stories/${child.id}`, { method: 'DELETE' });
+          await loadState();
+          state.expanded = new Set(Array.from(state.expanded).filter((id) => state.stories.has(id)));
+          saveExpanded();
+          if (!state.stories.has(state.selectedStoryId)) {
+            state.selectedStoryId = story.id;
+          }
+          renderOutline();
+          renderMindmap();
+          renderDetail();
+        } catch (error) {
+          alert(`Unable to delete story: ${error.message}`);
+        }
+      });
+      actionsCell.appendChild(deleteButton);
+
+      row.append(nameCell, statusCell, actionsCell);
+      childTable.appendChild(row);
+    });
+  }
+
+  childSection.append(childActions, childTable);
+
   openChildModalButton.addEventListener('click', () => {
     const form = document.createElement('form');
     form.className = 'modal-form';
@@ -1072,13 +1108,151 @@ const renderDetail = () => {
     });
   });
 
-  const testSection = document.createElement('section');
-  testSection.className = 'creation-section';
-  testSection.innerHTML = `
-    <h3>Acceptance Tests</h3>
-    <button type="button" class="open-test-modal">Create Acceptance Test</button>
-  `;
-  const openTestModalButton = testSection.querySelector('.open-test-modal');
+  const testsSection = document.createElement('section');
+  testsSection.className = 'detail-table-section';
+  const testActions = document.createElement('div');
+  testActions.className = 'detail-table-actions';
+  const openTestModalButton = document.createElement('button');
+  openTestModalButton.type = 'button';
+  openTestModalButton.className = 'open-test-modal';
+  openTestModalButton.textContent = 'Create Acceptance Test';
+  testActions.appendChild(openTestModalButton);
+
+  const testTable = document.createElement('div');
+  testTable.className = 'detail-table';
+  testTable.setAttribute('role', 'table');
+  testTable.setAttribute('aria-label', 'Acceptance tests');
+  testTable.appendChild(createHeaderRow(['Acceptance Test', 'Status', 'Actions']));
+
+  const summariseTest = (test) => test.then[0] || test.when[0] || test.given[0] || 'No steps provided';
+
+  const openEditTestModal = (test) => {
+    const formEl = testTemplate.content.firstElementChild.cloneNode(true);
+    formEl.classList.add('modal-form');
+    formEl.elements.given.value = test.given.join('\n');
+    formEl.elements.when.value = test.when.join('\n');
+    formEl.elements.then.value = test.then.join('\n');
+    formEl.elements.status.value = test.status;
+    const flagsEl = formEl.querySelector('.test-flags');
+    if (test.ambiguityFlags.length > 0) {
+      flagsEl.textContent = `Ambiguity: ${test.ambiguityFlags.join(', ')}`;
+    } else {
+      flagsEl.textContent = 'No ambiguity detected';
+    }
+
+    const close = openModal({ title: 'Edit Acceptance Test', content: formEl });
+
+    formEl.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const body = {
+        given: formEl.elements.given.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+        when: formEl.elements.when.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+        then: formEl.elements.then.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+        status: formEl.elements.status.value
+      };
+      try {
+        await fetchJSON(`/api/tests/${test.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+        await loadState();
+        renderDetail();
+        renderOutline();
+        renderMindmap();
+        close();
+      } catch (error) {
+        alert(formatTestabilityError(error, 'Failed to save test'));
+      }
+    });
+
+    const deleteButton = formEl.querySelector('.delete-test');
+    if (deleteButton) {
+      deleteButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (!confirm('Delete this acceptance test?')) return;
+        try {
+          await fetchJSON(`/api/tests/${test.id}`, { method: 'DELETE' });
+          await loadState();
+          if (!state.stories.has(state.selectedStoryId)) {
+            state.selectedStoryId = story.id;
+          }
+          renderDetail();
+          renderOutline();
+          renderMindmap();
+          close();
+        } catch (error) {
+          alert(`Failed to delete test: ${error.message}`);
+        }
+      });
+    }
+  };
+
+  if (tests.length === 0) {
+    testTable.appendChild(createEmptyRow('No acceptance tests yet.'));
+  } else {
+    tests.forEach((test, index) => {
+      const row = document.createElement('div');
+      row.className = 'detail-table-row';
+
+      const nameCell = document.createElement('span');
+      nameCell.className = 'detail-table-cell detail-table-primary';
+      const label = document.createElement('strong');
+      label.textContent = `AT ${index + 1}`;
+      const summary = document.createElement('span');
+      summary.className = 'detail-table-subtext';
+      summary.textContent = summariseTest(test);
+      nameCell.append(label, summary);
+      if (test.ambiguityFlags.length > 0) {
+        const warning = document.createElement('span');
+        warning.className = 'detail-table-subtext warning';
+        warning.textContent = `Ambiguity: ${test.ambiguityFlags.join(', ')}`;
+        nameCell.appendChild(warning);
+      }
+
+      const statusCell = document.createElement('span');
+      statusCell.className = 'detail-table-cell';
+      statusCell.textContent = test.status;
+
+      const actionsCell = document.createElement('span');
+      actionsCell.className = 'detail-table-cell detail-table-actions-cell';
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.textContent = 'Edit';
+      editButton.addEventListener('click', () => openEditTestModal(test));
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', async () => {
+        if (!confirm('Delete this acceptance test?')) return;
+        try {
+          await fetchJSON(`/api/tests/${test.id}`, { method: 'DELETE' });
+          await loadState();
+          if (!state.stories.has(state.selectedStoryId)) {
+            state.selectedStoryId = story.id;
+          }
+          renderDetail();
+          renderOutline();
+          renderMindmap();
+        } catch (error) {
+          alert(`Failed to delete test: ${error.message}`);
+        }
+      });
+      actionsCell.append(editButton, deleteButton);
+
+      row.append(nameCell, statusCell, actionsCell);
+      testTable.appendChild(row);
+    });
+  }
+
+  testsSection.append(testActions, testTable);
+  detailEl.appendChild(testsSection);
+
   openTestModalButton.addEventListener('click', () => {
     const form = document.createElement('form');
     form.className = 'modal-form';
@@ -1147,7 +1321,7 @@ const renderDetail = () => {
     });
   });
 
-  detailEl.append(childSection, testSection);
+  detailEl.append(childSection, testsSection);
 };
 
 const initializeEvents = () => {
