@@ -4,6 +4,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createApp, DATABASE_PATH, openDatabase, resetDatabaseFactory } from '../apps/backend/app.js';
 
+process.env.AI_PM_DISABLE_OPENAI = '1';
+delete process.env.AI_PM_OPENAI_API_KEY;
+delete process.env.OPENAI_API_KEY;
+
 async function resetDatabaseFiles() {
   await fs.rm(DATABASE_PATH, { force: true });
   await fs.rm(`${DATABASE_PATH}.json`, { force: true });
@@ -42,6 +46,10 @@ test('stories CRUD with reference documents', async (t) => {
   assert.ok(story.investHealth);
   assert.equal(typeof story.investHealth.satisfied, 'boolean');
   assert.ok(Array.isArray(story.investHealth.issues));
+  assert.ok(story.investAnalysis);
+  assert.ok(Array.isArray(story.investAnalysis.aiWarnings));
+  assert.equal(typeof story.investAnalysis.usedFallback, 'boolean');
+  assert.ok(['heuristic', 'fallback', 'openai'].includes(story.investAnalysis.source));
   assert.ok(
     story.investHealth.issues.every(
       (issue) => !/acceptance tests reach Pass status/i.test(issue.message)
@@ -86,6 +94,8 @@ test('stories CRUD with reference documents', async (t) => {
   assert.equal(child.storyPoint, 3);
   assert.ok(child.investHealth);
   assert.equal(child.investHealth.satisfied, false);
+  assert.ok(child.investAnalysis);
+  assert.ok(Array.isArray(child.investAnalysis.aiWarnings));
   assert.ok(
     child.investHealth.issues.some((issue) =>
       /Add at least one acceptance test/i.test(issue.message)

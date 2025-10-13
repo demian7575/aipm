@@ -576,6 +576,7 @@ function renderDetails() {
     satisfied: !story.investWarnings || story.investWarnings.length === 0,
     issues: story.investWarnings || [],
   };
+  const analysisInfo = story.investAnalysis || null;
 
   const storyBriefBody = form.querySelector('.story-brief tbody');
   if (storyBriefBody) {
@@ -608,8 +609,12 @@ function renderDetails() {
         button.type = 'button';
         button.className = 'link-button health-issue-button';
         const criterionLabel = formatCriterionLabel(issue.criterion);
-        button.textContent = `${criterionLabel ? `${criterionLabel} – ` : ''}${issue.message}`;
-        button.addEventListener('click', () => openHealthIssueModal('INVEST Issue', issue));
+        const originLabel = describeIssueOrigin(issue.source);
+        const parts = [];
+        if (originLabel) parts.push(originLabel);
+        if (criterionLabel) parts.push(criterionLabel);
+        button.textContent = `${parts.length ? `${parts.join(' · ')} – ` : ''}${issue.message}`;
+        button.addEventListener('click', () => openHealthIssueModal('INVEST Issue', issue, analysisInfo));
         item.appendChild(button);
         issueList.appendChild(item);
       });
@@ -619,6 +624,25 @@ function renderDetails() {
       ok.className = 'health-ok';
       ok.textContent = 'All INVEST checks passed.';
       healthItem.appendChild(ok);
+    }
+
+    if (analysisInfo) {
+      const analysisNote = document.createElement('p');
+      analysisNote.className = 'health-analysis-note';
+      if (analysisInfo.source === 'openai') {
+        const model = analysisInfo.aiModel ? ` (model ${analysisInfo.aiModel})` : '';
+        if (analysisInfo.aiSummary) {
+          analysisNote.textContent = `ChatGPT${model} summary: ${analysisInfo.aiSummary}`;
+        } else {
+          analysisNote.textContent = `ChatGPT${model} reviewed this story.`;
+        }
+      } else if (analysisInfo.source === 'fallback') {
+        const detail = analysisInfo.error ? ` (${analysisInfo.error})` : '';
+        analysisNote.textContent = `ChatGPT analysis unavailable${detail}; showing local heuristics.`;
+      } else {
+        analysisNote.textContent = 'Using local INVEST heuristics.';
+      }
+      healthItem.appendChild(analysisNote);
     }
 
     metaGrid.appendChild(healthItem);
@@ -989,6 +1013,16 @@ function formatCriterionLabel(value) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+function describeIssueOrigin(source) {
+  if (source === 'ai') {
+    return 'ChatGPT';
+  }
+  if (source === 'heuristic') {
+    return 'Rule check';
+  }
+  return '';
+}
+
 function showToast(message, type = 'info') {
   toastEl.textContent = message;
   toastEl.classList.add('show');
@@ -1036,13 +1070,21 @@ function openModal({ title, content, actions, cancelLabel = 'Cancel' }) {
   modal.showModal();
 }
 
-function openHealthIssueModal(title, issue) {
+function openHealthIssueModal(title, issue, context = null) {
   const container = document.createElement('div');
   container.className = 'health-modal';
 
   const message = document.createElement('p');
   message.innerHTML = `<strong>Issue:</strong> ${escapeHtml(issue.message || '')}`;
   container.appendChild(message);
+
+  const origin = describeIssueOrigin(issue.source);
+  if (origin) {
+    const sourceEl = document.createElement('p');
+    sourceEl.className = 'issue-origin';
+    sourceEl.textContent = `Source: ${origin}`;
+    container.appendChild(sourceEl);
+  }
 
   if (issue.details) {
     const details = document.createElement('p');
@@ -1057,6 +1099,22 @@ function openHealthIssueModal(title, issue) {
   const suggestionBody = document.createElement('p');
   suggestionBody.textContent = issue.suggestion || 'Refine the content to satisfy this criterion.';
   container.appendChild(suggestionBody);
+
+  if (context) {
+    const contextNote = document.createElement('p');
+    contextNote.className = 'issue-context';
+    if (context.source === 'openai') {
+      const model = context.aiModel ? ` (model ${context.aiModel})` : '';
+      const summary = context.aiSummary ? context.aiSummary : 'ChatGPT reviewed this story.';
+      contextNote.textContent = `ChatGPT${model}: ${summary}`;
+    } else if (context.source === 'fallback') {
+      const detail = context.error ? ` (${context.error})` : '';
+      contextNote.textContent = `ChatGPT analysis unavailable${detail}; showing local guidance.`;
+    } else {
+      contextNote.textContent = 'Using local INVEST heuristics for guidance.';
+    }
+    container.appendChild(contextNote);
+  }
 
   openModal({ title, content: container, cancelLabel: 'Close' });
 }
@@ -1416,7 +1474,9 @@ function formatInvestWarnings(warnings) {
   return warnings
     .map((warning) => {
       const suggestion = warning.suggestion ? `\n   - Suggestion: ${warning.suggestion}` : '';
-      return `• ${warning.message}${suggestion}`;
+      const origin = describeIssueOrigin(warning.source);
+      const prefix = origin ? `[${origin}] ` : '';
+      return `• ${prefix}${warning.message}${suggestion}`;
     })
     .join('\n');
 }

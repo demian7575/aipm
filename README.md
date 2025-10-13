@@ -108,6 +108,23 @@ The database file is recreated automatically if missing. Delete the SQLite (and 
 - **Modal workflows** for creating child stories, acceptance tests (with measurability hints), and reference documents.
 - **Warning overrides** that allow saving despite INVEST or measurability warnings after user confirmation.
 - **Persistent layout state** including panel visibility, expanded nodes, manual mindmap coordinates, and the last selected story.
+- **ChatGPT-assisted INVEST analysis** with inline summaries and issue annotations whenever an OpenAI API key is provided.
+
+### ChatGPT Configuration
+
+User story INVEST checks call ChatGPT when the backend is launched with an OpenAI API key. Configure the integration with the
+following environment variables (set them before running `npm run dev` or `npm run start`):
+
+| Variable | Description |
+| --- | --- |
+| `AI_PM_OPENAI_API_KEY` | API key used to authenticate with ChatGPT (falls back to `OPENAI_API_KEY` if unset). |
+| `AI_PM_OPENAI_API_URL` | Optional override for the Chat Completions endpoint (defaults to `https://api.openai.com/v1/chat/completions`). |
+| `AI_PM_OPENAI_MODEL` | ChatGPT model name to request (default `gpt-4o-mini`). |
+| `AI_PM_DISABLE_OPENAI` | Set to `1` or `true` to bypass ChatGPT even when an API key is available. |
+
+If the API key is omitted or the OpenAI request fails, the backend automatically falls back to the built-in heuristic policy.
+The frontend surfaces whether the feedback came from ChatGPT or the local rule engine so product managers always know which
+signals informed the INVEST health check.
 
 ## Scripts
 

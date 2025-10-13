@@ -424,6 +424,12 @@ textarea {
   color: #047857;
 }
 
+.health-analysis-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
 .health-modal {
   display: flex;
   flex-direction: column;
@@ -440,6 +446,18 @@ textarea {
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.4;
+}
+
+.issue-origin {
+  font-size: 0.85rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.issue-context {
+  font-size: 0.85rem;
+  color: #475569;
+  font-style: italic;
 }
 
 .vertical-table {

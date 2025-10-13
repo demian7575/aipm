@@ -789,7 +789,7 @@ function resolveUploadPath(urlPath) {
   return resolved;
 }
 
-function investWarnings(story, options = {}) {
+function baselineInvestWarnings(story, options = {}) {
   const { acceptanceTests = null, includeTestChecks = false } = options;
   const warnings = [];
   if (!story.asA || !story.asA.trim()) {
@@ -850,6 +850,209 @@ function investWarnings(story, options = {}) {
     }
   }
   return warnings;
+}
+
+function readOpenAiConfig() {
+  const key =
+    process.env.AI_PM_OPENAI_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENAI_APIKEY || '';
+  const trimmedKey = key.trim();
+  const enabled =
+    trimmedKey && process.env.AI_PM_DISABLE_OPENAI !== '1' && process.env.AI_PM_DISABLE_OPENAI !== 'true';
+  return {
+    enabled,
+    apiKey: trimmedKey,
+    endpoint: process.env.AI_PM_OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions',
+    model: process.env.AI_PM_OPENAI_MODEL || 'gpt-4o-mini',
+  };
+}
+
+function extractJsonObject(content) {
+  if (!content) return null;
+  const trimmed = String(content).trim();
+  if (!trimmed) return null;
+  const codeMatch = trimmed.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (codeMatch) {
+    return codeMatch[1];
+  }
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1);
+  }
+  return null;
+}
+
+function normalizeAiWarning(warning) {
+  if (!warning || typeof warning !== 'object') return null;
+  const criterion = warning.criterion || warning.rule || warning.dimension || '';
+  const message = warning.message || warning.summary || warning.reason;
+  if (!message) {
+    return null;
+  }
+  return {
+    criterion: criterion ? String(criterion) : '',
+    message: String(message),
+    details: warning.details ? String(warning.details) : '',
+    suggestion: warning.suggestion ? String(warning.suggestion) : '',
+    source: 'ai',
+  };
+}
+
+function markBaselineWarnings(warnings) {
+  return warnings.map((warning) => ({ ...warning, source: 'heuristic' }));
+}
+
+function mergeWarnings(primary, baseline) {
+  const result = [];
+  const seen = new Set();
+  const add = (warning) => {
+    if (!warning) return;
+    const key = `${warning.criterion || ''}::${warning.message}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(warning);
+  };
+  primary.forEach(add);
+  baseline.forEach(add);
+  return result;
+}
+
+async function requestInvestAnalysisFromOpenAi(story, options, config) {
+  if (!config.enabled) {
+    return null;
+  }
+
+  const acceptanceTests = (options && Array.isArray(options.acceptanceTests) && options.acceptanceTests) || [];
+  const messages = [
+    {
+      role: 'system',
+      content:
+        'You are an Agile coach who evaluates whether a user story meets INVEST. Respond ONLY with JSON containing "summary" and an array "warnings". Each warning needs "criterion", "message", "details", and "suggestion". Use empty array when the story satisfies INVEST.',
+    },
+    {
+      role: 'user',
+      content: JSON.stringify(
+        {
+          story: {
+            title: story.title || '',
+            asA: story.asA || '',
+            iWant: story.iWant || '',
+            soThat: story.soThat || '',
+            description: story.description || '',
+          },
+          acceptanceTests: acceptanceTests.map((test) => ({
+            given: test.given || [],
+            when: test.when || [],
+            then: test.then || [],
+          })),
+        },
+        null,
+        2
+      ),
+    },
+  ];
+
+  const body = JSON.stringify({
+    model: config.model,
+    response_format: { type: 'json_object' },
+    messages,
+  });
+
+  const response = await fetch(config.endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    const error = new Error(`OpenAI request failed with status ${response.status}`);
+    error.status = response.status;
+    error.body = text;
+    throw error;
+  }
+
+  const payload = await response.json();
+  const content = payload?.choices?.[0]?.message?.content;
+  const jsonText = extractJsonObject(content);
+  if (!jsonText) {
+    const error = new Error('OpenAI response did not include JSON content');
+    error.body = content;
+    throw error;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (error) {
+    const parseError = new Error('Failed to parse OpenAI INVEST analysis');
+    parseError.cause = error;
+    parseError.body = jsonText;
+    throw parseError;
+  }
+  const warnings = Array.isArray(parsed.warnings) ? parsed.warnings : [];
+  return {
+    warnings: warnings.map((warning) => ({ ...warning })),
+    summary: parsed.summary ? String(parsed.summary) : '',
+    model: config.model,
+    raw: content,
+  };
+}
+
+async function analyzeInvest(story, options = {}) {
+  const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
+  const config = readOpenAiConfig();
+  if (!config.enabled) {
+    return {
+      warnings: baseline,
+      source: 'heuristic',
+      summary: '',
+      ai: null,
+      fallbackWarnings: baseline,
+      usedFallback: true,
+    };
+  }
+
+  try {
+    const aiResult = await requestInvestAnalysisFromOpenAi(story, options, config);
+    if (!aiResult) {
+      return {
+        warnings: baseline,
+        source: 'heuristic',
+        summary: '',
+        ai: null,
+        fallbackWarnings: baseline,
+        usedFallback: true,
+      };
+    }
+    const aiWarnings = aiResult.warnings.map((warning) => normalizeAiWarning(warning)).filter(Boolean);
+    const warnings = mergeWarnings(aiWarnings, baseline);
+    return {
+      warnings,
+      source: 'openai',
+      summary: aiResult.summary || '',
+      ai: {
+        warnings: aiWarnings,
+        summary: aiResult.summary || '',
+        model: aiResult.model,
+        raw: aiResult.raw,
+      },
+      fallbackWarnings: baseline,
+      usedFallback: false,
+    };
+  } catch (error) {
+    console.error('OpenAI INVEST analysis failed', error);
+    return {
+      warnings: baseline,
+      source: 'fallback',
+      summary: '',
+      ai: { error: error.message },
+      fallbackWarnings: baseline,
+      usedFallback: true,
+    };
+  }
 }
 
 function normalizeStoryPoint(value) {
@@ -1167,7 +1370,7 @@ function flattenStories(nodes) {
   return result;
 }
 
-function loadStories(db) {
+async function loadStories(db) {
   const storyRows = db
     .prepare('SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id')
     .all();
@@ -1234,15 +1437,26 @@ function loadStories(db) {
     });
   });
 
-  stories.forEach((story) => {
-    const warnings = investWarnings(story, {
-      acceptanceTests: story.acceptanceTests,
-      includeTestChecks: true,
-    });
-    story.investWarnings = warnings;
-    story.investSatisfied = warnings.length === 0;
-    story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
-  });
+  await Promise.all(
+    stories.map(async (story) => {
+      const analysis = await analyzeInvest(story, {
+        acceptanceTests: story.acceptanceTests,
+        includeTestChecks: true,
+      });
+      story.investWarnings = analysis.warnings;
+      story.investSatisfied = analysis.warnings.length === 0;
+      story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
+      story.investAnalysis = {
+        source: analysis.source,
+        summary: analysis.summary,
+        aiSummary: analysis.ai?.summary || '',
+        aiWarnings: analysis.ai?.warnings || [],
+        aiModel: analysis.ai?.model || null,
+        usedFallback: analysis.usedFallback,
+        error: analysis.ai?.error || null,
+      };
+    })
+  );
 
   return roots;
 }
@@ -1428,7 +1642,7 @@ export async function createApp() {
     }
 
     if (pathname === '/api/stories' && method === 'GET') {
-      const stories = loadStories(db);
+      const stories = await loadStories(db);
       sendJson(res, 200, stories);
       return;
     }
@@ -1447,12 +1661,27 @@ export async function createApp() {
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
-        const warnings = investWarnings({ asA, iWant, soThat, title });
+        const analysis = await analyzeInvest({
+          title,
+          asA,
+          iWant,
+          soThat,
+          description,
+        });
+        const warnings = analysis.warnings;
         if (warnings.length > 0 && !payload.acceptWarnings) {
           sendJson(res, 409, {
             code: 'INVEST_WARNINGS',
             message: 'User story does not meet INVEST criteria.',
             warnings,
+            analysis: {
+              source: analysis.source,
+              summary: analysis.summary,
+              aiSummary: analysis.ai?.summary || '',
+              aiModel: analysis.ai?.model || null,
+              usedFallback: analysis.usedFallback,
+              error: analysis.ai?.error || null,
+            },
           });
           return;
         }
@@ -1473,7 +1702,7 @@ export async function createApp() {
           timestamp,
           timestamp
         );
-        const created = flattenStories(loadStories(db)).find(
+        const created = flattenStories(await loadStories(db)).find(
           (story) => story.id === Number(lastInsertRowid)
         );
         sendJson(res, 201, created ?? null);
@@ -1513,13 +1742,23 @@ export async function createApp() {
           asA: asA ?? existing.as_a,
           iWant: iWant ?? existing.i_want,
           soThat: soThat ?? existing.so_that,
+          description: description || existing.description || '',
         };
-        const warnings = investWarnings(storyForValidation);
+        const analysis = await analyzeInvest(storyForValidation);
+        const warnings = analysis.warnings;
         if (warnings.length > 0 && !payload.acceptWarnings) {
           sendJson(res, 409, {
             code: 'INVEST_WARNINGS',
             message: 'User story does not meet INVEST criteria.',
             warnings,
+            analysis: {
+              source: analysis.source,
+              summary: analysis.summary,
+              aiSummary: analysis.ai?.summary || '',
+              aiModel: analysis.ai?.model || null,
+              usedFallback: analysis.usedFallback,
+              error: analysis.ai?.error || null,
+            },
           });
           return;
         }
@@ -1538,7 +1777,7 @@ export async function createApp() {
           now(),
           storyId
         );
-        const updated = flattenStories(loadStories(db)).find((story) => story.id === storyId);
+        const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
         sendJson(res, 200, updated ?? null);
       } catch (error) {
         const status = error.statusCode ?? 500;
@@ -1575,7 +1814,7 @@ export async function createApp() {
           });
           return;
         }
-        const allStories = flattenStories(loadStories(db));
+        const allStories = flattenStories(await loadStories(db));
         const story = allStories.find((node) => node.id === storyId);
         if (!story) {
           sendJson(res, 404, { message: 'Story not found' });
@@ -1594,7 +1833,7 @@ export async function createApp() {
           status: payload.status ? String(payload.status) : 'Draft',
           timestamp,
         });
-        const refreshedStory = flattenStories(loadStories(db)).find((node) => node.id === storyId);
+        const refreshedStory = flattenStories(await loadStories(db)).find((node) => node.id === storyId);
         const created = refreshedStory?.acceptanceTests.find((item) => item.id === Number(lastInsertRowid)) ?? null;
         sendJson(res, 201, created);
       } catch (error) {
@@ -1631,7 +1870,7 @@ export async function createApp() {
           now(),
           testId
         );
-        const test = flattenStories(loadStories(db))
+        const test = flattenStories(await loadStories(db))
           .flatMap((story) => story.acceptanceTests)
           .find((item) => item.id === testId);
         if (!test) {
@@ -1685,7 +1924,7 @@ export async function createApp() {
         );
         const timestamp = now();
         const { lastInsertRowid } = statement.run(storyId, name, urlValue, timestamp, timestamp);
-        const story = flattenStories(loadStories(db)).find((node) => node.id === storyId);
+        const story = flattenStories(await loadStories(db)).find((node) => node.id === storyId);
         const created = story?.referenceDocuments.find((doc) => doc.id === Number(lastInsertRowid)) ?? null;
         sendJson(res, 201, created);
       } catch (error) {
