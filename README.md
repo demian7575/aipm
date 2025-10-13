@@ -4,7 +4,11 @@ This repository contains a self-hosted mindmap and outline workspace for managin
 
 ## Requirements
 
-- Node.js 22 or newer (for the experimental `node:sqlite` driver bundled with Node)
+- Node.js 18 or newer
+  - Node 22+ unlocks the bundled `node:sqlite` driver.
+  - On older runtimes, install the `sqlite3` CLI to retain full SQLite persistence.
+  - If neither option is available, the server automatically falls back to a JSON-backed emulator so the app still runs (see
+    [Data Storage](#data-storage)).
 - macOS, Linux, or WSL shell with Bash-compatible tooling
 
 > No third-party npm dependencies are required; the project relies entirely on Node.js built-ins.
@@ -81,13 +85,15 @@ tests/
 
 ## Data Storage
 
-Runtime data is stored in `apps/backend/data/app.sqlite`. Uploaded reference files are written to `apps/backend/uploads/` and served back at `/uploads/<file>`. The development server seeds:
+Runtime data is stored in `apps/backend/data/app.sqlite`. Uploaded reference files are written to `apps/backend/uploads/` and served back at `/uploads/<file>`. When the runtime cannot access a native SQLite driver or CLI, a JSON-backed compatibility layer writes to `apps/backend/data/app.sqlite.json` while keeping the REST API contract intact. Delete both files to reset the environment.
+
+The development server seeds:
 
 - A root story with INVEST-compliant metadata and acceptance test.
 - A child story to demonstrate hierarchy.
 - A reference document entry.
 
-The database file is recreated automatically if missing. Delete the file to reset to seed data, or call `DELETE` endpoints to curate stories manually.
+The database file is recreated automatically if missing. Delete the SQLite (and `.json` when using the fallback) files to reset to seed data, or call `DELETE` endpoints to curate stories manually.
 
 ## Feature Highlights
 
@@ -109,4 +115,4 @@ The database file is recreated automatically if missing. Delete the file to rese
 
 ## Support
 
-If the SQLite driver emits an experimental warning, ensure you are running Node 22+. For manual resets remove `apps/backend/data/app.sqlite` before restarting the server.
+If the SQLite driver emits an experimental warning, ensure you are running Node 22+. When running on the JSON fallback, remove both `apps/backend/data/app.sqlite` and `apps/backend/data/app.sqlite.json` before restarting the server to trigger a clean seed.

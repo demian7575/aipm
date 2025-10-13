@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createApp, DATABASE_PATH, openDatabase } from '../apps/backend/app.js';
+import { createApp, DATABASE_PATH, openDatabase, resetDatabaseFactory } from '../apps/backend/app.js';
+
+async function resetDatabaseFiles() {
+  await fs.rm(DATABASE_PATH, { force: true });
+  await fs.rm(`${DATABASE_PATH}.json`, { force: true });
+}
 
 async function startServer() {
   const app = await createApp();
@@ -15,7 +20,7 @@ async function startServer() {
 }
 
 test('stories CRUD with reference documents', async (t) => {
-  await fs.rm(DATABASE_PATH, { force: true });
+  await resetDatabaseFiles();
   const { server, port } = await startServer();
 
   t.after(async () => {
@@ -130,7 +135,7 @@ test('stories CRUD with reference documents', async (t) => {
 });
 
 test('acceptance tests can be created when legacy title column exists', async (t) => {
-  await fs.rm(DATABASE_PATH, { force: true });
+  await resetDatabaseFiles();
   await fs.mkdir(path.dirname(DATABASE_PATH), { recursive: true });
   const db = await openDatabase(DATABASE_PATH);
   db.exec(`
@@ -202,4 +207,30 @@ test('acceptance tests can be created when legacy title column exists', async (t
   assert.deepEqual(created.given, ['a signed-in customer']);
   assert.ok(Object.prototype.hasOwnProperty.call(created, 'title'));
   assert.ok(String(created.title || '').length > 0);
+});
+
+test('JSON fallback driver seeds and serves data when forced', async (t) => {
+  await resetDatabaseFiles();
+  resetDatabaseFactory();
+  process.env.AI_PM_FORCE_JSON_DB = '1';
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    delete process.env.AI_PM_FORCE_JSON_DB;
+    resetDatabaseFactory();
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories));
+  assert.ok(stories.length > 0);
+  const fileInfo = await fs.readFile(`${DATABASE_PATH}.json`, 'utf8');
+  const parsed = JSON.parse(fileInfo);
+  assert.equal(parsed.driver, 'json-fallback');
 });

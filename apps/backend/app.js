@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -215,8 +216,491 @@ class CliDatabase {
 
 let createDatabaseInstance;
 
+const DEFAULT_COLUMNS = {
+  user_stories: [
+    'id',
+    'mr_id',
+    'parent_id',
+    'title',
+    'description',
+    'as_a',
+    'i_want',
+    'so_that',
+    'story_point',
+    'assignee_email',
+    'status',
+    'created_at',
+    'updated_at',
+  ],
+  acceptance_tests: ['id', 'story_id', 'given', 'when_step', 'then_step', 'status', 'created_at', 'updated_at'],
+  reference_documents: ['id', 'story_id', 'name', 'url', 'created_at', 'updated_at'],
+};
+
+class JsonStatement {
+  constructor(db, sql) {
+    this.db = db;
+    this.sql = sql.trim();
+    this.normalized = this.sql.replace(/\s+/g, ' ').trim();
+  }
+
+  all(...params) {
+    return this.db._all(this.normalized, params);
+  }
+
+  get(...params) {
+    const rows = this.all(...params);
+    return rows[0];
+  }
+
+  run(...params) {
+    return this.db._run(this.normalized, params);
+  }
+}
+
+class JsonDatabase {
+  constructor(filePath) {
+    this.sqlitePath = filePath;
+    this.jsonPath = filePath.endsWith('.sqlite') ? `${filePath}.json` : `${filePath}.json`;
+    this.tables = {
+      user_stories: [],
+      acceptance_tests: [],
+      reference_documents: [],
+    };
+    this.sequences = {
+      user_stories: 0,
+      acceptance_tests: 0,
+      reference_documents: 0,
+    };
+    this.columns = JSON.parse(JSON.stringify(DEFAULT_COLUMNS));
+    this._load();
+  }
+
+  _load() {
+    try {
+      if (existsSync(this.jsonPath)) {
+        const raw = readFileSync(this.jsonPath, 'utf8');
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data.tables) {
+            this.tables.user_stories = data.tables.user_stories ?? [];
+            this.tables.acceptance_tests = data.tables.acceptance_tests ?? [];
+            this.tables.reference_documents = data.tables.reference_documents ?? [];
+          }
+          if (data.sequences) {
+            this.sequences = {
+              user_stories: data.sequences.user_stories ?? this._maxId(this.tables.user_stories),
+              acceptance_tests:
+                data.sequences.acceptance_tests ?? this._maxId(this.tables.acceptance_tests),
+              reference_documents:
+                data.sequences.reference_documents ?? this._maxId(this.tables.reference_documents),
+            };
+          } else {
+            this._refreshSequences();
+          }
+          if (data.columns) {
+            this.columns = {
+              user_stories: data.columns.user_stories ?? this.columns.user_stories,
+              acceptance_tests: data.columns.acceptance_tests ?? this.columns.acceptance_tests,
+              reference_documents:
+                data.columns.reference_documents ?? this.columns.reference_documents,
+            };
+          }
+        }
+      } else {
+        this._persist();
+      }
+    } catch {
+      this._refreshSequences();
+    }
+  }
+
+  _refreshSequences() {
+    this.sequences.user_stories = this._maxId(this.tables.user_stories);
+    this.sequences.acceptance_tests = this._maxId(this.tables.acceptance_tests);
+    this.sequences.reference_documents = this._maxId(this.tables.reference_documents);
+  }
+
+  _maxId(rows) {
+    return rows.reduce((max, row) => (row.id > max ? row.id : max), 0);
+  }
+
+  _persist() {
+    mkdirSync(path.dirname(this.jsonPath), { recursive: true });
+    const payload = {
+      tables: this.tables,
+      sequences: this.sequences,
+      columns: this.columns,
+      driver: 'json-fallback',
+    };
+    writeFileSync(this.jsonPath, JSON.stringify(payload, null, 2), 'utf8');
+  }
+
+  exec(sql) {
+    if (!sql) {
+      return this;
+    }
+    const statements = sql
+      .split(';')
+      .map((statement) => statement.trim())
+      .filter(Boolean);
+    statements.forEach((statement) => {
+      this._executeStatement(statement);
+    });
+    this._persist();
+    return this;
+  }
+
+  _executeStatement(statement) {
+    const normalized = statement.replace(/\s+/g, ' ').trim();
+    if (!normalized) return;
+    if (normalized.startsWith('PRAGMA')) {
+      return;
+    }
+    if (normalized.startsWith('CREATE TABLE')) {
+      this._ensureTableFromCreate(normalized);
+      return;
+    }
+    if (normalized.startsWith('ALTER TABLE')) {
+      this._handleAlter(normalized);
+      return;
+    }
+    if (normalized.includes('UPDATE user_stories SET description =')) {
+      this._setDefault('user_stories', 'description', '');
+      return;
+    }
+    if (normalized.includes('UPDATE user_stories SET as_a =')) {
+      this._setDefault('user_stories', 'as_a', '');
+      return;
+    }
+    if (normalized.includes('UPDATE user_stories SET i_want =')) {
+      this._setDefault('user_stories', 'i_want', '');
+      return;
+    }
+    if (normalized.includes('UPDATE user_stories SET so_that =')) {
+      this._setDefault('user_stories', 'so_that', '');
+      return;
+    }
+    if (normalized.includes('UPDATE user_stories SET assignee_email =')) {
+      this._setDefault('user_stories', 'assignee_email', '');
+      return;
+    }
+    if (normalized.includes("UPDATE user_stories SET status = 'Draft'")) {
+      this._setDefault('user_stories', 'status', 'Draft');
+      return;
+    }
+    if (normalized.includes("UPDATE acceptance_tests SET status = 'Draft'")) {
+      this._setDefault('acceptance_tests', 'status', 'Draft');
+      return;
+    }
+    if (normalized.includes('UPDATE reference_documents SET name =')) {
+      this._setDefault('reference_documents', 'name', '');
+      return;
+    }
+    if (normalized.includes('UPDATE reference_documents SET url =')) {
+      this._setDefault('reference_documents', 'url', '');
+      return;
+    }
+    if (normalized.includes('UPDATE acceptance_tests SET title =')) {
+      this._setDefault('acceptance_tests', 'title', '');
+    }
+  }
+
+  _ensureTableFromCreate(statement) {
+    const match = statement.match(/CREATE TABLE IF NOT EXISTS (\w+)/i);
+    if (!match) return;
+    const table = match[1];
+    if (!this.tables[table]) {
+      this.tables[table] = [];
+    }
+    if (!this.columns[table]) {
+      const columnSectionMatch = statement.match(/\((.*)\)/);
+      if (columnSectionMatch) {
+        const parts = columnSectionMatch[1]
+          .split(',')
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .map((part) => part.split(/\s+/)[0].replace(/"/g, ''))
+          .filter((token) =>
+            token &&
+            !['FOREIGN', 'CONSTRAINT', 'PRIMARY', 'UNIQUE'].includes(token.toUpperCase())
+          );
+        this.columns[table] = parts;
+      }
+    }
+  }
+
+  _handleAlter(statement) {
+    const match = statement.match(/ALTER TABLE (\w+) ADD COLUMN (.+)/i);
+    if (!match) return;
+    const [, table, definition] = match;
+    const columnName = definition.split(/\s+/)[0].replace(/"/g, '');
+    if (!this.columns[table]) {
+      this.columns[table] = [...(DEFAULT_COLUMNS[table] ?? []), columnName];
+    } else if (!this.columns[table].includes(columnName)) {
+      this.columns[table].push(columnName);
+    }
+    const defaultMatch = definition.match(/DEFAULT\s+'([^']*)'/i);
+    const numericMatch = definition.match(/DEFAULT\s+([0-9]+)/i);
+    const defaultValue =
+      defaultMatch?.[1] ?? (numericMatch ? Number(numericMatch[1]) : null);
+    const rows = this.tables[table];
+    if (Array.isArray(rows)) {
+      rows.forEach((row) => {
+        if (!(columnName in row) || row[columnName] == null) {
+          row[columnName] = defaultValue;
+        }
+      });
+    }
+  }
+
+  _setDefault(table, column, value) {
+    const rows = this.tables[table];
+    if (!Array.isArray(rows)) return;
+    rows.forEach((row) => {
+      if (row[column] == null) {
+        row[column] = value;
+      }
+    });
+  }
+
+  prepare(sql) {
+    return new JsonStatement(this, sql);
+  }
+
+  close() {
+    this._persist();
+  }
+
+  _clone(row) {
+    return row ? JSON.parse(JSON.stringify(row)) : row;
+  }
+
+  _all(sql, params) {
+    if (sql === 'SELECT COUNT(*) as count FROM user_stories') {
+      return [{ count: this.tables.user_stories.length }];
+    }
+    if (sql.startsWith('SELECT * FROM user_stories WHERE id = ?')) {
+      const id = Number(params[0]);
+      const row = this.tables.user_stories.find((entry) => entry.id === id);
+      return row ? [this._clone(row)] : [];
+    }
+    if (sql.startsWith('SELECT * FROM reference_documents WHERE id = ?')) {
+      const id = Number(params[0]);
+      const row = this.tables.reference_documents.find((entry) => entry.id === id);
+      return row ? [this._clone(row)] : [];
+    }
+    if (sql.startsWith('PRAGMA table_info(')) {
+      const table = sql.match(/PRAGMA table_info\((\w+)\)/i)?.[1];
+      const columns = this.columns[table] ?? [];
+      return columns.map((name, index) => ({ cid: index, name }));
+    }
+    if (sql.startsWith('SELECT * FROM user_stories ORDER BY')) {
+      const rows = this.tables.user_stories.map((row) => this._clone(row));
+      rows.sort((a, b) => {
+        const aHasParent = a.parent_id != null ? 1 : 0;
+        const bHasParent = b.parent_id != null ? 1 : 0;
+        if (aHasParent !== bHasParent) {
+          return aHasParent - bHasParent;
+        }
+        const aParent = a.parent_id ?? 0;
+        const bParent = b.parent_id ?? 0;
+        if (aParent !== bParent) {
+          return aParent - bParent;
+        }
+        return a.id - b.id;
+      });
+      return rows;
+    }
+    if (sql.startsWith('SELECT * FROM acceptance_tests ORDER BY')) {
+      const rows = this.tables.acceptance_tests.map((row) => this._clone(row));
+      rows.sort((a, b) => {
+        if (a.story_id !== b.story_id) {
+          return a.story_id - b.story_id;
+        }
+        return a.id - b.id;
+      });
+      return rows;
+    }
+    if (sql.startsWith('SELECT * FROM reference_documents ORDER BY')) {
+      const rows = this.tables.reference_documents.map((row) => this._clone(row));
+      rows.sort((a, b) => {
+        if (a.story_id !== b.story_id) {
+          return a.story_id - b.story_id;
+        }
+        return a.id - b.id;
+      });
+      return rows;
+    }
+    return [];
+  }
+
+  _generateId(table) {
+    this.sequences[table] = (this.sequences[table] ?? 0) + 1;
+    return this.sequences[table];
+  }
+
+  _run(sql, params) {
+    const insertMatch = sql.match(/^INSERT INTO (\w+) \(([^)]+)\) VALUES \(([^)]+)\)$/i);
+    if (insertMatch) {
+      const [, table, columnList, valueList] = insertMatch;
+      const columns = columnList.split(',').map((column) => column.trim());
+      const values = valueList.split(',').map((value) => value.trim());
+      const row = {};
+      let paramIndex = 0;
+      columns.forEach((column, index) => {
+        const key = column.replace(/"/g, '');
+        const valueExpr = values[index] ?? '?';
+        if (valueExpr === '?') {
+          row[key] = this._coerceValue(table, key, params[paramIndex++]);
+        } else if (/^NULL$/i.test(valueExpr)) {
+          row[key] = null;
+        } else if (/^-?\d+(?:\.\d+)?$/.test(valueExpr)) {
+          row[key] = this._coerceValue(table, key, Number(valueExpr));
+        } else if (/^'.*'$/.test(valueExpr)) {
+          const unescaped = valueExpr.slice(1, -1).replace(/''/g, "'");
+          row[key] = this._coerceValue(table, key, unescaped);
+        } else {
+          row[key] = this._coerceValue(table, key, valueExpr);
+        }
+      });
+      if (!('id' in row)) {
+        row.id = this._generateId(table);
+      } else {
+        row.id = Number(row.id);
+        this.sequences[table] = Math.max(this.sequences[table] ?? 0, row.id);
+      }
+      this._applyInsertDefaults(table, row);
+      const nowRow = this.tables[table];
+      if (Array.isArray(nowRow)) {
+        nowRow.push(row);
+      }
+      this._persist();
+      return { changes: 1, lastInsertRowid: row.id };
+    }
+
+    if (sql.startsWith('UPDATE user_stories SET')) {
+      return this._updateRow('user_stories', sql, params);
+    }
+    if (sql.startsWith('UPDATE acceptance_tests SET')) {
+      return this._updateRow('acceptance_tests', sql, params);
+    }
+    if (sql.startsWith('UPDATE reference_documents SET')) {
+      return this._updateRow('reference_documents', sql, params);
+    }
+    if (sql.startsWith('DELETE FROM user_stories WHERE id = ?')) {
+      return this._deleteRow('user_stories', params[0]);
+    }
+    if (sql.startsWith('DELETE FROM acceptance_tests WHERE id = ?')) {
+      return this._deleteRow('acceptance_tests', params[0]);
+    }
+    if (sql.startsWith('DELETE FROM reference_documents WHERE id = ?')) {
+      return this._deleteRow('reference_documents', params[0]);
+    }
+    return { changes: 0, lastInsertRowid: 0 };
+  }
+
+  _updateRow(table, sql, params) {
+    const rows = this.tables[table];
+    if (!Array.isArray(rows)) {
+      return { changes: 0, lastInsertRowid: 0 };
+    }
+    const id = Number(params[params.length - 1]);
+    const row = rows.find((entry) => entry.id === id);
+    if (!row) {
+      return { changes: 0, lastInsertRowid: 0 };
+    }
+    const setMatch = sql.match(/SET (.+) WHERE/i);
+    if (!setMatch) {
+      return { changes: 0, lastInsertRowid: 0 };
+    }
+    const assignments = setMatch[1].split(',').map((part) => part.trim());
+    assignments.forEach((assignment, index) => {
+      const [column] = assignment.split('=');
+      const key = column.replace(/"/g, '').trim();
+      row[key] = this._coerceValue(table, key, params[index]);
+    });
+    this._persist();
+    return { changes: 1, lastInsertRowid: id };
+  }
+
+  _deleteRow(table, idValue) {
+    const rows = this.tables[table];
+    if (!Array.isArray(rows)) {
+      return { changes: 0, lastInsertRowid: 0 };
+    }
+    const id = Number(idValue);
+    let targets = [id];
+    if (table === 'user_stories') {
+      const cascade = [];
+      const queue = [id];
+      while (queue.length > 0) {
+        const current = queue.shift();
+        cascade.push(current);
+        rows
+          .filter((row) => row.parent_id === current)
+          .forEach((child) => {
+            queue.push(child.id);
+          });
+      }
+      targets = cascade;
+    }
+    const targetSet = new Set(targets.map(Number));
+    const originalLength = rows.length;
+    this.tables[table] = rows.filter((row) => !targetSet.has(row.id));
+    const changes = originalLength - this.tables[table].length;
+    if (table === 'user_stories' && changes > 0) {
+      this.tables.acceptance_tests = this.tables.acceptance_tests.filter(
+        (test) => !targetSet.has(test.story_id)
+      );
+      this.tables.reference_documents = this.tables.reference_documents.filter(
+        (doc) => !targetSet.has(doc.story_id)
+      );
+    }
+    if (changes > 0) {
+      this._persist();
+    }
+    return { changes, lastInsertRowid: id };
+  }
+
+  _coerceValue(table, key, value) {
+    if (value === undefined) return null;
+    if (value === '') return table === 'user_stories' && key === 'story_point' ? null : value;
+    if (key === 'id' || key.endsWith('_id') || key === 'mr_id') {
+      return value == null ? null : Number(value);
+    }
+    if (key === 'story_point') {
+      return value == null ? null : Number(value);
+    }
+    return value;
+  }
+
+  _applyInsertDefaults(table, row) {
+    if (table === 'user_stories') {
+      if (!('mr_id' in row)) row.mr_id = 1;
+      if (!('status' in row) || row.status == null) row.status = 'Draft';
+      if (!('description' in row) || row.description == null) row.description = '';
+      if (!('as_a' in row) || row.as_a == null) row.as_a = '';
+      if (!('i_want' in row) || row.i_want == null) row.i_want = '';
+      if (!('so_that' in row) || row.so_that == null) row.so_that = '';
+      if (!('assignee_email' in row) || row.assignee_email == null) row.assignee_email = '';
+    } else if (table === 'acceptance_tests') {
+      if (!('status' in row) || row.status == null) row.status = 'Draft';
+      if (!('created_at' in row)) row.created_at = now();
+      if (!('updated_at' in row)) row.updated_at = now();
+    } else if (table === 'reference_documents') {
+      if (!('name' in row) || row.name == null) row.name = '';
+      if (!('url' in row) || row.url == null) row.url = '';
+    }
+  }
+}
+
 async function loadDatabaseFactory() {
   if (createDatabaseInstance) {
+    return createDatabaseInstance;
+  }
+
+  if (process.env.AI_PM_FORCE_JSON_DB === '1') {
+    createDatabaseInstance = (filePath) => new JsonDatabase(filePath);
     return createDatabaseInstance;
   }
 
@@ -229,9 +713,15 @@ async function loadDatabaseFactory() {
       detectCliFeatures();
       createDatabaseInstance = (filePath) => new CliDatabase(filePath);
       return createDatabaseInstance;
-    } catch (fallbackError) {
-      nativeError.cause = fallbackError;
-      throw nativeError;
+    } catch (cliError) {
+      try {
+        createDatabaseInstance = (filePath) => new JsonDatabase(filePath);
+        return createDatabaseInstance;
+      } catch (jsonError) {
+        cliError.cause = jsonError;
+        nativeError.cause = cliError;
+        throw nativeError;
+      }
     }
   }
 }
@@ -239,6 +729,11 @@ async function loadDatabaseFactory() {
 export async function openDatabase(filePath) {
   const createDatabase = await loadDatabaseFactory();
   return createDatabase(filePath);
+}
+
+export function resetDatabaseFactory() {
+  cliFeatureCache = undefined;
+  createDatabaseInstance = undefined;
 }
 
 const __filename = fileURLToPath(import.meta.url);
