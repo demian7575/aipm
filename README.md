@@ -65,6 +65,11 @@ Run the Node.js test suite (using the built-in `node:test` harness) to exercise 
 npm test
 ```
 
+## Branching
+
+All active development has been merged into the `main` branch; check out `main` to run the workspace locally or to build new
+features on top of the latest codebase.
+
 ## Project Structure
 
 ```
