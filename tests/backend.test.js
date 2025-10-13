@@ -39,6 +39,13 @@ test('stories CRUD with reference documents', async (t) => {
   const story = stories[0];
   assert.equal(story.storyPoint, 5);
   assert.equal(story.assigneeEmail, 'pm@example.com');
+  assert.ok(story.investHealth);
+  assert.equal(typeof story.investHealth.satisfied, 'boolean');
+  assert.ok(Array.isArray(story.investHealth.issues));
+  if (story.acceptanceTests.length) {
+    assert.ok(story.acceptanceTests[0].gwtHealth);
+    assert.equal(typeof story.acceptanceTests[0].gwtHealth.satisfied, 'boolean');
+  }
 
   const patchResponse = await fetch(`${baseUrl}/api/stories/${story.id}`, {
     method: 'PATCH',
@@ -132,6 +139,9 @@ test('stories CRUD with reference documents', async (t) => {
   const finalStories = await fetch(`${baseUrl}/api/stories`);
   const finalData = await finalStories.json();
   assert.equal(finalData[0].referenceDocuments.length, 2);
+  if (finalData[0].acceptanceTests.length) {
+    assert.ok(finalData[0].acceptanceTests[0].gwtHealth);
+  }
 });
 
 test('acceptance tests can be created when legacy title column exists', async (t) => {

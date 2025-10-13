@@ -792,16 +792,36 @@ function resolveUploadPath(urlPath) {
 function investWarnings(story) {
   const warnings = [];
   if (!story.asA || !story.asA.trim()) {
-    warnings.push({ criterion: 'valuable', message: 'Story must describe the persona in “As a”.' });
+    warnings.push({
+      criterion: 'valuable',
+      message: 'Story must describe the persona in “As a”.',
+      details: 'INVEST “Valuable” expects a clearly identified persona so the benefit is easy to judge.',
+      suggestion: 'Add a persona, e.g., “As a security administrator”.',
+    });
   }
   if (!story.iWant || !story.iWant.trim()) {
-    warnings.push({ criterion: 'negotiable', message: 'Add a concrete goal in “I want”.' });
+    warnings.push({
+      criterion: 'negotiable',
+      message: 'Add a concrete goal in “I want”.',
+      details: 'INVEST “Negotiable” stories describe the desired capability without locking in a solution.',
+      suggestion: 'State the outcome, e.g., “I want to review pending access requests”.',
+    });
   }
   if (!story.soThat || !story.soThat.trim()) {
-    warnings.push({ criterion: 'valuable', message: 'Capture the benefit in “So that”.' });
+    warnings.push({
+      criterion: 'valuable',
+      message: 'Capture the benefit in “So that”.',
+      details: 'Explaining the benefit keeps the story valuable and aligned with user needs.',
+      suggestion: 'Describe the benefit, e.g., “So that I can approve changes quickly and safely”.',
+    });
   }
   if (story.title && story.title.trim().length < 8) {
-    warnings.push({ criterion: 'independent', message: 'Title is short; clarify scope in a few more words.' });
+    warnings.push({
+      criterion: 'independent',
+      message: 'Title is short; clarify scope in a few more words.',
+      details: 'A descriptive title helps reviewers judge whether the story stands independently.',
+      suggestion: 'Expand the title, e.g., “Manage MFA enrollment reminders”.',
+    });
   }
   return warnings;
 }
@@ -830,16 +850,59 @@ function measurabilityWarnings(thenSteps) {
   const suggestions = [];
   thenSteps.forEach((step, index) => {
     if (!MEASURABLE_PATTERN.test(step)) {
+      const suggestion =
+        `Then step ${index + 1}: add a numeric goal such as “within 2s”, “<1% errors”, or “at least 5 users displayed”.`;
       warnings.push({
         index,
         message: `Then step ${index + 1} lacks a measurable outcome.`,
+        details: 'Then steps should include a quantifiable or observable threshold so the result is verifiable.',
+        suggestion,
       });
-      suggestions.push(
-        `Then step ${index + 1}: add a numeric goal such as “within 2s”, “<1% errors”, or “at least 5 users displayed”.`
-      );
+      suggestions.push(suggestion);
     }
   });
   return { warnings, suggestions };
+}
+
+function buildGwtHealth(given, when, then, measurability) {
+  const issues = [];
+  const hasContent = (steps) => steps.some((step) => step && step.trim().length > 0);
+
+  if (!hasContent(given)) {
+    issues.push({
+      criterion: 'Given',
+      message: 'Provide at least one Given step describing the starting context.',
+      details: 'A Given step establishes preconditions so testers can reproduce the scenario.',
+      suggestion: 'Example: “Given the user is signed in as an administrator”.',
+    });
+  }
+  if (!hasContent(when)) {
+    issues.push({
+      criterion: 'When',
+      message: 'Add a When step that explains the action under test.',
+      details: 'The When step captures the behaviour being exercised in the scenario.',
+      suggestion: 'Example: “When they approve the pending request”.',
+    });
+  }
+  if (!hasContent(then)) {
+    issues.push({
+      criterion: 'Then',
+      message: 'Add a Then step outlining the expected result.',
+      details: 'Then steps describe the observable outcome that proves the story works.',
+      suggestion: 'Example: “Then the request status updates within 2 seconds”.',
+    });
+  }
+
+  measurability.forEach((warning) => {
+    issues.push({
+      criterion: `Then step ${warning.index + 1}`,
+      message: warning.message,
+      details: warning.details,
+      suggestion: warning.suggestion,
+    });
+  });
+
+  return { satisfied: issues.length === 0, issues };
 }
 
 function acceptanceTestColumnsForInsert() {
@@ -1106,6 +1169,7 @@ function loadStories(db) {
     const warnings = investWarnings(story);
     story.investWarnings = warnings;
     story.investSatisfied = warnings.length === 0;
+    story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
     return story;
   });
 
@@ -1118,6 +1182,7 @@ function loadStories(db) {
     const when = parseJsonArray(row.when_step);
     const then = parseJsonArray(row.then_step);
     const { warnings, suggestions } = measurabilityWarnings(then);
+    const gwtHealth = buildGwtHealth(given, when, then, warnings);
     story.acceptanceTests.push({
       id: row.id,
       storyId: row.story_id,
@@ -1130,6 +1195,7 @@ function loadStories(db) {
       updatedAt: row.updated_at,
       measurabilityWarnings: warnings,
       measurabilitySuggestions: suggestions,
+      gwtHealth,
     });
   });
 

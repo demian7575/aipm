@@ -528,14 +528,49 @@ function renderDetails() {
 
   detailsPlaceholder.classList.add('hidden');
 
-  if (story.investWarnings && story.investWarnings.length > 0) {
-    const banner = document.createElement('div');
-    banner.className = 'error-banner';
-    banner.innerHTML = `<strong>INVEST warnings:</strong><ul>${story.investWarnings
-      .map((warning) => `<li>${warning.message}</li>`)
-      .join('')}</ul>`;
-    detailsContent.appendChild(banner);
+  const healthSection = document.createElement('section');
+  healthSection.className = 'health-section';
+  const storyHealthCard = document.createElement('div');
+  storyHealthCard.className = 'health-card';
+  const storyHealthHeader = document.createElement('div');
+  storyHealthHeader.className = 'health-card-header';
+  const storyHealthTitle = document.createElement('h3');
+  storyHealthTitle.textContent = 'Story Health (INVEST)';
+  const storyHealthStatus = document.createElement('span');
+  const investHealth = story.investHealth || {
+    satisfied: !story.investWarnings || story.investWarnings.length === 0,
+    issues: story.investWarnings || [],
+  };
+  storyHealthStatus.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
+  storyHealthStatus.textContent = investHealth.satisfied ? 'Pass' : 'Needs review';
+  storyHealthHeader.appendChild(storyHealthTitle);
+  storyHealthHeader.appendChild(storyHealthStatus);
+  storyHealthCard.appendChild(storyHealthHeader);
+
+  if (investHealth.issues && investHealth.issues.length) {
+    const issueList = document.createElement('ul');
+    issueList.className = 'health-issue-list';
+    investHealth.issues.forEach((issue) => {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'link-button health-issue-button';
+      const criterionLabel = formatCriterionLabel(issue.criterion);
+      button.textContent = `${criterionLabel ? `${criterionLabel} – ` : ''}${issue.message}`;
+      button.addEventListener('click', () => openHealthIssueModal('INVEST Issue', issue));
+      item.appendChild(button);
+      issueList.appendChild(item);
+    });
+    storyHealthCard.appendChild(issueList);
+  } else {
+    const ok = document.createElement('p');
+    ok.className = 'health-ok';
+    ok.textContent = 'All INVEST checks passed.';
+    storyHealthCard.appendChild(ok);
   }
+
+  healthSection.appendChild(storyHealthCard);
+  detailsContent.appendChild(healthSection);
 
   const form = document.createElement('form');
   form.className = 'story-form';
@@ -643,77 +678,131 @@ function renderDetails() {
   referenceBtn?.addEventListener('click', () => openReferenceModal(story.id));
 
   const acceptanceSection = document.createElement('section');
-  acceptanceSection.innerHTML = `
-    <div class="section-heading">
-      <h3>Acceptance Tests</h3>
-      <button type="button" class="secondary" id="add-test-btn">Create Acceptance Test</button>
-    </div>
-  `;
+  const acceptanceHeading = document.createElement('div');
+  acceptanceHeading.className = 'section-heading';
+  const acceptanceTitle = document.createElement('h3');
+  acceptanceTitle.textContent = 'Acceptance Tests';
+  const addTestBtn = document.createElement('button');
+  addTestBtn.type = 'button';
+  addTestBtn.className = 'secondary';
+  addTestBtn.id = 'add-test-btn';
+  addTestBtn.textContent = 'Create Acceptance Test';
+  acceptanceHeading.appendChild(acceptanceTitle);
+  acceptanceHeading.appendChild(addTestBtn);
+  acceptanceSection.appendChild(acceptanceHeading);
+
   const acceptanceList = document.createElement('div');
   acceptanceList.className = 'record-list';
   if (story.acceptanceTests && story.acceptanceTests.length) {
-    acceptanceList.innerHTML = story.acceptanceTests
-      .map((test) => {
-        const warningNote =
-          test.measurabilityWarnings && test.measurabilityWarnings.length
-            ? `<div class="error-banner" style="margin-top:0.5rem;">${test.measurabilityWarnings
-                .map((warn) => escapeHtml(warn.message))
-                .join('<br />')}</div>`
-            : '';
-        return `
-          <table class="vertical-table" data-test-id="${test.id}">
-            <tbody>
-              <tr>
-                <th scope="row">Given</th>
-                <td>${formatMultilineText(test.given)}</td>
-              </tr>
-              <tr>
-                <th scope="row">When</th>
-                <td>${formatMultilineText(test.when)}</td>
-              </tr>
-              <tr>
-                <th scope="row">Then</th>
-                <td>${formatMultilineText(test.then)}${warningNote}</td>
-              </tr>
-              <tr>
-                <th scope="row">Status</th>
-                <td>${escapeHtml(test.status)}</td>
-              </tr>
-              <tr>
-                <th scope="row">Actions</th>
-                <td class="actions">
-                  <button type="button" class="danger" data-action="delete-test" data-test-id="${test.id}">Delete</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        `;
-      })
-      .join('');
+    story.acceptanceTests.forEach((test) => {
+      const table = document.createElement('table');
+      table.className = 'vertical-table';
+      table.dataset.testId = test.id;
+      const tbody = document.createElement('tbody');
+      table.appendChild(tbody);
+
+      const rows = [
+        { label: 'Given', value: formatMultilineText(test.given) },
+        { label: 'When', value: formatMultilineText(test.when) },
+        { label: 'Then', value: formatMultilineText(test.then) },
+      ];
+
+      rows.forEach((row) => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.scope = 'row';
+        th.textContent = row.label;
+        const td = document.createElement('td');
+        td.innerHTML = row.value;
+        tr.appendChild(th);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      });
+
+      const gwtRow = document.createElement('tr');
+      const gwtTh = document.createElement('th');
+      gwtTh.scope = 'row';
+      gwtTh.textContent = 'Health (GWT)';
+      const gwtTd = document.createElement('td');
+      const gwtHealth = test.gwtHealth || { satisfied: true, issues: [] };
+      const gwtPill = document.createElement('span');
+      gwtPill.className = `health-pill ${gwtHealth.satisfied ? 'pass' : 'fail'}`;
+      gwtPill.textContent = gwtHealth.satisfied ? 'Pass' : 'Needs review';
+      gwtTd.appendChild(gwtPill);
+
+      if (gwtHealth.issues && gwtHealth.issues.length) {
+        const issueList = document.createElement('ul');
+        issueList.className = 'health-issue-list';
+        gwtHealth.issues.forEach((issue) => {
+          const item = document.createElement('li');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'link-button health-issue-button';
+          const criterionLabel = formatCriterionLabel(issue.criterion);
+          button.textContent = `${criterionLabel ? `${criterionLabel} – ` : ''}${issue.message}`;
+          button.addEventListener('click', () =>
+            openHealthIssueModal('Acceptance Test Issue', issue)
+          );
+          item.appendChild(button);
+          issueList.appendChild(item);
+        });
+        gwtTd.appendChild(issueList);
+      } else {
+        const ok = document.createElement('p');
+        ok.className = 'health-ok';
+        ok.textContent = 'All Given/When/Then checks passed.';
+        gwtTd.appendChild(ok);
+      }
+
+      gwtRow.appendChild(gwtTh);
+      gwtRow.appendChild(gwtTd);
+      tbody.appendChild(gwtRow);
+
+      const statusRow = document.createElement('tr');
+      const statusTh = document.createElement('th');
+      statusTh.scope = 'row';
+      statusTh.textContent = 'Status';
+      const statusTd = document.createElement('td');
+      statusTd.textContent = test.status;
+      statusRow.appendChild(statusTh);
+      statusRow.appendChild(statusTd);
+      tbody.appendChild(statusRow);
+
+      const actionsRow = document.createElement('tr');
+      const actionsTh = document.createElement('th');
+      actionsTh.scope = 'row';
+      actionsTh.textContent = 'Actions';
+      const actionsTd = document.createElement('td');
+      actionsTd.className = 'actions';
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'danger';
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', async () => {
+        if (!window.confirm('Delete this acceptance test?')) return;
+        try {
+          await sendJson(`/api/tests/${test.id}`, { method: 'DELETE' });
+          await loadStories();
+          showToast('Acceptance test deleted', 'success');
+        } catch (error) {
+          showToast(error.message || 'Failed to delete acceptance test', 'error');
+        }
+      });
+      actionsTd.appendChild(deleteButton);
+      actionsRow.appendChild(actionsTh);
+      actionsRow.appendChild(actionsTd);
+      tbody.appendChild(actionsRow);
+
+      acceptanceList.appendChild(table);
+    });
   } else {
     acceptanceList.innerHTML = '<p class="empty-state">No acceptance tests yet.</p>';
   }
+
   acceptanceSection.appendChild(acceptanceList);
   detailsContent.appendChild(acceptanceSection);
 
-  acceptanceSection
-    .querySelector('#add-test-btn')
-    .addEventListener('click', () => openAcceptanceTestModal(story.id));
-
-  acceptanceList.querySelectorAll('[data-action="delete-test"]').forEach((button) => {
-    button.addEventListener('click', async () => {
-      const testId = Number(button.getAttribute('data-test-id'));
-      if (!Number.isFinite(testId)) return;
-      if (!window.confirm('Delete this acceptance test?')) return;
-      try {
-        await sendJson(`/api/tests/${testId}`, { method: 'DELETE' });
-        await loadStories();
-        showToast('Acceptance test deleted', 'success');
-      } catch (error) {
-        showToast(error.message || 'Failed to delete acceptance test', 'error');
-      }
-    });
-  });
+  addTestBtn.addEventListener('click', () => openAcceptanceTestModal(story.id));
 
   const childrenSection = document.createElement('section');
   childrenSection.innerHTML = `
@@ -854,6 +943,20 @@ function formatMultilineText(value) {
   return escaped.replace(/\n/g, '<br />');
 }
 
+function formatCriterionLabel(value) {
+  if (value == null) {
+    return '';
+  }
+  const text = String(value);
+  if (/[A-Z]/.test(text)) {
+    return text;
+  }
+  if (!text.length) {
+    return text;
+  }
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function showToast(message, type = 'info') {
   toastEl.textContent = message;
   toastEl.classList.add('show');
@@ -867,7 +970,7 @@ function closeModal() {
   modal.close();
 }
 
-function openModal({ title, content, actions }) {
+function openModal({ title, content, actions, cancelLabel = 'Cancel' }) {
   modalTitle.textContent = title;
   modalBody.innerHTML = '';
   modalBody.appendChild(content);
@@ -875,7 +978,7 @@ function openModal({ title, content, actions }) {
 
   const cancelBtn = document.createElement('button');
   cancelBtn.type = 'button';
-  cancelBtn.textContent = 'Cancel';
+  cancelBtn.textContent = cancelLabel;
   cancelBtn.className = 'secondary';
   cancelBtn.addEventListener('click', closeModal);
   modalFooter.appendChild(cancelBtn);
@@ -899,6 +1002,31 @@ function openModal({ title, content, actions }) {
   }
 
   modal.showModal();
+}
+
+function openHealthIssueModal(title, issue) {
+  const container = document.createElement('div');
+  container.className = 'health-modal';
+
+  const message = document.createElement('p');
+  message.innerHTML = `<strong>Issue:</strong> ${escapeHtml(issue.message || '')}`;
+  container.appendChild(message);
+
+  if (issue.details) {
+    const details = document.createElement('p');
+    details.innerHTML = `<strong>Why it matters:</strong> ${escapeHtml(issue.details)}`;
+    container.appendChild(details);
+  }
+
+  const suggestionHeading = document.createElement('h4');
+  suggestionHeading.textContent = 'Suggested Update';
+  container.appendChild(suggestionHeading);
+
+  const suggestionBody = document.createElement('p');
+  suggestionBody.textContent = issue.suggestion || 'Refine the content to satisfy this criterion.';
+  container.appendChild(suggestionBody);
+
+  openModal({ title, content: container, cancelLabel: 'Close' });
 }
 
 function openChildStoryModal(parentId) {
@@ -1253,14 +1381,21 @@ async function uploadReferenceFile(file) {
 }
 
 function formatInvestWarnings(warnings) {
-  return warnings.map((warning) => `• ${warning.message}`).join('\n');
+  return warnings
+    .map((warning) => {
+      const suggestion = warning.suggestion ? `\n   - Suggestion: ${warning.suggestion}` : '';
+      return `• ${warning.message}${suggestion}`;
+    })
+    .join('\n');
 }
 
 function formatMeasurabilityWarnings(warnings, suggestions) {
-  const items = warnings.map((warning) => `• ${warning.message}`);
-  if (suggestions && suggestions.length) {
-    items.push('', 'Suggestions:');
-    suggestions.forEach((suggestion) => items.push(`  - ${suggestion}`));
+  const items = warnings.map((warning) => {
+    const tip = warning.suggestion ? `\n   - Suggestion: ${warning.suggestion}` : '';
+    return `• ${warning.message}${tip}`;
+  });
+  if (items.length === 0 && suggestions && suggestions.length) {
+    suggestions.forEach((suggestion) => items.push(`• ${suggestion}`));
   }
   return items.join('\n');
 }
