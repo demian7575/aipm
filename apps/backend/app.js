@@ -1,9 +1,245 @@
+import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DatabaseSync } from 'node:sqlite';
+
+const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
+
+function escapeSqlValue(value) {
+  if (value === null || value === undefined) {
+    return 'NULL';
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return 'NULL';
+    return String(value);
+  }
+  if (typeof value === 'boolean') {
+    return value ? '1' : '0';
+  }
+  if (value instanceof Date) {
+    return `'${value.toISOString().replace(/'/g, "''")}'`;
+  }
+  const text = String(value);
+  return `'${text.replace(/'/g, "''")}'`;
+}
+
+function ensureStatementTerminated(sql) {
+  const trimmed = sql.trim();
+  if (trimmed.endsWith(';')) {
+    return trimmed;
+  }
+  return `${trimmed};`;
+}
+
+function substituteParams(sql, params) {
+  let index = 0;
+  return ensureStatementTerminated(
+    sql.replace(/\?/g, () => {
+      const value = index < params.length ? params[index++] : null;
+      return escapeSqlValue(value);
+    })
+  );
+}
+
+function runSqliteCli(args, input) {
+  const result = spawnSync(SQLITE_COMMAND, ['-batch', ...args], {
+    input,
+    encoding: 'utf8',
+  });
+
+  if (result.error) {
+    if (result.error.code === 'ENOENT') {
+      const error = new Error(
+        `SQLite CLI executable "${SQLITE_COMMAND}" not found. Install sqlite3 or use Node 20+ for the built-in driver.`
+      );
+      error.cause = result.error;
+      throw error;
+    }
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    const message = result.stderr?.trim() || 'Failed to execute sqlite3 command';
+    const error = new Error(message);
+    error.stderr = result.stderr;
+    error.stdout = result.stdout;
+    error.status = result.status;
+    error.args = args;
+    throw error;
+  }
+
+  return result.stdout || '';
+}
+
+let cliFeatureCache;
+
+function detectCliFeatures() {
+  if (cliFeatureCache) {
+    return cliFeatureCache;
+  }
+
+  let json = false;
+  try {
+    const output = runSqliteCli([':memory:'], '.mode json\nSELECT 1 AS value;\n');
+    const trimmed = output.trim();
+    if (trimmed) {
+      JSON.parse(trimmed);
+      json = true;
+    }
+  } catch (error) {
+    if (error.stderr && /no such mode: json/i.test(error.stderr)) {
+      json = false;
+    } else if (error.message && /no such mode: json/i.test(error.message)) {
+      json = false;
+    } else if (error.cause && error.cause.code === 'ENOENT') {
+      throw error;
+    }
+  }
+
+  cliFeatureCache = { json };
+  return cliFeatureCache;
+}
+
+function parseJsonOutput(output) {
+  const trimmed = output.trim();
+  if (!trimmed) {
+    return [];
+  }
+  const lines = trimmed.split(/\r?\n/).filter(Boolean);
+  const jsonLine = lines[lines.length - 1];
+  return JSON.parse(jsonLine);
+}
+
+function normalizeTabValue(value) {
+  if (value === undefined) return null;
+  if (value === '') return null;
+  if (/^-?\d+(\.\d+)?$/.test(value)) {
+    return Number(value);
+  }
+  return value;
+}
+
+function parseTabularOutput(output) {
+  const trimmed = output.trim();
+  if (!trimmed) {
+    return [];
+  }
+  const lines = trimmed.split(/\r?\n/).filter(Boolean);
+  if (lines.length === 0) {
+    return [];
+  }
+  const headers = lines[0].split('\t');
+  return lines.slice(1).map((line) => {
+    const values = line.split('\t');
+    const row = {};
+    headers.forEach((header, index) => {
+      row[header] = normalizeTabValue(values[index]);
+    });
+    return row;
+  });
+}
+
+class CliStatement {
+  constructor(db, sql) {
+    this.db = db;
+    this.sql = sql;
+  }
+
+  all(...params) {
+    return this.db._all(this.sql, params);
+  }
+
+  get(...params) {
+    const rows = this.db._all(this.sql, params);
+    return rows[0];
+  }
+
+  run(...params) {
+    return this.db._run(this.sql, params);
+  }
+}
+
+class CliDatabase {
+  constructor(filePath) {
+    this.filePath = filePath;
+    this.features = detectCliFeatures();
+  }
+
+  exec(sql) {
+    if (!sql) {
+      return this;
+    }
+    const script = sql.endsWith('\n') ? sql : `${sql}\n`;
+    runSqliteCli([this.filePath], script);
+    return this;
+  }
+
+  prepare(sql) {
+    return new CliStatement(this, sql);
+  }
+
+  close() {
+    // CLI-based connections do not maintain persistent handles.
+  }
+
+  _all(sql, params) {
+    const statement = substituteParams(sql, params);
+    const prefix = this.features.json ? '.mode json\n' : '.headers on\n.mode tabs\n';
+    const output = runSqliteCli([this.filePath], `${prefix}${statement}\n`);
+    return this.features.json ? parseJsonOutput(output) : parseTabularOutput(output);
+  }
+
+  _run(sql, params) {
+    const statement = substituteParams(sql, params);
+    const prefix = this.features.json ? '.mode json\n' : '.headers on\n.mode tabs\n';
+    const script = `${prefix}${statement}\nSELECT changes() AS changes, last_insert_rowid() AS lastInsertRowid;\n`;
+    const output = runSqliteCli([this.filePath], script);
+    if (this.features.json) {
+      const rows = parseJsonOutput(output);
+      const meta = rows[rows.length - 1] || {};
+      return {
+        changes: Number(meta.changes ?? 0),
+        lastInsertRowid: Number(meta.lastInsertRowid ?? meta.last_insert_rowid ?? 0),
+      };
+    }
+    const rows = parseTabularOutput(output);
+    const meta = rows[rows.length - 1] || {};
+    return {
+      changes: Number(meta.changes ?? 0),
+      lastInsertRowid: Number(meta.lastInsertRowid ?? meta.last_insert_rowid ?? 0),
+    };
+  }
+}
+
+let createDatabaseInstance;
+
+async function loadDatabaseFactory() {
+  if (createDatabaseInstance) {
+    return createDatabaseInstance;
+  }
+
+  try {
+    const { DatabaseSync } = await import('node:sqlite');
+    createDatabaseInstance = (filePath) => new DatabaseSync(filePath);
+    return createDatabaseInstance;
+  } catch (nativeError) {
+    try {
+      detectCliFeatures();
+      createDatabaseInstance = (filePath) => new CliDatabase(filePath);
+      return createDatabaseInstance;
+    } catch (fallbackError) {
+      nativeError.cause = fallbackError;
+      throw nativeError;
+    }
+  }
+}
+
+export async function openDatabase(filePath) {
+  const createDatabase = await loadDatabaseFactory();
+  return createDatabase(filePath);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -190,7 +426,7 @@ async function removeUploadIfLocal(urlPath) {
 
 async function ensureDatabase() {
   await Promise.all([mkdir(DATA_DIR, { recursive: true }), mkdir(UPLOAD_DIR, { recursive: true })]);
-  const db = new DatabaseSync(DATABASE_PATH);
+  const db = await openDatabase(DATABASE_PATH);
   db.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;

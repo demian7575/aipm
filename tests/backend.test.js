@@ -2,8 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
-import { createApp, DATABASE_PATH } from '../apps/backend/app.js';
+import { createApp, DATABASE_PATH, openDatabase } from '../apps/backend/app.js';
 
 async function startServer() {
   const app = await createApp();
@@ -133,7 +132,7 @@ test('stories CRUD with reference documents', async (t) => {
 test('acceptance tests can be created when legacy title column exists', async (t) => {
   await fs.rm(DATABASE_PATH, { force: true });
   await fs.mkdir(path.dirname(DATABASE_PATH), { recursive: true });
-  const db = new DatabaseSync(DATABASE_PATH);
+  const db = await openDatabase(DATABASE_PATH);
   db.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
