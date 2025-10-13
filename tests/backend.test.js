@@ -48,6 +48,7 @@ test('stories CRUD with reference documents', async (t) => {
   assert.ok(Array.isArray(story.investHealth.issues));
   assert.ok(story.investAnalysis);
   assert.ok(Array.isArray(story.investAnalysis.aiWarnings));
+  assert.ok(Array.isArray(story.investAnalysis.fallbackWarnings));
   assert.equal(typeof story.investAnalysis.usedFallback, 'boolean');
   assert.ok(['heuristic', 'fallback', 'openai'].includes(story.investAnalysis.source));
   assert.ok(
@@ -96,6 +97,7 @@ test('stories CRUD with reference documents', async (t) => {
   assert.equal(child.investHealth.satisfied, false);
   assert.ok(child.investAnalysis);
   assert.ok(Array.isArray(child.investAnalysis.aiWarnings));
+  assert.ok(Array.isArray(child.investAnalysis.fallbackWarnings));
   assert.ok(
     child.investHealth.issues.some((issue) =>
       /Add at least one acceptance test/i.test(issue.message)
@@ -164,6 +166,81 @@ test('stories CRUD with reference documents', async (t) => {
   if (finalData[0].acceptanceTests.length) {
     assert.ok(finalData[0].acceptanceTests[0].gwtHealth);
   }
+});
+
+test('ChatGPT analysis drives INVEST outcome when available', async (t) => {
+  await resetDatabaseFiles();
+  const previousDisable = process.env.AI_PM_DISABLE_OPENAI;
+  const previousKey = process.env.AI_PM_OPENAI_API_KEY;
+  process.env.AI_PM_DISABLE_OPENAI = '0';
+  process.env.AI_PM_OPENAI_API_KEY = 'test-key';
+
+  const originalFetch = global.fetch;
+  const { Response } = globalThis;
+  const aiPayload = {
+    choices: [
+      {
+        message: {
+          content: JSON.stringify({ summary: 'Story looks ready for delivery.', warnings: [] }),
+        },
+      },
+    ],
+  };
+
+  global.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input?.url || input?.href;
+    if (url && /chat\/completions/.test(url)) {
+      return new Response(JSON.stringify(aiPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    return originalFetch(input, init);
+  };
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    if (previousDisable === undefined) {
+      delete process.env.AI_PM_DISABLE_OPENAI;
+    } else {
+      process.env.AI_PM_DISABLE_OPENAI = previousDisable;
+    }
+    if (previousKey) {
+      process.env.AI_PM_OPENAI_API_KEY = previousKey;
+    } else {
+      delete process.env.AI_PM_OPENAI_API_KEY;
+    }
+    global.fetch = originalFetch;
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const createResponse = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'AI validated story',
+      asA: 'Platform admin',
+      iWant: 'configure rollout windows',
+      soThat: 'deployments avoid peak hours',
+      description: 'Story without acceptance tests to trigger heuristic guidance',
+    }),
+  });
+
+  assert.equal(createResponse.status, 201);
+  const created = await createResponse.json();
+  assert.equal(created.investAnalysis.source, 'openai');
+  assert.equal(created.investHealth.satisfied, true);
+  assert.ok(Array.isArray(created.investAnalysis.fallbackWarnings));
+  assert.ok(
+    created.investAnalysis.fallbackWarnings.some((issue) =>
+      /acceptance test/i.test(issue.message)
+    )
+  );
+  assert.equal(created.investHealth.issues.length, 0);
 });
 
 test('acceptance tests can be created when legacy title column exists', async (t) => {

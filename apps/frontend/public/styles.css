@@ -430,6 +430,17 @@ textarea {
   color: #475569;
 }
 
+.health-subheading {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.85rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.health-issue-list.heuristic-list {
+  margin-top: 0.25rem;
+}
+
 .health-modal {
   display: flex;
   flex-direction: column;

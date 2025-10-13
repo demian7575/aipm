@@ -577,6 +577,9 @@ function renderDetails() {
     issues: story.investWarnings || [],
   };
   const analysisInfo = story.investAnalysis || null;
+  const fallbackWarnings = Array.isArray(analysisInfo?.fallbackWarnings)
+    ? analysisInfo.fallbackWarnings
+    : [];
 
   const storyBriefBody = form.querySelector('.story-brief tbody');
   if (storyBriefBody) {
@@ -631,10 +634,14 @@ function renderDetails() {
       analysisNote.className = 'health-analysis-note';
       if (analysisInfo.source === 'openai') {
         const model = analysisInfo.aiModel ? ` (model ${analysisInfo.aiModel})` : '';
+        const heuristicsTail = fallbackWarnings.length
+          ? ' Additional heuristic suggestions are listed below.'
+          : '';
         if (analysisInfo.aiSummary) {
-          analysisNote.textContent = `ChatGPT${model} summary: ${analysisInfo.aiSummary}`;
+          const suffix = heuristicsTail ? `${heuristicsTail}` : '';
+          analysisNote.textContent = `ChatGPT${model} summary: ${analysisInfo.aiSummary}${suffix}`;
         } else {
-          analysisNote.textContent = `ChatGPT${model} reviewed this story.`;
+          analysisNote.textContent = `ChatGPT${model} reviewed this story.${heuristicsTail}`;
         }
       } else if (analysisInfo.source === 'fallback') {
         const detail = analysisInfo.error ? ` (${analysisInfo.error})` : '';
@@ -643,6 +650,50 @@ function renderDetails() {
         analysisNote.textContent = 'Using local INVEST heuristics.';
       }
       healthItem.appendChild(analysisNote);
+    }
+
+    if (analysisInfo && analysisInfo.source === 'openai' && fallbackWarnings.length) {
+      const aiMessages = new Set(
+        (investHealth.issues || []).map((issue) => (issue && issue.message ? issue.message : ''))
+      );
+      const heuristicItems = fallbackWarnings.filter(
+        (issue) => issue && issue.message && !aiMessages.has(issue.message)
+      );
+
+      const heuristicsHeading = document.createElement('h4');
+      heuristicsHeading.className = 'health-subheading';
+      heuristicsHeading.textContent = 'Additional rule-check suggestions';
+      healthItem.appendChild(heuristicsHeading);
+
+      const heuristicsList = document.createElement('ul');
+      heuristicsList.className = 'health-issue-list heuristic-list';
+
+      if (!heuristicItems.length) {
+        const empty = document.createElement('li');
+        empty.textContent = 'No extra suggestions beyond ChatGPT feedback.';
+        heuristicsList.appendChild(empty);
+      } else {
+        heuristicItems.forEach((issue) => {
+          const item = document.createElement('li');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'link-button health-issue-button';
+          const criterionLabel = formatCriterionLabel(issue.criterion);
+          const originLabel = describeIssueOrigin(issue.source);
+          const parts = [];
+          if (originLabel) parts.push(originLabel);
+          if (criterionLabel) parts.push(criterionLabel);
+          const prefix = parts.length ? `${parts.join(' · ')} – ` : '';
+          button.textContent = `${prefix}${issue.message}`;
+          button.addEventListener('click', () =>
+            openHealthIssueModal('Heuristic Suggestion', issue, analysisInfo)
+          );
+          item.appendChild(button);
+          heuristicsList.appendChild(item);
+        });
+      }
+
+      healthItem.appendChild(heuristicsList);
     }
 
     metaGrid.appendChild(healthItem);
@@ -1105,8 +1156,12 @@ function openHealthIssueModal(title, issue, context = null) {
     contextNote.className = 'issue-context';
     if (context.source === 'openai') {
       const model = context.aiModel ? ` (model ${context.aiModel})` : '';
-      const summary = context.aiSummary ? context.aiSummary : 'ChatGPT reviewed this story.';
-      contextNote.textContent = `ChatGPT${model}: ${summary}`;
+      if (issue.source === 'heuristic') {
+        contextNote.textContent = `ChatGPT${model} approved the story; local rules suggested this follow-up.`;
+      } else {
+        const summary = context.aiSummary ? context.aiSummary : 'ChatGPT reviewed this story.';
+        contextNote.textContent = `ChatGPT${model}: ${summary}`;
+      }
     } else if (context.source === 'fallback') {
       const detail = context.error ? ` (${context.error})` : '';
       contextNote.textContent = `ChatGPT analysis unavailable${detail}; showing local guidance.`;

@@ -902,21 +902,6 @@ function markBaselineWarnings(warnings) {
   return warnings.map((warning) => ({ ...warning, source: 'heuristic' }));
 }
 
-function mergeWarnings(primary, baseline) {
-  const result = [];
-  const seen = new Set();
-  const add = (warning) => {
-    if (!warning) return;
-    const key = `${warning.criterion || ''}::${warning.message}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    result.push(warning);
-  };
-  primary.forEach(add);
-  baseline.forEach(add);
-  return result;
-}
-
 async function requestInvestAnalysisFromOpenAi(story, options, config) {
   if (!config.enabled) {
     return null;
@@ -1028,9 +1013,8 @@ async function analyzeInvest(story, options = {}) {
       };
     }
     const aiWarnings = aiResult.warnings.map((warning) => normalizeAiWarning(warning)).filter(Boolean);
-    const warnings = mergeWarnings(aiWarnings, baseline);
     return {
-      warnings,
+      warnings: aiWarnings,
       source: 'openai',
       summary: aiResult.summary || '',
       ai: {
@@ -1454,6 +1438,7 @@ async function loadStories(db) {
         aiModel: analysis.ai?.model || null,
         usedFallback: analysis.usedFallback,
         error: analysis.ai?.error || null,
+        fallbackWarnings: analysis.fallbackWarnings || [],
       };
     })
   );
@@ -1681,6 +1666,7 @@ export async function createApp() {
               aiModel: analysis.ai?.model || null,
               usedFallback: analysis.usedFallback,
               error: analysis.ai?.error || null,
+              fallbackWarnings: analysis.fallbackWarnings || [],
             },
           });
           return;
@@ -1758,6 +1744,7 @@ export async function createApp() {
               aiModel: analysis.ai?.model || null,
               usedFallback: analysis.usedFallback,
               error: analysis.ai?.error || null,
+              fallbackWarnings: analysis.fallbackWarnings || [],
             },
           });
           return;

@@ -123,8 +123,8 @@ following environment variables (set them before running `npm run dev` or `npm r
 | `AI_PM_DISABLE_OPENAI` | Set to `1` or `true` to bypass ChatGPT even when an API key is available. |
 
 If the API key is omitted or the OpenAI request fails, the backend automatically falls back to the built-in heuristic policy.
-The frontend surfaces whether the feedback came from ChatGPT or the local rule engine so product managers always know which
-signals informed the INVEST health check.
+When ChatGPT is active, heuristics are still evaluated but presented only as optional suggestions while the AI verdict determines INVEST pass/fail.
+The frontend surfaces whether the feedback came from ChatGPT or the local rule engine so product managers always know which signals informed the INVEST health check.
 
 ## Scripts
 
