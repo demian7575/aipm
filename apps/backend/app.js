@@ -789,7 +789,8 @@ function resolveUploadPath(urlPath) {
   return resolved;
 }
 
-function investWarnings(story) {
+function investWarnings(story, options = {}) {
+  const { acceptanceTests = null, includeTestChecks = false } = options;
   const warnings = [];
   if (!story.asA || !story.asA.trim()) {
     warnings.push({
@@ -822,6 +823,42 @@ function investWarnings(story) {
       details: 'A descriptive title helps reviewers judge whether the story stands independently.',
       suggestion: 'Expand the title, e.g., “Manage MFA enrollment reminders”.',
     });
+  }
+  if (includeTestChecks) {
+    const tests = Array.isArray(acceptanceTests)
+      ? acceptanceTests
+      : Array.isArray(story.acceptanceTests)
+      ? story.acceptanceTests
+      : [];
+    if (!tests.length) {
+      warnings.push({
+        criterion: 'testable',
+        message: 'Add at least one acceptance test to prove the story is testable.',
+        details: 'INVEST “Testable” expects measurable acceptance criteria so the team can validate delivery.',
+        suggestion: 'Capture a Given/When/Then scenario covering the expected behaviour.',
+      });
+    } else {
+      const failing = tests.filter((test) => (test.status ?? 'Draft') !== 'Pass');
+      if (failing.length > 0) {
+        warnings.push({
+          criterion: 'testable',
+          message: 'Ensure all acceptance tests reach Pass status.',
+          details: `The following acceptance tests still need attention: ${failing
+            .map((test) => test.title || `#${test.id}`)
+            .join(', ')}.`,
+          suggestion: 'Work with QA to update the scenarios and run them until they pass.',
+        });
+      }
+      const unresolved = tests.flatMap((test) => (test.gwtHealth?.issues ?? []));
+      if (unresolved.length > 0) {
+        warnings.push({
+          criterion: 'testable',
+          message: 'Resolve Given/When/Then gaps in acceptance tests.',
+          details: 'Some acceptance tests have ambiguous or incomplete steps that block verification.',
+          suggestion: 'Edit the failing scenarios to remove ambiguity and include measurable outcomes.',
+        });
+      }
+    }
   }
   return warnings;
 }
@@ -1166,10 +1203,6 @@ function loadStories(db) {
       acceptanceTests: [],
       referenceDocuments: [],
     };
-    const warnings = investWarnings(story);
-    story.investWarnings = warnings;
-    story.investSatisfied = warnings.length === 0;
-    story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
     return story;
   });
 
@@ -1210,6 +1243,16 @@ function loadStories(db) {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     });
+  });
+
+  stories.forEach((story) => {
+    const warnings = investWarnings(story, {
+      acceptanceTests: story.acceptanceTests,
+      includeTestChecks: true,
+    });
+    story.investWarnings = warnings;
+    story.investSatisfied = warnings.length === 0;
+    story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
   });
 
   return roots;

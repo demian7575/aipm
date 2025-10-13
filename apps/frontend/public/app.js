@@ -528,50 +528,6 @@ function renderDetails() {
 
   detailsPlaceholder.classList.add('hidden');
 
-  const healthSection = document.createElement('section');
-  healthSection.className = 'health-section';
-  const storyHealthCard = document.createElement('div');
-  storyHealthCard.className = 'health-card';
-  const storyHealthHeader = document.createElement('div');
-  storyHealthHeader.className = 'health-card-header';
-  const storyHealthTitle = document.createElement('h3');
-  storyHealthTitle.textContent = 'Story Health (INVEST)';
-  const storyHealthStatus = document.createElement('span');
-  const investHealth = story.investHealth || {
-    satisfied: !story.investWarnings || story.investWarnings.length === 0,
-    issues: story.investWarnings || [],
-  };
-  storyHealthStatus.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
-  storyHealthStatus.textContent = investHealth.satisfied ? 'Pass' : 'Needs review';
-  storyHealthHeader.appendChild(storyHealthTitle);
-  storyHealthHeader.appendChild(storyHealthStatus);
-  storyHealthCard.appendChild(storyHealthHeader);
-
-  if (investHealth.issues && investHealth.issues.length) {
-    const issueList = document.createElement('ul');
-    issueList.className = 'health-issue-list';
-    investHealth.issues.forEach((issue) => {
-      const item = document.createElement('li');
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'link-button health-issue-button';
-      const criterionLabel = formatCriterionLabel(issue.criterion);
-      button.textContent = `${criterionLabel ? `${criterionLabel} – ` : ''}${issue.message}`;
-      button.addEventListener('click', () => openHealthIssueModal('INVEST Issue', issue));
-      item.appendChild(button);
-      issueList.appendChild(item);
-    });
-    storyHealthCard.appendChild(issueList);
-  } else {
-    const ok = document.createElement('p');
-    ok.className = 'health-ok';
-    ok.textContent = 'All INVEST checks passed.';
-    storyHealthCard.appendChild(ok);
-  }
-
-  healthSection.appendChild(storyHealthCard);
-  detailsContent.appendChild(healthSection);
-
   const form = document.createElement('form');
   form.className = 'story-form';
   form.innerHTML = `
@@ -625,6 +581,87 @@ function renderDetails() {
       <button type="button" class="secondary" id="reference-button">Reference Documents</button>
     </div>
   `;
+
+  const investHealth = story.investHealth || {
+    satisfied: !story.investWarnings || story.investWarnings.length === 0,
+    issues: story.investWarnings || [],
+  };
+
+  const storyBriefBody = form.querySelector('.story-brief tbody');
+  if (storyBriefBody) {
+    const summaryRow = document.createElement('tr');
+    summaryRow.className = 'story-meta-row';
+    const summaryHeader = document.createElement('th');
+    summaryHeader.scope = 'row';
+    summaryHeader.textContent = 'Summary';
+    const summaryCell = document.createElement('td');
+    const metaGrid = document.createElement('div');
+    metaGrid.className = 'story-meta-grid';
+
+    const healthItem = document.createElement('div');
+    healthItem.className = 'story-meta-item';
+    const healthLabel = document.createElement('span');
+    healthLabel.className = 'story-meta-label';
+    healthLabel.textContent = 'Health (INVEST)';
+    const healthValue = document.createElement('span');
+    healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
+    healthValue.textContent = investHealth.satisfied ? 'Pass' : 'Needs review';
+    healthItem.appendChild(healthLabel);
+    healthItem.appendChild(healthValue);
+
+    if (investHealth.issues && investHealth.issues.length) {
+      const issueList = document.createElement('ul');
+      issueList.className = 'health-issue-list';
+      investHealth.issues.forEach((issue) => {
+        const item = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'link-button health-issue-button';
+        const criterionLabel = formatCriterionLabel(issue.criterion);
+        button.textContent = `${criterionLabel ? `${criterionLabel} – ` : ''}${issue.message}`;
+        button.addEventListener('click', () => openHealthIssueModal('INVEST Issue', issue));
+        item.appendChild(button);
+        issueList.appendChild(item);
+      });
+      healthItem.appendChild(issueList);
+    } else {
+      const ok = document.createElement('p');
+      ok.className = 'health-ok';
+      ok.textContent = 'All INVEST checks passed.';
+      healthItem.appendChild(ok);
+    }
+
+    const statusItem = document.createElement('div');
+    statusItem.className = 'story-meta-item';
+    const statusLabel = document.createElement('span');
+    statusLabel.className = 'story-meta-label';
+    statusLabel.textContent = 'Status';
+    const statusValue = document.createElement('span');
+    statusValue.className = 'story-meta-value';
+    statusValue.textContent = story.status || 'Draft';
+    statusItem.appendChild(statusLabel);
+    statusItem.appendChild(statusValue);
+
+    const pointsItem = document.createElement('div');
+    pointsItem.className = 'story-meta-item';
+    const pointsLabel = document.createElement('span');
+    pointsLabel.className = 'story-meta-label';
+    pointsLabel.textContent = 'Story Point';
+    const pointsValue = document.createElement('span');
+    pointsValue.className = 'story-meta-value';
+    pointsValue.textContent = story.storyPoint != null ? String(story.storyPoint) : '—';
+    pointsItem.appendChild(pointsLabel);
+    pointsItem.appendChild(pointsValue);
+
+    metaGrid.appendChild(healthItem);
+    metaGrid.appendChild(statusItem);
+    metaGrid.appendChild(pointsItem);
+
+    summaryCell.appendChild(metaGrid);
+    summaryRow.appendChild(summaryHeader);
+    summaryRow.appendChild(summaryCell);
+    storyBriefBody.appendChild(summaryRow);
+  }
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();

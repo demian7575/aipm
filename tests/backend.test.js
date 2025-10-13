@@ -42,6 +42,12 @@ test('stories CRUD with reference documents', async (t) => {
   assert.ok(story.investHealth);
   assert.equal(typeof story.investHealth.satisfied, 'boolean');
   assert.ok(Array.isArray(story.investHealth.issues));
+  assert.equal(story.investHealth.satisfied, false);
+  assert.ok(
+    story.investHealth.issues.some((issue) =>
+      /acceptance tests reach Pass status/i.test(issue.message)
+    )
+  );
   if (story.acceptanceTests.length) {
     assert.ok(story.acceptanceTests[0].gwtHealth);
     assert.equal(typeof story.acceptanceTests[0].gwtHealth.satisfied, 'boolean');
