@@ -631,31 +631,7 @@ function renderDetails() {
       healthItem.appendChild(ok);
     }
 
-    const statusItem = document.createElement('div');
-    statusItem.className = 'story-meta-item';
-    const statusLabel = document.createElement('span');
-    statusLabel.className = 'story-meta-label';
-    statusLabel.textContent = 'Status';
-    const statusValue = document.createElement('span');
-    statusValue.className = 'story-meta-value';
-    statusValue.textContent = story.status || 'Draft';
-    statusItem.appendChild(statusLabel);
-    statusItem.appendChild(statusValue);
-
-    const pointsItem = document.createElement('div');
-    pointsItem.className = 'story-meta-item';
-    const pointsLabel = document.createElement('span');
-    pointsLabel.className = 'story-meta-label';
-    pointsLabel.textContent = 'Story Point';
-    const pointsValue = document.createElement('span');
-    pointsValue.className = 'story-meta-value';
-    pointsValue.textContent = story.storyPoint != null ? String(story.storyPoint) : '—';
-    pointsItem.appendChild(pointsLabel);
-    pointsItem.appendChild(pointsValue);
-
     metaGrid.appendChild(healthItem);
-    metaGrid.appendChild(statusItem);
-    metaGrid.appendChild(pointsItem);
 
     summaryCell.appendChild(metaGrid);
     summaryRow.appendChild(summaryHeader);

@@ -838,17 +838,6 @@ function investWarnings(story, options = {}) {
         suggestion: 'Capture a Given/When/Then scenario covering the expected behaviour.',
       });
     } else {
-      const failing = tests.filter((test) => (test.status ?? 'Draft') !== 'Pass');
-      if (failing.length > 0) {
-        warnings.push({
-          criterion: 'testable',
-          message: 'Ensure all acceptance tests reach Pass status.',
-          details: `The following acceptance tests still need attention: ${failing
-            .map((test) => test.title || `#${test.id}`)
-            .join(', ')}.`,
-          suggestion: 'Work with QA to update the scenarios and run them until they pass.',
-        });
-      }
       const unresolved = tests.flatMap((test) => (test.gwtHealth?.issues ?? []));
       if (unresolved.length > 0) {
         warnings.push({

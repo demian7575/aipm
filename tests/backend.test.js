@@ -42,10 +42,9 @@ test('stories CRUD with reference documents', async (t) => {
   assert.ok(story.investHealth);
   assert.equal(typeof story.investHealth.satisfied, 'boolean');
   assert.ok(Array.isArray(story.investHealth.issues));
-  assert.equal(story.investHealth.satisfied, false);
   assert.ok(
-    story.investHealth.issues.some((issue) =>
-      /acceptance tests reach Pass status/i.test(issue.message)
+    story.investHealth.issues.every(
+      (issue) => !/acceptance tests reach Pass status/i.test(issue.message)
     )
   );
   if (story.acceptanceTests.length) {
@@ -85,6 +84,13 @@ test('stories CRUD with reference documents', async (t) => {
   assert.equal(childResponse.status, 201);
   const child = await childResponse.json();
   assert.equal(child.storyPoint, 3);
+  assert.ok(child.investHealth);
+  assert.equal(child.investHealth.satisfied, false);
+  assert.ok(
+    child.investHealth.issues.some((issue) =>
+      /Add at least one acceptance test/i.test(issue.message)
+    )
+  );
 
   const invalidStoryPoint = await fetch(`${baseUrl}/api/stories`, {
     method: 'POST',
