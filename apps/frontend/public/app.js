@@ -536,12 +536,6 @@ function renderDetails() {
       <input name="title" value="${escapeHtml(story.title)}" required />
     </div>
     <div>
-      <label>Story Point</label>
-      <input name="storyPoint" type="number" min="0" step="1" placeholder="Estimate" value="${
-        story.storyPoint != null ? story.storyPoint : ''
-      }" />
-    </div>
-    <div>
       <label>Assignee Email</label>
       <div style="display:flex; gap:0.5rem; align-items:center;">
         <input name="assigneeEmail" type="email" value="${escapeHtml(story.assigneeEmail || '')}" placeholder="name@example.com" />
@@ -549,10 +543,6 @@ function renderDetails() {
           story.assigneeEmail ? '' : 'disabled'
         }>Email</button>
       </div>
-    </div>
-    <div>
-      <label>Status</label>
-      <input name="status" value="${escapeHtml(story.status || 'Draft')}" disabled />
     </div>
     <div class="full">
       <label>Description</label>
@@ -632,6 +622,35 @@ function renderDetails() {
     }
 
     metaGrid.appendChild(healthItem);
+
+    const statusItem = document.createElement('div');
+    statusItem.className = 'story-meta-item';
+    const statusLabel = document.createElement('span');
+    statusLabel.className = 'story-meta-label';
+    statusLabel.textContent = 'Status';
+    const statusValue = document.createElement('span');
+    statusValue.className = 'story-meta-value';
+    statusValue.textContent = story.status || 'Draft';
+    statusItem.appendChild(statusLabel);
+    statusItem.appendChild(statusValue);
+    metaGrid.appendChild(statusItem);
+
+    const pointItem = document.createElement('div');
+    pointItem.className = 'story-meta-item';
+    const pointLabel = document.createElement('span');
+    pointLabel.className = 'story-meta-label';
+    pointLabel.textContent = 'Story Point';
+    const pointInput = document.createElement('input');
+    pointInput.type = 'number';
+    pointInput.name = 'storyPoint';
+    pointInput.min = '0';
+    pointInput.step = '1';
+    pointInput.placeholder = 'Estimate';
+    pointInput.value = story.storyPoint != null ? story.storyPoint : '';
+    pointInput.className = 'story-point-input';
+    pointItem.appendChild(pointLabel);
+    pointItem.appendChild(pointInput);
+    metaGrid.appendChild(pointItem);
 
     summaryCell.appendChild(metaGrid);
     summaryRow.appendChild(summaryHeader);

@@ -358,6 +358,10 @@ textarea {
   gap: 0.35rem;
 }
 
+.story-meta-item .story-point-input {
+  max-width: 120px;
+}
+
 .story-meta-label {
   font-size: 0.75rem;
   font-weight: 600;
