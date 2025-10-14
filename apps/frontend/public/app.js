@@ -531,6 +531,9 @@ function renderDetails() {
   const form = document.createElement('form');
   form.className = 'story-form';
   form.innerHTML = `
+    <div class="form-toolbar">
+      <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
+    </div>
     <div>
       <label>Title</label>
       <input name="title" value="${escapeHtml(story.title)}" required />
@@ -698,23 +701,30 @@ function renderDetails() {
 
     metaGrid.appendChild(healthItem);
 
-    const statusItem = document.createElement('div');
-    statusItem.className = 'story-meta-item';
-    const statusLabel = document.createElement('span');
-    statusLabel.className = 'story-meta-label';
-    statusLabel.textContent = 'Status';
-    const statusValue = document.createElement('span');
-    statusValue.className = 'story-meta-value';
-    statusValue.textContent = story.status || 'Draft';
-    statusItem.appendChild(statusLabel);
-    statusItem.appendChild(statusValue);
-    metaGrid.appendChild(statusItem);
+    summaryCell.appendChild(metaGrid);
+    summaryRow.appendChild(summaryHeader);
+    summaryRow.appendChild(summaryCell);
+    storyBriefBody.appendChild(summaryRow);
+  }
 
-    const pointItem = document.createElement('div');
-    pointItem.className = 'story-meta-item';
-    const pointLabel = document.createElement('span');
-    pointLabel.className = 'story-meta-label';
-    pointLabel.textContent = 'Story Point';
+  if (storyBriefBody) {
+    const statusRow = document.createElement('tr');
+    statusRow.className = 'story-status-row';
+    const statusHeader = document.createElement('th');
+    statusHeader.scope = 'row';
+    statusHeader.textContent = 'Status';
+    const statusCell = document.createElement('td');
+    statusCell.textContent = story.status || 'Draft';
+    statusRow.appendChild(statusHeader);
+    statusRow.appendChild(statusCell);
+    storyBriefBody.appendChild(statusRow);
+
+    const pointRow = document.createElement('tr');
+    pointRow.className = 'story-point-row';
+    const pointHeader = document.createElement('th');
+    pointHeader.scope = 'row';
+    pointHeader.textContent = 'Story Point';
+    const pointCell = document.createElement('td');
     const pointInput = document.createElement('input');
     pointInput.type = 'number';
     pointInput.name = 'storyPoint';
@@ -723,14 +733,10 @@ function renderDetails() {
     pointInput.placeholder = 'Estimate';
     pointInput.value = story.storyPoint != null ? story.storyPoint : '';
     pointInput.className = 'story-point-input';
-    pointItem.appendChild(pointLabel);
-    pointItem.appendChild(pointInput);
-    metaGrid.appendChild(pointItem);
-
-    summaryCell.appendChild(metaGrid);
-    summaryRow.appendChild(summaryHeader);
-    summaryRow.appendChild(summaryCell);
-    storyBriefBody.appendChild(summaryRow);
+    pointCell.appendChild(pointInput);
+    pointRow.appendChild(pointHeader);
+    pointRow.appendChild(pointCell);
+    storyBriefBody.appendChild(pointRow);
   }
 
   form.addEventListener('submit', async (event) => {
@@ -772,6 +778,40 @@ function renderDetails() {
   });
 
   detailsContent.appendChild(form);
+
+  const saveButton = form.querySelector('button[type="submit"]');
+  const editButton = form.querySelector('#edit-story-btn');
+  const editableFields = Array.from(form.querySelectorAll('input[name], textarea[name]'));
+
+  function setEditing(enabled) {
+    editableFields.forEach((field) => {
+      field.disabled = !enabled;
+    });
+    if (saveButton) {
+      saveButton.disabled = !enabled;
+    }
+    if (editButton) {
+      editButton.textContent = enabled ? 'Cancel Edit' : 'Edit Story';
+    }
+    if (!enabled) {
+      form.reset();
+    }
+  }
+
+  setEditing(false);
+
+  editButton?.addEventListener('click', () => {
+    const currentlyEditing = !saveButton.disabled;
+    if (currentlyEditing) {
+      setEditing(false);
+    } else {
+      setEditing(true);
+      const titleField = form.elements.title;
+      if (titleField) {
+        titleField.focus();
+      }
+    }
+  });
 
   const emailBtn = form.querySelector('#assignee-email-btn');
   emailBtn?.addEventListener('click', () => {
