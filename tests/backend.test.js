@@ -168,6 +168,53 @@ test('stories CRUD with reference documents', async (t) => {
   }
 });
 
+test('story health recheck endpoint recalculates INVEST warnings', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  const stories = await storiesResponse.json();
+  const story = stories[0];
+
+  const patchResponse = await fetch(`${baseUrl}/api/stories/${story.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: story.title,
+      description: story.description,
+      asA: '',
+      iWant: story.iWant,
+      soThat: '',
+      acceptWarnings: true,
+    }),
+  });
+  assert.equal(patchResponse.status, 200);
+
+  const recheckResponse = await fetch(`${baseUrl}/api/stories/${story.id}/health-check`, {
+    method: 'POST',
+  });
+  assert.equal(recheckResponse.status, 200);
+  const refreshed = await recheckResponse.json();
+  assert.equal(refreshed.id, story.id);
+  assert.ok(refreshed.investHealth);
+  assert.equal(refreshed.investHealth.satisfied, false);
+  assert.ok(Array.isArray(refreshed.investWarnings));
+  assert.ok(
+    refreshed.investWarnings.some(
+      (warning) => /persona/i.test(warning.message) || /So that/i.test(warning.message)
+    )
+  );
+  assert.ok(refreshed.investAnalysis);
+  assert.ok(['heuristic', 'fallback', 'openai'].includes(refreshed.investAnalysis.source));
+});
+
 test('ChatGPT analysis drives INVEST outcome when available', async (t) => {
   await resetDatabaseFiles();
   const previousDisable = process.env.AI_PM_DISABLE_OPENAI;

@@ -202,13 +202,92 @@ function cloneArrayOfObjects(items) {
 }
 
 async function handleStorySaveSuccess(result, message) {
-  if (result && typeof result === 'object' && result.id != null) {
-    state.selectedStoryId = result.id;
+  const storyId = result && typeof result === 'object' && result.id != null ? result.id : state.selectedStoryId;
+  if (storyId == null) {
+    await loadStories();
+    persistSelection();
+    showToast(message, 'success');
+    return;
   }
 
-  await loadStories();
-  persistSelection();
-  showToast(message, 'success');
+  try {
+    const refreshed = await recheckStoryHealth(storyId);
+    const merged = mergeStoryFromHealthCheck(refreshed);
+    state.selectedStoryId = storyId;
+    persistSelection();
+    if (!merged) {
+      await loadStories();
+      persistSelection();
+    } else {
+      rebuildStoryIndex();
+      expandAncestors(storyId);
+      renderAll();
+    }
+    showToast(message, 'success');
+  } catch (error) {
+    console.error('Failed to refresh story health', error);
+    await loadStories();
+    persistSelection();
+    showToast('Story saved but health check could not refresh automatically.', 'warning');
+  }
+}
+
+async function recheckStoryHealth(storyId) {
+  const response = await fetch(`/api/stories/${storyId}/health-check`, { method: 'POST' });
+  if (!response.ok) {
+    const message = await safeReadError(response);
+    const error = new Error(message || 'Failed to refresh story health');
+    error.status = response.status;
+    throw error;
+  }
+  return response.json();
+}
+
+async function safeReadError(response) {
+  try {
+    const payload = await response.json();
+    if (payload && typeof payload.message === 'string') {
+      return payload.message;
+    }
+  } catch (error) {
+    console.error('Failed to parse error payload', error);
+  }
+  return response.statusText;
+}
+
+function mergeStoryFromHealthCheck(refreshed) {
+  if (!refreshed || refreshed.id == null) {
+    return false;
+  }
+  const existing = storyIndex.get(refreshed.id);
+  if (!existing) {
+    return false;
+  }
+  const preservedChildren = existing.children ? existing.children.map((child) => child) : [];
+  existing.title = refreshed.title;
+  existing.description = refreshed.description ?? '';
+  existing.asA = refreshed.asA ?? '';
+  existing.iWant = refreshed.iWant ?? '';
+  existing.soThat = refreshed.soThat ?? '';
+  existing.storyPoint = refreshed.storyPoint ?? null;
+  existing.assigneeEmail = refreshed.assigneeEmail ?? '';
+  existing.status = refreshed.status ?? existing.status;
+  existing.updatedAt = refreshed.updatedAt ?? existing.updatedAt;
+  existing.acceptanceTests = cloneArrayOfObjects(refreshed.acceptanceTests);
+  existing.referenceDocuments = cloneArrayOfObjects(refreshed.referenceDocuments);
+  existing.investWarnings = Array.isArray(refreshed.investWarnings) ? refreshed.investWarnings.map((item) => ({ ...item })) : [];
+  existing.investSatisfied = Boolean(refreshed.investSatisfied);
+  existing.investHealth = refreshed.investHealth
+    ? {
+        satisfied: Boolean(refreshed.investHealth.satisfied),
+        issues: Array.isArray(refreshed.investHealth.issues)
+          ? refreshed.investHealth.issues.map((issue) => ({ ...issue }))
+          : [],
+      }
+    : { satisfied: false, issues: [] };
+  existing.investAnalysis = refreshed.investAnalysis ? { ...refreshed.investAnalysis } : null;
+  existing.children = preservedChildren;
+  return true;
 }
 
 async function loadStories(preserveSelection = true) {

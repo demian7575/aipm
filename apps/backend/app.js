@@ -1630,6 +1630,91 @@ async function loadStories(db) {
   return roots;
 }
 
+async function loadStoryWithDetails(db, storyId) {
+  const row = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
+  if (!row) {
+    return null;
+  }
+
+  const story = {
+    id: row.id,
+    mrId: row.mr_id,
+    parentId: row.parent_id,
+    title: row.title,
+    description: row.description ?? '',
+    asA: row.as_a ?? '',
+    iWant: row.i_want ?? '',
+    soThat: row.so_that ?? '',
+    storyPoint: row.story_point,
+    assigneeEmail: row.assignee_email ?? '',
+    status: row.status ?? 'Draft',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    acceptanceTests: [],
+    referenceDocuments: [],
+    children: [],
+  };
+
+  const testRows = db
+    .prepare('SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id')
+    .all(storyId);
+  testRows.forEach((testRow) => {
+    const given = parseJsonArray(testRow.given);
+    const when = parseJsonArray(testRow.when_step);
+    const then = parseJsonArray(testRow.then_step);
+    const { warnings, suggestions } = measurabilityWarnings(then);
+    const gwtHealth = buildGwtHealth(given, when, then, warnings);
+    story.acceptanceTests.push({
+      id: testRow.id,
+      storyId: testRow.story_id,
+      title: acceptanceTestsHasTitleColumn ? testRow.title ?? '' : '',
+      given,
+      when,
+      then,
+      status: testRow.status,
+      createdAt: testRow.created_at,
+      updatedAt: testRow.updated_at,
+      measurabilityWarnings: warnings,
+      measurabilitySuggestions: suggestions,
+      gwtHealth,
+    });
+  });
+
+  const docRows = db
+    .prepare('SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id')
+    .all(storyId);
+  docRows.forEach((docRow) => {
+    story.referenceDocuments.push({
+      id: docRow.id,
+      storyId: docRow.story_id,
+      name: docRow.name,
+      url: docRow.url,
+      createdAt: docRow.created_at,
+      updatedAt: docRow.updated_at,
+    });
+  });
+
+  const analysis = await analyzeInvest(story, {
+    acceptanceTests: story.acceptanceTests,
+    includeTestChecks: true,
+  });
+  story.investWarnings = analysis.warnings;
+  story.investSatisfied = analysis.warnings.length === 0;
+  story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
+  story.investAnalysis = {
+    source: analysis.source,
+    summary: analysis.summary,
+    aiSummary: analysis.ai?.summary || '',
+    aiWarnings: analysis.ai?.warnings || [],
+    aiModel: analysis.ai?.model || null,
+    usedFallback: analysis.usedFallback,
+    error: analysis.ai?.error || null,
+    fallbackWarnings: analysis.fallbackWarnings || [],
+  };
+
+  return story;
+}
+
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
@@ -1955,6 +2040,23 @@ export async function createApp() {
       } catch (error) {
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to update story' });
+      }
+      return;
+    }
+
+    const recheckMatch = pathname.match(/^\/api\/stories\/(\d+)\/health-check$/);
+    if (recheckMatch && method === 'POST') {
+      const storyId = Number(recheckMatch[1]);
+      try {
+        const story = await loadStoryWithDetails(db, storyId);
+        if (!story) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        sendJson(res, 200, story);
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to refresh story health' });
       }
       return;
     }
