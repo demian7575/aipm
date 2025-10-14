@@ -194,6 +194,75 @@ function flattenStories(nodes) {
   return result;
 }
 
+function cloneArrayOfObjects(items) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+  return items.map((item) => ({ ...item }));
+}
+
+function applyStoryUpdate(updated) {
+  if (!updated || typeof updated !== 'object') {
+    return;
+  }
+  const target = storyIndex.get(updated.id);
+  if (!target) {
+    return;
+  }
+
+  target.title = updated.title ?? target.title;
+  target.description = updated.description ?? '';
+  target.asA = updated.asA ?? '';
+  target.iWant = updated.iWant ?? '';
+  target.soThat = updated.soThat ?? '';
+  target.storyPoint = updated.storyPoint ?? null;
+  target.assigneeEmail = updated.assigneeEmail ?? '';
+  target.status = updated.status ?? target.status;
+  target.updatedAt = updated.updatedAt ?? target.updatedAt;
+
+  target.investWarnings = cloneArrayOfObjects(updated.investWarnings);
+  target.investSatisfied = Boolean(updated.investSatisfied);
+  if (updated.investHealth) {
+    target.investHealth = {
+      satisfied: Boolean(updated.investHealth.satisfied),
+      issues: cloneArrayOfObjects(updated.investHealth.issues),
+    };
+  } else {
+    target.investHealth = { satisfied: true, issues: [] };
+  }
+
+  if (updated.investAnalysis) {
+    target.investAnalysis = {
+      ...updated.investAnalysis,
+      aiWarnings: cloneArrayOfObjects(updated.investAnalysis.aiWarnings),
+      fallbackWarnings: cloneArrayOfObjects(updated.investAnalysis.fallbackWarnings),
+    };
+  } else {
+    target.investAnalysis = null;
+  }
+
+  if (Array.isArray(updated.acceptanceTests)) {
+    target.acceptanceTests = cloneArrayOfObjects(updated.acceptanceTests);
+  }
+  if (Array.isArray(updated.referenceDocuments)) {
+    target.referenceDocuments = cloneArrayOfObjects(updated.referenceDocuments);
+  }
+}
+
+async function handleStorySaveSuccess(result, message) {
+  if (result && typeof result === 'object') {
+    applyStoryUpdate(result);
+    rebuildStoryIndex();
+    renderAll();
+    persistSelection();
+    showToast(message, 'success');
+    return;
+  }
+
+  await loadStories();
+  showToast(message, 'success');
+}
+
 async function loadStories(preserveSelection = true) {
   const previousSelection = preserveSelection ? state.selectedStoryId : null;
   try {
@@ -758,18 +827,16 @@ function renderDetails() {
     };
 
     try {
-      await updateStory(story.id, payload);
-      await loadStories();
-      showToast('Story saved', 'success');
+      const result = await updateStory(story.id, payload);
+      await handleStorySaveSuccess(result, 'Story saved');
     } catch (error) {
       if (error && error.code === 'INVEST_WARNINGS') {
         const proceed = window.confirm(
           `${error.message}\n\n${formatInvestWarnings(error.warnings)}\n\nSave anyway?`
         );
         if (proceed) {
-          await updateStory(story.id, { ...payload, acceptWarnings: true });
-          await loadStories();
-          showToast('Story saved with warnings', 'success');
+          const result = await updateStory(story.id, { ...payload, acceptWarnings: true });
+          await handleStorySaveSuccess(result, 'Story saved with warnings');
         }
       } else {
         showToast(error.message || 'Failed to save story', 'error');
