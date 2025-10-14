@@ -243,6 +243,71 @@ test('ChatGPT analysis drives INVEST outcome when available', async (t) => {
   assert.equal(created.investHealth.issues.length, 0);
 });
 
+test('baseline INVEST heuristics flag dependency, negotiable, estimable, and sizing issues', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const warningPayload = {
+    title: 'Blocked by analytics overhaul',
+    asA: 'Platform PM',
+    iWant:
+      'deliver a pixel-perfect analytics dashboard that must use Library Y and depends on Story XYZ',
+    soThat: 'leadership can review metrics quickly',
+    description:
+      'Blocked by story 123 and requires story ABC to complete. UI must use library Y with exact 24px spacing; scope spans multiple teams and needs discovery for an unknown API.',
+    storyPoint: 13,
+  };
+
+  const warningResponse = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(warningPayload),
+  });
+
+  assert.equal(warningResponse.status, 409);
+  const warningBody = await warningResponse.json();
+  assert.equal(warningBody.code, 'INVEST_WARNINGS');
+  assert.ok(Array.isArray(warningBody.warnings));
+
+  const independentIssue = warningBody.warnings.find((issue) => issue.criterion === 'independent');
+  assert.ok(independentIssue, 'independent warning expected');
+  assert.match(independentIssue.details, /Independent/);
+
+  const negotiableIssue = warningBody.warnings.find((issue) => issue.criterion === 'negotiable');
+  assert.ok(negotiableIssue, 'negotiable warning expected');
+  assert.match(negotiableIssue.details, /Negotiable/);
+
+  const estimableIssue = warningBody.warnings.find((issue) => issue.criterion === 'estimable');
+  assert.ok(estimableIssue, 'estimable warning expected');
+  assert.match(estimableIssue.details, /Estimable/);
+
+  const smallIssue = warningBody.warnings.find((issue) => issue.criterion === 'small');
+  assert.ok(smallIssue, 'small warning expected');
+  assert.match(smallIssue.details, /Small/);
+
+  const testableIssue = warningBody.warnings.find((issue) => issue.criterion === 'testable');
+  assert.ok(testableIssue, 'testable warning expected');
+  assert.match(testableIssue.details, /Testable/);
+
+  const okResponse = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...warningPayload, acceptWarnings: true }),
+  });
+
+  assert.equal(okResponse.status, 201);
+  const created = await okResponse.json();
+  assert.ok(Array.isArray(created.investHealth.issues));
+  assert.ok(created.investHealth.issues.some((issue) => issue.criterion === 'independent'));
+});
+
 test('acceptance tests can be created when legacy title column exists', async (t) => {
   await resetDatabaseFiles();
   await fs.mkdir(path.dirname(DATABASE_PATH), { recursive: true });

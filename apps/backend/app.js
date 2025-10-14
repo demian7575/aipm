@@ -747,6 +747,98 @@ const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 
 let acceptanceTestsHasTitleColumn = false;
 
+const INVEST_DEPENDENCY_HINTS = [
+  'blocked by',
+  'depends on',
+  'waiting on',
+  'requires story',
+  'requires task',
+  'after story',
+  'after task',
+  'shared migration',
+  'coupled with',
+  'linked to story',
+];
+
+const INVEST_NEGOTIABLE_HINTS = [
+  'pixel-perfect',
+  'exact pixel',
+  'must use ',
+  'must leverage ',
+  'locked design',
+  'cannot change design',
+  'exact colour',
+  'exact color',
+  'exact hex',
+  'exact layout',
+  'exact spacing',
+  '24px',
+  '12px',
+];
+
+const INVEST_ESTIMABLE_HINTS = [
+  'tbd',
+  'to be determined',
+  'to be decided',
+  'unknown',
+  'not sure',
+  'investigate',
+  'research spike',
+  'spike on',
+  'needs discovery',
+  'open question',
+];
+
+const INVEST_SCOPE_HINTS = [
+  'multiple teams',
+  'multi-team',
+  'across all',
+  'entire platform',
+  'entire system',
+  'all modules',
+  'full rewrite',
+  'large refactor',
+  'company-wide',
+];
+
+const INVEST_AMBIGUOUS_HINTS = [
+  'fast',
+  'quickly',
+  'optimal',
+  'asap',
+  'maybe',
+  'etc',
+  'sufficiently',
+  'user-friendly',
+  'intuitive',
+  'seamless',
+];
+
+function findKeywordMatchesInText(text, patterns) {
+  if (!text) return [];
+  const lower = String(text).toLowerCase();
+  const matches = new Set();
+  patterns.forEach((pattern) => {
+    if (!pattern) return;
+    if (pattern instanceof RegExp) {
+      const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+      const regex = new RegExp(pattern.source, flags);
+      let result;
+      // eslint-disable-next-line no-cond-assign
+      while ((result = regex.exec(lower))) {
+        if (result[1]) {
+          matches.add(result[1]);
+        } else if (result[0]) {
+          matches.add(result[0]);
+        }
+      }
+    } else if (lower.includes(String(pattern).toLowerCase())) {
+      matches.add(String(pattern).toLowerCase());
+    }
+  });
+  return Array.from(matches);
+}
+
 function now() {
   return new Date().toISOString();
 }
@@ -792,6 +884,10 @@ function resolveUploadPath(urlPath) {
 function baselineInvestWarnings(story, options = {}) {
   const { acceptanceTests = null, includeTestChecks = false } = options;
   const warnings = [];
+  const combinedText = [story.title, story.description, story.asA, story.iWant, story.soThat]
+    .filter(Boolean)
+    .join(' ');
+
   if (!story.asA || !story.asA.trim()) {
     warnings.push({
       criterion: 'valuable',
@@ -816,7 +912,19 @@ function baselineInvestWarnings(story, options = {}) {
       suggestion: 'Describe the benefit, e.g., “So that I can approve changes quickly and safely”.',
     });
   }
-  if (story.title && story.title.trim().length < 8) {
+  const dependencyHints = findKeywordMatchesInText(combinedText, INVEST_DEPENDENCY_HINTS);
+  if (dependencyHints.length) {
+    warnings.push({
+      criterion: 'independent',
+      message: 'Story references other work and may not be independent.',
+      details:
+        `I — Independent stories avoid tight coupling. Detected dependency language: ${dependencyHints
+          .map((hint) => `“${hint}”`)
+          .join(', ')}.`,
+      suggestion:
+        'Split by persona, workflow step, or scenario so each story can ship without waiting on other stories.',
+    });
+  } else if (story.title && story.title.trim().length < 8) {
     warnings.push({
       criterion: 'independent',
       message: 'Title is short; clarify scope in a few more words.',
@@ -824,6 +932,82 @@ function baselineInvestWarnings(story, options = {}) {
       suggestion: 'Expand the title, e.g., “Manage MFA enrollment reminders”.',
     });
   }
+
+  const negotiableHints = findKeywordMatchesInText(combinedText, INVEST_NEGOTIABLE_HINTS);
+  if (negotiableHints.length) {
+    warnings.push({
+      criterion: 'negotiable',
+      message: 'Story looks prescriptive instead of negotiable.',
+      details:
+        `N — Negotiable stories leave room for collaboration. Detected rigid language: ${negotiableHints
+          .map((hint) => `“${hint.trim()}”`)
+          .join(', ')}.`,
+      suggestion:
+        'Focus on the outcome and move specific UI or tech choices into acceptance criteria or design notes.',
+    });
+  }
+
+  if (story.soThat && /tbd|n\/a|not applicable|unknown/i.test(story.soThat)) {
+    warnings.push({
+      criterion: 'valuable',
+      message: 'Benefit is unclear in “So that”.',
+      details: 'V — Valuable stories explain the user or product benefit so prioritisation stays grounded.',
+      suggestion: 'Spell out the user/customer outcome or tie the enabler to a near-term capability.',
+    });
+  }
+
+  const estimableHints = findKeywordMatchesInText(combinedText, INVEST_ESTIMABLE_HINTS);
+  if (estimableHints.length) {
+    warnings.push({
+      criterion: 'estimable',
+      message: 'Story includes unknowns that block estimation.',
+      details:
+        `E — Estimable stories avoid unclear scope. Detected uncertainty language: ${estimableHints
+          .map((hint) => `“${hint.trim()}”`)
+          .join(', ')}.`,
+      suggestion: 'Schedule a spike, clarify acceptance criteria, or split the story until sizing is possible.',
+    });
+  }
+
+  if (typeof story.storyPoint === 'number' && story.storyPoint >= 13) {
+    warnings.push({
+      criterion: 'small',
+      message: 'Story point suggests the slice may be too large.',
+      details:
+        'S — Small stories fit within a sprint. Consider breaking down work estimated at 13+ points or spanning many teams.',
+      suggestion: 'Slice by scenario, CRUD operation, platform, or “thin vertical” increments.',
+    });
+  } else {
+    const scopeHints = findKeywordMatchesInText(combinedText, INVEST_SCOPE_HINTS);
+    if (scopeHints.length) {
+      warnings.push({
+        criterion: 'small',
+        message: 'Story scope sounds broad for a single sprint.',
+        details:
+          `S — Small stories avoid multi-team or platform-wide delivery. Detected language: ${scopeHints
+            .map((hint) => `“${hint.trim()}”`)
+            .join(', ')}.`,
+        suggestion: 'Slice by user scenario, platform, or capability so each story fits within a sprint.',
+      });
+    }
+  }
+
+  const ambiguousMatches = findKeywordMatchesInText(
+    [story.iWant, story.soThat].filter(Boolean).join(' '),
+    INVEST_AMBIGUOUS_HINTS
+  );
+  if (ambiguousMatches.length) {
+    warnings.push({
+      criterion: 'testable',
+      message: 'Story uses qualitative words that are hard to test.',
+      details:
+        `T — Testable stories enable objective verification. Ambiguous words found: ${ambiguousMatches
+          .map((hint) => `“${hint.trim()}”`)
+          .join(', ')}.`,
+      suggestion: 'Pair acceptance tests with measurable outcomes (time, counts, error rates) for each Then step.',
+    });
+  }
+
   if (includeTestChecks) {
     const tests = Array.isArray(acceptanceTests)
       ? acceptanceTests
@@ -1652,6 +1836,7 @@ export async function createApp() {
           iWant,
           soThat,
           description,
+          storyPoint,
         });
         const warnings = analysis.warnings;
         if (warnings.length > 0 && !payload.acceptWarnings) {
@@ -1729,6 +1914,7 @@ export async function createApp() {
           iWant: iWant ?? existing.i_want,
           soThat: soThat ?? existing.so_that,
           description: description || existing.description || '',
+          storyPoint,
         };
         const analysis = await analyzeInvest(storyForValidation);
         const warnings = analysis.warnings;
