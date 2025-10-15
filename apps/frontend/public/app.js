@@ -194,32 +194,6 @@ function flattenStories(nodes) {
   return result;
 }
 
-function deepClone(value) {
-  if (value == null) {
-    return value;
-  }
-  if (typeof structuredClone === 'function') {
-    try {
-      return structuredClone(value);
-    } catch (error) {
-      console.warn('structuredClone failed, falling back to JSON clone', error);
-    }
-  }
-  try {
-    return JSON.parse(JSON.stringify(value));
-  } catch (error) {
-    console.warn('JSON clone failed, returning original value', error);
-    return value;
-  }
-}
-
-function cloneArrayOfObjects(items) {
-  if (!Array.isArray(items)) {
-    return [];
-  }
-  return items.map((item) => deepClone(item));
-}
-
 async function handleStorySaveSuccess(result, message) {
   const storyId = result && typeof result === 'object' && result.id != null ? result.id : state.selectedStoryId;
   if (storyId == null) {
@@ -231,17 +205,11 @@ async function handleStorySaveSuccess(result, message) {
 
   try {
     const refreshed = await recheckStoryHealth(storyId);
-    const { updated, testsNeedingAttention } = mergeStoryFromHealthCheck(refreshed);
+    const testsNeedingAttention = collectTestsNeedingAttention(refreshed);
     state.selectedStoryId = storyId;
     persistSelection();
-    if (!updated) {
-      await loadStories();
-      persistSelection();
-    } else {
-      rebuildStoryIndex();
-      expandAncestors(storyId);
-      renderAll();
-    }
+    await loadStories();
+    persistSelection();
     showToast(message, 'success');
     if (testsNeedingAttention.length > 0) {
       const names = testsNeedingAttention
@@ -288,45 +256,11 @@ async function safeReadError(response) {
   return response.statusText;
 }
 
-function mergeStoryFromHealthCheck(refreshed) {
-  if (!refreshed || refreshed.id == null) {
-    return { updated: false, testsNeedingAttention: [] };
+function collectTestsNeedingAttention(story) {
+  if (!story || !Array.isArray(story.acceptanceTests)) {
+    return [];
   }
-  const existing = storyIndex.get(refreshed.id);
-  if (!existing) {
-    return { updated: false, testsNeedingAttention: [] };
-  }
-  const preservedChildren = existing.children ? existing.children.map((child) => child) : [];
-  existing.title = refreshed.title;
-  existing.description = refreshed.description ?? '';
-  existing.asA = refreshed.asA ?? '';
-  existing.iWant = refreshed.iWant ?? '';
-  existing.soThat = refreshed.soThat ?? '';
-  existing.storyPoint = refreshed.storyPoint ?? null;
-  existing.assigneeEmail = refreshed.assigneeEmail ?? '';
-  existing.status = refreshed.status ?? existing.status;
-  existing.updatedAt = refreshed.updatedAt ?? existing.updatedAt;
-  const acceptanceTestsSource = Array.isArray(refreshed.acceptanceTests)
-    ? refreshed.acceptanceTests
-    : existing.acceptanceTests;
-  existing.acceptanceTests = cloneArrayOfObjects(acceptanceTestsSource);
-  const referenceSource = Array.isArray(refreshed.referenceDocuments)
-    ? refreshed.referenceDocuments
-    : existing.referenceDocuments;
-  existing.referenceDocuments = cloneArrayOfObjects(referenceSource);
-  existing.investWarnings = Array.isArray(refreshed.investWarnings) ? refreshed.investWarnings.map((item) => ({ ...item })) : [];
-  existing.investSatisfied = Boolean(refreshed.investSatisfied);
-  existing.investHealth = refreshed.investHealth
-    ? {
-        satisfied: Boolean(refreshed.investHealth.satisfied),
-        issues: Array.isArray(refreshed.investHealth.issues)
-          ? refreshed.investHealth.issues.map((issue) => ({ ...issue }))
-          : [],
-      }
-    : { satisfied: false, issues: [] };
-  existing.investAnalysis = refreshed.investAnalysis ? { ...refreshed.investAnalysis } : null;
-  existing.children = preservedChildren;
-  const testsNeedingAttention = existing.acceptanceTests.filter((test) => {
+  return story.acceptanceTests.filter((test) => {
     const measurabilityIssues = Array.isArray(test.measurabilityWarnings)
       ? test.measurabilityWarnings.length > 0
       : false;
@@ -335,7 +269,6 @@ function mergeStoryFromHealthCheck(refreshed) {
       : false;
     return measurabilityIssues || gwtIssues;
   });
-  return { updated: true, testsNeedingAttention };
 }
 
 async function loadStories(preserveSelection = true) {

@@ -75,6 +75,22 @@ test('stories CRUD with reference documents', async (t) => {
   const updated = await patchResponse.json();
   assert.equal(updated.storyPoint, 8);
   assert.equal(updated.assigneeEmail, 'owner@example.com');
+  assert.ok(Array.isArray(updated.acceptanceTests));
+  assert.ok(
+    updated.acceptanceTests.length > 0,
+    'Story update should not remove existing acceptance tests'
+  );
+
+  const healthResponse = await fetch(`${baseUrl}/api/stories/${story.id}/health-check`, {
+    method: 'POST',
+  });
+  assert.equal(healthResponse.status, 200);
+  const healthStory = await healthResponse.json();
+  assert.ok(Array.isArray(healthStory.acceptanceTests));
+  assert.ok(
+    healthStory.acceptanceTests.length > 0,
+    'Health check should return acceptance tests after story update'
+  );
 
   const childResponse = await fetch(`${baseUrl}/api/stories`, {
     method: 'POST',
