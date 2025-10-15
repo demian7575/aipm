@@ -636,11 +636,11 @@ function renderDetails() {
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
     </div>
-    <div>
+    <div class="full field-row">
       <label>Title</label>
       <input name="title" value="${escapeHtml(story.title)}" required />
     </div>
-    <div>
+    <div class="full field-row">
       <label>Assignee Email</label>
       <div style="display:flex; gap:0.5rem; align-items:center;">
         <input name="assigneeEmail" type="email" value="${escapeHtml(story.assigneeEmail || '')}" placeholder="name@example.com" />

@@ -288,6 +288,13 @@ textarea {
   gap: 1rem;
 }
 
+.story-form .field-row {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .story-form .full {
   grid-column: span 2;
 }
