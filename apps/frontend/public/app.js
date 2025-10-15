@@ -1002,7 +1002,7 @@ function renderDetails() {
       const editButton = document.createElement('button');
       editButton.type = 'button';
       editButton.className = 'secondary';
-      editButton.textContent = 'Edit';
+      editButton.textContent = 'Edit Acceptance Test';
       editButton.addEventListener('click', () => openAcceptanceTestModal(story.id, { test }));
       actionsTd.appendChild(editButton);
 
