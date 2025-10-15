@@ -267,7 +267,10 @@ function collectTestsNeedingAttention(story) {
     const gwtIssues = test.gwtHealth && Array.isArray(test.gwtHealth.issues)
       ? test.gwtHealth.issues.length > 0
       : false;
-    return measurabilityIssues || gwtIssues;
+    const statusText = typeof test.status === 'string' ? test.status.trim().toLowerCase() : '';
+    const needsReviewStatus =
+      statusText === 'draft' || statusText === 'need review with update' || statusText.startsWith('need review');
+    return measurabilityIssues || gwtIssues || needsReviewStatus;
   });
 }
 

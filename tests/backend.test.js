@@ -41,6 +41,7 @@ test('stories CRUD with reference documents', async (t) => {
   assert.ok(Array.isArray(stories));
   assert.equal(stories.length, 1);
   const story = stories[0];
+  const originalTestCount = Array.isArray(story.acceptanceTests) ? story.acceptanceTests.length : 0;
   assert.equal(story.storyPoint, 5);
   assert.equal(story.assigneeEmail, 'pm@example.com');
   assert.ok(story.investHealth);
@@ -77,8 +78,20 @@ test('stories CRUD with reference documents', async (t) => {
   assert.equal(updated.assigneeEmail, 'owner@example.com');
   assert.ok(Array.isArray(updated.acceptanceTests));
   assert.ok(
-    updated.acceptanceTests.length > 0,
-    'Story update should not remove existing acceptance tests'
+    updated.acceptanceTests.length >= originalTestCount + 1,
+    'Story update should retain existing tests and add a draft verification'
+  );
+  assert.ok(
+    updated.acceptanceTests.some((test) => test.status === 'Need review with update'),
+    'Existing acceptance tests should require review after story edits'
+  );
+  const draftTests = updated.acceptanceTests.filter((test) => test.status === 'Draft');
+  assert.ok(draftTests.length >= 1, 'Story edits should create a draft acceptance test');
+  assert.ok(
+    draftTests.some((test) =>
+      Array.isArray(test.then) && test.then.some((step) => /confirmation code/i.test(step))
+    ),
+    'Automatic draft acceptance test should describe confirmation behaviour'
   );
 
   const healthResponse = await fetch(`${baseUrl}/api/stories/${story.id}/health-check`, {
@@ -88,8 +101,12 @@ test('stories CRUD with reference documents', async (t) => {
   const healthStory = await healthResponse.json();
   assert.ok(Array.isArray(healthStory.acceptanceTests));
   assert.ok(
-    healthStory.acceptanceTests.length > 0,
-    'Health check should return acceptance tests after story update'
+    healthStory.acceptanceTests.length >= originalTestCount + 1,
+    'Health check should return acceptance tests including the new draft after story update'
+  );
+  assert.ok(
+    healthStory.acceptanceTests.filter((test) => test.status === 'Need review with update').length >= originalTestCount,
+    'Health check should preserve review-needed status for existing tests'
   );
 
   const childResponse = await fetch(`${baseUrl}/api/stories`, {
@@ -110,14 +127,14 @@ test('stories CRUD with reference documents', async (t) => {
   const child = await childResponse.json();
   assert.equal(child.storyPoint, 3);
   assert.ok(child.investHealth);
-  assert.equal(child.investHealth.satisfied, false);
   assert.ok(child.investAnalysis);
   assert.ok(Array.isArray(child.investAnalysis.aiWarnings));
   assert.ok(Array.isArray(child.investAnalysis.fallbackWarnings));
+  assert.ok(Array.isArray(child.acceptanceTests));
+  assert.ok(child.acceptanceTests.length >= 1, 'New child story should have an automatic acceptance test');
   assert.ok(
-    child.investHealth.issues.some((issue) =>
-      /Add at least one acceptance test/i.test(issue.message)
-    )
+    child.acceptanceTests.every((test) => test.status === 'Draft'),
+    'Automatically created acceptance tests start as Draft'
   );
 
   const invalidStoryPoint = await fetch(`${baseUrl}/api/stories`, {
@@ -298,10 +315,11 @@ test('ChatGPT analysis drives INVEST outcome when available', async (t) => {
   assert.equal(created.investAnalysis.source, 'openai');
   assert.equal(created.investHealth.satisfied, true);
   assert.ok(Array.isArray(created.investAnalysis.fallbackWarnings));
+  assert.ok(Array.isArray(created.acceptanceTests));
+  assert.ok(created.acceptanceTests.length >= 1);
   assert.ok(
-    created.investAnalysis.fallbackWarnings.some((issue) =>
-      /acceptance test/i.test(issue.message)
-    )
+    created.acceptanceTests.every((test) => test.status === 'Draft'),
+    'AI reviewed story should still gain a draft acceptance test for verification'
   );
   assert.equal(created.investHealth.issues.length, 0);
 });

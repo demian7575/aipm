@@ -745,6 +745,9 @@ export const DATABASE_PATH = path.join(DATA_DIR, 'app.sqlite');
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 
+const ACCEPTANCE_TEST_STATUS_DRAFT = 'Draft';
+const ACCEPTANCE_TEST_STATUS_REVIEW = 'Need review with update';
+
 let acceptanceTestsHasTitleColumn = false;
 
 const INVEST_DEPENDENCY_HINTS = [
@@ -1316,7 +1319,10 @@ function acceptanceTestColumnsForInsert() {
   };
 }
 
-function insertAcceptanceTest(db, { storyId, title = '', given, when, then, status = 'Draft', timestamp = now() }) {
+function insertAcceptanceTest(
+  db,
+  { storyId, title = '', given, when, then, status = ACCEPTANCE_TEST_STATUS_DRAFT, timestamp = now() }
+) {
   const { columns, placeholders } = acceptanceTestColumnsForInsert();
   const statement = db.prepare(`INSERT INTO acceptance_tests (${columns}) VALUES (${placeholders})`);
   const params = acceptanceTestsHasTitleColumn
@@ -1340,6 +1346,56 @@ function insertAcceptanceTest(db, { storyId, title = '', given, when, then, stat
         timestamp,
       ];
   return statement.run(...params);
+}
+
+function normalizeStoryText(value, fallback) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return text || fallback;
+}
+
+function buildAutomaticAcceptanceTestContent(story, ordinal, reason) {
+  const persona = normalizeStoryText(story.asA, 'the user');
+  const action = normalizeStoryText(story.iWant, 'perform the described action');
+  const outcome = normalizeStoryText(story.soThat, 'achieve the desired outcome');
+  const titleBase = normalizeStoryText(story.title, `Story ${story.id}`);
+  const verificationLabel = reason === 'update' ? 'Update verification' : 'Initial verification';
+  const title = acceptanceTestsHasTitleColumn
+    ? `${titleBase} – ${verificationLabel} #${ordinal}`
+    : '';
+
+  const given = [`Given ${persona} has access to the system`];
+  const when = [`When they ${action}`];
+  const then = [
+    `Then ${outcome} is completed within 2 seconds and a confirmation code of at least 6 characters is recorded`,
+  ];
+
+  return { title, given, when, then };
+}
+
+function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingCount = null } = {}) {
+  const countRow =
+    existingCount != null
+      ? { count: existingCount }
+      : db.prepare('SELECT COUNT(*) as count FROM acceptance_tests WHERE story_id = ?').get(story.id) || {
+          count: 0,
+        };
+  const ordinal = Number(countRow.count ?? 0) + 1;
+  const content = buildAutomaticAcceptanceTestContent(story, ordinal, reason);
+  return insertAcceptanceTest(db, {
+    storyId: story.id,
+    title: content.title,
+    given: content.given,
+    when: content.when,
+    then: content.then,
+    status: ACCEPTANCE_TEST_STATUS_DRAFT,
+  });
+}
+
+function markAcceptanceTestsForReview(db, storyId) {
+  const statement = db.prepare(
+    'UPDATE acceptance_tests SET status = ?, updated_at = ? WHERE story_id = ?' // prettier-ignore
+  );
+  statement.run(ACCEPTANCE_TEST_STATUS_REVIEW, now(), storyId);
 }
 
 function tableColumns(db, table) {
@@ -1958,9 +2014,15 @@ export async function createApp() {
           timestamp,
           timestamp
         );
-        const created = flattenStories(await loadStories(db)).find(
-          (story) => story.id === Number(lastInsertRowid)
-        );
+        const newStoryId = Number(lastInsertRowid);
+        createAutomaticAcceptanceTest(db, {
+          id: newStoryId,
+          title,
+          asA,
+          iWant,
+          soThat,
+        });
+        const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
         sendJson(res, 201, created ?? null);
       } catch (error) {
         const status = error.statusCode ?? 500;
@@ -2034,6 +2096,25 @@ export async function createApp() {
           soThat ?? existing.so_that,
           now(),
           storyId
+        );
+        const existingTestCountRow =
+          db.prepare('SELECT COUNT(*) as count FROM acceptance_tests WHERE story_id = ?').get(storyId) ||
+          {
+            count: 0,
+          };
+        if (Number(existingTestCountRow.count ?? 0) > 0) {
+          markAcceptanceTestsForReview(db, storyId);
+        }
+        createAutomaticAcceptanceTest(
+          db,
+          {
+            id: storyId,
+            title,
+            asA: asA ?? existing.as_a,
+            iWant: iWant ?? existing.i_want,
+            soThat: soThat ?? existing.so_that,
+          },
+          { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
         );
         const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
         sendJson(res, 200, updated ?? null);
