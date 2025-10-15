@@ -32,6 +32,11 @@ button.secondary {
   color: #1f2937;
 }
 
+button.small {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.6rem;
+}
+
 button.danger {
   background: #dc2626;
   color: #fff;
@@ -587,6 +592,39 @@ dialog {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.acceptance-test-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.acceptance-test-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ai-draft-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #d9deeb;
+  border-radius: 8px;
+  background: #eef2ff;
+}
+
+.ai-draft-controls[hidden] {
+  display: none;
+}
+
+.ai-draft-status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #1f2937;
 }
 
 .modal-footer {

@@ -88,10 +88,8 @@ test('stories CRUD with reference documents', async (t) => {
   const draftTests = updated.acceptanceTests.filter((test) => test.status === 'Draft');
   assert.ok(draftTests.length >= 1, 'Story edits should create a draft acceptance test');
   assert.ok(
-    draftTests.some((test) =>
-      Array.isArray(test.then) && test.then.some((step) => /confirmation code/i.test(step))
-    ),
-    'Automatic draft acceptance test should describe confirmation behaviour'
+    draftTests.every((test) => Array.isArray(test.then) && test.then.length > 0),
+    'Draft acceptance tests should include Then steps'
   );
 
   const healthResponse = await fetch(`${baseUrl}/api/stories/${story.id}/health-check`, {
@@ -136,6 +134,20 @@ test('stories CRUD with reference documents', async (t) => {
     child.acceptanceTests.every((test) => test.status === 'Draft'),
     'Automatically created acceptance tests start as Draft'
   );
+  assert.ok(
+    child.acceptanceTests.every((test) => Array.isArray(test.then) && test.then.length > 0),
+    'Automatically created acceptance tests include Then steps'
+  );
+
+  const aiDraftResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tests/draft`, {
+    method: 'POST',
+  });
+  assert.equal(aiDraftResponse.status, 200);
+  const aiDraft = await aiDraftResponse.json();
+  assert.ok(Array.isArray(aiDraft.given) && aiDraft.given.length > 0);
+  assert.ok(Array.isArray(aiDraft.when) && aiDraft.when.length > 0);
+  assert.ok(Array.isArray(aiDraft.then) && aiDraft.then.length > 0);
+  assert.equal(aiDraft.status, 'Draft');
 
   const invalidStoryPoint = await fetch(`${baseUrl}/api/stories`, {
     method: 'POST',
@@ -270,6 +282,33 @@ test('ChatGPT analysis drives INVEST outcome when available', async (t) => {
   global.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input?.url || input?.href;
     if (url && /chat\/completions/.test(url)) {
+      try {
+        const body = init?.body ? JSON.parse(init.body) : null;
+        const systemContent = body?.messages?.[0]?.content || '';
+        if (typeof systemContent === 'string' && systemContent.includes('Given/When/Then acceptance tests')) {
+          const acceptancePayload = {
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    summary: 'Scenario covers login success path.',
+                    titleSuffix: 'AI verification',
+                    given: ['Given an admin is signed in'],
+                    when: ['When they schedule a deployment window'],
+                    then: ['Then the schedule is saved within 1 minute and appears on the rollout calendar'],
+                  }),
+                },
+              },
+            ],
+          };
+          return new Response(JSON.stringify(acceptancePayload), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      } catch {
+        // fall through to default payload
+      }
       return new Response(JSON.stringify(aiPayload), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },

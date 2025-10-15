@@ -1353,7 +1353,7 @@ function normalizeStoryText(value, fallback) {
   return text || fallback;
 }
 
-function buildAutomaticAcceptanceTestContent(story, ordinal, reason) {
+function defaultAcceptanceTestDraft(story, ordinal, reason) {
   const persona = normalizeStoryText(story.asA, 'the user');
   const action = normalizeStoryText(story.iWant, 'perform the described action');
   const outcome = normalizeStoryText(story.soThat, 'achieve the desired outcome');
@@ -1369,10 +1369,139 @@ function buildAutomaticAcceptanceTestContent(story, ordinal, reason) {
     `Then ${outcome} is completed within 2 seconds and a confirmation code of at least 6 characters is recorded`,
   ];
 
-  return { title, given, when, then };
+  return { title, given, when, then, source: 'fallback', summary: '' };
 }
 
-function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingCount = null } = {}) {
+function normalizeGeneratedSteps(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+    .filter((entry) => entry && entry.length > 0);
+}
+
+async function requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, config) {
+  if (!config.enabled) {
+    return null;
+  }
+
+  const messages = [
+    {
+      role: 'system',
+      content:
+        'You are a QA engineer who writes Given/When/Then acceptance tests. Respond ONLY with JSON containing "summary", optional "titleSuffix", and string arrays "given", "when", "then". Each array must include at least one entry. Include measurable thresholds in Then steps.',
+    },
+    {
+      role: 'user',
+      content: JSON.stringify(
+        {
+          story: {
+            id: story.id,
+            title: story.title || '',
+            asA: story.asA || story.as_a || '',
+            iWant: story.iWant || story.i_want || '',
+            soThat: story.soThat || story.so_that || '',
+            description: story.description || '',
+            reason,
+            ordinal,
+          },
+        },
+        null,
+        2
+      ),
+    },
+  ];
+
+  const body = JSON.stringify({
+    model: config.model,
+    response_format: { type: 'json_object' },
+    messages,
+  });
+
+  const response = await fetch(config.endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    const error = new Error(`OpenAI request failed with status ${response.status}`);
+    error.status = response.status;
+    error.body = errorText;
+    throw error;
+  }
+
+  const payload = await response.json();
+  const content = payload?.choices?.[0]?.message?.content;
+  const jsonText = extractJsonObject(content);
+  if (!jsonText) {
+    const error = new Error('OpenAI response did not include JSON content for acceptance test draft');
+    error.body = content;
+    throw error;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (error) {
+    const parseError = new Error('Failed to parse OpenAI acceptance test draft response');
+    parseError.cause = error;
+    parseError.body = jsonText;
+    throw parseError;
+  }
+
+  const given = normalizeGeneratedSteps(parsed.given);
+  const when = normalizeGeneratedSteps(parsed.when);
+  const then = normalizeGeneratedSteps(parsed.then);
+
+  if (!given.length || !when.length || !then.length) {
+    const error = new Error('OpenAI acceptance test draft missing Given/When/Then content');
+    error.body = parsed;
+    throw error;
+  }
+
+  const titleSuffix = typeof parsed.titleSuffix === 'string' ? parsed.titleSuffix.trim() : '';
+  const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
+
+  const titleBase = normalizeStoryText(story.title, `Story ${story.id}`);
+  const title = acceptanceTestsHasTitleColumn
+    ? `${titleBase} – ${titleSuffix || (reason === 'update' ? 'Update verification' : 'Initial verification')} #${ordinal}`
+    : '';
+
+  return {
+    title,
+    given,
+    when,
+    then,
+    source: 'ai',
+    summary,
+  };
+}
+
+async function generateAcceptanceTestDraft(story, ordinal, reason) {
+  const config = readOpenAiConfig();
+  if (!config.enabled) {
+    return defaultAcceptanceTestDraft(story, ordinal, reason);
+  }
+
+  try {
+    const aiDraft = await requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, config);
+    if (aiDraft) {
+      return aiDraft;
+    }
+  } catch (error) {
+    console.error('OpenAI acceptance test draft generation failed', error);
+  }
+
+  return defaultAcceptanceTestDraft(story, ordinal, reason);
+}
+
+async function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingCount = null } = {}) {
   const countRow =
     existingCount != null
       ? { count: existingCount }
@@ -1380,7 +1509,7 @@ function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingC
           count: 0,
         };
   const ordinal = Number(countRow.count ?? 0) + 1;
-  const content = buildAutomaticAcceptanceTestContent(story, ordinal, reason);
+  const content = await generateAcceptanceTestDraft(story, ordinal, reason);
   return insertAcceptanceTest(db, {
     storyId: story.id,
     title: content.title,
@@ -2015,7 +2144,7 @@ export async function createApp() {
           timestamp
         );
         const newStoryId = Number(lastInsertRowid);
-        createAutomaticAcceptanceTest(db, {
+        await createAutomaticAcceptanceTest(db, {
           id: newStoryId,
           title,
           asA,
@@ -2105,7 +2234,7 @@ export async function createApp() {
         if (Number(existingTestCountRow.count ?? 0) > 0) {
           markAcceptanceTestsForReview(db, storyId);
         }
-        createAutomaticAcceptanceTest(
+        await createAutomaticAcceptanceTest(
           db,
           {
             id: storyId,
@@ -2150,6 +2279,29 @@ export async function createApp() {
         sendJson(res, 404, { message: 'Story not found' });
       } else {
         sendJson(res, 204, {});
+      }
+      return;
+    }
+
+    const testDraftMatch = pathname.match(/^\/api\/stories\/(\d+)\/tests\/draft$/);
+    if (testDraftMatch && method === 'POST') {
+      const storyId = Number(testDraftMatch[1]);
+      try {
+        const allStories = flattenStories(await loadStories(db));
+        const story = allStories.find((node) => node.id === storyId);
+        if (!story) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        const ordinal = story.acceptanceTests.length + 1;
+        const draft = await generateAcceptanceTestDraft(story, ordinal, 'manual');
+        sendJson(res, 200, {
+          ...draft,
+          status: ACCEPTANCE_TEST_STATUS_DRAFT,
+        });
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to generate acceptance test draft' });
       }
       return;
     }
