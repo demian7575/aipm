@@ -28,10 +28,10 @@ const STORAGE_KEYS = {
   panels: 'aiPm.panels',
 };
 
-const NODE_WIDTH = 220;
-const NODE_HEIGHT = 92;
+const NODE_WIDTH = 240;
+const NODE_HEIGHT = 160;
 const HORIZONTAL_STEP = 240;
-const VERTICAL_STEP = 150;
+const VERTICAL_STEP = 200;
 const X_OFFSET = 80;
 const Y_OFFSET = 80;
 
@@ -504,20 +504,42 @@ function renderMindmap() {
     title.textContent = node.story.title;
     group.appendChild(title);
 
-    const storyPoint = node.story.storyPoint != null ? `SP ${node.story.storyPoint}` : 'Unestimated';
-    const meta = document.createElementNS(svgNS, 'text');
-    meta.classList.add('story-meta');
-    meta.setAttribute('x', String(node.x + 12));
-    meta.setAttribute('y', String(node.y + 46));
-    meta.textContent = `${storyPoint} • ${node.story.assigneeEmail || 'Unassigned'}`;
-    group.appendChild(meta);
+    const storyPoint =
+      node.story.storyPoint != null ? `Story Point: ${node.story.storyPoint}` : 'Story Point: Unestimated';
+    const storyPointText = document.createElementNS(svgNS, 'text');
+    storyPointText.classList.add('story-meta');
+    storyPointText.setAttribute('x', String(node.x + 12));
+    storyPointText.setAttribute('y', String(node.y + 46));
+    storyPointText.textContent = storyPoint;
+    group.appendChild(storyPointText);
 
-    const persona = document.createElementNS(svgNS, 'text');
-    persona.classList.add('story-meta');
-    persona.setAttribute('x', String(node.x + 12));
-    persona.setAttribute('y', String(node.y + 66));
-    persona.textContent = node.story.asA ? `As ${node.story.asA}` : 'Persona not defined';
-    group.appendChild(persona);
+    const asLine = document.createElementNS(svgNS, 'text');
+    asLine.classList.add('story-meta');
+    asLine.setAttribute('x', String(node.x + 12));
+    asLine.setAttribute('y', String(node.y + 66));
+    asLine.textContent = node.story.asA ? `As a ${node.story.asA}` : 'As a — not provided';
+    group.appendChild(asLine);
+
+    const wantLine = document.createElementNS(svgNS, 'text');
+    wantLine.classList.add('story-meta');
+    wantLine.setAttribute('x', String(node.x + 12));
+    wantLine.setAttribute('y', String(node.y + 84));
+    wantLine.textContent = node.story.iWant ? `I want ${node.story.iWant}` : 'I want — not provided';
+    group.appendChild(wantLine);
+
+    const soThatLine = document.createElementNS(svgNS, 'text');
+    soThatLine.classList.add('story-meta');
+    soThatLine.setAttribute('x', String(node.x + 12));
+    soThatLine.setAttribute('y', String(node.y + 102));
+    soThatLine.textContent = node.story.soThat ? `So that ${node.story.soThat}` : 'So that — not provided';
+    group.appendChild(soThatLine);
+
+    const assigneeLine = document.createElementNS(svgNS, 'text');
+    assigneeLine.classList.add('story-meta');
+    assigneeLine.setAttribute('x', String(node.x + 12));
+    assigneeLine.setAttribute('y', String(node.y + 122));
+    assigneeLine.textContent = `Assignee: ${node.story.assigneeEmail || 'Unassigned'}`;
+    group.appendChild(assigneeLine);
 
     if (node.story.children && node.story.children.length > 0) {
       const toggleBg = document.createElementNS(svgNS, 'circle');
