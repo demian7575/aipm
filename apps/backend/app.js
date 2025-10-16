@@ -1,12 +1,280 @@
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
+
+const PYTHON_SQLITE_EXPORT_SCRIPT = `
+import json
+import sqlite3
+import sys
+import datetime
+import os
+import traceback
+
+target = sys.argv[1]
+payload = json.load(sys.stdin)
+now = datetime.datetime.utcnow().isoformat(timespec='milliseconds') + 'Z'
+
+tables = payload.get('tables', {})
+columns = payload.get('columns', {})
+
+has_title_column = 'title' in columns.get('acceptance_tests', [])
+
+
+def normalize_text(value, default=''):
+    if value is None:
+        return default
+    text = str(value).strip()
+    return text if text else default
+
+
+def normalize_int(value, default=None):
+    if value is None or value == '':
+        return default
+    try:
+        return int(value)
+    except Exception:
+        try:
+            return int(float(value))
+        except Exception:
+            return default
+
+
+def normalize_timestamp(primary, fallback):
+    value = normalize_text(primary, '')
+    if value:
+        return value
+    value = normalize_text(fallback, '')
+    if value:
+        return value
+    return now
+
+
+try:
+    conn = sqlite3.connect(target)
+    conn.execute("PRAGMA foreign_keys = ON;")
+    conn.execute("PRAGMA journal_mode = WAL;")
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_stories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          mr_id INTEGER DEFAULT 1,
+          parent_id INTEGER,
+          title TEXT NOT NULL,
+          description TEXT DEFAULT '',
+          as_a TEXT DEFAULT '',
+          i_want TEXT DEFAULT '',
+          so_that TEXT DEFAULT '',
+          story_point INTEGER,
+          assignee_email TEXT DEFAULT '',
+          status TEXT DEFAULT 'Draft',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(parent_id) REFERENCES user_stories(id) ON DELETE CASCADE
+        );
+        """
+    )
+
+    if has_title_column:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS acceptance_tests (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              story_id INTEGER NOT NULL,
+              title TEXT DEFAULT '',
+              given TEXT NOT NULL,
+              when_step TEXT NOT NULL,
+              then_step TEXT NOT NULL,
+              status TEXT DEFAULT 'Draft',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+            );
+            """
+        )
+    else:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS acceptance_tests (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              story_id INTEGER NOT NULL,
+              given TEXT NOT NULL,
+              when_step TEXT NOT NULL,
+              then_step TEXT NOT NULL,
+              status TEXT DEFAULT 'Draft',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+            );
+            """
+        )
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS reference_documents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          story_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          url TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+        );
+        """
+    )
+
+    story_rows = []
+    for row in tables.get('user_stories', []):
+        story_rows.append(
+            (
+                normalize_int(row.get('id'), 0),
+                normalize_int(row.get('mr_id'), 1) or 1,
+                normalize_int(row.get('parent_id')),
+                normalize_text(row.get('title'), ''),
+                normalize_text(row.get('description'), ''),
+                normalize_text(row.get('as_a'), ''),
+                normalize_text(row.get('i_want'), ''),
+                normalize_text(row.get('so_that'), ''),
+                normalize_int(row.get('story_point')),
+                normalize_text(row.get('assignee_email'), ''),
+                normalize_text(row.get('status'), 'Draft'),
+                normalize_timestamp(row.get('created_at'), row.get('updated_at')),
+                normalize_timestamp(row.get('updated_at'), row.get('created_at')),
+            )
+        )
+
+    if story_rows:
+        conn.executemany(
+            """
+            INSERT INTO user_stories (
+              id, mr_id, parent_id, title, description, as_a, i_want, so_that, story_point,
+              assignee_email, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            story_rows,
+        )
+
+    test_rows = []
+    for row in tables.get('acceptance_tests', []):
+        base = [normalize_int(row.get('id'), 0), normalize_int(row.get('story_id'))]
+        if has_title_column:
+            base.append(normalize_text(row.get('title'), ''))
+        base.extend(
+            [
+                normalize_text(row.get('given'), '[]'),
+                normalize_text(row.get('when_step'), '[]'),
+                normalize_text(row.get('then_step'), '[]'),
+                normalize_text(row.get('status'), 'Draft'),
+                normalize_timestamp(row.get('created_at'), row.get('updated_at')),
+                normalize_timestamp(row.get('updated_at'), row.get('created_at')),
+            ]
+        )
+        test_rows.append(tuple(base))
+
+    if test_rows:
+        if has_title_column:
+            conn.executemany(
+                """
+                INSERT INTO acceptance_tests (
+                  id, story_id, title, given, when_step, then_step, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                test_rows,
+            )
+        else:
+            conn.executemany(
+                """
+                INSERT INTO acceptance_tests (
+                  id, story_id, given, when_step, then_step, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                test_rows,
+            )
+
+    doc_rows = []
+    for row in tables.get('reference_documents', []):
+        doc_rows.append(
+            (
+                normalize_int(row.get('id'), 0),
+                normalize_int(row.get('story_id')),
+                normalize_text(row.get('name'), ''),
+                normalize_text(row.get('url'), ''),
+                normalize_timestamp(row.get('created_at'), row.get('updated_at')),
+                normalize_timestamp(row.get('updated_at'), row.get('created_at')),
+            )
+        )
+
+    if doc_rows:
+        conn.executemany(
+            """
+            INSERT INTO reference_documents (
+              id, story_id, name, url, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            doc_rows,
+        )
+
+    conn.commit()
+    conn.close()
+except Exception as exc:
+    try:
+        conn.close()
+    except Exception:
+        pass
+    if os.path.exists(target):
+        os.remove(target)
+    traceback.print_exc()
+    sys.exit(1)
+`;
+
+function createSqliteBinarySnapshot(snapshot) {
+  const tempPath = path.join(
+    os.tmpdir(),
+    `aipm-sqlite-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`
+  );
+  const result = spawnSync('python3', ['-c', PYTHON_SQLITE_EXPORT_SCRIPT, tempPath], {
+    input: Buffer.from(JSON.stringify(snapshot), 'utf8'),
+    encoding: 'utf8',
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    const stderr = result.stderr ? String(result.stderr).trim() : 'Unknown error';
+    const error = new Error(`Failed to generate SQLite snapshot via python3: ${stderr}`);
+    error.stderr = stderr;
+    throw error;
+  }
+
+  try {
+    const buffer = readFileSync(tempPath);
+    unlinkSync(tempPath);
+    return buffer;
+  } catch (error) {
+    if (existsSync(tempPath)) {
+      unlinkSync(tempPath);
+    }
+    throw error;
+  }
+}
+
+async function exportRuntimeDataBuffer(db) {
+  if (db && typeof db.exportRuntimeSnapshot === 'function') {
+    const snapshot = await db.exportRuntimeSnapshot();
+    return Buffer.isBuffer(snapshot) ? snapshot : Buffer.from(snapshot);
+  }
+
+  return readFile(DATABASE_PATH);
+}
 
 function escapeSqlValue(value) {
   if (value === null || value === undefined) {
@@ -272,6 +540,7 @@ class JsonDatabase {
       reference_documents: 0,
     };
     this.columns = JSON.parse(JSON.stringify(DEFAULT_COLUMNS));
+    this.driver = 'json-fallback';
     this._load();
   }
 
@@ -306,16 +575,14 @@ class JsonDatabase {
             };
           }
         }
-        try {
-          writeFileSync(this.sqlitePath, raw || '', 'utf8');
-        } catch {
-          // ignore inability to sync sqlite placeholder during load
-        }
       } else {
         this._persist();
+        return;
       }
+      this._writeSqliteMirror();
     } catch {
       this._refreshSequences();
+      this._writeSqliteMirror();
     }
   }
 
@@ -329,25 +596,44 @@ class JsonDatabase {
     return rows.reduce((max, row) => (row.id > max ? row.id : max), 0);
   }
 
-  _persist() {
-    mkdirSync(path.dirname(this.jsonPath), { recursive: true });
-    const payload = {
-      tables: this.tables,
-      sequences: this.sequences,
-      columns: this.columns,
+  _snapshot() {
+    return {
+      tables: {
+        user_stories: this.tables.user_stories.map((row) => ({ ...row })),
+        acceptance_tests: this.tables.acceptance_tests.map((row) => ({ ...row })),
+        reference_documents: this.tables.reference_documents.map((row) => ({ ...row })),
+      },
+      sequences: { ...this.sequences },
+      columns: {
+        user_stories: [...(this.columns.user_stories ?? [])],
+        acceptance_tests: [...(this.columns.acceptance_tests ?? [])],
+        reference_documents: [...(this.columns.reference_documents ?? [])],
+      },
       driver: 'json-fallback',
     };
-    const serialized = JSON.stringify(payload, null, 2);
-    writeFileSync(this.jsonPath, serialized, 'utf8');
+  }
+
+  _writeSqliteMirror() {
+    const snapshot = this._snapshot();
     try {
-      writeFileSync(this.sqlitePath, serialized, 'utf8');
-    } catch (error) {
-      if (error && error.code !== 'ENOENT') {
-        throw error;
-      }
       mkdirSync(path.dirname(this.sqlitePath), { recursive: true });
-      writeFileSync(this.sqlitePath, serialized, 'utf8');
+      const buffer = createSqliteBinarySnapshot(snapshot);
+      writeFileSync(this.sqlitePath, buffer);
+    } catch (error) {
+      const message =
+        'Failed to mirror JSON database to SQLite format. Ensure python3 with sqlite3 support is available.';
+      const wrapped = new Error(`${message} ${error.message ?? ''}`.trim());
+      wrapped.cause = error;
+      throw wrapped;
     }
+  }
+
+  _persist() {
+    mkdirSync(path.dirname(this.jsonPath), { recursive: true });
+    const snapshot = this._snapshot();
+    const serialized = JSON.stringify(snapshot, null, 2);
+    writeFileSync(this.jsonPath, serialized, 'utf8');
+    this._writeSqliteMirror();
   }
 
   exec(sql) {
@@ -488,6 +774,11 @@ class JsonDatabase {
 
   _clone(row) {
     return row ? JSON.parse(JSON.stringify(row)) : row;
+  }
+
+  exportRuntimeSnapshot() {
+    this._writeSqliteMirror();
+    return readFileSync(this.sqlitePath);
   }
 
   _all(sql, params) {
@@ -2097,7 +2388,7 @@ export async function createApp() {
 
     if (pathname === '/api/runtime-data' && method === 'GET') {
       try {
-        const body = await readFile(DATABASE_PATH);
+        const body = await exportRuntimeDataBuffer(db);
         res.writeHead(200, {
           'Content-Type': 'application/octet-stream',
           'Content-Disposition': 'attachment; filename="app.sqlite"',
@@ -2110,7 +2401,10 @@ export async function createApp() {
           sendJson(res, 404, { message: 'Runtime data not found' });
         } else {
           console.error('Failed to read runtime data', error);
-          sendJson(res, 500, { message: 'Failed to read runtime data' });
+          sendJson(res, 500, {
+            message: 'Failed to read runtime data',
+            details: error.message,
+          });
         }
       }
       return;

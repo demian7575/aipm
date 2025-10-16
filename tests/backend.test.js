@@ -218,6 +218,12 @@ test('stories CRUD with reference documents', async (t) => {
   assert.match(disposition, /app\.sqlite/);
   const runtimeBuffer = Buffer.from(await runtimeResponse.arrayBuffer());
   assert.ok(runtimeBuffer.length > 0, 'Runtime data download should return file contents');
+  const header = Buffer.from('SQLite format 3\0');
+  assert.deepEqual(
+    runtimeBuffer.subarray(0, header.length),
+    header,
+    'Runtime data should be a valid SQLite database file'
+  );
   await fs.access(DATABASE_PATH);
 });
 

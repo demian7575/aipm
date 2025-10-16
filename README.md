@@ -9,6 +9,8 @@ This repository contains a self-hosted mindmap and outline workspace for managin
   - On older runtimes, install the `sqlite3` CLI to retain full SQLite persistence.
   - If neither option is available, the server automatically falls back to a JSON-backed emulator so the app still runs (see
     [Data Storage](#data-storage)).
+- Python 3.8+ with the standard `sqlite3` module (used to emit real SQLite snapshots when the JSON compatibility layer is
+  active).
 - macOS, Linux, or WSL shell with Bash-compatible tooling
 
 > No third-party npm dependencies are required; the project relies entirely on Node.js built-ins.
@@ -90,7 +92,7 @@ tests/
 
 ## Data Storage
 
-Runtime data is stored in [`apps/backend/data/app.sqlite`](apps/backend/data/app.sqlite). A "Runtime Data" button in the application header links directly to `/api/runtime-data`, allowing you to download the current database snapshot at any time. Uploaded reference files are written to `apps/backend/uploads/` and served back at `/uploads/<file>`. When the runtime cannot access a native SQLite driver or CLI, a JSON-backed compatibility layer writes to `apps/backend/data/app.sqlite.json` while keeping the REST API contract intact and mirroring the content into the `.sqlite` file. Delete both files to reset the environment.
+Runtime data is stored in [`apps/backend/data/app.sqlite`](apps/backend/data/app.sqlite). A "Runtime Data" button in the application header links directly to `/api/runtime-data`, allowing you to download the current database snapshot at any time. Uploaded reference files are written to `apps/backend/uploads/` and served back at `/uploads/<file>`. When the runtime cannot access a native SQLite driver or CLI, a JSON-backed compatibility layer writes to `apps/backend/data/app.sqlite.json`, then invokes `python3`'s built-in `sqlite3` module to generate a genuine `.sqlite` file for downloads. Delete both files to reset the environment.
 
 The development server seeds:
 
