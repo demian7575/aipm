@@ -27,7 +27,25 @@ button {
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
+a.button {
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  font-weight: 600;
+  background: #3b82f6;
+  color: #fff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
 button.secondary {
+  background: #eef2ff;
+  color: #1f2937;
+}
+
+a.button.secondary {
   background: #eef2ff;
   color: #1f2937;
 }
@@ -48,6 +66,11 @@ button:disabled {
 }
 
 button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.24);
+}
+
+a.button:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(37, 99, 235, 0.24);
 }

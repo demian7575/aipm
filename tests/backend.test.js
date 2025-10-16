@@ -211,6 +211,14 @@ test('stories CRUD with reference documents', async (t) => {
   if (finalData[0].acceptanceTests.length) {
     assert.ok(finalData[0].acceptanceTests[0].gwtHealth);
   }
+
+  const runtimeResponse = await fetch(`${baseUrl}/api/runtime-data`);
+  assert.equal(runtimeResponse.status, 200);
+  const disposition = runtimeResponse.headers.get('content-disposition') ?? '';
+  assert.match(disposition, /app\.sqlite/);
+  const runtimeBuffer = Buffer.from(await runtimeResponse.arrayBuffer());
+  assert.ok(runtimeBuffer.length > 0, 'Runtime data download should return file contents');
+  await fs.access(DATABASE_PATH);
 });
 
 test('story health recheck endpoint recalculates INVEST warnings', async (t) => {

@@ -306,6 +306,11 @@ class JsonDatabase {
             };
           }
         }
+        try {
+          writeFileSync(this.sqlitePath, raw || '', 'utf8');
+        } catch {
+          // ignore inability to sync sqlite placeholder during load
+        }
       } else {
         this._persist();
       }
@@ -332,7 +337,17 @@ class JsonDatabase {
       columns: this.columns,
       driver: 'json-fallback',
     };
-    writeFileSync(this.jsonPath, JSON.stringify(payload, null, 2), 'utf8');
+    const serialized = JSON.stringify(payload, null, 2);
+    writeFileSync(this.jsonPath, serialized, 'utf8');
+    try {
+      writeFileSync(this.sqlitePath, serialized, 'utf8');
+    } catch (error) {
+      if (error && error.code !== 'ENOENT') {
+        throw error;
+      }
+      mkdirSync(path.dirname(this.sqlitePath), { recursive: true });
+      writeFileSync(this.sqlitePath, serialized, 'utf8');
+    }
   }
 
   exec(sql) {
@@ -2077,6 +2092,27 @@ export async function createApp() {
 
     if (pathname === '/api/uploads') {
       await handleFileUpload(req, res, url);
+      return;
+    }
+
+    if (pathname === '/api/runtime-data' && method === 'GET') {
+      try {
+        const body = await readFile(DATABASE_PATH);
+        res.writeHead(200, {
+          'Content-Type': 'application/octet-stream',
+          'Content-Disposition': 'attachment; filename="app.sqlite"',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Expose-Headers': 'Content-Disposition',
+        });
+        res.end(body);
+      } catch (error) {
+        if (error && error.code === 'ENOENT') {
+          sendJson(res, 404, { message: 'Runtime data not found' });
+        } else {
+          console.error('Failed to read runtime data', error);
+          sendJson(res, 500, { message: 'Failed to read runtime data' });
+        }
+      }
       return;
     }
 

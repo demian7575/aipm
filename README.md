@@ -90,7 +90,7 @@ tests/
 
 ## Data Storage
 
-Runtime data is stored in `apps/backend/data/app.sqlite`. Uploaded reference files are written to `apps/backend/uploads/` and served back at `/uploads/<file>`. When the runtime cannot access a native SQLite driver or CLI, a JSON-backed compatibility layer writes to `apps/backend/data/app.sqlite.json` while keeping the REST API contract intact. Delete both files to reset the environment.
+Runtime data is stored in [`apps/backend/data/app.sqlite`](apps/backend/data/app.sqlite). A "Runtime Data" button in the application header links directly to `/api/runtime-data`, allowing you to download the current database snapshot at any time. Uploaded reference files are written to `apps/backend/uploads/` and served back at `/uploads/<file>`. When the runtime cannot access a native SQLite driver or CLI, a JSON-backed compatibility layer writes to `apps/backend/data/app.sqlite.json` while keeping the REST API contract intact and mirroring the content into the `.sqlite` file. Delete both files to reset the environment.
 
 The development server seeds:
 
