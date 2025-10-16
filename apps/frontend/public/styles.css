@@ -129,6 +129,7 @@ textarea {
   display: grid;
   gap: 1rem;
   grid-template-columns: 320px minmax(0, 1fr) 380px;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -223,7 +224,9 @@ textarea {
   flex: 1;
   position: relative;
   padding: 0 0.75rem 0.75rem;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  height: 100%;
 }
 
 #mindmap-canvas {

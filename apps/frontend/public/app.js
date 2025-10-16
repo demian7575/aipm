@@ -31,6 +31,7 @@ const STORAGE_KEYS = {
 const NODE_WIDTH = 240;
 const NODE_HEIGHT = 160;
 const HORIZONTAL_STEP = 240;
+const AUTO_LAYOUT_HORIZONTAL_GAP = 80;
 const VERTICAL_STEP = 200;
 const X_OFFSET = 80;
 const Y_OFFSET = 80;
@@ -387,7 +388,7 @@ function renderOutline() {
   outlineTreeEl.appendChild(list);
 }
 
-function computeLayout(nodes, depth = 0, line = 0) {
+function computeLayout(nodes, depth = 0, line = 0, horizontalGap = 0) {
   let nextLine = line;
   let minLine = Number.POSITIVE_INFINITY;
   let maxLine = Number.NEGATIVE_INFINITY;
@@ -397,7 +398,7 @@ function computeLayout(nodes, depth = 0, line = 0) {
     const expanded = state.expanded.has(story.id);
     let childLayout = null;
     if (expanded && story.children && story.children.length > 0) {
-      childLayout = computeLayout(story.children, depth + 1, nextLine);
+      childLayout = computeLayout(story.children, depth + 1, nextLine, horizontalGap);
       nextLine = childLayout.nextLine;
       positioned.push(...childLayout.nodes);
       minLine = Math.min(minLine, childLayout.minLine);
@@ -415,7 +416,7 @@ function computeLayout(nodes, depth = 0, line = 0) {
     const node = {
       id: story.id,
       story,
-      x: X_OFFSET + depth * HORIZONTAL_STEP,
+      x: X_OFFSET + depth * (HORIZONTAL_STEP + horizontalGap),
       y: Y_OFFSET + centerLine * VERTICAL_STEP - NODE_HEIGHT / 2,
     };
     positioned.push(node);
@@ -441,7 +442,8 @@ function renderMindmap() {
     return;
   }
 
-  const layout = computeLayout(state.stories);
+  const horizontalGap = state.autoLayout ? AUTO_LAYOUT_HORIZONTAL_GAP : 0;
+  const layout = computeLayout(state.stories, 0, 0, horizontalGap);
   const nodes = [];
   const nodeMap = new Map();
   layout.nodes.forEach((node) => {
