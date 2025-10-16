@@ -223,11 +223,15 @@ textarea {
   flex: 1;
   position: relative;
   padding: 0 0.75rem 0.75rem;
+  overflow: auto;
 }
 
 #mindmap-canvas {
-  width: 100%;
-  height: 100%;
+  display: block;
+  max-width: none;
+  max-height: none;
+  min-width: 100%;
+  min-height: 100%;
   background: #fdfefe;
   border-radius: 12px;
   border: 1px solid #edf1ff;
@@ -273,6 +277,41 @@ textarea {
 .mindmap-node .story-meta {
   font-size: 0.75rem;
   fill: #334155;
+}
+
+.status-guide {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.status-guide li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.status-guide strong {
+  color: #1d4ed8;
+}
+
+.status-guide span {
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+.status-value {
+  display: inline-block;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.status-description {
+  margin: 0.35rem 0 0;
+  color: #475569;
+  font-size: 0.85rem;
 }
 
 .mindmap-node .toggle-bg {

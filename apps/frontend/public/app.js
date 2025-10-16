@@ -35,6 +35,21 @@ const VERTICAL_STEP = 200;
 const X_OFFSET = 80;
 const Y_OFFSET = 80;
 
+const STORY_STATUS_GUIDE = [
+  {
+    value: 'Draft',
+    description: 'Story is being authored or refined; requirements may still change.',
+  },
+  {
+    value: 'Ready',
+    description: 'Story meets INVEST and has measurable tests, making it ready for planning.',
+  },
+  {
+    value: 'Approved',
+    description: 'Story has been reviewed and accepted; teams can proceed to execution.',
+  },
+];
+
 function parseStoryPointInput(raw) {
   if (raw == null) {
     return { value: null, error: null };
@@ -460,10 +475,16 @@ function renderMindmap() {
   const minY = Math.min(...nodes.map((node) => node.y));
   const maxY = Math.max(...nodes.map((node) => node.y + NODE_HEIGHT));
   const margin = 120;
-  mindmapCanvas.setAttribute(
-    'viewBox',
-    `${minX - margin} ${minY - margin} ${maxX - minX + margin * 2} ${maxY - minY + margin * 2}`
-  );
+  const viewWidth = maxX - minX + margin * 2;
+  const viewHeight = maxY - minY + margin * 2;
+  mindmapCanvas.setAttribute('viewBox', `${minX - margin} ${minY - margin} ${viewWidth} ${viewHeight}`);
+  mindmapCanvas.setAttribute('width', String(viewWidth));
+  mindmapCanvas.setAttribute('height', String(viewHeight));
+  const wrapper = mindmapCanvas.parentElement;
+  const wrapperWidth = wrapper ? wrapper.clientWidth : 0;
+  const wrapperHeight = wrapper ? wrapper.clientHeight : 0;
+  mindmapCanvas.style.width = `${Math.max(viewWidth, wrapperWidth)}px`;
+  mindmapCanvas.style.height = `${Math.max(viewHeight, wrapperHeight)}px`;
 
   const svgNS = 'http://www.w3.org/2000/svg';
 
@@ -509,35 +530,21 @@ function renderMindmap() {
     const storyPointText = document.createElementNS(svgNS, 'text');
     storyPointText.classList.add('story-meta');
     storyPointText.setAttribute('x', String(node.x + 12));
-    storyPointText.setAttribute('y', String(node.y + 46));
+    storyPointText.setAttribute('y', String(node.y + 50));
     storyPointText.textContent = storyPoint;
     group.appendChild(storyPointText);
 
-    const asLine = document.createElementNS(svgNS, 'text');
-    asLine.classList.add('story-meta');
-    asLine.setAttribute('x', String(node.x + 12));
-    asLine.setAttribute('y', String(node.y + 66));
-    asLine.textContent = node.story.asA ? `As a ${node.story.asA}` : 'As a — not provided';
-    group.appendChild(asLine);
-
-    const wantLine = document.createElementNS(svgNS, 'text');
-    wantLine.classList.add('story-meta');
-    wantLine.setAttribute('x', String(node.x + 12));
-    wantLine.setAttribute('y', String(node.y + 84));
-    wantLine.textContent = node.story.iWant ? `I want ${node.story.iWant}` : 'I want — not provided';
-    group.appendChild(wantLine);
-
-    const soThatLine = document.createElementNS(svgNS, 'text');
-    soThatLine.classList.add('story-meta');
-    soThatLine.setAttribute('x', String(node.x + 12));
-    soThatLine.setAttribute('y', String(node.y + 102));
-    soThatLine.textContent = node.story.soThat ? `So that ${node.story.soThat}` : 'So that — not provided';
-    group.appendChild(soThatLine);
+    const statusLine = document.createElementNS(svgNS, 'text');
+    statusLine.classList.add('story-meta');
+    statusLine.setAttribute('x', String(node.x + 12));
+    statusLine.setAttribute('y', String(node.y + 70));
+    statusLine.textContent = `Status: ${node.story.status || 'Draft'}`;
+    group.appendChild(statusLine);
 
     const assigneeLine = document.createElementNS(svgNS, 'text');
     assigneeLine.classList.add('story-meta');
     assigneeLine.setAttribute('x', String(node.x + 12));
-    assigneeLine.setAttribute('y', String(node.y + 122));
+    assigneeLine.setAttribute('y', String(node.y + 90));
     assigneeLine.textContent = `Assignee: ${node.story.assigneeEmail || 'Unassigned'}`;
     group.appendChild(assigneeLine);
 
@@ -816,10 +823,52 @@ function renderDetails() {
     statusHeader.scope = 'row';
     statusHeader.textContent = 'Status';
     const statusCell = document.createElement('td');
-    statusCell.textContent = story.status || 'Draft';
+    const statusValue = story.status || 'Draft';
+    const statusReference = STORY_STATUS_GUIDE.slice();
+    if (!statusReference.some((item) => item.value === statusValue)) {
+      statusReference.push({
+        value: statusValue,
+        description: 'Workspace-specific status. Confirm expectations with your team.',
+      });
+    }
+    const currentStatusEntry = statusReference.find((item) => item.value === statusValue);
+    const statusValueEl = document.createElement('span');
+    statusValueEl.className = 'status-value';
+    statusValueEl.textContent = statusValue;
+    statusCell.appendChild(statusValueEl);
+
+    const statusDescription = currentStatusEntry ? currentStatusEntry.description : null;
+    if (statusDescription) {
+      const statusDescriptionEl = document.createElement('p');
+      statusDescriptionEl.className = 'status-description';
+      statusDescriptionEl.textContent = statusDescription;
+      statusCell.appendChild(statusDescriptionEl);
+    }
     statusRow.appendChild(statusHeader);
     statusRow.appendChild(statusCell);
     storyBriefBody.appendChild(statusRow);
+
+    const statusGuideRow = document.createElement('tr');
+    const statusGuideHeader = document.createElement('th');
+    statusGuideHeader.scope = 'row';
+    statusGuideHeader.textContent = 'Status Reference';
+    const statusGuideCell = document.createElement('td');
+    const statusGuideList = document.createElement('ul');
+    statusGuideList.className = 'status-guide';
+    statusReference.forEach((item) => {
+      const listItem = document.createElement('li');
+      const statusName = document.createElement('strong');
+      statusName.textContent = item.value;
+      const statusInfo = document.createElement('span');
+      statusInfo.textContent = item.description;
+      listItem.appendChild(statusName);
+      listItem.appendChild(statusInfo);
+      statusGuideList.appendChild(listItem);
+    });
+    statusGuideCell.appendChild(statusGuideList);
+    statusGuideRow.appendChild(statusGuideHeader);
+    statusGuideRow.appendChild(statusGuideCell);
+    storyBriefBody.appendChild(statusGuideRow);
 
     const pointRow = document.createElement('tr');
     pointRow.className = 'story-point-row';
