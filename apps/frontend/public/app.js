@@ -7,18 +7,15 @@ const refreshBtn = document.getElementById('refresh-btn');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
+const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
-const toggleHeatmap = document.getElementById('toggle-heatmap');
 const toggleDetails = document.getElementById('toggle-details');
 const mindmapPanel = document.getElementById('mindmap-panel');
 const outlinePanel = document.getElementById('outline-panel');
-const heatmapPanel = document.getElementById('heatmap-panel');
-const heatmapContent = document.getElementById('heatmap-content');
-const heatmapPlaceholder = document.getElementById('heatmap-placeholder');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -97,7 +94,6 @@ const state = {
   panelVisibility: {
     outline: true,
     mindmap: true,
-    heatmap: true,
     details: true,
   },
 };
@@ -135,7 +131,6 @@ function loadPreferences() {
       state.panelVisibility = {
         outline: panels.outline ?? true,
         mindmap: panels.mindmap ?? true,
-        heatmap: panels.heatmap ?? true,
         details: panels.details ?? true,
       };
     }
@@ -154,7 +149,6 @@ function loadPreferences() {
 
   toggleOutline.checked = state.panelVisibility.outline;
   toggleMindmap.checked = state.panelVisibility.mindmap;
-  toggleHeatmap.checked = state.panelVisibility.heatmap;
   toggleDetails.checked = state.panelVisibility.details;
 }
 
@@ -342,7 +336,6 @@ function renderAll() {
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();
-  renderHeatmap();
   renderDetails();
 }
 
@@ -350,7 +343,6 @@ function updateWorkspaceColumns() {
   const columns = [];
   outlinePanel.classList.toggle('hidden', !state.panelVisibility.outline);
   mindmapPanel.classList.toggle('hidden', !state.panelVisibility.mindmap);
-  heatmapPanel.classList.toggle('hidden', !state.panelVisibility.heatmap);
   detailsPanel.classList.toggle('hidden', !state.panelVisibility.details);
 
   if (state.panelVisibility.outline) {
@@ -358,9 +350,6 @@ function updateWorkspaceColumns() {
   }
   if (state.panelVisibility.mindmap) {
     columns.push('minmax(0, 1fr)');
-  }
-  if (state.panelVisibility.heatmap) {
-    columns.push('minmax(260px, 0.8fr)');
   }
   if (state.panelVisibility.details) {
     columns.push('380px');
@@ -678,22 +667,15 @@ function collectSelectedComponents(scope) {
   );
 }
 
-function renderHeatmap() {
-  heatmapContent.innerHTML = '';
-  if (!state.panelVisibility.heatmap) {
-    return;
-  }
-
+function computeHeatmapData() {
   const flatStories = flattenStories(state.stories);
   if (flatStories.length === 0) {
-    heatmapPlaceholder.classList.remove('hidden');
-    return;
+    return null;
   }
 
   const matrix = new Map();
-  let maxValue = 0;
-  let hasWork = false;
   const activeComponents = new Set();
+  let hasWork = false;
 
   flatStories.forEach((story) => {
     const assignee = story.assigneeEmail && story.assigneeEmail.trim()
@@ -706,42 +688,124 @@ function renderHeatmap() {
     const numericPoint = Number(story.storyPoint);
     const baseValue = Number.isFinite(numericPoint) && numericPoint > 0 ? numericPoint : 1;
     const share = components.length > 0 ? baseValue / components.length : baseValue;
-    const row = matrix.get(assignee) ?? new Map();
 
+    if (share > 0) {
+      hasWork = true;
+    }
+
+    const row = matrix.get(assignee) ?? new Map();
     components.forEach((component) => {
       activeComponents.add(component);
-      const next = (row.get(component) ?? 0) + share;
-      row.set(component, next);
-      if (next > maxValue) {
-        maxValue = next;
-      }
-      if (share > 0) {
-        hasWork = true;
-      }
+      row.set(component, (row.get(component) ?? 0) + share);
     });
-
     matrix.set(assignee, row);
   });
 
   if (!hasWork || matrix.size === 0) {
-    heatmapPlaceholder.classList.remove('hidden');
-    return;
+    return null;
   }
 
-  heatmapPlaceholder.classList.add('hidden');
+  const activeColumnSet = new Set();
+  matrix.forEach((values) => {
+    values.forEach((value, component) => {
+      if (value > 0) {
+        activeColumnSet.add(component);
+      }
+    });
+  });
+
+  const columns = COMPONENT_OPTIONS.filter((component) => activeColumnSet.has(component));
+  if (activeComponents.has(UNSPECIFIED_COMPONENT)) {
+    columns.push(UNSPECIFIED_COMPONENT);
+  }
+  if (columns.length === 0) {
+    columns.push(UNSPECIFIED_COMPONENT);
+  }
+
+  const sortedRows = Array.from(matrix.entries()).sort((a, b) =>
+    a[0].localeCompare(b[0], undefined, { sensitivity: 'base' })
+  );
+
+  const rows = [];
+  let maxPercent = 0;
+
+  sortedRows.forEach(([assignee, values]) => {
+    const totals = columns.map((component) => values.get(component) ?? 0);
+    const totalPoints = totals.reduce((sum, value) => sum + value, 0);
+    if (totalPoints <= 0) {
+      return;
+    }
+
+    const rawEntries = totals.map((value, index) => ({
+      component: columns[index],
+      value,
+      percent: totalPoints > 0 ? (value / totalPoints) * 100 : 0,
+    }));
+
+    const roundedPercents = rawEntries.map((entry) => Math.round(entry.percent * 10) / 10);
+    let sumRounded = roundedPercents.reduce((sum, value) => sum + value, 0);
+    sumRounded = Math.round(sumRounded * 10) / 10;
+    let diff = Math.round((100 - sumRounded) * 10) / 10;
+
+    if (Math.abs(diff) >= 0.1) {
+      const adjustIndex = rawEntries.reduce((maxIdx, entry, idx, arr) => {
+        if (entry.percent <= 0) {
+          return maxIdx;
+        }
+        if (arr[maxIdx].percent <= 0) {
+          return idx;
+        }
+        return entry.percent > arr[maxIdx].percent ? idx : maxIdx;
+      }, 0);
+      roundedPercents[adjustIndex] = Math.round((roundedPercents[adjustIndex] + diff) * 10) / 10;
+    }
+
+    const cells = rawEntries.map((entry, idx) => {
+      const percent = Math.max(0, Math.round(roundedPercents[idx] * 10) / 10);
+      if (percent > maxPercent) {
+        maxPercent = percent;
+      }
+      return {
+        component: entry.component,
+        value: entry.value,
+        percent,
+      };
+    });
+
+    rows.push({ assignee, totalPoints, cells });
+  });
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return { columns, rows, maxPercent };
+}
+
+function buildHeatmapModalContent() {
+  const container = document.createElement('div');
+  container.className = 'heatmap-modal';
+
+  const data = computeHeatmapData();
+  if (!data) {
+    const placeholder = document.createElement('p');
+    placeholder.className = 'placeholder';
+    placeholder.textContent =
+      'Assign user stories with assignees, components, and story points to see workload distribution.';
+    container.appendChild(placeholder);
+    return container;
+  }
+
+  const { columns, rows, maxPercent } = data;
 
   const table = document.createElement('table');
   table.className = 'heatmap-table';
+
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   const assigneeHeader = document.createElement('th');
   assigneeHeader.textContent = 'Assignee';
   headerRow.appendChild(assigneeHeader);
-
-  const columns = [...COMPONENT_OPTIONS];
-  if (activeComponents.has(UNSPECIFIED_COMPONENT)) {
-    columns.push(UNSPECIFIED_COMPONENT);
-  }
 
   columns.forEach((component) => {
     const th = document.createElement('th');
@@ -752,33 +816,44 @@ function renderHeatmap() {
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
-  const sortedRows = Array.from(matrix.entries()).sort((a, b) =>
-    a[0].localeCompare(b[0], undefined, { sensitivity: 'base' })
-  );
+  const formatPercent = (value) => {
+    if (value <= 0) {
+      return null;
+    }
+    return Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
+  };
 
-  sortedRows.forEach(([assignee, values]) => {
+  const formatPoints = (value) => {
+    if (!Number.isFinite(value)) {
+      return '0';
+    }
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  };
+
+  rows.forEach((row) => {
     const tr = document.createElement('tr');
     const assigneeCell = document.createElement('th');
     assigneeCell.scope = 'row';
-    assigneeCell.textContent = assignee;
+    assigneeCell.textContent = row.assignee;
     tr.appendChild(assigneeCell);
 
-    columns.forEach((component) => {
-      const value = values.get(component) ?? 0;
+    row.cells.forEach((cellData) => {
       const cell = document.createElement('td');
       cell.className = 'heatmap-cell';
-      const label = component.replace(/_/g, ' ');
-      if (value > 0 && maxValue > 0) {
-        const ratio = Math.min(1, value / maxValue);
+      const percentLabel = formatPercent(cellData.percent);
+      if (percentLabel) {
+        const ratio = maxPercent > 0 ? cellData.percent / maxPercent : 0;
         const alpha = 0.15 + ratio * 0.65;
         cell.style.backgroundColor = `rgba(37, 99, 235, ${alpha.toFixed(3)})`;
         cell.style.color = ratio > 0.55 ? '#fff' : '#1f2937';
-        cell.textContent = Number.isInteger(value) ? String(value) : value.toFixed(1);
-        cell.title = `${assignee} · ${label}: ${value.toFixed(1)} story points`;
+        cell.textContent = percentLabel;
+        cell.title = `${row.assignee} · ${cellData.component.replace(/_/g, ' ')}: ${percentLabel} (${formatPoints(
+          cellData.value
+        )} story points)`;
       } else {
         cell.classList.add('empty');
         cell.textContent = '–';
-        cell.title = `${assignee} · ${label}: 0 story points`;
+        cell.title = `${row.assignee} · ${cellData.component.replace(/_/g, ' ')}: 0% (0 story points)`;
       }
       tr.appendChild(cell);
     });
@@ -787,7 +862,15 @@ function renderHeatmap() {
   });
 
   table.appendChild(tbody);
-  heatmapContent.appendChild(table);
+  container.appendChild(table);
+
+  const note = document.createElement('p');
+  note.className = 'heatmap-note';
+  note.textContent =
+    'Percentages show how each assignee’s workload is distributed across components (totals per assignee equal 100%).';
+  container.appendChild(note);
+
+  return container;
 }
 
 function renderDetails() {
@@ -1382,7 +1465,6 @@ function handleStorySelection(story) {
   persistSelection();
   renderOutline();
   renderMindmap();
-  renderHeatmap();
   renderDetails();
 }
 
@@ -2217,7 +2299,6 @@ function initialize() {
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();
-  renderHeatmap();
   renderDetails();
 
   refreshBtn.addEventListener('click', () => loadStories());
@@ -2227,8 +2308,12 @@ function initialize() {
 
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
-  toggleHeatmap.addEventListener('change', (event) => setPanelVisibility('heatmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+
+  openHeatmapBtn?.addEventListener('click', () => {
+    const content = buildHeatmapModalContent();
+    openModal({ title: 'Employee Heat Map', content, cancelLabel: 'Close' });
+  });
 
   autoLayoutToggle.addEventListener('click', () => {
     state.autoLayout = !state.autoLayout;
