@@ -128,7 +128,7 @@ textarea {
   padding: 1rem;
   display: grid;
   gap: 1rem;
-  grid-template-columns: 320px minmax(0, 1fr) 380px;
+  grid-template-columns: 320px minmax(0, 1fr) 570px;
   grid-template-rows: minmax(0, 1fr);
   min-height: 0;
 }
@@ -175,6 +175,7 @@ textarea {
   align-items: center;
   gap: 0.5rem;
   padding: 0.35rem 0.4rem;
+  border-left: 4px solid transparent;
   border-radius: 8px;
   cursor: pointer;
   user-select: none;
@@ -193,9 +194,26 @@ textarea {
   font-size: 0.95rem;
 }
 
-.outline-item.warning .title {
-  color: #8a6100;
+.outline-item.status-draft {
+  border-left-color: #cbd5f5;
+}
+
+.outline-item.status-ready {
+  border-left-color: #60a5fa;
+}
+
+.outline-item.status-approved {
+  border-left-color: #34d399;
+}
+
+.outline-item.health-warning .title {
+  color: #b45309;
   font-weight: 600;
+}
+
+.outline-item.health-critical .title {
+  color: #b91c1c;
+  font-weight: 700;
 }
 
 .caret-button {
@@ -304,15 +322,35 @@ textarea {
 
 .mindmap-node rect {
   fill: #ffffff;
-  stroke: #2f3c7e;
+  stroke: #94a3b8;
   stroke-width: 2;
   rx: 12;
   ry: 12;
 }
 
-.mindmap-node.warning rect {
-  stroke: #cc8b00;
-  fill: #fff7d6;
+.mindmap-node.status-draft rect {
+  stroke: #94a3b8;
+  fill: #f8fafc;
+}
+
+.mindmap-node.status-ready rect {
+  stroke: #2563eb;
+  fill: #e0ecff;
+}
+
+.mindmap-node.status-approved rect {
+  stroke: #047857;
+  fill: #dcfce7;
+}
+
+.mindmap-node.health-warning rect {
+  stroke: #f97316;
+  fill: #fff7ed;
+}
+
+.mindmap-node.health-critical rect {
+  stroke: #dc2626;
+  fill: #fee2e2;
 }
 
 .mindmap-node.selected rect {
@@ -323,12 +361,32 @@ textarea {
 .mindmap-node .story-title {
   font-size: 0.92rem;
   font-weight: 700;
+  fill: #1f2937;
+}
+
+.mindmap-node.health-warning .story-title {
+  fill: #b45309;
+}
+
+.mindmap-node.health-critical .story-title {
   fill: #b91c1c;
 }
 
 .mindmap-node .story-meta {
   font-size: 0.75rem;
   fill: #334155;
+}
+
+.mindmap-node .story-status.status-draft {
+  fill: #475569;
+}
+
+.mindmap-node .story-status.status-ready {
+  fill: #1d4ed8;
+}
+
+.mindmap-node .story-status.status-approved {
+  fill: #15803d;
 }
 
 .status-guide {
@@ -355,9 +413,32 @@ textarea {
 }
 
 .status-value {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
   font-weight: 600;
+}
+
+.status-badge.status-draft {
+  background: #e2e8f0;
   color: #1f2937;
+}
+
+.status-badge.status-ready {
+  background: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.status-badge.status-approved {
+  background: #bbf7d0;
+  color: #166534;
 }
 
 .status-description {
@@ -400,6 +481,20 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid #e5e9f5;
+  background: #ffffff;
+}
+
+.story-form.health-warning {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.story-form.health-critical {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.18);
 }
 
 .story-form .field-row {
@@ -449,27 +544,16 @@ textarea {
   min-height: 3.25rem;
 }
 
-.components-checklist {
-  display: grid;
-  gap: 0.4rem 0.75rem;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  align-items: start;
+.components-select {
+  display: block;
+  max-width: 100%;
 }
 
-.component-option {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-.component-option span {
-  white-space: normal;
-}
-
-.component-option input {
-  accent-color: #2563eb;
+.components-select select {
+  width: 100%;
+  min-height: 7.5rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
 }
 
 .components-hint {
@@ -715,12 +799,26 @@ textarea {
   background: #ffffff;
 }
 
+.vertical-table.health-warning {
+  border-color: #f97316;
+  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.18);
+}
+
 .vertical-table th,
 .vertical-table td {
   padding: 0.5rem 0.75rem;
   font-size: 0.92rem;
   border-bottom: 1px solid #e5e9f5;
   text-align: left;
+}
+
+.vertical-table.health-warning th {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.vertical-table.health-warning td {
+  background: #fffaf3;
 }
 
 .vertical-table th {

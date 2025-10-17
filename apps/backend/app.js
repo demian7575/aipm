@@ -22,6 +22,8 @@ const COMPONENT_LOOKUP = new Map(
   COMPONENT_CATALOG.map((name) => [name.toLowerCase(), name])
 );
 
+const UNSPECIFIED_COMPONENT = 'Unspecified';
+
 const PYTHON_SQLITE_EXPORT_SCRIPT = `
 import json
 import sqlite3
@@ -1752,150 +1754,261 @@ function listReferenceDocuments(documents) {
   });
 }
 
-function buildTestDocument(story, context = {}) {
-  const storyMap = context.map;
+function componentDisplayName(name) {
+  return (typeof name === 'string' && name.trim().length > 0 ? name : UNSPECIFIED_COMPONENT).replace(
+    /_/g,
+    ' '
+  );
+}
+
+function groupStoriesByComponent(flatStories) {
+  const groups = new Map();
+  const order = [...COMPONENT_CATALOG, UNSPECIFIED_COMPONENT];
+  order.forEach((component) => groups.set(component, []));
+
+  flatStories.forEach((story) => {
+    const components =
+      Array.isArray(story.components) && story.components.length > 0
+        ? story.components
+        : [UNSPECIFIED_COMPONENT];
+    components.forEach((component) => {
+      if (!groups.has(component)) {
+        groups.set(component, []);
+        order.push(component);
+      }
+      groups.get(component).push(story);
+    });
+  });
+
+  groups.forEach((stories) => {
+    stories.sort((a, b) => {
+      const aTitle = a.title || '';
+      const bTitle = b.title || '';
+      const compare = aTitle.localeCompare(bTitle, undefined, { sensitivity: 'base' });
+      if (compare !== 0) {
+        return compare;
+      }
+      return (a.id || 0) - (b.id || 0);
+    });
+  });
+
+  return { groups, order };
+}
+
+function buildAggregateTestDocument(context = {}) {
+  const flatStories = Array.isArray(context.flat) ? context.flat : [];
+  const storyMap =
+    context.map instanceof Map
+      ? context.map
+      : new Map(flatStories.map((story) => [story.id, story]));
+  const { groups, order } = groupStoriesByComponent(flatStories);
+
   const lines = [];
-  lines.push(`# Test Document – ${story.title}`.trim());
+  lines.push('# Component Test Document');
   lines.push('');
   lines.push(`Generated: ${now()}`);
-  lines.push(`Story Path: ${buildStoryPathLabel(story, storyMap)}`);
   lines.push('');
-  lines.push('## Story Overview');
-  lines.push(`- Status: ${story.status || 'Draft'}`);
-  lines.push(`- Story Point: ${story.storyPoint != null ? story.storyPoint : 'Not estimated'}`);
-  lines.push(`- Assignee: ${story.assigneeEmail || 'Unassigned'}`);
-  if (story.description) {
-    lines.push('');
-    lines.push('### Description');
-    lines.push(story.description.trim());
+
+  if (flatStories.length === 0) {
+    lines.push('No user stories are available. Capture stories to generate test documentation.');
+    return { title: 'Component Test Document', content: lines.join('\n') };
   }
-  lines.push('');
-  lines.push('### User Value');
-  lines.push(`- As a: ${story.asA || '—'}`);
-  lines.push(`- I want: ${story.iWant || '—'}`);
-  lines.push(`- So that: ${story.soThat || '—'}`);
-  lines.push('');
-  lines.push('### Components');
-  if (Array.isArray(story.components) && story.components.length > 0) {
-    story.components.forEach((component) => {
-      lines.push(`- ${component}`);
-    });
-  } else {
-    lines.push('- No components documented. Capture system areas to clarify scope and ownership.');
-  }
-  lines.push('');
-  lines.push('## Acceptance Tests');
-  if (!Array.isArray(story.acceptanceTests) || story.acceptanceTests.length === 0) {
-    lines.push('No acceptance tests are captured yet. Add Given/When/Then scenarios to verify the story.');
-  } else {
-    story.acceptanceTests.forEach((test, index) => {
+
+  order.forEach((component, index) => {
+    if (index > 0) {
       lines.push('');
-      const heading = test.title && test.title.trim() ? test.title.trim() : `Scenario ${index + 1}`;
-      lines.push(`### ${index + 1}. ${heading}`);
-      lines.push(`Status: ${test.status || 'Draft'}`);
-      lines.push('');
-      renderStepList('Given', test.given).forEach((line) => lines.push(line));
-      renderStepList('When', test.when).forEach((line) => lines.push(line));
-      renderStepList('Then', test.then).forEach((line) => lines.push(line));
-      if (test.gwtHealth) {
+    }
+    lines.push(`## Component: ${componentDisplayName(component)}`);
+    const stories = groups.get(component) ?? [];
+    if (stories.length === 0) {
+      lines.push('- No user stories assigned to this component yet.');
+      return;
+    }
+
+    stories.forEach((story, storyIndex) => {
+      if (storyIndex > 0) {
         lines.push('');
-        lines.push(`Health: ${test.gwtHealth.satisfied ? 'Pass' : 'Needs review'}`);
-        if (Array.isArray(test.gwtHealth.issues) && test.gwtHealth.issues.length > 0) {
+      }
+      const storyPoint =
+        story.storyPoint != null && story.storyPoint !== '' ? story.storyPoint : 'Unestimated';
+      lines.push(
+        `### ${story.title || 'Untitled Story'} (Status: ${story.status || 'Draft'} · Story Point: ${storyPoint})`
+      );
+      lines.push(`Path: ${buildStoryPathLabel(story, storyMap)}`);
+      lines.push(`Assignee: ${story.assigneeEmail || 'Unassigned'}`);
+      if (story.description && story.description.trim()) {
+        lines.push(`Description: ${story.description.trim()}`);
+      }
+
+      const investHealth = story.investHealth || null;
+      if (investHealth) {
+        lines.push(`INVEST Health: ${investHealth.satisfied ? 'Pass' : 'Needs review'}`);
+        if (Array.isArray(investHealth.issues) && investHealth.issues.length > 0) {
           lines.push('Issues:');
-          test.gwtHealth.issues.forEach((issue) => {
-            const criterion = issue.criterion ? `${issue.criterion.toUpperCase()}: ` : '';
-            lines.push(`- ${criterion}${issue.message}`);
+          investHealth.issues.forEach((issue) => {
+            const criterion = issue.criterion ? `${String(issue.criterion).toUpperCase()}: ` : '';
+            const suggestion = issue.suggestion ? ` Suggestion: ${issue.suggestion}` : '';
+            lines.push(`- ${criterion}${issue.message || 'Follow-up required.'}${suggestion}`);
           });
         }
       }
-      if (Array.isArray(test.measurabilityWarnings) && test.measurabilityWarnings.length > 0) {
-        lines.push('');
-        lines.push('Measurability warnings:');
-        test.measurabilityWarnings.forEach((warning) => {
-          lines.push(`- ${warning}`);
+
+      lines.push('');
+      lines.push('Acceptance Tests:');
+      if (!Array.isArray(story.acceptanceTests) || story.acceptanceTests.length === 0) {
+        lines.push('- No acceptance tests recorded.');
+      } else {
+        story.acceptanceTests.forEach((test, testIndex) => {
+          const heading = test.title && test.title.trim() ? test.title.trim() : `Scenario ${testIndex + 1}`;
+          lines.push(`- ${heading} (Status: ${test.status || 'Draft'})`);
+          renderStepList('Given', test.given).forEach((line) => lines.push(`  ${line}`));
+          renderStepList('When', test.when).forEach((line) => lines.push(`  ${line}`));
+          renderStepList('Then', test.then).forEach((line) => lines.push(`  ${line}`));
+          if (test.gwtHealth) {
+            lines.push(`  Health: ${test.gwtHealth.satisfied ? 'Pass' : 'Needs review'}`);
+            if (Array.isArray(test.gwtHealth.issues) && test.gwtHealth.issues.length > 0) {
+              lines.push('  Issues:');
+              test.gwtHealth.issues.forEach((issue) => {
+                const criterion = issue.criterion ? `${issue.criterion}: ` : '';
+                lines.push(`  - ${criterion}${issue.message}`);
+              });
+            }
+          }
         });
       }
-      if (Array.isArray(test.measurabilitySuggestions) && test.measurabilitySuggestions.length > 0) {
-        lines.push('');
-        lines.push('Suggested quantitative parameters:');
-        test.measurabilitySuggestions.forEach((suggestion) => {
-          lines.push(`- ${suggestion}`);
-        });
-      }
+
+      lines.push('');
+      lines.push('Reference Documents:');
+      listReferenceDocuments(story.referenceDocuments).forEach((line) => {
+        const content = line.startsWith('-') ? line : `- ${line}`;
+        lines.push(`  ${content}`);
+      });
     });
-  }
-  lines.push('');
-  lines.push('## Reference Materials');
-  listReferenceDocuments(story.referenceDocuments).forEach((line) => lines.push(line));
-  return { title: `Test Document – ${story.title}`, content: lines.join('\n') };
+  });
+
+  return { title: 'Component Test Document', content: lines.join('\n') };
 }
 
-function buildSystemRequirementDocument(story, context = {}) {
-  const storyMap = context.map;
+function buildAggregateSystemRequirementDocument(context = {}) {
+  const flatStories = Array.isArray(context.flat) ? context.flat : [];
+  const storyMap =
+    context.map instanceof Map
+      ? context.map
+      : new Map(flatStories.map((story) => [story.id, story]));
+  const { groups, order } = groupStoriesByComponent(flatStories);
+
   const lines = [];
-  lines.push(`# System Requirement Document – ${story.title}`.trim());
+  lines.push('# System Requirement Portfolio');
   lines.push('');
   lines.push(`Generated: ${now()}`);
-  lines.push(`Story Path: ${buildStoryPathLabel(story, storyMap)}`);
   lines.push('');
-  lines.push('## Objective');
-  lines.push(story.description ? story.description.trim() : 'No long-form description supplied.');
-  lines.push('');
-  lines.push('## User Story');
-  lines.push(`As a ${story.asA || '…'}, I want ${story.iWant || '…'}, so that ${story.soThat || '…'}.`);
-  lines.push('');
-  lines.push('## Components & Scope');
-  if (Array.isArray(story.components) && story.components.length > 0) {
-    story.components.forEach((component) => {
-      lines.push(`- ${component}`);
+
+  if (flatStories.length === 0) {
+    lines.push('No user stories are available. Capture stories to generate requirement documentation.');
+    return { title: 'System Requirement Document', content: lines.join('\n') };
+  }
+
+  order.forEach((component, index) => {
+    if (index > 0) {
+      lines.push('');
+    }
+    lines.push(`## Component: ${componentDisplayName(component)}`);
+    const stories = groups.get(component) ?? [];
+    if (stories.length === 0) {
+      lines.push('- No user stories assigned to this component yet.');
+      return;
+    }
+
+    stories.forEach((story, storyIndex) => {
+      if (storyIndex > 0) {
+        lines.push('');
+      }
+      lines.push(`### ${story.title || 'Untitled Story'}`);
+      lines.push(`Status: ${story.status || 'Draft'}`);
+      const storyPoint =
+        story.storyPoint != null && story.storyPoint !== '' ? story.storyPoint : 'Unestimated';
+      lines.push(`Story Point: ${storyPoint}`);
+      lines.push(`Assignee: ${story.assigneeEmail || 'Unassigned'}`);
+      lines.push(`Path: ${buildStoryPathLabel(story, storyMap)}`);
+      lines.push('');
+      lines.push('User Story:');
+      lines.push(`- As a ${story.asA || '…'}`);
+      lines.push(`- I want ${story.iWant || '…'}`);
+      lines.push(`- So that ${story.soThat || '…'}`);
+      lines.push('');
+
+      lines.push('Scope & Components:');
+      const components =
+        Array.isArray(story.components) && story.components.length > 0
+          ? story.components
+          : [UNSPECIFIED_COMPONENT];
+      components.forEach((componentName) => {
+        lines.push(`- ${componentDisplayName(componentName)}`);
+      });
+      lines.push('');
+
+      lines.push('Acceptance Criteria Snapshot:');
+      if (!Array.isArray(story.acceptanceTests) || story.acceptanceTests.length === 0) {
+        lines.push('- No acceptance tests defined yet.');
+      } else {
+        story.acceptanceTests.forEach((test, testIndex) => {
+          const heading = test.title && test.title.trim() ? test.title.trim() : `Scenario ${testIndex + 1}`;
+          const outcomes = Array.isArray(test.then) && test.then.length > 0
+            ? test.then.map((step) => String(step).trim()).join('; ')
+            : 'Then steps not specified.';
+          lines.push(`- ${heading} (Status: ${test.status || 'Draft'})`);
+          lines.push(`  Outcomes: ${outcomes}`);
+        });
+      }
+      lines.push('');
+
+      lines.push('INVEST Notes:');
+      const investHealth = story.investHealth || null;
+      if (investHealth && Array.isArray(investHealth.issues) && investHealth.issues.length > 0) {
+        investHealth.issues.forEach((issue) => {
+          const criterion = issue.criterion ? `${String(issue.criterion).toUpperCase()}: ` : '';
+          const suggestion = issue.suggestion ? ` Suggestion: ${issue.suggestion}` : '';
+          lines.push(`- ${criterion}${issue.message || 'Follow-up required.'}${suggestion}`);
+        });
+      } else {
+        lines.push('- ChatGPT confirmed the story currently meets INVEST criteria.');
+      }
+      if (story.investAnalysis && story.investAnalysis.source === 'openai' && story.investAnalysis.aiSummary) {
+        lines.push(`- ChatGPT summary: ${story.investAnalysis.aiSummary}`);
+      }
+      lines.push('');
+
+      lines.push('Child Work Items:');
+      const childLines = collectChildSummaries(story, 0, []);
+      if (childLines.length === 0) {
+        lines.push('- No child stories linked.');
+      } else {
+        childLines.forEach((line) => lines.push(line));
+      }
+      lines.push('');
+
+      lines.push('Reference Documents:');
+      listReferenceDocuments(story.referenceDocuments).forEach((line) => {
+        const content = line.startsWith('-') ? line : `- ${line}`;
+        lines.push(content);
+      });
     });
-  } else {
-    lines.push('- Components not yet specified. Capture affected subsystems to clarify execution ownership.');
-  }
-  lines.push('');
-  lines.push('## Acceptance Criteria Overview');
-  if (!Array.isArray(story.acceptanceTests) || story.acceptanceTests.length === 0) {
-    lines.push('No acceptance tests are defined. Create Given/When/Then scenarios to describe expected behaviour.');
-  } else {
-    story.acceptanceTests.forEach((test, index) => {
-      const heading = test.title && test.title.trim() ? test.title.trim() : `Scenario ${index + 1}`;
-      const outcomes = Array.isArray(test.then) && test.then.length > 0
-        ? test.then.map((step) => String(step).trim()).join('; ')
-        : 'Then steps not specified.';
-      lines.push(`- ${heading} (Status: ${test.status || 'Draft'})`);
-      lines.push(`  Outcomes: ${outcomes}`);
-    });
-  }
-  lines.push('');
-  lines.push('## Child Work Items');
-  const childLines = collectChildSummaries(story, 0, []);
-  if (childLines.length === 0) {
-    lines.push('No child stories are linked to this user story.');
-  } else {
-    childLines.forEach((line) => lines.push(line));
-  }
-  lines.push('');
-  lines.push('## INVEST Considerations');
-  summarizeInvestWarnings(story.investWarnings, story.investAnalysis).forEach((line) =>
-    lines.push(line)
-  );
-  lines.push('');
-  lines.push('## Reference Materials');
-  listReferenceDocuments(story.referenceDocuments).forEach((line) => lines.push(line));
-  return { title: `System Requirement Document – ${story.title}`, content: lines.join('\n') };
+  });
+
+  return { title: 'System Requirement Document', content: lines.join('\n') };
 }
 
-function generateDocumentPayload(type, story, context) {
+function generateDocumentPayload(type, context = {}) {
   const normalized = String(type || '').toLowerCase();
   if (['test', 'test-document', 'test_document'].includes(normalized)) {
-    return buildTestDocument(story, context);
+    return buildAggregateTestDocument(context);
   }
   if (
     ['system', 'system-requirement', 'system_requirement', 'system-requirement-document'].includes(
       normalized
     )
   ) {
-    return buildSystemRequirementDocument(story, context);
+    return buildAggregateSystemRequirementDocument(context);
   }
   const error = new Error('Unsupported document type');
   error.statusCode = 400;
@@ -3124,30 +3237,18 @@ export async function createApp() {
       try {
         const payload = await parseJson(req);
         const type = payload?.type;
-        const storyIdValue = payload?.storyId;
         if (!type) {
           sendJson(res, 400, { message: 'Document type is required' });
           return;
         }
-        if (storyIdValue == null || Number.isNaN(Number(storyIdValue))) {
-          sendJson(res, 400, { message: 'A valid storyId is required' });
-          return;
-        }
-        const storyId = Number(storyIdValue);
         const tree = await loadStories(db);
         const flat = flattenStories(tree);
         const storyMap = new Map(flat.map((node) => [node.id, node]));
-        const story = storyMap.get(storyId);
-        if (!story) {
-          sendJson(res, 404, { message: 'Story not found' });
-          return;
-        }
-        const document = generateDocumentPayload(type, story, { tree, flat, map: storyMap });
+        const document = generateDocumentPayload(type, { tree, flat, map: storyMap });
         sendJson(res, 200, {
           type: String(type),
           title: document.title,
           content: document.content,
-          storyId: story.id,
           generatedAt: now(),
         });
       } catch (error) {

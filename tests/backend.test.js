@@ -501,38 +501,34 @@ test('document generation endpoints produce tailored content', async (t) => {
   });
 
   const baseUrl = `http://127.0.0.1:${port}`;
-  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
-  assert.equal(storiesResponse.status, 200);
-  const stories = await storiesResponse.json();
-  assert.ok(Array.isArray(stories) && stories.length > 0);
-  const storyId = stories[0].id;
-
   const testDocResponse = await fetch(`${baseUrl}/api/documents/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'test-document', storyId }),
+    body: JSON.stringify({ type: 'test-document' }),
   });
   assert.equal(testDocResponse.status, 200);
   const testDoc = await testDocResponse.json();
-  assert.match(testDoc.title, /Test Document/i);
+  assert.match(testDoc.title, /Component Test Document/i);
+  assert.ok(/## Component:/i.test(testDoc.content));
   assert.ok(/Acceptance Tests/i.test(testDoc.content));
-  assert.equal(testDoc.storyId, storyId);
+  assert.ok(!('storyId' in testDoc));
 
   const systemDocResponse = await fetch(`${baseUrl}/api/documents/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'system-requirement', storyId }),
+    body: JSON.stringify({ type: 'system-requirement' }),
   });
   assert.equal(systemDocResponse.status, 200);
   const systemDoc = await systemDocResponse.json();
   assert.match(systemDoc.title, /System Requirement/i);
-  assert.ok(/Child Work Items/i.test(systemDoc.content));
-  assert.equal(systemDoc.storyId, storyId);
+  assert.ok(/## Component:/i.test(systemDoc.content));
+  assert.ok(/User Story:/i.test(systemDoc.content));
+  assert.ok(!('storyId' in systemDoc));
 
   const badTypeResponse = await fetch(`${baseUrl}/api/documents/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'unknown', storyId }),
+    body: JSON.stringify({ type: 'unknown' }),
   });
   assert.equal(badTypeResponse.status, 400);
 });

@@ -50,7 +50,7 @@ Additional controls inside the panels include:
 - **Expand All / Collapse All** – Adjust outline and mindmap expansion states together.
 - **Create Acceptance Test / Create Child Story** – Launch modal forms that support warning overrides for INVEST and measurability policies.
 - **Reference Document List** – Modal for adding, opening, and deleting linked documentation, including direct file uploads stored on the server.
-- **Generate Document** – Header button that opens a panel for producing Test or System Requirement documents for the selected user story.
+- **Generate Document** – Header button that opens a panel for producing component-grouped Test or System Requirement documents across every user story.
 
 ## Building
 

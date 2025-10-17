@@ -64,6 +64,12 @@ const COMPONENT_OPTIONS = [
 
 const UNSPECIFIED_COMPONENT = 'Unspecified';
 
+const STATUS_CLASS_MAP = {
+  Draft: 'status-draft',
+  Ready: 'status-ready',
+  Approved: 'status-approved',
+};
+
 function parseStoryPointInput(raw) {
   if (raw == null) {
     return { value: null, error: null };
@@ -101,6 +107,47 @@ const state = {
 const storyIndex = new Map();
 const parentById = new Map();
 let toastTimeout = null;
+
+function getStatusClass(status) {
+  const normalized = typeof status === 'string' ? status.trim() : '';
+  return STATUS_CLASS_MAP[normalized] || STATUS_CLASS_MAP.Draft;
+}
+
+function storyHasAcceptanceWarnings(story) {
+  if (!story || !Array.isArray(story.acceptanceTests)) {
+    return false;
+  }
+  return story.acceptanceTests.some((test) => {
+    if (!test || !test.gwtHealth) return false;
+    if (typeof test.gwtHealth.satisfied === 'boolean') {
+      return !test.gwtHealth.satisfied;
+    }
+    return Array.isArray(test.gwtHealth.issues) && test.gwtHealth.issues.length > 0;
+  });
+}
+
+function computeHealthSeverity(story) {
+  if (!story) {
+    return 'ok';
+  }
+  const invest = story.investHealth;
+  const investIssues = invest
+    ? invest.satisfied === false && Array.isArray(invest.issues)
+      ? invest.issues.length
+      : invest.satisfied === false
+      ? 1
+      : 0
+    : story.investSatisfied === false
+    ? 1
+    : 0;
+  if (investIssues > 0) {
+    return 'critical';
+  }
+  if (storyHasAcceptanceWarnings(story)) {
+    return 'warning';
+  }
+  return 'ok';
+}
 
 function loadPreferences() {
   try {
@@ -368,8 +415,15 @@ function renderOutline() {
     if (story.id === state.selectedStoryId) {
       row.classList.add('selected');
     }
-    if (!story.investSatisfied) {
-      row.classList.add('warning');
+    const statusClass = getStatusClass(story.status);
+    if (statusClass) {
+      row.classList.add(statusClass);
+    }
+    const severity = computeHealthSeverity(story);
+    if (severity === 'critical') {
+      row.classList.add('health-critical');
+    } else if (severity === 'warning') {
+      row.classList.add('health-warning');
     }
 
     const caret = document.createElement('div');
@@ -522,8 +576,15 @@ function renderMindmap() {
     if (node.story.id === state.selectedStoryId) {
       group.classList.add('selected');
     }
-    if (!node.story.investSatisfied) {
-      group.classList.add('warning');
+    const nodeStatusClass = getStatusClass(node.story.status);
+    if (nodeStatusClass) {
+      group.classList.add(nodeStatusClass);
+    }
+    const nodeHealthSeverity = computeHealthSeverity(node.story);
+    if (nodeHealthSeverity === 'critical') {
+      group.classList.add('health-critical');
+    } else if (nodeHealthSeverity === 'warning') {
+      group.classList.add('health-warning');
     }
 
     const rect = document.createElementNS(svgNS, 'rect');
@@ -550,7 +611,8 @@ function renderMindmap() {
     group.appendChild(storyPointText);
 
     const statusLine = document.createElementNS(svgNS, 'text');
-    statusLine.classList.add('story-meta');
+    statusLine.classList.add('story-meta', 'story-status');
+    statusLine.classList.add(nodeStatusClass);
     statusLine.setAttribute('x', String(node.x + 12));
     statusLine.setAttribute('y', String(node.y + 70));
     statusLine.textContent = `Status: ${node.story.status || 'Draft'}`;
@@ -639,32 +701,31 @@ function setupNodeInteraction(group, node) {
   });
 }
 
-function buildComponentChecklist(container, selectedValues = []) {
-  if (!container) return;
+function buildComponentSelector(container, selectedValues = []) {
+  if (!container) return null;
   container.innerHTML = '';
+  const select = document.createElement('select');
+  select.name = 'components';
+  select.multiple = true;
+  select.size = Math.min(COMPONENT_OPTIONS.length, 6);
   const selectedSet = new Set(Array.isArray(selectedValues) ? selectedValues : []);
   COMPONENT_OPTIONS.forEach((component) => {
-    const label = document.createElement('label');
-    label.className = 'component-option';
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.name = 'components';
-    input.value = component;
-    const checked = selectedSet.has(component);
-    input.checked = checked;
-    input.defaultChecked = checked;
-    const text = document.createElement('span');
-    text.textContent = component.replace(/_/g, ' ');
-    label.appendChild(input);
-    label.appendChild(text);
-    container.appendChild(label);
+    const option = document.createElement('option');
+    option.value = component;
+    option.textContent = component.replace(/_/g, ' ');
+    option.selected = selectedSet.has(component);
+    select.appendChild(option);
   });
+  container.appendChild(select);
+  return select;
 }
 
 function collectSelectedComponents(scope) {
-  return Array.from(scope.querySelectorAll('input[name="components"]:checked')).map(
-    (input) => input.value
-  );
+  const select = scope.querySelector('select[name="components"]');
+  if (!select) {
+    return [];
+  }
+  return Array.from(select.selectedOptions).map((option) => option.value);
 }
 
 function computeHeatmapData() {
@@ -674,7 +735,6 @@ function computeHeatmapData() {
   }
 
   const matrix = new Map();
-  const activeComponents = new Set();
   let hasWork = false;
 
   flatStories.forEach((story) => {
@@ -695,7 +755,6 @@ function computeHeatmapData() {
 
     const row = matrix.get(assignee) ?? new Map();
     components.forEach((component) => {
-      activeComponents.add(component);
       row.set(component, (row.get(component) ?? 0) + share);
     });
     matrix.set(assignee, row);
@@ -705,22 +764,7 @@ function computeHeatmapData() {
     return null;
   }
 
-  const activeColumnSet = new Set();
-  matrix.forEach((values) => {
-    values.forEach((value, component) => {
-      if (value > 0) {
-        activeColumnSet.add(component);
-      }
-    });
-  });
-
-  const columns = COMPONENT_OPTIONS.filter((component) => activeColumnSet.has(component));
-  if (activeComponents.has(UNSPECIFIED_COMPONENT)) {
-    columns.push(UNSPECIFIED_COMPONENT);
-  }
-  if (columns.length === 0) {
-    columns.push(UNSPECIFIED_COMPONENT);
-  }
+  const columns = [...COMPONENT_OPTIONS, UNSPECIFIED_COMPONENT];
 
   const sortedRows = Array.from(matrix.entries()).sort((a, b) =>
     a[0].localeCompare(b[0], undefined, { sensitivity: 'base' })
@@ -852,7 +896,7 @@ function buildHeatmapModalContent() {
         )} story points)`;
       } else {
         cell.classList.add('empty');
-        cell.textContent = '–';
+        cell.textContent = '0%';
         cell.title = `${row.assignee} · ${cellData.component.replace(/_/g, ' ')}: 0% (0 story points)`;
       }
       tr.appendChild(cell);
@@ -888,6 +932,12 @@ function renderDetails() {
 
   const form = document.createElement('form');
   form.className = 'story-form';
+  const storySeverity = computeHealthSeverity(story);
+  if (storySeverity === 'critical') {
+    form.classList.add('health-critical');
+  } else if (storySeverity === 'warning') {
+    form.classList.add('health-warning');
+  }
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
@@ -927,7 +977,7 @@ function renderDetails() {
           <tr>
             <th scope="row">Components</th>
             <td>
-              <div class="components-checklist" data-component-options></div>
+              <div class="components-select" data-component-options></div>
               <p class="components-hint">Select all components impacted by this story.</p>
             </td>
           </tr>
@@ -952,7 +1002,7 @@ function renderDetails() {
   const storyBriefBody = form.querySelector('.story-brief tbody');
   const componentsTarget = form.querySelector('[data-component-options]');
   if (componentsTarget) {
-    buildComponentChecklist(
+    buildComponentSelector(
       componentsTarget,
       Array.isArray(story.components) ? story.components : []
     );
@@ -1096,7 +1146,7 @@ function renderDetails() {
     }
     const currentStatusEntry = statusReference.find((item) => item.value === statusValue);
     const statusValueEl = document.createElement('span');
-    statusValueEl.className = 'status-value';
+    statusValueEl.className = `status-value status-badge ${getStatusClass(statusValue)}`;
     statusValueEl.textContent = statusValue;
     statusCell.appendChild(statusValueEl);
 
@@ -1240,6 +1290,9 @@ function renderDetails() {
       const table = document.createElement('table');
       table.className = 'vertical-table';
       table.dataset.testId = test.id;
+      if (test.gwtHealth && test.gwtHealth.satisfied === false) {
+        table.classList.add('health-warning');
+      }
       const tbody = document.createElement('tbody');
       table.appendChild(tbody);
 
@@ -1625,17 +1678,13 @@ function openHealthIssueModal(title, issue, context = null) {
 }
 
 function openDocumentPanel() {
-  const story = state.selectedStoryId != null ? storyIndex.get(state.selectedStoryId) : null;
   const container = document.createElement('div');
   container.className = 'document-panel';
 
   const intro = document.createElement('p');
   intro.className = 'document-intro';
-  if (story) {
-    intro.textContent = `Generate tailored documents using “${story.title}”.`;
-  } else {
-    intro.textContent = 'Select a user story to enable document generation.';
-  }
+  intro.textContent =
+    'Generate consolidated documents for every user story, grouped by system component.';
   container.appendChild(intro);
 
   const actions = document.createElement('div');
@@ -1674,28 +1723,29 @@ function openDocumentPanel() {
     {
       label: 'Generate Test Document',
       type: 'test-document',
-      description: 'Summarize Given/When/Then scenarios and tester notes.',
-      title: 'Test Document',
+      description: 'Summarize Given/When/Then scenarios across all stories with component groupings.',
+      title: 'Component Test Document',
     },
     {
       label: 'Generate System Requirement',
       type: 'system-requirement',
-      description: 'Compile user story goals, dependencies, and references.',
+      description: 'Compile user story goals, ownership, and readiness per component.',
       title: 'System Requirement Document',
     },
   ];
 
   function setButtonsDisabled(disabled) {
+    const hasStories = state.stories.length > 0;
     buttons.forEach((entry) => {
       if (entry.button) {
-        entry.button.disabled = disabled || !story;
+        entry.button.disabled = disabled || !hasStories;
       }
     });
   }
 
   async function handleGenerate(entry) {
-    if (!story) {
-      showToast('Select a user story first', 'error');
+    if (!state.stories.length) {
+      showToast('Add user stories before generating documents.', 'error');
       return;
     }
     setButtonsDisabled(true);
@@ -1707,7 +1757,7 @@ function openDocumentPanel() {
     try {
       const payload = await sendJson('/api/documents/generate', {
         method: 'POST',
-        body: { type: entry.type, storyId: story.id },
+        body: { type: entry.type },
       });
       const generatedAt = payload.generatedAt ? new Date(payload.generatedAt) : new Date();
       if (payload.title) {
@@ -1731,9 +1781,7 @@ function openDocumentPanel() {
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = entry.label;
-    if (!story) {
-      button.disabled = true;
-    }
+    button.disabled = state.stories.length === 0;
     button.addEventListener('click', () => handleGenerate(entry));
     entry.button = button;
     wrapper.appendChild(button);
@@ -1782,7 +1830,7 @@ function openChildStoryModal(parentId) {
         <tr>
           <th scope="row">Components</th>
           <td>
-            <div class="components-checklist" data-child-components></div>
+            <div class="components-select" data-child-components></div>
             <p class="components-hint">Pick the components this child story will deliver.</p>
           </td>
         </tr>
@@ -1792,7 +1840,7 @@ function openChildStoryModal(parentId) {
 
   const childComponentsContainer = container.querySelector('[data-child-components]');
   if (childComponentsContainer) {
-    buildComponentChecklist(childComponentsContainer, []);
+    buildComponentSelector(childComponentsContainer, []);
   }
 
   openModal({
