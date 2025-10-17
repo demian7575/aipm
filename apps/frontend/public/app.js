@@ -6,6 +6,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const refreshBtn = document.getElementById('refresh-btn');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
+const generateDocBtn = document.getElementById('generate-doc-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
@@ -1372,6 +1373,140 @@ function openHealthIssueModal(title, issue, context = null) {
   openModal({ title, content: container, cancelLabel: 'Close' });
 }
 
+function openDocumentPanel() {
+  const story = state.selectedStoryId != null ? storyIndex.get(state.selectedStoryId) : null;
+  const container = document.createElement('div');
+  container.className = 'document-panel';
+
+  const intro = document.createElement('p');
+  intro.className = 'document-intro';
+  if (story) {
+    intro.textContent = `Generate tailored documents using “${story.title}”.`;
+  } else {
+    intro.textContent = 'Select a user story to enable document generation.';
+  }
+  container.appendChild(intro);
+
+  const actions = document.createElement('div');
+  actions.className = 'document-actions';
+  container.appendChild(actions);
+
+  const resultWrapper = document.createElement('section');
+  resultWrapper.className = 'document-result hidden';
+
+  const resultHeader = document.createElement('div');
+  resultHeader.className = 'document-result-header';
+  const resultTitle = document.createElement('h3');
+  resultTitle.textContent = 'Generated Document';
+  resultHeader.appendChild(resultTitle);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.className = 'secondary';
+  copyBtn.textContent = 'Copy to clipboard';
+  copyBtn.disabled = true;
+  resultHeader.appendChild(copyBtn);
+
+  resultWrapper.appendChild(resultHeader);
+
+  const resultMeta = document.createElement('p');
+  resultMeta.className = 'document-meta';
+  resultWrapper.appendChild(resultMeta);
+
+  const resultOutput = document.createElement('pre');
+  resultOutput.className = 'document-output';
+  resultWrapper.appendChild(resultOutput);
+
+  container.appendChild(resultWrapper);
+
+  const buttons = [
+    {
+      label: 'Generate Test Document',
+      type: 'test-document',
+      description: 'Summarize Given/When/Then scenarios and tester notes.',
+      title: 'Test Document',
+    },
+    {
+      label: 'Generate System Requirement',
+      type: 'system-requirement',
+      description: 'Compile user story goals, dependencies, and references.',
+      title: 'System Requirement Document',
+    },
+  ];
+
+  function setButtonsDisabled(disabled) {
+    buttons.forEach((entry) => {
+      if (entry.button) {
+        entry.button.disabled = disabled || !story;
+      }
+    });
+  }
+
+  async function handleGenerate(entry) {
+    if (!story) {
+      showToast('Select a user story first', 'error');
+      return;
+    }
+    setButtonsDisabled(true);
+    resultWrapper.classList.remove('hidden');
+    resultTitle.textContent = entry.title;
+    resultMeta.textContent = 'Generating document…';
+    resultOutput.textContent = '';
+    copyBtn.disabled = true;
+    try {
+      const payload = await sendJson('/api/documents/generate', {
+        method: 'POST',
+        body: { type: entry.type, storyId: story.id },
+      });
+      const generatedAt = payload.generatedAt ? new Date(payload.generatedAt) : new Date();
+      if (payload.title) {
+        resultTitle.textContent = payload.title;
+      }
+      resultMeta.textContent = `Generated ${generatedAt.toLocaleString()}`;
+      resultOutput.textContent = payload.content || '';
+      copyBtn.disabled = !payload.content;
+    } catch (error) {
+      resultMeta.textContent = error.message || 'Failed to generate document';
+      resultOutput.textContent = '';
+      copyBtn.disabled = true;
+    } finally {
+      setButtonsDisabled(false);
+    }
+  }
+
+  buttons.forEach((entry) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'document-action';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = entry.label;
+    if (!story) {
+      button.disabled = true;
+    }
+    button.addEventListener('click', () => handleGenerate(entry));
+    entry.button = button;
+    wrapper.appendChild(button);
+    if (entry.description) {
+      const desc = document.createElement('p');
+      desc.textContent = entry.description;
+      wrapper.appendChild(desc);
+    }
+    actions.appendChild(wrapper);
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(resultOutput.textContent);
+      showToast('Document copied to clipboard', 'success');
+    } catch (error) {
+      console.error('Clipboard copy failed', error);
+      showToast('Unable to copy document', 'error');
+    }
+  });
+
+  openModal({ title: 'Generate Document', content: container, cancelLabel: 'Close' });
+}
+
 function openChildStoryModal(parentId) {
   const container = document.createElement('div');
   container.innerHTML = `
@@ -1903,6 +2038,7 @@ function initialize() {
   renderDetails();
 
   refreshBtn.addEventListener('click', () => loadStories());
+  generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
 

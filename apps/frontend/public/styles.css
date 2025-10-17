@@ -548,6 +548,86 @@ textarea {
   font-style: italic;
 }
 
+.document-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 520px;
+}
+
+.document-intro {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.document-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.document-action {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.document-action p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.document-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #dce2f7;
+  background: #ffffff;
+}
+
+.document-result.hidden {
+  display: none;
+}
+
+.document-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.document-result-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.document-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.document-output {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: 'Fira Code', 'SFMono-Regular', ui-monospace, 'Menlo', 'Consolas', monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
 .vertical-table {
   width: 100%;
   border-collapse: collapse;

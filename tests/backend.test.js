@@ -443,6 +443,53 @@ test('baseline INVEST heuristics flag dependency, negotiable, estimable, and siz
   assert.ok(created.investHealth.issues.some((issue) => issue.criterion === 'independent'));
 });
 
+test('document generation endpoints produce tailored content', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories) && stories.length > 0);
+  const storyId = stories[0].id;
+
+  const testDocResponse = await fetch(`${baseUrl}/api/documents/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'test-document', storyId }),
+  });
+  assert.equal(testDocResponse.status, 200);
+  const testDoc = await testDocResponse.json();
+  assert.match(testDoc.title, /Test Document/i);
+  assert.ok(/Acceptance Tests/i.test(testDoc.content));
+  assert.equal(testDoc.storyId, storyId);
+
+  const systemDocResponse = await fetch(`${baseUrl}/api/documents/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'system-requirement', storyId }),
+  });
+  assert.equal(systemDocResponse.status, 200);
+  const systemDoc = await systemDocResponse.json();
+  assert.match(systemDoc.title, /System Requirement/i);
+  assert.ok(/Child Work Items/i.test(systemDoc.content));
+  assert.equal(systemDoc.storyId, storyId);
+
+  const badTypeResponse = await fetch(`${baseUrl}/api/documents/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'unknown', storyId }),
+  });
+  assert.equal(badTypeResponse.status, 400);
+});
+
 test('acceptance tests can be created when legacy title column exists', async (t) => {
   await resetDatabaseFiles();
   await fs.mkdir(path.dirname(DATABASE_PATH), { recursive: true });
