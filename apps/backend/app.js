@@ -9,6 +9,19 @@ import os from 'node:os';
 
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
 
+export const COMPONENT_CATALOG = [
+  'WorkModel',
+  'Document_Intelligence',
+  'Review_Governance',
+  'Orchestration_Engagement',
+  'Run_Verify',
+  'Traceabilty_Insight',
+];
+
+const COMPONENT_LOOKUP = new Map(
+  COMPONENT_CATALOG.map((name) => [name.toLowerCase(), name])
+);
+
 const PYTHON_SQLITE_EXPORT_SCRIPT = `
 import json
 import sqlite3
@@ -25,6 +38,9 @@ tables = payload.get('tables', {})
 columns = payload.get('columns', {})
 
 has_title_column = 'title' in columns.get('acceptance_tests', [])
+
+ALLOWED_COMPONENTS = ${JSON.stringify(COMPONENT_CATALOG)}
+ALLOWED_LOOKUP = {item.lower(): item for item in ALLOWED_COMPONENTS}
 
 
 def normalize_text(value, default=''):
@@ -57,26 +73,30 @@ def normalize_timestamp(primary, fallback):
 
 
 def normalize_components(value):
+    entries = []
     if isinstance(value, list):
-        cleaned = [normalize_text(item, '') for item in value]
-        return json.dumps([item for item in cleaned if item])
+        entries.extend(normalize_text(item, '') for item in value)
     text = normalize_text(value, '')
-    if not text:
-        return '[]'
-    try:
-        parsed = json.loads(text)
-        if isinstance(parsed, list):
-            cleaned = [normalize_text(item, '') for item in parsed]
-            return json.dumps([item for item in cleaned if item])
-    except Exception:
-        pass
-    parts = []
-    normalized_text = text.replace(',', chr(10)).replace(';', chr(10))
-    for chunk in normalized_text.splitlines():
-        entry = normalize_text(chunk, '')
-        if entry:
-            parts.append(entry)
-    return json.dumps(parts)
+    if text:
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, list):
+                entries.extend(normalize_text(item, '') for item in parsed)
+        except Exception:
+            normalized_text = text.replace(',', chr(10)).replace(';', chr(10))
+            for chunk in normalized_text.splitlines():
+                entry = normalize_text(chunk, '')
+                if entry:
+                    entries.append(entry)
+    normalized = []
+    seen = set()
+    for entry in entries:
+        key = entry.lower()
+        canonical = ALLOWED_LOOKUP.get(key)
+        if canonical and canonical not in seen:
+            seen.add(canonical)
+            normalized.append(canonical)
+    return json.dumps(normalized)
 
 
 try:
@@ -1599,34 +1619,61 @@ function normalizeStoryPoint(value) {
   return numeric;
 }
 
-function normalizeComponentsInput(value) {
+function normalizeComponentsInput(value, options = {}) {
+  const { strict = false } = options;
+  let entries = [];
   if (Array.isArray(value)) {
-    return value.map((entry) => String(entry).trim()).filter((entry) => entry.length > 0);
-  }
-  if (value == null) {
-    return [];
-  }
-  if (typeof value === 'string') {
+    entries = value.map((entry) => String(entry).trim());
+  } else if (value == null) {
+    entries = [];
+  } else if (typeof value === 'string') {
     const trimmed = value.trim();
-    if (!trimmed) {
-      return [];
-    }
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
-        return parsed
-          .map((entry) => String(entry).trim())
-          .filter((entry) => entry.length > 0);
+    if (trimmed) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          entries = parsed.map((entry) => String(entry).trim());
+        } else {
+          entries = [];
+        }
+      } catch {
+        entries = trimmed.split(/[\n,;]+/).map((entry) => entry.trim());
       }
-    } catch {
-      // ignore JSON parse errors and fall back to splitting
     }
-    return trimmed
-      .split(/[\n,;]+/)
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0);
+  } else {
+    entries = [String(value).trim()];
   }
-  return [String(value).trim()].filter((entry) => entry.length > 0);
+
+  const seen = new Set();
+  const normalized = [];
+  const invalid = [];
+
+  entries
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+    .forEach((entry) => {
+      const canonical = COMPONENT_LOOKUP.get(entry.toLowerCase());
+      if (canonical) {
+        if (!seen.has(canonical)) {
+          seen.add(canonical);
+          normalized.push(canonical);
+        }
+      } else {
+        invalid.push(entry);
+      }
+    });
+
+  if (strict && invalid.length) {
+    const error = new Error(
+      `Components must be chosen from: ${COMPONENT_CATALOG.join(', ')}`
+    );
+    error.code = 'INVALID_COMPONENTS';
+    error.details = { invalid, allowed: COMPONENT_CATALOG };
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return normalized;
 }
 
 function serializeComponents(components) {
@@ -2272,7 +2319,7 @@ async function ensureDatabase() {
       'Authenticated customer',
       'sign in with email and password',
       'access my personalized dashboard immediately',
-      JSON.stringify(['Authentication Platform', 'Customer Account Management']),
+      JSON.stringify(['WorkModel', 'Orchestration_Engagement']),
       5,
       'pm@example.com',
       'Ready',
@@ -2290,7 +2337,7 @@ async function ensureDatabase() {
       'Returning customer',
       'view the login form instantly',
       'enter my credentials without delay',
-      JSON.stringify(['Web UI', 'Design System']),
+      JSON.stringify(['Document_Intelligence', 'Run_Verify']),
       3,
       'designer@example.com',
       'Draft',
@@ -2353,6 +2400,7 @@ async function loadStories(db) {
   const docRows = db.prepare('SELECT * FROM reference_documents ORDER BY story_id, id').all();
 
   const stories = storyRows.map((row) => {
+    const components = normalizeComponentsInput(parseJsonArray(row.components));
     const story = {
       id: row.id,
       mrId: row.mr_id,
@@ -2362,7 +2410,7 @@ async function loadStories(db) {
       asA: row.as_a ?? '',
       iWant: row.i_want ?? '',
       soThat: row.so_that ?? '',
-      components: parseJsonArray(row.components),
+      components,
       storyPoint: row.story_point,
       assigneeEmail: row.assignee_email ?? '',
       status: row.status ?? 'Draft',
@@ -2453,7 +2501,7 @@ async function loadStoryWithDetails(db, storyId) {
     asA: row.as_a ?? '',
     iWant: row.i_want ?? '',
     soThat: row.so_that ?? '',
-    components: parseJsonArray(row.components),
+    components: normalizeComponentsInput(parseJsonArray(row.components)),
     storyPoint: row.story_point,
     assigneeEmail: row.assignee_email ?? '',
     status: row.status ?? 'Draft',
@@ -2745,7 +2793,7 @@ export async function createApp() {
         const iWant = String(payload.iWant ?? '').trim();
         const soThat = String(payload.soThat ?? '').trim();
         const description = String(payload.description ?? '').trim();
-        const components = normalizeComponentsInput(payload.components);
+        const components = normalizeComponentsInput(payload.components, { strict: true });
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
@@ -2807,7 +2855,10 @@ export async function createApp() {
         sendJson(res, 201, created ?? null);
       } catch (error) {
         const status = error.statusCode ?? 500;
-        sendJson(res, status, { message: error.message || 'Failed to create story' });
+        const body = { message: error.message || 'Failed to create story' };
+        if (error.code) body.code = error.code;
+        if (error.details) body.details = error.details;
+        sendJson(res, status, body);
       }
       return;
     }
@@ -2839,8 +2890,8 @@ export async function createApp() {
         const existingComponents = parseJsonArray(existing.components);
         const components =
           requestedComponents === undefined
-            ? existingComponents
-            : normalizeComponentsInput(requestedComponents);
+            ? normalizeComponentsInput(existingComponents)
+            : normalizeComponentsInput(requestedComponents, { strict: true });
 
         const storyForValidation = {
           title,
@@ -2910,7 +2961,10 @@ export async function createApp() {
         sendJson(res, 200, updated ?? null);
       } catch (error) {
         const status = error.statusCode ?? 500;
-        sendJson(res, status, { message: error.message || 'Failed to update story' });
+        const body = { message: error.message || 'Failed to update story' };
+        if (error.code) body.code = error.code;
+        if (error.details) body.details = error.details;
+        sendJson(res, status, body);
       }
       return;
     }

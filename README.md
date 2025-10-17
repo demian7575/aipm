@@ -36,10 +36,11 @@ npm run dev
 
 ### Available Panels & Controls
 
-The workspace header exposes three toggles that persist in `localStorage`:
+The workspace header exposes four toggles that persist in `localStorage`:
 
 - **Outline** – Nested story outline with expand/collapse controls.
 - **Mindmap** – Right-growing SVG mindmap that supports auto layout, manual drag positioning, and node expansion.
+- **HeatMap** – Component-by-assignee workload grid that visualises where story points are concentrated across the organisation.
 - **Details** – Story editor with INVEST validation feedback, reference document management, and acceptance test listings.
 
 Additional controls inside the panels include:
@@ -117,11 +118,20 @@ The database file is recreated automatically if missing. Delete the SQLite (and 
 
 - **Right-growing mindmap** with rectangular user story nodes, red-highlighted titles, and ancestor expansion synced to the outline.
 - **Outline tree** with keyboard-accessible expand/collapse controls and selection synchronization.
-- **Details panel** showing INVEST warnings, story point editing with non-negative integer validation, assignee email launch, acceptance test tables, child story lists, and a dedicated **Components** field for capturing scope and competency needs.
+- **Details panel** showing INVEST warnings, story point editing with non-negative integer validation, assignee email launch, acceptance test tables, child story lists, and a dedicated **Components** field backed by a curated catalog (`WorkModel`, `Document_Intelligence`, `Review_Governance`, `Orchestration_Engagement`, `Run_Verify`, `Traceabilty_Insight`).
+- **Employee HeatMap panel** aggregating story points by assignee and component so project managers can balance workload, identify component expertise, and spot gaps at a glance.
 - **Modal workflows** for creating child stories, acceptance tests (with measurability hints), and reference documents.
 - **Warning overrides** that allow saving despite INVEST or measurability warnings after user confirmation.
 - **Persistent layout state** including panel visibility, expanded nodes, manual mindmap coordinates, and the last selected story.
 - **ChatGPT-assisted INVEST analysis** with inline summaries and issue annotations whenever an OpenAI API key is provided.
+
+### User Story Status Reference
+
+| Status    | Description                                                                 |
+| --------- | --------------------------------------------------------------------------- |
+| Draft     | Story is being authored or refined; requirements may still change.         |
+| Ready     | Story satisfies INVEST checks with measurable tests and is planning-ready. |
+| Approved  | Story has been reviewed and accepted for execution.                        |
 
 ### ChatGPT Configuration
 

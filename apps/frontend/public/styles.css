@@ -128,7 +128,7 @@ textarea {
   padding: 1rem;
   display: grid;
   gap: 1rem;
-  grid-template-columns: 320px minmax(0, 1fr) 380px;
+  grid-template-columns: 320px minmax(0, 1fr) minmax(260px, 0.8fr) 380px;
   grid-template-rows: minmax(0, 1fr);
   min-height: 0;
 }
@@ -245,6 +245,46 @@ textarea {
   border-top: 1px solid #e5e9f5;
   font-size: 0.9rem;
   color: #475569;
+}
+
+.heatmap-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.heatmap-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.heatmap-table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.heatmap-table th,
+.heatmap-table td {
+  border: 1px solid #e5e9f5;
+  padding: 0.5rem 0.6rem;
+  text-align: center;
+}
+
+.heatmap-table thead th {
+  background: #f4f6ff;
+  font-weight: 600;
+}
+
+.heatmap-table th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.heatmap-cell.empty {
+  color: #94a3b8;
 }
 
 .mindmap-edge {
@@ -398,6 +438,35 @@ textarea {
 
 .story-brief textarea {
   min-height: 3.25rem;
+}
+
+.components-checklist {
+  display: grid;
+  gap: 0.4rem 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  align-items: start;
+}
+
+.component-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.component-option span {
+  white-space: normal;
+}
+
+.component-option input {
+  accent-color: #2563eb;
+}
+
+.components-hint {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #4b5563;
 }
 
 .section-heading {

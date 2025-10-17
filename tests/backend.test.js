@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createApp, DATABASE_PATH, openDatabase, resetDatabaseFactory } from '../apps/backend/app.js';
+import {
+  COMPONENT_CATALOG,
+  createApp,
+  DATABASE_PATH,
+  openDatabase,
+  resetDatabaseFactory,
+} from '../apps/backend/app.js';
 import { generateSampleDataset } from '../scripts/generate-sample-dataset.mjs';
 
 process.env.AI_PM_DISABLE_OPENAI = '1';
@@ -36,7 +42,7 @@ test('stories CRUD with reference documents', async (t) => {
 
   const baseUrl = `http://127.0.0.1:${port}`;
 
-  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.equal(storiesResponse.status, 200);
   const stories = await storiesResponse.json();
   assert.ok(Array.isArray(stories));
@@ -65,6 +71,9 @@ test('stories CRUD with reference documents', async (t) => {
     assert.equal(typeof story.acceptanceTests[0].gwtHealth.satisfied, 'boolean');
   }
 
+  const primaryComponents = COMPONENT_CATALOG.length
+    ? COMPONENT_CATALOG.slice(0, Math.min(2, COMPONENT_CATALOG.length))
+    : ['WorkModel'];
   const patchResponse = await fetch(`${baseUrl}/api/stories/${story.id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -73,14 +82,14 @@ test('stories CRUD with reference documents', async (t) => {
       assigneeEmail: 'owner@example.com',
       title: story.title,
       description: story.description,
-      components: ['Core authentication service', 'Account dashboard UI'],
+      components: primaryComponents,
     }),
   });
   assert.equal(patchResponse.status, 200);
   const updated = await patchResponse.json();
   assert.equal(updated.storyPoint, 8);
   assert.equal(updated.assigneeEmail, 'owner@example.com');
-  assert.deepEqual(updated.components, ['Core authentication service', 'Account dashboard UI']);
+  assert.deepEqual(updated.components, primaryComponents);
   assert.ok(Array.isArray(updated.acceptanceTests));
   assert.ok(
     updated.acceptanceTests.length >= originalTestCount + 1,
@@ -104,7 +113,7 @@ test('stories CRUD with reference documents', async (t) => {
   const healthStory = await healthResponse.json();
   assert.ok(Array.isArray(healthStory.acceptanceTests));
   assert.ok(Array.isArray(healthStory.components));
-  assert.deepEqual(healthStory.components, ['Core authentication service', 'Account dashboard UI']);
+  assert.deepEqual(healthStory.components, primaryComponents);
   assert.ok(
     healthStory.acceptanceTests.length >= originalTestCount + 1,
     'Health check should return acceptance tests including the new draft after story update'
@@ -114,6 +123,9 @@ test('stories CRUD with reference documents', async (t) => {
     'Health check should preserve review-needed status for existing tests'
   );
 
+  const childComponents = COMPONENT_CATALOG.slice(2, 4).length
+    ? COMPONENT_CATALOG.slice(2, 4)
+    : primaryComponents;
   const childResponse = await fetch(`${baseUrl}/api/stories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -126,13 +138,13 @@ test('stories CRUD with reference documents', async (t) => {
       asA: 'User',
       iWant: 'complete a two-factor login',
       soThat: 'my account stays safe',
-      components: ['UI widgets', 'Two-factor validation'],
+      components: childComponents,
     }),
   });
   assert.equal(childResponse.status, 201);
   const child = await childResponse.json();
   assert.equal(child.storyPoint, 3);
-  assert.deepEqual(child.components, ['UI widgets', 'Two-factor validation']);
+  assert.deepEqual(child.components, childComponents);
   assert.ok(child.investHealth);
   assert.ok(child.investAnalysis);
   assert.ok(Array.isArray(child.investAnalysis.aiWarnings));
@@ -158,6 +170,7 @@ test('stories CRUD with reference documents', async (t) => {
   assert.ok(Array.isArray(aiDraft.then) && aiDraft.then.length > 0);
   assert.equal(aiDraft.status, 'Draft');
 
+  const fallbackComponent = primaryComponents[0] || COMPONENT_CATALOG[0] || 'WorkModel';
   const invalidStoryPoint = await fetch(`${baseUrl}/api/stories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -167,12 +180,28 @@ test('stories CRUD with reference documents', async (t) => {
       asA: 'User',
       iWant: 'do something',
       soThat: 'it works',
-      components: ['Example component'],
+      components: [fallbackComponent],
     }),
   });
   assert.equal(invalidStoryPoint.status, 400);
   const invalidBody = await invalidStoryPoint.json();
   assert.match(invalidBody.message, /Story point/i);
+
+  const invalidComponents = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Bad components',
+      asA: 'User',
+      iWant: 'use unknown scope',
+      soThat: 'tests coverage exists',
+      components: ['Unknown scope'],
+    }),
+  });
+  assert.equal(invalidComponents.status, 400);
+  const invalidComponentsBody = await invalidComponents.json();
+  assert.equal(invalidComponentsBody.code, 'INVALID_COMPONENTS');
+  assert.ok(invalidComponentsBody.details);
 
   const docResponse = await fetch(`${baseUrl}/api/stories/${story.id}/reference-documents`, {
     method: 'POST',
@@ -361,6 +390,9 @@ test('ChatGPT analysis drives INVEST outcome when available', async (t) => {
   });
 
   const baseUrl = `http://127.0.0.1:${port}`;
+  const aiComponents = COMPONENT_CATALOG.slice(1, 3).length
+    ? COMPONENT_CATALOG.slice(1, 3)
+    : COMPONENT_CATALOG.slice(0, Math.min(2, COMPONENT_CATALOG.length));
   const createResponse = await fetch(`${baseUrl}/api/stories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -370,7 +402,7 @@ test('ChatGPT analysis drives INVEST outcome when available', async (t) => {
       iWant: 'configure rollout windows',
       soThat: 'deployments avoid peak hours',
       description: 'Story without acceptance tests to trigger heuristic guidance',
-      components: ['Rollout automation', 'Scheduling UI'],
+      components: aiComponents,
     }),
   });
 
@@ -381,7 +413,7 @@ test('ChatGPT analysis drives INVEST outcome when available', async (t) => {
   assert.ok(Array.isArray(created.investAnalysis.fallbackWarnings));
   assert.ok(Array.isArray(created.acceptanceTests));
   assert.ok(created.acceptanceTests.length >= 1);
-  assert.deepEqual(created.components, ['Rollout automation', 'Scheduling UI']);
+  assert.deepEqual(created.components, aiComponents);
   assert.ok(
     created.acceptanceTests.every((test) => test.status === 'Draft'),
     'AI reviewed story should still gain a draft acceptance test for verification'
@@ -400,6 +432,9 @@ test('baseline INVEST heuristics flag dependency, negotiable, estimable, and siz
   });
 
   const baseUrl = `http://127.0.0.1:${port}`;
+  const warningComponents = COMPONENT_CATALOG.slice(3, 5).length
+    ? COMPONENT_CATALOG.slice(3, 5)
+    : COMPONENT_CATALOG.slice(0, Math.min(2, COMPONENT_CATALOG.length));
   const warningPayload = {
     title: 'Blocked by analytics overhaul',
     asA: 'Platform PM',
@@ -409,7 +444,7 @@ test('baseline INVEST heuristics flag dependency, negotiable, estimable, and siz
     description:
       'Blocked by story 123 and requires story ABC to complete. UI must use library Y with exact 24px spacing; scope spans multiple teams and needs discovery for an unknown API.',
     storyPoint: 13,
-    components: ['Analytics service', 'Cross-team design'],
+    components: warningComponents,
   };
 
   const warningResponse = await fetch(`${baseUrl}/api/stories`, {

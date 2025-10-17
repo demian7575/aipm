@@ -2,7 +2,11 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdir, rm } from 'node:fs/promises';
-import { openDatabase, resetDatabaseFactory } from '../apps/backend/app.js';
+import {
+  COMPONENT_CATALOG,
+  openDatabase,
+  resetDatabaseFactory,
+} from '../apps/backend/app.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -136,22 +140,30 @@ function buildDescription(theme, focus, scenario) {
   return parts.filter(Boolean).join(' ');
 }
 
+function hashString(value) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
 function buildComponents(theme, focus, scenario, depth) {
-  const components = [`${theme.code} core platform`, `${theme.name} alignment`];
-  if (focus) {
-    components.push(`${focus.name} capability`);
+  const baseSeed = [theme.code, focus?.key ?? '', scenario?.key ?? '', depth]
+    .filter(Boolean)
+    .join('-');
+  const baseIndex = hashString(baseSeed);
+  const selections = new Set();
+  const catalogLength = COMPONENT_CATALOG.length;
+  if (catalogLength === 0) {
+    return [];
   }
-  if (scenario) {
-    components.push(`${scenario.name} coverage`);
+  const desiredCount = depth === 0 ? 3 : depth === 1 ? 2 : 2;
+  for (let step = 0; selections.size < desiredCount && step < catalogLength * 2; step += 1) {
+    const index = (baseIndex + step * (depth + 1)) % catalogLength;
+    selections.add(COMPONENT_CATALOG[index]);
   }
-  if (depth === 0) {
-    components.push('Program oversight');
-  } else if (depth === 1) {
-    components.push('Feature implementation squad');
-  } else {
-    components.push('Verification & validation');
-  }
-  return Array.from(new Set(components));
+  return Array.from(selections);
 }
 
 function selectAssignee(index) {

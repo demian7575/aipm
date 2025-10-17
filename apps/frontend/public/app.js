@@ -12,9 +12,13 @@ const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
+const toggleHeatmap = document.getElementById('toggle-heatmap');
 const toggleDetails = document.getElementById('toggle-details');
 const mindmapPanel = document.getElementById('mindmap-panel');
 const outlinePanel = document.getElementById('outline-panel');
+const heatmapPanel = document.getElementById('heatmap-panel');
+const heatmapContent = document.getElementById('heatmap-content');
+const heatmapPlaceholder = document.getElementById('heatmap-placeholder');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -52,6 +56,17 @@ const STORY_STATUS_GUIDE = [
   },
 ];
 
+const COMPONENT_OPTIONS = [
+  'WorkModel',
+  'Document_Intelligence',
+  'Review_Governance',
+  'Orchestration_Engagement',
+  'Run_Verify',
+  'Traceabilty_Insight',
+];
+
+const UNSPECIFIED_COMPONENT = 'Unspecified';
+
 function parseStoryPointInput(raw) {
   if (raw == null) {
     return { value: null, error: null };
@@ -82,6 +97,7 @@ const state = {
   panelVisibility: {
     outline: true,
     mindmap: true,
+    heatmap: true,
     details: true,
   },
 };
@@ -119,6 +135,7 @@ function loadPreferences() {
       state.panelVisibility = {
         outline: panels.outline ?? true,
         mindmap: panels.mindmap ?? true,
+        heatmap: panels.heatmap ?? true,
         details: panels.details ?? true,
       };
     }
@@ -137,6 +154,7 @@ function loadPreferences() {
 
   toggleOutline.checked = state.panelVisibility.outline;
   toggleMindmap.checked = state.panelVisibility.mindmap;
+  toggleHeatmap.checked = state.panelVisibility.heatmap;
   toggleDetails.checked = state.panelVisibility.details;
 }
 
@@ -324,6 +342,7 @@ function renderAll() {
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();
+  renderHeatmap();
   renderDetails();
 }
 
@@ -331,6 +350,7 @@ function updateWorkspaceColumns() {
   const columns = [];
   outlinePanel.classList.toggle('hidden', !state.panelVisibility.outline);
   mindmapPanel.classList.toggle('hidden', !state.panelVisibility.mindmap);
+  heatmapPanel.classList.toggle('hidden', !state.panelVisibility.heatmap);
   detailsPanel.classList.toggle('hidden', !state.panelVisibility.details);
 
   if (state.panelVisibility.outline) {
@@ -338,6 +358,9 @@ function updateWorkspaceColumns() {
   }
   if (state.panelVisibility.mindmap) {
     columns.push('minmax(0, 1fr)');
+  }
+  if (state.panelVisibility.heatmap) {
+    columns.push('minmax(260px, 0.8fr)');
   }
   if (state.panelVisibility.details) {
     columns.push('380px');
@@ -627,6 +650,146 @@ function setupNodeInteraction(group, node) {
   });
 }
 
+function buildComponentChecklist(container, selectedValues = []) {
+  if (!container) return;
+  container.innerHTML = '';
+  const selectedSet = new Set(Array.isArray(selectedValues) ? selectedValues : []);
+  COMPONENT_OPTIONS.forEach((component) => {
+    const label = document.createElement('label');
+    label.className = 'component-option';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.name = 'components';
+    input.value = component;
+    const checked = selectedSet.has(component);
+    input.checked = checked;
+    input.defaultChecked = checked;
+    const text = document.createElement('span');
+    text.textContent = component.replace(/_/g, ' ');
+    label.appendChild(input);
+    label.appendChild(text);
+    container.appendChild(label);
+  });
+}
+
+function collectSelectedComponents(scope) {
+  return Array.from(scope.querySelectorAll('input[name="components"]:checked')).map(
+    (input) => input.value
+  );
+}
+
+function renderHeatmap() {
+  heatmapContent.innerHTML = '';
+  if (!state.panelVisibility.heatmap) {
+    return;
+  }
+
+  const flatStories = flattenStories(state.stories);
+  if (flatStories.length === 0) {
+    heatmapPlaceholder.classList.remove('hidden');
+    return;
+  }
+
+  const matrix = new Map();
+  let maxValue = 0;
+  let hasWork = false;
+  const activeComponents = new Set();
+
+  flatStories.forEach((story) => {
+    const assignee = story.assigneeEmail && story.assigneeEmail.trim()
+      ? story.assigneeEmail.trim()
+      : 'Unassigned';
+    const components =
+      Array.isArray(story.components) && story.components.length
+        ? story.components
+        : [UNSPECIFIED_COMPONENT];
+    const numericPoint = Number(story.storyPoint);
+    const baseValue = Number.isFinite(numericPoint) && numericPoint > 0 ? numericPoint : 1;
+    const share = components.length > 0 ? baseValue / components.length : baseValue;
+    const row = matrix.get(assignee) ?? new Map();
+
+    components.forEach((component) => {
+      activeComponents.add(component);
+      const next = (row.get(component) ?? 0) + share;
+      row.set(component, next);
+      if (next > maxValue) {
+        maxValue = next;
+      }
+      if (share > 0) {
+        hasWork = true;
+      }
+    });
+
+    matrix.set(assignee, row);
+  });
+
+  if (!hasWork || matrix.size === 0) {
+    heatmapPlaceholder.classList.remove('hidden');
+    return;
+  }
+
+  heatmapPlaceholder.classList.add('hidden');
+
+  const table = document.createElement('table');
+  table.className = 'heatmap-table';
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  const assigneeHeader = document.createElement('th');
+  assigneeHeader.textContent = 'Assignee';
+  headerRow.appendChild(assigneeHeader);
+
+  const columns = [...COMPONENT_OPTIONS];
+  if (activeComponents.has(UNSPECIFIED_COMPONENT)) {
+    columns.push(UNSPECIFIED_COMPONENT);
+  }
+
+  columns.forEach((component) => {
+    const th = document.createElement('th');
+    th.textContent = component.replace(/_/g, ' ');
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const sortedRows = Array.from(matrix.entries()).sort((a, b) =>
+    a[0].localeCompare(b[0], undefined, { sensitivity: 'base' })
+  );
+
+  sortedRows.forEach(([assignee, values]) => {
+    const tr = document.createElement('tr');
+    const assigneeCell = document.createElement('th');
+    assigneeCell.scope = 'row';
+    assigneeCell.textContent = assignee;
+    tr.appendChild(assigneeCell);
+
+    columns.forEach((component) => {
+      const value = values.get(component) ?? 0;
+      const cell = document.createElement('td');
+      cell.className = 'heatmap-cell';
+      const label = component.replace(/_/g, ' ');
+      if (value > 0 && maxValue > 0) {
+        const ratio = Math.min(1, value / maxValue);
+        const alpha = 0.15 + ratio * 0.65;
+        cell.style.backgroundColor = `rgba(37, 99, 235, ${alpha.toFixed(3)})`;
+        cell.style.color = ratio > 0.55 ? '#fff' : '#1f2937';
+        cell.textContent = Number.isInteger(value) ? String(value) : value.toFixed(1);
+        cell.title = `${assignee} · ${label}: ${value.toFixed(1)} story points`;
+      } else {
+        cell.classList.add('empty');
+        cell.textContent = '–';
+        cell.title = `${assignee} · ${label}: 0 story points`;
+      }
+      tr.appendChild(cell);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  heatmapContent.appendChild(table);
+}
+
 function renderDetails() {
   if (!state.panelVisibility.details) {
     return;
@@ -680,11 +843,10 @@ function renderDetails() {
           </tr>
           <tr>
             <th scope="row">Components</th>
-            <td><textarea name="components" placeholder="One component per line">${escapeHtml(
-              Array.isArray(story.components) && story.components.length
-                ? story.components.join('\n')
-                : ''
-            )}</textarea></td>
+            <td>
+              <div class="components-checklist" data-component-options></div>
+              <p class="components-hint">Select all components impacted by this story.</p>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -705,6 +867,13 @@ function renderDetails() {
     : [];
 
   const storyBriefBody = form.querySelector('.story-brief tbody');
+  const componentsTarget = form.querySelector('[data-component-options]');
+  if (componentsTarget) {
+    buildComponentChecklist(
+      componentsTarget,
+      Array.isArray(story.components) ? story.components : []
+    );
+  }
   if (storyBriefBody) {
     const summaryRow = document.createElement('tr');
     summaryRow.className = 'story-meta-row';
@@ -859,28 +1028,6 @@ function renderDetails() {
     statusRow.appendChild(statusCell);
     storyBriefBody.appendChild(statusRow);
 
-    const statusGuideRow = document.createElement('tr');
-    const statusGuideHeader = document.createElement('th');
-    statusGuideHeader.scope = 'row';
-    statusGuideHeader.textContent = 'Status Reference';
-    const statusGuideCell = document.createElement('td');
-    const statusGuideList = document.createElement('ul');
-    statusGuideList.className = 'status-guide';
-    statusReference.forEach((item) => {
-      const listItem = document.createElement('li');
-      const statusName = document.createElement('strong');
-      statusName.textContent = item.value;
-      const statusInfo = document.createElement('span');
-      statusInfo.textContent = item.description;
-      listItem.appendChild(statusName);
-      listItem.appendChild(statusInfo);
-      statusGuideList.appendChild(listItem);
-    });
-    statusGuideCell.appendChild(statusGuideList);
-    statusGuideRow.appendChild(statusGuideHeader);
-    statusGuideRow.appendChild(statusGuideCell);
-    storyBriefBody.appendChild(statusGuideRow);
-
     const pointRow = document.createElement('tr');
     pointRow.className = 'story-point-row';
     const pointHeader = document.createElement('th');
@@ -909,7 +1056,10 @@ function renderDetails() {
       showToast(storyPointResult.error, 'error');
       return;
     }
-    const components = splitLines(formData.get('components') || '');
+    const components = formData
+      .getAll('components')
+      .map((value) => String(value).trim())
+      .filter(Boolean);
     const payload = {
       title: formData.get('title').trim(),
       storyPoint: storyPointResult.value,
@@ -1232,6 +1382,7 @@ function handleStorySelection(story) {
   persistSelection();
   renderOutline();
   renderMindmap();
+  renderHeatmap();
   renderDetails();
 }
 
@@ -1548,11 +1699,19 @@ function openChildStoryModal(parentId) {
         </tr>
         <tr>
           <th scope="row">Components</th>
-          <td><textarea id="child-components" placeholder="One component per line"></textarea></td>
+          <td>
+            <div class="components-checklist" data-child-components></div>
+            <p class="components-hint">Pick the components this child story will deliver.</p>
+          </td>
         </tr>
       </tbody>
     </table>
   `;
+
+  const childComponentsContainer = container.querySelector('[data-child-components]');
+  if (childComponentsContainer) {
+    buildComponentChecklist(childComponentsContainer, []);
+  }
 
   openModal({
     title: 'Create Child Story',
@@ -1582,7 +1741,7 @@ function openChildStoryModal(parentId) {
             asA: container.querySelector('#child-asa').value.trim(),
             iWant: container.querySelector('#child-iwant').value.trim(),
             soThat: container.querySelector('#child-sothat').value.trim(),
-            components: splitLines(container.querySelector('#child-components').value || ''),
+            components: collectSelectedComponents(container),
           };
           try {
             const created = await createStory(payload);
@@ -2058,6 +2217,7 @@ function initialize() {
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();
+  renderHeatmap();
   renderDetails();
 
   refreshBtn.addEventListener('click', () => loadStories());
@@ -2067,6 +2227,7 @@ function initialize() {
 
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
+  toggleHeatmap.addEventListener('change', (event) => setPanelVisibility('heatmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
 
   autoLayoutToggle.addEventListener('click', () => {

@@ -24,6 +24,7 @@
       <div class="panel-toggles" role="toolbar" aria-label="Panel visibility">
         <label><input type="checkbox" id="toggle-outline" checked /> Outline</label>
         <label><input type="checkbox" id="toggle-mindmap" checked /> Mindmap</label>
+        <label><input type="checkbox" id="toggle-heatmap" checked /> HeatMap</label>
         <label><input type="checkbox" id="toggle-details" checked /> Details</label>
       </div>
     </header>
@@ -53,6 +54,16 @@
         <footer class="mindmap-footer">
           <span id="layout-status">Auto layout enabled</span>
         </footer>
+      </section>
+
+      <section id="heatmap-panel" class="panel heatmap-panel">
+        <div class="panel-header">
+          <h2>Employee HeatMap</h2>
+        </div>
+        <div id="heatmap-content" class="heatmap-content"></div>
+        <div id="heatmap-placeholder" class="placeholder">
+          Assign user stories with components and assignees to see workload distribution.
+        </div>
       </section>
 
       <section id="details-panel" class="panel details-panel">
