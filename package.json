@@ -1,0 +1,14 @@
+{
+  "name": "ai-pm-mindmap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node apps/backend/server.js",
+    "start": "node apps/backend/server.js",
+    "build": "node scripts/build.js",
+    "test": "node --test",
+    "lint": "echo 'No lint step configured'",
+    "generate:sample-db": "node scripts/generate-sample-dataset.mjs"
+  }
+}
