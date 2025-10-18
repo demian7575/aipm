@@ -1,0 +1,8 @@
+node_modules/
+data/
+apps/backend/data/
+apps/backend/uploads/
+docs/examples/*.sqlite
+docs/examples/*.json
+dist/
+.DS_Store
