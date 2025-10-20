@@ -123,6 +123,13 @@ def normalize_task_status(value):
     return TASK_STATUS_OPTIONS[0]
 
 
+def normalize_task_assignee(value, fallback='owner@example.com'):
+    text = normalize_text(value, '')
+    if text:
+        return text
+    return fallback
+
+
 try:
     conn = sqlite3.connect(target)
     conn.execute("PRAGMA foreign_keys = ON;")
@@ -206,6 +213,7 @@ try:
           title TEXT NOT NULL,
           description TEXT DEFAULT '',
           status TEXT DEFAULT 'Not Started',
+          assignee_email TEXT NOT NULL,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
@@ -314,6 +322,7 @@ try:
                 normalize_text(row.get('title'), ''),
                 normalize_text(row.get('description'), ''),
                 normalize_task_status(row.get('status')),
+                normalize_task_assignee(row.get('assignee_email')),
                 normalize_timestamp(row.get('created_at'), row.get('updated_at')),
                 normalize_timestamp(row.get('updated_at'), row.get('created_at')),
             )
@@ -323,8 +332,8 @@ try:
         conn.executemany(
             """
             INSERT INTO tasks (
-              id, story_id, title, description, status, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+              id, story_id, title, description, status, assignee_email, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             task_rows,
         )
@@ -611,7 +620,7 @@ const DEFAULT_COLUMNS = {
   ],
   acceptance_tests: ['id', 'story_id', 'given', 'when_step', 'then_step', 'status', 'created_at', 'updated_at'],
   reference_documents: ['id', 'story_id', 'name', 'url', 'created_at', 'updated_at'],
-  tasks: ['id', 'story_id', 'title', 'description', 'status', 'created_at', 'updated_at'],
+  tasks: ['id', 'story_id', 'title', 'description', 'status', 'assignee_email', 'created_at', 'updated_at'],
 };
 
 class JsonStatement {
@@ -832,6 +841,10 @@ class JsonDatabase {
     }
     if (normalized.includes('UPDATE tasks SET status =')) {
       this._setDefault('tasks', 'status', TASK_STATUS_DEFAULT);
+      return;
+    }
+    if (normalized.includes('UPDATE tasks SET assignee_email =')) {
+      this._setDefault('tasks', 'assignee_email', 'owner@example.com');
       return;
     }
   }
@@ -1172,6 +1185,9 @@ class JsonDatabase {
     } else if (table === 'tasks') {
       if (!('status' in row) || row.status == null) row.status = TASK_STATUS_DEFAULT;
       if (!('description' in row) || row.description == null) row.description = '';
+      if (!('assignee_email' in row) || row.assignee_email == null || row.assignee_email === '') {
+        row.assignee_email = 'owner@example.com';
+      }
       if (!('created_at' in row)) row.created_at = now();
       if (!('updated_at' in row)) row.updated_at = now();
     }
@@ -2447,19 +2463,23 @@ function insertAcceptanceTest(
   return statement.run(...params);
 }
 
-function insertTask(db, { storyId, title, description = '', status = TASK_STATUS_DEFAULT, timestamp = now() }) {
-  const statement = db.prepare(
-    'INSERT INTO tasks (story_id, title, description, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)' // prettier-ignore
-  );
-  return statement.run(
-    storyId,
-    title,
-    description,
-    status,
-    timestamp,
-    timestamp
-  );
-}
+  function insertTask(
+    db,
+    { storyId, title, description = '', status = TASK_STATUS_DEFAULT, assigneeEmail, timestamp = now() }
+  ) {
+    const statement = db.prepare(
+      'INSERT INTO tasks (story_id, title, description, status, assignee_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+    );
+    return statement.run(
+      storyId,
+      title,
+      description,
+      status,
+      assigneeEmail,
+      timestamp,
+      timestamp
+    );
+  }
 
 function buildTaskFromRow(row) {
   let status = TASK_STATUS_DEFAULT;
@@ -2468,15 +2488,16 @@ function buildTaskFromRow(row) {
   } catch {
     status = TASK_STATUS_DEFAULT;
   }
-  return {
-    id: row.id,
-    storyId: row.story_id,
-    title: row.title ?? '',
-    description: row.description ?? '',
-    status,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
+    return {
+      id: row.id,
+      storyId: row.story_id,
+      title: row.title ?? '',
+      description: row.description ?? '',
+      status,
+      assigneeEmail: row.assignee_email ?? '',
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
 }
 
 function normalizeStoryText(value, fallback) {
@@ -2752,6 +2773,7 @@ async function ensureDatabase() {
       title TEXT NOT NULL,
       description TEXT DEFAULT '',
       status TEXT DEFAULT 'Not Started',
+      assignee_email TEXT NOT NULL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
@@ -2785,8 +2807,29 @@ async function ensureDatabase() {
 
   ensureColumn(db, 'tasks', 'description', "description TEXT DEFAULT ''");
   ensureColumn(db, 'tasks', 'status', "status TEXT DEFAULT 'Not Started'");
+  ensureColumn(db, 'tasks', 'assignee_email', "assignee_email TEXT DEFAULT ''");
   ensureColumn(db, 'tasks', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'tasks', 'updated_at', 'updated_at TEXT');
+
+  db.exec(`
+    UPDATE tasks
+    SET assignee_email = COALESCE(assignee_email, '')
+  `);
+  db.exec(`
+    UPDATE tasks
+    SET assignee_email = (
+      SELECT assignee_email FROM user_stories WHERE user_stories.id = tasks.story_id
+    )
+    WHERE (assignee_email IS NULL OR TRIM(assignee_email) = '')
+      AND EXISTS (
+        SELECT 1 FROM user_stories WHERE user_stories.id = tasks.story_id
+      );
+  `);
+  db.exec(`
+    UPDATE tasks
+    SET assignee_email = 'owner@example.com'
+    WHERE assignee_email IS NULL OR TRIM(assignee_email) = '';
+  `);
 
   acceptanceTestsHasTitleColumn = tableColumns(db, 'acceptance_tests').some((column) => column.name === 'title');
   if (acceptanceTestsHasTitleColumn) {
@@ -2849,6 +2892,7 @@ async function ensureDatabase() {
       title: 'Review authentication logs',
       description: 'Ensure login attempts are captured for auditing.',
       status: 'In Progress',
+      assigneeEmail: 'designer@example.com',
       timestamp,
     });
 
@@ -2857,6 +2901,7 @@ async function ensureDatabase() {
       title: 'Plan MFA rollout comms',
       description: 'Draft announcement and customer education plan.',
       status: 'Not Started',
+      assigneeEmail: 'designer@example.com',
       timestamp,
     });
 
@@ -3655,12 +3700,17 @@ export async function createApp() {
         }
         const description = String(payload.description ?? '').trim();
         const status = normalizeTaskStatus(payload.status);
+        const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
+        if (!assigneeEmail) {
+          throw Object.assign(new Error('Task assignee is required'), { statusCode: 400 });
+        }
         const timestamp = now();
         const { lastInsertRowid } = insertTask(db, {
           storyId,
           title,
           description,
           status,
+          assigneeEmail,
           timestamp,
         });
         const refreshed = await loadStoryWithDetails(db, storyId);
@@ -3671,6 +3721,7 @@ export async function createApp() {
           title,
           description,
           status,
+          assignee_email: assigneeEmail,
           created_at: timestamp,
           updated_at: timestamp,
         }));
@@ -3698,6 +3749,7 @@ export async function createApp() {
         let nextTitle = existing.title ?? '';
         let nextDescription = existing.description ?? '';
         let nextStatus = existing.status ?? TASK_STATUS_DEFAULT;
+        let nextAssigneeEmail = existing.assignee_email ?? '';
         if (Object.prototype.hasOwnProperty.call(payload, 'title')) {
           const title = String(payload.title ?? '').trim();
           if (!title) {
@@ -3719,6 +3771,15 @@ export async function createApp() {
           params.push(status);
           nextStatus = status;
         }
+        if (Object.prototype.hasOwnProperty.call(payload, 'assigneeEmail')) {
+          const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
+          if (!assigneeEmail) {
+            throw Object.assign(new Error('Task assignee is required'), { statusCode: 400 });
+          }
+          updates.push('assignee_email = ?');
+          params.push(assigneeEmail);
+          nextAssigneeEmail = assigneeEmail;
+        }
         if (updates.length === 0) {
           throw Object.assign(new Error('No fields to update'), { statusCode: 400 });
         }
@@ -3735,6 +3796,7 @@ export async function createApp() {
           title: nextTitle,
           description: nextDescription,
           status: nextStatus,
+          assignee_email: nextAssigneeEmail,
           updated_at: updatedAt,
         }));
       } catch (error) {

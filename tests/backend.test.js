@@ -56,6 +56,10 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.ok(Array.isArray(story.tasks));
   assert.ok(story.tasks.length >= 2);
   assert.ok(story.tasks.every((task) => typeof task.title === 'string'));
+  assert.ok(
+    story.tasks.every((task) => typeof task.assigneeEmail === 'string' && task.assigneeEmail.trim().length > 0),
+    'Each task should include an assignee email'
+  );
   assert.ok(story.investHealth);
   assert.equal(typeof story.investHealth.satisfied, 'boolean');
   assert.ok(Array.isArray(story.investHealth.issues));
@@ -96,6 +100,10 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.ok(Array.isArray(updated.acceptanceTests));
   assert.ok(Array.isArray(updated.tasks));
   assert.ok(updated.tasks.length >= story.tasks.length);
+  assert.ok(
+    updated.tasks.every((task) => typeof task.assigneeEmail === 'string' && task.assigneeEmail.trim().length > 0),
+    'Updated story payload should include task assignees'
+  );
   assert.ok(
     updated.acceptanceTests.length >= originalTestCount + 1,
     'Story update should retain existing tests and add a draft verification'
@@ -159,6 +167,10 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.ok(Array.isArray(child.tasks));
   assert.ok(child.tasks.length >= 0);
   assert.ok(
+    child.tasks.every((task) => typeof task.assigneeEmail === 'string' && task.assigneeEmail.trim().length > 0),
+    'Child story tasks should include assignees'
+  );
+  assert.ok(
     child.acceptanceTests.every((test) => test.status === 'Draft'),
     'Automatically created acceptance tests start as Draft'
   );
@@ -184,22 +196,41 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
       title: 'Validate login analytics',
       status: 'In Progress',
       description: 'Review telemetry and confirm KPI coverage.',
+      assigneeEmail: 'qa@example.com',
     }),
   });
   assert.equal(taskCreateResponse.status, 201);
   const createdTask = await taskCreateResponse.json();
   assert.equal(createdTask.title, 'Validate login analytics');
   assert.equal(createdTask.status, 'In Progress');
+  assert.equal(createdTask.assigneeEmail, 'qa@example.com');
+
+  const missingAssigneeResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tasks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Unassigned task',
+      status: 'Not Started',
+      description: 'Should fail due to missing assignee',
+    }),
+  });
+  assert.equal(missingAssigneeResponse.status, 400);
+  await missingAssigneeResponse.text();
 
   const taskUpdateResponse = await fetch(`${baseUrl}/api/tasks/${createdTask.id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: 'Done', description: 'Telemetry confirms success.' }),
+    body: JSON.stringify({
+      status: 'Done',
+      description: 'Telemetry confirms success.',
+      assigneeEmail: 'lead.qa@example.com',
+    }),
   });
   assert.equal(taskUpdateResponse.status, 200);
   const updatedTask = await taskUpdateResponse.json();
   assert.equal(updatedTask.status, 'Done');
   assert.equal(updatedTask.description, 'Telemetry confirms success.');
+  assert.equal(updatedTask.assigneeEmail, 'lead.qa@example.com');
 
   const postTaskStoriesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.equal(postTaskStoriesResponse.status, 200);

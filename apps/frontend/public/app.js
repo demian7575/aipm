@@ -1636,6 +1636,10 @@ function renderDetails() {
                 <td>${escapeHtml(task.title || '')}</td>
               </tr>
               <tr>
+                <th scope="row">Assignee</th>
+                <td>${task.assigneeEmail ? escapeHtml(task.assigneeEmail) : '—'}</td>
+              </tr>
+              <tr>
                 <th scope="row">Description</th>
                 <td>${task.description ? formatMultilineText(task.description) : '—'}</td>
               </tr>
@@ -2390,6 +2394,7 @@ function openTaskModal(storyId, task = null) {
   container.className = 'modal-form task-form';
   container.innerHTML = `
     <label>Title<input id="task-title" /></label>
+    <label>Assignee<input id="task-assignee" type="email" placeholder="owner@example.com" /></label>
     <label>Status
       <select id="task-status"></select>
     </label>
@@ -2397,6 +2402,7 @@ function openTaskModal(storyId, task = null) {
   `;
 
   const titleInput = container.querySelector('#task-title');
+  const assigneeInput = container.querySelector('#task-assignee');
   const statusSelect = container.querySelector('#task-status');
   const descriptionInput = container.querySelector('#task-description');
 
@@ -2410,11 +2416,16 @@ function openTaskModal(storyId, task = null) {
   if (task) {
     titleInput.value = task.title || '';
     descriptionInput.value = task.description || '';
+    assigneeInput.value = task.assigneeEmail || '';
     if (task.status && TASK_STATUS_OPTIONS.includes(task.status)) {
       statusSelect.value = task.status;
     }
   } else {
     statusSelect.value = TASK_STATUS_OPTIONS[0];
+    const parentStory = state.stories.find((item) => item.id === storyId);
+    if (parentStory?.assigneeEmail) {
+      assigneeInput.value = parentStory.assigneeEmail;
+    }
   }
 
   openModal({
@@ -2429,10 +2440,17 @@ function openTaskModal(storyId, task = null) {
             showToast('Task title is required', 'error');
             return false;
           }
+          const assigneeEmail = assigneeInput.value.trim();
+          if (!assigneeEmail) {
+            showToast('Task assignee is required', 'error');
+            assigneeInput.focus();
+            return false;
+          }
           const payload = {
             title,
             status: statusSelect.value,
             description: descriptionInput.value.trim(),
+            assigneeEmail,
           };
           try {
             if (isEdit) {

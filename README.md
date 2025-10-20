@@ -126,7 +126,7 @@ The database file is recreated automatically if missing. Delete the SQLite (and 
 
 - **Right-growing mindmap** with rectangular user story nodes, red-highlighted titles, and ancestor expansion synced to the outline.
 - **Outline tree** with keyboard-accessible expand/collapse controls and selection synchronization.
-- **Details panel** showing INVEST warnings, story point editing with non-negative integer validation, assignee email launch, acceptance test tables, child story lists, and a dedicated **Components** field backed by a curated catalog (`WorkModel`, `Document_Intelligence`, `Review_Governance`, `Orchestration_Engagement`, `Run_Verify`, `Traceabilty_Insight`).
+- **Details panel** showing INVEST warnings, story point editing with non-negative integer validation, assignee email launch, acceptance test tables, child story lists, curated **Components** selection, and a task manager that requires each task to include an explicit assignee before it can be saved.
 - **Employee Heat Map modal** with an assignee selector that visualises workload as per-assignee percentages (summing to 100%) so project managers can balance component focus, identify skill clusters, and spot gaps at a glance.
 - **Modal workflows** for creating child stories, acceptance tests (with measurability hints), and reference documents.
 - **Warning overrides** that allow saving despite INVEST or measurability warnings after user confirmation.
