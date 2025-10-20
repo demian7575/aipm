@@ -72,6 +72,71 @@ const STATUS_CLASS_MAP = {
   Approved: 'status-approved',
 };
 
+const HEATMAP_ACTIVITIES = [
+  { key: 'design', label: 'Design' },
+  { key: 'implementation', label: 'Implementation' },
+  { key: 'recommendation', label: 'Recommendation' },
+  { key: 'operational_consultation', label: 'Operational Consultation' },
+  { key: 'resource_management', label: 'Resource Management' },
+  { key: 'test_execution', label: 'Test Execution' },
+  { key: 'verification', label: 'Verification' },
+];
+
+const HEATMAP_ACTIVITY_KEYWORDS = [
+  { key: 'design', patterns: [/design/i, /discovery/i, /prototype/i] },
+  { key: 'implementation', patterns: [/build/i, /implement/i, /develop/i] },
+  { key: 'recommendation', patterns: [/recommend/i, /proposal/i, /analysis/i] },
+  {
+    key: 'operational_consultation',
+    patterns: [/consult/i, /workshop/i, /training/i, /operational/i],
+  },
+  { key: 'resource_management', patterns: [/resource/i, /capacity/i, /staff/i, /planning/i] },
+  { key: 'test_execution', patterns: [/test/i, /qa/i, /scenario/i, /execute/i] },
+  { key: 'verification', patterns: [/verify/i, /verification/i, /review/i, /audit/i] },
+];
+
+const HEATMAP_COMPONENTS = [
+  { key: 'system_srs', label: 'System (SRS)' },
+  { key: 'WorkModel', label: 'Work Model (WM)' },
+  { key: 'Document_Intelligence', label: 'Document Intelligence (DI)' },
+  { key: 'Review_Governance', label: 'Review Governance (RG)' },
+  { key: 'Orchestration_Engagement', label: 'Orchestration & Engagement (OE)' },
+  { key: 'Run_Verify', label: 'Run & Verify (RV)' },
+  { key: 'Traceabilty_Insight', label: 'Traceability Insight (TI)' },
+];
+
+const HEATMAP_COMPONENT_LOOKUP = new Map(
+  HEATMAP_COMPONENTS.map((entry) => [entry.key.toLowerCase(), entry.key])
+);
+
+HEATMAP_COMPONENTS.forEach((entry) => {
+  if (!HEATMAP_COMPONENT_LOOKUP.has(entry.key.toLowerCase())) {
+    HEATMAP_COMPONENT_LOOKUP.set(entry.key.toLowerCase(), entry.key);
+  }
+});
+
+const COMPONENT_SYNONYMS = new Map(
+  [
+    ['system', 'system_srs'],
+    ['system (srs)', 'system_srs'],
+    ['srs', 'system_srs'],
+    ['unspecified', 'system_srs'],
+    ['work model', 'WorkModel'],
+    ['work_model', 'WorkModel'],
+    ['document intelligence', 'Document_Intelligence'],
+    ['document-intelligence', 'Document_Intelligence'],
+    ['review governance', 'Review_Governance'],
+    ['review-governance', 'Review_Governance'],
+    ['orchestration engagement', 'Orchestration_Engagement'],
+    ['orchestration & engagement', 'Orchestration_Engagement'],
+    ['run verify', 'Run_Verify'],
+    ['run & verify', 'Run_Verify'],
+    ['traceability_insight', 'Traceabilty_Insight'],
+    ['traceability insight', 'Traceabilty_Insight'],
+    ['traceabilty_insight', 'Traceabilty_Insight'],
+  ].map(([key, value]) => [key.toLowerCase(), value])
+);
+
 function parseStoryPointInput(raw) {
   if (raw == null) {
     return { value: null, error: null };
@@ -733,99 +798,88 @@ function collectSelectedComponents(scope) {
 function computeHeatmapData() {
   const flatStories = flattenStories(state.stories);
   if (flatStories.length === 0) {
-    return null;
+    return { assignees: [], datasets: new Map(), columns: HEATMAP_COMPONENTS };
   }
 
-  const matrix = new Map();
-  let hasWork = false;
+  const datasets = new Map();
+  const assignees = new Set();
+
+  const ensureDataset = (key) => {
+    if (!datasets.has(key)) {
+      const matrix = new Map();
+      HEATMAP_ACTIVITIES.forEach((activity) => {
+        matrix.set(activity.key, new Map());
+      });
+      datasets.set(key, { matrix, total: 0 });
+    }
+    return datasets.get(key);
+  };
 
   flatStories.forEach((story) => {
     const assignee = story.assigneeEmail && story.assigneeEmail.trim()
       ? story.assigneeEmail.trim()
       : 'Unassigned';
-    const components =
-      Array.isArray(story.components) && story.components.length
-        ? story.components
-        : [UNSPECIFIED_COMPONENT];
+    assignees.add(assignee);
+
+    const components = normalizeStoryComponentsForHeatmap(story.components);
+    const activities = detectStoryActivitiesForHeatmap(story);
     const numericPoint = Number(story.storyPoint);
-    const baseValue = Number.isFinite(numericPoint) && numericPoint > 0 ? numericPoint : 1;
-    const share = components.length > 0 ? baseValue / components.length : baseValue;
+    const totalShare = Number.isFinite(numericPoint) && numericPoint > 0 ? numericPoint : 1;
 
-    if (share > 0) {
-      hasWork = true;
-    }
-
-    const row = matrix.get(assignee) ?? new Map();
-    components.forEach((component) => {
-      row.set(component, (row.get(component) ?? 0) + share);
-    });
-    matrix.set(assignee, row);
-  });
-
-  if (!hasWork || matrix.size === 0) {
-    return null;
-  }
-
-  const columns = [...COMPONENT_OPTIONS, UNSPECIFIED_COMPONENT];
-
-  const sortedRows = Array.from(matrix.entries()).sort((a, b) =>
-    a[0].localeCompare(b[0], undefined, { sensitivity: 'base' })
-  );
-
-  const rows = [];
-  let maxPercent = 0;
-
-  sortedRows.forEach(([assignee, values]) => {
-    const totals = columns.map((component) => values.get(component) ?? 0);
-    const totalPoints = totals.reduce((sum, value) => sum + value, 0);
-    if (totalPoints <= 0) {
+    if (totalShare <= 0 || components.length === 0 || activities.length === 0) {
       return;
     }
 
-    const rawEntries = totals.map((value, index) => ({
-      component: columns[index],
-      value,
-      percent: totalPoints > 0 ? (value / totalPoints) * 100 : 0,
-    }));
+    const perActivityShare = totalShare / activities.length;
+    const perCellShare = perActivityShare / components.length;
 
-    const roundedPercents = rawEntries.map((entry) => Math.round(entry.percent * 10) / 10);
-    let sumRounded = roundedPercents.reduce((sum, value) => sum + value, 0);
-    sumRounded = Math.round(sumRounded * 10) / 10;
-    let diff = Math.round((100 - sumRounded) * 10) / 10;
+    const allDataset = ensureDataset('__ALL__');
+    const assigneeDataset = ensureDataset(assignee);
 
-    if (Math.abs(diff) >= 0.1) {
-      const adjustIndex = rawEntries.reduce((maxIdx, entry, idx, arr) => {
-        if (entry.percent <= 0) {
-          return maxIdx;
-        }
-        if (arr[maxIdx].percent <= 0) {
-          return idx;
-        }
-        return entry.percent > arr[maxIdx].percent ? idx : maxIdx;
-      }, 0);
-      roundedPercents[adjustIndex] = Math.round((roundedPercents[adjustIndex] + diff) * 10) / 10;
-    }
-
-    const cells = rawEntries.map((entry, idx) => {
-      const percent = Math.max(0, Math.round(roundedPercents[idx] * 10) / 10);
-      if (percent > maxPercent) {
-        maxPercent = percent;
-      }
-      return {
-        component: entry.component,
-        value: entry.value,
-        percent,
-      };
+    activities.forEach((activityKey) => {
+      const allRow = allDataset.matrix.get(activityKey);
+      const assigneeRow = assigneeDataset.matrix.get(activityKey);
+      components.forEach((componentKey) => {
+        allRow.set(componentKey, (allRow.get(componentKey) ?? 0) + perCellShare);
+        assigneeRow.set(componentKey, (assigneeRow.get(componentKey) ?? 0) + perCellShare);
+      });
     });
 
-    rows.push({ assignee, totalPoints, cells });
+    allDataset.total += totalShare;
+    assigneeDataset.total += totalShare;
   });
 
-  if (rows.length === 0) {
-    return null;
-  }
+  const datasetsWithRows = new Map();
+  datasets.forEach((dataset, key) => {
+    const { matrix, total } = dataset;
+    let maxPercent = 0;
+    const rows = HEATMAP_ACTIVITIES.map((activity) => {
+      const row = matrix.get(activity.key) ?? new Map();
+      const cells = HEATMAP_COMPONENTS.map((component) => {
+        const value = row.get(component.key) ?? 0;
+        const percent = total > 0 ? (value / total) * 100 : 0;
+        if (percent > maxPercent) {
+          maxPercent = percent;
+        }
+        return { component: component.key, value, percent };
+      });
+      return { activity: activity.label, key: activity.key, cells };
+    });
 
-  return { columns, rows, maxPercent };
+    datasetsWithRows.set(key, { rows, total, maxPercent });
+  });
+
+  const sortedAssignees = Array.from(assignees).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  );
+
+  const options = [];
+  if (datasetsWithRows.has('__ALL__')) {
+    options.push({ key: '__ALL__', label: 'All assignees' });
+  }
+  sortedAssignees.forEach((label) => options.push({ key: label, label }));
+
+  return { assignees: options, datasets: datasetsWithRows, columns: HEATMAP_COMPONENTS };
 }
 
 function buildHeatmapModalContent() {
@@ -833,7 +887,7 @@ function buildHeatmapModalContent() {
   container.className = 'heatmap-modal';
 
   const data = computeHeatmapData();
-  if (!data) {
+  if (!data.assignees.length) {
     const placeholder = document.createElement('p');
     placeholder.className = 'placeholder';
     placeholder.textContent =
@@ -842,81 +896,200 @@ function buildHeatmapModalContent() {
     return container;
   }
 
-  const { columns, rows, maxPercent } = data;
+  const controls = document.createElement('div');
+  controls.className = 'heatmap-controls';
 
-  const table = document.createElement('table');
-  table.className = 'heatmap-table';
+  const label = document.createElement('label');
+  label.textContent = 'Assignee:';
+  label.setAttribute('for', 'heatmap-assignee');
+  controls.appendChild(label);
 
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-  const assigneeHeader = document.createElement('th');
-  assigneeHeader.textContent = 'Assignee';
-  headerRow.appendChild(assigneeHeader);
-
-  columns.forEach((component) => {
-    const th = document.createElement('th');
-    th.textContent = component.replace(/_/g, ' ');
-    headerRow.appendChild(th);
-  });
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-
-  const tbody = document.createElement('tbody');
-  const formatPercent = (value) => {
-    if (value <= 0) {
-      return null;
+  const select = document.createElement('select');
+  select.id = 'heatmap-assignee';
+  select.className = 'heatmap-select';
+  data.assignees.forEach((entry, index) => {
+    const option = document.createElement('option');
+    option.value = entry.key;
+    option.textContent = entry.label;
+    if (index === 0) {
+      option.selected = true;
     }
-    return Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
-  };
-
-  const formatPoints = (value) => {
-    if (!Number.isFinite(value)) {
-      return '0';
-    }
-    return Number.isInteger(value) ? String(value) : value.toFixed(1);
-  };
-
-  rows.forEach((row) => {
-    const tr = document.createElement('tr');
-    const assigneeCell = document.createElement('th');
-    assigneeCell.scope = 'row';
-    assigneeCell.textContent = row.assignee;
-    tr.appendChild(assigneeCell);
-
-    row.cells.forEach((cellData) => {
-      const cell = document.createElement('td');
-      cell.className = 'heatmap-cell';
-      const percentLabel = formatPercent(cellData.percent);
-      if (percentLabel) {
-        const ratio = maxPercent > 0 ? cellData.percent / maxPercent : 0;
-        const alpha = 0.15 + ratio * 0.65;
-        cell.style.backgroundColor = `rgba(37, 99, 235, ${alpha.toFixed(3)})`;
-        cell.style.color = ratio > 0.55 ? '#fff' : '#1f2937';
-        cell.textContent = percentLabel;
-        cell.title = `${row.assignee} · ${cellData.component.replace(/_/g, ' ')}: ${percentLabel} (${formatPoints(
-          cellData.value
-        )} story points)`;
-      } else {
-        cell.classList.add('empty');
-        cell.textContent = '0%';
-        cell.title = `${row.assignee} · ${cellData.component.replace(/_/g, ' ')}: 0% (0 story points)`;
-      }
-      tr.appendChild(cell);
-    });
-
-    tbody.appendChild(tr);
+    select.appendChild(option);
   });
 
-  table.appendChild(tbody);
-  container.appendChild(table);
+  controls.appendChild(select);
+  container.appendChild(controls);
+
+  const tableWrapper = document.createElement('div');
+  tableWrapper.className = 'heatmap-table-wrapper';
+  container.appendChild(tableWrapper);
 
   const note = document.createElement('p');
   note.className = 'heatmap-note';
   note.textContent =
-    'Percentages show how each assignee’s workload is distributed across components (totals per assignee equal 100%).';
+    'Percentages show how the selected assignee’s workload is distributed across components and activities.';
   container.appendChild(note);
 
+  const renderTable = (assigneeKey) => {
+    tableWrapper.innerHTML = '';
+    const dataset = data.datasets.get(assigneeKey);
+    if (!dataset || dataset.total <= 0) {
+      const placeholder = document.createElement('p');
+      placeholder.className = 'placeholder';
+      placeholder.textContent = 'No workload recorded for this assignee yet.';
+      tableWrapper.appendChild(placeholder);
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'heatmap-table';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    const activityHeader = document.createElement('th');
+    activityHeader.textContent = 'Activity + Area';
+    headerRow.appendChild(activityHeader);
+
+    data.columns.forEach((column) => {
+      const th = document.createElement('th');
+      th.textContent = column.label;
+      headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const formatPercent = (value) => {
+      if (value <= 0) {
+        return null;
+      }
+      return Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
+    };
+
+    const formatPoints = (value) => {
+      if (!Number.isFinite(value)) {
+        return '0';
+      }
+      return Number.isInteger(value) ? String(value) : value.toFixed(1);
+    };
+
+    dataset.rows.forEach((row) => {
+      const tr = document.createElement('tr');
+      const heading = document.createElement('th');
+      heading.scope = 'row';
+      heading.textContent = row.activity;
+      tr.appendChild(heading);
+
+      row.cells.forEach((cellData) => {
+        const cell = document.createElement('td');
+        cell.className = 'heatmap-cell';
+        const percentLabel = formatPercent(cellData.percent);
+        if (percentLabel) {
+          const ratio = dataset.maxPercent > 0 ? cellData.percent / dataset.maxPercent : 0;
+          const alpha = 0.15 + ratio * 0.65;
+          cell.style.backgroundColor = `rgba(37, 99, 235, ${alpha.toFixed(3)})`;
+          cell.style.color = ratio > 0.55 ? '#fff' : '#1f2937';
+          cell.textContent = percentLabel;
+          cell.title = `${row.activity} · ${lookupHeatmapComponentLabel(cellData.component)}: ${percentLabel} (${formatPoints(
+            cellData.value
+          )} story points)`;
+        } else {
+          cell.classList.add('empty');
+          cell.textContent = '0%';
+          cell.title = `${row.activity} · ${lookupHeatmapComponentLabel(
+            cellData.component
+          )}: 0% (0 story points)`;
+        }
+        tr.appendChild(cell);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+  };
+
+  select.addEventListener('change', (event) => {
+    renderTable(event.target.value);
+  });
+
+  renderTable(select.value);
+
   return container;
+}
+
+function lookupHeatmapComponentLabel(key) {
+  const match = HEATMAP_COMPONENTS.find((entry) => entry.key === key);
+  return match ? match.label : key.replace(/_/g, ' ');
+}
+
+function normalizeStoryComponentsForHeatmap(components) {
+  const result = [];
+  const source = Array.isArray(components) ? components : [];
+  source.forEach((entry) => {
+    if (typeof entry !== 'string') {
+      return;
+    }
+    const trimmed = entry.trim();
+    if (!trimmed) {
+      return;
+    }
+    const lower = trimmed.toLowerCase();
+    const synonym = COMPONENT_SYNONYMS.get(lower);
+    if (synonym) {
+      result.push(synonym);
+      return;
+    }
+    const canonical = HEATMAP_COMPONENT_LOOKUP.get(lower);
+    if (canonical) {
+      result.push(canonical);
+    }
+  });
+
+  const unique = Array.from(new Set(result));
+
+  if (unique.length === 0) {
+    return ['system_srs'];
+  }
+
+  return unique;
+}
+
+function detectStoryActivitiesForHeatmap(story) {
+  const detected = new Set();
+  const tasks = Array.isArray(story?.tasks) ? story.tasks : [];
+  tasks.forEach((task) => {
+    const text = `${task?.title ?? ''} ${task?.description ?? ''}`.toLowerCase();
+    if (!text.trim()) {
+      return;
+    }
+    HEATMAP_ACTIVITY_KEYWORDS.forEach((mapping) => {
+      if (mapping.patterns.some((pattern) => pattern.test(text))) {
+        detected.add(mapping.key);
+      }
+    });
+  });
+
+  if (detected.size === 0) {
+    const status = typeof story?.status === 'string' ? story.status.toLowerCase() : '';
+    if (status === 'draft') {
+      detected.add('design');
+    } else if (status === 'approved') {
+      detected.add('verification');
+    }
+  }
+
+  if (detected.size === 0 && Array.isArray(story?.acceptanceTests) && story.acceptanceTests.length > 0) {
+    detected.add('test_execution');
+  }
+
+  if (detected.size === 0) {
+    detected.add('implementation');
+  }
+
+  return Array.from(detected);
 }
 
 function renderDetails() {

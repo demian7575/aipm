@@ -42,7 +42,7 @@ The workspace header exposes three panel toggles that persist in `localStorage`:
 - **Mindmap** – Right-growing SVG mindmap that supports auto layout, manual drag positioning, and node expansion.
 - **Details** – Story editor with INVEST validation feedback, reference document management, and acceptance test listings.
 
-An **Employee Heat Map** button in the header opens a modal that calculates percentage-based workload distribution for each assignee. Percentages always total 100% per person and colour intensity reflects the relative share of effort by component.
+An **Employee Heat Map** button in the header opens a modal with an assignee drop-down. Select an individual (or all assignees) to view a percentage-based workload table arranged by activity rows and component columns. Percentages always total 100% per person and colour intensity reflects the relative share of effort by component.
 
 Additional controls inside the panels include:
 
@@ -127,7 +127,7 @@ The database file is recreated automatically if missing. Delete the SQLite (and 
 - **Right-growing mindmap** with rectangular user story nodes, red-highlighted titles, and ancestor expansion synced to the outline.
 - **Outline tree** with keyboard-accessible expand/collapse controls and selection synchronization.
 - **Details panel** showing INVEST warnings, story point editing with non-negative integer validation, assignee email launch, acceptance test tables, child story lists, and a dedicated **Components** field backed by a curated catalog (`WorkModel`, `Document_Intelligence`, `Review_Governance`, `Orchestration_Engagement`, `Run_Verify`, `Traceabilty_Insight`).
-- **Employee Heat Map modal** that visualises workload as per-assignee percentages (summing to 100%) so project managers can balance component focus, identify skill clusters, and spot gaps at a glance.
+- **Employee Heat Map modal** with an assignee selector that visualises workload as per-assignee percentages (summing to 100%) so project managers can balance component focus, identify skill clusters, and spot gaps at a glance.
 - **Modal workflows** for creating child stories, acceptance tests (with measurability hints), and reference documents.
 - **Warning overrides** that allow saving despite INVEST or measurability warnings after user confirmation.
 - **Persistent layout state** including panel visibility, expanded nodes, manual mindmap coordinates, and the last selected story.
