@@ -74,35 +74,47 @@ const STATUS_CLASS_MAP = {
 
 const HEATMAP_ACTIVITIES = [
   { key: 'design', label: 'Design' },
+  { key: 'documentation', label: 'Documentation' },
   { key: 'implementation', label: 'Implementation' },
-  { key: 'recommendation', label: 'Recommendation' },
-  { key: 'operational_consultation', label: 'Operational Consultation' },
+  { key: 'operations_visualization', label: 'Operations & Visualization' },
   { key: 'resource_management', label: 'Resource Management' },
-  { key: 'test_execution', label: 'Test Execution' },
+  { key: 'test_automation', label: 'Test Automation' },
   { key: 'verification', label: 'Verification' },
 ];
 
 const HEATMAP_ACTIVITY_KEYWORDS = [
-  { key: 'design', patterns: [/design/i, /discovery/i, /prototype/i] },
-  { key: 'implementation', patterns: [/build/i, /implement/i, /develop/i] },
-  { key: 'recommendation', patterns: [/recommend/i, /proposal/i, /analysis/i] },
+  { key: 'design', patterns: [/design/i, /discovery/i, /prototype/i, /architecture/i] },
+  { key: 'documentation', patterns: [/document/i, /spec/i, /manual/i, /guide/i, /writeup/i] },
   {
-    key: 'operational_consultation',
-    patterns: [/consult/i, /workshop/i, /training/i, /operational/i],
+    key: 'implementation',
+    patterns: [/build/i, /implement/i, /develop/i, /code/i, /integrat/i, /refactor/i],
   },
-  { key: 'resource_management', patterns: [/resource/i, /capacity/i, /staff/i, /planning/i] },
-  { key: 'test_execution', patterns: [/test/i, /qa/i, /scenario/i, /execute/i] },
-  { key: 'verification', patterns: [/verify/i, /verification/i, /review/i, /audit/i] },
+  {
+    key: 'operations_visualization',
+    patterns: [/operat/i, /deploy/i, /visualiz/i, /monitor/i, /dashboard/i, /observ/i],
+  },
+  {
+    key: 'resource_management',
+    patterns: [/resource/i, /capacity/i, /staff/i, /planning/i, /schedule/i, /assign/i],
+  },
+  {
+    key: 'test_automation',
+    patterns: [/automate/i, /automation/i, /pipeline/i, /script/i, /ci\/?cd/i, /regression/i],
+  },
+  {
+    key: 'verification',
+    patterns: [/verify/i, /verification/i, /review/i, /audit/i, /approve/i, /validate/i],
+  },
 ];
 
 const HEATMAP_COMPONENTS = [
-  { key: 'system_srs', label: 'System (SRS)' },
-  { key: 'WorkModel', label: 'Work Model (WM)' },
-  { key: 'Document_Intelligence', label: 'Document Intelligence (DI)' },
-  { key: 'Review_Governance', label: 'Review Governance (RG)' },
+  { key: 'system_srs', label: 'System (S/S)' },
+  { key: 'WorkModel', label: 'WorkModel (WM)' },
+  { key: 'Document_Intelligence', label: 'DocumentIntelligence (DI)' },
+  { key: 'Review_Governance', label: 'Review & Governance (RG)' },
   { key: 'Orchestration_Engagement', label: 'Orchestration & Engagement (OE)' },
   { key: 'Run_Verify', label: 'Run & Verify (RV)' },
-  { key: 'Traceabilty_Insight', label: 'Traceability Insight (TI)' },
+  { key: 'Traceabilty_Insight', label: 'Traceability & Insight (TI)' },
 ];
 
 const HEATMAP_COMPONENT_LOOKUP = new Map(
@@ -123,9 +135,12 @@ const COMPONENT_SYNONYMS = new Map(
     ['unspecified', 'system_srs'],
     ['work model', 'WorkModel'],
     ['work_model', 'WorkModel'],
+    ['workmodel', 'WorkModel'],
     ['document intelligence', 'Document_Intelligence'],
     ['document-intelligence', 'Document_Intelligence'],
+    ['documentintelligence', 'Document_Intelligence'],
     ['review governance', 'Review_Governance'],
+    ['review & governance', 'Review_Governance'],
     ['review-governance', 'Review_Governance'],
     ['orchestration engagement', 'Orchestration_Engagement'],
     ['orchestration & engagement', 'Orchestration_Engagement'],
@@ -133,6 +148,8 @@ const COMPONENT_SYNONYMS = new Map(
     ['run & verify', 'Run_Verify'],
     ['traceability_insight', 'Traceabilty_Insight'],
     ['traceability insight', 'Traceabilty_Insight'],
+    ['traceability & insight', 'Traceabilty_Insight'],
+    ['traceability and insight', 'Traceabilty_Insight'],
     ['traceabilty_insight', 'Traceabilty_Insight'],
   ].map(([key, value]) => [key.toLowerCase(), value])
 );
@@ -947,7 +964,7 @@ function buildHeatmapModalContent() {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     const activityHeader = document.createElement('th');
-    activityHeader.textContent = 'Activity + Area';
+    activityHeader.textContent = 'Activity -> Area >';
     headerRow.appendChild(activityHeader);
 
     data.columns.forEach((column) => {
@@ -1072,6 +1089,20 @@ function detectStoryActivitiesForHeatmap(story) {
     });
   });
 
+  const storyText = `${story?.title ?? ''} ${story?.summary ?? ''} ${story?.asA ?? ''} ${
+    story?.iWant ?? ''
+  } ${story?.soThat ?? ''}`
+    .toLowerCase()
+    .trim();
+
+  if (storyText) {
+    HEATMAP_ACTIVITY_KEYWORDS.forEach((mapping) => {
+      if (mapping.patterns.some((pattern) => pattern.test(storyText))) {
+        detected.add(mapping.key);
+      }
+    });
+  }
+
   if (detected.size === 0) {
     const status = typeof story?.status === 'string' ? story.status.toLowerCase() : '';
     if (status === 'draft') {
@@ -1081,8 +1112,12 @@ function detectStoryActivitiesForHeatmap(story) {
     }
   }
 
-  if (detected.size === 0 && Array.isArray(story?.acceptanceTests) && story.acceptanceTests.length > 0) {
-    detected.add('test_execution');
+  if (
+    detected.size === 0 &&
+    Array.isArray(story?.acceptanceTests) &&
+    story.acceptanceTests.length > 0
+  ) {
+    detected.add('test_automation');
   }
 
   if (detected.size === 0) {

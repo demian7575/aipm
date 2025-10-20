@@ -42,7 +42,7 @@ The workspace header exposes three panel toggles that persist in `localStorage`:
 - **Mindmap** – Right-growing SVG mindmap that supports auto layout, manual drag positioning, and node expansion.
 - **Details** – Story editor with INVEST validation feedback, reference document management, and acceptance test listings.
 
-An **Employee Heat Map** button in the header opens a modal with an assignee drop-down. Select an individual (or all assignees) to view a percentage-based workload table arranged by activity rows and component columns. Percentages always total 100% per person and colour intensity reflects the relative share of effort by component.
+An **Employee Heat Map** button in the header opens a modal with an assignee drop-down. Select an individual (or all assignees) to view a percentage-based workload table that mirrors the shared template. The first column reads **Activity -> Area >** and the remaining columns cover **System (S/S)**, **WorkModel (WM)**, **DocumentIntelligence (DI)**, **Review & Governance (RG)**, **Orchestration & Engagement (OE)**, **Run & Verify (RV)**, and **Traceability & Insight (TI)**. Activity rows include Design, Documentation, Implementation, Operations & Visualization, Resource Management, Test Automation, and Verification. Percentages always total 100% per person and colour intensity reflects the relative share of effort by component.
 
 Additional controls inside the panels include:
 
