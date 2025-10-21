@@ -792,31 +792,91 @@ function formatComponentLabel(value) {
     .trim();
 }
 
-function buildComponentSelector(container, selectedValues = []) {
-  if (!container) return null;
-  container.innerHTML = '';
-  const select = document.createElement('select');
-  select.name = 'components';
-  select.multiple = true;
-  select.size = Math.min(COMPONENT_OPTIONS.length, 6);
-  const selectedSet = new Set(Array.isArray(selectedValues) ? selectedValues : []);
-  COMPONENT_OPTIONS.forEach((component) => {
-    const option = document.createElement('option');
-    option.value = component;
-    option.textContent = formatComponentLabel(component) || component;
-    option.selected = selectedSet.has(component);
-    select.appendChild(option);
-  });
-  container.appendChild(select);
-  return select;
+function normalizeComponentSelection(selection) {
+  const selectedSet = new Set();
+  if (Array.isArray(selection)) {
+    selection.forEach((value) => {
+      if (typeof value !== 'string') return;
+      const canonical = COMPONENT_LOOKUP.get(value.trim().toLowerCase());
+      if (canonical) {
+        selectedSet.add(canonical);
+      }
+    });
+  }
+  return COMPONENT_OPTIONS.filter((component) => selectedSet.has(component));
 }
 
-function collectSelectedComponents(scope) {
-  const select = scope.querySelector('select[name="components"]');
-  if (!select) {
-    return [];
-  }
-  return Array.from(select.selectedOptions).map((option) => option.value);
+async function openComponentPicker(initialSelection = [], options = {}) {
+  const { title = 'Select Components' } = options;
+  const selected = new Set(normalizeComponentSelection(initialSelection));
+  const container = document.createElement('div');
+  container.className = 'component-picker';
+
+  const hint = document.createElement('p');
+  hint.className = 'component-picker-hint';
+  hint.textContent = 'Choose all components impacted by this story.';
+  container.appendChild(hint);
+
+  const grid = document.createElement('div');
+  grid.className = 'component-picker-grid';
+  COMPONENT_OPTIONS.forEach((component) => {
+    const option = document.createElement('label');
+    option.className = 'component-picker-option';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = component;
+    checkbox.checked = selected.has(component);
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        selected.add(component);
+      } else {
+        selected.delete(component);
+      }
+    });
+    const name = document.createElement('span');
+    name.textContent = formatComponentLabel(component) || component;
+    option.appendChild(checkbox);
+    option.appendChild(name);
+    grid.appendChild(option);
+  });
+  container.appendChild(grid);
+
+  return await new Promise((resolve) => {
+    let settled = false;
+
+    const closeWith = (value) => {
+      if (!settled) {
+        settled = true;
+        resolve(value);
+      }
+    };
+
+    openModal({
+      title,
+      content: container,
+      actions: [
+        {
+          label: 'Clear Selection',
+          variant: 'secondary',
+          onClick: () => {
+            selected.clear();
+            grid.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+              checkbox.checked = false;
+            });
+            return false;
+          },
+        },
+        {
+          label: 'Apply',
+          onClick: () => {
+            closeWith(COMPONENT_OPTIONS.filter((component) => selected.has(component)));
+            return true;
+          },
+        },
+      ],
+      onClose: () => closeWith(null),
+    });
+  });
 }
 
 function computeHeatmapData() {
@@ -1256,8 +1316,12 @@ function renderDetails() {
               <p class="components-display">${escapeHtml(
                 formatComponentsSummary(story.components)
               )}</p>
-              <div class="components-select" data-component-options></div>
-              <p class="components-hint">Select all components impacted by this story.</p>
+              <div class="components-actions">
+                <button type="button" class="secondary components-edit-btn" id="components-edit-btn">
+                  Choose components
+                </button>
+                <p class="components-hint">Select all components impacted by this story.</p>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -1279,47 +1343,31 @@ function renderDetails() {
     : [];
 
   const storyBriefBody = form.querySelector('.story-brief tbody');
-  const componentsTarget = form.querySelector('[data-component-options]');
   const componentsDisplay = form.querySelector('.components-display');
   const componentsHint = form.querySelector('.components-hint');
-  const componentSelectWrapper = form.querySelector('.components-select');
-  if (componentsTarget) {
-    buildComponentSelector(
-      componentsTarget,
-      Array.isArray(story.components) ? story.components : []
-    );
-  }
-  const componentsSelectElement = componentSelectWrapper?.querySelector('select');
-  const updateComponentDisplay = () => {
-    if (!componentsDisplay) {
-      return;
-    }
-    if (!componentsSelectElement) {
-      const summary = formatComponentsSummary(story.components);
-      componentsDisplay.textContent = summary;
-      if (summary === 'Not specified') {
-        componentsDisplay.classList.add('empty');
-      } else {
-        componentsDisplay.classList.remove('empty');
-      }
-      return;
-    }
-    const selectedLabels = Array.from(componentsSelectElement.options)
-      .filter((option) => option.selected)
-      .map((option) => option.textContent.trim())
-      .filter(Boolean);
-    if (selectedLabels.length === 0) {
-      componentsDisplay.textContent = 'Not specified';
+  const componentsEditButton = form.querySelector('#components-edit-btn');
+  let selectedComponents = normalizeComponentSelection(story.components);
+
+  const refreshComponentsDisplay = () => {
+    if (!componentsDisplay) return;
+    const summary = formatComponentsSummary(selectedComponents);
+    componentsDisplay.textContent = summary;
+    if (summary === 'Not specified') {
       componentsDisplay.classList.add('empty');
     } else {
-      componentsDisplay.textContent = selectedLabels.join(', ');
       componentsDisplay.classList.remove('empty');
     }
   };
-  if (componentsSelectElement) {
-    componentsSelectElement.addEventListener('change', updateComponentDisplay);
-  }
-  updateComponentDisplay();
+
+  refreshComponentsDisplay();
+
+  componentsEditButton?.addEventListener('click', async () => {
+    const picked = await openComponentPicker(selectedComponents, { title: 'Select Components' });
+    if (Array.isArray(picked)) {
+      selectedComponents = picked;
+      refreshComponentsDisplay();
+    }
+  });
   if (storyBriefBody) {
     const summaryRow = document.createElement('tr');
     summaryRow.className = 'story-meta-row';
@@ -1502,10 +1550,6 @@ function renderDetails() {
       showToast(storyPointResult.error, 'error');
       return;
     }
-    const components = formData
-      .getAll('components')
-      .map((value) => String(value).trim())
-      .filter(Boolean);
     const payload = {
       title: formData.get('title').trim(),
       storyPoint: storyPointResult.value,
@@ -1514,7 +1558,7 @@ function renderDetails() {
       asA: formData.get('asA').trim(),
       iWant: formData.get('iWant').trim(),
       soThat: formData.get('soThat').trim(),
-      components,
+      components: selectedComponents,
     };
 
     try {
@@ -1553,18 +1597,20 @@ function renderDetails() {
     if (editButton) {
       editButton.textContent = enabled ? 'Cancel Edit' : 'Edit Story';
     }
-    if (componentSelectWrapper) {
-      componentSelectWrapper.style.display = enabled ? 'block' : 'none';
-    }
     if (componentsHint) {
       componentsHint.style.display = enabled ? 'block' : 'none';
     }
     if (componentsDisplay) {
-      componentsDisplay.style.display = enabled ? 'none' : '';
+      componentsDisplay.classList.toggle('editable', enabled);
+    }
+    if (componentsEditButton) {
+      componentsEditButton.style.display = enabled ? 'inline-flex' : 'none';
+      componentsEditButton.disabled = !enabled;
     }
     if (!enabled) {
       form.reset();
-      updateComponentDisplay();
+      selectedComponents = normalizeComponentSelection(story.components);
+      refreshComponentsDisplay();
     }
   }
 
@@ -2341,18 +2387,37 @@ function openChildStoryModal(parentId) {
         <tr>
           <th scope="row">Components</th>
           <td>
-            <div class="components-select" data-child-components></div>
-            <p class="components-hint">Pick the components this child story will deliver.</p>
+            <p class="components-display" data-child-components-display>Not specified</p>
+            <div class="components-actions">
+              <button type="button" class="secondary components-edit-btn" id="child-components-btn">Choose components</button>
+              <p class="components-hint">Pick the components this child story will deliver.</p>
+            </div>
           </td>
         </tr>
       </tbody>
     </table>
   `;
 
-  const childComponentsContainer = container.querySelector('[data-child-components]');
-  if (childComponentsContainer) {
-    buildComponentSelector(childComponentsContainer, []);
-  }
+  let childComponents = [];
+  const childComponentsDisplay = container.querySelector('[data-child-components-display]');
+  const childComponentsButton = container.querySelector('#child-components-btn');
+
+  const refreshChildComponents = () => {
+    if (!childComponentsDisplay) return;
+    const summary = formatComponentsSummary(childComponents);
+    childComponentsDisplay.textContent = summary;
+    childComponentsDisplay.classList.toggle('empty', summary === 'Not specified');
+  };
+
+  refreshChildComponents();
+
+  childComponentsButton?.addEventListener('click', async () => {
+    const picked = await openComponentPicker(childComponents, { title: 'Select Components' });
+    if (Array.isArray(picked)) {
+      childComponents = picked;
+      refreshChildComponents();
+    }
+  });
 
   openModal({
     title: 'Create Child Story',
@@ -2382,7 +2447,7 @@ function openChildStoryModal(parentId) {
             asA: container.querySelector('#child-asa').value.trim(),
             iWant: container.querySelector('#child-iwant').value.trim(),
             soThat: container.querySelector('#child-sothat').value.trim(),
-            components: collectSelectedComponents(container),
+            components: childComponents,
           };
           try {
             const created = await createStory(payload);

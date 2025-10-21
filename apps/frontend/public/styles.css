@@ -572,18 +572,6 @@ textarea {
   min-height: 3.25rem;
 }
 
-.components-select {
-  display: block;
-  max-width: 100%;
-}
-
-.components-select select {
-  width: 100%;
-  min-height: 7.5rem;
-  padding: 0.35rem 0.5rem;
-  font-size: 0.9rem;
-}
-
 .components-display {
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
@@ -591,15 +579,72 @@ textarea {
   white-space: normal;
 }
 
+.components-display.editable {
+  color: #0f172a;
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+}
+
 .components-display.empty {
   color: #64748b;
   font-style: italic;
+}
+
+.components-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.components-edit-btn {
+  display: none;
 }
 
 .components-hint {
   margin-top: 0.5rem;
   font-size: 0.75rem;
   color: #4b5563;
+}
+
+.component-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 28rem;
+}
+
+.component-picker-hint {
+  margin: 0;
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+.component-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.component-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.component-picker-option input {
+  width: auto;
+  margin: 0;
+}
+
+.component-picker-option span {
+  font-size: 0.9rem;
+  color: #0f172a;
 }
 
 .section-heading {
