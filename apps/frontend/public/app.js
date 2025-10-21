@@ -8,6 +8,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
+const referenceBtn = document.getElementById('reference-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
@@ -51,6 +52,10 @@ const STORY_STATUS_GUIDE = [
     value: 'Approved',
     description: 'Story has been reviewed and accepted; teams can proceed to execution.',
   },
+  {
+    value: 'Done',
+    description: 'Story delivered; all child stories are Done and acceptance tests have passed.',
+  },
 ];
 
 const COMPONENT_OPTIONS = [
@@ -70,6 +75,7 @@ const STATUS_CLASS_MAP = {
   Draft: 'status-draft',
   Ready: 'status-ready',
   Approved: 'status-approved',
+  Done: 'status-done',
 };
 
 let modalTeardown = null;
@@ -193,6 +199,16 @@ const state = {
 const storyIndex = new Map();
 const parentById = new Map();
 let toastTimeout = null;
+
+if (referenceBtn) {
+  referenceBtn.addEventListener('click', () => {
+    if (state.selectedStoryId == null) {
+      showToast('Select a user story to manage reference documents.', 'warning');
+      return;
+    }
+    openReferenceModal(state.selectedStoryId);
+  });
+}
 
 function getStatusClass(status) {
   const normalized = typeof status === 'string' ? status.trim() : '';
@@ -1337,9 +1353,8 @@ function renderDetails() {
         </tbody>
       </table>
     </div>
-    <div class="full" style="display:flex; gap:0.5rem;">
+    <div class="full form-actions">
       <button type="submit">Save Story</button>
-      <button type="button" class="secondary" id="reference-button">Reference Documents</button>
     </div>
   `;
 
@@ -1351,6 +1366,11 @@ function renderDetails() {
   const fallbackWarnings = Array.isArray(analysisInfo?.fallbackWarnings)
     ? analysisInfo.fallbackWarnings
     : [];
+  let statusSelect = null;
+  let statusValueEl = null;
+  let statusDescriptionEl = null;
+  let statusValue = story.status || 'Draft';
+  let statusReference = STORY_STATUS_GUIDE.slice();
 
   const storyBriefBody = form.querySelector('.story-brief tbody');
   const componentsDisplay = form.querySelector('.components-display');
@@ -1507,8 +1527,6 @@ function renderDetails() {
     statusHeader.scope = 'row';
     statusHeader.textContent = 'Status';
     const statusCell = document.createElement('td');
-    const statusValue = story.status || 'Draft';
-    const statusReference = STORY_STATUS_GUIDE.slice();
     if (!statusReference.some((item) => item.value === statusValue)) {
       statusReference.push({
         value: statusValue,
@@ -1516,18 +1534,49 @@ function renderDetails() {
       });
     }
     const currentStatusEntry = statusReference.find((item) => item.value === statusValue);
-    const statusValueEl = document.createElement('span');
+    statusValueEl = document.createElement('span');
     statusValueEl.className = `status-value status-badge ${getStatusClass(statusValue)}`;
     statusValueEl.textContent = statusValue;
     statusCell.appendChild(statusValueEl);
 
-    const statusDescription = currentStatusEntry ? currentStatusEntry.description : null;
-    if (statusDescription) {
-      const statusDescriptionEl = document.createElement('p');
+    if (currentStatusEntry && currentStatusEntry.description) {
+      statusDescriptionEl = document.createElement('p');
       statusDescriptionEl.className = 'status-description';
-      statusDescriptionEl.textContent = statusDescription;
+      statusDescriptionEl.textContent = currentStatusEntry.description;
       statusCell.appendChild(statusDescriptionEl);
     }
+
+    statusSelect = document.createElement('select');
+    statusSelect.name = 'status';
+    statusSelect.className = 'status-select';
+    const statusOptions = Array.from(
+      new Set([
+        ...STORY_STATUS_GUIDE.map((item) => item.value),
+        ...Object.keys(STATUS_CLASS_MAP),
+      ])
+    );
+    statusOptions.forEach((option) => {
+      const opt = document.createElement('option');
+      opt.value = option;
+      opt.textContent = option;
+      if (option === statusValue) {
+        opt.selected = true;
+      }
+      statusSelect.appendChild(opt);
+    });
+    statusSelect.hidden = true;
+    statusCell.appendChild(statusSelect);
+
+    statusSelect.addEventListener('change', () => {
+      const selected = statusSelect.value;
+      statusValueEl.textContent = selected;
+      statusValueEl.className = `status-value status-badge ${getStatusClass(selected)}`;
+      const entry = statusReference.find((item) => item.value === selected);
+      if (entry && statusDescriptionEl) {
+        statusDescriptionEl.textContent = entry.description;
+      }
+    });
+
     statusRow.appendChild(statusHeader);
     statusRow.appendChild(statusCell);
     storyBriefBody.appendChild(statusRow);
@@ -1568,8 +1617,15 @@ function renderDetails() {
       asA: formData.get('asA').trim(),
       iWant: formData.get('iWant').trim(),
       soThat: formData.get('soThat').trim(),
+      status: formData.get('status'),
       components: selectedComponents,
     };
+
+    if (payload.status == null || String(payload.status).trim() === '') {
+      payload.status = statusValue;
+    } else {
+      payload.status = String(payload.status).trim();
+    }
 
     try {
       const result = await updateStory(story.id, payload);
@@ -1582,6 +1638,14 @@ function renderDetails() {
         if (proceed) {
           const result = await updateStory(story.id, { ...payload, acceptWarnings: true });
           await handleStorySaveSuccess(result, 'Story saved with warnings');
+        }
+      } else if (error && error.code === 'STORY_STATUS_BLOCKED') {
+        const detail = formatStatusBlockDetails(error.details);
+        showToast(error.message || 'Story status update blocked', 'error');
+        if (detail) {
+          window.alert(`${error.message}\n\n${detail}`);
+        } else {
+          window.alert(error.message || 'Story status update blocked.');
         }
       } else {
         showToast(error.message || 'Failed to save story', 'error');
@@ -1601,6 +1665,12 @@ function renderDetails() {
     editableFields.forEach((field) => {
       field.disabled = !enabled;
     });
+    if (statusSelect) {
+      statusSelect.hidden = !enabled;
+    }
+    if (statusValueEl) {
+      statusValueEl.style.display = enabled ? 'none' : 'inline-flex';
+    }
     if (saveButton) {
       saveButton.disabled = !enabled;
     }
@@ -1621,6 +1691,19 @@ function renderDetails() {
       form.reset();
       selectedComponents = normalizeComponentSelection(story.components);
       refreshComponentsDisplay();
+      if (statusSelect) {
+        statusSelect.value = statusValue;
+      }
+      if (statusValueEl) {
+        statusValueEl.textContent = statusValue;
+        statusValueEl.className = `status-value status-badge ${getStatusClass(statusValue)}`;
+      }
+      if (statusDescriptionEl) {
+        const entry = statusReference.find((item) => item.value === statusValue);
+        if (entry && entry.description) {
+          statusDescriptionEl.textContent = entry.description;
+        }
+      }
     }
   }
 
@@ -1646,9 +1729,6 @@ function renderDetails() {
       window.open(`mailto:${email}`);
     }
   });
-
-  const referenceBtn = form.querySelector('#reference-button');
-  referenceBtn?.addEventListener('click', () => openReferenceModal(story.id));
 
   const acceptanceSection = document.createElement('section');
   const acceptanceHeading = document.createElement('div');
@@ -2025,7 +2105,13 @@ function showToast(message, type = 'info') {
   toastEl.textContent = message;
   toastEl.classList.add('show');
   toastEl.style.background =
-    type === 'error' ? '#b91c1c' : type === 'success' ? '#16a34a' : '#0f172a';
+    type === 'error'
+      ? '#b91c1c'
+      : type === 'success'
+      ? '#16a34a'
+      : type === 'warning'
+      ? '#b45309'
+      : '#0f172a';
   clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 3200);
 }
@@ -2987,6 +3073,37 @@ function formatMeasurabilityWarnings(warnings, suggestions) {
     suggestions.forEach((suggestion) => items.push(`• ${suggestion}`));
   }
   return items.join('\n');
+}
+
+function formatStatusBlockDetails(details) {
+  if (!details || typeof details !== 'object') {
+    return '';
+  }
+  const sections = [];
+  if (Array.isArray(details.incompleteChildren) && details.incompleteChildren.length) {
+    const children = details.incompleteChildren
+      .map((child) => {
+        const title = child.title && child.title.trim().length ? child.title : `Story ${child.id}`;
+        const status = child.status || 'Draft';
+        return `• ${title} (${status})`;
+      })
+      .join('\n');
+    sections.push(`Incomplete child stories:\n${children}`);
+  }
+  if (details.missingTests) {
+    sections.push('Add at least one acceptance test for this story.');
+  }
+  if (Array.isArray(details.failingTests) && details.failingTests.length) {
+    const tests = details.failingTests
+      .map((test) => {
+        const title = test.title && test.title.trim().length ? test.title : `Test ${test.id}`;
+        const status = test.status || 'Draft';
+        return `• ${title} (${status})`;
+      })
+      .join('\n');
+    sections.push(`Acceptance tests needing updates:\n${tests}`);
+  }
+  return sections.join('\n\n');
 }
 
 function formatComponentsSummary(components) {

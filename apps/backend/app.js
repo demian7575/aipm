@@ -18,6 +18,9 @@ export const COMPONENT_CATALOG = [
   'Traceabilty_Insight',
 ];
 
+const STORY_STATUS_VALUES = ['Draft', 'Ready', 'Approved', 'Done'];
+const STORY_STATUS_DEFAULT = STORY_STATUS_VALUES[0];
+
 const COMPONENT_LOOKUP = new Map(
   COMPONENT_CATALOG.map((name) => [name.toLowerCase(), name])
 );
@@ -1751,6 +1754,31 @@ function normalizeStoryPoint(value) {
   return numeric;
 }
 
+function normalizeStoryStatus(value) {
+  if (value == null) {
+    return STORY_STATUS_DEFAULT;
+  }
+  const text = String(value).trim();
+  if (!text) {
+    return STORY_STATUS_DEFAULT;
+  }
+  const match = STORY_STATUS_VALUES.find((status) => status.toLowerCase() === text.toLowerCase());
+  if (!match) {
+    const error = new Error(`Story status must be one of: ${STORY_STATUS_VALUES.join(', ')}`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return match;
+}
+
+function safeNormalizeStoryStatus(value) {
+  try {
+    return normalizeStoryStatus(value);
+  } catch (error) {
+    return STORY_STATUS_DEFAULT;
+  }
+}
+
 function normalizeTaskStatus(value) {
   if (value == null) {
     return TASK_STATUS_DEFAULT;
@@ -2780,6 +2808,71 @@ function markAcceptanceTestsForReview(db, storyId) {
   statement.run(ACCEPTANCE_TEST_STATUS_REVIEW, now(), storyId);
 }
 
+function isAcceptanceTestPassed(status) {
+  return typeof status === 'string' && status.trim().toLowerCase() === 'pass';
+}
+
+function ensureCanMarkStoryDone(db, storyId) {
+  const storyRows = db
+    .prepare('SELECT id, parent_id, title, status FROM user_stories')
+    .all();
+  const childrenByParent = new Map();
+  storyRows.forEach((row) => {
+    const parentId = row.parent_id == null ? null : Number(row.parent_id);
+    if (!childrenByParent.has(parentId)) {
+      childrenByParent.set(parentId, []);
+    }
+    childrenByParent.get(parentId).push(row);
+  });
+
+  const descendants = [];
+  const stack = [...(childrenByParent.get(storyId) || [])];
+  while (stack.length) {
+    const node = stack.pop();
+    descendants.push(node);
+    const nested = childrenByParent.get(node.id) || [];
+    nested.forEach((child) => stack.push(child));
+  }
+
+  const incompleteChildren = descendants.filter(
+    (child) => safeNormalizeStoryStatus(child.status) !== 'Done'
+  );
+
+  const testQuery = acceptanceTestsHasTitleColumn
+    ? 'SELECT id, title, status FROM acceptance_tests WHERE story_id = ?'
+    : 'SELECT id, status FROM acceptance_tests WHERE story_id = ?';
+  const tests = db.prepare(testQuery).all(storyId);
+  const failingTests = tests.filter((test) => !isAcceptanceTestPassed(test.status));
+
+  const details = {
+    incompleteChildren: incompleteChildren.map((child) => ({
+      id: child.id,
+      title: child.title || '',
+      status: safeNormalizeStoryStatus(child.status),
+    })),
+    failingTests: failingTests.map((test) => ({
+      id: test.id,
+      title: acceptanceTestsHasTitleColumn && typeof test.title === 'string' ? test.title : '',
+      status: test.status || ACCEPTANCE_TEST_STATUS_DRAFT,
+    })),
+    missingTests: tests.length === 0,
+  };
+
+  if (
+    details.incompleteChildren.length > 0 ||
+    details.missingTests ||
+    details.failingTests.length > 0
+  ) {
+    const error = new Error(
+      'Cannot mark story as Done until all child stories are Done and acceptance tests have status Pass.'
+    );
+    error.statusCode = 409;
+    error.code = 'STORY_STATUS_BLOCKED';
+    error.details = details;
+    throw error;
+  }
+}
+
 function tableColumns(db, table) {
   return db.prepare(`PRAGMA table_info(${table})`).all();
 }
@@ -3060,7 +3153,7 @@ async function loadStories(db) {
       components,
       storyPoint: row.story_point,
       assigneeEmail: row.assignee_email ?? '',
-      status: row.status ?? 'Draft',
+      status: safeNormalizeStoryStatus(row.status),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       acceptanceTests: [],
@@ -3158,7 +3251,7 @@ async function loadStoryWithDetails(db, storyId) {
     components: normalizeComponentsInput(parseJsonArray(row.components)),
     storyPoint: row.story_point,
     assigneeEmail: row.assignee_email ?? '',
-    status: row.status ?? 'Draft',
+    status: safeNormalizeStoryStatus(row.status),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     acceptanceTests: [],
@@ -3548,10 +3641,15 @@ export async function createApp() {
         const storyPoint =
           payload.storyPoint === undefined ? existing.story_point : normalizeStoryPoint(payload.storyPoint);
         const existingComponents = parseJsonArray(existing.components);
+        const normalizedExistingComponents = normalizeComponentsInput(existingComponents);
         const components =
           requestedComponents === undefined
-            ? normalizeComponentsInput(existingComponents)
+            ? normalizedExistingComponents
             : normalizeComponentsInput(requestedComponents, { strict: true });
+
+        const currentStatus = safeNormalizeStoryStatus(existing.status);
+        const nextStatus =
+          payload.status === undefined ? currentStatus : normalizeStoryStatus(payload.status);
 
         const storyForValidation = {
           title,
@@ -3582,8 +3680,34 @@ export async function createApp() {
           return;
         }
 
+        if (nextStatus === 'Done') {
+          ensureCanMarkStoryDone(db, storyId);
+        }
+
+        const nextAsA = asA ?? existing.as_a ?? '';
+        const nextIWant = iWant ?? existing.i_want ?? '';
+        const nextSoThat = soThat ?? existing.so_that ?? '';
+        const descriptionChanged = description !== (existing.description ?? '');
+        const assigneeChanged = assigneeEmail !== (existing.assignee_email ?? '');
+        const storyPointChanged = (storyPoint ?? null) !== (existing.story_point ?? null);
+        const asAChanged = nextAsA !== (existing.as_a ?? '');
+        const iWantChanged = nextIWant !== (existing.i_want ?? '');
+        const soThatChanged = nextSoThat !== (existing.so_that ?? '');
+        const titleChanged = title !== existing.title;
+        const componentsChanged =
+          JSON.stringify(components) !== JSON.stringify(normalizedExistingComponents);
+        const contentChanged =
+          titleChanged ||
+          descriptionChanged ||
+          assigneeChanged ||
+          storyPointChanged ||
+          asAChanged ||
+          iWantChanged ||
+          soThatChanged ||
+          componentsChanged;
+
         const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, updated_at = ? WHERE id = ?' // prettier-ignore
+          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ? WHERE id = ?' // prettier-ignore
         );
         update.run(
           title,
@@ -3591,32 +3715,36 @@ export async function createApp() {
           serializeComponents(components),
           storyPoint,
           assigneeEmail,
-          asA ?? existing.as_a,
-          iWant ?? existing.i_want,
-          soThat ?? existing.so_that,
+          nextAsA,
+          nextIWant,
+          nextSoThat,
+          nextStatus,
           now(),
           storyId
         );
-        const existingTestCountRow =
-          db.prepare('SELECT COUNT(*) as count FROM acceptance_tests WHERE story_id = ?').get(storyId) ||
-          {
-            count: 0,
-          };
-        if (Number(existingTestCountRow.count ?? 0) > 0) {
-          markAcceptanceTestsForReview(db, storyId);
+
+        if (contentChanged) {
+          const existingTestCountRow =
+            db.prepare('SELECT COUNT(*) as count FROM acceptance_tests WHERE story_id = ?').get(storyId) ||
+            {
+              count: 0,
+            };
+          if (Number(existingTestCountRow.count ?? 0) > 0) {
+            markAcceptanceTestsForReview(db, storyId);
+          }
+          await createAutomaticAcceptanceTest(
+            db,
+            {
+              id: storyId,
+              title,
+              asA: nextAsA,
+              iWant: nextIWant,
+              soThat: nextSoThat,
+              components,
+            },
+            { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
+          );
         }
-        await createAutomaticAcceptanceTest(
-          db,
-          {
-            id: storyId,
-            title,
-            asA: asA ?? existing.as_a,
-            iWant: iWant ?? existing.i_want,
-            soThat: soThat ?? existing.so_that,
-            components,
-          },
-          { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
-        );
         const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
         sendJson(res, 200, updated ?? null);
       } catch (error) {

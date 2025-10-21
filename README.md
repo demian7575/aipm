@@ -128,7 +128,7 @@ The database file is recreated automatically if missing. Delete the SQLite (and 
 - **Outline tree** with keyboard-accessible expand/collapse controls and selection synchronization.
 - **Details panel** showing INVEST warnings, story point editing with non-negative integer validation, assignee email launch, acceptance test tables, child story lists, curated **Components** selection, and a task manager that requires each task to include an explicit assignee before it can be saved.
 - **Employee Heat Map modal** with an assignee selector that visualises workload as per-assignee percentages (summing to 100%) so project managers can balance component focus, identify skill clusters, and spot gaps at a glance.
-- **Modal workflows** for creating child stories, acceptance tests (with verifiability hints), and reference documents.
+- **Modal workflows** for creating child stories, acceptance tests (with verifiability hints), and reference documents, with a quick-access header button for the reference library.
 - **Warning overrides** that allow saving despite INVEST or verifiability warnings after user confirmation.
 - **Persistent layout state** including panel visibility, expanded nodes, manual mindmap coordinates, and the last selected story.
 - **ChatGPT-assisted INVEST analysis** with inline summaries and issue annotations whenever an OpenAI API key is provided.
@@ -140,6 +140,9 @@ The database file is recreated automatically if missing. Delete the SQLite (and 
 | Draft     | Story is being authored or refined; requirements may still change.         |
 | Ready     | Story satisfies INVEST checks with verifiable acceptance tests and is planning-ready. |
 | Approved  | Story has been reviewed and accepted for execution.                        |
+| Done      | Story delivered; all descendant stories are Done and every acceptance test has status Pass. |
+
+> **Note:** The workspace enforces the Done status guard automatically—if a story has children that are not Done or any acceptance test that is not Pass, the API rejects the transition with actionable feedback.
 
 ### ChatGPT Configuration
 

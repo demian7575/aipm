@@ -387,6 +387,146 @@ test('acceptance tests allow observable outcomes without numeric metrics', async
   assert.equal(created.measurabilityWarnings.length, 0);
 });
 
+test('story Done status requires completed children and passing tests', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const parentPayload = {
+    title: 'Portfolio alignment dashboard',
+    description: 'Provide a dashboard for PMO leadership.',
+    asA: 'As a portfolio manager',
+    iWant: 'I want to review initiative health across components',
+    soThat: 'So that I can proactively balance workload and risks',
+    components: COMPONENT_CATALOG.length ? [COMPONENT_CATALOG[0]] : ['WorkModel'],
+    storyPoint: 5,
+    assigneeEmail: 'pmo@example.com',
+  };
+
+  const createParentResponse = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(parentPayload),
+  });
+  assert.equal(createParentResponse.status, 201);
+  const parentStory = await createParentResponse.json();
+  assert.ok(parentStory);
+
+  const blockedResponse = await fetch(`${baseUrl}/api/stories/${parentStory.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...parentPayload,
+      status: 'Done',
+      acceptWarnings: true,
+    }),
+  });
+  assert.equal(blockedResponse.status, 409);
+  const blocked = await blockedResponse.json();
+  assert.equal(blocked.code, 'STORY_STATUS_BLOCKED');
+  assert.ok(blocked.details);
+  assert.equal(typeof blocked.details.missingTests, 'boolean');
+
+  const childPayload = {
+    title: 'Audit-ready scorecards',
+    description: 'Generate compliance scorecards for each component.',
+    asA: 'As an auditor',
+    iWant: 'I want to download portfolio scorecards',
+    soThat: 'So that regulatory reviews start with trusted baselines',
+    components:
+      COMPONENT_CATALOG.length > 1 ? [COMPONENT_CATALOG[1]] : [COMPONENT_CATALOG[0]],
+    storyPoint: 3,
+    assigneeEmail: 'auditor@example.com',
+    parentId: parentStory.id,
+  };
+
+  const createChildResponse = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(childPayload),
+  });
+  assert.equal(createChildResponse.status, 201);
+  const childStory = await createChildResponse.json();
+  assert.ok(childStory);
+  assert.ok(Array.isArray(childStory.acceptanceTests));
+  assert.ok(childStory.acceptanceTests.length > 0);
+
+  const childTest = childStory.acceptanceTests[0];
+  const updateChildTestResponse = await fetch(`${baseUrl}/api/tests/${childTest.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      given: childTest.given,
+      when: childTest.when,
+      then: childTest.then,
+      status: 'Pass',
+    }),
+  });
+  assert.equal(updateChildTestResponse.status, 200);
+
+  const updateChildStoryResponse = await fetch(`${baseUrl}/api/stories/${childStory.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...childPayload,
+      status: 'Done',
+      acceptWarnings: true,
+    }),
+  });
+  assert.equal(updateChildStoryResponse.status, 200);
+
+  const refreshResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(refreshResponse.status, 200);
+  const tree = await refreshResponse.json();
+  const flattened = [];
+  (function walk(nodes) {
+    nodes.forEach((node) => {
+      flattened.push(node);
+      if (Array.isArray(node.children) && node.children.length) {
+        walk(node.children);
+      }
+    });
+  })(tree);
+
+  const refreshedParent = flattened.find((node) => node.id === parentStory.id);
+  assert.ok(refreshedParent);
+  assert.ok(Array.isArray(refreshedParent.acceptanceTests));
+  assert.ok(refreshedParent.acceptanceTests.length > 0);
+
+  const parentTest = refreshedParent.acceptanceTests[0];
+  const updateParentTestResponse = await fetch(`${baseUrl}/api/tests/${parentTest.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      given: parentTest.given,
+      when: parentTest.when,
+      then: parentTest.then,
+      status: 'Pass',
+    }),
+  });
+  assert.equal(updateParentTestResponse.status, 200);
+
+  const completeResponse = await fetch(`${baseUrl}/api/stories/${parentStory.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...parentPayload,
+      status: 'Done',
+      acceptWarnings: true,
+    }),
+  });
+  assert.equal(completeResponse.status, 200);
+  const completed = await completeResponse.json();
+  assert.equal(completed.status, 'Done');
+  assert.ok(completed.acceptanceTests.every((test) => test.status === 'Pass'));
+});
+
 test('story health recheck endpoint recalculates INVEST warnings', async (t) => {
   await resetDatabaseFiles();
   const { server, port } = await startServer();
