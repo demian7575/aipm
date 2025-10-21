@@ -72,6 +72,8 @@ const STATUS_CLASS_MAP = {
   Approved: 'status-approved',
 };
 
+let modalTeardown = null;
+
 const HEATMAP_ACTIVITIES = [
   { key: 'design', label: 'Design' },
   { key: 'documentation', label: 'Documentation' },
@@ -775,6 +777,21 @@ function setupNodeInteraction(group, node) {
   });
 }
 
+function formatComponentLabel(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+  return trimmed
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function buildComponentSelector(container, selectedValues = []) {
   if (!container) return null;
   container.innerHTML = '';
@@ -786,7 +803,7 @@ function buildComponentSelector(container, selectedValues = []) {
   COMPONENT_OPTIONS.forEach((component) => {
     const option = document.createElement('option');
     option.value = component;
-    option.textContent = component.replace(/_/g, ' ');
+    option.textContent = formatComponentLabel(component) || component;
     option.selected = selectedSet.has(component);
     select.appendChild(option);
   });
@@ -900,7 +917,14 @@ function buildHeatmapModalContent() {
     placeholder.textContent =
       'Assign user stories with assignees, components, and story points to see workload distribution.';
     container.appendChild(placeholder);
-    return container;
+    return {
+      element: container,
+      onClose: () => {
+        modal.style.width = '';
+        modal.style.maxWidth = '';
+        modalBody.style.width = '';
+      },
+    };
   }
 
   const controls = document.createElement('div');
@@ -940,16 +964,35 @@ function buildHeatmapModalContent() {
   const syncWidthToTable = () => {
     requestAnimationFrame(() => {
       const table = tableWrapper.querySelector('table');
-      if (!table) {
-        container.style.width = '';
-        return;
-      }
-      const measured = Math.ceil(table.getBoundingClientRect().width);
+      const tableWidth = table ? Math.ceil(table.getBoundingClientRect().width) : 0;
       const controlsWidth = Math.ceil(controls.getBoundingClientRect().width);
       const noteWidth = Math.ceil(note.getBoundingClientRect().width);
-      const desired = Math.max(measured, controlsWidth, noteWidth);
-      const maxWidth = Math.floor(window.innerWidth * 0.95);
-      container.style.width = `${Math.min(desired, maxWidth)}px`;
+      const desired = Math.max(tableWidth, controlsWidth, noteWidth);
+
+      if (!desired) {
+        container.style.width = '';
+        tableWrapper.style.maxWidth = '';
+        modalBody.style.width = '';
+        modal.style.width = '';
+        modal.style.maxWidth = '';
+        return;
+      }
+
+      const bodyStyles = window.getComputedStyle(modalBody);
+      const paddingLeft = parseFloat(bodyStyles.paddingLeft || '0');
+      const paddingRight = parseFloat(bodyStyles.paddingRight || '0');
+      const horizontalPadding = (Number.isFinite(paddingLeft) ? paddingLeft : 0) +
+        (Number.isFinite(paddingRight) ? paddingRight : 0);
+      const maxDialogWidth = Math.floor(window.innerWidth * 0.98);
+      const maxContentWidth = Math.max(maxDialogWidth - horizontalPadding, 0);
+      const contentWidth = Math.min(desired, maxContentWidth || desired);
+
+      container.style.width = `${contentWidth}px`;
+      tableWrapper.style.maxWidth = `${contentWidth}px`;
+      modalBody.style.width = `${contentWidth}px`;
+      const dialogWidth = Math.min(contentWidth + horizontalPadding, maxDialogWidth);
+      modal.style.width = `${dialogWidth}px`;
+      modal.style.maxWidth = `${maxDialogWidth}px`;
     });
   };
 
@@ -962,6 +1005,10 @@ function buildHeatmapModalContent() {
       placeholder.textContent = 'No workload recorded for this assignee yet.';
       tableWrapper.appendChild(placeholder);
       container.style.width = '';
+      tableWrapper.style.maxWidth = '';
+      modalBody.style.width = '';
+      modal.style.width = '';
+      modal.style.maxWidth = '';
       return;
     }
 
@@ -1040,9 +1087,20 @@ function buildHeatmapModalContent() {
     renderTable(event.target.value);
   });
 
+  window.addEventListener('resize', syncWidthToTable);
   renderTable(select.value);
 
-  return container;
+  return {
+    element: container,
+    onClose: () => {
+      window.removeEventListener('resize', syncWidthToTable);
+      container.style.width = '';
+      tableWrapper.style.maxWidth = '';
+      modalBody.style.width = '';
+      modal.style.width = '';
+      modal.style.maxWidth = '';
+    },
+  };
 }
 
 function lookupHeatmapComponentLabel(key) {
@@ -1762,7 +1820,12 @@ function renderDetails() {
                 <th scope="row">Components</th>
                 <td>${
                   Array.isArray(child.components) && child.components.length
-                    ? escapeHtml(child.components.join(', '))
+                    ? escapeHtml(
+                        child.components
+                          .map((entry) => formatComponentLabel(entry))
+                          .filter((entry) => entry && entry.length > 0)
+                          .join(', ') || 'Not specified'
+                      )
                     : '—'
                 }</td>
               </tr>
@@ -1912,11 +1975,34 @@ function showToast(message, type = 'info') {
 }
 
 function closeModal() {
-  modal.close();
+  if (modal.open) {
+    modal.close();
+  }
   delete modal.dataset.size;
+  modal.style.width = '';
+  modal.style.maxWidth = '';
+  modalBody.style.width = '';
+  if (typeof modalTeardown === 'function') {
+    try {
+      modalTeardown();
+    } catch (error) {
+      console.error('Modal teardown failed', error);
+    }
+    modalTeardown = null;
+  }
 }
 
-function openModal({ title, content, actions, cancelLabel = 'Cancel', size = 'default' }) {
+function openModal({
+  title,
+  content,
+  actions,
+  cancelLabel = 'Cancel',
+  size = 'default',
+  onClose = null,
+}) {
+  if (modal.open || typeof modalTeardown === 'function') {
+    closeModal();
+  }
   modalTitle.textContent = title;
   modalBody.innerHTML = '';
   modalBody.appendChild(content);
@@ -1952,6 +2038,17 @@ function openModal({ title, content, actions, cancelLabel = 'Cancel', size = 'de
       modalFooter.appendChild(button);
     });
   }
+
+  modalTeardown = () => {
+    if (typeof onClose === 'function') {
+      try {
+        onClose();
+      } catch (error) {
+        console.error('Modal onClose handler failed', error);
+      }
+    }
+    modalTeardown = null;
+  };
 
   modal.showModal();
 }
@@ -2821,7 +2918,10 @@ function formatComponentsSummary(components) {
   if (!Array.isArray(components) || components.length === 0) {
     return 'Not specified';
   }
-  return components.join(', ');
+  const labels = components
+    .map((entry) => formatComponentLabel(entry))
+    .filter((entry) => entry && entry.length > 0);
+  return labels.length > 0 ? labels.join(', ') : 'Not specified';
 }
 
 async function sendJson(url, options = {}) {
@@ -2872,8 +2972,14 @@ function initialize() {
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
 
   openHeatmapBtn?.addEventListener('click', () => {
-    const content = buildHeatmapModalContent();
-    openModal({ title: 'Employee Heat Map', content, cancelLabel: 'Close', size: 'content' });
+    const { element, onClose } = buildHeatmapModalContent();
+    openModal({
+      title: 'Employee Heat Map',
+      content: element,
+      cancelLabel: 'Close',
+      size: 'content',
+      onClose,
+    });
   });
 
   autoLayoutToggle.addEventListener('click', () => {
