@@ -146,6 +146,16 @@ const COMPONENT_SYNONYMS = new Map(
   ].map(([key, value]) => [key.toLowerCase(), value])
 );
 
+const COMPONENT_LOOKUP = new Map();
+COMPONENT_OPTIONS.forEach((component) => {
+  COMPONENT_LOOKUP.set(component.toLowerCase(), component);
+});
+for (const [alias, canonical] of COMPONENT_SYNONYMS.entries()) {
+  if (!COMPONENT_LOOKUP.has(alias)) {
+    COMPONENT_LOOKUP.set(alias, canonical);
+  }
+}
+
 function parseStoryPointInput(raw) {
   if (raw == null) {
     return { value: null, error: null };
