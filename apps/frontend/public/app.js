@@ -76,8 +76,6 @@ const HEATMAP_ACTIVITIES = [
   { key: 'design', label: 'Design' },
   { key: 'documentation', label: 'Documentation' },
   { key: 'implementation', label: 'Implementation' },
-  { key: 'operations_visualization', label: 'Operations & Visualization' },
-  { key: 'resource_management', label: 'Resource Management' },
   { key: 'test_automation', label: 'Test Automation' },
   { key: 'verification', label: 'Verification' },
 ];
@@ -88,14 +86,6 @@ const HEATMAP_ACTIVITY_KEYWORDS = [
   {
     key: 'implementation',
     patterns: [/build/i, /implement/i, /develop/i, /code/i, /integrat/i, /refactor/i],
-  },
-  {
-    key: 'operations_visualization',
-    patterns: [/operat/i, /deploy/i, /visualiz/i, /monitor/i, /dashboard/i, /observ/i],
-  },
-  {
-    key: 'resource_management',
-    patterns: [/resource/i, /capacity/i, /staff/i, /planning/i, /schedule/i, /assign/i],
   },
   {
     key: 'test_automation',
@@ -947,6 +937,22 @@ function buildHeatmapModalContent() {
     'Percentages show how the selected assignee’s workload is distributed across components and activities.';
   container.appendChild(note);
 
+  const syncWidthToTable = () => {
+    requestAnimationFrame(() => {
+      const table = tableWrapper.querySelector('table');
+      if (!table) {
+        container.style.width = '';
+        return;
+      }
+      const measured = Math.ceil(table.getBoundingClientRect().width);
+      const controlsWidth = Math.ceil(controls.getBoundingClientRect().width);
+      const noteWidth = Math.ceil(note.getBoundingClientRect().width);
+      const desired = Math.max(measured, controlsWidth, noteWidth);
+      const maxWidth = Math.floor(window.innerWidth * 0.95);
+      container.style.width = `${Math.min(desired, maxWidth)}px`;
+    });
+  };
+
   const renderTable = (assigneeKey) => {
     tableWrapper.innerHTML = '';
     const dataset = data.datasets.get(assigneeKey);
@@ -955,6 +961,7 @@ function buildHeatmapModalContent() {
       placeholder.className = 'placeholder';
       placeholder.textContent = 'No workload recorded for this assignee yet.';
       tableWrapper.appendChild(placeholder);
+      container.style.width = '';
       return;
     }
 
@@ -1026,6 +1033,7 @@ function buildHeatmapModalContent() {
 
     table.appendChild(tbody);
     tableWrapper.appendChild(table);
+    syncWidthToTable();
   };
 
   select.addEventListener('change', (event) => {
@@ -1187,6 +1195,9 @@ function renderDetails() {
           <tr>
             <th scope="row">Components</th>
             <td>
+              <p class="components-display">${escapeHtml(
+                formatComponentsSummary(story.components)
+              )}</p>
               <div class="components-select" data-component-options></div>
               <p class="components-hint">Select all components impacted by this story.</p>
             </td>
@@ -1211,12 +1222,46 @@ function renderDetails() {
 
   const storyBriefBody = form.querySelector('.story-brief tbody');
   const componentsTarget = form.querySelector('[data-component-options]');
+  const componentsDisplay = form.querySelector('.components-display');
+  const componentsHint = form.querySelector('.components-hint');
+  const componentSelectWrapper = form.querySelector('.components-select');
   if (componentsTarget) {
     buildComponentSelector(
       componentsTarget,
       Array.isArray(story.components) ? story.components : []
     );
   }
+  const componentsSelectElement = componentSelectWrapper?.querySelector('select');
+  const updateComponentDisplay = () => {
+    if (!componentsDisplay) {
+      return;
+    }
+    if (!componentsSelectElement) {
+      const summary = formatComponentsSummary(story.components);
+      componentsDisplay.textContent = summary;
+      if (summary === 'Not specified') {
+        componentsDisplay.classList.add('empty');
+      } else {
+        componentsDisplay.classList.remove('empty');
+      }
+      return;
+    }
+    const selectedLabels = Array.from(componentsSelectElement.options)
+      .filter((option) => option.selected)
+      .map((option) => option.textContent.trim())
+      .filter(Boolean);
+    if (selectedLabels.length === 0) {
+      componentsDisplay.textContent = 'Not specified';
+      componentsDisplay.classList.add('empty');
+    } else {
+      componentsDisplay.textContent = selectedLabels.join(', ');
+      componentsDisplay.classList.remove('empty');
+    }
+  };
+  if (componentsSelectElement) {
+    componentsSelectElement.addEventListener('change', updateComponentDisplay);
+  }
+  updateComponentDisplay();
   if (storyBriefBody) {
     const summaryRow = document.createElement('tr');
     summaryRow.className = 'story-meta-row';
@@ -1436,7 +1481,9 @@ function renderDetails() {
 
   const saveButton = form.querySelector('button[type="submit"]');
   const editButton = form.querySelector('#edit-story-btn');
-  const editableFields = Array.from(form.querySelectorAll('input[name], textarea[name]'));
+  const editableFields = Array.from(
+    form.querySelectorAll('input[name], textarea[name], select[name]')
+  );
 
   function setEditing(enabled) {
     editableFields.forEach((field) => {
@@ -1448,8 +1495,18 @@ function renderDetails() {
     if (editButton) {
       editButton.textContent = enabled ? 'Cancel Edit' : 'Edit Story';
     }
+    if (componentSelectWrapper) {
+      componentSelectWrapper.style.display = enabled ? 'block' : 'none';
+    }
+    if (componentsHint) {
+      componentsHint.style.display = enabled ? 'block' : 'none';
+    }
+    if (componentsDisplay) {
+      componentsDisplay.style.display = enabled ? 'none' : '';
+    }
     if (!enabled) {
       form.reset();
+      updateComponentDisplay();
     }
   }
 
@@ -2760,6 +2817,13 @@ function formatMeasurabilityWarnings(warnings, suggestions) {
   return items.join('\n');
 }
 
+function formatComponentsSummary(components) {
+  if (!Array.isArray(components) || components.length === 0) {
+    return 'Not specified';
+  }
+  return components.join(', ');
+}
+
 async function sendJson(url, options = {}) {
   const { method = 'GET', body } = options;
   const response = await fetch(url, {
@@ -2809,7 +2873,7 @@ function initialize() {
 
   openHeatmapBtn?.addEventListener('click', () => {
     const content = buildHeatmapModalContent();
-    openModal({ title: 'Employee Heat Map', content, cancelLabel: 'Close', size: 'wide' });
+    openModal({ title: 'Employee Heat Map', content, cancelLabel: 'Close', size: 'content' });
   });
 
   autoLayoutToggle.addEventListener('click', () => {
