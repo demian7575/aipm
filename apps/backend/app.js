@@ -1514,7 +1514,8 @@ function baselineInvestWarnings(story, options = {}) {
         `T — Testable stories enable objective verification. Ambiguous words found: ${ambiguousMatches
           .map((hint) => `“${hint.trim()}”`)
           .join(', ')}.`,
-      suggestion: 'Pair acceptance tests with measurable outcomes (time, counts, error rates) for each Then step.',
+      suggestion:
+        'Pair acceptance tests with observable or measurable outcomes (e.g., confirmation messages, status changes, or performance targets) for each Then step.',
     });
   }
 
@@ -1528,7 +1529,7 @@ function baselineInvestWarnings(story, options = {}) {
       warnings.push({
         criterion: 'testable',
         message: 'Add at least one acceptance test to prove the story is testable.',
-        details: 'INVEST “Testable” expects measurable acceptance criteria so the team can validate delivery.',
+        details: 'INVEST “Testable” expects observable or measurable acceptance criteria so the team can validate delivery.',
         suggestion: 'Capture a Given/When/Then scenario covering the expected behaviour.',
       });
     } else {
@@ -1538,7 +1539,7 @@ function baselineInvestWarnings(story, options = {}) {
           criterion: 'testable',
           message: 'Resolve Given/When/Then gaps in acceptance tests.',
           details: 'Some acceptance tests have ambiguous or incomplete steps that block verification.',
-          suggestion: 'Edit the failing scenarios to remove ambiguity and include measurable outcomes.',
+          suggestion: 'Edit the failing scenarios to remove ambiguity and include observable outcomes or quantitative targets.',
         });
       }
     }
@@ -2359,18 +2360,113 @@ function generateDocumentPayload(type, context = {}) {
 }
 
 const MEASURABLE_PATTERN = /([0-9]+\s*(ms|s|sec|seconds?|minutes?|hours?|%|percent|users?|items?|requests?|errors?))/i;
+const HTTP_STATUS_CODE_PATTERN = /\b(20\d|30\d|40\d|50\d)\b/;
+const OBSERVABLE_KEYWORDS = [
+  'display',
+  'show',
+  'visible',
+  'see',
+  'status',
+  'update',
+  'updated',
+  'redirect',
+  'navigat',
+  'receive',
+  'sent',
+  'email',
+  'message',
+  'notification',
+  'approved',
+  'rejected',
+  'enabled',
+  'disabled',
+  'error',
+  'success',
+  'log',
+  'record',
+  'save',
+  'persist',
+  'create',
+  'generated',
+  'delete',
+  'download',
+  'response',
+  'http',
+  'json',
+  'table',
+  'list',
+  'modal',
+  'screen',
+  'document',
+  'report',
+  'audit',
+  'chart',
+  'value',
+  'field',
+  'button',
+  'link',
+  'toast',
+  'highlight',
+  'select',
+  'count',
+  'badge',
+  'tab',
+  'workflow',
+  'progress',
+  'api',
+  'return',
+  'flag',
+  'equal',
+  'match',
+  'exists',
+  'contain',
+  'appear',
+  'generated',
+  'accessible',
+  'render',
+  'approve',
+  'reject',
+];
+
+function isObservableOutcome(step) {
+  const text = typeof step === 'string' ? step.trim() : String(step ?? '').trim();
+  if (!text) {
+    return false;
+  }
+  const normalized = text.toLowerCase();
+  if (MEASURABLE_PATTERN.test(normalized)) {
+    return true;
+  }
+  if (HTTP_STATUS_CODE_PATTERN.test(normalized) && (normalized.includes('http') || normalized.includes('status'))) {
+    return true;
+  }
+  return OBSERVABLE_KEYWORDS.some((keyword) => normalized.includes(keyword));
+}
 
 function measurabilityWarnings(thenSteps) {
   const warnings = [];
   const suggestions = [];
   thenSteps.forEach((step, index) => {
-    if (!MEASURABLE_PATTERN.test(step)) {
+    const text = typeof step === 'string' ? step.trim() : String(step ?? '').trim();
+    if (!text) {
       const suggestion =
-        `Then step ${index + 1}: add a numeric goal such as “within 2s”, “<1% errors”, or “at least 5 users displayed”.`;
+        `Then step ${index + 1}: describe the expected outcome so testers know what to observe or measure.`;
       warnings.push({
         index,
-        message: `Then step ${index + 1} lacks a measurable outcome.`,
-        details: 'Then steps should include a quantifiable or observable threshold so the result is verifiable.',
+        message: `Then step ${index + 1} is blank or missing an outcome.`,
+        details: 'Then steps should explain what changes, appears, or is validated after the action.',
+        suggestion,
+      });
+      suggestions.push(suggestion);
+      return;
+    }
+    if (!isObservableOutcome(text)) {
+      const suggestion =
+        `Then step ${index + 1}: explain what is observable (e.g., status updates, confirmation message) or include a quantitative target such as “within 2 seconds”.`;
+      warnings.push({
+        index,
+        message: `Then step ${index + 1} lacks an observable or measurable result.`,
+        details: 'Then steps should describe what testers can see, confirm, or measure to verify success.',
         suggestion,
       });
       suggestions.push(suggestion);
@@ -2404,7 +2500,7 @@ function buildGwtHealth(given, when, then, measurability) {
       criterion: 'Then',
       message: 'Add a Then step outlining the expected result.',
       details: 'Then steps describe the observable outcome that proves the story works.',
-      suggestion: 'Example: “Then the request status updates within 2 seconds”.',
+      suggestion: 'Example: “Then the request status updates to Approved and a confirmation email is sent”.',
     });
   }
 
@@ -2542,7 +2638,7 @@ async function requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, conf
     {
       role: 'system',
       content:
-        'You are a QA engineer who writes Given/When/Then acceptance tests. Respond ONLY with JSON containing "summary", optional "titleSuffix", and string arrays "given", "when", "then". Each array must include at least one entry. Include measurable thresholds in Then steps.',
+        'You are a QA engineer who writes Given/When/Then acceptance tests. Respond ONLY with JSON containing "summary", optional "titleSuffix", and string arrays "given", "when", "then". Each array must include at least one entry. Describe observable or measurable outcomes in the Then steps.',
     },
     {
       role: 'user',
@@ -3595,7 +3691,7 @@ export async function createApp() {
         if (warnings.length > 0 && !payload.acceptWarnings) {
           sendJson(res, 409, {
             code: 'MEASURABILITY_WARNINGS',
-            message: 'Then steps must be measurable.',
+            message: 'Then steps must describe observable or measurable outcomes.',
             warnings,
             suggestions,
           });
@@ -3640,7 +3736,7 @@ export async function createApp() {
         if (warnings.length > 0 && !payload.acceptWarnings) {
           sendJson(res, 409, {
             code: 'MEASURABILITY_WARNINGS',
-            message: 'Then steps must be measurable.',
+            message: 'Then steps must describe observable or measurable outcomes.',
             warnings,
             suggestions,
           });

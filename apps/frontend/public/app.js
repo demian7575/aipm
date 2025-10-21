@@ -45,7 +45,7 @@ const STORY_STATUS_GUIDE = [
   },
   {
     value: 'Ready',
-    description: 'Story meets INVEST and has measurable tests, making it ready for planning.',
+    description: 'Story meets INVEST and has verifiable acceptance tests, making it ready for planning.',
   },
   {
     value: 'Approved',
@@ -2487,7 +2487,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
     </div>
     <label>Given<textarea id="test-given" placeholder="One step per line"></textarea></label>
     <label>When<textarea id="test-when" placeholder="One step per line"></textarea></label>
-    <label>Then<textarea id="test-then" placeholder="One measurable step per line"></textarea></label>
+    <label>Then<textarea id="test-then" placeholder="One observable or measurable step per line"></textarea></label>
     <label>Status
       <select id="test-status">
         <option value="Draft">Draft</option>

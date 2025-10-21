@@ -336,6 +336,57 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   await fs.access(DATABASE_PATH);
 });
 
+test('acceptance tests allow observable outcomes without numeric metrics', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories));
+  assert.ok(stories.length > 0);
+  const story = stories[0];
+
+  const payload = {
+    given: ['Given an auditor is on the approvals page'],
+    when: ['When they approve a pending request'],
+    then: ['Then a confirmation banner is displayed and the request status updates to Approved'],
+    status: 'Draft',
+  };
+
+  const createResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tests`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(createResponse.status, 201);
+  const created = await createResponse.json();
+  assert.ok(created);
+  assert.equal(created.status, 'Draft');
+  assert.ok(Array.isArray(created.then));
+  assert.ok(
+    created.then[0].toLowerCase().includes('confirmation banner'),
+    'Then step should reflect the observable outcome'
+  );
+  assert.ok(created.gwtHealth);
+  assert.equal(
+    created.gwtHealth.satisfied,
+    true,
+    'Observable outcomes should satisfy GWT health checks'
+  );
+  assert.ok(Array.isArray(created.gwtHealth.issues));
+  assert.equal(created.gwtHealth.issues.length, 0);
+  assert.ok(Array.isArray(created.measurabilityWarnings));
+  assert.equal(created.measurabilityWarnings.length, 0);
+});
+
 test('story health recheck endpoint recalculates INVEST warnings', async (t) => {
   await resetDatabaseFiles();
   const { server, port } = await startServer();
