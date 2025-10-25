@@ -610,21 +610,12 @@ function createMindmapElement(tag, namespace = false) {
 }
 
 function buildMindmapMetaLines(story) {
-  const statusClass = getStatusClass(story.status);
   const metaLines = [
     {
       value:
         story.storyPoint != null && story.storyPoint !== ''
           ? String(story.storyPoint)
           : 'Unestimated',
-      classNames: ['story-meta'],
-    },
-    {
-      value: story.status ? String(story.status) : 'Draft',
-      classNames: ['story-meta', 'story-status', statusClass].filter(Boolean),
-    },
-    {
-      value: story.assigneeEmail ? String(story.assigneeEmail) : 'Unassigned',
       classNames: ['story-meta'],
     },
   ];
