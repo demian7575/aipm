@@ -790,8 +790,8 @@ test('document generation endpoints produce tailored content', async (t) => {
   const testDocContent = await testDocResponse.text();
   assert.match(testDocResponse.headers.get('content-type') || '', /text\/markdown/i);
   assert.ok(/#\s+Common Test Document/i.test(testDocContent));
-  assert.ok(/Component Coverage Summary/i.test(testDocContent));
-  assert.ok(/Acceptance Test Scenarios/i.test(testDocContent));
+  assert.ok(/Requirement Traceability Matrix/i.test(testDocContent));
+  assert.ok(/Detailed Test Procedures/i.test(testDocContent));
   const testDocSource = testDocResponse.headers.get('x-document-source');
   assert.ok(['fallback', 'baseline', 'openai'].includes(testDocSource));
   const testDisposition = testDocResponse.headers.get('content-disposition') || '';
@@ -806,8 +806,8 @@ test('document generation endpoints produce tailored content', async (t) => {
   const systemDocContent = await systemDocResponse.text();
   assert.match(systemDocResponse.headers.get('content-type') || '', /text\/markdown/i);
   assert.ok(/#\s+Common Requirement Specification/i.test(systemDocContent));
-  assert.ok(/Requirements by Component/i.test(systemDocContent));
-  assert.ok(/User Story Statement/i.test(systemDocContent));
+  assert.ok(/Requirements Catalogue/i.test(systemDocContent));
+  assert.ok(/Requirement Statement/i.test(systemDocContent));
   const systemDocSource = systemDocResponse.headers.get('x-document-source');
   assert.ok(['fallback', 'baseline', 'openai'].includes(systemDocSource));
   const systemDisposition = systemDocResponse.headers.get('content-disposition') || '';

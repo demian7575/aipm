@@ -1979,13 +1979,43 @@ function groupStoriesByComponent(flatStories) {
   return { groups, order };
 }
 
-function buildCommonTestDocument(context = {}) {
+function enumerateRequirementEntries(context = {}) {
   const flatStories = Array.isArray(context.flat) ? context.flat : [];
+  const { groups, order } = groupStoriesByComponent(flatStories);
+  const requirements = [];
+  let componentSequence = 0;
+
+  order.forEach((component) => {
+    const stories = groups.get(component) ?? [];
+    if (stories.length === 0) {
+      return;
+    }
+    componentSequence += 1;
+    stories.forEach((story, storyIndex) => {
+      const storySequence = storyIndex + 1;
+      const identifier = `REQ-${String(componentSequence).padStart(2, '0')}-${String(
+        storySequence
+      ).padStart(2, '0')}`;
+      requirements.push({
+        id: identifier,
+        componentKey: component,
+        componentDisplayName: componentDisplayName(component),
+        componentSequence,
+        storySequence,
+        story,
+      });
+    });
+  });
+
+  return { flatStories, groups, order, requirements };
+}
+
+function buildCommonTestDocument(context = {}) {
   const storyMap =
     context.map instanceof Map
       ? context.map
-      : new Map(flatStories.map((story) => [story.id, story]));
-  const { groups, order } = groupStoriesByComponent(flatStories);
+      : new Map((Array.isArray(context.flat) ? context.flat : []).map((story) => [story.id, story]));
+  const { flatStories, groups, order, requirements } = enumerateRequirementEntries(context);
 
   const totalTests = flatStories.reduce((sum, story) => {
     if (!Array.isArray(story.acceptanceTests)) {
@@ -2005,24 +2035,49 @@ function buildCommonTestDocument(context = {}) {
   lines.push(`| Generated On | ${now()} |`);
   lines.push(`| Total User Stories | ${flatStories.length} |`);
   lines.push(`| Total Acceptance Tests | ${totalTests} |`);
+  lines.push(`| Requirements Covered | ${requirements.length} |`);
   lines.push('');
 
-  lines.push('## 2. Purpose');
+  lines.push('## 2. Test Strategy & Scope');
   lines.push('');
   lines.push(
-    'This report applies the Common Test Document template to consolidate Given/When/Then scenarios for every user story grouped by component.'
+    'Testing is organised by AIPM component so every requirement has at least one verification scenario. '
+      +
+      'Procedures combine existing acceptance tests with additional guidance on environment, data, and evidence collection.'
   );
   lines.push('');
-
-  lines.push('## 3. Component Coverage Summary');
-  lines.push('');
-
   if (flatStories.length === 0) {
     lines.push('No user stories are available. Capture stories to generate test documentation.');
+    lines.push('');
+    lines.push('## 3. Requirement Traceability Matrix');
+    lines.push('');
+    lines.push('No requirements have been catalogued yet, so traceability cannot be established.');
+    lines.push('');
+    lines.push('## 4. Detailed Test Procedures');
+    lines.push('');
+    lines.push('Test procedures will populate automatically once requirements are defined.');
+    lines.push('');
+    lines.push('## 5. Test Environment & Tooling');
+    lines.push('');
+    lines.push('- Core Application: AIPM web client and backend services.');
+    lines.push('- Tooling: Modern Chromium-based browser, SQLite database seeded with sample data.');
+    lines.push('- Automation Hooks: REST API endpoints under `/api/*` for scripted verification.');
+    lines.push('');
+    lines.push('## 6. Risks & Mitigations');
+    lines.push('');
+    lines.push('- Incomplete requirements: collaborate with product owners to capture missing stories.');
+    lines.push('- Environment drift: document configuration and capture evidence before upgrades.');
+    lines.push('');
+    lines.push('## 7. References & Approvals');
+    lines.push('');
+    lines.push('- Product strategy overview');
+    lines.push('- INVEST guideline reference');
+    lines.push('- QA sign-off checklist');
     return { title: 'Common Test Document', content: lines.join('\n') };
   }
 
   const summaryRows = [];
+  const requirementsByComponent = new Map();
   order.forEach((component) => {
     const stories = groups.get(component) ?? [];
     if (stories.length === 0) {
@@ -2035,8 +2090,37 @@ function buildCommonTestDocument(context = {}) {
       return sum + story.acceptanceTests.length;
     }, 0);
     summaryRows.push(`| ${componentDisplayName(component)} | ${stories.length} | ${componentTests} |`);
+    requirementsByComponent.set(
+      component,
+      requirements.filter((entry) => entry.componentKey === component)
+    );
   });
 
+  lines.push('## 3. Requirement Traceability Matrix');
+  lines.push('');
+  if (requirements.length === 0) {
+    lines.push('No requirements have been catalogued yet, so traceability cannot be established.');
+  } else {
+    lines.push('| Requirement | Story | Primary Test | Coverage |');
+    lines.push('| --- | --- | --- | --- |');
+    requirements.forEach((entry) => {
+      const story = entry.story || {};
+      const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
+      const primaryTest = tests.length
+        ? formatMarkdownTableCell(
+            tests[0].title && tests[0].title.trim() ? tests[0].title.trim() : 'Scenario 1'
+          )
+        : 'Pending test design';
+      const coverage = tests.length ? 'Full' : 'Pending';
+      lines.push(
+        `| ${entry.id} | ${formatMarkdownTableCell(story.title || 'Untitled Story')} | ${primaryTest} | ${coverage} |`
+      );
+    });
+  }
+  lines.push('');
+
+  lines.push('## 4. Component Test Summaries');
+  lines.push('');
   if (summaryRows.length === 0) {
     lines.push('No user stories are available. Capture stories to generate test documentation.');
     return { title: 'Common Test Document', content: lines.join('\n') };
@@ -2047,113 +2131,148 @@ function buildCommonTestDocument(context = {}) {
   summaryRows.forEach((row) => lines.push(row));
   lines.push('');
 
+  lines.push('## 5. Detailed Test Procedures');
+  lines.push('');
+
   let componentIndex = 0;
   order.forEach((component) => {
-    const stories = groups.get(component) ?? [];
-    if (stories.length === 0) {
+    const componentRequirements = requirementsByComponent.get(component) || [];
+    if (componentRequirements.length === 0) {
       return;
     }
     componentIndex += 1;
-    lines.push(`### 3.${componentIndex} ${componentDisplayName(component)}`);
+    lines.push(`### 5.${componentIndex} ${componentDisplayName(component)}`);
+    lines.push('');
+    lines.push(
+      'This section outlines end-to-end verification for the component, combining existing acceptance tests with repeatable QA '
+        + 'instructions.'
+    );
     lines.push('');
 
-    lines.push('#### Story Overview');
-    lines.push('');
-    lines.push('| Story | Status | Estimate | Assignee | Path |');
-    lines.push('| --- | --- | --- | --- | --- |');
-    stories.forEach((story) => {
+    componentRequirements.forEach((requirement) => {
+      const story = requirement.story || {};
+      const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
       const storyPoint =
         story.storyPoint != null && story.storyPoint !== '' ? story.storyPoint : 'Unestimated';
       const assignee = story.assigneeEmail || 'Unassigned';
       const path = buildStoryPathLabel(story, storyMap);
-      lines.push(
-        `| ${formatMarkdownTableCell(story.title || 'Untitled Story')} | ${formatMarkdownTableCell(
-          story.status || 'Draft'
-        )} | ${formatMarkdownTableCell(storyPoint)} | ${formatMarkdownTableCell(assignee)} | ${formatMarkdownTableCell(
-          path
-        )} |`
-      );
-    });
-    lines.push('');
 
-    lines.push('#### Acceptance Test Scenarios');
-    lines.push('');
-    let componentHasTests = false;
-    stories.forEach((story) => {
-      const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
-      const displayTitle = story.title || 'Untitled Story';
+      lines.push(`#### ${requirement.id} — ${story.title || 'Untitled Story'}`);
+      lines.push('');
+      lines.push(`- Component: ${requirement.componentDisplayName}`);
+      lines.push(`- Path: ${formatMarkdownTableCell(path)}`);
+      lines.push(`- Status: ${formatMarkdownTableCell(story.status || 'Draft')}`);
+      lines.push(`- Estimate: ${formatMarkdownTableCell(storyPoint)}`);
+      lines.push(`- Assignee: ${formatMarkdownTableCell(assignee)}`);
+      lines.push('');
+
+      lines.push('**Requirement Summary**');
+      lines.push('');
+      lines.push(`- As a ${story.asA || '…'}`);
+      lines.push(`- I want ${story.iWant || '…'}`);
+      lines.push(`- So that ${story.soThat || '…'}`);
+      if (story.description && story.description.trim()) {
+        lines.push('');
+        lines.push('> ' + story.description.trim().replace(/\r?\n/g, '\n> '));
+        lines.push('');
+      } else {
+        lines.push('');
+      }
+
+      lines.push('**Test Objectives**');
+      lines.push('');
+      lines.push(
+        '- Validate end-user workflows align with the requirement narrative and acceptance criteria.'
+      );
+      lines.push('- Confirm integration touchpoints respond with expected signals and events.');
+      lines.push('- Capture evidence (screenshots, logs, API responses) for auditability.');
+      lines.push('');
+
       if (tests.length === 0) {
-        lines.push(`- **${displayTitle}** — No acceptance tests recorded.`);
+        lines.push('_No acceptance tests defined. Develop manual or automated coverage before release._');
+        lines.push('');
         return;
       }
-      componentHasTests = true;
-      lines.push(
-        `- **${displayTitle}** — ${tests.length} scenario${tests.length === 1 ? '' : 's'} (latest status: ${tests[
-          tests.length - 1
-        ].status || 'Draft'})`
-      );
+
       tests.forEach((test, testIndex) => {
         const heading = test.title && test.title.trim() ? test.title.trim() : `Scenario ${testIndex + 1}`;
-        lines.push(`  - ${heading} — Status: ${test.status || 'Draft'}`);
-        renderStepList('Given', test.given).forEach((line) => {
-          lines.push(`    ${line}`);
-        });
-        renderStepList('When', test.when).forEach((line) => {
-          lines.push(`    ${line}`);
-        });
-        renderStepList('Then', test.then).forEach((line) => {
-          lines.push(`    ${line}`);
-        });
+        const testCaseId = `${requirement.id}-TC${String(testIndex + 1).padStart(2, '0')}`;
+        lines.push(`##### ${testCaseId} — ${heading}`);
+        lines.push('');
+        lines.push('| Section | Detail |');
+        lines.push('| --- | --- |');
+        lines.push(`| Requirement | ${requirement.id} |`);
+        lines.push(`| Status | ${formatMarkdownTableCell(test.status || 'Draft')} |`);
+        const givenSteps = renderStepList('Given', test.given).slice(1).map((line) => line.replace(/^-\s*/, ''));
+        const whenSteps = renderStepList('When', test.when).slice(1).map((line) => line.replace(/^-\s*/, ''));
+        const thenSteps = renderStepList('Then', test.then).slice(1).map((line) => line.replace(/^-\s*/, ''));
+        const prerequisites = givenSteps.length ? givenSteps.join('<br />') : 'Documented in test data sheet.';
+        const procedure = whenSteps.length
+          ? whenSteps.map((step, index) => `${index + 1}. ${step}`).join('<br />')
+          : 'Execute the primary user journey as described in the requirement summary.';
+        const expected = thenSteps.length
+          ? thenSteps.map((step, index) => `${index + 1}. ${step}`).join('<br />')
+          : 'System responds according to INVEST-compliant acceptance criteria.';
+        lines.push(`| Preconditions | ${formatMarkdownTableCell(prerequisites)} |`);
+        lines.push(`| Procedure | ${formatMarkdownTableCell(procedure)} |`);
+        lines.push(`| Expected Results | ${formatMarkdownTableCell(expected)} |`);
+        if (Array.isArray(test.referenceDocuments) && test.referenceDocuments.length > 0) {
+          const references = test.referenceDocuments
+            .map((doc) => `${doc.name || 'Reference'} (${doc.url || 'N/A'})`)
+            .join('<br />');
+          lines.push(`| References | ${formatMarkdownTableCell(references)} |`);
+        } else {
+          lines.push('| References | Requirement specification, design guidelines |');
+        }
         if (test.gwtHealth) {
           const healthLabel = test.gwtHealth.satisfied ? 'Pass' : 'Needs review';
-          lines.push(`    Health: ${healthLabel}`);
+          lines.push(`| Gherkin Health | ${healthLabel} |`);
           if (Array.isArray(test.gwtHealth.issues) && test.gwtHealth.issues.length > 0) {
-            lines.push('    Issues:');
-            test.gwtHealth.issues.forEach((issue) => {
-              const criterion = issue.criterion ? `${issue.criterion}: ` : '';
-              lines.push(`    - ${criterion}${issue.message || 'Follow-up required.'}`);
-            });
+            const issues = test.gwtHealth.issues
+              .map((issue) => {
+                const criterion = issue.criterion ? `${issue.criterion.toUpperCase()}: ` : '';
+                return `${criterion}${issue.message || 'Follow-up required.'}`;
+              })
+              .join('<br />');
+            lines.push(`| Review Notes | ${formatMarkdownTableCell(issues)} |`);
           }
         }
+        lines.push('');
       });
     });
-    if (!componentHasTests) {
-      lines.push('_No acceptance tests recorded for this component._');
-    }
-    lines.push('');
-
-    lines.push('#### Reference Materials');
-    lines.push('');
-    let hasReferences = false;
-    stories.forEach((story) => {
-      const docs = Array.isArray(story.referenceDocuments) ? story.referenceDocuments : [];
-      if (docs.length === 0) {
-        return;
-      }
-      if (!hasReferences) {
-        hasReferences = true;
-      }
-      lines.push(`- **${story.title || 'Untitled Story'}**`);
-      listReferenceDocuments(docs).forEach((docLine) => {
-        lines.push(`  ${docLine}`);
-      });
-    });
-    if (!hasReferences) {
-      lines.push('_No reference documents recorded for this component._');
-    }
-    lines.push('');
   });
+
+  lines.push('## 6. Test Environment & Tooling');
+  lines.push('');
+  lines.push('- **Application Tier:** AIPM backend services with SQLite persistence.');
+  lines.push('- **Client Tier:** Browser-based UI (Chrome 119+ or Firefox 118+ recommended).');
+  lines.push('- **Test Data:** Sample dataset generated via `scripts/generate-sample-dataset.mjs`.');
+  lines.push('- **Automation Hooks:** REST API calls documented under `/api/*` endpoints.');
+  lines.push('- **Monitoring:** Browser devtools network logs, server console output, and database snapshots.');
+  lines.push('');
+
+  lines.push('## 7. Risks & Mitigations');
+  lines.push('');
+  lines.push('- **Scope creep:** Lock sprint backlog before executing regression cycles.');
+  lines.push('- **Integration drift:** Pin external dependencies and verify API contracts with mocks.');
+  lines.push('- **Insufficient evidence:** Store artefacts in the QA share with timestamps.');
+  lines.push('');
+
+  lines.push('## 8. References & Approvals');
+  lines.push('');
+  lines.push('- AIPM Common Requirement Specification (latest revision).');
+  lines.push('- Engineering design review minutes.');
+  lines.push('- QA sign-off checklist and retrospective notes.');
 
   return { title: 'Common Test Document', content: lines.join('\n') };
 }
 
 function buildCommonRequirementSpecificationDocument(context = {}) {
-  const flatStories = Array.isArray(context.flat) ? context.flat : [];
   const storyMap =
     context.map instanceof Map
       ? context.map
-      : new Map(flatStories.map((story) => [story.id, story]));
-  const { groups, order } = groupStoriesByComponent(flatStories);
+      : new Map((Array.isArray(context.flat) ? context.flat : []).map((story) => [story.id, story]));
+  const { flatStories, groups, order, requirements } = enumerateRequirementEntries(context);
 
   const lines = [];
   lines.push('# Common Requirement Specification');
@@ -2165,12 +2284,82 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
   lines.push('| Template | Common Requirement Specification template |');
   lines.push(`| Generated On | ${now()} |`);
   lines.push(`| Total User Stories | ${flatStories.length} |`);
+  lines.push(`| Requirements Catalogued | ${requirements.length} |`);
   lines.push('');
 
-  lines.push('## 2. Overview');
+  lines.push('## 2. About AIPM');
   lines.push('');
+  lines.push(
+    'AI Project Manager (AIPM) orchestrates agile delivery with AI-assisted story analysis, documentation, and verification '
+      +
+      'pipelines. The platform centralises story capture, INVEST health assessments, automated acceptance test generation, and '
+      +
+      'document exports so distributed teams share a single source of truth.'
+  );
+  lines.push('');
+  lines.push('- **Core capabilities:** backlog modelling, documentation generation, traceability, and quality signals.');
+  lines.push('- **Primary stakeholders:** product managers, engineers, quality analysts, and compliance reviewers.');
+  lines.push('- **Value proposition:** shorten feedback loops by combining structured requirements with AI-authored insights.');
+  lines.push('');
+
+  lines.push('## 3. System Design & Architecture');
+  lines.push('');
+  lines.push(
+    'The solution follows a layered architecture. The conceptual block diagram includes:');
+  lines.push('- **Presentation Layer:** Browser SPA rendering mindmaps, outlines, and document workflows.');
+  lines.push('- **Application Services:** Node.js backend exposing REST APIs for stories, health checks, and document export.');
+  lines.push('- **Intelligence Services:** Optional OpenAI integrations performing INVEST and document synthesis.');
+  lines.push('- **Data Layer:** SQLite persistence with traceable relationships between stories, tests, and references.');
+  lines.push('- **Integrations:** Webhooks and document download endpoints for downstream tooling.');
+  lines.push('');
+  lines.push(
+    'Signals traverse from UI interactions (create/update stories) to backend validation, onward to AI enrichment, and finally '
+      +
+      'to persistence and reporting layers. This ensures each requirement change propagates to testing and documentation.'
+  );
+  lines.push('');
+
+  lines.push('## 4. Operational Workflow & Signalling');
+  lines.push('');
+  lines.push('- **Story lifecycle:** Draft → Ready → In Progress → Blocked/Approved → Done. Status updates trigger INVEST checks.');
+  lines.push('- **Signal propagation:** Story edits invoke acceptance test regeneration, gWT health evaluation, and layout refresh.');
+  lines.push('- **Traceability:** Requirement IDs map to acceptance scenarios and reference documents for audit readiness.');
+  lines.push('- **Notifications:** UI toasts and document exports inform stakeholders of changes.');
+  lines.push('');
+
+  lines.push('## 5. Installation & Deployment');
+  lines.push('');
+  lines.push('1. Install Node.js 20+ and npm.');
+  lines.push('2. Clone the AIPM repository and run `npm install`.');
+  lines.push('3. Seed sample data with `npm run seed` or `node scripts/generate-sample-dataset.mjs`.');
+  lines.push('4. Launch the backend via `npm run backend` and the static front-end host.');
+  lines.push('5. Configure optional OpenAI credentials for enhanced analysis.');
+  lines.push('6. Verify document generation through the Generate Document modal.');
+  lines.push('');
+
   if (flatStories.length === 0) {
+    lines.push('## 6. Requirements Catalogue');
+    lines.push('');
     lines.push('No user stories are available. Capture stories to generate requirement documentation.');
+    lines.push('');
+    lines.push('## 7. Assumptions, Constraints, and Non-functional Requirements');
+    lines.push('');
+    lines.push('- Availability target: 99.5% for core documentation endpoints.');
+    lines.push('- Performance: document generation completes within 5 seconds for 100 stories.');
+    lines.push('- Security: enforce role-based access for editing and exporting artefacts.');
+    lines.push('');
+    lines.push('## 8. References');
+    lines.push('');
+    lines.push('- Product vision deck');
+    lines.push('- QA strategy playbook');
+    lines.push('- OpenAI API documentation');
+    lines.push('');
+    lines.push('## 9. Glossary & Acronyms');
+    lines.push('');
+    lines.push('- **AIPM:** AI Project Manager.');
+    lines.push('- **INVEST:** Independent, Negotiable, Valuable, Estimable, Small, Testable.');
+    lines.push('- **GWT:** Given/When/Then.');
+    lines.push('');
     return { title: 'Common Requirement Specification', content: lines.join('\n') };
   }
 
@@ -2180,6 +2369,10 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
     statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
   });
 
+  lines.push('## 6. Requirements Catalogue');
+  lines.push('');
+  lines.push('### 6.1 Portfolio Snapshot');
+  lines.push('');
   lines.push('| Status | Stories |');
   lines.push('| --- | ---:|');
   Array.from(statusCounts.keys())
@@ -2211,41 +2404,56 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
   });
   lines.push('');
 
-  lines.push('## 3. Requirements by Component');
-  lines.push('');
+  const requirementsByComponent = new Map();
+  order.forEach((component) => {
+    requirementsByComponent.set(
+      component,
+      requirements.filter((entry) => entry.componentKey === component)
+    );
+  });
 
   let componentIndex = 0;
   order.forEach((component) => {
-    const stories = groups.get(component) ?? [];
-    if (stories.length === 0) {
+    const componentRequirements = requirementsByComponent.get(component) || [];
+    if (componentRequirements.length === 0) {
       return;
     }
     componentIndex += 1;
-    lines.push(`### 3.${componentIndex} ${componentDisplayName(component)}`);
+    lines.push(`### 6.${componentIndex + 1} ${componentDisplayName(component)}`);
+    lines.push('');
+    lines.push(
+      'The following requirements encapsulate scope, dependencies, and verification expectations for this component.'
+    );
     lines.push('');
 
-    stories.forEach((story, storyIndex) => {
+    componentRequirements.forEach((entry) => {
+      const story = entry.story || {};
       const storyPoint =
         story.storyPoint != null && story.storyPoint !== '' ? story.storyPoint : 'Unestimated';
-      const components =
+      const componentsList =
         Array.isArray(story.components) && story.components.length > 0
           ? story.components.map((name) => componentDisplayName(name)).join(', ')
           : componentDisplayName(UNSPECIFIED_COMPONENT);
       const assignee = story.assigneeEmail || 'Unassigned';
       const path = buildStoryPathLabel(story, storyMap);
-      const headerIndex = `${componentIndex}.${storyIndex + 1}`;
-      lines.push(`#### ${headerIndex} ${story.title || 'Untitled Story'}`);
+      const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
+      const docs = Array.isArray(story.referenceDocuments) ? story.referenceDocuments : [];
+      const childLines = collectChildSummaries(story, 0, []);
+
+      lines.push(`#### ${entry.id} ${story.title || 'Untitled Story'}`);
       lines.push('');
       lines.push('| Field | Detail |');
       lines.push('| --- | --- |');
+      lines.push(`| Component | ${formatMarkdownTableCell(entry.componentDisplayName)} |`);
       lines.push(`| Status | ${formatMarkdownTableCell(story.status || 'Draft')} |`);
       lines.push(`| Story Point | ${formatMarkdownTableCell(storyPoint)} |`);
       lines.push(`| Assignee | ${formatMarkdownTableCell(assignee)} |`);
       lines.push(`| Path | ${formatMarkdownTableCell(path)} |`);
-      lines.push(`| Components | ${formatMarkdownTableCell(components)} |`);
+      lines.push(`| Linked Components | ${formatMarkdownTableCell(componentsList)} |`);
+      lines.push(`| Acceptance Tests | ${tests.length} |`);
       lines.push('');
 
-      lines.push('##### User Story Statement');
+      lines.push('**Requirement Statement**');
       lines.push('');
       lines.push(`- As a ${story.asA || '…'}`);
       lines.push(`- I want ${story.iWant || '…'}`);
@@ -2253,17 +2461,32 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
       if (story.description && story.description.trim()) {
         lines.push('');
         lines.push('> ' + story.description.trim().replace(/\r?\n/g, '\n> '));
+        lines.push('');
+      } else {
+        lines.push('');
       }
+
+      lines.push('**Functional Expectations**');
+      lines.push('');
+      lines.push('- Align UI/UX behaviour with INVEST-compliant acceptance criteria.');
+      lines.push('- Ensure data persistence and API responses reflect state transitions.');
+      lines.push('- Surface validation errors and success feedback to end users.');
       lines.push('');
 
-      lines.push('##### Acceptance Criteria Summary');
+      lines.push('**Interfaces & Signalling**');
       lines.push('');
-      const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
+      lines.push('- Trigger story health checks upon status change.');
+      lines.push('- Emit document regeneration signal when requirements or acceptance tests update.');
+      lines.push('- Maintain websocket or polling hooks (where applicable) for UI synchronisation.');
+      lines.push('');
+
+      lines.push('**Verification Overview**');
+      lines.push('');
       if (tests.length === 0) {
-        lines.push('- No acceptance tests defined yet.');
+        lines.push('- Acceptance tests pending authoring.');
       } else {
-        tests.forEach((test, testIndex) => {
-          const heading = test.title && test.title.trim() ? test.title.trim() : `Scenario ${testIndex + 1}`;
+        tests.forEach((test, index) => {
+          const heading = test.title && test.title.trim() ? test.title.trim() : `Scenario ${index + 1}`;
           const outcomes =
             Array.isArray(test.then) && test.then.length > 0
               ? test.then.map((step) => String(step).trim()).join('; ')
@@ -2274,7 +2497,25 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
       }
       lines.push('');
 
-      lines.push('##### INVEST Notes');
+      lines.push('**Dependencies & Child Work**');
+      lines.push('');
+      if (childLines.length === 0) {
+        lines.push('- No child stories linked.');
+      } else {
+        childLines.forEach((line) => lines.push(line));
+      }
+      lines.push('');
+
+      lines.push('**Reference Materials**');
+      lines.push('');
+      if (docs.length === 0) {
+        lines.push('- No reference documents recorded.');
+      } else {
+        listReferenceDocuments(docs).forEach((docLine) => lines.push(docLine));
+      }
+      lines.push('');
+
+      lines.push('**INVEST & Quality Notes**');
       lines.push('');
       const investHealth = story.investHealth || null;
       const investLines = summarizeInvestWarnings(
@@ -2285,28 +2526,38 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
       );
       investLines.forEach((line) => lines.push(line));
       lines.push('');
-
-      lines.push('##### Reference Materials');
-      lines.push('');
-      const docs = Array.isArray(story.referenceDocuments) ? story.referenceDocuments : [];
-      if (docs.length === 0) {
-        lines.push('- No reference documents recorded.');
-      } else {
-        listReferenceDocuments(docs).forEach((docLine) => lines.push(docLine));
-      }
-      lines.push('');
-
-      lines.push('##### Child Work Items');
-      lines.push('');
-      const childLines = collectChildSummaries(story, 0, []);
-      if (childLines.length === 0) {
-        lines.push('- No child stories linked.');
-      } else {
-        childLines.forEach((line) => lines.push(line));
-      }
-      lines.push('');
     });
   });
+
+  lines.push('## 7. Assumptions, Constraints, and Non-functional Requirements');
+  lines.push('');
+  lines.push('- **Performance:** Generate mindmap and document exports in under 3 seconds for standard datasets.');
+  lines.push('- **Security:** Protect API endpoints with authentication and audit logging.');
+  lines.push('- **Scalability:** Support concurrent editors with eventual consistency across UI panels.');
+  lines.push('- **Compliance:** Maintain traceability from requirements to verification for audits.');
+  lines.push('');
+
+  lines.push('## 8. References');
+  lines.push('');
+  lines.push('- Product vision deck');
+  lines.push('- QA strategy playbook');
+  lines.push('- OpenAI API documentation');
+  lines.push('- Internal UX guidelines for mindmap interactions');
+  lines.push('');
+
+  lines.push('## 9. Glossary & Acronyms');
+  lines.push('');
+  lines.push('- **AIPM:** AI Project Manager.');
+  lines.push('- **INVEST:** Independent, Negotiable, Valuable, Estimable, Small, Testable.');
+  lines.push('- **GWT:** Given/When/Then.');
+  lines.push('- **RACI:** Responsible, Accountable, Consulted, Informed.');
+  lines.push('');
+
+  lines.push('## 10. Revision History');
+  lines.push('');
+  lines.push('| Version | Date | Description | Author |');
+  lines.push('| --- | --- | --- | --- |');
+  lines.push(`| 1.0 | ${now()} | Auto-generated specification from current backlog | AIPM |`);
 
   return { title: 'Common Requirement Specification', content: lines.join('\n') };
 }
