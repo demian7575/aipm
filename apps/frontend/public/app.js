@@ -738,8 +738,7 @@ function renderMindmap() {
     title.textContent = node.story.title;
     group.appendChild(title);
 
-    const storyPoint =
-      node.story.storyPoint != null ? `Story Point: ${node.story.storyPoint}` : 'Story Point: Unestimated';
+    const storyPoint = node.story.storyPoint != null ? `${node.story.storyPoint}` : 'Unestimated';
     const storyPointText = document.createElementNS(svgNS, 'text');
     storyPointText.classList.add('story-meta');
     storyPointText.setAttribute('x', String(node.x + 12));
@@ -754,7 +753,7 @@ function renderMindmap() {
     statusLine.setAttribute('x', String(node.x + 12));
     currentLineOffset += 20;
     statusLine.setAttribute('y', String(currentLineOffset));
-    statusLine.textContent = `Status: ${node.story.status || 'Draft'}`;
+    statusLine.textContent = `${node.story.status || 'Draft'}`;
     group.appendChild(statusLine);
 
     const assigneeLine = document.createElementNS(svgNS, 'text');
@@ -762,7 +761,7 @@ function renderMindmap() {
     assigneeLine.setAttribute('x', String(node.x + 12));
     currentLineOffset += 20;
     assigneeLine.setAttribute('y', String(currentLineOffset));
-    assigneeLine.textContent = `Assignee: ${node.story.assigneeEmail || 'Unassigned'}`;
+    assigneeLine.textContent = `${node.story.assigneeEmail || 'Unassigned'}`;
     group.appendChild(assigneeLine);
 
     const componentSummary = Array.isArray(node.story.components)

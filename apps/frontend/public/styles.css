@@ -215,7 +215,7 @@ textarea {
 }
 
 .outline-item.status-done {
-  border-left-color: #1f2937;
+  border-left-color: #4b5563;
 }
 
 .outline-item.health-warning .title {
@@ -366,6 +366,7 @@ textarea {
   stroke-width: 2;
   rx: 12;
   ry: 12;
+  transition: fill 160ms ease, stroke 160ms ease;
 }
 
 .mindmap-node.status-draft rect {
@@ -394,8 +395,8 @@ textarea {
 }
 
 .mindmap-node.status-done rect {
-  stroke: #1f2937;
-  fill: #1f2937;
+  stroke: #374151;
+  fill: #4b5563;
 }
 
 .mindmap-node.health-warning rect {
@@ -417,6 +418,7 @@ textarea {
   font-size: 0.92rem;
   font-weight: 700;
   fill: #1f2937;
+  transition: fill 160ms ease;
 }
 
 .mindmap-node.health-warning .story-title {
@@ -430,6 +432,7 @@ textarea {
 .mindmap-node .story-meta {
   font-size: 0.75rem;
   fill: #334155;
+  transition: fill 160ms ease;
 }
 
 .mindmap-node .story-status.status-draft {
@@ -452,13 +455,17 @@ textarea {
   fill: #0369a1;
 }
 
+.mindmap-node .story-status {
+  transition: fill 160ms ease;
+}
+
 .mindmap-node .story-status.status-done {
-  fill: #f8fafc;
+  fill: #e5e7eb;
 }
 
 .mindmap-node.status-done .story-title,
 .mindmap-node.status-done .story-meta {
-  fill: #f8fafc;
+  fill: #e5e7eb;
 }
 
 .status-guide {
@@ -524,8 +531,8 @@ textarea {
 }
 
 .status-badge.status-done {
-  background: #1f2937;
-  color: #f8fafc;
+  background: #4b5563;
+  color: #e5e7eb;
 }
 
 .status-description {
