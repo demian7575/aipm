@@ -738,31 +738,39 @@ function renderMindmap() {
     title.textContent = node.story.title;
     group.appendChild(title);
 
-    const storyPoint = node.story.storyPoint != null ? `${node.story.storyPoint}` : 'Unestimated';
-    const storyPointText = document.createElementNS(svgNS, 'text');
-    storyPointText.classList.add('story-meta');
-    storyPointText.setAttribute('x', String(node.x + 12));
+    const metaLines = [
+      {
+        value:
+          node.story.storyPoint != null ? String(node.story.storyPoint) : 'Unestimated',
+        classNames: ['story-meta'],
+      },
+      {
+        value: node.story.status ? String(node.story.status) : 'Draft',
+        classNames: ['story-meta', 'story-status', nodeStatusClass],
+      },
+      {
+        value: node.story.assigneeEmail
+          ? String(node.story.assigneeEmail)
+          : 'Unassigned',
+        classNames: ['story-meta'],
+      },
+    ];
+
     let currentLineOffset = node.y + 50;
-    storyPointText.setAttribute('y', String(currentLineOffset));
-    storyPointText.textContent = storyPoint;
-    group.appendChild(storyPointText);
+    metaLines.forEach(({ value, classNames }) => {
+      if (!value) {
+        return;
+      }
 
-    const statusLine = document.createElementNS(svgNS, 'text');
-    statusLine.classList.add('story-meta', 'story-status');
-    statusLine.classList.add(nodeStatusClass);
-    statusLine.setAttribute('x', String(node.x + 12));
-    currentLineOffset += 20;
-    statusLine.setAttribute('y', String(currentLineOffset));
-    statusLine.textContent = `${node.story.status || 'Draft'}`;
-    group.appendChild(statusLine);
+      const metaLine = document.createElementNS(svgNS, 'text');
+      metaLine.classList.add(...classNames);
+      metaLine.setAttribute('x', String(node.x + 12));
+      metaLine.setAttribute('y', String(currentLineOffset));
+      metaLine.textContent = value;
+      group.appendChild(metaLine);
 
-    const assigneeLine = document.createElementNS(svgNS, 'text');
-    assigneeLine.classList.add('story-meta');
-    assigneeLine.setAttribute('x', String(node.x + 12));
-    currentLineOffset += 20;
-    assigneeLine.setAttribute('y', String(currentLineOffset));
-    assigneeLine.textContent = `${node.story.assigneeEmail || 'Unassigned'}`;
-    group.appendChild(assigneeLine);
+      currentLineOffset += 20;
+    });
 
     const componentSummary = Array.isArray(node.story.components)
       ? node.story.components
