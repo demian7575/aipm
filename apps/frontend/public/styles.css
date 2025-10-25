@@ -414,58 +414,121 @@ textarea {
   stroke-width: 3;
 }
 
+.mindmap-node foreignObject {
+  pointer-events: auto;
+}
+
+.mindmap-node-body {
+  width: 100%;
+  height: 100%;
+  padding: 14px 16px 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+}
+
+.mindmap-node-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mindmap-node-body.has-scroll .mindmap-node-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.7) transparent;
+}
+
+.mindmap-node-body.has-scroll .mindmap-node-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mindmap-node-body.has-scroll .mindmap-node-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.6);
+  border-radius: 9999px;
+}
+
+.mindmap-node-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
 .mindmap-node .story-title {
   font-size: 0.92rem;
   font-weight: 700;
-  fill: #1f2937;
-  transition: fill 160ms ease;
+  color: #1f2937;
+  line-height: 1.35;
+  transition: color 160ms ease;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .mindmap-node.health-warning .story-title {
-  fill: #b45309;
+  color: #b45309;
 }
 
 .mindmap-node.health-critical .story-title {
-  fill: #b91c1c;
+  color: #b91c1c;
 }
 
 .mindmap-node .story-meta {
   font-size: 0.75rem;
-  fill: #334155;
-  transition: fill 160ms ease;
+  color: #334155;
+  line-height: 1.4;
+  transition: color 160ms ease;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .mindmap-node .story-status.status-draft {
-  fill: #475569;
+  color: #475569;
 }
 
 .mindmap-node .story-status.status-ready {
-  fill: #b45309;
+  color: #b45309;
 }
 
 .mindmap-node .story-status.status-in-progress {
-  fill: #15803d;
+  color: #15803d;
 }
 
 .mindmap-node .story-status.status-blocked {
-  fill: #dc2626;
+  color: #dc2626;
 }
 
 .mindmap-node .story-status.status-approved {
-  fill: #0369a1;
+  color: #0369a1;
 }
 
 .mindmap-node .story-status {
-  transition: fill 160ms ease;
+  transition: color 160ms ease;
 }
 
 .mindmap-node .story-status.status-done {
-  fill: #e5e7eb;
+  color: #e5e7eb;
 }
 
 .mindmap-node.status-done .story-title,
 .mindmap-node.status-done .story-meta {
-  fill: #e5e7eb;
+  color: #e5e7eb;
+}
+
+.mindmap-measure-root {
+  position: absolute;
+  top: -10000px;
+  left: -10000px;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.mindmap-node-body--measure {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .status-guide {
