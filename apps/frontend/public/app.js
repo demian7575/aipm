@@ -2398,7 +2398,7 @@ function openDocumentPanel() {
   const intro = document.createElement('p');
   intro.className = 'document-intro';
   intro.textContent =
-    'Generate consolidated documents for every user story, grouped by system component.';
+    'Generate consolidated documents using the common templates for tests and requirements.';
   container.appendChild(intro);
 
   const actions = document.createElement('div');
@@ -2435,16 +2435,18 @@ function openDocumentPanel() {
 
   const buttons = [
     {
-      label: 'Generate Test Document',
-      type: 'test-document',
-      description: 'Summarize Given/When/Then scenarios across all stories with component groupings.',
-      title: 'Component Test Document',
+      label: 'Common Test Document template',
+      type: 'common-test-document',
+      description:
+        'Apply the Common Test Document template to consolidate Given/When/Then scenarios by component.',
+      title: 'Common Test Document',
     },
     {
-      label: 'Generate System Requirement',
-      type: 'system-requirement',
-      description: 'Compile user story goals, ownership, and readiness per component.',
-      title: 'System Requirement Document',
+      label: 'Common Requirement Specification template',
+      type: 'common-requirement-specification',
+      description:
+        'Use the Common Requirement Specification template to summarize story goals, scope, and readiness.',
+      title: 'Common Requirement Specification',
     },
   ];
 

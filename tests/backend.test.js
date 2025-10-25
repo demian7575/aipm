@@ -784,13 +784,14 @@ test('document generation endpoints produce tailored content', async (t) => {
   const testDocResponse = await fetch(`${baseUrl}/api/documents/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'test-document' }),
+    body: JSON.stringify({ type: 'common-test-document' }),
   });
   assert.equal(testDocResponse.status, 200);
   const testDocContent = await testDocResponse.text();
   assert.match(testDocResponse.headers.get('content-type') || '', /text\/markdown/i);
-  assert.ok(/## Component:/i.test(testDocContent));
-  assert.ok(/Acceptance Tests/i.test(testDocContent));
+  assert.ok(/#\s+Common Test Document/i.test(testDocContent));
+  assert.ok(/Component Coverage Summary/i.test(testDocContent));
+  assert.ok(/Acceptance Test Scenarios/i.test(testDocContent));
   const testDocSource = testDocResponse.headers.get('x-document-source');
   assert.ok(['fallback', 'baseline', 'openai'].includes(testDocSource));
   const testDisposition = testDocResponse.headers.get('content-disposition') || '';
@@ -799,13 +800,14 @@ test('document generation endpoints produce tailored content', async (t) => {
   const systemDocResponse = await fetch(`${baseUrl}/api/documents/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'system-requirement' }),
+    body: JSON.stringify({ type: 'common-requirement-specification' }),
   });
   assert.equal(systemDocResponse.status, 200);
   const systemDocContent = await systemDocResponse.text();
   assert.match(systemDocResponse.headers.get('content-type') || '', /text\/markdown/i);
-  assert.ok(/## Component:/i.test(systemDocContent));
-  assert.ok(/User Story:/i.test(systemDocContent));
+  assert.ok(/#\s+Common Requirement Specification/i.test(systemDocContent));
+  assert.ok(/Requirements by Component/i.test(systemDocContent));
+  assert.ok(/User Story Statement/i.test(systemDocContent));
   const systemDocSource = systemDocResponse.headers.get('x-document-source');
   assert.ok(['fallback', 'baseline', 'openai'].includes(systemDocSource));
   const systemDisposition = systemDocResponse.headers.get('content-disposition') || '';
