@@ -219,6 +219,28 @@ const storyIndex = new Map();
 const parentById = new Map();
 let toastTimeout = null;
 
+function updateDependencyToggleState() {
+  if (dependencyToggleBtn) {
+    dependencyToggleBtn.classList.toggle('is-active', state.showDependencies);
+    dependencyToggleBtn.setAttribute('aria-pressed', state.showDependencies ? 'true' : 'false');
+  }
+}
+
+function setDependencyOverlayVisible(visible) {
+  const next = Boolean(visible);
+  if (state.showDependencies === next) {
+    updateDependencyToggleState();
+    return;
+  }
+  state.showDependencies = next;
+  renderMindmap();
+  renderDetails();
+}
+
+function toggleDependencyOverlay() {
+  setDependencyOverlayVisible(!state.showDependencies);
+}
+
 if (referenceBtn) {
   referenceBtn.addEventListener('click', () => {
     if (state.selectedStoryId == null) {
@@ -231,16 +253,119 @@ if (referenceBtn) {
 
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
-    state.showDependencies = !state.showDependencies;
-    dependencyToggleBtn.classList.toggle('is-active', state.showDependencies);
-    dependencyToggleBtn.setAttribute('aria-pressed', state.showDependencies ? 'true' : 'false');
-    renderMindmap();
+    toggleDependencyOverlay();
   });
 }
 
 function getStatusClass(status) {
   const normalized = typeof status === 'string' ? status.trim() : '';
   return STATUS_CLASS_MAP[normalized] || STATUS_CLASS_MAP.Draft;
+}
+
+function normalizeDependencyRelationship(value) {
+  if (typeof value !== 'string') {
+    return 'depends';
+  }
+  const normalized = value.trim().toLowerCase();
+  return normalized.length ? normalized : 'depends';
+}
+
+function normalizeDependencyEntries(entries) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+  return entries
+    .filter((entry) => entry && entry.storyId != null)
+    .map((entry) => ({
+      ...entry,
+      storyId: Number(entry.storyId),
+      title: entry.title || '',
+      status: entry.status || 'Draft',
+      relationship: normalizeDependencyRelationship(entry.relationship),
+    }));
+}
+
+function toSentenceCase(value) {
+  if (!value) {
+    return '';
+  }
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function describeDependencyRelationship(entry, context) {
+  const relationship = normalizeDependencyRelationship(entry.relationship);
+  if (context === 'blocked-by') {
+    return 'Blocking this story';
+  }
+  if (context === 'downstream') {
+    if (relationship === 'blocks') {
+      return 'Blocked by this story';
+    }
+    if (relationship === 'depends') {
+      return 'Depends on this story';
+    }
+    return toSentenceCase(relationship);
+  }
+  if (context === 'upstream') {
+    if (relationship === 'blocks') {
+      return 'Blocking this story';
+    }
+    if (relationship === 'depends') {
+      return 'Required dependency';
+    }
+    return toSentenceCase(relationship);
+  }
+  return toSentenceCase(relationship);
+}
+
+function createTableRow(label, value) {
+  const row = document.createElement('tr');
+  const th = document.createElement('th');
+  th.scope = 'row';
+  th.textContent = label;
+  const td = document.createElement('td');
+  if (value instanceof Node) {
+    td.appendChild(value);
+  } else {
+    td.textContent = value;
+  }
+  row.appendChild(th);
+  row.appendChild(td);
+  return row;
+}
+
+function createDependencyTable(entry, context) {
+  const relationship = normalizeDependencyRelationship(entry.relationship);
+  const table = document.createElement('table');
+  table.className = 'vertical-table dependency-table';
+  if (relationship === 'blocks') {
+    table.classList.add('is-blocker');
+  }
+  table.dataset.storyId = String(entry.storyId);
+  table.setAttribute('role', 'button');
+  table.setAttribute('tabindex', '0');
+  const accessibleTitle = entry.title ? ` – ${entry.title}` : '';
+  table.setAttribute('aria-label', `View story #${entry.storyId}${accessibleTitle}`);
+
+  const tbody = document.createElement('tbody');
+  tbody.appendChild(createTableRow('Story', `#${entry.storyId} ${entry.title || 'Untitled story'}`));
+
+  const status = entry.status || 'Draft';
+  const statusBadge = document.createElement('span');
+  statusBadge.className = `status-badge ${getStatusClass(status)}`;
+  statusBadge.textContent = status;
+  tbody.appendChild(createTableRow('Status', statusBadge));
+
+  const relationshipBadge = document.createElement('span');
+  relationshipBadge.className = 'dependency-relationship';
+  if (relationship === 'blocks') {
+    relationshipBadge.classList.add('is-blocker');
+  }
+  relationshipBadge.textContent = describeDependencyRelationship(entry, context);
+  tbody.appendChild(createTableRow('Relationship', relationshipBadge));
+
+  table.appendChild(tbody);
+  return table;
 }
 
 function storyHasAcceptanceWarnings(story) {
@@ -814,10 +939,8 @@ function computeDependencyEndpoints(fromNode, toNode) {
 
 function renderMindmap() {
   mindmapCanvas.innerHTML = '';
-  if (dependencyToggleBtn) {
-    dependencyToggleBtn.classList.toggle('is-active', state.showDependencies);
-    dependencyToggleBtn.setAttribute('aria-pressed', state.showDependencies ? 'true' : 'false');
-  }
+  updateDependencyToggleState();
+  mindmapCanvas.classList.remove('has-dependencies');
   if (!state.panelVisibility.mindmap) {
     return;
   }
@@ -861,9 +984,7 @@ function renderMindmap() {
         if (!entry || entry.storyId == null) return;
         const target = nodeMap.get(entry.storyId);
         if (!target) return;
-        const relationship = typeof entry.relationship === 'string'
-          ? entry.relationship.toLowerCase()
-          : 'depends';
+        const relationship = normalizeDependencyRelationship(entry.relationship);
         dependencyEdges.push({ from: node, to: target, relationship, info: entry });
       });
     });
@@ -925,13 +1046,14 @@ function renderMindmap() {
   }
 
   if (state.showDependencies && dependencyEdges.length > 0) {
+    mindmapCanvas.classList.add('has-dependencies');
     const defs = document.createElementNS(svgNS, 'defs');
     defs.appendChild(createDependencyMarker('dependency-arrow', 'rgba(71, 85, 105, 0.75)'));
     defs.appendChild(createDependencyMarker('dependency-arrow-blocker', '#dc2626'));
     mindmapCanvas.appendChild(defs);
   }
 
-  if (dependencyEdges.length > 0) {
+  if (state.showDependencies && dependencyEdges.length > 0) {
     const dependencyGroup = document.createElementNS(svgNS, 'g');
     dependencyGroup.classList.add('mindmap-dependencies');
     dependencyEdges.forEach((edge) => {
@@ -2041,6 +2163,111 @@ function renderDetails() {
       window.open(`mailto:${email}`);
     }
   });
+
+  const dependencySection = document.createElement('section');
+  dependencySection.className = 'dependencies-section';
+  const dependencyHeading = document.createElement('div');
+  dependencyHeading.className = 'section-heading';
+  const dependencyTitle = document.createElement('h3');
+  dependencyTitle.textContent = 'Dependencies';
+  dependencyHeading.appendChild(dependencyTitle);
+  const dependencyOverlayBtn = document.createElement('button');
+  dependencyOverlayBtn.type = 'button';
+  dependencyOverlayBtn.className = 'secondary dependency-overlay-toggle';
+  dependencyOverlayBtn.dataset.role = 'dependency-overlay-toggle';
+  dependencyOverlayBtn.textContent = state.showDependencies ? 'Hide Mindmap Overlay' : 'Show Mindmap Overlay';
+  dependencyOverlayBtn.classList.toggle('is-active', state.showDependencies);
+  dependencyOverlayBtn.setAttribute('aria-pressed', state.showDependencies ? 'true' : 'false');
+  dependencyHeading.appendChild(dependencyOverlayBtn);
+  dependencySection.appendChild(dependencyHeading);
+
+  const dependencyGroupsContainer = document.createElement('div');
+  dependencyGroupsContainer.className = 'dependency-groups';
+  dependencySection.appendChild(dependencyGroupsContainer);
+
+  const normalizedDependencies = normalizeDependencyEntries(story.dependencies);
+  const blockedByEntries = normalizedDependencies.filter((entry) => entry.relationship === 'blocks');
+  const supportingDependencies = normalizedDependencies.filter((entry) => entry.relationship !== 'blocks');
+  const dependentEntries = normalizeDependencyEntries(story.dependents);
+
+  const dependencyGroups = [
+    {
+      key: 'blocked-by',
+      title: 'Blocked by',
+      items: blockedByEntries,
+      empty: 'This story is not blocked by other stories.',
+      context: 'blocked-by',
+    },
+    {
+      key: 'upstream',
+      title: 'Dependencies',
+      items: supportingDependencies,
+      empty: 'No upstream dependencies recorded.',
+      context: 'upstream',
+    },
+    {
+      key: 'downstream',
+      title: 'Dependents',
+      items: dependentEntries,
+      empty: 'No stories depend on this one yet.',
+      context: 'downstream',
+    },
+  ];
+
+  dependencyGroups.forEach((group) => {
+    const groupEl = document.createElement('article');
+    groupEl.className = 'dependency-group';
+    const groupHeading = document.createElement('h4');
+    groupHeading.textContent = group.title;
+    groupEl.appendChild(groupHeading);
+
+    if (!group.items.length) {
+      const empty = document.createElement('p');
+      empty.className = 'empty-state';
+      empty.textContent = group.empty;
+      groupEl.appendChild(empty);
+    } else {
+      const list = document.createElement('div');
+      list.className = 'record-list dependency-list';
+      group.items.forEach((entry) => {
+        const table = createDependencyTable(entry, group.context);
+        list.appendChild(table);
+      });
+      groupEl.appendChild(list);
+    }
+
+    dependencyGroupsContainer.appendChild(groupEl);
+  });
+
+  dependencyOverlayBtn.addEventListener('click', () => {
+    toggleDependencyOverlay();
+  });
+
+  const activateDependencyTarget = (table) => {
+    const targetId = Number(table.dataset.storyId);
+    if (!Number.isFinite(targetId)) {
+      return;
+    }
+    const targetStory = storyIndex.get(targetId);
+    if (targetStory) {
+      handleStorySelection(targetStory);
+    }
+  };
+
+  dependencySection.querySelectorAll('.dependency-table').forEach((table) => {
+    table.addEventListener('click', (event) => {
+      event.preventDefault();
+      activateDependencyTarget(table);
+    });
+    table.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        activateDependencyTarget(table);
+      }
+    });
+  });
+
+  detailsContent.appendChild(dependencySection);
 
   const acceptanceSection = document.createElement('section');
   const acceptanceHeading = document.createElement('div');
