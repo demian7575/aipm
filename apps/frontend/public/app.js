@@ -9,6 +9,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
@@ -206,6 +207,7 @@ const state = {
   selectedStoryId: null,
   manualPositions: {},
   autoLayout: true,
+  showDependencies: false,
   panelVisibility: {
     outline: true,
     mindmap: true,
@@ -224,6 +226,15 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (dependencyToggleBtn) {
+  dependencyToggleBtn.addEventListener('click', () => {
+    state.showDependencies = !state.showDependencies;
+    dependencyToggleBtn.classList.toggle('is-active', state.showDependencies);
+    dependencyToggleBtn.setAttribute('aria-pressed', state.showDependencies ? 'true' : 'false');
+    renderMindmap();
   });
 }
 
@@ -759,8 +770,54 @@ function computeLayout(nodes, depth = 0, startY = Y_OFFSET, horizontalGap = 0, m
   return { nodes: positioned, nextY: cursorY, minY, maxY };
 }
 
+function projectPointToRect(centerX, centerY, width, height, dx, dy) {
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
+  if (dx === 0 && dy === 0) {
+    return { x: centerX, y: centerY };
+  }
+  if (dx === 0) {
+    return { x: centerX, y: centerY + Math.sign(dy) * halfHeight };
+  }
+  if (dy === 0) {
+    return { x: centerX + Math.sign(dx) * halfWidth, y: centerY };
+  }
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  const slope = absDy / absDx;
+  const rectSlope = halfHeight / halfWidth;
+  if (slope > rectSlope) {
+    const scale = halfHeight / absDy;
+    return {
+      x: centerX + dx * scale,
+      y: centerY + Math.sign(dy) * halfHeight,
+    };
+  }
+  const scale = halfWidth / absDx;
+  return {
+    x: centerX + Math.sign(dx) * halfWidth,
+    y: centerY + dy * scale,
+  };
+}
+
+function computeDependencyEndpoints(fromNode, toNode) {
+  const fromCenterX = fromNode.x + NODE_WIDTH / 2;
+  const fromCenterY = fromNode.y + fromNode.height / 2;
+  const toCenterX = toNode.x + NODE_WIDTH / 2;
+  const toCenterY = toNode.y + toNode.height / 2;
+  const dx = toCenterX - fromCenterX;
+  const dy = toCenterY - fromCenterY;
+  const start = projectPointToRect(fromCenterX, fromCenterY, NODE_WIDTH, fromNode.height, dx, dy);
+  const end = projectPointToRect(toCenterX, toCenterY, NODE_WIDTH, toNode.height, -dx, -dy);
+  return { start, end };
+}
+
 function renderMindmap() {
   mindmapCanvas.innerHTML = '';
+  if (dependencyToggleBtn) {
+    dependencyToggleBtn.classList.toggle('is-active', state.showDependencies);
+    dependencyToggleBtn.setAttribute('aria-pressed', state.showDependencies ? 'true' : 'false');
+  }
   if (!state.panelVisibility.mindmap) {
     return;
   }
@@ -796,6 +853,22 @@ function renderMindmap() {
     });
   });
 
+  const dependencyEdges = [];
+  if (state.showDependencies) {
+    nodes.forEach((node) => {
+      const deps = Array.isArray(node.story.dependencies) ? node.story.dependencies : [];
+      deps.forEach((entry) => {
+        if (!entry || entry.storyId == null) return;
+        const target = nodeMap.get(entry.storyId);
+        if (!target) return;
+        const relationship = typeof entry.relationship === 'string'
+          ? entry.relationship.toLowerCase()
+          : 'depends';
+        dependencyEdges.push({ from: node, to: target, relationship, info: entry });
+      });
+    });
+  }
+
   if (nodes.length === 0) {
     layoutStatus.textContent = 'Toggle outline items to expand the map.';
     return;
@@ -819,6 +892,8 @@ function renderMindmap() {
 
   const svgNS = 'http://www.w3.org/2000/svg';
 
+  const treeEdgeGroup = document.createElementNS(svgNS, 'g');
+  treeEdgeGroup.classList.add('mindmap-tree-edges');
   edges.forEach((edge) => {
     const path = document.createElementNS(svgNS, 'path');
     path.classList.add('mindmap-edge');
@@ -828,8 +903,74 @@ function renderMindmap() {
     const endY = edge.to.centerY;
     const midX = startX + (endX - startX) / 2;
     path.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY} ${midX} ${endY} ${endX} ${endY}`);
-    mindmapCanvas.appendChild(path);
+    treeEdgeGroup.appendChild(path);
   });
+  mindmapCanvas.appendChild(treeEdgeGroup);
+
+  function createDependencyMarker(id, color) {
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', id);
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '10');
+    marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '8');
+    marker.setAttribute('markerHeight', '8');
+    marker.setAttribute('orient', 'auto');
+    marker.setAttribute('markerUnits', 'strokeWidth');
+    const markerPath = document.createElementNS(svgNS, 'path');
+    markerPath.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    markerPath.setAttribute('fill', color);
+    marker.appendChild(markerPath);
+    return marker;
+  }
+
+  if (state.showDependencies && dependencyEdges.length > 0) {
+    const defs = document.createElementNS(svgNS, 'defs');
+    defs.appendChild(createDependencyMarker('dependency-arrow', 'rgba(71, 85, 105, 0.75)'));
+    defs.appendChild(createDependencyMarker('dependency-arrow-blocker', '#dc2626'));
+    mindmapCanvas.appendChild(defs);
+  }
+
+  if (dependencyEdges.length > 0) {
+    const dependencyGroup = document.createElementNS(svgNS, 'g');
+    dependencyGroup.classList.add('mindmap-dependencies');
+    dependencyEdges.forEach((edge) => {
+      const { start, end } = computeDependencyEndpoints(edge.from, edge.to);
+      const path = document.createElementNS(svgNS, 'path');
+      path.classList.add('mindmap-dependency-edge');
+      if (edge.relationship === 'blocks') {
+        path.classList.add('is-blocker');
+      }
+      path.setAttribute('d', `M ${start.x} ${start.y} L ${end.x} ${end.y}`);
+      const markerId = edge.relationship === 'blocks' ? 'dependency-arrow-blocker' : 'dependency-arrow';
+      path.setAttribute('marker-end', `url(#${markerId})`);
+      const dependentTitle = edge.from.story && edge.from.story.title
+        ? edge.from.story.title
+        : `Story ${edge.from.story.id}`;
+      const dependencyTitle = edge.info && edge.info.title ? edge.info.title : `Story ${edge.info.storyId}`;
+      const dependentLabel = `#${edge.from.story.id} ${dependentTitle}`;
+      const dependencyLabel = `#${edge.info.storyId} ${dependencyTitle}`;
+      const verb = edge.relationship === 'blocks' ? 'is blocked by' : 'depends on';
+      const title = document.createElementNS(svgNS, 'title');
+      title.textContent = `${dependentLabel} ${verb} ${dependencyLabel}`;
+      path.appendChild(title);
+      dependencyGroup.appendChild(path);
+      if (edge.relationship === 'blocks') {
+        const label = document.createElementNS(svgNS, 'text');
+        label.classList.add('mindmap-dependency-label');
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('dominant-baseline', 'central');
+        label.setAttribute('pointer-events', 'none');
+        const labelX = start.x + (end.x - start.x) * 0.65;
+        const labelY = start.y + (end.y - start.y) * 0.65;
+        label.setAttribute('x', String(labelX));
+        label.setAttribute('y', String(labelY));
+        label.textContent = 'blocks';
+        dependencyGroup.appendChild(label);
+      }
+    });
+    mindmapCanvas.appendChild(dependencyGroup);
+  }
 
   nodes.forEach((node) => {
     const group = document.createElementNS(svgNS, 'g');
@@ -889,6 +1030,34 @@ function renderMindmap() {
       symbol.setAttribute('y', String(toggleY + 4));
       symbol.textContent = state.expanded.has(node.story.id) ? '−' : '+';
       group.appendChild(symbol);
+    }
+
+    if (state.showDependencies) {
+      const deps = Array.isArray(node.story.dependencies) ? node.story.dependencies : [];
+      const blockingDeps = deps.filter((dep) =>
+        dep && typeof dep.relationship === 'string' && dep.relationship.toLowerCase() === 'blocks'
+      );
+      let tooltipText = '';
+      if (blockingDeps.length > 0) {
+        const lines = blockingDeps.map((dep) => {
+          const title = dep && dep.title ? dep.title : `Story ${dep.storyId}`;
+          return `• #${dep.storyId} ${title}`;
+        });
+        tooltipText = `Blocking stories:\n${lines.join('\n')}`;
+      } else if (deps.length > 0) {
+        const lines = deps.map((dep) => {
+          const title = dep && dep.title ? dep.title : `Story ${dep.storyId}`;
+          return `• #${dep.storyId} ${title}`;
+        });
+        tooltipText = `Dependencies:\n${lines.join('\n')}`;
+      } else {
+        tooltipText = 'No dependencies.';
+      }
+      if (tooltipText) {
+        const titleEl = document.createElementNS(svgNS, 'title');
+        titleEl.textContent = tooltipText;
+        group.appendChild(titleEl);
+      }
     }
 
     setupNodeInteraction(group, node);

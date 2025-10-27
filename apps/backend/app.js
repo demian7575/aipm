@@ -36,6 +36,11 @@ export const TASK_STATUS_OPTIONS = [
 
 const TASK_STATUS_DEFAULT = TASK_STATUS_OPTIONS[0];
 
+const STORY_DEPENDENCY_RELATIONSHIPS = ['depends', 'blocks'];
+const STORY_DEPENDENCY_DEFAULT = STORY_DEPENDENCY_RELATIONSHIPS[0];
+
+const SQLITE_NO_SUCH_TABLE = /no such table/i;
+
 const PYTHON_SQLITE_EXPORT_SCRIPT = `
 import json
 import sqlite3
@@ -224,6 +229,19 @@ try:
         """
     )
 
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS story_dependencies (
+          story_id INTEGER NOT NULL,
+          depends_on_story_id INTEGER NOT NULL,
+          relationship TEXT DEFAULT 'depends',
+          PRIMARY KEY (story_id, depends_on_story_id),
+          FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE,
+          FOREIGN KEY(depends_on_story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+        );
+        """
+    )
+
     story_rows = []
     for row in tables.get('user_stories', []):
         story_rows.append(
@@ -339,6 +357,25 @@ try:
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             task_rows,
+        )
+
+    dependency_rows = []
+    for row in tables.get('story_dependencies', []):
+        dependency_rows.append(
+            (
+                normalize_int(row.get('story_id')),
+                normalize_int(row.get('depends_on_story_id')),
+                normalize_text(row.get('relationship'), 'depends'),
+            )
+        )
+
+    if dependency_rows:
+        conn.executemany(
+            """
+            INSERT INTO story_dependencies (story_id, depends_on_story_id, relationship)
+            VALUES (?, ?, ?)
+            """,
+            dependency_rows,
         )
 
     conn.commit()
@@ -1796,6 +1833,18 @@ function normalizeTaskStatus(value) {
   return match;
 }
 
+function normalizeDependencyRelationship(value) {
+  if (value == null) {
+    return STORY_DEPENDENCY_DEFAULT;
+  }
+  const text = String(value).trim().toLowerCase();
+  if (!text) {
+    return STORY_DEPENDENCY_DEFAULT;
+  }
+  const match = STORY_DEPENDENCY_RELATIONSHIPS.find((entry) => entry === text);
+  return match || STORY_DEPENDENCY_DEFAULT;
+}
+
 function normalizeComponentsInput(value, options = {}) {
   const { strict = false } = options;
   let entries = [];
@@ -3024,6 +3073,14 @@ function insertAcceptanceTest(
     );
   }
 
+  function insertDependency(db, { storyId, dependsOnStoryId, relationship = STORY_DEPENDENCY_DEFAULT }) {
+    const normalizedRelationship = normalizeDependencyRelationship(relationship);
+    const statement = db.prepare(
+      'INSERT OR IGNORE INTO story_dependencies (story_id, depends_on_story_id, relationship) VALUES (?, ?, ?)' // prettier-ignore
+    );
+    return statement.run(storyId, dependsOnStoryId, normalizedRelationship);
+  }
+
 function buildTaskFromRow(row) {
   let status = TASK_STATUS_DEFAULT;
   try {
@@ -3317,6 +3374,7 @@ function ensureNotNullDefaults(db) {
     UPDATE reference_documents SET url = '' WHERE url IS NULL;
     UPDATE tasks SET description = '' WHERE description IS NULL;
     UPDATE tasks SET status = 'Not Started' WHERE status IS NULL OR TRIM(status) = '';
+    UPDATE story_dependencies SET relationship = 'depends' WHERE relationship IS NULL OR TRIM(relationship) = '';
   `);
 }
 
@@ -3385,6 +3443,14 @@ async function ensureDatabase() {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS story_dependencies (
+      story_id INTEGER NOT NULL,
+      depends_on_story_id INTEGER NOT NULL,
+      relationship TEXT DEFAULT 'depends',
+      PRIMARY KEY (story_id, depends_on_story_id),
+      FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE,
+      FOREIGN KEY(depends_on_story_id) REFERENCES user_stories(id) ON DELETE CASCADE
     );
   `);
 
@@ -3470,7 +3536,7 @@ async function ensureDatabase() {
     const insertChild = db.prepare(
       'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
     );
-    insertChild.run(
+    const { lastInsertRowid: formStoryId } = insertChild.run(
       rootId,
       'Render login form',
       'As a returning customer I want a familiar login form so that I can authenticate without confusion.',
@@ -3480,10 +3546,42 @@ async function ensureDatabase() {
       JSON.stringify(['Document_Intelligence', 'Run_Verify']),
       3,
       'designer@example.com',
-      'Draft',
+      'Blocked',
       timestamp,
       timestamp
     );
+
+    const blockerTimestamp = now();
+    const { lastInsertRowid: apiStoryId } = insertChild.run(
+      rootId,
+      'Finalize login API contract',
+      'As a platform engineer I want an agreed API contract so integrations remain stable.',
+      'Platform engineer',
+      'share the login API schema with dependent teams',
+      'prevent breaking changes from blocking dependent workstreams',
+      JSON.stringify(['WorkModel', 'Traceabilty_Insight']),
+      5,
+      'lead@example.com',
+      'In Progress',
+      blockerTimestamp,
+      blockerTimestamp
+    );
+
+    insertAcceptanceTest(db, {
+      storyId: Number(apiStoryId),
+      title: 'API contract published',
+      given: ['The platform team has drafted the login API schema'],
+      when: ['The schema is shared with downstream integrators'],
+      then: ['All dependent teams confirm compatibility within 3 business days'],
+      status: 'Draft',
+      timestamp: blockerTimestamp,
+    });
+
+    insertDependency(db, {
+      storyId: Number(formStoryId),
+      dependsOnStoryId: Number(apiStoryId),
+      relationship: 'blocks',
+    });
 
     insertAcceptanceTest(db, {
       storyId: rootId,
@@ -3550,6 +3648,19 @@ function flattenStories(nodes) {
   return result;
 }
 
+function loadDependencyRows(db) {
+  try {
+    return db
+      .prepare('SELECT story_id, depends_on_story_id, relationship FROM story_dependencies ORDER BY story_id, depends_on_story_id')
+      .all();
+  } catch (error) {
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
+      return [];
+    }
+    throw error;
+  }
+}
+
 async function loadStories(db) {
   const storyRows = db
     .prepare('SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id')
@@ -3578,11 +3689,58 @@ async function loadStories(db) {
       acceptanceTests: [],
       referenceDocuments: [],
       tasks: [],
+      dependencies: [],
+      dependents: [],
+      blockedBy: [],
+      blocking: [],
     };
     return story;
   });
 
   const { roots, byId } = attachChildren(stories);
+
+  const dependencyRows = loadDependencyRows(db);
+  dependencyRows.forEach((row) => {
+    const dependent = byId.get(row.story_id);
+    const dependency = byId.get(row.depends_on_story_id);
+    if (!dependent || !dependency) {
+      return;
+    }
+    const relationship = normalizeDependencyRelationship(row.relationship);
+    const dependencyEntry = {
+      storyId: dependency.id,
+      title: dependency.title,
+      status: dependency.status,
+      relationship,
+    };
+    dependent.dependencies.push(dependencyEntry);
+    if (relationship === 'blocks') {
+      dependent.blockedBy.push(dependencyEntry);
+    }
+    const dependentEntry = {
+      storyId: dependent.id,
+      title: dependent.title,
+      status: dependent.status,
+      relationship,
+    };
+    dependency.dependents.push(dependentEntry);
+    if (relationship === 'blocks') {
+      dependency.blocking.push(dependentEntry);
+    }
+  });
+
+  const sortByStoryId = (a, b) => {
+    if (a.storyId === b.storyId) {
+      return a.title.localeCompare(b.title);
+    }
+    return a.storyId - b.storyId;
+  };
+  stories.forEach((story) => {
+    story.dependencies.sort(sortByStoryId);
+    story.dependents.sort(sortByStoryId);
+    story.blockedBy.sort(sortByStoryId);
+    story.blocking.sort(sortByStoryId);
+  });
 
   testRows.forEach((row) => {
     const story = byId.get(row.story_id);
@@ -3677,6 +3835,10 @@ async function loadStoryWithDetails(db, storyId) {
     referenceDocuments: [],
     tasks: [],
     children: [],
+    dependencies: [],
+    dependents: [],
+    blockedBy: [],
+    blocking: [],
   };
 
   const testRows = db
@@ -3722,6 +3884,79 @@ async function loadStoryWithDetails(db, storyId) {
   taskRows.forEach((taskRow) => {
     story.tasks.push(buildTaskFromRow(taskRow));
   });
+
+  const dependencyRows = loadDependencyRows(db).filter(
+    (entry) => entry.story_id === storyId || entry.depends_on_story_id === storyId
+  );
+  if (dependencyRows.length > 0) {
+    const relatedIds = new Set();
+    dependencyRows.forEach((entry) => {
+      relatedIds.add(entry.story_id);
+      relatedIds.add(entry.depends_on_story_id);
+    });
+    relatedIds.delete(storyId);
+    let relatedStories = [];
+    if (relatedIds.size > 0) {
+      const placeholders = Array.from({ length: relatedIds.size }, () => '?').join(', ');
+      const lookupStatement = db.prepare(
+        `SELECT id, title, status FROM user_stories WHERE id IN (${placeholders})`
+      );
+      relatedStories = lookupStatement.all(...Array.from(relatedIds));
+    }
+    const relatedById = new Map();
+    relatedStories.forEach((item) => {
+      relatedById.set(item.id, {
+        id: item.id,
+        title: item.title,
+        status: safeNormalizeStoryStatus(item.status),
+      });
+    });
+
+    dependencyRows.forEach((entry) => {
+      const relationship = normalizeDependencyRelationship(entry.relationship);
+      if (entry.story_id === storyId) {
+        const dependency = relatedById.get(entry.depends_on_story_id);
+        if (dependency) {
+          const dependencyEntry = {
+            storyId: dependency.id,
+            title: dependency.title,
+            status: dependency.status,
+            relationship,
+          };
+          story.dependencies.push(dependencyEntry);
+          if (relationship === 'blocks') {
+            story.blockedBy.push(dependencyEntry);
+          }
+        }
+      }
+      if (entry.depends_on_story_id === storyId) {
+        const dependent = relatedById.get(entry.story_id);
+        if (dependent) {
+          const dependentEntry = {
+            storyId: dependent.id,
+            title: dependent.title,
+            status: dependent.status,
+            relationship,
+          };
+          story.dependents.push(dependentEntry);
+          if (relationship === 'blocks') {
+            story.blocking.push(dependentEntry);
+          }
+        }
+      }
+    });
+
+    const sortByStoryId = (a, b) => {
+      if (a.storyId === b.storyId) {
+        return a.title.localeCompare(b.title);
+      }
+      return a.storyId - b.storyId;
+    };
+    story.dependencies.sort(sortByStoryId);
+    story.dependents.sort(sortByStoryId);
+    story.blockedBy.sort(sortByStoryId);
+    story.blocking.sort(sortByStoryId);
+  }
 
   const analysis = await analyzeInvest(story, {
     acceptanceTests: story.acceptanceTests,

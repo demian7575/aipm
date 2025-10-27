@@ -56,6 +56,21 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.ok(Array.isArray(story.tasks));
   assert.ok(story.tasks.length >= 2);
   assert.ok(story.tasks.every((task) => typeof task.title === 'string'));
+  assert.ok(Array.isArray(story.dependencies));
+  assert.ok(Array.isArray(story.dependents));
+  assert.ok(Array.isArray(story.blockedBy));
+  assert.ok(Array.isArray(story.blocking));
+  if (Array.isArray(story.children) && story.children.length > 0) {
+    const blockedChild = story.children.find((child) => child && child.status === 'Blocked');
+    assert.ok(blockedChild, 'Seed data should include a blocked child story');
+    assert.ok(Array.isArray(blockedChild.dependencies));
+    assert.ok(Array.isArray(blockedChild.blockedBy));
+    assert.ok(blockedChild.blockedBy.length >= 1, 'Blocked story should reference blockers');
+    assert.ok(
+      blockedChild.blockedBy.every((entry) => entry && entry.relationship === 'blocks'),
+      'Blocked story blockers should be marked as blocks relationships'
+    );
+  }
   assert.ok(
     story.tasks.every((task) => typeof task.assigneeEmail === 'string' && task.assigneeEmail.trim().length > 0),
     'Each task should include an assignee email'
