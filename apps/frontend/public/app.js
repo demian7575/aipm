@@ -345,6 +345,9 @@ function handleMindmapPointerDown(event) {
     ) {
       return;
     }
+    if (typeof target.closest === 'function' && target.closest('[data-prevent-mindmap-pan="true"]')) {
+      return;
+    }
   }
   mindmapPanState.pointerId = event.pointerId;
   mindmapPanState.startX = event.clientX;
@@ -1520,6 +1523,8 @@ function renderMindmap() {
       toggleBg.setAttribute('cx', String(toggleX));
       toggleBg.setAttribute('cy', String(toggleY));
       toggleBg.setAttribute('r', '12');
+      toggleBg.setAttribute('data-prevent-mindmap-pan', 'true');
+      toggleBg.addEventListener('pointerdown', (event) => event.stopPropagation());
       toggleBg.addEventListener('mousedown', (event) => event.stopPropagation());
       toggleBg.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -1532,6 +1537,13 @@ function renderMindmap() {
       symbol.setAttribute('x', String(toggleX - 4));
       symbol.setAttribute('y', String(toggleY + 4));
       symbol.textContent = state.expanded.has(node.story.id) ? '−' : '+';
+      symbol.setAttribute('data-prevent-mindmap-pan', 'true');
+      symbol.addEventListener('pointerdown', (event) => event.stopPropagation());
+      symbol.addEventListener('mousedown', (event) => event.stopPropagation());
+      symbol.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleStoryExpansion(node.story.id);
+      });
       group.appendChild(symbol);
     }
 
