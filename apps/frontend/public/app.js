@@ -43,6 +43,7 @@ const NODE_VERTICAL_GAP = 32;
 const MINDMAP_ZOOM_MIN = 0.5;
 const MINDMAP_ZOOM_MAX = 2;
 const MINDMAP_ZOOM_STEP = 0.1;
+const MINDMAP_PAN_THRESHOLD = 5;
 const HORIZONTAL_STEP = 240;
 const AUTO_LAYOUT_HORIZONTAL_GAP = 80;
 const X_OFFSET = 80;
@@ -232,6 +233,14 @@ const parentById = new Map();
 let toastTimeout = null;
 let mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
 let mindmapHasCentered = false;
+const mindmapPanState = {
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  scrollLeft: 0,
+  scrollTop: 0,
+  dragging: false,
+};
 
 function updateMindmapZoomControls() {
   if (mindmapZoomDisplay) {
@@ -280,6 +289,110 @@ function setMindmapZoom(nextZoom) {
   state.mindmapZoom = clamped;
   updateMindmapZoomControls();
   applyMindmapZoom();
+}
+
+function setMindmapPanningActive(active) {
+  if (mindmapWrapper) {
+    mindmapWrapper.classList.toggle('is-panning', !!active);
+  }
+  const root = document.body || document.documentElement;
+  if (root) {
+    if (active) {
+      root.classList.add('is-mindmap-panning');
+    } else {
+      root.classList.remove('is-mindmap-panning');
+    }
+  }
+}
+
+function resetMindmapPanState() {
+  mindmapPanState.pointerId = null;
+  mindmapPanState.startX = 0;
+  mindmapPanState.startY = 0;
+  mindmapPanState.scrollLeft = 0;
+  mindmapPanState.scrollTop = 0;
+  mindmapPanState.dragging = false;
+}
+
+function suppressMindmapClick() {
+  if (!mindmapWrapper) {
+    return;
+  }
+  const handleClick = (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    mindmapWrapper.removeEventListener('click', handleClick, true);
+  };
+  mindmapWrapper.addEventListener('click', handleClick, true);
+}
+
+function handleMindmapPointerDown(event) {
+  if (!mindmapWrapper || mindmapPanState.pointerId !== null) {
+    return;
+  }
+  if (event.button !== 0 && event.pointerType !== 'touch') {
+    return;
+  }
+  const target = event.target;
+  if (target) {
+    const tagName = target.tagName;
+    if (
+      tagName === 'INPUT' ||
+      tagName === 'BUTTON' ||
+      tagName === 'A' ||
+      tagName === 'SELECT' ||
+      tagName === 'TEXTAREA'
+    ) {
+      return;
+    }
+  }
+  mindmapPanState.pointerId = event.pointerId;
+  mindmapPanState.startX = event.clientX;
+  mindmapPanState.startY = event.clientY;
+  mindmapPanState.scrollLeft = mindmapWrapper.scrollLeft;
+  mindmapPanState.scrollTop = mindmapWrapper.scrollTop;
+  mindmapPanState.dragging = false;
+  mindmapWrapper.setPointerCapture?.(event.pointerId);
+}
+
+function handleMindmapPointerMove(event) {
+  if (!mindmapWrapper || mindmapPanState.pointerId !== event.pointerId) {
+    return;
+  }
+  const deltaX = event.clientX - mindmapPanState.startX;
+  const deltaY = event.clientY - mindmapPanState.startY;
+  if (!mindmapPanState.dragging) {
+    if (
+      Math.abs(deltaX) > MINDMAP_PAN_THRESHOLD ||
+      Math.abs(deltaY) > MINDMAP_PAN_THRESHOLD
+    ) {
+      mindmapPanState.dragging = true;
+      setMindmapPanningActive(true);
+    } else {
+      return;
+    }
+  }
+  mindmapWrapper.scrollLeft = mindmapPanState.scrollLeft - deltaX;
+  mindmapWrapper.scrollTop = mindmapPanState.scrollTop - deltaY;
+  event.preventDefault();
+}
+
+function handleMindmapPointerEnd(event) {
+  if (!mindmapWrapper || mindmapPanState.pointerId !== event.pointerId) {
+    return;
+  }
+  const wasDragging = mindmapPanState.dragging;
+  if (mindmapPanState.pointerId != null) {
+    if (mindmapWrapper.hasPointerCapture?.(mindmapPanState.pointerId)) {
+      mindmapWrapper.releasePointerCapture?.(mindmapPanState.pointerId);
+    }
+  }
+  setMindmapPanningActive(false);
+  resetMindmapPanState();
+  if (wasDragging) {
+    event.preventDefault();
+    suppressMindmapClick();
+  }
 }
 
 function syncDependencyOverlayControls() {
@@ -359,6 +472,11 @@ if (mindmapWrapper) {
     },
     { passive: false }
   );
+  mindmapWrapper.addEventListener('pointerdown', handleMindmapPointerDown);
+  mindmapWrapper.addEventListener('pointermove', handleMindmapPointerMove, { passive: false });
+  mindmapWrapper.addEventListener('pointerup', handleMindmapPointerEnd);
+  mindmapWrapper.addEventListener('pointercancel', handleMindmapPointerEnd);
+  mindmapWrapper.addEventListener('lostpointercapture', handleMindmapPointerEnd);
 }
 
 updateMindmapZoomControls();

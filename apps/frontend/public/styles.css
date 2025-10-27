@@ -297,6 +297,7 @@ textarea {
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+  cursor: grab;
 }
 
 .mindmap-wrapper::-webkit-scrollbar {
@@ -307,6 +308,14 @@ textarea {
 .mindmap-wrapper::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.5);
   border-radius: 9999px;
+}
+
+.mindmap-wrapper.is-panning {
+  cursor: grabbing;
+}
+
+body.is-mindmap-panning {
+  user-select: none;
 }
 
 #mindmap-canvas {
