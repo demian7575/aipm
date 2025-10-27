@@ -22,6 +22,7 @@
           Runtime Data
         </a>
         <button id="reference-btn" class="secondary">Reference Documents</button>
+        <button id="dependency-toggle-btn" class="secondary" aria-pressed="false">Dependency</button>
       </div>
       <div class="panel-toggles" role="toolbar" aria-label="Panel visibility">
         <label><input type="checkbox" id="toggle-outline" checked /> Outline</label>
@@ -47,6 +48,11 @@
           <h2>Mindmap</h2>
           <div class="panel-actions">
             <button id="auto-layout-toggle" class="secondary">Auto Layout</button>
+            <div class="mindmap-zoom-controls" role="group" aria-label="Mindmap zoom">
+              <button id="mindmap-zoom-out" class="secondary" type="button" aria-label="Zoom out">−</button>
+              <span id="mindmap-zoom-display" class="mindmap-zoom-display" aria-live="polite">100%</span>
+              <button id="mindmap-zoom-in" class="secondary" type="button" aria-label="Zoom in">+</button>
+            </div>
           </div>
         </div>
         <div class="mindmap-wrapper">

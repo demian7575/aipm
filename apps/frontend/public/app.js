@@ -9,6 +9,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
@@ -16,6 +17,10 @@ const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
 const mindmapPanel = document.getElementById('mindmap-panel');
+const mindmapWrapper = document.querySelector('.mindmap-wrapper');
+const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
+const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
+const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
@@ -32,13 +37,21 @@ const STORAGE_KEYS = {
 };
 
 const NODE_WIDTH = 240;
-const NODE_MIN_HEIGHT = 160;
-const NODE_MAX_HEIGHT = 360;
+const NODE_MIN_HEIGHT = 120;
+const NODE_MAX_HEIGHT = 520;
 const NODE_VERTICAL_GAP = 32;
+const MINDMAP_ZOOM_MIN = 0.5;
+const MINDMAP_ZOOM_MAX = 2;
+const MINDMAP_ZOOM_STEP = 0.1;
+const MINDMAP_PAN_THRESHOLD = 5;
 const HORIZONTAL_STEP = 240;
 const AUTO_LAYOUT_HORIZONTAL_GAP = 80;
 const X_OFFSET = 80;
 const Y_OFFSET = 80;
+const MINDMAP_STAGE_MIN_WIDTH = 1600;
+const MINDMAP_STAGE_MIN_HEIGHT = 1200;
+const MINDMAP_STAGE_PADDING_X = 480;
+const MINDMAP_STAGE_PADDING_Y = 360;
 const HTML_NS = 'http://www.w3.org/1999/xhtml';
 
 const mindmapMeasureRoot = document.createElement('div');
@@ -206,6 +219,8 @@ const state = {
   selectedStoryId: null,
   manualPositions: {},
   autoLayout: true,
+  showDependencies: false,
+  mindmapZoom: 1,
   panelVisibility: {
     outline: true,
     mindmap: true,
@@ -216,6 +231,208 @@ const state = {
 const storyIndex = new Map();
 const parentById = new Map();
 let toastTimeout = null;
+let mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+let mindmapHasCentered = false;
+const mindmapPanState = {
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  scrollLeft: 0,
+  scrollTop: 0,
+  dragging: false,
+};
+
+function updateMindmapZoomControls() {
+  if (mindmapZoomDisplay) {
+    mindmapZoomDisplay.textContent = `${Math.round(state.mindmapZoom * 100)}%`;
+  }
+  if (mindmapZoomInBtn) {
+    mindmapZoomInBtn.disabled = state.mindmapZoom >= MINDMAP_ZOOM_MAX - 0.0001;
+  }
+  if (mindmapZoomOutBtn) {
+    mindmapZoomOutBtn.disabled = state.mindmapZoom <= MINDMAP_ZOOM_MIN + 0.0001;
+  }
+}
+
+function applyMindmapZoom() {
+  if (!mindmapCanvas) {
+    return;
+  }
+  const baseWidth = mindmapBounds.width;
+  const baseHeight = mindmapBounds.height;
+  if (baseWidth > 0 && baseHeight > 0) {
+    const fitWidth = mindmapBounds.fitWidth > 0 ? mindmapBounds.fitWidth : baseWidth;
+    const fitHeight = mindmapBounds.fitHeight > 0 ? mindmapBounds.fitHeight : baseHeight;
+    const scaledWidth = fitWidth * state.mindmapZoom;
+    const scaledHeight = fitHeight * state.mindmapZoom;
+    mindmapCanvas.style.width = `${scaledWidth}px`;
+    mindmapCanvas.style.height = `${scaledHeight}px`;
+  } else {
+    mindmapCanvas.style.removeProperty('width');
+    mindmapCanvas.style.removeProperty('height');
+  }
+}
+
+function clampMindmapZoom(value) {
+  if (Number.isNaN(value)) {
+    return state.mindmapZoom;
+  }
+  return Math.min(MINDMAP_ZOOM_MAX, Math.max(MINDMAP_ZOOM_MIN, value));
+}
+
+function setMindmapZoom(nextZoom) {
+  const clamped = clampMindmapZoom(nextZoom);
+  if (Math.abs(clamped - state.mindmapZoom) < 0.0001) {
+    updateMindmapZoomControls();
+    return;
+  }
+  state.mindmapZoom = clamped;
+  updateMindmapZoomControls();
+  applyMindmapZoom();
+}
+
+function setMindmapPanningActive(active) {
+  if (mindmapWrapper) {
+    mindmapWrapper.classList.toggle('is-panning', !!active);
+  }
+  const root = document.body || document.documentElement;
+  if (root) {
+    if (active) {
+      root.classList.add('is-mindmap-panning');
+    } else {
+      root.classList.remove('is-mindmap-panning');
+    }
+  }
+}
+
+function resetMindmapPanState() {
+  mindmapPanState.pointerId = null;
+  mindmapPanState.startX = 0;
+  mindmapPanState.startY = 0;
+  mindmapPanState.scrollLeft = 0;
+  mindmapPanState.scrollTop = 0;
+  mindmapPanState.dragging = false;
+}
+
+function suppressMindmapClick() {
+  if (!mindmapWrapper) {
+    return;
+  }
+  const handleClick = (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    mindmapWrapper.removeEventListener('click', handleClick, true);
+  };
+  mindmapWrapper.addEventListener('click', handleClick, true);
+}
+
+function handleMindmapPointerDown(event) {
+  if (!mindmapWrapper || mindmapPanState.pointerId !== null) {
+    return;
+  }
+  if (event.button !== 0 && event.pointerType !== 'touch') {
+    return;
+  }
+  const target = event.target;
+  if (target) {
+    const tagName = target.tagName;
+    if (
+      tagName === 'INPUT' ||
+      tagName === 'BUTTON' ||
+      tagName === 'A' ||
+      tagName === 'SELECT' ||
+      tagName === 'TEXTAREA'
+    ) {
+      return;
+    }
+    if (typeof target.closest === 'function' && target.closest('[data-prevent-mindmap-pan="true"]')) {
+      return;
+    }
+  }
+  mindmapPanState.pointerId = event.pointerId;
+  mindmapPanState.startX = event.clientX;
+  mindmapPanState.startY = event.clientY;
+  mindmapPanState.scrollLeft = mindmapWrapper.scrollLeft;
+  mindmapPanState.scrollTop = mindmapWrapper.scrollTop;
+  mindmapPanState.dragging = false;
+  mindmapWrapper.setPointerCapture?.(event.pointerId);
+}
+
+function handleMindmapPointerMove(event) {
+  if (!mindmapWrapper || mindmapPanState.pointerId !== event.pointerId) {
+    return;
+  }
+  const deltaX = event.clientX - mindmapPanState.startX;
+  const deltaY = event.clientY - mindmapPanState.startY;
+  if (!mindmapPanState.dragging) {
+    if (
+      Math.abs(deltaX) > MINDMAP_PAN_THRESHOLD ||
+      Math.abs(deltaY) > MINDMAP_PAN_THRESHOLD
+    ) {
+      mindmapPanState.dragging = true;
+      setMindmapPanningActive(true);
+    } else {
+      return;
+    }
+  }
+  mindmapWrapper.scrollLeft = mindmapPanState.scrollLeft - deltaX;
+  mindmapWrapper.scrollTop = mindmapPanState.scrollTop - deltaY;
+  event.preventDefault();
+}
+
+function handleMindmapPointerEnd(event) {
+  if (!mindmapWrapper || mindmapPanState.pointerId !== event.pointerId) {
+    return;
+  }
+  const wasDragging = mindmapPanState.dragging;
+  if (mindmapPanState.pointerId != null) {
+    if (mindmapWrapper.hasPointerCapture?.(mindmapPanState.pointerId)) {
+      mindmapWrapper.releasePointerCapture?.(mindmapPanState.pointerId);
+    }
+  }
+  setMindmapPanningActive(false);
+  resetMindmapPanState();
+  if (wasDragging) {
+    event.preventDefault();
+    suppressMindmapClick();
+  }
+}
+
+function syncDependencyOverlayControls() {
+  const pressed = state.showDependencies;
+  if (dependencyToggleBtn) {
+    dependencyToggleBtn.classList.toggle('is-active', pressed);
+    dependencyToggleBtn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    dependencyToggleBtn.setAttribute(
+      'title',
+      pressed ? 'Hide dependency connections on the mindmap' : 'Show dependency connections on the mindmap'
+    );
+  }
+  document.querySelectorAll('[data-role="dependency-overlay-toggle"]').forEach((button) => {
+    button.classList.toggle('is-active', pressed);
+    button.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    const label = pressed ? 'Hide Mindmap Overlay' : 'Show Mindmap Overlay';
+    if (button.textContent !== label) {
+      button.textContent = label;
+    }
+    button.setAttribute('title', label);
+  });
+}
+
+function setDependencyOverlayVisible(visible) {
+  const next = Boolean(visible);
+  if (state.showDependencies === next) {
+    syncDependencyOverlayControls();
+    return;
+  }
+  state.showDependencies = next;
+  syncDependencyOverlayControls();
+  renderMindmap();
+}
+
+function toggleDependencyOverlay() {
+  setDependencyOverlayVisible(!state.showDependencies);
+}
 
 if (referenceBtn) {
   referenceBtn.addEventListener('click', () => {
@@ -227,9 +444,266 @@ if (referenceBtn) {
   });
 }
 
+if (dependencyToggleBtn) {
+  dependencyToggleBtn.addEventListener('click', () => {
+    toggleDependencyOverlay();
+  });
+}
+
+if (mindmapZoomInBtn) {
+  mindmapZoomInBtn.addEventListener('click', () => {
+    setMindmapZoom(state.mindmapZoom + MINDMAP_ZOOM_STEP);
+  });
+}
+
+if (mindmapZoomOutBtn) {
+  mindmapZoomOutBtn.addEventListener('click', () => {
+    setMindmapZoom(state.mindmapZoom - MINDMAP_ZOOM_STEP);
+  });
+}
+
+if (mindmapWrapper) {
+  mindmapWrapper.addEventListener(
+    'wheel',
+    (event) => {
+      if (!event.ctrlKey) {
+        return;
+      }
+      event.preventDefault();
+      const direction = event.deltaY < 0 ? 1 : -1;
+      setMindmapZoom(state.mindmapZoom + direction * MINDMAP_ZOOM_STEP);
+    },
+    { passive: false }
+  );
+  mindmapWrapper.addEventListener('pointerdown', handleMindmapPointerDown);
+  mindmapWrapper.addEventListener('pointermove', handleMindmapPointerMove, { passive: false });
+  mindmapWrapper.addEventListener('pointerup', handleMindmapPointerEnd);
+  mindmapWrapper.addEventListener('pointercancel', handleMindmapPointerEnd);
+  mindmapWrapper.addEventListener('lostpointercapture', handleMindmapPointerEnd);
+}
+
+updateMindmapZoomControls();
+
 function getStatusClass(status) {
   const normalized = typeof status === 'string' ? status.trim() : '';
   return STATUS_CLASS_MAP[normalized] || STATUS_CLASS_MAP.Draft;
+}
+
+function normalizeDependencyRelationship(value) {
+  if (typeof value !== 'string') {
+    return 'depends';
+  }
+  const normalized = value.trim().toLowerCase();
+  return normalized.length ? normalized : 'depends';
+}
+
+function normalizeDependencyEntries(entries) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+  return entries
+    .filter((entry) => entry && entry.storyId != null)
+    .map((entry) => ({
+      ...entry,
+      storyId: Number(entry.storyId),
+      title: entry.title || '',
+      status: entry.status || 'Draft',
+      relationship: normalizeDependencyRelationship(entry.relationship),
+    }));
+}
+
+function toSentenceCase(value) {
+  if (!value) {
+    return '';
+  }
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function describeDependencyRelationship(entry, context) {
+  const relationship = normalizeDependencyRelationship(entry.relationship);
+  if (context === 'blocked-by') {
+    return 'Blocking this story';
+  }
+  if (context === 'downstream') {
+    if (relationship === 'blocks') {
+      return 'Blocked by this story';
+    }
+    if (relationship === 'depends') {
+      return 'Depends on this story';
+    }
+    return toSentenceCase(relationship);
+  }
+  if (context === 'upstream') {
+    if (relationship === 'blocks') {
+      return 'Blocking this story';
+    }
+    if (relationship === 'depends') {
+      return 'Required dependency';
+    }
+    return toSentenceCase(relationship);
+  }
+  return toSentenceCase(relationship);
+}
+
+function createTableRow(label, value) {
+  const row = document.createElement('tr');
+  const th = document.createElement('th');
+  th.scope = 'row';
+  th.textContent = label;
+  const td = document.createElement('td');
+  if (value instanceof Node) {
+    td.appendChild(value);
+  } else {
+    td.textContent = value;
+  }
+  row.appendChild(th);
+  row.appendChild(td);
+  return row;
+}
+
+function createDependencyTable(entry, context) {
+  const relationship = normalizeDependencyRelationship(entry.relationship);
+  const table = document.createElement('table');
+  table.className = 'vertical-table dependency-table';
+  if (relationship === 'blocks') {
+    table.classList.add('is-blocker');
+  }
+  table.dataset.storyId = String(entry.storyId);
+  table.setAttribute('role', 'button');
+  table.setAttribute('tabindex', '0');
+  const accessibleTitle = entry.title ? ` – ${entry.title}` : '';
+  table.setAttribute('aria-label', `View story #${entry.storyId}${accessibleTitle}`);
+
+  const tbody = document.createElement('tbody');
+  tbody.appendChild(createTableRow('Story', `#${entry.storyId} ${entry.title || 'Untitled story'}`));
+
+  const status = entry.status || 'Draft';
+  const statusBadge = document.createElement('span');
+  statusBadge.className = `status-badge ${getStatusClass(status)}`;
+  statusBadge.textContent = status;
+  tbody.appendChild(createTableRow('Status', statusBadge));
+
+  const relationshipBadge = document.createElement('span');
+  relationshipBadge.className = 'dependency-relationship';
+  if (relationship === 'blocks') {
+    relationshipBadge.classList.add('is-blocker');
+  }
+  relationshipBadge.textContent = describeDependencyRelationship(entry, context);
+  tbody.appendChild(createTableRow('Relationship', relationshipBadge));
+
+  table.appendChild(tbody);
+  return table;
+}
+
+function formatDependencyOptionLabel(story) {
+  const title = story.title && story.title.trim().length ? story.title : `Story ${story.id}`;
+  const status = story.status || 'Draft';
+  return `#${story.id} ${title} (${status})`;
+}
+
+function collectDependencyOptions(story, context) {
+  const excluded = new Set([story.id]);
+  if (context === 'blocked-by' && Array.isArray(story.blockedBy)) {
+    story.blockedBy.forEach((entry) => excluded.add(entry.storyId));
+  }
+  if (context === 'upstream' && Array.isArray(story.dependencies)) {
+    story.dependencies.forEach((entry) => excluded.add(entry.storyId));
+  }
+  const options = [];
+  storyIndex.forEach((candidate) => {
+    if (!candidate || excluded.has(candidate.id)) {
+      return;
+    }
+    options.push({
+      id: candidate.id,
+      label: formatDependencyOptionLabel(candidate),
+    });
+  });
+  options.sort((a, b) => a.label.localeCompare(b.label));
+  return options;
+}
+
+function openDependencyPicker(story, context) {
+  if (!story) {
+    return;
+  }
+  const options = collectDependencyOptions(story, context);
+  const container = document.createElement('div');
+  container.className = 'dependency-picker';
+
+  if (options.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'form-hint';
+    empty.textContent = 'No other user stories are available to link.';
+    container.appendChild(empty);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'form-hint';
+    hint.textContent =
+      context === 'blocked-by'
+        ? 'Select the story that is blocking this work.'
+        : 'Select the upstream story this work depends on.';
+    container.appendChild(hint);
+
+    const label = document.createElement('label');
+    label.textContent = 'User story';
+    const select = document.createElement('select');
+    select.required = true;
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select a user story…';
+    select.appendChild(placeholder);
+    options.forEach((option) => {
+      const opt = document.createElement('option');
+      opt.value = String(option.id);
+      opt.textContent = option.label;
+      select.appendChild(opt);
+    });
+    label.appendChild(select);
+    container.appendChild(label);
+
+    setTimeout(() => {
+      select.focus();
+    }, 0);
+
+    const successMessage =
+      context === 'blocked-by' ? 'Blocking story added' : 'Dependency added';
+    openModal({
+      title: context === 'blocked-by' ? 'Add Blocking Story' : 'Add Dependency',
+      content: container,
+      actions: [
+        {
+          label: 'Add',
+          onClick: async () => {
+            const value = Number(select.value);
+            if (!Number.isFinite(value) || value === 0) {
+              showToast('Select a user story to link.', 'error');
+              select.focus();
+              return false;
+            }
+            try {
+              await createDependencyLink(story.id, value, context === 'blocked-by' ? 'blocks' : 'depends');
+              state.selectedStoryId = story.id;
+              persistSelection();
+              await loadStories();
+              showToast(successMessage, 'success');
+              return true;
+            } catch (error) {
+              showToast(error.message || 'Failed to add dependency', 'error');
+              return false;
+            }
+          },
+        },
+      ],
+    });
+    return;
+  }
+
+  openModal({
+    title: context === 'blocked-by' ? 'Add Blocking Story' : 'Add Dependency',
+    content: container,
+    cancelLabel: 'Close',
+  });
 }
 
 function storyHasAcceptanceWarnings(story) {
@@ -490,9 +964,11 @@ async function loadStories(preserveSelection = true) {
     if (state.selectedStoryId != null) {
       expandAncestors(state.selectedStoryId);
     }
+    mindmapHasCentered = false;
     renderAll();
   } catch (error) {
     console.error(error);
+    mindmapHasCentered = false;
     renderAll();
     showToast(error.message || 'Unable to load stories', 'error');
   }
@@ -610,15 +1086,7 @@ function createMindmapElement(tag, namespace = false) {
 }
 
 function buildMindmapMetaLines(story) {
-  const metaLines = [
-    {
-      value:
-        story.storyPoint != null && story.storyPoint !== ''
-          ? String(story.storyPoint)
-          : 'Unestimated',
-      classNames: ['story-meta'],
-    },
-  ];
+  const metaLines = [];
 
   return metaLines
     .map((line) => {
@@ -690,10 +1158,21 @@ function measureMindmapNode(story) {
   measurement.style.width = `${NODE_WIDTH}px`;
   measurement.classList.add('mindmap-node-body--measure');
   mindmapMeasureRoot.appendChild(measurement);
-  const requiredHeight = Math.ceil(measurement.scrollHeight);
+  const scroller = measurement.querySelector('.mindmap-node-scroll');
+  const bodyHeight = Math.ceil(measurement.getBoundingClientRect().height);
+  const scrollerStyles = scroller ? getComputedStyle(scroller) : null;
+  const scrollHeight = scroller
+    ? Math.ceil(
+        scroller.scrollHeight +
+          parseFloat(scrollerStyles?.marginTop || '0') +
+          parseFloat(scrollerStyles?.marginBottom || '0')
+      )
+    : bodyHeight;
   mindmapMeasureRoot.removeChild(measurement);
-  const height = Math.max(NODE_MIN_HEIGHT, Math.min(requiredHeight, NODE_MAX_HEIGHT));
-  return { height, overflow: requiredHeight > NODE_MAX_HEIGHT };
+  const naturalHeight = Math.max(bodyHeight, scrollHeight);
+  const cappedHeight = Math.min(Math.max(NODE_MIN_HEIGHT, naturalHeight), NODE_MAX_HEIGHT);
+  const overflow = naturalHeight > NODE_MAX_HEIGHT;
+  return { height: cappedHeight, overflow };
 }
 
 function collectMindmapNodeMetrics(stories) {
@@ -759,13 +1238,66 @@ function computeLayout(nodes, depth = 0, startY = Y_OFFSET, horizontalGap = 0, m
   return { nodes: positioned, nextY: cursorY, minY, maxY };
 }
 
+function projectPointToRect(centerX, centerY, width, height, dx, dy) {
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
+  if (dx === 0 && dy === 0) {
+    return { x: centerX, y: centerY };
+  }
+  if (dx === 0) {
+    return { x: centerX, y: centerY + Math.sign(dy) * halfHeight };
+  }
+  if (dy === 0) {
+    return { x: centerX + Math.sign(dx) * halfWidth, y: centerY };
+  }
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  const slope = absDy / absDx;
+  const rectSlope = halfHeight / halfWidth;
+  if (slope > rectSlope) {
+    const scale = halfHeight / absDy;
+    return {
+      x: centerX + dx * scale,
+      y: centerY + Math.sign(dy) * halfHeight,
+    };
+  }
+  const scale = halfWidth / absDx;
+  return {
+    x: centerX + Math.sign(dx) * halfWidth,
+    y: centerY + dy * scale,
+  };
+}
+
+function computeDependencyEndpoints(fromNode, toNode) {
+  const fromCenterX = fromNode.x + NODE_WIDTH / 2;
+  const fromCenterY = fromNode.y + fromNode.height / 2;
+  const toCenterX = toNode.x + NODE_WIDTH / 2;
+  const toCenterY = toNode.y + toNode.height / 2;
+  const dx = toCenterX - fromCenterX;
+  const dy = toCenterY - fromCenterY;
+  const start = projectPointToRect(fromCenterX, fromCenterY, NODE_WIDTH, fromNode.height, dx, dy);
+  const end = projectPointToRect(toCenterX, toCenterY, NODE_WIDTH, toNode.height, -dx, -dy);
+  return { start, end };
+}
+
 function renderMindmap() {
+  const scrollSnapshot = mindmapWrapper
+    ? { left: mindmapWrapper.scrollLeft, top: mindmapWrapper.scrollTop }
+    : null;
   mindmapCanvas.innerHTML = '';
+  syncDependencyOverlayControls();
+  mindmapCanvas.classList.remove('has-dependencies');
   if (!state.panelVisibility.mindmap) {
+    mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+    applyMindmapZoom();
+    mindmapHasCentered = false;
     return;
   }
   if (state.stories.length === 0) {
     layoutStatus.textContent = 'No stories to display yet.';
+    mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+    applyMindmapZoom();
+    mindmapHasCentered = false;
     return;
   }
 
@@ -796,8 +1328,25 @@ function renderMindmap() {
     });
   });
 
+  const dependencyEdges = [];
+  if (state.showDependencies) {
+    nodes.forEach((node) => {
+      const deps = Array.isArray(node.story.dependencies) ? node.story.dependencies : [];
+      deps.forEach((entry) => {
+        if (!entry || entry.storyId == null) return;
+        const target = nodeMap.get(entry.storyId);
+        if (!target) return;
+        const relationship = normalizeDependencyRelationship(entry.relationship);
+        dependencyEdges.push({ from: node, to: target, relationship, info: entry });
+      });
+    });
+  }
+
   if (nodes.length === 0) {
     layoutStatus.textContent = 'Toggle outline items to expand the map.';
+    mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+    applyMindmapZoom();
+    mindmapHasCentered = false;
     return;
   }
 
@@ -806,19 +1355,50 @@ function renderMindmap() {
   const minY = Math.min(...nodes.map((node) => node.y));
   const maxY = Math.max(...nodes.map((node) => node.y + node.height));
   const margin = 120;
-  const viewWidth = maxX - minX + margin * 2;
-  const viewHeight = maxY - minY + margin * 2;
-  mindmapCanvas.setAttribute('viewBox', `${minX - margin} ${minY - margin} ${viewWidth} ${viewHeight}`);
-  mindmapCanvas.setAttribute('width', String(viewWidth));
-  mindmapCanvas.setAttribute('height', String(viewHeight));
+  const baseWidth = maxX - minX;
+  const baseHeight = maxY - minY;
   const wrapper = mindmapCanvas.parentElement;
   const wrapperWidth = wrapper ? wrapper.clientWidth : 0;
   const wrapperHeight = wrapper ? wrapper.clientHeight : 0;
-  mindmapCanvas.style.width = `${Math.max(viewWidth, wrapperWidth)}px`;
-  mindmapCanvas.style.height = `${Math.max(viewHeight, wrapperHeight)}px`;
+  const desiredPaddingX = Math.max(margin, MINDMAP_STAGE_PADDING_X);
+  const desiredPaddingY = Math.max(margin, MINDMAP_STAGE_PADDING_Y);
+  const paddedWidth = baseWidth + desiredPaddingX * 2;
+  const paddedHeight = baseHeight + desiredPaddingY * 2;
+  const stageWidth = Math.max(paddedWidth, MINDMAP_STAGE_MIN_WIDTH, wrapperWidth + desiredPaddingX * 2);
+  const stageHeight = Math.max(paddedHeight, MINDMAP_STAGE_MIN_HEIGHT, wrapperHeight + desiredPaddingY * 2);
+  const stageMarginX = (stageWidth - baseWidth) / 2;
+  const stageMarginY = (stageHeight - baseHeight) / 2;
+  const viewMinX = minX - stageMarginX;
+  const viewMinY = minY - stageMarginY;
+  mindmapCanvas.setAttribute('viewBox', `${viewMinX} ${viewMinY} ${stageWidth} ${stageHeight}`);
+  mindmapCanvas.setAttribute('width', String(stageWidth));
+  mindmapCanvas.setAttribute('height', String(stageHeight));
+  mindmapBounds = {
+    width: stageWidth,
+    height: stageHeight,
+    fitWidth: stageWidth,
+    fitHeight: stageHeight,
+  };
+  applyMindmapZoom();
+  if (mindmapWrapper) {
+    if (!mindmapHasCentered && (!scrollSnapshot || (scrollSnapshot.left === 0 && scrollSnapshot.top === 0))) {
+      const centerLeft = Math.max(0, (mindmapWrapper.scrollWidth - mindmapWrapper.clientWidth) / 2);
+      const centerTop = Math.max(0, (mindmapWrapper.scrollHeight - mindmapWrapper.clientHeight) / 2);
+      mindmapWrapper.scrollLeft = centerLeft;
+      mindmapWrapper.scrollTop = centerTop;
+      mindmapHasCentered = true;
+    } else if (scrollSnapshot) {
+      const maxScrollLeft = Math.max(0, mindmapWrapper.scrollWidth - mindmapWrapper.clientWidth);
+      const maxScrollTop = Math.max(0, mindmapWrapper.scrollHeight - mindmapWrapper.clientHeight);
+      mindmapWrapper.scrollLeft = Math.min(Math.max(scrollSnapshot.left, 0), maxScrollLeft);
+      mindmapWrapper.scrollTop = Math.min(Math.max(scrollSnapshot.top, 0), maxScrollTop);
+    }
+  }
 
   const svgNS = 'http://www.w3.org/2000/svg';
 
+  const treeEdgeGroup = document.createElementNS(svgNS, 'g');
+  treeEdgeGroup.classList.add('mindmap-tree-edges');
   edges.forEach((edge) => {
     const path = document.createElementNS(svgNS, 'path');
     path.classList.add('mindmap-edge');
@@ -828,8 +1408,75 @@ function renderMindmap() {
     const endY = edge.to.centerY;
     const midX = startX + (endX - startX) / 2;
     path.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY} ${midX} ${endY} ${endX} ${endY}`);
-    mindmapCanvas.appendChild(path);
+    treeEdgeGroup.appendChild(path);
   });
+  mindmapCanvas.appendChild(treeEdgeGroup);
+
+  function createDependencyMarker(id, color) {
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id', id);
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '10');
+    marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '8');
+    marker.setAttribute('markerHeight', '8');
+    marker.setAttribute('orient', 'auto');
+    marker.setAttribute('markerUnits', 'strokeWidth');
+    const markerPath = document.createElementNS(svgNS, 'path');
+    markerPath.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    markerPath.setAttribute('fill', color);
+    marker.appendChild(markerPath);
+    return marker;
+  }
+
+  if (state.showDependencies && dependencyEdges.length > 0) {
+    mindmapCanvas.classList.add('has-dependencies');
+    const defs = document.createElementNS(svgNS, 'defs');
+    defs.appendChild(createDependencyMarker('dependency-arrow', 'rgba(71, 85, 105, 0.75)'));
+    defs.appendChild(createDependencyMarker('dependency-arrow-blocker', '#dc2626'));
+    mindmapCanvas.appendChild(defs);
+  }
+
+  if (state.showDependencies && dependencyEdges.length > 0) {
+    const dependencyGroup = document.createElementNS(svgNS, 'g');
+    dependencyGroup.classList.add('mindmap-dependencies');
+    dependencyEdges.forEach((edge) => {
+      const { start, end } = computeDependencyEndpoints(edge.from, edge.to);
+      const path = document.createElementNS(svgNS, 'path');
+      path.classList.add('mindmap-dependency-edge');
+      if (edge.relationship === 'blocks') {
+        path.classList.add('is-blocker');
+      }
+      path.setAttribute('d', `M ${start.x} ${start.y} L ${end.x} ${end.y}`);
+      const markerId = edge.relationship === 'blocks' ? 'dependency-arrow-blocker' : 'dependency-arrow';
+      path.setAttribute('marker-end', `url(#${markerId})`);
+      const dependentTitle = edge.from.story && edge.from.story.title
+        ? edge.from.story.title
+        : `Story ${edge.from.story.id}`;
+      const dependencyTitle = edge.info && edge.info.title ? edge.info.title : `Story ${edge.info.storyId}`;
+      const dependentLabel = `#${edge.from.story.id} ${dependentTitle}`;
+      const dependencyLabel = `#${edge.info.storyId} ${dependencyTitle}`;
+      const verb = edge.relationship === 'blocks' ? 'is blocked by' : 'depends on';
+      const title = document.createElementNS(svgNS, 'title');
+      title.textContent = `${dependentLabel} ${verb} ${dependencyLabel}`;
+      path.appendChild(title);
+      dependencyGroup.appendChild(path);
+      if (edge.relationship === 'blocks') {
+        const label = document.createElementNS(svgNS, 'text');
+        label.classList.add('mindmap-dependency-label');
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('dominant-baseline', 'central');
+        label.setAttribute('pointer-events', 'none');
+        const labelX = start.x + (end.x - start.x) * 0.65;
+        const labelY = start.y + (end.y - start.y) * 0.65;
+        label.setAttribute('x', String(labelX));
+        label.setAttribute('y', String(labelY));
+        label.textContent = 'blocks';
+        dependencyGroup.appendChild(label);
+      }
+    });
+    mindmapCanvas.appendChild(dependencyGroup);
+  }
 
   nodes.forEach((node) => {
     const group = document.createElementNS(svgNS, 'g');
@@ -876,6 +1523,8 @@ function renderMindmap() {
       toggleBg.setAttribute('cx', String(toggleX));
       toggleBg.setAttribute('cy', String(toggleY));
       toggleBg.setAttribute('r', '12');
+      toggleBg.setAttribute('data-prevent-mindmap-pan', 'true');
+      toggleBg.addEventListener('pointerdown', (event) => event.stopPropagation());
       toggleBg.addEventListener('mousedown', (event) => event.stopPropagation());
       toggleBg.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -888,7 +1537,42 @@ function renderMindmap() {
       symbol.setAttribute('x', String(toggleX - 4));
       symbol.setAttribute('y', String(toggleY + 4));
       symbol.textContent = state.expanded.has(node.story.id) ? '−' : '+';
+      symbol.setAttribute('data-prevent-mindmap-pan', 'true');
+      symbol.addEventListener('pointerdown', (event) => event.stopPropagation());
+      symbol.addEventListener('mousedown', (event) => event.stopPropagation());
+      symbol.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleStoryExpansion(node.story.id);
+      });
       group.appendChild(symbol);
+    }
+
+    if (state.showDependencies) {
+      const deps = Array.isArray(node.story.dependencies) ? node.story.dependencies : [];
+      const blockingDeps = deps.filter((dep) =>
+        dep && typeof dep.relationship === 'string' && dep.relationship.toLowerCase() === 'blocks'
+      );
+      let tooltipText = '';
+      if (blockingDeps.length > 0) {
+        const lines = blockingDeps.map((dep) => {
+          const title = dep && dep.title ? dep.title : `Story ${dep.storyId}`;
+          return `• #${dep.storyId} ${title}`;
+        });
+        tooltipText = `Blocking stories:\n${lines.join('\n')}`;
+      } else if (deps.length > 0) {
+        const lines = deps.map((dep) => {
+          const title = dep && dep.title ? dep.title : `Story ${dep.storyId}`;
+          return `• #${dep.storyId} ${title}`;
+        });
+        tooltipText = `Dependencies:\n${lines.join('\n')}`;
+      } else {
+        tooltipText = 'No dependencies.';
+      }
+      if (tooltipText) {
+        const titleEl = document.createElementNS(svgNS, 'title');
+        titleEl.textContent = tooltipText;
+        group.appendChild(titleEl);
+      }
     }
 
     setupNodeInteraction(group, node);
@@ -1872,6 +2556,130 @@ function renderDetails() {
       window.open(`mailto:${email}`);
     }
   });
+
+  const dependencySection = document.createElement('section');
+  dependencySection.className = 'dependencies-section';
+  const dependencyHeading = document.createElement('div');
+  dependencyHeading.className = 'section-heading';
+  const dependencyTitle = document.createElement('h3');
+  dependencyTitle.textContent = 'Dependencies';
+  dependencyHeading.appendChild(dependencyTitle);
+  const dependencyOverlayBtn = document.createElement('button');
+  dependencyOverlayBtn.type = 'button';
+  dependencyOverlayBtn.className = 'secondary dependency-overlay-toggle';
+  dependencyOverlayBtn.dataset.role = 'dependency-overlay-toggle';
+  dependencyOverlayBtn.textContent = state.showDependencies ? 'Hide Mindmap Overlay' : 'Show Mindmap Overlay';
+  dependencyOverlayBtn.classList.toggle('is-active', state.showDependencies);
+  dependencyOverlayBtn.setAttribute('aria-pressed', state.showDependencies ? 'true' : 'false');
+  dependencyHeading.appendChild(dependencyOverlayBtn);
+  dependencySection.appendChild(dependencyHeading);
+
+  const dependencyGroupsContainer = document.createElement('div');
+  dependencyGroupsContainer.className = 'dependency-groups';
+  dependencySection.appendChild(dependencyGroupsContainer);
+
+  const normalizedDependencies = normalizeDependencyEntries(story.dependencies);
+  const blockedByEntries = normalizedDependencies.filter((entry) => entry.relationship === 'blocks');
+  const supportingDependencies = normalizedDependencies.filter((entry) => entry.relationship !== 'blocks');
+  const dependentEntries = normalizeDependencyEntries(story.dependents);
+
+  const dependencyGroups = [
+    {
+      key: 'blocked-by',
+      title: 'Blocked by',
+      items: blockedByEntries,
+      empty: 'This story is not blocked by other stories.',
+      context: 'blocked-by',
+      allowAdd: true,
+    },
+    {
+      key: 'upstream',
+      title: 'Dependencies',
+      items: supportingDependencies,
+      empty: 'No upstream dependencies recorded.',
+      context: 'upstream',
+      allowAdd: true,
+    },
+    {
+      key: 'downstream',
+      title: 'Dependents',
+      items: dependentEntries,
+      empty: 'No stories depend on this one yet.',
+      context: 'downstream',
+    },
+  ];
+
+  dependencyGroups.forEach((group) => {
+    const groupEl = document.createElement('article');
+    groupEl.className = 'dependency-group';
+    const groupHeader = document.createElement('div');
+    groupHeader.className = 'dependency-group-header';
+    const groupHeading = document.createElement('h4');
+    groupHeading.textContent = group.title;
+    groupHeader.appendChild(groupHeading);
+
+    if (group.allowAdd) {
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'secondary dependency-add-btn';
+      addBtn.textContent = group.context === 'blocked-by' ? 'Add blocker' : 'Add dependency';
+      addBtn.addEventListener('click', () => {
+        openDependencyPicker(story, group.context);
+      });
+      groupHeader.appendChild(addBtn);
+    }
+
+    groupEl.appendChild(groupHeader);
+
+    if (!group.items.length) {
+      const empty = document.createElement('p');
+      empty.className = 'empty-state';
+      empty.textContent = group.empty;
+      groupEl.appendChild(empty);
+    } else {
+      const list = document.createElement('div');
+      list.className = 'record-list dependency-list';
+      group.items.forEach((entry) => {
+        const table = createDependencyTable(entry, group.context);
+        list.appendChild(table);
+      });
+      groupEl.appendChild(list);
+    }
+
+    dependencyGroupsContainer.appendChild(groupEl);
+  });
+
+  dependencyOverlayBtn.addEventListener('click', () => {
+    toggleDependencyOverlay();
+  });
+
+  const activateDependencyTarget = (table) => {
+    const targetId = Number(table.dataset.storyId);
+    if (!Number.isFinite(targetId)) {
+      return;
+    }
+    const targetStory = storyIndex.get(targetId);
+    if (targetStory) {
+      handleStorySelection(targetStory);
+    }
+  };
+
+  dependencySection.querySelectorAll('.dependency-table').forEach((table) => {
+    table.addEventListener('click', (event) => {
+      event.preventDefault();
+      activateDependencyTarget(table);
+    });
+    table.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        activateDependencyTarget(table);
+      }
+    });
+  });
+
+  syncDependencyOverlayControls();
+
+  detailsContent.appendChild(dependencySection);
 
   const acceptanceSection = document.createElement('section');
   const acceptanceHeading = document.createElement('div');
@@ -3165,6 +3973,19 @@ async function updateAcceptanceTest(testId, payload) {
     }
     throw error;
   }
+}
+
+async function createDependencyLink(storyId, dependsOnStoryId, relationship = 'depends') {
+  return await sendJson(`/api/stories/${storyId}/dependencies`, {
+    method: 'POST',
+    body: { dependsOnStoryId, relationship },
+  });
+}
+
+async function deleteDependencyLink(storyId, dependsOnStoryId) {
+  return await sendJson(`/api/stories/${storyId}/dependencies/${dependsOnStoryId}`, {
+    method: 'DELETE',
+  });
 }
 
 async function createTask(storyId, payload) {

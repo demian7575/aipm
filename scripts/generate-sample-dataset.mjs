@@ -242,9 +242,18 @@ export async function generateSampleDataset(outputPath = DEFAULT_OUTPUT) {
       updated_at TEXT NOT NULL,
       FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS story_dependencies (
+      story_id INTEGER NOT NULL,
+      depends_on_story_id INTEGER NOT NULL,
+      relationship TEXT DEFAULT 'depends',
+      PRIMARY KEY (story_id, depends_on_story_id),
+      FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE,
+      FOREIGN KEY(depends_on_story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+    );
     DELETE FROM acceptance_tests;
     DELETE FROM reference_documents;
     DELETE FROM user_stories;
+    DELETE FROM story_dependencies;
   `);
 
   const insertStory = db.prepare(
@@ -258,6 +267,7 @@ export async function generateSampleDataset(outputPath = DEFAULT_OUTPUT) {
   let acceptanceTestCount = 0;
 
   const stories = [];
+  const dependencies = [];
 
   ROOT_THEMES.forEach((theme, rootIndex) => {
     const title = buildTitle(rootIndex, 0, 0, 0, theme, undefined, undefined);
@@ -312,7 +322,7 @@ export async function generateSampleDataset(outputPath = DEFAULT_OUTPUT) {
         JSON.stringify(buildComponents(theme, focus, null, 1)),
         childStoryPoint,
         selectAssignee(storyCount),
-        'Draft',
+        focusIndex === 0 ? 'In Progress' : 'Ready',
         childTimestamp,
         childTimestamp
       );
@@ -324,6 +334,8 @@ export async function generateSampleDataset(outputPath = DEFAULT_OUTPUT) {
         depth: 1,
       };
       stories.push(childStory);
+
+      dependencies.push({ storyId: Number(childId), dependsOn: Number(rootId), relationship: 'depends' });
 
       const childTest = buildAcceptanceTest(childStory, 1, theme, focus, null, timestamp);
       insertTest.run(
@@ -337,6 +349,7 @@ export async function generateSampleDataset(outputPath = DEFAULT_OUTPUT) {
       );
       acceptanceTestCount += 1;
 
+      let previousScenarioId = null;
       GRANDCHILD_SCENARIOS.forEach((scenario, scenarioIndex) => {
         const grandTitle = buildTitle(rootIndex, focusIndex, scenarioIndex, 2, theme, focus, scenario);
         const grandStoryPoint = 3 + scenarioIndex;
@@ -351,7 +364,7 @@ export async function generateSampleDataset(outputPath = DEFAULT_OUTPUT) {
           JSON.stringify(buildComponents(theme, focus, scenario, 2)),
           grandStoryPoint,
           selectAssignee(storyCount),
-          'Draft',
+          scenarioIndex === 1 ? 'Blocked' : 'Draft',
           grandTimestamp,
           grandTimestamp
         );
@@ -363,6 +376,12 @@ export async function generateSampleDataset(outputPath = DEFAULT_OUTPUT) {
           depth: 2,
         };
         stories.push(grandStory);
+
+        dependencies.push({ storyId: Number(grandId), dependsOn: Number(childId), relationship: 'depends' });
+        if (previousScenarioId != null) {
+          dependencies.push({ storyId: Number(grandId), dependsOn: Number(previousScenarioId), relationship: 'blocks' });
+        }
+        previousScenarioId = grandId;
 
         const grandTest = buildAcceptanceTest(grandStory, 2, theme, focus, scenario, timestamp);
         insertTest.run(
@@ -378,6 +397,15 @@ export async function generateSampleDataset(outputPath = DEFAULT_OUTPUT) {
       });
     });
   });
+
+  if (dependencies.length > 0) {
+    const insertDependency = db.prepare(
+      'INSERT OR IGNORE INTO story_dependencies (story_id, depends_on_story_id, relationship) VALUES (?, ?, ?)' // prettier-ignore
+    );
+    dependencies.forEach(({ storyId, dependsOn, relationship }) => {
+      insertDependency.run(storyId, dependsOn, relationship);
+    });
+  }
 
   db.close?.();
   resetDatabaseFactory();

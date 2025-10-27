@@ -36,6 +36,11 @@ export const TASK_STATUS_OPTIONS = [
 
 const TASK_STATUS_DEFAULT = TASK_STATUS_OPTIONS[0];
 
+const STORY_DEPENDENCY_RELATIONSHIPS = ['depends', 'blocks'];
+const STORY_DEPENDENCY_DEFAULT = STORY_DEPENDENCY_RELATIONSHIPS[0];
+
+const SQLITE_NO_SUCH_TABLE = /no such table/i;
+
 const PYTHON_SQLITE_EXPORT_SCRIPT = `
 import json
 import sqlite3
@@ -224,6 +229,19 @@ try:
         """
     )
 
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS story_dependencies (
+          story_id INTEGER NOT NULL,
+          depends_on_story_id INTEGER NOT NULL,
+          relationship TEXT DEFAULT 'depends',
+          PRIMARY KEY (story_id, depends_on_story_id),
+          FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE,
+          FOREIGN KEY(depends_on_story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+        );
+        """
+    )
+
     story_rows = []
     for row in tables.get('user_stories', []):
         story_rows.append(
@@ -339,6 +357,25 @@ try:
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             task_rows,
+        )
+
+    dependency_rows = []
+    for row in tables.get('story_dependencies', []):
+        dependency_rows.append(
+            (
+                normalize_int(row.get('story_id')),
+                normalize_int(row.get('depends_on_story_id')),
+                normalize_text(row.get('relationship'), 'depends'),
+            )
+        )
+
+    if dependency_rows:
+        conn.executemany(
+            """
+            INSERT INTO story_dependencies (story_id, depends_on_story_id, relationship)
+            VALUES (?, ?, ?)
+            """,
+            dependency_rows,
         )
 
     conn.commit()
@@ -624,6 +661,7 @@ const DEFAULT_COLUMNS = {
   acceptance_tests: ['id', 'story_id', 'given', 'when_step', 'then_step', 'status', 'created_at', 'updated_at'],
   reference_documents: ['id', 'story_id', 'name', 'url', 'created_at', 'updated_at'],
   tasks: ['id', 'story_id', 'title', 'description', 'status', 'assignee_email', 'created_at', 'updated_at'],
+  story_dependencies: ['story_id', 'depends_on_story_id', 'relationship'],
 };
 
 class JsonStatement {
@@ -656,12 +694,14 @@ class JsonDatabase {
       acceptance_tests: [],
       reference_documents: [],
       tasks: [],
+      story_dependencies: [],
     };
     this.sequences = {
       user_stories: 0,
       acceptance_tests: 0,
       reference_documents: 0,
       tasks: 0,
+      story_dependencies: 0,
     };
     this.columns = JSON.parse(JSON.stringify(DEFAULT_COLUMNS));
     this.driver = 'json-fallback';
@@ -679,6 +719,7 @@ class JsonDatabase {
             this.tables.acceptance_tests = data.tables.acceptance_tests ?? [];
             this.tables.reference_documents = data.tables.reference_documents ?? [];
             this.tables.tasks = data.tables.tasks ?? [];
+            this.tables.story_dependencies = data.tables.story_dependencies ?? [];
           }
           if (data.sequences) {
             this.sequences = {
@@ -688,6 +729,7 @@ class JsonDatabase {
               reference_documents:
                 data.sequences.reference_documents ?? this._maxId(this.tables.reference_documents),
               tasks: data.sequences.tasks ?? this._maxId(this.tables.tasks),
+              story_dependencies: data.sequences.story_dependencies ?? 0,
             };
           } else {
             this._refreshSequences();
@@ -699,6 +741,7 @@ class JsonDatabase {
               reference_documents:
                 data.columns.reference_documents ?? this.columns.reference_documents,
               tasks: data.columns.tasks ?? this.columns.tasks,
+              story_dependencies: data.columns.story_dependencies ?? this.columns.story_dependencies,
             };
           }
         }
@@ -718,6 +761,7 @@ class JsonDatabase {
     this.sequences.acceptance_tests = this._maxId(this.tables.acceptance_tests);
     this.sequences.reference_documents = this._maxId(this.tables.reference_documents);
     this.sequences.tasks = this._maxId(this.tables.tasks);
+    this.sequences.story_dependencies = 0;
   }
 
   _maxId(rows) {
@@ -731,6 +775,7 @@ class JsonDatabase {
         acceptance_tests: this.tables.acceptance_tests.map((row) => ({ ...row })),
         reference_documents: this.tables.reference_documents.map((row) => ({ ...row })),
         tasks: this.tables.tasks.map((row) => ({ ...row })),
+        story_dependencies: this.tables.story_dependencies.map((row) => ({ ...row })),
       },
       sequences: { ...this.sequences },
       columns: {
@@ -738,6 +783,7 @@ class JsonDatabase {
         acceptance_tests: [...(this.columns.acceptance_tests ?? [])],
         reference_documents: [...(this.columns.reference_documents ?? [])],
         tasks: [...(this.columns.tasks ?? [])],
+        story_dependencies: [...(this.columns.story_dependencies ?? [])],
       },
       driver: 'json-fallback',
     };
@@ -936,6 +982,11 @@ class JsonDatabase {
       const row = this.tables.user_stories.find((entry) => entry.id === id);
       return row ? [this._clone(row)] : [];
     }
+    if (sql.startsWith('SELECT id FROM user_stories WHERE id = ?')) {
+      const id = Number(params[0]);
+      const row = this.tables.user_stories.find((entry) => entry.id === id);
+      return row ? [{ id: row.id }] : [];
+    }
     if (sql.startsWith('SELECT * FROM reference_documents WHERE id = ?')) {
       const id = Number(params[0]);
       const row = this.tables.reference_documents.find((entry) => entry.id === id);
@@ -968,6 +1019,14 @@ class JsonDatabase {
       });
       return rows;
     }
+    if (sql.startsWith('SELECT id, title, status FROM user_stories WHERE id IN (')) {
+      const ids = params.map(Number);
+      const result = this.tables.user_stories
+        .filter((row) => ids.includes(row.id))
+        .map((row) => ({ id: row.id, title: row.title, status: row.status }));
+      result.sort((a, b) => a.id - b.id);
+      return result;
+    }
     if (sql.startsWith('SELECT * FROM acceptance_tests ORDER BY')) {
       const rows = this.tables.acceptance_tests.map((row) => this._clone(row));
       rows.sort((a, b) => {
@@ -987,6 +1046,24 @@ class JsonDatabase {
         return a.id - b.id;
       });
       return rows;
+    }
+    if (sql.startsWith('SELECT story_id, depends_on_story_id, relationship FROM story_dependencies ORDER BY')) {
+      const rows = this.tables.story_dependencies.map((row) => ({ ...row }));
+      rows.sort((a, b) => {
+        if (a.story_id !== b.story_id) {
+          return a.story_id - b.story_id;
+        }
+        return a.depends_on_story_id - b.depends_on_story_id;
+      });
+      return rows;
+    }
+    if (sql.startsWith('SELECT relationship FROM story_dependencies WHERE story_id = ? AND depends_on_story_id = ?')) {
+      const storyId = Number(params[0]);
+      const dependsOnId = Number(params[1]);
+      const row = this.tables.story_dependencies.find(
+        (entry) => entry.story_id === storyId && entry.depends_on_story_id === dependsOnId
+      );
+      return row ? [{ relationship: row.relationship }] : [];
     }
     if (sql.startsWith('SELECT * FROM tasks WHERE story_id = ?')) {
       const storyId = Number(params[0]);
@@ -1015,9 +1092,10 @@ class JsonDatabase {
   }
 
   _run(sql, params) {
-    const insertMatch = sql.match(/^INSERT INTO (\w+) \(([^)]+)\) VALUES \(([^)]+)\)$/i);
+    const insertMatch = sql.match(/^INSERT(?: OR IGNORE)? INTO (\w+) \(([^)]+)\) VALUES \(([^)]+)\)$/i);
     if (insertMatch) {
       const [, table, columnList, valueList] = insertMatch;
+      const orIgnore = /^INSERT OR IGNORE/i.test(sql);
       const columns = columnList.split(',').map((column) => column.trim());
       const values = valueList.split(',').map((value) => value.trim());
       const row = {};
@@ -1038,19 +1116,34 @@ class JsonDatabase {
           row[key] = this._coerceValue(table, key, valueExpr);
         }
       });
-      if (!('id' in row)) {
+      if (!('id' in row) && this.columns[table]?.includes('id')) {
         row.id = this._generateId(table);
-      } else {
+      } else if ('id' in row) {
         row.id = Number(row.id);
         this.sequences[table] = Math.max(this.sequences[table] ?? 0, row.id);
       }
       this._applyInsertDefaults(table, row);
       const nowRow = this.tables[table];
+      if (table === 'story_dependencies') {
+        const storyId = Number(row.story_id);
+        const dependsOnId = Number(row.depends_on_story_id);
+        const existing = Array.isArray(nowRow)
+          ? nowRow.find((entry) => entry.story_id === storyId && entry.depends_on_story_id === dependsOnId)
+          : null;
+        if (existing) {
+          if (!orIgnore) {
+            existing.relationship = row.relationship ?? existing.relationship;
+            this._persist();
+            return { changes: 1, lastInsertRowid: 0 };
+          }
+          return { changes: 0, lastInsertRowid: 0 };
+        }
+      }
       if (Array.isArray(nowRow)) {
         nowRow.push(row);
       }
       this._persist();
-      return { changes: 1, lastInsertRowid: row.id };
+      return { changes: 1, lastInsertRowid: row.id ?? 0 };
     }
 
     if (sql.startsWith('UPDATE user_stories SET')) {
@@ -1065,6 +1158,22 @@ class JsonDatabase {
     if (sql.startsWith('UPDATE tasks SET')) {
       return this._updateRow('tasks', sql, params);
     }
+    if (sql.startsWith('UPDATE story_dependencies SET relationship = ? WHERE story_id = ? AND depends_on_story_id = ?')) {
+      const [relationship, storyId, dependsOnId] = params;
+      const rows = this.tables.story_dependencies;
+      if (!Array.isArray(rows)) {
+        return { changes: 0, lastInsertRowid: 0 };
+      }
+      const target = rows.find(
+        (entry) => entry.story_id === Number(storyId) && entry.depends_on_story_id === Number(dependsOnId)
+      );
+      if (!target) {
+        return { changes: 0, lastInsertRowid: 0 };
+      }
+      target.relationship = relationship ?? target.relationship;
+      this._persist();
+      return { changes: 1, lastInsertRowid: 0 };
+    }
     if (sql.startsWith('DELETE FROM user_stories WHERE id = ?')) {
       return this._deleteRow('user_stories', params[0]);
     }
@@ -1076,6 +1185,22 @@ class JsonDatabase {
     }
     if (sql.startsWith('DELETE FROM tasks WHERE id = ?')) {
       return this._deleteRow('tasks', params[0]);
+    }
+    if (sql.startsWith('DELETE FROM story_dependencies WHERE story_id = ? AND depends_on_story_id = ?')) {
+      const [storyId, dependsOnId] = params.map(Number);
+      const rows = this.tables.story_dependencies;
+      if (!Array.isArray(rows)) {
+        return { changes: 0, lastInsertRowid: 0 };
+      }
+      const originalLength = rows.length;
+      this.tables.story_dependencies = rows.filter(
+        (entry) => !(entry.story_id === storyId && entry.depends_on_story_id === dependsOnId)
+      );
+      const changes = originalLength - this.tables.story_dependencies.length;
+      if (changes > 0) {
+        this._persist();
+      }
+      return { changes, lastInsertRowid: 0 };
     }
     return { changes: 0, lastInsertRowid: 0 };
   }
@@ -1137,6 +1262,9 @@ class JsonDatabase {
         (doc) => !targetSet.has(doc.story_id)
       );
       this.tables.tasks = this.tables.tasks.filter((task) => !targetSet.has(task.story_id));
+      this.tables.story_dependencies = this.tables.story_dependencies.filter(
+        (link) => !targetSet.has(link.story_id) && !targetSet.has(link.depends_on_story_id)
+      );
     }
     if (changes > 0) {
       this._persist();
@@ -1794,6 +1922,18 @@ function normalizeTaskStatus(value) {
     throw error;
   }
   return match;
+}
+
+function normalizeDependencyRelationship(value) {
+  if (value == null) {
+    return STORY_DEPENDENCY_DEFAULT;
+  }
+  const text = String(value).trim().toLowerCase();
+  if (!text) {
+    return STORY_DEPENDENCY_DEFAULT;
+  }
+  const match = STORY_DEPENDENCY_RELATIONSHIPS.find((entry) => entry === text);
+  return match || STORY_DEPENDENCY_DEFAULT;
 }
 
 function normalizeComponentsInput(value, options = {}) {
@@ -2813,6 +2953,9 @@ const OBSERVABLE_KEYWORDS = [
   'show',
   'visible',
   'see',
+  'hide',
+  'hidden',
+  'reveal',
   'status',
   'update',
   'updated',
@@ -2873,6 +3016,11 @@ const OBSERVABLE_KEYWORDS = [
   'render',
   'approve',
   'reject',
+  'tooltip',
+  'indicat',
+  'draw',
+  'dod',
+  'blocker',
 ];
 
 function isObservableOutcome(step) {
@@ -3022,6 +3170,14 @@ function insertAcceptanceTest(
       timestamp,
       timestamp
     );
+  }
+
+  function insertDependency(db, { storyId, dependsOnStoryId, relationship = STORY_DEPENDENCY_DEFAULT }) {
+    const normalizedRelationship = normalizeDependencyRelationship(relationship);
+    const statement = db.prepare(
+      'INSERT OR IGNORE INTO story_dependencies (story_id, depends_on_story_id, relationship) VALUES (?, ?, ?)' // prettier-ignore
+    );
+    return statement.run(storyId, dependsOnStoryId, normalizedRelationship);
   }
 
 function buildTaskFromRow(row) {
@@ -3317,6 +3473,7 @@ function ensureNotNullDefaults(db) {
     UPDATE reference_documents SET url = '' WHERE url IS NULL;
     UPDATE tasks SET description = '' WHERE description IS NULL;
     UPDATE tasks SET status = 'Not Started' WHERE status IS NULL OR TRIM(status) = '';
+    UPDATE story_dependencies SET relationship = 'depends' WHERE relationship IS NULL OR TRIM(relationship) = '';
   `);
 }
 
@@ -3385,6 +3542,14 @@ async function ensureDatabase() {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS story_dependencies (
+      story_id INTEGER NOT NULL,
+      depends_on_story_id INTEGER NOT NULL,
+      relationship TEXT DEFAULT 'depends',
+      PRIMARY KEY (story_id, depends_on_story_id),
+      FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE,
+      FOREIGN KEY(depends_on_story_id) REFERENCES user_stories(id) ON DELETE CASCADE
     );
   `);
 
@@ -3470,7 +3635,7 @@ async function ensureDatabase() {
     const insertChild = db.prepare(
       'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
     );
-    insertChild.run(
+    const { lastInsertRowid: formStoryId } = insertChild.run(
       rootId,
       'Render login form',
       'As a returning customer I want a familiar login form so that I can authenticate without confusion.',
@@ -3480,10 +3645,42 @@ async function ensureDatabase() {
       JSON.stringify(['Document_Intelligence', 'Run_Verify']),
       3,
       'designer@example.com',
-      'Draft',
+      'Blocked',
       timestamp,
       timestamp
     );
+
+    const blockerTimestamp = now();
+    const { lastInsertRowid: apiStoryId } = insertChild.run(
+      rootId,
+      'Finalize login API contract',
+      'As a platform engineer I want an agreed API contract so integrations remain stable.',
+      'Platform engineer',
+      'share the login API schema with dependent teams',
+      'prevent breaking changes from blocking dependent workstreams',
+      JSON.stringify(['WorkModel', 'Traceabilty_Insight']),
+      5,
+      'lead@example.com',
+      'In Progress',
+      blockerTimestamp,
+      blockerTimestamp
+    );
+
+    insertAcceptanceTest(db, {
+      storyId: Number(apiStoryId),
+      title: 'API contract published',
+      given: ['The platform team has drafted the login API schema'],
+      when: ['The schema is shared with downstream integrators'],
+      then: ['All dependent teams confirm compatibility within 3 business days'],
+      status: 'Draft',
+      timestamp: blockerTimestamp,
+    });
+
+    insertDependency(db, {
+      storyId: Number(formStoryId),
+      dependsOnStoryId: Number(apiStoryId),
+      relationship: 'blocks',
+    });
 
     insertAcceptanceTest(db, {
       storyId: rootId,
@@ -3550,6 +3747,19 @@ function flattenStories(nodes) {
   return result;
 }
 
+function loadDependencyRows(db) {
+  try {
+    return db
+      .prepare('SELECT story_id, depends_on_story_id, relationship FROM story_dependencies ORDER BY story_id, depends_on_story_id')
+      .all();
+  } catch (error) {
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
+      return [];
+    }
+    throw error;
+  }
+}
+
 async function loadStories(db) {
   const storyRows = db
     .prepare('SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id')
@@ -3578,11 +3788,58 @@ async function loadStories(db) {
       acceptanceTests: [],
       referenceDocuments: [],
       tasks: [],
+      dependencies: [],
+      dependents: [],
+      blockedBy: [],
+      blocking: [],
     };
     return story;
   });
 
   const { roots, byId } = attachChildren(stories);
+
+  const dependencyRows = loadDependencyRows(db);
+  dependencyRows.forEach((row) => {
+    const dependent = byId.get(row.story_id);
+    const dependency = byId.get(row.depends_on_story_id);
+    if (!dependent || !dependency) {
+      return;
+    }
+    const relationship = normalizeDependencyRelationship(row.relationship);
+    const dependencyEntry = {
+      storyId: dependency.id,
+      title: dependency.title,
+      status: dependency.status,
+      relationship,
+    };
+    dependent.dependencies.push(dependencyEntry);
+    if (relationship === 'blocks') {
+      dependent.blockedBy.push(dependencyEntry);
+    }
+    const dependentEntry = {
+      storyId: dependent.id,
+      title: dependent.title,
+      status: dependent.status,
+      relationship,
+    };
+    dependency.dependents.push(dependentEntry);
+    if (relationship === 'blocks') {
+      dependency.blocking.push(dependentEntry);
+    }
+  });
+
+  const sortByStoryId = (a, b) => {
+    if (a.storyId === b.storyId) {
+      return a.title.localeCompare(b.title);
+    }
+    return a.storyId - b.storyId;
+  };
+  stories.forEach((story) => {
+    story.dependencies.sort(sortByStoryId);
+    story.dependents.sort(sortByStoryId);
+    story.blockedBy.sort(sortByStoryId);
+    story.blocking.sort(sortByStoryId);
+  });
 
   testRows.forEach((row) => {
     const story = byId.get(row.story_id);
@@ -3677,6 +3934,10 @@ async function loadStoryWithDetails(db, storyId) {
     referenceDocuments: [],
     tasks: [],
     children: [],
+    dependencies: [],
+    dependents: [],
+    blockedBy: [],
+    blocking: [],
   };
 
   const testRows = db
@@ -3722,6 +3983,79 @@ async function loadStoryWithDetails(db, storyId) {
   taskRows.forEach((taskRow) => {
     story.tasks.push(buildTaskFromRow(taskRow));
   });
+
+  const dependencyRows = loadDependencyRows(db).filter(
+    (entry) => entry.story_id === storyId || entry.depends_on_story_id === storyId
+  );
+  if (dependencyRows.length > 0) {
+    const relatedIds = new Set();
+    dependencyRows.forEach((entry) => {
+      relatedIds.add(entry.story_id);
+      relatedIds.add(entry.depends_on_story_id);
+    });
+    relatedIds.delete(storyId);
+    let relatedStories = [];
+    if (relatedIds.size > 0) {
+      const placeholders = Array.from({ length: relatedIds.size }, () => '?').join(', ');
+      const lookupStatement = db.prepare(
+        `SELECT id, title, status FROM user_stories WHERE id IN (${placeholders})`
+      );
+      relatedStories = lookupStatement.all(...Array.from(relatedIds));
+    }
+    const relatedById = new Map();
+    relatedStories.forEach((item) => {
+      relatedById.set(item.id, {
+        id: item.id,
+        title: item.title,
+        status: safeNormalizeStoryStatus(item.status),
+      });
+    });
+
+    dependencyRows.forEach((entry) => {
+      const relationship = normalizeDependencyRelationship(entry.relationship);
+      if (entry.story_id === storyId) {
+        const dependency = relatedById.get(entry.depends_on_story_id);
+        if (dependency) {
+          const dependencyEntry = {
+            storyId: dependency.id,
+            title: dependency.title,
+            status: dependency.status,
+            relationship,
+          };
+          story.dependencies.push(dependencyEntry);
+          if (relationship === 'blocks') {
+            story.blockedBy.push(dependencyEntry);
+          }
+        }
+      }
+      if (entry.depends_on_story_id === storyId) {
+        const dependent = relatedById.get(entry.story_id);
+        if (dependent) {
+          const dependentEntry = {
+            storyId: dependent.id,
+            title: dependent.title,
+            status: dependent.status,
+            relationship,
+          };
+          story.dependents.push(dependentEntry);
+          if (relationship === 'blocks') {
+            story.blocking.push(dependentEntry);
+          }
+        }
+      }
+    });
+
+    const sortByStoryId = (a, b) => {
+      if (a.storyId === b.storyId) {
+        return a.title.localeCompare(b.title);
+      }
+      return a.storyId - b.storyId;
+    };
+    story.dependencies.sort(sortByStoryId);
+    story.dependents.sort(sortByStoryId);
+    story.blockedBy.sort(sortByStoryId);
+    story.blocking.sort(sortByStoryId);
+  }
 
   const analysis = await analyzeInvest(story, {
     acceptanceTests: story.acceptanceTests,
@@ -4172,6 +4506,83 @@ export async function createApp() {
         if (error.code) body.code = error.code;
         if (error.details) body.details = error.details;
         sendJson(res, status, body);
+      }
+      return;
+    }
+
+    const dependencyCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/dependencies$/);
+    if (dependencyCreateMatch && method === 'POST') {
+      const storyId = Number(dependencyCreateMatch[1]);
+      try {
+        const payload = await parseJson(req);
+        const candidateId =
+          payload.dependsOnStoryId ?? payload.storyId ?? payload.dependsOn ?? payload.targetStoryId;
+        const dependsOnStoryId = Number(candidateId);
+        if (!Number.isFinite(dependsOnStoryId)) {
+          throw Object.assign(new Error('Select a valid dependency story'), { statusCode: 400 });
+        }
+        if (dependsOnStoryId === storyId) {
+          throw Object.assign(new Error('Stories cannot depend on themselves'), { statusCode: 400 });
+        }
+
+        const relationship = normalizeDependencyRelationship(payload.relationship);
+
+        const storyLookup = db.prepare('SELECT id FROM user_stories WHERE id = ?');
+        const storyExists = storyLookup.get(storyId);
+        if (!storyExists) {
+          throw Object.assign(new Error('Story not found'), { statusCode: 404 });
+        }
+        const dependencyExists = storyLookup.get(dependsOnStoryId);
+        if (!dependencyExists) {
+          throw Object.assign(new Error('Dependency story not found'), { statusCode: 404 });
+        }
+
+        const existing = db
+          .prepare('SELECT relationship FROM story_dependencies WHERE story_id = ? AND depends_on_story_id = ?')
+          .get(storyId, dependsOnStoryId);
+        if (existing) {
+          if (existing.relationship !== relationship) {
+            db.prepare(
+              'UPDATE story_dependencies SET relationship = ? WHERE story_id = ? AND depends_on_story_id = ?'
+            ).run(relationship, storyId, dependsOnStoryId);
+          }
+        } else {
+          insertDependency(db, { storyId, dependsOnStoryId, relationship });
+        }
+
+        const refreshed = await loadStoryWithDetails(db, storyId);
+        sendJson(res, 201, refreshed ?? null);
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to add dependency' });
+      }
+      return;
+    }
+
+    const dependencyDeleteMatch = pathname.match(/^\/api\/stories\/(\d+)\/dependencies\/(\d+)$/);
+    if (dependencyDeleteMatch && method === 'DELETE') {
+      const storyId = Number(dependencyDeleteMatch[1]);
+      const dependsOnStoryId = Number(dependencyDeleteMatch[2]);
+      try {
+        const storyLookup = db.prepare('SELECT id FROM user_stories WHERE id = ?');
+        const storyExists = storyLookup.get(storyId);
+        if (!storyExists) {
+          throw Object.assign(new Error('Story not found'), { statusCode: 404 });
+        }
+
+        const result = db
+          .prepare('DELETE FROM story_dependencies WHERE story_id = ? AND depends_on_story_id = ?')
+          .run(storyId, dependsOnStoryId);
+        if (result.changes === 0) {
+          sendJson(res, 404, { message: 'Dependency not found' });
+          return;
+        }
+
+        const refreshed = await loadStoryWithDetails(db, storyId);
+        sendJson(res, 200, refreshed ?? null);
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to remove dependency' });
       }
       return;
     }
