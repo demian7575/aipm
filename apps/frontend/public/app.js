@@ -33,13 +33,18 @@ const STORAGE_KEYS = {
 
 const NODE_WIDTH = 240;
 const NODE_MIN_HEIGHT = 160;
-const NODE_LINE_GAP = 20;
-const BASE_NODE_LINE_COUNT = 4;
+const NODE_MAX_HEIGHT = 360;
+const NODE_VERTICAL_GAP = 32;
 const HORIZONTAL_STEP = 240;
 const AUTO_LAYOUT_HORIZONTAL_GAP = 80;
-const VERTICAL_STEP = 200;
 const X_OFFSET = 80;
 const Y_OFFSET = 80;
+const HTML_NS = 'http://www.w3.org/1999/xhtml';
+
+const mindmapMeasureRoot = document.createElement('div');
+mindmapMeasureRoot.className = 'mindmap-measure-root';
+mindmapMeasureRoot.setAttribute('aria-hidden', 'true');
+(document.body || document.documentElement).appendChild(mindmapMeasureRoot);
 
 const STORY_STATUS_GUIDE = [
   {
@@ -569,70 +574,189 @@ function renderOutline() {
   outlineTreeEl.appendChild(list);
 }
 
-function getMindmapLineCount(story) {
-  let count = BASE_NODE_LINE_COUNT;
-  if (story && Array.isArray(story.components)) {
-    const componentCount = story.components.filter((entry) =>
-      typeof entry === 'string' && entry.trim()
-    ).length;
-    if (componentCount > 0) {
-      count += 1;
-    }
+function normalizeMindmapText(value) {
+  if (value == null) {
+    return '';
   }
-  return count;
+  const text = String(value).replace(/\r\n/g, '\n');
+  const lines = text.split('\n');
+  const result = [];
+  let blankRun = 0;
+  lines.forEach((line) => {
+    const trimmedRight = line.replace(/\s+$/g, '');
+    const isBlank = trimmedRight.trim().length === 0;
+    if (result.length === 0 && isBlank) {
+      return;
+    }
+    if (isBlank) {
+      blankRun += 1;
+      if (blankRun > 1) {
+        return;
+      }
+      result.push('');
+      return;
+    }
+    blankRun = 0;
+    result.push(trimmedRight);
+  });
+  while (result.length > 0 && result[result.length - 1].trim().length === 0) {
+    result.pop();
+  }
+  return result.join('\n');
 }
 
-function computeNodeHeightValue(story) {
-  const extraLines = Math.max(0, getMindmapLineCount(story) - BASE_NODE_LINE_COUNT);
-  return NODE_MIN_HEIGHT + extraLines * NODE_LINE_GAP;
+function createMindmapElement(tag, namespace = false) {
+  return namespace ? document.createElementNS(HTML_NS, tag) : document.createElement(tag);
 }
 
-function computeLayout(nodes, depth = 0, line = 0, horizontalGap = 0) {
-  let nextLine = line;
-  let minLine = Number.POSITIVE_INFINITY;
-  let maxLine = Number.NEGATIVE_INFINITY;
+function buildMindmapMetaLines(story) {
+  const metaLines = [
+    {
+      value:
+        story.storyPoint != null && story.storyPoint !== ''
+          ? String(story.storyPoint)
+          : 'Unestimated',
+      classNames: ['story-meta'],
+    },
+  ];
+
+  return metaLines
+    .map((line) => {
+      const cleaned = normalizeMindmapText(line.value);
+      return {
+        value: cleaned,
+        classNames: line.classNames,
+      };
+    })
+    .filter((line) => line.value && line.value.trim().length > 0);
+}
+
+function buildMindmapComponentSummary(story) {
+  if (!Array.isArray(story.components)) {
+    return '';
+  }
+  const summary = story.components
+    .map((component) => formatComponentLabel(component) || component)
+    .filter((value, index, array) => value && array.indexOf(value) === index)
+    .join(', ');
+  if (!summary) {
+    return '';
+  }
+  return `Components: ${normalizeMindmapText(summary)}`;
+}
+
+function createMindmapNodeBody(story, options = {}) {
+  const { namespace = false } = options;
+  const body = createMindmapElement('div', namespace);
+  body.className = 'mindmap-node-body';
+
+  const scroller = createMindmapElement('div', namespace);
+  scroller.className = 'mindmap-node-scroll';
+  body.appendChild(scroller);
+
+  const content = createMindmapElement('div', namespace);
+  content.className = 'mindmap-node-content';
+  scroller.appendChild(content);
+
+  const rawTitle = story.title != null ? String(story.title) : '';
+  const cleanedTitle = normalizeMindmapText(rawTitle);
+  const title = cleanedTitle.trim().length > 0 ? cleanedTitle : 'Untitled Story';
+  const titleEl = createMindmapElement('div', namespace);
+  titleEl.className = 'story-title';
+  titleEl.textContent = title;
+  content.appendChild(titleEl);
+
+  const metaLines = buildMindmapMetaLines(story);
+  metaLines.forEach((line) => {
+    const metaEl = createMindmapElement('div', namespace);
+    metaEl.className = line.classNames.join(' ');
+    metaEl.textContent = line.value;
+    content.appendChild(metaEl);
+  });
+
+  const componentSummary = buildMindmapComponentSummary(story);
+  if (componentSummary) {
+    const componentEl = createMindmapElement('div', namespace);
+    componentEl.className = 'story-meta story-components';
+    componentEl.textContent = componentSummary;
+    content.appendChild(componentEl);
+  }
+
+  return body;
+}
+
+function measureMindmapNode(story) {
+  const measurement = createMindmapNodeBody(story);
+  measurement.style.width = `${NODE_WIDTH}px`;
+  measurement.classList.add('mindmap-node-body--measure');
+  mindmapMeasureRoot.appendChild(measurement);
+  const requiredHeight = Math.ceil(measurement.scrollHeight);
+  mindmapMeasureRoot.removeChild(measurement);
+  const height = Math.max(NODE_MIN_HEIGHT, Math.min(requiredHeight, NODE_MAX_HEIGHT));
+  return { height, overflow: requiredHeight > NODE_MAX_HEIGHT };
+}
+
+function collectMindmapNodeMetrics(stories) {
+  const metrics = new Map();
+  flattenStories(stories).forEach((story) => {
+    if (!story || story.id == null) {
+      return;
+    }
+    metrics.set(story.id, measureMindmapNode(story));
+  });
+  return metrics;
+}
+
+function computeLayout(nodes, depth = 0, startY = Y_OFFSET, horizontalGap = 0, metrics = new Map()) {
+  let cursorY = startY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
   const positioned = [];
 
   nodes.forEach((story) => {
+    const measurement = metrics.get(story.id) || { height: NODE_MIN_HEIGHT, overflow: false };
     const expanded = state.expanded.has(story.id);
     let childLayout = null;
     if (expanded && story.children && story.children.length > 0) {
-      childLayout = computeLayout(story.children, depth + 1, nextLine, horizontalGap);
-      nextLine = childLayout.nextLine;
-      positioned.push(...childLayout.nodes);
-      minLine = Math.min(minLine, childLayout.minLine);
-      maxLine = Math.max(maxLine, childLayout.maxLine);
+      childLayout = computeLayout(story.children, depth + 1, cursorY, horizontalGap, metrics);
     }
 
-    let centerLine;
+    let nodeY = cursorY;
     if (childLayout && childLayout.nodes.length > 0) {
-      centerLine = (childLayout.minLine + childLayout.maxLine) / 2;
-    } else {
-      centerLine = nextLine;
-      nextLine += 1;
+      const childCenter = (childLayout.minY + childLayout.maxY) / 2;
+      nodeY = Math.max(cursorY, childCenter - measurement.height / 2);
     }
 
-    const height = computeNodeHeightValue(story);
-    const centerY = Y_OFFSET + centerLine * VERTICAL_STEP;
     const node = {
       id: story.id,
       story,
-      height,
-      centerY,
+      height: measurement.height,
+      contentOverflow: measurement.overflow,
       x: X_OFFSET + depth * (HORIZONTAL_STEP + horizontalGap),
-      y: centerY - height / 2,
+      y: nodeY,
+      centerY: nodeY + measurement.height / 2,
     };
     positioned.push(node);
-    minLine = Math.min(minLine, centerLine);
-    maxLine = Math.max(maxLine, centerLine);
+
+    if (childLayout) {
+      positioned.push(...childLayout.nodes);
+      minY = Math.min(minY, childLayout.minY);
+      maxY = Math.max(maxY, childLayout.maxY);
+      cursorY = Math.max(nodeY + measurement.height + NODE_VERTICAL_GAP, childLayout.nextY);
+    } else {
+      cursorY = nodeY + measurement.height + NODE_VERTICAL_GAP;
+    }
+
+    minY = Math.min(minY, nodeY);
+    maxY = Math.max(maxY, nodeY + measurement.height);
   });
 
-  if (minLine === Number.POSITIVE_INFINITY) {
-    minLine = line;
-    maxLine = line;
+  if (minY === Number.POSITIVE_INFINITY) {
+    minY = startY;
+    maxY = startY;
   }
 
-  return { nodes: positioned, nextLine, minLine, maxLine };
+  return { nodes: positioned, nextY: cursorY, minY, maxY };
 }
 
 function renderMindmap() {
@@ -646,7 +770,8 @@ function renderMindmap() {
   }
 
   const horizontalGap = state.autoLayout ? AUTO_LAYOUT_HORIZONTAL_GAP : 0;
-  const layout = computeLayout(state.stories, 0, 0, horizontalGap);
+  const metrics = collectMindmapNodeMetrics(state.stories);
+  const layout = computeLayout(state.stories, 0, Y_OFFSET, horizontalGap, metrics);
   const nodes = [];
   const nodeMap = new Map();
   layout.nodes.forEach((node) => {
@@ -731,55 +856,17 @@ function renderMindmap() {
     rect.setAttribute('height', String(node.height));
     group.appendChild(rect);
 
-    const title = document.createElementNS(svgNS, 'text');
-    title.classList.add('story-title');
-    title.setAttribute('x', String(node.x + 12));
-    title.setAttribute('y', String(node.y + 26));
-    title.textContent = node.story.title;
-    group.appendChild(title);
-
-    const storyPoint =
-      node.story.storyPoint != null ? `Story Point: ${node.story.storyPoint}` : 'Story Point: Unestimated';
-    const storyPointText = document.createElementNS(svgNS, 'text');
-    storyPointText.classList.add('story-meta');
-    storyPointText.setAttribute('x', String(node.x + 12));
-    let currentLineOffset = node.y + 50;
-    storyPointText.setAttribute('y', String(currentLineOffset));
-    storyPointText.textContent = storyPoint;
-    group.appendChild(storyPointText);
-
-    const statusLine = document.createElementNS(svgNS, 'text');
-    statusLine.classList.add('story-meta', 'story-status');
-    statusLine.classList.add(nodeStatusClass);
-    statusLine.setAttribute('x', String(node.x + 12));
-    currentLineOffset += 20;
-    statusLine.setAttribute('y', String(currentLineOffset));
-    statusLine.textContent = `Status: ${node.story.status || 'Draft'}`;
-    group.appendChild(statusLine);
-
-    const assigneeLine = document.createElementNS(svgNS, 'text');
-    assigneeLine.classList.add('story-meta');
-    assigneeLine.setAttribute('x', String(node.x + 12));
-    currentLineOffset += 20;
-    assigneeLine.setAttribute('y', String(currentLineOffset));
-    assigneeLine.textContent = `Assignee: ${node.story.assigneeEmail || 'Unassigned'}`;
-    group.appendChild(assigneeLine);
-
-    const componentSummary = Array.isArray(node.story.components)
-      ? node.story.components
-          .map((component) => formatComponentLabel(component) || component)
-          .filter((value, index, array) => value && array.indexOf(value) === index)
-          .join(', ')
-      : '';
-    if (componentSummary) {
-      const componentsLine = document.createElementNS(svgNS, 'text');
-      componentsLine.classList.add('story-meta');
-      componentsLine.setAttribute('x', String(node.x + 12));
-      currentLineOffset += 20;
-      componentsLine.setAttribute('y', String(currentLineOffset));
-      componentsLine.textContent = `Components: ${componentSummary}`;
-      group.appendChild(componentsLine);
+    const foreignObject = document.createElementNS(svgNS, 'foreignObject');
+    foreignObject.setAttribute('x', String(node.x));
+    foreignObject.setAttribute('y', String(node.y));
+    foreignObject.setAttribute('width', String(NODE_WIDTH));
+    foreignObject.setAttribute('height', String(node.height));
+    const body = createMindmapNodeBody(node.story, { namespace: true });
+    if (node.contentOverflow) {
+      body.classList.add('has-scroll');
     }
+    foreignObject.appendChild(body);
+    group.appendChild(foreignObject);
 
     if (node.story.children && node.story.children.length > 0) {
       const toggleBg = document.createElementNS(svgNS, 'circle');
@@ -1663,8 +1750,10 @@ function renderDetails() {
       showToast(storyPointResult.error, 'error');
       return;
     }
+    const rawTitle = formData.get('title');
+    const normalizedTitle = normalizeMindmapText(rawTitle);
     const payload = {
-      title: formData.get('title').trim(),
+      title: normalizedTitle.trim().length > 0 ? normalizedTitle : 'Untitled Story',
       storyPoint: storyPointResult.value,
       assigneeEmail: formData.get('assigneeEmail').trim(),
       description: formData.get('description').trim(),
@@ -2309,7 +2398,7 @@ function openDocumentPanel() {
   const intro = document.createElement('p');
   intro.className = 'document-intro';
   intro.textContent =
-    'Generate consolidated documents for every user story, grouped by system component.';
+    'Generate consolidated documents using the common templates for tests and requirements.';
   container.appendChild(intro);
 
   const actions = document.createElement('div');
@@ -2346,16 +2435,18 @@ function openDocumentPanel() {
 
   const buttons = [
     {
-      label: 'Generate Test Document',
-      type: 'test-document',
-      description: 'Summarize Given/When/Then scenarios across all stories with component groupings.',
-      title: 'Component Test Document',
+      label: 'Common Test Document template',
+      type: 'common-test-document',
+      description:
+        'Apply the Common Test Document template to consolidate Given/When/Then scenarios by component.',
+      title: 'Common Test Document',
     },
     {
-      label: 'Generate System Requirement',
-      type: 'system-requirement',
-      description: 'Compile user story goals, ownership, and readiness per component.',
-      title: 'System Requirement Document',
+      label: 'Common Requirement Specification template',
+      type: 'common-requirement-specification',
+      description:
+        'Use the Common Requirement Specification template to summarize story goals, scope, and readiness.',
+      title: 'Common Requirement Specification',
     },
   ];
 
@@ -2576,7 +2667,8 @@ function openChildStoryModal(parentId) {
       {
         label: 'Create Story',
         onClick: async () => {
-          const title = container.querySelector('#child-title').value.trim();
+          const rawTitle = container.querySelector('#child-title').value;
+          const title = normalizeMindmapText(rawTitle).trim();
           if (!title) {
             showToast('Title is required', 'error');
             return false;
