@@ -17,6 +17,10 @@ const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
 const mindmapPanel = document.getElementById('mindmap-panel');
+const mindmapWrapper = document.querySelector('.mindmap-wrapper');
+const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
+const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
+const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
@@ -34,8 +38,10 @@ const STORAGE_KEYS = {
 
 const NODE_WIDTH = 240;
 const NODE_MIN_HEIGHT = 160;
-const NODE_MAX_HEIGHT = 360;
 const NODE_VERTICAL_GAP = 32;
+const MINDMAP_ZOOM_MIN = 0.5;
+const MINDMAP_ZOOM_MAX = 2;
+const MINDMAP_ZOOM_STEP = 0.1;
 const HORIZONTAL_STEP = 240;
 const AUTO_LAYOUT_HORIZONTAL_GAP = 80;
 const X_OFFSET = 80;
@@ -208,6 +214,7 @@ const state = {
   manualPositions: {},
   autoLayout: true,
   showDependencies: false,
+  mindmapZoom: 1,
   panelVisibility: {
     outline: true,
     mindmap: true,
@@ -218,6 +225,61 @@ const state = {
 const storyIndex = new Map();
 const parentById = new Map();
 let toastTimeout = null;
+let mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+
+function updateMindmapZoomControls() {
+  if (mindmapZoomDisplay) {
+    mindmapZoomDisplay.textContent = `${Math.round(state.mindmapZoom * 100)}%`;
+  }
+  if (mindmapZoomInBtn) {
+    mindmapZoomInBtn.disabled = state.mindmapZoom >= MINDMAP_ZOOM_MAX - 0.0001;
+  }
+  if (mindmapZoomOutBtn) {
+    mindmapZoomOutBtn.disabled = state.mindmapZoom <= MINDMAP_ZOOM_MIN + 0.0001;
+  }
+}
+
+function applyMindmapZoom() {
+  if (!mindmapCanvas) {
+    return;
+  }
+  const baseWidth = mindmapBounds.width;
+  const baseHeight = mindmapBounds.height;
+  if (baseWidth > 0 && baseHeight > 0) {
+    const wrapper = mindmapCanvas.parentElement;
+    const wrapperWidth = wrapper ? wrapper.clientWidth : 0;
+    const wrapperHeight = wrapper ? wrapper.clientHeight : 0;
+    const fitWidth = mindmapBounds.fitWidth > 0 ? mindmapBounds.fitWidth : baseWidth;
+    const fitHeight = mindmapBounds.fitHeight > 0 ? mindmapBounds.fitHeight : baseHeight;
+    const effectiveWidth = Math.max(fitWidth, wrapperWidth);
+    const effectiveHeight = Math.max(fitHeight, wrapperHeight);
+    const scaledWidth = effectiveWidth * state.mindmapZoom;
+    const scaledHeight = effectiveHeight * state.mindmapZoom;
+    mindmapCanvas.style.width = `${scaledWidth}px`;
+    mindmapCanvas.style.height = `${scaledHeight}px`;
+  } else {
+    mindmapCanvas.style.removeProperty('width');
+    mindmapCanvas.style.removeProperty('height');
+  }
+}
+
+function clampMindmapZoom(value) {
+  if (Number.isNaN(value)) {
+    return state.mindmapZoom;
+  }
+  return Math.min(MINDMAP_ZOOM_MAX, Math.max(MINDMAP_ZOOM_MIN, value));
+}
+
+function setMindmapZoom(nextZoom) {
+  const clamped = clampMindmapZoom(nextZoom);
+  if (Math.abs(clamped - state.mindmapZoom) < 0.0001) {
+    updateMindmapZoomControls();
+    return;
+  }
+  state.mindmapZoom = clamped;
+  updateMindmapZoomControls();
+  applyMindmapZoom();
+}
 
 function syncDependencyOverlayControls() {
   const pressed = state.showDependencies;
@@ -270,6 +332,35 @@ if (dependencyToggleBtn) {
     toggleDependencyOverlay();
   });
 }
+
+if (mindmapZoomInBtn) {
+  mindmapZoomInBtn.addEventListener('click', () => {
+    setMindmapZoom(state.mindmapZoom + MINDMAP_ZOOM_STEP);
+  });
+}
+
+if (mindmapZoomOutBtn) {
+  mindmapZoomOutBtn.addEventListener('click', () => {
+    setMindmapZoom(state.mindmapZoom - MINDMAP_ZOOM_STEP);
+  });
+}
+
+if (mindmapWrapper) {
+  mindmapWrapper.addEventListener(
+    'wheel',
+    (event) => {
+      if (!event.ctrlKey) {
+        return;
+      }
+      event.preventDefault();
+      const direction = event.deltaY < 0 ? 1 : -1;
+      setMindmapZoom(state.mindmapZoom + direction * MINDMAP_ZOOM_STEP);
+    },
+    { passive: false }
+  );
+}
+
+updateMindmapZoomControls();
 
 function getStatusClass(status) {
   const normalized = typeof status === 'string' ? status.trim() : '';
@@ -871,15 +962,7 @@ function createMindmapElement(tag, namespace = false) {
 }
 
 function buildMindmapMetaLines(story) {
-  const metaLines = [
-    {
-      value:
-        story.storyPoint != null && story.storyPoint !== ''
-          ? String(story.storyPoint)
-          : 'Unestimated',
-      classNames: ['story-meta'],
-    },
-  ];
+  const metaLines = [];
 
   return metaLines
     .map((line) => {
@@ -953,8 +1036,8 @@ function measureMindmapNode(story) {
   mindmapMeasureRoot.appendChild(measurement);
   const requiredHeight = Math.ceil(measurement.scrollHeight);
   mindmapMeasureRoot.removeChild(measurement);
-  const height = Math.max(NODE_MIN_HEIGHT, Math.min(requiredHeight, NODE_MAX_HEIGHT));
-  return { height, overflow: requiredHeight > NODE_MAX_HEIGHT };
+  const height = Math.max(NODE_MIN_HEIGHT, requiredHeight);
+  return { height, overflow: false };
 }
 
 function collectMindmapNodeMetrics(stories) {
@@ -1067,10 +1150,14 @@ function renderMindmap() {
   syncDependencyOverlayControls();
   mindmapCanvas.classList.remove('has-dependencies');
   if (!state.panelVisibility.mindmap) {
+    mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+    applyMindmapZoom();
     return;
   }
   if (state.stories.length === 0) {
     layoutStatus.textContent = 'No stories to display yet.';
+    mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+    applyMindmapZoom();
     return;
   }
 
@@ -1117,6 +1204,8 @@ function renderMindmap() {
 
   if (nodes.length === 0) {
     layoutStatus.textContent = 'Toggle outline items to expand the map.';
+    mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+    applyMindmapZoom();
     return;
   }
 
@@ -1133,8 +1222,13 @@ function renderMindmap() {
   const wrapper = mindmapCanvas.parentElement;
   const wrapperWidth = wrapper ? wrapper.clientWidth : 0;
   const wrapperHeight = wrapper ? wrapper.clientHeight : 0;
-  mindmapCanvas.style.width = `${Math.max(viewWidth, wrapperWidth)}px`;
-  mindmapCanvas.style.height = `${Math.max(viewHeight, wrapperHeight)}px`;
+  mindmapBounds = {
+    width: viewWidth,
+    height: viewHeight,
+    fitWidth: Math.max(viewWidth, wrapperWidth),
+    fitHeight: Math.max(viewHeight, wrapperHeight),
+  };
+  applyMindmapZoom();
 
   const svgNS = 'http://www.w3.org/2000/svg';
 
