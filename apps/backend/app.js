@@ -896,6 +896,37 @@ class JsonDatabase {
       this._setDefault('tasks', 'assignee_email', 'owner@example.com');
       return;
     }
+    const deleteMatch = normalized.match(/^DELETE FROM (\w+)(?:\s+WHERE\s+(.+))?$/i);
+    if (deleteMatch) {
+      const [, table, whereClause] = deleteMatch;
+      if (!whereClause || /^1\s*=\s*1$/i.test(whereClause)) {
+        this._truncateTable(table);
+        return;
+      }
+    }
+  }
+
+  _truncateTable(table) {
+    const key = table?.toLowerCase();
+    if (!key || !(key in this.tables)) {
+      return;
+    }
+    if (key === 'user_stories') {
+      const hadRows = Array.isArray(this.tables.user_stories) && this.tables.user_stories.length > 0;
+      this.tables.user_stories = [];
+      this.tables.acceptance_tests = [];
+      this.tables.reference_documents = [];
+      this.tables.tasks = [];
+      this.tables.story_dependencies = [];
+      if (hadRows) {
+        this._refreshSequences();
+      }
+      return;
+    }
+    this.tables[key] = [];
+    if (Object.prototype.hasOwnProperty.call(this.sequences, key)) {
+      this.sequences[key] = 0;
+    }
   }
 
   _ensureTableFromCreate(statement) {

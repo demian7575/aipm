@@ -1071,6 +1071,52 @@ test('JSON fallback driver seeds and serves data when forced', async (t) => {
   assert.equal(parsed.driver, 'json-fallback');
 });
 
+test('JSON fallback DELETE statements clear tables when executed via exec', async () => {
+  await resetDatabaseFiles();
+  resetDatabaseFactory();
+  process.env.AI_PM_FORCE_JSON_DB = '1';
+
+  const db = await openDatabase(DATABASE_PATH);
+  const now = new Date().toISOString();
+  db.prepare(
+    'INSERT INTO user_stories (title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+  ).run(
+    'Fallback delete smoke',
+    'Ensures exec DELETE behaves like SQLite',
+    'QA lead',
+    'verify JSON truncation',
+    'we trust mirrored storage',
+    JSON.stringify(['WorkModel']),
+    2,
+    'qa@example.com',
+    'Draft',
+    now,
+    now
+  );
+
+  const before = db.prepare('SELECT COUNT(*) as count FROM user_stories').get();
+  assert.equal(Number(before.count), 1);
+
+  db.exec(`
+    DELETE FROM acceptance_tests;
+    DELETE FROM reference_documents;
+    DELETE FROM tasks;
+    DELETE FROM story_dependencies;
+    DELETE FROM user_stories;
+  `);
+
+  const after = db.prepare('SELECT COUNT(*) as count FROM user_stories').get();
+  assert.equal(Number(after.count), 0);
+
+  db.close?.();
+  resetDatabaseFactory();
+  delete process.env.AI_PM_FORCE_JSON_DB;
+
+  const snapshot = JSON.parse(await fs.readFile(`${DATABASE_PATH}.json`, 'utf8'));
+  assert.equal(snapshot.tables.user_stories.length, 0);
+  assert.equal(snapshot.sequences.user_stories, 0);
+});
+
 test('story dependency APIs work with JSON fallback database', async (t) => {
   await resetDatabaseFiles();
   resetDatabaseFactory();
