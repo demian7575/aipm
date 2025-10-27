@@ -806,9 +806,9 @@
       {
         "id": 1,
         "story_id": 1,
-        "given": "[\"Given the Unified Authentication Experience initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth epic 1: unified authentication experience\"]",
-        "then_step": "[\"Then the solution demonstrates that customers log in securely across properties\"]",
+        "given": "[\"Given AUTH Epic 1: Unified Authentication Experience has automated authentication telemetry streaming to the warehouse\",\"And telemetry for customers log in securely across properties is captured every fifteen minutes\"]",
+        "when_step": "[\"When milestone 1 for AUTH Epic 1: Unified Authentication Experience completes with automated test suites passing\",\"And observers monitor results for seven consecutive days\"]",
+        "then_step": "[\"Then authentication success rate across properties stays at or above 99.5% and zero unauthorized access events are logged\",\"And security audit exports are archived under /evidence/auth-unified\"]",
         "status": "Pass",
         "created_at": "2024-05-01T08:10:00.000Z",
         "updated_at": "2024-05-01T08:10:00.000Z"
@@ -816,9 +816,9 @@
       {
         "id": 2,
         "story_id": 1,
-        "given": "[\"Given the Unified Authentication Experience initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth epic 1: unified authentication experience\"]",
-        "then_step": "[\"Then the solution demonstrates that customers log in securely across properties\"]",
+        "given": "[\"Given AUTH Epic 1: Unified Authentication Experience has automated authentication telemetry streaming to the warehouse\",\"And telemetry for customers log in securely across properties is captured every fifteen minutes\"]",
+        "when_step": "[\"When milestone 2 for AUTH Epic 1: Unified Authentication Experience completes with automated test suites passing\",\"And observers monitor results for seven consecutive days\"]",
+        "then_step": "[\"Then authentication success rate across properties stays at or above 99.5% and zero unauthorized access events are logged\",\"And security audit exports are archived under /evidence/auth-unified\"]",
         "status": "Pass",
         "created_at": "2024-05-01T08:15:00.000Z",
         "updated_at": "2024-05-01T08:15:00.000Z"
@@ -826,9 +826,9 @@
       {
         "id": 3,
         "story_id": 1,
-        "given": "[\"Given the Unified Authentication Experience initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 3 for auth epic 1: unified authentication experience\"]",
-        "then_step": "[\"Then the solution demonstrates that customers log in securely across properties\"]",
+        "given": "[\"Given AUTH Epic 1: Unified Authentication Experience has automated authentication telemetry streaming to the warehouse\",\"And telemetry for customers log in securely across properties is captured every fifteen minutes\"]",
+        "when_step": "[\"When milestone 3 for AUTH Epic 1: Unified Authentication Experience completes with automated test suites passing\",\"And observers monitor results for seven consecutive days\"]",
+        "then_step": "[\"Then authentication success rate across properties stays at or above 99.5% and zero unauthorized access events are logged\",\"And security audit exports are archived under /evidence/auth-unified\"]",
         "status": "Pass",
         "created_at": "2024-05-01T08:20:00.000Z",
         "updated_at": "2024-05-01T08:20:00.000Z"
@@ -836,9 +836,9 @@
       {
         "id": 4,
         "story_id": 2,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-1: adaptive multi-factor policies\"]",
-        "then_step": "[\"Then the solution demonstrates that legitimate customers stay productive while suspicious access is challenged\"]",
+        "given": "[\"Given AUTH-1: Adaptive multi-factor policies has risk decision logs replicated to the analytics lake\",\"And telemetry for legitimate customers stay productive while suspicious access is challenged is captured every five minutes\"]",
+        "when_step": "[\"When milestone 1 for AUTH-1: Adaptive multi-factor policies completes with automated test suites passing\",\"And observers monitor results for a rolling five-day window\"]",
+        "then_step": "[\"Then high-trust sign-ins retain a success rate above 98% while suspicious attempts receive multi-factor challenges within 30 seconds\",\"And challenge outcomes are written to the MFA policy audit table\"]",
         "status": "Pass",
         "created_at": "2024-05-01T08:55:00.000Z",
         "updated_at": "2024-05-01T08:55:00.000Z"
@@ -846,9 +846,9 @@
       {
         "id": 5,
         "story_id": 2,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-1: adaptive multi-factor policies\"]",
-        "then_step": "[\"Then the solution demonstrates that legitimate customers stay productive while suspicious access is challenged\"]",
+        "given": "[\"Given AUTH-1: Adaptive multi-factor policies has risk decision logs replicated to the analytics lake\",\"And telemetry for legitimate customers stay productive while suspicious access is challenged is captured every five minutes\"]",
+        "when_step": "[\"When milestone 2 for AUTH-1: Adaptive multi-factor policies completes with automated test suites passing\",\"And observers monitor results for a rolling five-day window\"]",
+        "then_step": "[\"Then high-trust sign-ins retain a success rate above 98% while suspicious attempts receive multi-factor challenges within 30 seconds\",\"And challenge outcomes are written to the MFA policy audit table\"]",
         "status": "Draft",
         "created_at": "2024-05-01T09:00:00.000Z",
         "updated_at": "2024-05-01T09:00:00.000Z"
@@ -856,9 +856,9 @@
       {
         "id": 6,
         "story_id": 3,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Signal aggregation service initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-1.1: signal aggregation service\"]",
-        "then_step": "[\"Then the solution demonstrates that risk scoring stays consistent across sign-in surfaces\"]",
+        "given": "[\"Given AUTH-1.1: Signal aggregation service has signal aggregation metrics stored in the unified telemetry bucket\",\"And telemetry for risk scoring stays consistent across sign-in surfaces is captured every ten minutes\"]",
+        "when_step": "[\"When milestone 1 for AUTH-1.1: Signal aggregation service completes with automated test suites passing\",\"And observers monitor results for a continuous three-day soak\"]",
+        "then_step": "[\"Then risk scores remain within a 2% variance across web and mobile sign-in surfaces\",\"And variance calculations are exported to risk-scoring-drift.csv\"]",
         "status": "Need review with update",
         "created_at": "2024-05-01T09:35:00.000Z",
         "updated_at": "2024-05-01T09:35:00.000Z"
@@ -866,9 +866,9 @@
       {
         "id": 7,
         "story_id": 3,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Signal aggregation service initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-1.1: signal aggregation service\"]",
-        "then_step": "[\"Then the solution demonstrates that risk scoring stays consistent across sign-in surfaces\"]",
+        "given": "[\"Given AUTH-1.1: Signal aggregation service has signal aggregation metrics stored in the unified telemetry bucket\",\"And telemetry for risk scoring stays consistent across sign-in surfaces is captured every ten minutes\"]",
+        "when_step": "[\"When milestone 2 for AUTH-1.1: Signal aggregation service completes with automated test suites passing\",\"And observers monitor results for a continuous three-day soak\"]",
+        "then_step": "[\"Then risk scores remain within a 2% variance across web and mobile sign-in surfaces\",\"And variance calculations are exported to risk-scoring-drift.csv\"]",
         "status": "Pass",
         "created_at": "2024-05-01T09:40:00.000Z",
         "updated_at": "2024-05-01T09:40:00.000Z"
@@ -876,9 +876,9 @@
       {
         "id": 8,
         "story_id": 4,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Signal aggregation service › Regional signal replay rehearsal initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-1.1.1: regional signal replay rehearsal\"]",
-        "then_step": "[\"Then the solution demonstrates that audit evidence shows policy enforcement everywhere\"]",
+        "given": "[\"Given AUTH-1.1.1: Regional signal replay rehearsal has regional replay jobs scheduled in the orchestration cluster\",\"And telemetry for audit evidence shows policy enforcement everywhere is captured for each drill execution\"]",
+        "when_step": "[\"When milestone 1 for AUTH-1.1.1: Regional signal replay rehearsal completes with automated test suites passing\",\"And observers monitor results for each quarterly rehearsal\"]",
+        "then_step": "[\"Then every disaster recovery region reports 100% policy enforcement coverage within 5 minutes of replay start\",\"And replay summaries are preserved in /compliance/regional-replay\"]",
         "status": "Pass",
         "created_at": "2024-05-01T10:15:00.000Z",
         "updated_at": "2024-05-01T10:15:00.000Z"
@@ -886,9 +886,9 @@
       {
         "id": 9,
         "story_id": 4,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Signal aggregation service › Regional signal replay rehearsal initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-1.1.1: regional signal replay rehearsal\"]",
-        "then_step": "[\"Then the solution demonstrates that audit evidence shows policy enforcement everywhere\"]",
+        "given": "[\"Given AUTH-1.1.1: Regional signal replay rehearsal has regional replay jobs scheduled in the orchestration cluster\",\"And telemetry for audit evidence shows policy enforcement everywhere is captured for each drill execution\"]",
+        "when_step": "[\"When milestone 2 for AUTH-1.1.1: Regional signal replay rehearsal completes with automated test suites passing\",\"And observers monitor results for each quarterly rehearsal\"]",
+        "then_step": "[\"Then every disaster recovery region reports 100% policy enforcement coverage within 5 minutes of replay start\",\"And replay summaries are preserved in /compliance/regional-replay\"]",
         "status": "Pass",
         "created_at": "2024-05-01T10:20:00.000Z",
         "updated_at": "2024-05-01T10:20:00.000Z"
@@ -896,9 +896,9 @@
       {
         "id": 10,
         "story_id": 5,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Risk threshold tuning console initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-1.2: risk threshold tuning console\"]",
-        "then_step": "[\"Then the solution demonstrates that teams react to emerging threats quickly\"]",
+        "given": "[\"Given AUTH-1.2: Risk threshold tuning console has risk-threshold adjustments tracked in the admin console audit stream\",\"And telemetry for teams react to emerging threats quickly is captured after each threshold change\"]",
+        "when_step": "[\"When milestone 1 for AUTH-1.2: Risk threshold tuning console completes with automated test suites passing\",\"And observers monitor results for the seven-day period following the adjustment\"]",
+        "then_step": "[\"Then mitigation changes are applied in under 4 minutes and rollback success rate stays above 99%\",\"And change reviews are attached to ticketing thread AUTH-1.2\"]",
         "status": "Pass",
         "created_at": "2024-05-01T10:55:00.000Z",
         "updated_at": "2024-05-01T10:55:00.000Z"
@@ -906,9 +906,9 @@
       {
         "id": 11,
         "story_id": 5,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Risk threshold tuning console initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-1.2: risk threshold tuning console\"]",
-        "then_step": "[\"Then the solution demonstrates that teams react to emerging threats quickly\"]",
+        "given": "[\"Given AUTH-1.2: Risk threshold tuning console has risk-threshold adjustments tracked in the admin console audit stream\",\"And telemetry for teams react to emerging threats quickly is captured after each threshold change\"]",
+        "when_step": "[\"When milestone 2 for AUTH-1.2: Risk threshold tuning console completes with automated test suites passing\",\"And observers monitor results for the seven-day period following the adjustment\"]",
+        "then_step": "[\"Then mitigation changes are applied in under 4 minutes and rollback success rate stays above 99%\",\"And change reviews are attached to ticketing thread AUTH-1.2\"]",
         "status": "Pass",
         "created_at": "2024-05-01T11:00:00.000Z",
         "updated_at": "2024-05-01T11:00:00.000Z"
@@ -916,9 +916,9 @@
       {
         "id": 12,
         "story_id": 6,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Step-up messaging templates initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-1.3: step-up messaging templates\"]",
-        "then_step": "[\"Then the solution demonstrates that users understand why extra proof is required\"]",
+        "given": "[\"Given AUTH-1.3: Step-up messaging templates has step-up messaging experiments logged to the CX analytics table\",\"And telemetry for users understand why extra proof is required is captured for each experiment run\"]",
+        "when_step": "[\"When milestone 1 for AUTH-1.3: Step-up messaging templates completes with automated test suites passing\",\"And observers monitor results for a 14-day experiment cycle\"]",
+        "then_step": "[\"Then at least 85% of prompted users acknowledge the message and abandonment stays below 5%\",\"And experiment dashboards export CSV summaries to /experiments/step-up\"]",
         "status": "Pass",
         "created_at": "2024-05-01T11:35:00.000Z",
         "updated_at": "2024-05-01T11:35:00.000Z"
@@ -926,19 +926,19 @@
       {
         "id": 13,
         "story_id": 6,
-        "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Step-up messaging templates initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-1.3: step-up messaging templates\"]",
-        "then_step": "[\"Then the solution demonstrates that users understand why extra proof is required\"]",
-        "status": "Need review with update",
+        "given": "[\"Given AUTH-1.3: Step-up messaging templates has step-up messaging experiments logged to the CX analytics table\",\"And telemetry for users understand why extra proof is required is captured for each experiment run\"]",
+        "when_step": "[\"When milestone 2 for AUTH-1.3: Step-up messaging templates completes with automated test suites passing\",\"And observers monitor results for a 14-day experiment cycle\"]",
+        "then_step": "[\"Then at least 85% of prompted users acknowledge the message and abandonment stays below 5%\",\"And experiment dashboards export CSV summaries to /experiments/step-up\"]",
+        "status": "Pass",
         "created_at": "2024-05-01T11:40:00.000Z",
         "updated_at": "2024-05-01T11:40:00.000Z"
       },
       {
         "id": 14,
         "story_id": 7,
-        "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-2: session lifecycle governance\"]",
-        "then_step": "[\"Then the solution demonstrates that users experience predictable sign-outs during policy changes\"]",
+        "given": "[\"Given AUTH-2: Session lifecycle governance has session lifecycle events replicated to the governance data mart\",\"And telemetry for users experience predictable sign-outs during policy changes is captured in real time\"]",
+        "when_step": "[\"When milestone 1 for AUTH-2: Session lifecycle governance completes with automated test suites passing\",\"And observers monitor results for a seven-day observation window after policy change\"]",
+        "then_step": "[\"Then forced sign-outs occur within 60 seconds and no more than 0.2% of users report unexpected disruption\",\"And governance review packets are filed in session-governance-reviews\"]",
         "status": "Pass",
         "created_at": "2024-05-01T12:15:00.000Z",
         "updated_at": "2024-05-01T12:15:00.000Z"
@@ -946,9 +946,9 @@
       {
         "id": 15,
         "story_id": 7,
-        "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-2: session lifecycle governance\"]",
-        "then_step": "[\"Then the solution demonstrates that users experience predictable sign-outs during policy changes\"]",
+        "given": "[\"Given AUTH-2: Session lifecycle governance has session lifecycle events replicated to the governance data mart\",\"And telemetry for users experience predictable sign-outs during policy changes is captured in real time\"]",
+        "when_step": "[\"When milestone 2 for AUTH-2: Session lifecycle governance completes with automated test suites passing\",\"And observers monitor results for a seven-day observation window after policy change\"]",
+        "then_step": "[\"Then forced sign-outs occur within 60 seconds and no more than 0.2% of users report unexpected disruption\",\"And governance review packets are filed in session-governance-reviews\"]",
         "status": "Pass",
         "created_at": "2024-05-01T12:20:00.000Z",
         "updated_at": "2024-05-01T12:20:00.000Z"
@@ -956,9 +956,9 @@
       {
         "id": 16,
         "story_id": 8,
-        "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance › Session revocation webhooks initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-2.1: session revocation webhooks\"]",
-        "then_step": "[\"Then the solution demonstrates that dependent services immediately clear tokens\"]",
+        "given": "[\"Given AUTH-2.1: Session revocation webhooks has revocation webhook deliveries measured through the integration observability queue\",\"And telemetry for dependent services immediately clear tokens is captured per webhook invocation\"]",
+        "when_step": "[\"When milestone 1 for AUTH-2.1: Session revocation webhooks completes with automated test suites passing\",\"And observers monitor results for the first 48 hours after enablement\"]",
+        "then_step": "[\"Then downstream services acknowledge revocation webhooks within 15 seconds and failure rate stays below 0.5%\",\"And delivery traces are archived in /integrations/webhooks\"]",
         "status": "Pass",
         "created_at": "2024-05-01T12:55:00.000Z",
         "updated_at": "2024-05-01T12:55:00.000Z"
@@ -966,19 +966,19 @@
       {
         "id": 17,
         "story_id": 8,
-        "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance › Session revocation webhooks initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-2.1: session revocation webhooks\"]",
-        "then_step": "[\"Then the solution demonstrates that dependent services immediately clear tokens\"]",
-        "status": "Draft",
+        "given": "[\"Given AUTH-2.1: Session revocation webhooks has revocation webhook deliveries measured through the integration observability queue\",\"And telemetry for dependent services immediately clear tokens is captured per webhook invocation\"]",
+        "when_step": "[\"When milestone 2 for AUTH-2.1: Session revocation webhooks completes with automated test suites passing\",\"And observers monitor results for the first 48 hours after enablement\"]",
+        "then_step": "[\"Then downstream services acknowledge revocation webhooks within 15 seconds and failure rate stays below 0.5%\",\"And delivery traces are archived in /integrations/webhooks\"]",
+        "status": "Pass",
         "created_at": "2024-05-01T13:00:00.000Z",
         "updated_at": "2024-05-01T13:00:00.000Z"
       },
       {
         "id": 18,
         "story_id": 9,
-        "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance › Idle timeout analyzer initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-2.2: idle timeout analyzer\"]",
-        "then_step": "[\"Then the solution demonstrates that policy changes do not surprise regulated tenants\"]",
+        "given": "[\"Given AUTH-2.2: Idle timeout analyzer has idle timeout simulations captured in regulated tenant reports\",\"And telemetry for policy changes do not surprise regulated tenants is captured per policy change\"]",
+        "when_step": "[\"When milestone 1 for AUTH-2.2: Idle timeout analyzer completes with automated test suites passing\",\"And observers monitor results for the pilot month for each new timeout profile\"]",
+        "then_step": "[\"Then regulated tenants receive change notices at least 14 days in advance and post-change inactivity escalations drop by 20%\",\"And regulator sign-off receipts are stored in /governance/idle-timeout\"]",
         "status": "Pass",
         "created_at": "2024-05-01T13:35:00.000Z",
         "updated_at": "2024-05-01T13:35:00.000Z"
@@ -986,9 +986,9 @@
       {
         "id": 19,
         "story_id": 9,
-        "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance › Idle timeout analyzer initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-2.2: idle timeout analyzer\"]",
-        "then_step": "[\"Then the solution demonstrates that policy changes do not surprise regulated tenants\"]",
+        "given": "[\"Given AUTH-2.2: Idle timeout analyzer has idle timeout simulations captured in regulated tenant reports\",\"And telemetry for policy changes do not surprise regulated tenants is captured per policy change\"]",
+        "when_step": "[\"When milestone 2 for AUTH-2.2: Idle timeout analyzer completes with automated test suites passing\",\"And observers monitor results for the pilot month for each new timeout profile\"]",
+        "then_step": "[\"Then regulated tenants receive change notices at least 14 days in advance and post-change inactivity escalations drop by 20%\",\"And regulator sign-off receipts are stored in /governance/idle-timeout\"]",
         "status": "Pass",
         "created_at": "2024-05-01T13:40:00.000Z",
         "updated_at": "2024-05-01T13:40:00.000Z"
@@ -996,9 +996,9 @@
       {
         "id": 20,
         "story_id": 10,
-        "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-3: credential recovery overhaul\"]",
-        "then_step": "[\"Then the solution demonstrates that locked out users regain access without manual escalations\"]",
+        "given": "[\"Given AUTH-3: Credential recovery overhaul has credential recovery attempts tracked in the self-service analytics table\",\"And telemetry for locked out users regain access without manual escalations is captured daily aggregation\"]",
+        "when_step": "[\"When milestone 1 for AUTH-3: Credential recovery overhaul completes with automated test suites passing\",\"And observers monitor results for a 30-day stabilization window\"]",
+        "then_step": "[\"Then self-service recovery success rate exceeds 92% while escalations to support drop by at least 30%\",\"And monthly recovery scorecards are uploaded to /auth/recovery\"]",
         "status": "Pass",
         "created_at": "2024-05-01T14:15:00.000Z",
         "updated_at": "2024-05-01T14:15:00.000Z"
@@ -1006,9 +1006,9 @@
       {
         "id": 21,
         "story_id": 10,
-        "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-3: credential recovery overhaul\"]",
-        "then_step": "[\"Then the solution demonstrates that locked out users regain access without manual escalations\"]",
+        "given": "[\"Given AUTH-3: Credential recovery overhaul has credential recovery attempts tracked in the self-service analytics table\",\"And telemetry for locked out users regain access without manual escalations is captured daily aggregation\"]",
+        "when_step": "[\"When milestone 2 for AUTH-3: Credential recovery overhaul completes with automated test suites passing\",\"And observers monitor results for a 30-day stabilization window\"]",
+        "then_step": "[\"Then self-service recovery success rate exceeds 92% while escalations to support drop by at least 30%\",\"And monthly recovery scorecards are uploaded to /auth/recovery\"]",
         "status": "Pass",
         "created_at": "2024-05-01T14:20:00.000Z",
         "updated_at": "2024-05-01T14:20:00.000Z"
@@ -1016,9 +1016,9 @@
       {
         "id": 22,
         "story_id": 11,
-        "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Identity proofing integration initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-3.1: identity proofing integration\"]",
-        "then_step": "[\"Then the solution demonstrates that recovery attempts are verified against authoritative signals\"]",
+        "given": "[\"Given AUTH-3.1: Identity proofing integration has identity proofing checks logged against authoritative signal providers\",\"And telemetry for recovery attempts are verified against authoritative signals is captured for every recovery attempt\"]",
+        "when_step": "[\"When milestone 1 for AUTH-3.1: Identity proofing integration completes with automated test suites passing\",\"And observers monitor results for the first 14 days after launch\"]",
+        "then_step": "[\"Then proofing validations complete within 3 minutes and fraud rejections remain below 0.3%\",\"And integration validation results are attached to change record AUTH-3.1\"]",
         "status": "Pass",
         "created_at": "2024-05-01T14:55:00.000Z",
         "updated_at": "2024-05-01T14:55:00.000Z"
@@ -1026,9 +1026,9 @@
       {
         "id": 23,
         "story_id": 11,
-        "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Identity proofing integration initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-3.1: identity proofing integration\"]",
-        "then_step": "[\"Then the solution demonstrates that recovery attempts are verified against authoritative signals\"]",
+        "given": "[\"Given AUTH-3.1: Identity proofing integration has identity proofing checks logged against authoritative signal providers\",\"And telemetry for recovery attempts are verified against authoritative signals is captured for every recovery attempt\"]",
+        "when_step": "[\"When milestone 2 for AUTH-3.1: Identity proofing integration completes with automated test suites passing\",\"And observers monitor results for the first 14 days after launch\"]",
+        "then_step": "[\"Then proofing validations complete within 3 minutes and fraud rejections remain below 0.3%\",\"And integration validation results are attached to change record AUTH-3.1\"]",
         "status": "Pass",
         "created_at": "2024-05-01T15:00:00.000Z",
         "updated_at": "2024-05-01T15:00:00.000Z"
@@ -1036,19 +1036,19 @@
       {
         "id": 24,
         "story_id": 12,
-        "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Backup code vault initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-3.2: backup code vault\"]",
-        "then_step": "[\"Then the solution demonstrates that customers unlock accounts when primary factors fail\"]",
-        "status": "Need review with update",
+        "given": "[\"Given AUTH-3.2: Backup code vault has backup code issuance tracked within the secure vault audit logs\",\"And telemetry for customers unlock accounts when primary factors fail is captured each backup code request\"]",
+        "when_step": "[\"When milestone 1 for AUTH-3.2: Backup code vault completes with automated test suites passing\",\"And observers monitor results for the initial 60-day adoption window\"]",
+        "then_step": "[\"Then 95% of locked-out users unlock accounts using backup codes and code reuse incidents remain at zero\",\"And vault integrity reports are stored at /security/vault-reports\"]",
+        "status": "Pass",
         "created_at": "2024-05-01T15:35:00.000Z",
         "updated_at": "2024-05-01T15:35:00.000Z"
       },
       {
         "id": 25,
         "story_id": 12,
-        "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Backup code vault initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-3.2: backup code vault\"]",
-        "then_step": "[\"Then the solution demonstrates that customers unlock accounts when primary factors fail\"]",
+        "given": "[\"Given AUTH-3.2: Backup code vault has backup code issuance tracked within the secure vault audit logs\",\"And telemetry for customers unlock accounts when primary factors fail is captured each backup code request\"]",
+        "when_step": "[\"When milestone 2 for AUTH-3.2: Backup code vault completes with automated test suites passing\",\"And observers monitor results for the initial 60-day adoption window\"]",
+        "then_step": "[\"Then 95% of locked-out users unlock accounts using backup codes and code reuse incidents remain at zero\",\"And vault integrity reports are stored at /security/vault-reports\"]",
         "status": "Pass",
         "created_at": "2024-05-01T15:40:00.000Z",
         "updated_at": "2024-05-01T15:40:00.000Z"
@@ -1056,9 +1056,9 @@
       {
         "id": 26,
         "story_id": 13,
-        "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Support agent assistive flows initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-3.3: support agent assistive flows\"]",
-        "then_step": "[\"Then the solution demonstrates that auditors see complete evidence for manual unlocks\"]",
+        "given": "[\"Given AUTH-3.3: Support agent assistive flows has support agent unlock flows recorded in the case management analytics feed\",\"And telemetry for auditors see complete evidence for manual unlocks is captured per manual unlock\"]",
+        "when_step": "[\"When milestone 1 for AUTH-3.3: Support agent assistive flows completes with automated test suites passing\",\"And observers monitor results for each weekly reporting cycle\"]",
+        "then_step": "[\"Then 100% of manual unlocks include session evidence attachments and reviewer sign-off occurs within 24 hours\",\"And audit bundles are exported to /support/unlock-evidence\"]",
         "status": "Pass",
         "created_at": "2024-05-01T16:15:00.000Z",
         "updated_at": "2024-05-01T16:15:00.000Z"
@@ -1066,9 +1066,9 @@
       {
         "id": 27,
         "story_id": 13,
-        "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Support agent assistive flows initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-3.3: support agent assistive flows\"]",
-        "then_step": "[\"Then the solution demonstrates that auditors see complete evidence for manual unlocks\"]",
+        "given": "[\"Given AUTH-3.3: Support agent assistive flows has support agent unlock flows recorded in the case management analytics feed\",\"And telemetry for auditors see complete evidence for manual unlocks is captured per manual unlock\"]",
+        "when_step": "[\"When milestone 2 for AUTH-3.3: Support agent assistive flows completes with automated test suites passing\",\"And observers monitor results for each weekly reporting cycle\"]",
+        "then_step": "[\"Then 100% of manual unlocks include session evidence attachments and reviewer sign-off occurs within 24 hours\",\"And audit bundles are exported to /support/unlock-evidence\"]",
         "status": "Pass",
         "created_at": "2024-05-01T16:20:00.000Z",
         "updated_at": "2024-05-01T16:20:00.000Z"
@@ -1076,9 +1076,9 @@
       {
         "id": 28,
         "story_id": 14,
-        "given": "[\"Given the Unified Authentication Experience › Access policy authoring initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-4: access policy authoring\"]",
-        "then_step": "[\"Then the solution demonstrates that changes stay compliant across teams\"]",
+        "given": "[\"Given AUTH-4: Access policy authoring has policy authoring edits captured in the governance diff stream\",\"And telemetry for changes stay compliant across teams is captured per submitted change\"]",
+        "when_step": "[\"When milestone 1 for AUTH-4: Access policy authoring completes with automated test suites passing\",\"And observers monitor results for rolling monthly review windows\"]",
+        "then_step": "[\"Then every policy change includes documented risk assessment and approval latency stays under 2 business days\",\"And policy packets are versioned in the central repository\"]",
         "status": "Pass",
         "created_at": "2024-05-01T16:55:00.000Z",
         "updated_at": "2024-05-01T16:55:00.000Z"
@@ -1086,19 +1086,19 @@
       {
         "id": 29,
         "story_id": 14,
-        "given": "[\"Given the Unified Authentication Experience › Access policy authoring initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-4: access policy authoring\"]",
-        "then_step": "[\"Then the solution demonstrates that changes stay compliant across teams\"]",
-        "status": "Draft",
+        "given": "[\"Given AUTH-4: Access policy authoring has policy authoring edits captured in the governance diff stream\",\"And telemetry for changes stay compliant across teams is captured per submitted change\"]",
+        "when_step": "[\"When milestone 2 for AUTH-4: Access policy authoring completes with automated test suites passing\",\"And observers monitor results for rolling monthly review windows\"]",
+        "then_step": "[\"Then every policy change includes documented risk assessment and approval latency stays under 2 business days\",\"And policy packets are versioned in the central repository\"]",
+        "status": "Pass",
         "created_at": "2024-05-01T17:00:00.000Z",
         "updated_at": "2024-05-01T17:00:00.000Z"
       },
       {
         "id": 30,
         "story_id": 15,
-        "given": "[\"Given the Unified Authentication Experience › Access policy authoring › Policy diff viewer initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-4.1: policy diff viewer\"]",
-        "then_step": "[\"Then the solution demonstrates that reviewers approve changes with confidence\"]",
+        "given": "[\"Given AUTH-4.1: Policy diff viewer has diff viewer usage metrics streamed to reviewer analytics\",\"And telemetry for reviewers approve changes with confidence is captured per review session\"]",
+        "when_step": "[\"When milestone 1 for AUTH-4.1: Policy diff viewer completes with automated test suites passing\",\"And observers monitor results for the first three review sprints after launch\"]",
+        "then_step": "[\"Then reviewers identify high-risk changes within 5 minutes and approval accuracy exceeds 98%\",\"And annotated diffs are archived in /governance/diff-viewer\"]",
         "status": "Pass",
         "created_at": "2024-05-01T17:35:00.000Z",
         "updated_at": "2024-05-01T17:35:00.000Z"
@@ -1106,9 +1106,9 @@
       {
         "id": 31,
         "story_id": 15,
-        "given": "[\"Given the Unified Authentication Experience › Access policy authoring › Policy diff viewer initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-4.1: policy diff viewer\"]",
-        "then_step": "[\"Then the solution demonstrates that reviewers approve changes with confidence\"]",
+        "given": "[\"Given AUTH-4.1: Policy diff viewer has diff viewer usage metrics streamed to reviewer analytics\",\"And telemetry for reviewers approve changes with confidence is captured per review session\"]",
+        "when_step": "[\"When milestone 2 for AUTH-4.1: Policy diff viewer completes with automated test suites passing\",\"And observers monitor results for the first three review sprints after launch\"]",
+        "then_step": "[\"Then reviewers identify high-risk changes within 5 minutes and approval accuracy exceeds 98%\",\"And annotated diffs are archived in /governance/diff-viewer\"]",
         "status": "Pass",
         "created_at": "2024-05-01T17:40:00.000Z",
         "updated_at": "2024-05-01T17:40:00.000Z"
@@ -1116,9 +1116,9 @@
       {
         "id": 32,
         "story_id": 16,
-        "given": "[\"Given the Unified Authentication Experience › Access policy authoring › Review attestation log initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-4.2: review attestation log\"]",
-        "then_step": "[\"Then the solution demonstrates that audits trace who approved each policy\"]",
+        "given": "[\"Given AUTH-4.2: Review attestation log has attestation log writes captured in compliance storage\",\"And telemetry for audits trace who approved each policy is captured for each approval event\"]",
+        "when_step": "[\"When milestone 1 for AUTH-4.2: Review attestation log completes with automated test suites passing\",\"And observers monitor results for a quarterly compliance audit window\"]",
+        "then_step": "[\"Then every approval records reviewer identity, timestamp, and risk level with zero missing fields\",\"And attestation exports sync to /compliance/review-attestations\"]",
         "status": "Need review with update",
         "created_at": "2024-05-01T18:15:00.000Z",
         "updated_at": "2024-05-01T18:15:00.000Z"
@@ -1126,9 +1126,9 @@
       {
         "id": 33,
         "story_id": 16,
-        "given": "[\"Given the Unified Authentication Experience › Access policy authoring › Review attestation log initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-4.2: review attestation log\"]",
-        "then_step": "[\"Then the solution demonstrates that audits trace who approved each policy\"]",
+        "given": "[\"Given AUTH-4.2: Review attestation log has attestation log writes captured in compliance storage\",\"And telemetry for audits trace who approved each policy is captured for each approval event\"]",
+        "when_step": "[\"When milestone 2 for AUTH-4.2: Review attestation log completes with automated test suites passing\",\"And observers monitor results for a quarterly compliance audit window\"]",
+        "then_step": "[\"Then every approval records reviewer identity, timestamp, and risk level with zero missing fields\",\"And attestation exports sync to /compliance/review-attestations\"]",
         "status": "Pass",
         "created_at": "2024-05-01T18:20:00.000Z",
         "updated_at": "2024-05-01T18:20:00.000Z"
@@ -1136,9 +1136,9 @@
       {
         "id": 34,
         "story_id": 17,
-        "given": "[\"Given the Unified Authentication Experience › Device trust signals initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-5: device trust signals\"]",
-        "then_step": "[\"Then the solution demonstrates that high-risk devices trigger additional safeguards\"]",
+        "given": "[\"Given AUTH-5: Device trust signals has device trust scores collected from endpoint telemetry feeds\",\"And telemetry for high-risk devices trigger additional safeguards is captured hourly snapshots\"]",
+        "when_step": "[\"When milestone 1 for AUTH-5: Device trust signals completes with automated test suites passing\",\"And observers monitor results for a continuous 14-day evaluation\"]",
+        "then_step": "[\"Then high-risk device sessions trigger safeguards within 30 seconds and false positive rate stays below 3%\",\"And safeguard activation logs are stored in /device-trust\"]",
         "status": "Pass",
         "created_at": "2024-05-01T18:55:00.000Z",
         "updated_at": "2024-05-01T18:55:00.000Z"
@@ -1146,9 +1146,9 @@
       {
         "id": 35,
         "story_id": 17,
-        "given": "[\"Given the Unified Authentication Experience › Device trust signals initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-5: device trust signals\"]",
-        "then_step": "[\"Then the solution demonstrates that high-risk devices trigger additional safeguards\"]",
+        "given": "[\"Given AUTH-5: Device trust signals has device trust scores collected from endpoint telemetry feeds\",\"And telemetry for high-risk devices trigger additional safeguards is captured hourly snapshots\"]",
+        "when_step": "[\"When milestone 2 for AUTH-5: Device trust signals completes with automated test suites passing\",\"And observers monitor results for a continuous 14-day evaluation\"]",
+        "then_step": "[\"Then high-risk device sessions trigger safeguards within 30 seconds and false positive rate stays below 3%\",\"And safeguard activation logs are stored in /device-trust\"]",
         "status": "Pass",
         "created_at": "2024-05-01T19:00:00.000Z",
         "updated_at": "2024-05-01T19:00:00.000Z"
@@ -1156,9 +1156,9 @@
       {
         "id": 36,
         "story_id": 18,
-        "given": "[\"Given the Unified Authentication Experience › Device trust signals › Device inventory sync initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-5.1: device inventory sync\"]",
-        "then_step": "[\"Then the solution demonstrates that policy decisions include the latest device posture\"]",
+        "given": "[\"Given AUTH-5.1: Device inventory sync has inventory sync jobs reported through the endpoint management warehouse\",\"And telemetry for policy decisions include the latest device posture is captured on each sync cycle\"]",
+        "when_step": "[\"When milestone 1 for AUTH-5.1: Device inventory sync completes with automated test suites passing\",\"And observers monitor results for the first 72 hours after rollout\"]",
+        "then_step": "[\"Then device posture updates propagate to policy engines within 5 minutes and stale records remain under 1%\",\"And sync completion receipts land in /device-inventory\"]",
         "status": "Pass",
         "created_at": "2024-05-01T19:35:00.000Z",
         "updated_at": "2024-05-01T19:35:00.000Z"
@@ -1166,9 +1166,9 @@
       {
         "id": 37,
         "story_id": 18,
-        "given": "[\"Given the Unified Authentication Experience › Device trust signals › Device inventory sync initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-5.1: device inventory sync\"]",
-        "then_step": "[\"Then the solution demonstrates that policy decisions include the latest device posture\"]",
+        "given": "[\"Given AUTH-5.1: Device inventory sync has inventory sync jobs reported through the endpoint management warehouse\",\"And telemetry for policy decisions include the latest device posture is captured on each sync cycle\"]",
+        "when_step": "[\"When milestone 2 for AUTH-5.1: Device inventory sync completes with automated test suites passing\",\"And observers monitor results for the first 72 hours after rollout\"]",
+        "then_step": "[\"Then device posture updates propagate to policy engines within 5 minutes and stale records remain under 1%\",\"And sync completion receipts land in /device-inventory\"]",
         "status": "Pass",
         "created_at": "2024-05-01T19:40:00.000Z",
         "updated_at": "2024-05-01T19:40:00.000Z"
@@ -1176,9 +1176,9 @@
       {
         "id": 38,
         "story_id": 19,
-        "given": "[\"Given the Unified Authentication Experience › Device trust signals › Threat feed normalization initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-5.2: threat feed normalization\"]",
-        "then_step": "[\"Then the solution demonstrates that suspicious device indicators flag sessions in minutes\"]",
+        "given": "[\"Given AUTH-5.2: Threat feed normalization has threat feed normalization pipelines monitored via streaming analytics\",\"And telemetry for suspicious device indicators flag sessions in minutes is captured per ingest batch\"]",
+        "when_step": "[\"When milestone 1 for AUTH-5.2: Threat feed normalization completes with automated test suites passing\",\"And observers monitor results for the initial 10-day ingestion period\"]",
+        "then_step": "[\"Then new malicious indicators publish within 4 minutes and classification accuracy exceeds 97%\",\"And indicator normalization reports are versioned at /security/threat-feeds\"]",
         "status": "Pass",
         "created_at": "2024-05-01T20:15:00.000Z",
         "updated_at": "2024-05-01T20:15:00.000Z"
@@ -1186,9 +1186,9 @@
       {
         "id": 39,
         "story_id": 19,
-        "given": "[\"Given the Unified Authentication Experience › Device trust signals › Threat feed normalization initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-5.2: threat feed normalization\"]",
-        "then_step": "[\"Then the solution demonstrates that suspicious device indicators flag sessions in minutes\"]",
+        "given": "[\"Given AUTH-5.2: Threat feed normalization has threat feed normalization pipelines monitored via streaming analytics\",\"And telemetry for suspicious device indicators flag sessions in minutes is captured per ingest batch\"]",
+        "when_step": "[\"When milestone 2 for AUTH-5.2: Threat feed normalization completes with automated test suites passing\",\"And observers monitor results for the initial 10-day ingestion period\"]",
+        "then_step": "[\"Then new malicious indicators publish within 4 minutes and classification accuracy exceeds 97%\",\"And indicator normalization reports are versioned at /security/threat-feeds\"]",
         "status": "Pass",
         "created_at": "2024-05-01T20:20:00.000Z",
         "updated_at": "2024-05-01T20:20:00.000Z"
@@ -1196,9 +1196,9 @@
       {
         "id": 40,
         "story_id": 20,
-        "given": "[\"Given the Unified Authentication Experience › Device trust signals › Tamper alert routing initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for auth-5.3: tamper alert routing\"]",
-        "then_step": "[\"Then the solution demonstrates that responders act before compromised devices access data\"]",
+        "given": "[\"Given AUTH-5.3: Tamper alert routing has tamper alerts tracked in the incident routing queue\",\"And telemetry for responders act before compromised devices access data is captured per tamper event\"]",
+        "when_step": "[\"When milestone 1 for AUTH-5.3: Tamper alert routing completes with automated test suites passing\",\"And observers monitor results for the first 30 days after activation\"]",
+        "then_step": "[\"Then responders receive tamper alerts within 2 minutes and mitigation tickets open in under 5 minutes\",\"And routing dashboards export results to /reliability/tamper-alerts\"]",
         "status": "Pass",
         "created_at": "2024-05-01T20:55:00.000Z",
         "updated_at": "2024-05-01T20:55:00.000Z"
@@ -1206,19 +1206,19 @@
       {
         "id": 41,
         "story_id": 20,
-        "given": "[\"Given the Unified Authentication Experience › Device trust signals › Tamper alert routing initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for auth-5.3: tamper alert routing\"]",
-        "then_step": "[\"Then the solution demonstrates that responders act before compromised devices access data\"]",
-        "status": "Draft",
+        "given": "[\"Given AUTH-5.3: Tamper alert routing has tamper alerts tracked in the incident routing queue\",\"And telemetry for responders act before compromised devices access data is captured per tamper event\"]",
+        "when_step": "[\"When milestone 2 for AUTH-5.3: Tamper alert routing completes with automated test suites passing\",\"And observers monitor results for the first 30 days after activation\"]",
+        "then_step": "[\"Then responders receive tamper alerts within 2 minutes and mitigation tickets open in under 5 minutes\",\"And routing dashboards export results to /reliability/tamper-alerts\"]",
+        "status": "Pass",
         "created_at": "2024-05-01T21:00:00.000Z",
         "updated_at": "2024-05-01T21:00:00.000Z"
       },
       {
         "id": 42,
         "story_id": 21,
-        "given": "[\"Given the Analytics Intelligence Hub initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight epic 2: analytics intelligence hub\"]",
-        "then_step": "[\"Then the solution demonstrates that roadmap decisions rely on shared metrics\"]",
+        "given": "[\"Given INSIGHT Epic 2: Analytics Intelligence Hub has analytics hub instrumentation streaming to the shared metric lake\",\"And telemetry for roadmap decisions rely on shared metrics is captured hourly aggregation\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT Epic 2: Analytics Intelligence Hub completes with automated test suites passing\",\"And observers monitor results for the first fiscal quarter after launch\"]",
+        "then_step": "[\"Then core roadmap metrics refresh within 10 minutes of data arrival and definition mismatches drop below 1%\",\"And governance council minutes capture approvals in /analytics/hub\"]",
         "status": "Pass",
         "created_at": "2024-05-01T21:35:00.000Z",
         "updated_at": "2024-05-01T21:35:00.000Z"
@@ -1226,9 +1226,9 @@
       {
         "id": 43,
         "story_id": 21,
-        "given": "[\"Given the Analytics Intelligence Hub initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight epic 2: analytics intelligence hub\"]",
-        "then_step": "[\"Then the solution demonstrates that roadmap decisions rely on shared metrics\"]",
+        "given": "[\"Given INSIGHT Epic 2: Analytics Intelligence Hub has analytics hub instrumentation streaming to the shared metric lake\",\"And telemetry for roadmap decisions rely on shared metrics is captured hourly aggregation\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT Epic 2: Analytics Intelligence Hub completes with automated test suites passing\",\"And observers monitor results for the first fiscal quarter after launch\"]",
+        "then_step": "[\"Then core roadmap metrics refresh within 10 minutes of data arrival and definition mismatches drop below 1%\",\"And governance council minutes capture approvals in /analytics/hub\"]",
         "status": "Pass",
         "created_at": "2024-05-01T21:40:00.000Z",
         "updated_at": "2024-05-01T21:40:00.000Z"
@@ -1236,9 +1236,9 @@
       {
         "id": 44,
         "story_id": 21,
-        "given": "[\"Given the Analytics Intelligence Hub initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 3 for insight epic 2: analytics intelligence hub\"]",
-        "then_step": "[\"Then the solution demonstrates that roadmap decisions rely on shared metrics\"]",
+        "given": "[\"Given INSIGHT Epic 2: Analytics Intelligence Hub has analytics hub instrumentation streaming to the shared metric lake\",\"And telemetry for roadmap decisions rely on shared metrics is captured hourly aggregation\"]",
+        "when_step": "[\"When milestone 3 for INSIGHT Epic 2: Analytics Intelligence Hub completes with automated test suites passing\",\"And observers monitor results for the first fiscal quarter after launch\"]",
+        "then_step": "[\"Then core roadmap metrics refresh within 10 minutes of data arrival and definition mismatches drop below 1%\",\"And governance council minutes capture approvals in /analytics/hub\"]",
         "status": "Pass",
         "created_at": "2024-05-01T21:45:00.000Z",
         "updated_at": "2024-05-01T21:45:00.000Z"
@@ -1246,19 +1246,19 @@
       {
         "id": 45,
         "story_id": 22,
-        "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-1: experience analytics workspace\"]",
-        "then_step": "[\"Then the solution demonstrates that teams align on engagement priorities\"]",
-        "status": "Need review with update",
+        "given": "[\"Given INSIGHT-1: Experience analytics workspace has experience analytics workspace events routed to the engagement data mart\",\"And telemetry for teams align on engagement priorities is captured every dashboard refresh\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-1: Experience analytics workspace completes with automated test suites passing\",\"And observers monitor results for a 21-day adoption period\"]",
+        "then_step": "[\"Then teams publish engagement updates within 24 hours and backlog prioritization decisions cite workspace metrics in 90% of cases\",\"And prioritization artifacts are archived in /analytics/workspace\"]",
+        "status": "Pass",
         "created_at": "2024-05-01T22:20:00.000Z",
         "updated_at": "2024-05-01T22:20:00.000Z"
       },
       {
         "id": 46,
         "story_id": 22,
-        "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-1: experience analytics workspace\"]",
-        "then_step": "[\"Then the solution demonstrates that teams align on engagement priorities\"]",
+        "given": "[\"Given INSIGHT-1: Experience analytics workspace has experience analytics workspace events routed to the engagement data mart\",\"And telemetry for teams align on engagement priorities is captured every dashboard refresh\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-1: Experience analytics workspace completes with automated test suites passing\",\"And observers monitor results for a 21-day adoption period\"]",
+        "then_step": "[\"Then teams publish engagement updates within 24 hours and backlog prioritization decisions cite workspace metrics in 90% of cases\",\"And prioritization artifacts are archived in /analytics/workspace\"]",
         "status": "Pass",
         "created_at": "2024-05-01T22:25:00.000Z",
         "updated_at": "2024-05-01T22:25:00.000Z"
@@ -1266,9 +1266,9 @@
       {
         "id": 47,
         "story_id": 23,
-        "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace › Cohort segmentation builder initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-1.1: cohort segmentation builder\"]",
-        "then_step": "[\"Then the solution demonstrates that campaigns target the right audiences quickly\"]",
+        "given": "[\"Given INSIGHT-1.1: Cohort segmentation builder has cohort builder activity logged alongside campaign performance data\",\"And telemetry for campaigns target the right audiences quickly is captured per cohort publish\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-1.1: Cohort segmentation builder completes with automated test suites passing\",\"And observers monitor results for the first two campaign cycles\"]",
+        "then_step": "[\"Then targeted campaigns ship within 3 days and conversion lift exceeds 12%\",\"And campaign retrospectives live in /marketing/cohort-builder\"]",
         "status": "Pass",
         "created_at": "2024-05-01T23:00:00.000Z",
         "updated_at": "2024-05-01T23:00:00.000Z"
@@ -1276,9 +1276,9 @@
       {
         "id": 48,
         "story_id": 23,
-        "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace › Cohort segmentation builder initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-1.1: cohort segmentation builder\"]",
-        "then_step": "[\"Then the solution demonstrates that campaigns target the right audiences quickly\"]",
+        "given": "[\"Given INSIGHT-1.1: Cohort segmentation builder has cohort builder activity logged alongside campaign performance data\",\"And telemetry for campaigns target the right audiences quickly is captured per cohort publish\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-1.1: Cohort segmentation builder completes with automated test suites passing\",\"And observers monitor results for the first two campaign cycles\"]",
+        "then_step": "[\"Then targeted campaigns ship within 3 days and conversion lift exceeds 12%\",\"And campaign retrospectives live in /marketing/cohort-builder\"]",
         "status": "Pass",
         "created_at": "2024-05-01T23:05:00.000Z",
         "updated_at": "2024-05-01T23:05:00.000Z"
@@ -1286,9 +1286,9 @@
       {
         "id": 49,
         "story_id": 24,
-        "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace › Journey drop-off dashboard initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-1.2: journey drop-off dashboard\"]",
-        "then_step": "[\"Then the solution demonstrates that teams address the highest friction steps\"]",
+        "given": "[\"Given INSIGHT-1.2: Journey drop-off dashboard has journey drop-off dashboards wired to product analytics events\",\"And telemetry for teams address the highest friction steps is captured every dashboard refresh\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-1.2: Journey drop-off dashboard completes with automated test suites passing\",\"And observers monitor results for a continuous 30-day measurement\"]",
+        "then_step": "[\"Then teams address the top three friction steps within 5 business days and drop-off rate improves by at least 15%\",\"And journey improvement logs live in /product/journey-dashboards\"]",
         "status": "Pass",
         "created_at": "2024-05-01T23:40:00.000Z",
         "updated_at": "2024-05-01T23:40:00.000Z"
@@ -1296,9 +1296,9 @@
       {
         "id": 50,
         "story_id": 24,
-        "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace › Journey drop-off dashboard initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-1.2: journey drop-off dashboard\"]",
-        "then_step": "[\"Then the solution demonstrates that teams address the highest friction steps\"]",
+        "given": "[\"Given INSIGHT-1.2: Journey drop-off dashboard has journey drop-off dashboards wired to product analytics events\",\"And telemetry for teams address the highest friction steps is captured every dashboard refresh\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-1.2: Journey drop-off dashboard completes with automated test suites passing\",\"And observers monitor results for a continuous 30-day measurement\"]",
+        "then_step": "[\"Then teams address the top three friction steps within 5 business days and drop-off rate improves by at least 15%\",\"And journey improvement logs live in /product/journey-dashboards\"]",
         "status": "Pass",
         "created_at": "2024-05-01T23:45:00.000Z",
         "updated_at": "2024-05-01T23:45:00.000Z"
@@ -1306,9 +1306,9 @@
       {
         "id": 51,
         "story_id": 25,
-        "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-2: data trust instrumentation\"]",
-        "then_step": "[\"Then the solution demonstrates that stakeholders rely on consistent metrics\"]",
+        "given": "[\"Given INSIGHT-2: Data trust instrumentation has data trust instrumentation funneling quality scores to the metrics catalog\",\"And telemetry for stakeholders rely on consistent metrics is captured per nightly quality job\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-2: Data trust instrumentation completes with automated test suites passing\",\"And observers monitor results for a rolling 28-day window\"]",
+        "then_step": "[\"Then data freshness SLA hits 99% compliance and schema drift incidents stay below 0.5%\",\"And trust score exports sync to /data-quality/trust-instrumentation\"]",
         "status": "Pass",
         "created_at": "2024-05-02T00:20:00.000Z",
         "updated_at": "2024-05-02T00:20:00.000Z"
@@ -1316,9 +1316,9 @@
       {
         "id": 52,
         "story_id": 25,
-        "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-2: data trust instrumentation\"]",
-        "then_step": "[\"Then the solution demonstrates that stakeholders rely on consistent metrics\"]",
+        "given": "[\"Given INSIGHT-2: Data trust instrumentation has data trust instrumentation funneling quality scores to the metrics catalog\",\"And telemetry for stakeholders rely on consistent metrics is captured per nightly quality job\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-2: Data trust instrumentation completes with automated test suites passing\",\"And observers monitor results for a rolling 28-day window\"]",
+        "then_step": "[\"Then data freshness SLA hits 99% compliance and schema drift incidents stay below 0.5%\",\"And trust score exports sync to /data-quality/trust-instrumentation\"]",
         "status": "Pass",
         "created_at": "2024-05-02T00:25:00.000Z",
         "updated_at": "2024-05-02T00:25:00.000Z"
@@ -1326,19 +1326,19 @@
       {
         "id": 53,
         "story_id": 26,
-        "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Event schema registry initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-2.1: event schema registry\"]",
-        "then_step": "[\"Then the solution demonstrates that producers ship updates without breaking dashboards\"]",
-        "status": "Need review with update",
+        "given": "[\"Given INSIGHT-2.1: Event schema registry has event schema registry submissions tracked with compatibility reports\",\"And telemetry for producers ship updates without breaking dashboards is captured on each schema submission\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-2.1: Event schema registry completes with automated test suites passing\",\"And observers monitor results for the first six releases after go-live\"]",
+        "then_step": "[\"Then schema updates publish within 2 hours and backward compatibility score remains at 100%\",\"And compatibility attestations are archived in /data/schema-registry\"]",
+        "status": "Pass",
         "created_at": "2024-05-02T01:00:00.000Z",
         "updated_at": "2024-05-02T01:00:00.000Z"
       },
       {
         "id": 54,
         "story_id": 26,
-        "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Event schema registry initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-2.1: event schema registry\"]",
-        "then_step": "[\"Then the solution demonstrates that producers ship updates without breaking dashboards\"]",
+        "given": "[\"Given INSIGHT-2.1: Event schema registry has event schema registry submissions tracked with compatibility reports\",\"And telemetry for producers ship updates without breaking dashboards is captured on each schema submission\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-2.1: Event schema registry completes with automated test suites passing\",\"And observers monitor results for the first six releases after go-live\"]",
+        "then_step": "[\"Then schema updates publish within 2 hours and backward compatibility score remains at 100%\",\"And compatibility attestations are archived in /data/schema-registry\"]",
         "status": "Pass",
         "created_at": "2024-05-02T01:05:00.000Z",
         "updated_at": "2024-05-02T01:05:00.000Z"
@@ -1346,9 +1346,9 @@
       {
         "id": 55,
         "story_id": 27,
-        "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Audit sampling jobs initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-2.2: audit sampling jobs\"]",
-        "then_step": "[\"Then the solution demonstrates that teams detect drift before it hits reporting\"]",
+        "given": "[\"Given INSIGHT-2.2: Audit sampling jobs has audit sampling job results pushed to the observability warehouse\",\"And telemetry for teams detect drift before it hits reporting is captured for every sampling batch\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-2.2: Audit sampling jobs completes with automated test suites passing\",\"And observers monitor results for a monthly reporting cadence\"]",
+        "then_step": "[\"Then sampling jobs surface anomalies within 30 minutes and detection coverage stays above 95%\",\"And sampling review packs are filed in /data/audit-sampling\"]",
         "status": "Pass",
         "created_at": "2024-05-02T01:40:00.000Z",
         "updated_at": "2024-05-02T01:40:00.000Z"
@@ -1356,9 +1356,9 @@
       {
         "id": 56,
         "story_id": 27,
-        "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Audit sampling jobs initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-2.2: audit sampling jobs\"]",
-        "then_step": "[\"Then the solution demonstrates that teams detect drift before it hits reporting\"]",
+        "given": "[\"Given INSIGHT-2.2: Audit sampling jobs has audit sampling job results pushed to the observability warehouse\",\"And telemetry for teams detect drift before it hits reporting is captured for every sampling batch\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-2.2: Audit sampling jobs completes with automated test suites passing\",\"And observers monitor results for a monthly reporting cadence\"]",
+        "then_step": "[\"Then sampling jobs surface anomalies within 30 minutes and detection coverage stays above 95%\",\"And sampling review packs are filed in /data/audit-sampling\"]",
         "status": "Pass",
         "created_at": "2024-05-02T01:45:00.000Z",
         "updated_at": "2024-05-02T01:45:00.000Z"
@@ -1366,9 +1366,9 @@
       {
         "id": 57,
         "story_id": 28,
-        "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Anomaly alerting rules initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-2.3: anomaly alerting rules\"]",
-        "then_step": "[\"Then the solution demonstrates that investigations start before customers notice issues\"]",
+        "given": "[\"Given INSIGHT-2.3: Anomaly alerting rules has anomaly alerting rules evaluated through streaming analytics\",\"And telemetry for investigations start before customers notice issues is captured per alert evaluation\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-2.3: Anomaly alerting rules completes with automated test suites passing\",\"And observers monitor results for a continuous 14-day window\"]",
+        "then_step": "[\"Then alerts trigger before customer-impacting deviations exceed 2% and false positive rate stays below 4%\",\"And alert runbooks capture outcomes in /analytics/anomaly-alerts\"]",
         "status": "Pass",
         "created_at": "2024-05-02T02:20:00.000Z",
         "updated_at": "2024-05-02T02:20:00.000Z"
@@ -1376,9 +1376,9 @@
       {
         "id": 58,
         "story_id": 28,
-        "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Anomaly alerting rules initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-2.3: anomaly alerting rules\"]",
-        "then_step": "[\"Then the solution demonstrates that investigations start before customers notice issues\"]",
+        "given": "[\"Given INSIGHT-2.3: Anomaly alerting rules has anomaly alerting rules evaluated through streaming analytics\",\"And telemetry for investigations start before customers notice issues is captured per alert evaluation\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-2.3: Anomaly alerting rules completes with automated test suites passing\",\"And observers monitor results for a continuous 14-day window\"]",
+        "then_step": "[\"Then alerts trigger before customer-impacting deviations exceed 2% and false positive rate stays below 4%\",\"And alert runbooks capture outcomes in /analytics/anomaly-alerts\"]",
         "status": "Pass",
         "created_at": "2024-05-02T02:25:00.000Z",
         "updated_at": "2024-05-02T02:25:00.000Z"
@@ -1386,9 +1386,9 @@
       {
         "id": 59,
         "story_id": 29,
-        "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-3: collaboration workflows\"]",
-        "then_step": "[\"Then the solution demonstrates that teams close feedback loops faster\"]",
+        "given": "[\"Given INSIGHT-3: Collaboration workflows has collaboration workflow usage captured in feedback loop dashboards\",\"And telemetry for teams close feedback loops faster is captured per closed loop\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-3: Collaboration workflows completes with automated test suites passing\",\"And observers monitor results for each two-week iteration\"]",
+        "then_step": "[\"Then feedback loops close within 7 days and follow-up tasks maintain a completion rate above 96%\",\"And retrospective notes are attached in /collaboration/workflows\"]",
         "status": "Pass",
         "created_at": "2024-05-02T03:00:00.000Z",
         "updated_at": "2024-05-02T03:00:00.000Z"
@@ -1396,9 +1396,9 @@
       {
         "id": 60,
         "story_id": 29,
-        "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-3: collaboration workflows\"]",
-        "then_step": "[\"Then the solution demonstrates that teams close feedback loops faster\"]",
+        "given": "[\"Given INSIGHT-3: Collaboration workflows has collaboration workflow usage captured in feedback loop dashboards\",\"And telemetry for teams close feedback loops faster is captured per closed loop\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-3: Collaboration workflows completes with automated test suites passing\",\"And observers monitor results for each two-week iteration\"]",
+        "then_step": "[\"Then feedback loops close within 7 days and follow-up tasks maintain a completion rate above 96%\",\"And retrospective notes are attached in /collaboration/workflows\"]",
         "status": "Pass",
         "created_at": "2024-05-02T03:05:00.000Z",
         "updated_at": "2024-05-02T03:05:00.000Z"
@@ -1406,9 +1406,9 @@
       {
         "id": 61,
         "story_id": 30,
-        "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows › Insight annotation threads initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-3.1: insight annotation threads\"]",
-        "then_step": "[\"Then the solution demonstrates that comments stay tied to the right metric context\"]",
+        "given": "[\"Given INSIGHT-3.1: Insight annotation threads has annotation thread metrics collected from the insight workspace\",\"And telemetry for comments stay tied to the right metric context is captured per annotated insight\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-3.1: Insight annotation threads completes with automated test suites passing\",\"And observers monitor results for the first four reporting cycles\"]",
+        "then_step": "[\"Then comments attach to the correct metric context 100% of the time and response SLAs stay under 2 business days\",\"And annotation audit trails export to /analytics/annotations\"]",
         "status": "Pass",
         "created_at": "2024-05-02T03:40:00.000Z",
         "updated_at": "2024-05-02T03:40:00.000Z"
@@ -1416,9 +1416,9 @@
       {
         "id": 62,
         "story_id": 30,
-        "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows › Insight annotation threads initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-3.1: insight annotation threads\"]",
-        "then_step": "[\"Then the solution demonstrates that comments stay tied to the right metric context\"]",
+        "given": "[\"Given INSIGHT-3.1: Insight annotation threads has annotation thread metrics collected from the insight workspace\",\"And telemetry for comments stay tied to the right metric context is captured per annotated insight\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-3.1: Insight annotation threads completes with automated test suites passing\",\"And observers monitor results for the first four reporting cycles\"]",
+        "then_step": "[\"Then comments attach to the correct metric context 100% of the time and response SLAs stay under 2 business days\",\"And annotation audit trails export to /analytics/annotations\"]",
         "status": "Pass",
         "created_at": "2024-05-02T03:45:00.000Z",
         "updated_at": "2024-05-02T03:45:00.000Z"
@@ -1426,29 +1426,29 @@
       {
         "id": 63,
         "story_id": 31,
-        "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows › Export scheduling automation initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-3.2: export scheduling automation\"]",
-        "then_step": "[\"Then the solution demonstrates that leaders review dashboards without logging in\"]",
-        "status": "Draft",
+        "given": "[\"Given INSIGHT-3.2: Export scheduling automation has export scheduling automation logs stored in delivery analytics\",\"And telemetry for leaders review dashboards without logging in is captured per export job\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-3.2: Export scheduling automation completes with automated test suites passing\",\"And observers monitor results for the first month after automation\"]",
+        "then_step": "[\"Then scheduled exports deliver within 5 minutes of target time and failure rate stays below 1%\",\"And delivery confirmations sync to /analytics/exports\"]",
+        "status": "Pass",
         "created_at": "2024-05-02T04:20:00.000Z",
         "updated_at": "2024-05-02T04:20:00.000Z"
       },
       {
         "id": 64,
         "story_id": 31,
-        "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows › Export scheduling automation initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-3.2: export scheduling automation\"]",
-        "then_step": "[\"Then the solution demonstrates that leaders review dashboards without logging in\"]",
-        "status": "Need review with update",
+        "given": "[\"Given INSIGHT-3.2: Export scheduling automation has export scheduling automation logs stored in delivery analytics\",\"And telemetry for leaders review dashboards without logging in is captured per export job\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-3.2: Export scheduling automation completes with automated test suites passing\",\"And observers monitor results for the first month after automation\"]",
+        "then_step": "[\"Then scheduled exports deliver within 5 minutes of target time and failure rate stays below 1%\",\"And delivery confirmations sync to /analytics/exports\"]",
+        "status": "Pass",
         "created_at": "2024-05-02T04:25:00.000Z",
         "updated_at": "2024-05-02T04:25:00.000Z"
       },
       {
         "id": 65,
         "story_id": 32,
-        "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-4: predictive intelligence\"]",
-        "then_step": "[\"Then the solution demonstrates that roadmap bets focus on measurable outcomes\"]",
+        "given": "[\"Given INSIGHT-4: Predictive intelligence has predictive intelligence models tracked by ML operations dashboards\",\"And telemetry for roadmap bets focus on measurable outcomes is captured for each model run\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-4: Predictive intelligence completes with automated test suites passing\",\"And observers monitor results for a 60-day monitoring period\"]",
+        "then_step": "[\"Then forecast accuracy stays within ±5% of actuals and drift alerts resolve within 48 hours\",\"And model governance records reside in /ml/predictive-intelligence\"]",
         "status": "Pass",
         "created_at": "2024-05-02T05:00:00.000Z",
         "updated_at": "2024-05-02T05:00:00.000Z"
@@ -1456,9 +1456,9 @@
       {
         "id": 66,
         "story_id": 32,
-        "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-4: predictive intelligence\"]",
-        "then_step": "[\"Then the solution demonstrates that roadmap bets focus on measurable outcomes\"]",
+        "given": "[\"Given INSIGHT-4: Predictive intelligence has predictive intelligence models tracked by ML operations dashboards\",\"And telemetry for roadmap bets focus on measurable outcomes is captured for each model run\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-4: Predictive intelligence completes with automated test suites passing\",\"And observers monitor results for a 60-day monitoring period\"]",
+        "then_step": "[\"Then forecast accuracy stays within ±5% of actuals and drift alerts resolve within 48 hours\",\"And model governance records reside in /ml/predictive-intelligence\"]",
         "status": "Pass",
         "created_at": "2024-05-02T05:05:00.000Z",
         "updated_at": "2024-05-02T05:05:00.000Z"
@@ -1466,9 +1466,9 @@
       {
         "id": 67,
         "story_id": 33,
-        "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Forecast training pipeline initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-4.1: forecast training pipeline\"]",
-        "then_step": "[\"Then the solution demonstrates that forecasts align with production instrumentation\"]",
+        "given": "[\"Given INSIGHT-4.1: Forecast training pipeline has forecast training pipeline metrics ingested by the ML observability stack\",\"And telemetry for forecasts align with production instrumentation is captured per training job\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-4.1: Forecast training pipeline completes with automated test suites passing\",\"And observers monitor results for every release iteration\"]",
+        "then_step": "[\"Then training jobs complete within 45 minutes and validation accuracy remains above 95%\",\"And training evaluation exports are stored in /ml/forecast-pipeline\"]",
         "status": "Pass",
         "created_at": "2024-05-02T05:40:00.000Z",
         "updated_at": "2024-05-02T05:40:00.000Z"
@@ -1476,9 +1476,9 @@
       {
         "id": 68,
         "story_id": 33,
-        "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Forecast training pipeline initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-4.1: forecast training pipeline\"]",
-        "then_step": "[\"Then the solution demonstrates that forecasts align with production instrumentation\"]",
+        "given": "[\"Given INSIGHT-4.1: Forecast training pipeline has forecast training pipeline metrics ingested by the ML observability stack\",\"And telemetry for forecasts align with production instrumentation is captured per training job\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-4.1: Forecast training pipeline completes with automated test suites passing\",\"And observers monitor results for every release iteration\"]",
+        "then_step": "[\"Then training jobs complete within 45 minutes and validation accuracy remains above 95%\",\"And training evaluation exports are stored in /ml/forecast-pipeline\"]",
         "status": "Pass",
         "created_at": "2024-05-02T05:45:00.000Z",
         "updated_at": "2024-05-02T05:45:00.000Z"
@@ -1486,9 +1486,9 @@
       {
         "id": 69,
         "story_id": 34,
-        "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Feature drift tracking initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-4.2: feature drift tracking\"]",
-        "then_step": "[\"Then the solution demonstrates that models remain reliable over time\"]",
+        "given": "[\"Given INSIGHT-4.2: Feature drift tracking has feature drift tracking metrics streamed from production endpoints\",\"And telemetry for models remain reliable over time is captured hourly drift calculations\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-4.2: Feature drift tracking completes with automated test suites passing\",\"And observers monitor results for a rolling 30-day window\"]",
+        "then_step": "[\"Then feature drift scores stay below the 0.2 threshold and remediation plans launch within 24 hours when exceeded\",\"And drift investigation logs live in /ml/feature-drift\"]",
         "status": "Pass",
         "created_at": "2024-05-02T06:20:00.000Z",
         "updated_at": "2024-05-02T06:20:00.000Z"
@@ -1496,9 +1496,9 @@
       {
         "id": 70,
         "story_id": 34,
-        "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Feature drift tracking initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-4.2: feature drift tracking\"]",
-        "then_step": "[\"Then the solution demonstrates that models remain reliable over time\"]",
+        "given": "[\"Given INSIGHT-4.2: Feature drift tracking has feature drift tracking metrics streamed from production endpoints\",\"And telemetry for models remain reliable over time is captured hourly drift calculations\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-4.2: Feature drift tracking completes with automated test suites passing\",\"And observers monitor results for a rolling 30-day window\"]",
+        "then_step": "[\"Then feature drift scores stay below the 0.2 threshold and remediation plans launch within 24 hours when exceeded\",\"And drift investigation logs live in /ml/feature-drift\"]",
         "status": "Pass",
         "created_at": "2024-05-02T06:25:00.000Z",
         "updated_at": "2024-05-02T06:25:00.000Z"
@@ -1506,9 +1506,9 @@
       {
         "id": 71,
         "story_id": 35,
-        "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Scenario planning canvas initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for insight-4.3: scenario planning canvas\"]",
-        "then_step": "[\"Then the solution demonstrates that stakeholders compare forecast scenarios quickly\"]",
+        "given": "[\"Given INSIGHT-4.3: Scenario planning canvas has scenario planning usage analytics captured per modeling session\",\"And telemetry for stakeholders compare forecast scenarios quickly is captured per scenario comparison\"]",
+        "when_step": "[\"When milestone 1 for INSIGHT-4.3: Scenario planning canvas completes with automated test suites passing\",\"And observers monitor results for the first three planning cycles\"]",
+        "then_step": "[\"Then stakeholders evaluate at least three scenarios per cycle and decision memos publish within 2 business days\",\"And scenario exports reside in /planning/scenario-canvas\"]",
         "status": "Pass",
         "created_at": "2024-05-02T07:00:00.000Z",
         "updated_at": "2024-05-02T07:00:00.000Z"
@@ -1516,9 +1516,9 @@
       {
         "id": 72,
         "story_id": 35,
-        "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Scenario planning canvas initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for insight-4.3: scenario planning canvas\"]",
-        "then_step": "[\"Then the solution demonstrates that stakeholders compare forecast scenarios quickly\"]",
+        "given": "[\"Given INSIGHT-4.3: Scenario planning canvas has scenario planning usage analytics captured per modeling session\",\"And telemetry for stakeholders compare forecast scenarios quickly is captured per scenario comparison\"]",
+        "when_step": "[\"When milestone 2 for INSIGHT-4.3: Scenario planning canvas completes with automated test suites passing\",\"And observers monitor results for the first three planning cycles\"]",
+        "then_step": "[\"Then stakeholders evaluate at least three scenarios per cycle and decision memos publish within 2 business days\",\"And scenario exports reside in /planning/scenario-canvas\"]",
         "status": "Pass",
         "created_at": "2024-05-02T07:05:00.000Z",
         "updated_at": "2024-05-02T07:05:00.000Z"
@@ -1526,9 +1526,9 @@
       {
         "id": 73,
         "story_id": 36,
-        "given": "[\"Given the Service Reliability Command initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely epic 3: service reliability command\"]",
-        "then_step": "[\"Then the solution demonstrates that teams resolve incidents before they affect customers\"]",
+        "given": "[\"Given RELY Epic 3: Service Reliability Command has incident command metrics recorded by the service reliability dashboard\",\"And telemetry for teams resolve incidents before they affect customers is captured per incident\"]",
+        "when_step": "[\"When milestone 1 for RELY Epic 3: Service Reliability Command completes with automated test suites passing\",\"And observers monitor results for a quarter of production use\"]",
+        "then_step": "[\"Then incidents are detected within 2 minutes and customer impact duration stays below 15 minutes for 95% of cases\",\"And post-incident reviews are stored in /reliability/command\"]",
         "status": "Pass",
         "created_at": "2024-05-02T07:40:00.000Z",
         "updated_at": "2024-05-02T07:40:00.000Z"
@@ -1536,9 +1536,9 @@
       {
         "id": 74,
         "story_id": 36,
-        "given": "[\"Given the Service Reliability Command initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely epic 3: service reliability command\"]",
-        "then_step": "[\"Then the solution demonstrates that teams resolve incidents before they affect customers\"]",
+        "given": "[\"Given RELY Epic 3: Service Reliability Command has incident command metrics recorded by the service reliability dashboard\",\"And telemetry for teams resolve incidents before they affect customers is captured per incident\"]",
+        "when_step": "[\"When milestone 2 for RELY Epic 3: Service Reliability Command completes with automated test suites passing\",\"And observers monitor results for a quarter of production use\"]",
+        "then_step": "[\"Then incidents are detected within 2 minutes and customer impact duration stays below 15 minutes for 95% of cases\",\"And post-incident reviews are stored in /reliability/command\"]",
         "status": "Pass",
         "created_at": "2024-05-02T07:45:00.000Z",
         "updated_at": "2024-05-02T07:45:00.000Z"
@@ -1546,19 +1546,19 @@
       {
         "id": 75,
         "story_id": 36,
-        "given": "[\"Given the Service Reliability Command initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 3 for rely epic 3: service reliability command\"]",
-        "then_step": "[\"Then the solution demonstrates that teams resolve incidents before they affect customers\"]",
-        "status": "Need review with update",
+        "given": "[\"Given RELY Epic 3: Service Reliability Command has incident command metrics recorded by the service reliability dashboard\",\"And telemetry for teams resolve incidents before they affect customers is captured per incident\"]",
+        "when_step": "[\"When milestone 3 for RELY Epic 3: Service Reliability Command completes with automated test suites passing\",\"And observers monitor results for a quarter of production use\"]",
+        "then_step": "[\"Then incidents are detected within 2 minutes and customer impact duration stays below 15 minutes for 95% of cases\",\"And post-incident reviews are stored in /reliability/command\"]",
+        "status": "Pass",
         "created_at": "2024-05-02T07:50:00.000Z",
         "updated_at": "2024-05-02T07:50:00.000Z"
       },
       {
         "id": 76,
         "story_id": 37,
-        "given": "[\"Given the Service Reliability Command › Incident intake modernization initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-1: incident intake modernization\"]",
-        "then_step": "[\"Then the solution demonstrates that responders mobilize with complete context\"]",
+        "given": "[\"Given RELY-1: Incident intake modernization has incident intake submissions tracked across all intake channels\",\"And telemetry for responders mobilize with complete context is captured per intake event\"]",
+        "when_step": "[\"When milestone 1 for RELY-1: Incident intake modernization completes with automated test suites passing\",\"And observers monitor results for the first 45 days of rollout\"]",
+        "then_step": "[\"Then responders receive actionable intake packages within 5 minutes and missing context occurs in less than 2% of cases\",\"And intake evaluations are archived in /reliability/intake\"]",
         "status": "Pass",
         "created_at": "2024-05-02T08:25:00.000Z",
         "updated_at": "2024-05-02T08:25:00.000Z"
@@ -1566,9 +1566,9 @@
       {
         "id": 77,
         "story_id": 37,
-        "given": "[\"Given the Service Reliability Command › Incident intake modernization initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-1: incident intake modernization\"]",
-        "then_step": "[\"Then the solution demonstrates that responders mobilize with complete context\"]",
+        "given": "[\"Given RELY-1: Incident intake modernization has incident intake submissions tracked across all intake channels\",\"And telemetry for responders mobilize with complete context is captured per intake event\"]",
+        "when_step": "[\"When milestone 2 for RELY-1: Incident intake modernization completes with automated test suites passing\",\"And observers monitor results for the first 45 days of rollout\"]",
+        "then_step": "[\"Then responders receive actionable intake packages within 5 minutes and missing context occurs in less than 2% of cases\",\"And intake evaluations are archived in /reliability/intake\"]",
         "status": "Pass",
         "created_at": "2024-05-02T08:30:00.000Z",
         "updated_at": "2024-05-02T08:30:00.000Z"
@@ -1576,9 +1576,9 @@
       {
         "id": 78,
         "story_id": 38,
-        "given": "[\"Given the Service Reliability Command › Incident intake modernization › Multi-channel triage service initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-1.1: multi-channel triage service\"]",
-        "then_step": "[\"Then the solution demonstrates that no signal is lost when incidents are declared\"]",
+        "given": "[\"Given RELY-1.1: Multi-channel triage service has multi-channel triage service logs streaming from chat, voice, and API pathways\",\"And telemetry for no signal is lost when incidents are declared is captured per declared incident\"]",
+        "when_step": "[\"When milestone 1 for RELY-1.1: Multi-channel triage service completes with automated test suites passing\",\"And observers monitor results for a 30-day monitoring window\"]",
+        "then_step": "[\"Then no incoming incident signal is dropped and responder acknowledgements occur within 60 seconds\",\"And triage transcripts sync to /reliability/triage\"]",
         "status": "Pass",
         "created_at": "2024-05-02T09:05:00.000Z",
         "updated_at": "2024-05-02T09:05:00.000Z"
@@ -1586,9 +1586,9 @@
       {
         "id": 79,
         "story_id": 38,
-        "given": "[\"Given the Service Reliability Command › Incident intake modernization › Multi-channel triage service initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-1.1: multi-channel triage service\"]",
-        "then_step": "[\"Then the solution demonstrates that no signal is lost when incidents are declared\"]",
+        "given": "[\"Given RELY-1.1: Multi-channel triage service has multi-channel triage service logs streaming from chat, voice, and API pathways\",\"And telemetry for no signal is lost when incidents are declared is captured per declared incident\"]",
+        "when_step": "[\"When milestone 2 for RELY-1.1: Multi-channel triage service completes with automated test suites passing\",\"And observers monitor results for a 30-day monitoring window\"]",
+        "then_step": "[\"Then no incoming incident signal is dropped and responder acknowledgements occur within 60 seconds\",\"And triage transcripts sync to /reliability/triage\"]",
         "status": "Pass",
         "created_at": "2024-05-02T09:10:00.000Z",
         "updated_at": "2024-05-02T09:10:00.000Z"
@@ -1596,9 +1596,9 @@
       {
         "id": 80,
         "story_id": 39,
-        "given": "[\"Given the Service Reliability Command › Incident intake modernization › Severity auto-classifier initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-1.2: severity auto-classifier\"]",
-        "then_step": "[\"Then the solution demonstrates that response workflows match customer impact immediately\"]",
+        "given": "[\"Given RELY-1.2: Severity auto-classifier has severity classifier predictions stored in the ML audit repository\",\"And telemetry for response workflows match customer impact immediately is captured for each incident classification\"]",
+        "when_step": "[\"When milestone 1 for RELY-1.2: Severity auto-classifier completes with automated test suites passing\",\"And observers monitor results for the first 90 incident evaluations\"]",
+        "then_step": "[\"Then severity assignments match reviewer decisions 95% of the time and reclassification happens within 3 minutes when needed\",\"And classifier audit logs are preserved in /reliability/severity-classifier\"]",
         "status": "Pass",
         "created_at": "2024-05-02T09:45:00.000Z",
         "updated_at": "2024-05-02T09:45:00.000Z"
@@ -1606,9 +1606,9 @@
       {
         "id": 81,
         "story_id": 39,
-        "given": "[\"Given the Service Reliability Command › Incident intake modernization › Severity auto-classifier initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-1.2: severity auto-classifier\"]",
-        "then_step": "[\"Then the solution demonstrates that response workflows match customer impact immediately\"]",
+        "given": "[\"Given RELY-1.2: Severity auto-classifier has severity classifier predictions stored in the ML audit repository\",\"And telemetry for response workflows match customer impact immediately is captured for each incident classification\"]",
+        "when_step": "[\"When milestone 2 for RELY-1.2: Severity auto-classifier completes with automated test suites passing\",\"And observers monitor results for the first 90 incident evaluations\"]",
+        "then_step": "[\"Then severity assignments match reviewer decisions 95% of the time and reclassification happens within 3 minutes when needed\",\"And classifier audit logs are preserved in /reliability/severity-classifier\"]",
         "status": "Pass",
         "created_at": "2024-05-02T09:50:00.000Z",
         "updated_at": "2024-05-02T09:50:00.000Z"
@@ -1616,9 +1616,9 @@
       {
         "id": 82,
         "story_id": 40,
-        "given": "[\"Given the Service Reliability Command › Incident intake modernization › Escalation roster sync initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-1.3: escalation roster sync\"]",
-        "then_step": "[\"Then the solution demonstrates that correct experts are paged for each service\"]",
+        "given": "[\"Given RELY-1.3: Escalation roster sync has escalation roster sync jobs tracked by the scheduling service\",\"And telemetry for correct experts are paged for each service is captured per sync run\"]",
+        "when_step": "[\"When milestone 1 for RELY-1.3: Escalation roster sync completes with automated test suites passing\",\"And observers monitor results for each weekly rotation\"]",
+        "then_step": "[\"Then on-call rosters update within 60 seconds and escalation misses remain at zero\",\"And roster certification receipts are filed in /reliability/rosters\"]",
         "status": "Pass",
         "created_at": "2024-05-02T10:25:00.000Z",
         "updated_at": "2024-05-02T10:25:00.000Z"
@@ -1626,9 +1626,9 @@
       {
         "id": 83,
         "story_id": 40,
-        "given": "[\"Given the Service Reliability Command › Incident intake modernization › Escalation roster sync initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-1.3: escalation roster sync\"]",
-        "then_step": "[\"Then the solution demonstrates that correct experts are paged for each service\"]",
+        "given": "[\"Given RELY-1.3: Escalation roster sync has escalation roster sync jobs tracked by the scheduling service\",\"And telemetry for correct experts are paged for each service is captured per sync run\"]",
+        "when_step": "[\"When milestone 2 for RELY-1.3: Escalation roster sync completes with automated test suites passing\",\"And observers monitor results for each weekly rotation\"]",
+        "then_step": "[\"Then on-call rosters update within 60 seconds and escalation misses remain at zero\",\"And roster certification receipts are filed in /reliability/rosters\"]",
         "status": "Pass",
         "created_at": "2024-05-02T10:30:00.000Z",
         "updated_at": "2024-05-02T10:30:00.000Z"
@@ -1636,9 +1636,9 @@
       {
         "id": 84,
         "story_id": 41,
-        "given": "[\"Given the Service Reliability Command › Resilience automation initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-2: resilience automation\"]",
-        "then_step": "[\"Then the solution demonstrates that incidents resolve faster with playbooks ready\"]",
+        "given": "[\"Given RELY-2: Resilience automation has resilience automation playbooks instrumented in the incident response platform\",\"And telemetry for incidents resolve faster with playbooks ready is captured per automation execution\"]",
+        "when_step": "[\"When milestone 1 for RELY-2: Resilience automation completes with automated test suites passing\",\"And observers monitor results for the first 8 production incidents\"]",
+        "then_step": "[\"Then automations reduce mitigation time by at least 30% and success rate stays above 97%\",\"And playbook run logs are captured in /reliability/resilience-automation\"]",
         "status": "Pass",
         "created_at": "2024-05-02T11:05:00.000Z",
         "updated_at": "2024-05-02T11:05:00.000Z"
@@ -1646,9 +1646,9 @@
       {
         "id": 85,
         "story_id": 41,
-        "given": "[\"Given the Service Reliability Command › Resilience automation initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-2: resilience automation\"]",
-        "then_step": "[\"Then the solution demonstrates that incidents resolve faster with playbooks ready\"]",
+        "given": "[\"Given RELY-2: Resilience automation has resilience automation playbooks instrumented in the incident response platform\",\"And telemetry for incidents resolve faster with playbooks ready is captured per automation execution\"]",
+        "when_step": "[\"When milestone 2 for RELY-2: Resilience automation completes with automated test suites passing\",\"And observers monitor results for the first 8 production incidents\"]",
+        "then_step": "[\"Then automations reduce mitigation time by at least 30% and success rate stays above 97%\",\"And playbook run logs are captured in /reliability/resilience-automation\"]",
         "status": "Pass",
         "created_at": "2024-05-02T11:10:00.000Z",
         "updated_at": "2024-05-02T11:10:00.000Z"
@@ -1656,19 +1656,19 @@
       {
         "id": 86,
         "story_id": 42,
-        "given": "[\"Given the Service Reliability Command › Resilience automation › Chaos rehearsal scheduler initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-2.1: chaos rehearsal scheduler\"]",
-        "then_step": "[\"Then the solution demonstrates that teams build confidence in recovery procedures\"]",
-        "status": "Need review with update",
+        "given": "[\"Given RELY-2.1: Chaos rehearsal scheduler has chaos rehearsal schedules logged in the readiness calendar\",\"And telemetry for teams build confidence in recovery procedures is captured per rehearsal event\"]",
+        "when_step": "[\"When milestone 1 for RELY-2.1: Chaos rehearsal scheduler completes with automated test suites passing\",\"And observers monitor results for each quarterly chaos cycle\"]",
+        "then_step": "[\"Then teams complete rehearsals within scheduled windows and recovery objectives are met within tolerance 100% of the time\",\"And rehearsal reports are uploaded to /reliability/chaos\"]",
+        "status": "Pass",
         "created_at": "2024-05-02T11:45:00.000Z",
         "updated_at": "2024-05-02T11:45:00.000Z"
       },
       {
         "id": 87,
         "story_id": 42,
-        "given": "[\"Given the Service Reliability Command › Resilience automation › Chaos rehearsal scheduler initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-2.1: chaos rehearsal scheduler\"]",
-        "then_step": "[\"Then the solution demonstrates that teams build confidence in recovery procedures\"]",
+        "given": "[\"Given RELY-2.1: Chaos rehearsal scheduler has chaos rehearsal schedules logged in the readiness calendar\",\"And telemetry for teams build confidence in recovery procedures is captured per rehearsal event\"]",
+        "when_step": "[\"When milestone 2 for RELY-2.1: Chaos rehearsal scheduler completes with automated test suites passing\",\"And observers monitor results for each quarterly chaos cycle\"]",
+        "then_step": "[\"Then teams complete rehearsals within scheduled windows and recovery objectives are met within tolerance 100% of the time\",\"And rehearsal reports are uploaded to /reliability/chaos\"]",
         "status": "Pass",
         "created_at": "2024-05-02T11:50:00.000Z",
         "updated_at": "2024-05-02T11:50:00.000Z"
@@ -1676,9 +1676,9 @@
       {
         "id": 88,
         "story_id": 43,
-        "given": "[\"Given the Service Reliability Command › Resilience automation › Dependency impact mapper initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-2.2: dependency impact mapper\"]",
-        "then_step": "[\"Then the solution demonstrates that responders know blast radius instantly\"]",
+        "given": "[\"Given RELY-2.2: Dependency impact mapper has dependency impact maps refreshed via the service catalog pipeline\",\"And telemetry for responders know blast radius instantly is captured per dependency change\"]",
+        "when_step": "[\"When milestone 1 for RELY-2.2: Dependency impact mapper completes with automated test suites passing\",\"And observers monitor results for a rolling 14-day window\"]",
+        "then_step": "[\"Then impact maps update within 10 minutes and responders identify affected services in under 2 minutes\",\"And impact analysis packets reside in /reliability/dependency-mapper\"]",
         "status": "Pass",
         "created_at": "2024-05-02T12:25:00.000Z",
         "updated_at": "2024-05-02T12:25:00.000Z"
@@ -1686,9 +1686,9 @@
       {
         "id": 89,
         "story_id": 43,
-        "given": "[\"Given the Service Reliability Command › Resilience automation › Dependency impact mapper initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-2.2: dependency impact mapper\"]",
-        "then_step": "[\"Then the solution demonstrates that responders know blast radius instantly\"]",
+        "given": "[\"Given RELY-2.2: Dependency impact mapper has dependency impact maps refreshed via the service catalog pipeline\",\"And telemetry for responders know blast radius instantly is captured per dependency change\"]",
+        "when_step": "[\"When milestone 2 for RELY-2.2: Dependency impact mapper completes with automated test suites passing\",\"And observers monitor results for a rolling 14-day window\"]",
+        "then_step": "[\"Then impact maps update within 10 minutes and responders identify affected services in under 2 minutes\",\"And impact analysis packets reside in /reliability/dependency-mapper\"]",
         "status": "Pass",
         "created_at": "2024-05-02T12:30:00.000Z",
         "updated_at": "2024-05-02T12:30:00.000Z"
@@ -1696,9 +1696,9 @@
       {
         "id": 90,
         "story_id": 44,
-        "given": "[\"Given the Service Reliability Command › Observability coverage initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-3: observability coverage\"]",
-        "then_step": "[\"Then the solution demonstrates that signals catch regressions before users notice\"]",
+        "given": "[\"Given RELY-3: Observability coverage has observability coverage metrics emitted by logging, metrics, and tracing stacks\",\"And telemetry for signals catch regressions before users notice is captured per release\"]",
+        "when_step": "[\"When milestone 1 for RELY-3: Observability coverage completes with automated test suites passing\",\"And observers monitor results for a 6-week evaluation period\"]",
+        "then_step": "[\"Then critical services maintain 100% golden-signal coverage and regressions trigger alerts before user-impacting thresholds\",\"And coverage dashboards export to /reliability/observability\"]",
         "status": "Pass",
         "created_at": "2024-05-02T13:05:00.000Z",
         "updated_at": "2024-05-02T13:05:00.000Z"
@@ -1706,9 +1706,9 @@
       {
         "id": 91,
         "story_id": 44,
-        "given": "[\"Given the Service Reliability Command › Observability coverage initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-3: observability coverage\"]",
-        "then_step": "[\"Then the solution demonstrates that signals catch regressions before users notice\"]",
+        "given": "[\"Given RELY-3: Observability coverage has observability coverage metrics emitted by logging, metrics, and tracing stacks\",\"And telemetry for signals catch regressions before users notice is captured per release\"]",
+        "when_step": "[\"When milestone 2 for RELY-3: Observability coverage completes with automated test suites passing\",\"And observers monitor results for a 6-week evaluation period\"]",
+        "then_step": "[\"Then critical services maintain 100% golden-signal coverage and regressions trigger alerts before user-impacting thresholds\",\"And coverage dashboards export to /reliability/observability\"]",
         "status": "Pass",
         "created_at": "2024-05-02T13:10:00.000Z",
         "updated_at": "2024-05-02T13:10:00.000Z"
@@ -1716,9 +1716,9 @@
       {
         "id": 92,
         "story_id": 45,
-        "given": "[\"Given the Service Reliability Command › Observability coverage › Golden signal catalog initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-3.1: golden signal catalog\"]",
-        "then_step": "[\"Then the solution demonstrates that alerts fire consistently across the portfolio\"]",
+        "given": "[\"Given RELY-3.1: Golden signal catalog has golden signal catalog updates tracked in the observability registry\",\"And telemetry for alerts fire consistently across the portfolio is captured per catalog change\"]",
+        "when_step": "[\"When milestone 1 for RELY-3.1: Golden signal catalog completes with automated test suites passing\",\"And observers monitor results for each monthly maintenance cycle\"]",
+        "then_step": "[\"Then catalog entries are reviewed within 3 business days and missing signal coverage stays at 0%\",\"And catalog approvals are archived in /reliability/golden-signals\"]",
         "status": "Pass",
         "created_at": "2024-05-02T13:45:00.000Z",
         "updated_at": "2024-05-02T13:45:00.000Z"
@@ -1726,9 +1726,9 @@
       {
         "id": 93,
         "story_id": 45,
-        "given": "[\"Given the Service Reliability Command › Observability coverage › Golden signal catalog initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-3.1: golden signal catalog\"]",
-        "then_step": "[\"Then the solution demonstrates that alerts fire consistently across the portfolio\"]",
+        "given": "[\"Given RELY-3.1: Golden signal catalog has golden signal catalog updates tracked in the observability registry\",\"And telemetry for alerts fire consistently across the portfolio is captured per catalog change\"]",
+        "when_step": "[\"When milestone 2 for RELY-3.1: Golden signal catalog completes with automated test suites passing\",\"And observers monitor results for each monthly maintenance cycle\"]",
+        "then_step": "[\"Then catalog entries are reviewed within 3 business days and missing signal coverage stays at 0%\",\"And catalog approvals are archived in /reliability/golden-signals\"]",
         "status": "Pass",
         "created_at": "2024-05-02T13:50:00.000Z",
         "updated_at": "2024-05-02T13:50:00.000Z"
@@ -1736,9 +1736,9 @@
       {
         "id": 94,
         "story_id": 46,
-        "given": "[\"Given the Service Reliability Command › Observability coverage › Trace sampling tuner initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-3.2: trace sampling tuner\"]",
-        "then_step": "[\"Then the solution demonstrates that traces capture the right level of detail during incidents\"]",
+        "given": "[\"Given RELY-3.2: Trace sampling tuner has trace sampling tuner metrics stored in the distributed tracing warehouse\",\"And telemetry for traces capture the right level of detail during incidents is captured per sampling adjustment\"]",
+        "when_step": "[\"When milestone 1 for RELY-3.2: Trace sampling tuner completes with automated test suites passing\",\"And observers monitor results for a rolling 21-day window\"]",
+        "then_step": "[\"Then incident traces retain key spans in 99% of investigations and sampling cost budgets stay within ±5%\",\"And sampling calibration reports are preserved in /reliability/trace-tuner\"]",
         "status": "Pass",
         "created_at": "2024-05-02T14:25:00.000Z",
         "updated_at": "2024-05-02T14:25:00.000Z"
@@ -1746,19 +1746,19 @@
       {
         "id": 95,
         "story_id": 46,
-        "given": "[\"Given the Service Reliability Command › Observability coverage › Trace sampling tuner initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-3.2: trace sampling tuner\"]",
-        "then_step": "[\"Then the solution demonstrates that traces capture the right level of detail during incidents\"]",
-        "status": "Draft",
+        "given": "[\"Given RELY-3.2: Trace sampling tuner has trace sampling tuner metrics stored in the distributed tracing warehouse\",\"And telemetry for traces capture the right level of detail during incidents is captured per sampling adjustment\"]",
+        "when_step": "[\"When milestone 2 for RELY-3.2: Trace sampling tuner completes with automated test suites passing\",\"And observers monitor results for a rolling 21-day window\"]",
+        "then_step": "[\"Then incident traces retain key spans in 99% of investigations and sampling cost budgets stay within ±5%\",\"And sampling calibration reports are preserved in /reliability/trace-tuner\"]",
+        "status": "Pass",
         "created_at": "2024-05-02T14:30:00.000Z",
         "updated_at": "2024-05-02T14:30:00.000Z"
       },
       {
         "id": 96,
         "story_id": 47,
-        "given": "[\"Given the Service Reliability Command › Observability coverage › Log retention curator initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-3.3: log retention curator\"]",
-        "then_step": "[\"Then the solution demonstrates that audits confirm retention while costs stay predictable\"]",
+        "given": "[\"Given RELY-3.3: Log retention curator has log retention curator jobs tracked through storage analytics\",\"And telemetry for audits confirm retention while costs stay predictable is captured per retention policy execution\"]",
+        "when_step": "[\"When milestone 1 for RELY-3.3: Log retention curator completes with automated test suites passing\",\"And observers monitor results for each quarterly storage cycle\"]",
+        "then_step": "[\"Then retention policies meet compliance requirements with 0% data loss and storage utilization stays within plan by ±5%\",\"And retention attestations are filed in /reliability/log-retention\"]",
         "status": "Pass",
         "created_at": "2024-05-02T15:05:00.000Z",
         "updated_at": "2024-05-02T15:05:00.000Z"
@@ -1766,9 +1766,9 @@
       {
         "id": 97,
         "story_id": 47,
-        "given": "[\"Given the Service Reliability Command › Observability coverage › Log retention curator initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-3.3: log retention curator\"]",
-        "then_step": "[\"Then the solution demonstrates that audits confirm retention while costs stay predictable\"]",
+        "given": "[\"Given RELY-3.3: Log retention curator has log retention curator jobs tracked through storage analytics\",\"And telemetry for audits confirm retention while costs stay predictable is captured per retention policy execution\"]",
+        "when_step": "[\"When milestone 2 for RELY-3.3: Log retention curator completes with automated test suites passing\",\"And observers monitor results for each quarterly storage cycle\"]",
+        "then_step": "[\"Then retention policies meet compliance requirements with 0% data loss and storage utilization stays within plan by ±5%\",\"And retention attestations are filed in /reliability/log-retention\"]",
         "status": "Pass",
         "created_at": "2024-05-02T15:10:00.000Z",
         "updated_at": "2024-05-02T15:10:00.000Z"
@@ -1776,9 +1776,9 @@
       {
         "id": 98,
         "story_id": 48,
-        "given": "[\"Given the Service Reliability Command › Change risk safeguards initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-4: change risk safeguards\"]",
-        "then_step": "[\"Then the solution demonstrates that deployments stay reliable across busy periods\"]",
+        "given": "[\"Given RELY-4: Change risk safeguards has change risk safeguard events collected from deployment pipelines\",\"And telemetry for deployments stay reliable across busy periods is captured per deployment\"]",
+        "when_step": "[\"When milestone 1 for RELY-4: Change risk safeguards completes with automated test suites passing\",\"And observers monitor results for a six-week launch window\"]",
+        "then_step": "[\"Then risk scoring completes before 100% of deployments and rollback triggers stay below 2% per week\",\"And deployment risk reviews are stored in /reliability/change-safeguards\"]",
         "status": "Pass",
         "created_at": "2024-05-02T15:45:00.000Z",
         "updated_at": "2024-05-02T15:45:00.000Z"
@@ -1786,9 +1786,9 @@
       {
         "id": 99,
         "story_id": 48,
-        "given": "[\"Given the Service Reliability Command › Change risk safeguards initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-4: change risk safeguards\"]",
-        "then_step": "[\"Then the solution demonstrates that deployments stay reliable across busy periods\"]",
+        "given": "[\"Given RELY-4: Change risk safeguards has change risk safeguard events collected from deployment pipelines\",\"And telemetry for deployments stay reliable across busy periods is captured per deployment\"]",
+        "when_step": "[\"When milestone 2 for RELY-4: Change risk safeguards completes with automated test suites passing\",\"And observers monitor results for a six-week launch window\"]",
+        "then_step": "[\"Then risk scoring completes before 100% of deployments and rollback triggers stay below 2% per week\",\"And deployment risk reviews are stored in /reliability/change-safeguards\"]",
         "status": "Pass",
         "created_at": "2024-05-02T15:50:00.000Z",
         "updated_at": "2024-05-02T15:50:00.000Z"
@@ -1796,9 +1796,9 @@
       {
         "id": 100,
         "story_id": 49,
-        "given": "[\"Given the Service Reliability Command › Change risk safeguards › Deployment guardrails initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-4.1: deployment guardrails\"]",
-        "then_step": "[\"Then the solution demonstrates that operators catch issues before they hit production\"]",
+        "given": "[\"Given RELY-4.1: Deployment guardrails has deployment guardrail metrics stored in the CI/CD analytics stack\",\"And telemetry for operators catch issues before they hit production is captured per release candidate\"]",
+        "when_step": "[\"When milestone 1 for RELY-4.1: Deployment guardrails completes with automated test suites passing\",\"And observers monitor results for the first ten release trains\"]",
+        "then_step": "[\"Then guardrails catch regressions before production in 98% of cases and approval latency remains under 30 minutes\",\"And guardrail outcomes are logged in /reliability/guardrails\"]",
         "status": "Pass",
         "created_at": "2024-05-02T16:25:00.000Z",
         "updated_at": "2024-05-02T16:25:00.000Z"
@@ -1806,9 +1806,9 @@
       {
         "id": 101,
         "story_id": 49,
-        "given": "[\"Given the Service Reliability Command › Change risk safeguards › Deployment guardrails initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-4.1: deployment guardrails\"]",
-        "then_step": "[\"Then the solution demonstrates that operators catch issues before they hit production\"]",
+        "given": "[\"Given RELY-4.1: Deployment guardrails has deployment guardrail metrics stored in the CI/CD analytics stack\",\"And telemetry for operators catch issues before they hit production is captured per release candidate\"]",
+        "when_step": "[\"When milestone 2 for RELY-4.1: Deployment guardrails completes with automated test suites passing\",\"And observers monitor results for the first ten release trains\"]",
+        "then_step": "[\"Then guardrails catch regressions before production in 98% of cases and approval latency remains under 30 minutes\",\"And guardrail outcomes are logged in /reliability/guardrails\"]",
         "status": "Pass",
         "created_at": "2024-05-02T16:30:00.000Z",
         "updated_at": "2024-05-02T16:30:00.000Z"
@@ -1816,9 +1816,9 @@
       {
         "id": 102,
         "story_id": 50,
-        "given": "[\"Given the Service Reliability Command › Change risk safeguards › Rollback communication playbook initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 1 for rely-4.2: rollback communication playbook\"]",
-        "then_step": "[\"Then the solution demonstrates that stakeholders receive timely updates during incidents\"]",
+        "given": "[\"Given RELY-4.2: Rollback communication playbook has rollback communication playbook usage logged during incident drills\",\"And telemetry for stakeholders receive timely updates during incidents is captured per rollback event\"]",
+        "when_step": "[\"When milestone 1 for RELY-4.2: Rollback communication playbook completes with automated test suites passing\",\"And observers monitor results for each incident that triggers rollback\"]",
+        "then_step": "[\"Then stakeholder notifications are delivered within 4 minutes and status pages update within 6 minutes\",\"And communication summaries reside in /reliability/rollback-playbook\"]",
         "status": "Pass",
         "created_at": "2024-05-02T17:05:00.000Z",
         "updated_at": "2024-05-02T17:05:00.000Z"
@@ -1826,9 +1826,9 @@
       {
         "id": 103,
         "story_id": 50,
-        "given": "[\"Given the Service Reliability Command › Change risk safeguards › Rollback communication playbook initiative is prioritized\"]",
-        "when_step": "[\"When the team completes milestone 2 for rely-4.2: rollback communication playbook\"]",
-        "then_step": "[\"Then the solution demonstrates that stakeholders receive timely updates during incidents\"]",
+        "given": "[\"Given RELY-4.2: Rollback communication playbook has rollback communication playbook usage logged during incident drills\",\"And telemetry for stakeholders receive timely updates during incidents is captured per rollback event\"]",
+        "when_step": "[\"When milestone 2 for RELY-4.2: Rollback communication playbook completes with automated test suites passing\",\"And observers monitor results for each incident that triggers rollback\"]",
+        "then_step": "[\"Then stakeholder notifications are delivered within 4 minutes and status pages update within 6 minutes\",\"And communication summaries reside in /reliability/rollback-playbook\"]",
         "status": "Pass",
         "created_at": "2024-05-02T17:10:00.000Z",
         "updated_at": "2024-05-02T17:10:00.000Z"
