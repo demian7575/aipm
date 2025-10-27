@@ -1071,6 +1071,72 @@ test('JSON fallback driver seeds and serves data when forced', async (t) => {
   assert.equal(parsed.driver, 'json-fallback');
 });
 
+test('story dependency APIs work with JSON fallback database', async (t) => {
+  await resetDatabaseFiles();
+  resetDatabaseFactory();
+  process.env.AI_PM_FORCE_JSON_DB = '1';
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    delete process.env.AI_PM_FORCE_JSON_DB;
+    resetDatabaseFactory();
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const primaryPayload = {
+    title: 'JSON fallback dependency source',
+    description: 'Seed story for JSON driver dependency checks.',
+    asA: 'As a test harness',
+    iWant: 'I want to add dependencies',
+    soThat: 'So that fallback storage remains feature complete',
+    components: COMPONENT_CATALOG.length ? [COMPONENT_CATALOG[0]] : ['WorkModel'],
+    storyPoint: 2,
+    assigneeEmail: 'json@example.com',
+  };
+
+  const createPrimary = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(primaryPayload),
+  });
+  assert.equal(createPrimary.status, 201);
+  const primaryStory = await createPrimary.json();
+  assert.ok(primaryStory);
+
+  const dependencyPayload = { ...primaryPayload, title: 'Fallback dependency target' };
+  const createDependency = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(dependencyPayload),
+  });
+  assert.equal(createDependency.status, 201);
+  const dependencyStory = await createDependency.json();
+  assert.ok(dependencyStory);
+
+  const linkResponse = await fetch(`${baseUrl}/api/stories/${primaryStory.id}/dependencies`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dependsOnStoryId: dependencyStory.id, relationship: 'depends' }),
+  });
+  assert.equal(linkResponse.status, 201);
+  const linked = await linkResponse.json();
+  assert.ok(Array.isArray(linked.dependencies));
+  assert.ok(linked.dependencies.some((entry) => entry.storyId === dependencyStory.id));
+
+  const deleteResponse = await fetch(
+    `${baseUrl}/api/stories/${primaryStory.id}/dependencies/${dependencyStory.id}`,
+    { method: 'DELETE' }
+  );
+  assert.equal(deleteResponse.status, 200);
+  const afterDelete = await deleteResponse.json();
+  assert.ok(Array.isArray(afterDelete.dependencies));
+  assert.ok(afterDelete.dependencies.every((entry) => entry.storyId !== dependencyStory.id));
+});
+
 test('sample dataset generator produces 50 stories and mirrored acceptance tests', async () => {
   const outputPath = path.join(process.cwd(), 'docs', 'examples', 'generated-sample.sqlite');
   await fs.rm(outputPath, { force: true });
