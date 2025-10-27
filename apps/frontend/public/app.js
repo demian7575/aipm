@@ -219,22 +219,36 @@ const storyIndex = new Map();
 const parentById = new Map();
 let toastTimeout = null;
 
-function updateDependencyToggleState() {
+function syncDependencyOverlayControls() {
+  const pressed = state.showDependencies;
   if (dependencyToggleBtn) {
-    dependencyToggleBtn.classList.toggle('is-active', state.showDependencies);
-    dependencyToggleBtn.setAttribute('aria-pressed', state.showDependencies ? 'true' : 'false');
+    dependencyToggleBtn.classList.toggle('is-active', pressed);
+    dependencyToggleBtn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    dependencyToggleBtn.setAttribute(
+      'title',
+      pressed ? 'Hide dependency connections on the mindmap' : 'Show dependency connections on the mindmap'
+    );
   }
+  document.querySelectorAll('[data-role="dependency-overlay-toggle"]').forEach((button) => {
+    button.classList.toggle('is-active', pressed);
+    button.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    const label = pressed ? 'Hide Mindmap Overlay' : 'Show Mindmap Overlay';
+    if (button.textContent !== label) {
+      button.textContent = label;
+    }
+    button.setAttribute('title', label);
+  });
 }
 
 function setDependencyOverlayVisible(visible) {
   const next = Boolean(visible);
   if (state.showDependencies === next) {
-    updateDependencyToggleState();
+    syncDependencyOverlayControls();
     return;
   }
   state.showDependencies = next;
+  syncDependencyOverlayControls();
   renderMindmap();
-  renderDetails();
 }
 
 function toggleDependencyOverlay() {
@@ -939,7 +953,7 @@ function computeDependencyEndpoints(fromNode, toNode) {
 
 function renderMindmap() {
   mindmapCanvas.innerHTML = '';
-  updateDependencyToggleState();
+  syncDependencyOverlayControls();
   mindmapCanvas.classList.remove('has-dependencies');
   if (!state.panelVisibility.mindmap) {
     return;
@@ -2266,6 +2280,8 @@ function renderDetails() {
       }
     });
   });
+
+  syncDependencyOverlayControls();
 
   detailsContent.appendChild(dependencySection);
 
