@@ -198,6 +198,7 @@ textarea {
 .outline-tree {
   padding: 0.5rem 1rem 1rem;
   overflow: auto;
+  overscroll-behavior: contain;
   flex: 1;
 }
 
@@ -285,7 +286,7 @@ textarea {
   flex: 1;
   position: relative;
   padding: 0 0.75rem 0.75rem;
-  overflow: scroll;
+  overflow: auto;
   height: 100%;
   scrollbar-gutter: stable both-edges;
   overscroll-behavior: contain;
@@ -687,6 +688,7 @@ textarea {
 .details-content {
   flex: 1;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column;
