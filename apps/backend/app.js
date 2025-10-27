@@ -2862,6 +2862,9 @@ const OBSERVABLE_KEYWORDS = [
   'show',
   'visible',
   'see',
+  'hide',
+  'hidden',
+  'reveal',
   'status',
   'update',
   'updated',
@@ -2922,6 +2925,9 @@ const OBSERVABLE_KEYWORDS = [
   'render',
   'approve',
   'reject',
+  'tooltip',
+  'indicat',
+  'draw',
 ];
 
 function isObservableOutcome(step) {
