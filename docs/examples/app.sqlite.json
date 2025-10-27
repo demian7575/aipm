@@ -68,7 +68,7 @@
       {
         "id": 5,
         "mr_id": 1,
-        "parent_id": 2,
+        "parent_id": 4,
         "title": "AUTH-1.2: Risk threshold tuning console",
         "description": "Epic aligning login journeys, adaptive challenges, and recovery safeguards. Implements adaptive multi-factor decisioning with real-time signals. Offers admin tooling for adjusting adaptive MFA thresholds. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Platform strategist",
@@ -84,7 +84,7 @@
       {
         "id": 6,
         "mr_id": 1,
-        "parent_id": 2,
+        "parent_id": 5,
         "title": "AUTH-1.3: Step-up messaging templates",
         "description": "Epic aligning login journeys, adaptive challenges, and recovery safeguards. Implements adaptive multi-factor decisioning with real-time signals. Delivers localized templates explaining adaptive challenges. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "UX writer",
@@ -132,7 +132,7 @@
       {
         "id": 9,
         "mr_id": 1,
-        "parent_id": 7,
+        "parent_id": 8,
         "title": "AUTH-2.2: Idle timeout analyzer",
         "description": "Epic aligning login journeys, adaptive challenges, and recovery safeguards. Manages revocation, idle limits, and high-risk session resets. Analyzes telemetry to recommend idle timeout adjustments. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Data analyst",
@@ -180,7 +180,7 @@
       {
         "id": 12,
         "mr_id": 1,
-        "parent_id": 10,
+        "parent_id": 11,
         "title": "AUTH-3.2: Backup code vault",
         "description": "Epic aligning login journeys, adaptive challenges, and recovery safeguards. Rebuilds recovery flows with stronger proofing and event tracking. Manages encrypted backup codes with rotation policies. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Security engineer",
@@ -196,7 +196,7 @@
       {
         "id": 13,
         "mr_id": 1,
-        "parent_id": 10,
+        "parent_id": 12,
         "title": "AUTH-3.3: Support agent assistive flows",
         "description": "Epic aligning login journeys, adaptive challenges, and recovery safeguards. Rebuilds recovery flows with stronger proofing and event tracking. Provides guided scripts and auditing for manual recovery cases. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Support supervisor",
@@ -244,7 +244,7 @@
       {
         "id": 16,
         "mr_id": 1,
-        "parent_id": 14,
+        "parent_id": 15,
         "title": "AUTH-4.2: Review attestation log",
         "description": "Epic aligning login journeys, adaptive challenges, and recovery safeguards. Delivers versioned policy editing and attestations. Records attestations with timestamps and evidence links. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Compliance analyst",
@@ -292,7 +292,7 @@
       {
         "id": 19,
         "mr_id": 1,
-        "parent_id": 17,
+        "parent_id": 18,
         "title": "AUTH-5.2: Threat feed normalization",
         "description": "Epic aligning login journeys, adaptive challenges, and recovery safeguards. Expands device inventory sync and threat feed ingestion. Parses threat feeds and maps them to device identities. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Threat intelligence analyst",
@@ -308,7 +308,7 @@
       {
         "id": 20,
         "mr_id": 1,
-        "parent_id": 17,
+        "parent_id": 19,
         "title": "AUTH-5.3: Tamper alert routing",
         "description": "Epic aligning login journeys, adaptive challenges, and recovery safeguards. Expands device inventory sync and threat feed ingestion. Configures alert routing and escalation workflows for device tampering. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Operations responder",
@@ -372,7 +372,7 @@
       {
         "id": 24,
         "mr_id": 1,
-        "parent_id": 22,
+        "parent_id": 23,
         "title": "INSIGHT-1.2: Journey drop-off dashboard",
         "description": "Connects instrumentation, governance, and collaboration for analytics. Builds workspace with curated dashboards and segmentation tools. Highlights funnel drop-offs with investigative overlays. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "UX researcher",
@@ -420,7 +420,7 @@
       {
         "id": 27,
         "mr_id": 1,
-        "parent_id": 25,
+        "parent_id": 26,
         "title": "INSIGHT-2.2: Audit sampling jobs",
         "description": "Connects instrumentation, governance, and collaboration for analytics. Adds schema controls, sampling, and anomaly alerting. Runs sampling jobs and surfaces validation results. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Data auditor",
@@ -436,7 +436,7 @@
       {
         "id": 28,
         "mr_id": 1,
-        "parent_id": 25,
+        "parent_id": 27,
         "title": "INSIGHT-2.3: Anomaly alerting rules",
         "description": "Connects instrumentation, governance, and collaboration for analytics. Adds schema controls, sampling, and anomaly alerting. Configures anomaly detection thresholds for critical KPIs. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Operations analyst",
@@ -484,7 +484,7 @@
       {
         "id": 31,
         "mr_id": 1,
-        "parent_id": 29,
+        "parent_id": 30,
         "title": "INSIGHT-3.2: Export scheduling automation",
         "description": "Connects instrumentation, governance, and collaboration for analytics. Introduces annotations, tasks, and exports into analytics flows. Automates exports with templated scheduling and recipients. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Sales operations manager",
@@ -532,7 +532,7 @@
       {
         "id": 34,
         "mr_id": 1,
-        "parent_id": 32,
+        "parent_id": 33,
         "title": "INSIGHT-4.2: Feature drift tracking",
         "description": "Connects instrumentation, governance, and collaboration for analytics. Delivers pipelines, drift tracking, and scenario planning for predictive analytics. Tracks drift metrics and surfaces alerts to owners. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Data scientist",
@@ -548,7 +548,7 @@
       {
         "id": 35,
         "mr_id": 1,
-        "parent_id": 32,
+        "parent_id": 34,
         "title": "INSIGHT-4.3: Scenario planning canvas",
         "description": "Connects instrumentation, governance, and collaboration for analytics. Delivers pipelines, drift tracking, and scenario planning for predictive analytics. Creates shared canvas for modeling alternative forecasts. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Strategy director",
@@ -612,7 +612,7 @@
       {
         "id": 39,
         "mr_id": 1,
-        "parent_id": 37,
+        "parent_id": 38,
         "title": "RELY-1.2: Severity auto-classifier",
         "description": "Combines incident intake, automation, and safeguards for reliability. Unifies channels and enrichment for incident intake. Applies heuristics and ML to set initial incident severity. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Reliability analyst",
@@ -628,7 +628,7 @@
       {
         "id": 40,
         "mr_id": 1,
-        "parent_id": 37,
+        "parent_id": 39,
         "title": "RELY-1.3: Escalation roster sync",
         "description": "Combines incident intake, automation, and safeguards for reliability. Unifies channels and enrichment for incident intake. Synchronizes rosters from HR and scheduling systems. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Duty manager",
@@ -676,7 +676,7 @@
       {
         "id": 43,
         "mr_id": 1,
-        "parent_id": 41,
+        "parent_id": 42,
         "title": "RELY-2.2: Dependency impact mapper",
         "description": "Combines incident intake, automation, and safeguards for reliability. Automates chaos drills and dependency responses. Maintains live maps of upstream and downstream dependencies. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Platform engineer",
@@ -724,7 +724,7 @@
       {
         "id": 46,
         "mr_id": 1,
-        "parent_id": 44,
+        "parent_id": 45,
         "title": "RELY-3.2: Trace sampling tuner",
         "description": "Combines incident intake, automation, and safeguards for reliability. Defines golden signals, trace sampling, and log retention policies. Adjusts sampling rates based on service performance. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Performance engineer",
@@ -740,7 +740,7 @@
       {
         "id": 47,
         "mr_id": 1,
-        "parent_id": 44,
+        "parent_id": 46,
         "title": "RELY-3.3: Log retention curator",
         "description": "Combines incident intake, automation, and safeguards for reliability. Defines golden signals, trace sampling, and log retention policies. Sets retention classes with automated lifecycle policies. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Compliance analyst",
@@ -788,7 +788,7 @@
       {
         "id": 50,
         "mr_id": 1,
-        "parent_id": 48,
+        "parent_id": 49,
         "title": "RELY-4.2: Rollback communication playbook",
         "description": "Combines incident intake, automation, and safeguards for reliability. Implements guardrails, approvals, and communications for risky changes. Defines messaging templates and notification channels for rollbacks. Seed backlog data prepared for JSON fallback driver testing.",
         "as_a": "Communications lead",
@@ -809,7 +809,7 @@
         "given": "[\"Given the Unified Authentication Experience initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth epic 1: unified authentication experience\"]",
         "then_step": "[\"Then the solution demonstrates that customers log in securely across properties\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-01T08:10:00.000Z",
         "updated_at": "2024-05-01T08:10:00.000Z"
       },
@@ -819,7 +819,7 @@
         "given": "[\"Given the Unified Authentication Experience initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth epic 1: unified authentication experience\"]",
         "then_step": "[\"Then the solution demonstrates that customers log in securely across properties\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T08:15:00.000Z",
         "updated_at": "2024-05-01T08:15:00.000Z"
       },
@@ -829,7 +829,7 @@
         "given": "[\"Given the Unified Authentication Experience initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 3 for auth epic 1: unified authentication experience\"]",
         "then_step": "[\"Then the solution demonstrates that customers log in securely across properties\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T08:20:00.000Z",
         "updated_at": "2024-05-01T08:20:00.000Z"
       },
@@ -839,7 +839,7 @@
         "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-1: adaptive multi-factor policies\"]",
         "then_step": "[\"Then the solution demonstrates that legitimate customers stay productive while suspicious access is challenged\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-01T08:55:00.000Z",
         "updated_at": "2024-05-01T08:55:00.000Z"
       },
@@ -849,7 +849,7 @@
         "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-1: adaptive multi-factor policies\"]",
         "then_step": "[\"Then the solution demonstrates that legitimate customers stay productive while suspicious access is challenged\"]",
-        "status": "Need review with update",
+        "status": "Draft",
         "created_at": "2024-05-01T09:00:00.000Z",
         "updated_at": "2024-05-01T09:00:00.000Z"
       },
@@ -859,7 +859,7 @@
         "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Signal aggregation service initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-1.1: signal aggregation service\"]",
         "then_step": "[\"Then the solution demonstrates that risk scoring stays consistent across sign-in surfaces\"]",
-        "status": "Draft",
+        "status": "Need review with update",
         "created_at": "2024-05-01T09:35:00.000Z",
         "updated_at": "2024-05-01T09:35:00.000Z"
       },
@@ -869,7 +869,7 @@
         "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Signal aggregation service initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-1.1: signal aggregation service\"]",
         "then_step": "[\"Then the solution demonstrates that risk scoring stays consistent across sign-in surfaces\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T09:40:00.000Z",
         "updated_at": "2024-05-01T09:40:00.000Z"
       },
@@ -879,7 +879,7 @@
         "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Signal aggregation service › Regional signal replay rehearsal initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-1.1.1: regional signal replay rehearsal\"]",
         "then_step": "[\"Then the solution demonstrates that audit evidence shows policy enforcement everywhere\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T10:15:00.000Z",
         "updated_at": "2024-05-01T10:15:00.000Z"
       },
@@ -889,7 +889,7 @@
         "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Signal aggregation service › Regional signal replay rehearsal initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-1.1.1: regional signal replay rehearsal\"]",
         "then_step": "[\"Then the solution demonstrates that audit evidence shows policy enforcement everywhere\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T10:20:00.000Z",
         "updated_at": "2024-05-01T10:20:00.000Z"
       },
@@ -899,7 +899,7 @@
         "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Risk threshold tuning console initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-1.2: risk threshold tuning console\"]",
         "then_step": "[\"Then the solution demonstrates that teams react to emerging threats quickly\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T10:55:00.000Z",
         "updated_at": "2024-05-01T10:55:00.000Z"
       },
@@ -909,7 +909,7 @@
         "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Risk threshold tuning console initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-1.2: risk threshold tuning console\"]",
         "then_step": "[\"Then the solution demonstrates that teams react to emerging threats quickly\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T11:00:00.000Z",
         "updated_at": "2024-05-01T11:00:00.000Z"
       },
@@ -919,7 +919,7 @@
         "given": "[\"Given the Unified Authentication Experience › Adaptive multi-factor policies › Step-up messaging templates initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-1.3: step-up messaging templates\"]",
         "then_step": "[\"Then the solution demonstrates that users understand why extra proof is required\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T11:35:00.000Z",
         "updated_at": "2024-05-01T11:35:00.000Z"
       },
@@ -939,7 +939,7 @@
         "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-2: session lifecycle governance\"]",
         "then_step": "[\"Then the solution demonstrates that users experience predictable sign-outs during policy changes\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-01T12:15:00.000Z",
         "updated_at": "2024-05-01T12:15:00.000Z"
       },
@@ -949,7 +949,7 @@
         "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-2: session lifecycle governance\"]",
         "then_step": "[\"Then the solution demonstrates that users experience predictable sign-outs during policy changes\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T12:20:00.000Z",
         "updated_at": "2024-05-01T12:20:00.000Z"
       },
@@ -959,7 +959,7 @@
         "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance › Session revocation webhooks initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-2.1: session revocation webhooks\"]",
         "then_step": "[\"Then the solution demonstrates that dependent services immediately clear tokens\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T12:55:00.000Z",
         "updated_at": "2024-05-01T12:55:00.000Z"
       },
@@ -969,7 +969,7 @@
         "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance › Session revocation webhooks initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-2.1: session revocation webhooks\"]",
         "then_step": "[\"Then the solution demonstrates that dependent services immediately clear tokens\"]",
-        "status": "Need review with update",
+        "status": "Draft",
         "created_at": "2024-05-01T13:00:00.000Z",
         "updated_at": "2024-05-01T13:00:00.000Z"
       },
@@ -979,7 +979,7 @@
         "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance › Idle timeout analyzer initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-2.2: idle timeout analyzer\"]",
         "then_step": "[\"Then the solution demonstrates that policy changes do not surprise regulated tenants\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T13:35:00.000Z",
         "updated_at": "2024-05-01T13:35:00.000Z"
       },
@@ -989,7 +989,7 @@
         "given": "[\"Given the Unified Authentication Experience › Session lifecycle governance › Idle timeout analyzer initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-2.2: idle timeout analyzer\"]",
         "then_step": "[\"Then the solution demonstrates that policy changes do not surprise regulated tenants\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T13:40:00.000Z",
         "updated_at": "2024-05-01T13:40:00.000Z"
       },
@@ -999,7 +999,7 @@
         "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-3: credential recovery overhaul\"]",
         "then_step": "[\"Then the solution demonstrates that locked out users regain access without manual escalations\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-01T14:15:00.000Z",
         "updated_at": "2024-05-01T14:15:00.000Z"
       },
@@ -1009,7 +1009,7 @@
         "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-3: credential recovery overhaul\"]",
         "then_step": "[\"Then the solution demonstrates that locked out users regain access without manual escalations\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T14:20:00.000Z",
         "updated_at": "2024-05-01T14:20:00.000Z"
       },
@@ -1019,7 +1019,7 @@
         "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Identity proofing integration initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-3.1: identity proofing integration\"]",
         "then_step": "[\"Then the solution demonstrates that recovery attempts are verified against authoritative signals\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T14:55:00.000Z",
         "updated_at": "2024-05-01T14:55:00.000Z"
       },
@@ -1029,7 +1029,7 @@
         "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Identity proofing integration initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-3.1: identity proofing integration\"]",
         "then_step": "[\"Then the solution demonstrates that recovery attempts are verified against authoritative signals\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T15:00:00.000Z",
         "updated_at": "2024-05-01T15:00:00.000Z"
       },
@@ -1039,7 +1039,7 @@
         "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Backup code vault initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-3.2: backup code vault\"]",
         "then_step": "[\"Then the solution demonstrates that customers unlock accounts when primary factors fail\"]",
-        "status": "Draft",
+        "status": "Need review with update",
         "created_at": "2024-05-01T15:35:00.000Z",
         "updated_at": "2024-05-01T15:35:00.000Z"
       },
@@ -1049,7 +1049,7 @@
         "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Backup code vault initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-3.2: backup code vault\"]",
         "then_step": "[\"Then the solution demonstrates that customers unlock accounts when primary factors fail\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T15:40:00.000Z",
         "updated_at": "2024-05-01T15:40:00.000Z"
       },
@@ -1059,7 +1059,7 @@
         "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Support agent assistive flows initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-3.3: support agent assistive flows\"]",
         "then_step": "[\"Then the solution demonstrates that auditors see complete evidence for manual unlocks\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T16:15:00.000Z",
         "updated_at": "2024-05-01T16:15:00.000Z"
       },
@@ -1069,7 +1069,7 @@
         "given": "[\"Given the Unified Authentication Experience › Credential recovery overhaul › Support agent assistive flows initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-3.3: support agent assistive flows\"]",
         "then_step": "[\"Then the solution demonstrates that auditors see complete evidence for manual unlocks\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T16:20:00.000Z",
         "updated_at": "2024-05-01T16:20:00.000Z"
       },
@@ -1079,7 +1079,7 @@
         "given": "[\"Given the Unified Authentication Experience › Access policy authoring initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-4: access policy authoring\"]",
         "then_step": "[\"Then the solution demonstrates that changes stay compliant across teams\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-01T16:55:00.000Z",
         "updated_at": "2024-05-01T16:55:00.000Z"
       },
@@ -1089,7 +1089,7 @@
         "given": "[\"Given the Unified Authentication Experience › Access policy authoring initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-4: access policy authoring\"]",
         "then_step": "[\"Then the solution demonstrates that changes stay compliant across teams\"]",
-        "status": "Need review with update",
+        "status": "Draft",
         "created_at": "2024-05-01T17:00:00.000Z",
         "updated_at": "2024-05-01T17:00:00.000Z"
       },
@@ -1099,7 +1099,7 @@
         "given": "[\"Given the Unified Authentication Experience › Access policy authoring › Policy diff viewer initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-4.1: policy diff viewer\"]",
         "then_step": "[\"Then the solution demonstrates that reviewers approve changes with confidence\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T17:35:00.000Z",
         "updated_at": "2024-05-01T17:35:00.000Z"
       },
@@ -1109,7 +1109,7 @@
         "given": "[\"Given the Unified Authentication Experience › Access policy authoring › Policy diff viewer initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-4.1: policy diff viewer\"]",
         "then_step": "[\"Then the solution demonstrates that reviewers approve changes with confidence\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T17:40:00.000Z",
         "updated_at": "2024-05-01T17:40:00.000Z"
       },
@@ -1119,7 +1119,7 @@
         "given": "[\"Given the Unified Authentication Experience › Access policy authoring › Review attestation log initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-4.2: review attestation log\"]",
         "then_step": "[\"Then the solution demonstrates that audits trace who approved each policy\"]",
-        "status": "Draft",
+        "status": "Need review with update",
         "created_at": "2024-05-01T18:15:00.000Z",
         "updated_at": "2024-05-01T18:15:00.000Z"
       },
@@ -1129,7 +1129,7 @@
         "given": "[\"Given the Unified Authentication Experience › Access policy authoring › Review attestation log initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-4.2: review attestation log\"]",
         "then_step": "[\"Then the solution demonstrates that audits trace who approved each policy\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T18:20:00.000Z",
         "updated_at": "2024-05-01T18:20:00.000Z"
       },
@@ -1139,7 +1139,7 @@
         "given": "[\"Given the Unified Authentication Experience › Device trust signals initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-5: device trust signals\"]",
         "then_step": "[\"Then the solution demonstrates that high-risk devices trigger additional safeguards\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-01T18:55:00.000Z",
         "updated_at": "2024-05-01T18:55:00.000Z"
       },
@@ -1149,7 +1149,7 @@
         "given": "[\"Given the Unified Authentication Experience › Device trust signals initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-5: device trust signals\"]",
         "then_step": "[\"Then the solution demonstrates that high-risk devices trigger additional safeguards\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T19:00:00.000Z",
         "updated_at": "2024-05-01T19:00:00.000Z"
       },
@@ -1159,7 +1159,7 @@
         "given": "[\"Given the Unified Authentication Experience › Device trust signals › Device inventory sync initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-5.1: device inventory sync\"]",
         "then_step": "[\"Then the solution demonstrates that policy decisions include the latest device posture\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T19:35:00.000Z",
         "updated_at": "2024-05-01T19:35:00.000Z"
       },
@@ -1169,7 +1169,7 @@
         "given": "[\"Given the Unified Authentication Experience › Device trust signals › Device inventory sync initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-5.1: device inventory sync\"]",
         "then_step": "[\"Then the solution demonstrates that policy decisions include the latest device posture\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T19:40:00.000Z",
         "updated_at": "2024-05-01T19:40:00.000Z"
       },
@@ -1179,7 +1179,7 @@
         "given": "[\"Given the Unified Authentication Experience › Device trust signals › Threat feed normalization initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-5.2: threat feed normalization\"]",
         "then_step": "[\"Then the solution demonstrates that suspicious device indicators flag sessions in minutes\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T20:15:00.000Z",
         "updated_at": "2024-05-01T20:15:00.000Z"
       },
@@ -1189,7 +1189,7 @@
         "given": "[\"Given the Unified Authentication Experience › Device trust signals › Threat feed normalization initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-5.2: threat feed normalization\"]",
         "then_step": "[\"Then the solution demonstrates that suspicious device indicators flag sessions in minutes\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T20:20:00.000Z",
         "updated_at": "2024-05-01T20:20:00.000Z"
       },
@@ -1199,7 +1199,7 @@
         "given": "[\"Given the Unified Authentication Experience › Device trust signals › Tamper alert routing initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for auth-5.3: tamper alert routing\"]",
         "then_step": "[\"Then the solution demonstrates that responders act before compromised devices access data\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T20:55:00.000Z",
         "updated_at": "2024-05-01T20:55:00.000Z"
       },
@@ -1209,7 +1209,7 @@
         "given": "[\"Given the Unified Authentication Experience › Device trust signals › Tamper alert routing initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for auth-5.3: tamper alert routing\"]",
         "then_step": "[\"Then the solution demonstrates that responders act before compromised devices access data\"]",
-        "status": "Need review with update",
+        "status": "Draft",
         "created_at": "2024-05-01T21:00:00.000Z",
         "updated_at": "2024-05-01T21:00:00.000Z"
       },
@@ -1219,7 +1219,7 @@
         "given": "[\"Given the Analytics Intelligence Hub initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight epic 2: analytics intelligence hub\"]",
         "then_step": "[\"Then the solution demonstrates that roadmap decisions rely on shared metrics\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-01T21:35:00.000Z",
         "updated_at": "2024-05-01T21:35:00.000Z"
       },
@@ -1229,7 +1229,7 @@
         "given": "[\"Given the Analytics Intelligence Hub initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight epic 2: analytics intelligence hub\"]",
         "then_step": "[\"Then the solution demonstrates that roadmap decisions rely on shared metrics\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T21:40:00.000Z",
         "updated_at": "2024-05-01T21:40:00.000Z"
       },
@@ -1239,7 +1239,7 @@
         "given": "[\"Given the Analytics Intelligence Hub initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 3 for insight epic 2: analytics intelligence hub\"]",
         "then_step": "[\"Then the solution demonstrates that roadmap decisions rely on shared metrics\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T21:45:00.000Z",
         "updated_at": "2024-05-01T21:45:00.000Z"
       },
@@ -1249,7 +1249,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-1: experience analytics workspace\"]",
         "then_step": "[\"Then the solution demonstrates that teams align on engagement priorities\"]",
-        "status": "Ready",
+        "status": "Need review with update",
         "created_at": "2024-05-01T22:20:00.000Z",
         "updated_at": "2024-05-01T22:20:00.000Z"
       },
@@ -1259,7 +1259,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-1: experience analytics workspace\"]",
         "then_step": "[\"Then the solution demonstrates that teams align on engagement priorities\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T22:25:00.000Z",
         "updated_at": "2024-05-01T22:25:00.000Z"
       },
@@ -1269,7 +1269,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace › Cohort segmentation builder initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-1.1: cohort segmentation builder\"]",
         "then_step": "[\"Then the solution demonstrates that campaigns target the right audiences quickly\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T23:00:00.000Z",
         "updated_at": "2024-05-01T23:00:00.000Z"
       },
@@ -1279,7 +1279,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace › Cohort segmentation builder initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-1.1: cohort segmentation builder\"]",
         "then_step": "[\"Then the solution demonstrates that campaigns target the right audiences quickly\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T23:05:00.000Z",
         "updated_at": "2024-05-01T23:05:00.000Z"
       },
@@ -1289,7 +1289,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace › Journey drop-off dashboard initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-1.2: journey drop-off dashboard\"]",
         "then_step": "[\"Then the solution demonstrates that teams address the highest friction steps\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-01T23:40:00.000Z",
         "updated_at": "2024-05-01T23:40:00.000Z"
       },
@@ -1299,7 +1299,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Experience analytics workspace › Journey drop-off dashboard initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-1.2: journey drop-off dashboard\"]",
         "then_step": "[\"Then the solution demonstrates that teams address the highest friction steps\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-01T23:45:00.000Z",
         "updated_at": "2024-05-01T23:45:00.000Z"
       },
@@ -1309,7 +1309,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-2: data trust instrumentation\"]",
         "then_step": "[\"Then the solution demonstrates that stakeholders rely on consistent metrics\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-02T00:20:00.000Z",
         "updated_at": "2024-05-02T00:20:00.000Z"
       },
@@ -1319,7 +1319,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-2: data trust instrumentation\"]",
         "then_step": "[\"Then the solution demonstrates that stakeholders rely on consistent metrics\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T00:25:00.000Z",
         "updated_at": "2024-05-02T00:25:00.000Z"
       },
@@ -1329,7 +1329,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Event schema registry initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-2.1: event schema registry\"]",
         "then_step": "[\"Then the solution demonstrates that producers ship updates without breaking dashboards\"]",
-        "status": "Draft",
+        "status": "Need review with update",
         "created_at": "2024-05-02T01:00:00.000Z",
         "updated_at": "2024-05-02T01:00:00.000Z"
       },
@@ -1339,7 +1339,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Event schema registry initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-2.1: event schema registry\"]",
         "then_step": "[\"Then the solution demonstrates that producers ship updates without breaking dashboards\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T01:05:00.000Z",
         "updated_at": "2024-05-02T01:05:00.000Z"
       },
@@ -1349,7 +1349,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Audit sampling jobs initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-2.2: audit sampling jobs\"]",
         "then_step": "[\"Then the solution demonstrates that teams detect drift before it hits reporting\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T01:40:00.000Z",
         "updated_at": "2024-05-02T01:40:00.000Z"
       },
@@ -1359,7 +1359,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Audit sampling jobs initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-2.2: audit sampling jobs\"]",
         "then_step": "[\"Then the solution demonstrates that teams detect drift before it hits reporting\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T01:45:00.000Z",
         "updated_at": "2024-05-02T01:45:00.000Z"
       },
@@ -1369,7 +1369,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Anomaly alerting rules initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-2.3: anomaly alerting rules\"]",
         "then_step": "[\"Then the solution demonstrates that investigations start before customers notice issues\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T02:20:00.000Z",
         "updated_at": "2024-05-02T02:20:00.000Z"
       },
@@ -1379,7 +1379,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Data trust instrumentation › Anomaly alerting rules initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-2.3: anomaly alerting rules\"]",
         "then_step": "[\"Then the solution demonstrates that investigations start before customers notice issues\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T02:25:00.000Z",
         "updated_at": "2024-05-02T02:25:00.000Z"
       },
@@ -1389,7 +1389,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-3: collaboration workflows\"]",
         "then_step": "[\"Then the solution demonstrates that teams close feedback loops faster\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-02T03:00:00.000Z",
         "updated_at": "2024-05-02T03:00:00.000Z"
       },
@@ -1399,7 +1399,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-3: collaboration workflows\"]",
         "then_step": "[\"Then the solution demonstrates that teams close feedback loops faster\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T03:05:00.000Z",
         "updated_at": "2024-05-02T03:05:00.000Z"
       },
@@ -1409,7 +1409,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows › Insight annotation threads initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-3.1: insight annotation threads\"]",
         "then_step": "[\"Then the solution demonstrates that comments stay tied to the right metric context\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T03:40:00.000Z",
         "updated_at": "2024-05-02T03:40:00.000Z"
       },
@@ -1419,7 +1419,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Collaboration workflows › Insight annotation threads initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-3.1: insight annotation threads\"]",
         "then_step": "[\"Then the solution demonstrates that comments stay tied to the right metric context\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T03:45:00.000Z",
         "updated_at": "2024-05-02T03:45:00.000Z"
       },
@@ -1449,7 +1449,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-4: predictive intelligence\"]",
         "then_step": "[\"Then the solution demonstrates that roadmap bets focus on measurable outcomes\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-02T05:00:00.000Z",
         "updated_at": "2024-05-02T05:00:00.000Z"
       },
@@ -1459,7 +1459,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-4: predictive intelligence\"]",
         "then_step": "[\"Then the solution demonstrates that roadmap bets focus on measurable outcomes\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T05:05:00.000Z",
         "updated_at": "2024-05-02T05:05:00.000Z"
       },
@@ -1469,7 +1469,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Forecast training pipeline initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-4.1: forecast training pipeline\"]",
         "then_step": "[\"Then the solution demonstrates that forecasts align with production instrumentation\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T05:40:00.000Z",
         "updated_at": "2024-05-02T05:40:00.000Z"
       },
@@ -1479,7 +1479,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Forecast training pipeline initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-4.1: forecast training pipeline\"]",
         "then_step": "[\"Then the solution demonstrates that forecasts align with production instrumentation\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T05:45:00.000Z",
         "updated_at": "2024-05-02T05:45:00.000Z"
       },
@@ -1489,7 +1489,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Feature drift tracking initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-4.2: feature drift tracking\"]",
         "then_step": "[\"Then the solution demonstrates that models remain reliable over time\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T06:20:00.000Z",
         "updated_at": "2024-05-02T06:20:00.000Z"
       },
@@ -1499,7 +1499,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Feature drift tracking initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-4.2: feature drift tracking\"]",
         "then_step": "[\"Then the solution demonstrates that models remain reliable over time\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T06:25:00.000Z",
         "updated_at": "2024-05-02T06:25:00.000Z"
       },
@@ -1509,7 +1509,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Scenario planning canvas initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for insight-4.3: scenario planning canvas\"]",
         "then_step": "[\"Then the solution demonstrates that stakeholders compare forecast scenarios quickly\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T07:00:00.000Z",
         "updated_at": "2024-05-02T07:00:00.000Z"
       },
@@ -1519,7 +1519,7 @@
         "given": "[\"Given the Analytics Intelligence Hub › Predictive intelligence › Scenario planning canvas initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for insight-4.3: scenario planning canvas\"]",
         "then_step": "[\"Then the solution demonstrates that stakeholders compare forecast scenarios quickly\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T07:05:00.000Z",
         "updated_at": "2024-05-02T07:05:00.000Z"
       },
@@ -1529,7 +1529,7 @@
         "given": "[\"Given the Service Reliability Command initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely epic 3: service reliability command\"]",
         "then_step": "[\"Then the solution demonstrates that teams resolve incidents before they affect customers\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-02T07:40:00.000Z",
         "updated_at": "2024-05-02T07:40:00.000Z"
       },
@@ -1539,7 +1539,7 @@
         "given": "[\"Given the Service Reliability Command initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely epic 3: service reliability command\"]",
         "then_step": "[\"Then the solution demonstrates that teams resolve incidents before they affect customers\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T07:45:00.000Z",
         "updated_at": "2024-05-02T07:45:00.000Z"
       },
@@ -1559,7 +1559,7 @@
         "given": "[\"Given the Service Reliability Command › Incident intake modernization initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-1: incident intake modernization\"]",
         "then_step": "[\"Then the solution demonstrates that responders mobilize with complete context\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-02T08:25:00.000Z",
         "updated_at": "2024-05-02T08:25:00.000Z"
       },
@@ -1569,7 +1569,7 @@
         "given": "[\"Given the Service Reliability Command › Incident intake modernization initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-1: incident intake modernization\"]",
         "then_step": "[\"Then the solution demonstrates that responders mobilize with complete context\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T08:30:00.000Z",
         "updated_at": "2024-05-02T08:30:00.000Z"
       },
@@ -1579,7 +1579,7 @@
         "given": "[\"Given the Service Reliability Command › Incident intake modernization › Multi-channel triage service initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-1.1: multi-channel triage service\"]",
         "then_step": "[\"Then the solution demonstrates that no signal is lost when incidents are declared\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T09:05:00.000Z",
         "updated_at": "2024-05-02T09:05:00.000Z"
       },
@@ -1589,7 +1589,7 @@
         "given": "[\"Given the Service Reliability Command › Incident intake modernization › Multi-channel triage service initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-1.1: multi-channel triage service\"]",
         "then_step": "[\"Then the solution demonstrates that no signal is lost when incidents are declared\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T09:10:00.000Z",
         "updated_at": "2024-05-02T09:10:00.000Z"
       },
@@ -1599,7 +1599,7 @@
         "given": "[\"Given the Service Reliability Command › Incident intake modernization › Severity auto-classifier initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-1.2: severity auto-classifier\"]",
         "then_step": "[\"Then the solution demonstrates that response workflows match customer impact immediately\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T09:45:00.000Z",
         "updated_at": "2024-05-02T09:45:00.000Z"
       },
@@ -1609,7 +1609,7 @@
         "given": "[\"Given the Service Reliability Command › Incident intake modernization › Severity auto-classifier initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-1.2: severity auto-classifier\"]",
         "then_step": "[\"Then the solution demonstrates that response workflows match customer impact immediately\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T09:50:00.000Z",
         "updated_at": "2024-05-02T09:50:00.000Z"
       },
@@ -1619,7 +1619,7 @@
         "given": "[\"Given the Service Reliability Command › Incident intake modernization › Escalation roster sync initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-1.3: escalation roster sync\"]",
         "then_step": "[\"Then the solution demonstrates that correct experts are paged for each service\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T10:25:00.000Z",
         "updated_at": "2024-05-02T10:25:00.000Z"
       },
@@ -1629,7 +1629,7 @@
         "given": "[\"Given the Service Reliability Command › Incident intake modernization › Escalation roster sync initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-1.3: escalation roster sync\"]",
         "then_step": "[\"Then the solution demonstrates that correct experts are paged for each service\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T10:30:00.000Z",
         "updated_at": "2024-05-02T10:30:00.000Z"
       },
@@ -1639,7 +1639,7 @@
         "given": "[\"Given the Service Reliability Command › Resilience automation initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-2: resilience automation\"]",
         "then_step": "[\"Then the solution demonstrates that incidents resolve faster with playbooks ready\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-02T11:05:00.000Z",
         "updated_at": "2024-05-02T11:05:00.000Z"
       },
@@ -1649,7 +1649,7 @@
         "given": "[\"Given the Service Reliability Command › Resilience automation initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-2: resilience automation\"]",
         "then_step": "[\"Then the solution demonstrates that incidents resolve faster with playbooks ready\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T11:10:00.000Z",
         "updated_at": "2024-05-02T11:10:00.000Z"
       },
@@ -1659,7 +1659,7 @@
         "given": "[\"Given the Service Reliability Command › Resilience automation › Chaos rehearsal scheduler initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-2.1: chaos rehearsal scheduler\"]",
         "then_step": "[\"Then the solution demonstrates that teams build confidence in recovery procedures\"]",
-        "status": "Draft",
+        "status": "Need review with update",
         "created_at": "2024-05-02T11:45:00.000Z",
         "updated_at": "2024-05-02T11:45:00.000Z"
       },
@@ -1669,7 +1669,7 @@
         "given": "[\"Given the Service Reliability Command › Resilience automation › Chaos rehearsal scheduler initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-2.1: chaos rehearsal scheduler\"]",
         "then_step": "[\"Then the solution demonstrates that teams build confidence in recovery procedures\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T11:50:00.000Z",
         "updated_at": "2024-05-02T11:50:00.000Z"
       },
@@ -1679,7 +1679,7 @@
         "given": "[\"Given the Service Reliability Command › Resilience automation › Dependency impact mapper initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-2.2: dependency impact mapper\"]",
         "then_step": "[\"Then the solution demonstrates that responders know blast radius instantly\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T12:25:00.000Z",
         "updated_at": "2024-05-02T12:25:00.000Z"
       },
@@ -1689,7 +1689,7 @@
         "given": "[\"Given the Service Reliability Command › Resilience automation › Dependency impact mapper initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-2.2: dependency impact mapper\"]",
         "then_step": "[\"Then the solution demonstrates that responders know blast radius instantly\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T12:30:00.000Z",
         "updated_at": "2024-05-02T12:30:00.000Z"
       },
@@ -1699,7 +1699,7 @@
         "given": "[\"Given the Service Reliability Command › Observability coverage initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-3: observability coverage\"]",
         "then_step": "[\"Then the solution demonstrates that signals catch regressions before users notice\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-02T13:05:00.000Z",
         "updated_at": "2024-05-02T13:05:00.000Z"
       },
@@ -1709,7 +1709,7 @@
         "given": "[\"Given the Service Reliability Command › Observability coverage initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-3: observability coverage\"]",
         "then_step": "[\"Then the solution demonstrates that signals catch regressions before users notice\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T13:10:00.000Z",
         "updated_at": "2024-05-02T13:10:00.000Z"
       },
@@ -1719,7 +1719,7 @@
         "given": "[\"Given the Service Reliability Command › Observability coverage › Golden signal catalog initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-3.1: golden signal catalog\"]",
         "then_step": "[\"Then the solution demonstrates that alerts fire consistently across the portfolio\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T13:45:00.000Z",
         "updated_at": "2024-05-02T13:45:00.000Z"
       },
@@ -1729,7 +1729,7 @@
         "given": "[\"Given the Service Reliability Command › Observability coverage › Golden signal catalog initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-3.1: golden signal catalog\"]",
         "then_step": "[\"Then the solution demonstrates that alerts fire consistently across the portfolio\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T13:50:00.000Z",
         "updated_at": "2024-05-02T13:50:00.000Z"
       },
@@ -1739,7 +1739,7 @@
         "given": "[\"Given the Service Reliability Command › Observability coverage › Trace sampling tuner initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-3.2: trace sampling tuner\"]",
         "then_step": "[\"Then the solution demonstrates that traces capture the right level of detail during incidents\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T14:25:00.000Z",
         "updated_at": "2024-05-02T14:25:00.000Z"
       },
@@ -1749,7 +1749,7 @@
         "given": "[\"Given the Service Reliability Command › Observability coverage › Trace sampling tuner initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-3.2: trace sampling tuner\"]",
         "then_step": "[\"Then the solution demonstrates that traces capture the right level of detail during incidents\"]",
-        "status": "Need review with update",
+        "status": "Draft",
         "created_at": "2024-05-02T14:30:00.000Z",
         "updated_at": "2024-05-02T14:30:00.000Z"
       },
@@ -1759,7 +1759,7 @@
         "given": "[\"Given the Service Reliability Command › Observability coverage › Log retention curator initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-3.3: log retention curator\"]",
         "then_step": "[\"Then the solution demonstrates that audits confirm retention while costs stay predictable\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T15:05:00.000Z",
         "updated_at": "2024-05-02T15:05:00.000Z"
       },
@@ -1769,7 +1769,7 @@
         "given": "[\"Given the Service Reliability Command › Observability coverage › Log retention curator initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-3.3: log retention curator\"]",
         "then_step": "[\"Then the solution demonstrates that audits confirm retention while costs stay predictable\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T15:10:00.000Z",
         "updated_at": "2024-05-02T15:10:00.000Z"
       },
@@ -1779,7 +1779,7 @@
         "given": "[\"Given the Service Reliability Command › Change risk safeguards initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-4: change risk safeguards\"]",
         "then_step": "[\"Then the solution demonstrates that deployments stay reliable across busy periods\"]",
-        "status": "Ready",
+        "status": "Pass",
         "created_at": "2024-05-02T15:45:00.000Z",
         "updated_at": "2024-05-02T15:45:00.000Z"
       },
@@ -1789,7 +1789,7 @@
         "given": "[\"Given the Service Reliability Command › Change risk safeguards initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-4: change risk safeguards\"]",
         "then_step": "[\"Then the solution demonstrates that deployments stay reliable across busy periods\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T15:50:00.000Z",
         "updated_at": "2024-05-02T15:50:00.000Z"
       },
@@ -1799,7 +1799,7 @@
         "given": "[\"Given the Service Reliability Command › Change risk safeguards › Deployment guardrails initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-4.1: deployment guardrails\"]",
         "then_step": "[\"Then the solution demonstrates that operators catch issues before they hit production\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T16:25:00.000Z",
         "updated_at": "2024-05-02T16:25:00.000Z"
       },
@@ -1809,7 +1809,7 @@
         "given": "[\"Given the Service Reliability Command › Change risk safeguards › Deployment guardrails initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-4.1: deployment guardrails\"]",
         "then_step": "[\"Then the solution demonstrates that operators catch issues before they hit production\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T16:30:00.000Z",
         "updated_at": "2024-05-02T16:30:00.000Z"
       },
@@ -1819,7 +1819,7 @@
         "given": "[\"Given the Service Reliability Command › Change risk safeguards › Rollback communication playbook initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 1 for rely-4.2: rollback communication playbook\"]",
         "then_step": "[\"Then the solution demonstrates that stakeholders receive timely updates during incidents\"]",
-        "status": "Draft",
+        "status": "Pass",
         "created_at": "2024-05-02T17:05:00.000Z",
         "updated_at": "2024-05-02T17:05:00.000Z"
       },
@@ -1829,7 +1829,7 @@
         "given": "[\"Given the Service Reliability Command › Change risk safeguards › Rollback communication playbook initiative is prioritized\"]",
         "when_step": "[\"When the team completes milestone 2 for rely-4.2: rollback communication playbook\"]",
         "then_step": "[\"Then the solution demonstrates that stakeholders receive timely updates during incidents\"]",
-        "status": "Need review with update",
+        "status": "Pass",
         "created_at": "2024-05-02T17:10:00.000Z",
         "updated_at": "2024-05-02T17:10:00.000Z"
       }
