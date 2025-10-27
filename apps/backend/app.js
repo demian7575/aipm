@@ -2928,6 +2928,8 @@ const OBSERVABLE_KEYWORDS = [
   'tooltip',
   'indicat',
   'draw',
+  'dod',
+  'blocker',
 ];
 
 function isObservableOutcome(step) {
@@ -4413,6 +4415,83 @@ export async function createApp() {
         if (error.code) body.code = error.code;
         if (error.details) body.details = error.details;
         sendJson(res, status, body);
+      }
+      return;
+    }
+
+    const dependencyCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/dependencies$/);
+    if (dependencyCreateMatch && method === 'POST') {
+      const storyId = Number(dependencyCreateMatch[1]);
+      try {
+        const payload = await parseJson(req);
+        const candidateId =
+          payload.dependsOnStoryId ?? payload.storyId ?? payload.dependsOn ?? payload.targetStoryId;
+        const dependsOnStoryId = Number(candidateId);
+        if (!Number.isFinite(dependsOnStoryId)) {
+          throw Object.assign(new Error('Select a valid dependency story'), { statusCode: 400 });
+        }
+        if (dependsOnStoryId === storyId) {
+          throw Object.assign(new Error('Stories cannot depend on themselves'), { statusCode: 400 });
+        }
+
+        const relationship = normalizeDependencyRelationship(payload.relationship);
+
+        const storyLookup = db.prepare('SELECT id FROM user_stories WHERE id = ?');
+        const storyExists = storyLookup.get(storyId);
+        if (!storyExists) {
+          throw Object.assign(new Error('Story not found'), { statusCode: 404 });
+        }
+        const dependencyExists = storyLookup.get(dependsOnStoryId);
+        if (!dependencyExists) {
+          throw Object.assign(new Error('Dependency story not found'), { statusCode: 404 });
+        }
+
+        const existing = db
+          .prepare('SELECT relationship FROM story_dependencies WHERE story_id = ? AND depends_on_story_id = ?')
+          .get(storyId, dependsOnStoryId);
+        if (existing) {
+          if (existing.relationship !== relationship) {
+            db.prepare(
+              'UPDATE story_dependencies SET relationship = ? WHERE story_id = ? AND depends_on_story_id = ?'
+            ).run(relationship, storyId, dependsOnStoryId);
+          }
+        } else {
+          insertDependency(db, { storyId, dependsOnStoryId, relationship });
+        }
+
+        const refreshed = await loadStoryWithDetails(db, storyId);
+        sendJson(res, 201, refreshed ?? null);
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to add dependency' });
+      }
+      return;
+    }
+
+    const dependencyDeleteMatch = pathname.match(/^\/api\/stories\/(\d+)\/dependencies\/(\d+)$/);
+    if (dependencyDeleteMatch && method === 'DELETE') {
+      const storyId = Number(dependencyDeleteMatch[1]);
+      const dependsOnStoryId = Number(dependencyDeleteMatch[2]);
+      try {
+        const storyLookup = db.prepare('SELECT id FROM user_stories WHERE id = ?');
+        const storyExists = storyLookup.get(storyId);
+        if (!storyExists) {
+          throw Object.assign(new Error('Story not found'), { statusCode: 404 });
+        }
+
+        const result = db
+          .prepare('DELETE FROM story_dependencies WHERE story_id = ? AND depends_on_story_id = ?')
+          .run(storyId, dependsOnStoryId);
+        if (result.changes === 0) {
+          sendJson(res, 404, { message: 'Dependency not found' });
+          return;
+        }
+
+        const refreshed = await loadStoryWithDetails(db, storyId);
+        sendJson(res, 200, refreshed ?? null);
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to remove dependency' });
       }
       return;
     }

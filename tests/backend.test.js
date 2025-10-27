@@ -421,6 +421,140 @@ test('acceptance tests allow observable outcomes without numeric metrics', async
   assert.equal(created.measurabilityWarnings.length, 0);
 });
 
+test('acceptance tests treat DoD and blocker statements as observable outcomes', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories));
+  assert.ok(stories.length > 0);
+  const story = stories[0];
+
+  const payload = {
+    given: ['Given the story acceptance criteria are defined'],
+    when: ['When the delivery team reviews the Definition of Done checklist'],
+    then: ['Then outputs for the story meet DoD standards', 'And no open blockers remain for the release'],
+    status: 'Draft',
+  };
+
+  const response = await fetch(`${baseUrl}/api/stories/${story.id}/tests`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(response.status, 201);
+  const created = await response.json();
+  assert.ok(created);
+  assert.ok(created.gwtHealth);
+  assert.equal(created.gwtHealth.satisfied, true);
+  assert.ok(Array.isArray(created.gwtHealth.issues));
+  assert.equal(created.gwtHealth.issues.length, 0);
+  assert.ok(Array.isArray(created.measurabilityWarnings));
+  assert.equal(created.measurabilityWarnings.length, 0);
+});
+
+test('story dependencies can be added and removed through the API', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const primaryPayload = {
+    title: 'Mindmap dependency manager',
+    description: 'Allow PMs to manage story links from the details panel.',
+    asA: 'As a portfolio manager',
+    iWant: 'I want to connect related work items',
+    soThat: 'So that delivery blockers are visible early',
+    components: COMPONENT_CATALOG.length ? [COMPONENT_CATALOG[0]] : ['WorkModel'],
+    storyPoint: 3,
+    assigneeEmail: 'pm@example.com',
+  };
+
+  const createPrimary = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(primaryPayload),
+  });
+  assert.equal(createPrimary.status, 201);
+  const primaryStory = await createPrimary.json();
+  assert.ok(primaryStory);
+
+  const dependencyPayload = {
+    ...primaryPayload,
+    title: 'Audit downstream integrations',
+    assigneeEmail: 'integration@example.com',
+  };
+  const createDependency = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(dependencyPayload),
+  });
+  assert.equal(createDependency.status, 201);
+  const dependencyStory = await createDependency.json();
+  assert.ok(dependencyStory);
+
+  const blockerPayload = {
+    ...primaryPayload,
+    title: 'Resolve authentication blockers',
+    assigneeEmail: 'security@example.com',
+  };
+  const createBlocker = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(blockerPayload),
+  });
+  assert.equal(createBlocker.status, 201);
+  const blockerStory = await createBlocker.json();
+  assert.ok(blockerStory);
+
+  const linkResponse = await fetch(`${baseUrl}/api/stories/${primaryStory.id}/dependencies`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dependsOnStoryId: dependencyStory.id, relationship: 'depends' }),
+  });
+  assert.equal(linkResponse.status, 201);
+  const linked = await linkResponse.json();
+  assert.ok(linked);
+  assert.ok(Array.isArray(linked.dependencies));
+  assert.ok(linked.dependencies.some((entry) => entry.storyId === dependencyStory.id));
+
+  const blockResponse = await fetch(`${baseUrl}/api/stories/${primaryStory.id}/dependencies`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dependsOnStoryId: blockerStory.id, relationship: 'blocks' }),
+  });
+  assert.equal(blockResponse.status, 201);
+  const blocked = await blockResponse.json();
+  assert.ok(blocked);
+  assert.ok(Array.isArray(blocked.blockedBy));
+  assert.ok(blocked.blockedBy.some((entry) => entry.storyId === blockerStory.id));
+
+  const deleteResponse = await fetch(
+    `${baseUrl}/api/stories/${primaryStory.id}/dependencies/${dependencyStory.id}`,
+    {
+      method: 'DELETE',
+    }
+  );
+  assert.equal(deleteResponse.status, 200);
+  const afterDelete = await deleteResponse.json();
+  assert.ok(Array.isArray(afterDelete.dependencies));
+  assert.ok(afterDelete.dependencies.every((entry) => entry.storyId !== dependencyStory.id));
+});
+
 test('story Done status requires completed children and passing tests', async (t) => {
   await resetDatabaseFiles();
   const { server, port } = await startServer();

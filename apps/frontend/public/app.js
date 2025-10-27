@@ -382,6 +382,117 @@ function createDependencyTable(entry, context) {
   return table;
 }
 
+function formatDependencyOptionLabel(story) {
+  const title = story.title && story.title.trim().length ? story.title : `Story ${story.id}`;
+  const status = story.status || 'Draft';
+  return `#${story.id} ${title} (${status})`;
+}
+
+function collectDependencyOptions(story, context) {
+  const excluded = new Set([story.id]);
+  if (context === 'blocked-by' && Array.isArray(story.blockedBy)) {
+    story.blockedBy.forEach((entry) => excluded.add(entry.storyId));
+  }
+  if (context === 'upstream' && Array.isArray(story.dependencies)) {
+    story.dependencies.forEach((entry) => excluded.add(entry.storyId));
+  }
+  const options = [];
+  storyIndex.forEach((candidate) => {
+    if (!candidate || excluded.has(candidate.id)) {
+      return;
+    }
+    options.push({
+      id: candidate.id,
+      label: formatDependencyOptionLabel(candidate),
+    });
+  });
+  options.sort((a, b) => a.label.localeCompare(b.label));
+  return options;
+}
+
+function openDependencyPicker(story, context) {
+  if (!story) {
+    return;
+  }
+  const options = collectDependencyOptions(story, context);
+  const container = document.createElement('div');
+  container.className = 'dependency-picker';
+
+  if (options.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'form-hint';
+    empty.textContent = 'No other user stories are available to link.';
+    container.appendChild(empty);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'form-hint';
+    hint.textContent =
+      context === 'blocked-by'
+        ? 'Select the story that is blocking this work.'
+        : 'Select the upstream story this work depends on.';
+    container.appendChild(hint);
+
+    const label = document.createElement('label');
+    label.textContent = 'User story';
+    const select = document.createElement('select');
+    select.required = true;
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select a user story…';
+    select.appendChild(placeholder);
+    options.forEach((option) => {
+      const opt = document.createElement('option');
+      opt.value = String(option.id);
+      opt.textContent = option.label;
+      select.appendChild(opt);
+    });
+    label.appendChild(select);
+    container.appendChild(label);
+
+    setTimeout(() => {
+      select.focus();
+    }, 0);
+
+    const successMessage =
+      context === 'blocked-by' ? 'Blocking story added' : 'Dependency added';
+    openModal({
+      title: context === 'blocked-by' ? 'Add Blocking Story' : 'Add Dependency',
+      content: container,
+      actions: [
+        {
+          label: 'Add',
+          onClick: async () => {
+            const value = Number(select.value);
+            if (!Number.isFinite(value) || value === 0) {
+              showToast('Select a user story to link.', 'error');
+              select.focus();
+              return false;
+            }
+            try {
+              await createDependencyLink(story.id, value, context === 'blocked-by' ? 'blocks' : 'depends');
+              state.selectedStoryId = story.id;
+              persistSelection();
+              await loadStories();
+              showToast(successMessage, 'success');
+              return true;
+            } catch (error) {
+              showToast(error.message || 'Failed to add dependency', 'error');
+              return false;
+            }
+          },
+        },
+      ],
+    });
+    return;
+  }
+
+  openModal({
+    title: context === 'blocked-by' ? 'Add Blocking Story' : 'Add Dependency',
+    content: container,
+    cancelLabel: 'Close',
+  });
+}
+
 function storyHasAcceptanceWarnings(story) {
   if (!story || !Array.isArray(story.acceptanceTests)) {
     return false;
@@ -2211,6 +2322,7 @@ function renderDetails() {
       items: blockedByEntries,
       empty: 'This story is not blocked by other stories.',
       context: 'blocked-by',
+      allowAdd: true,
     },
     {
       key: 'upstream',
@@ -2218,6 +2330,7 @@ function renderDetails() {
       items: supportingDependencies,
       empty: 'No upstream dependencies recorded.',
       context: 'upstream',
+      allowAdd: true,
     },
     {
       key: 'downstream',
@@ -2231,9 +2344,24 @@ function renderDetails() {
   dependencyGroups.forEach((group) => {
     const groupEl = document.createElement('article');
     groupEl.className = 'dependency-group';
+    const groupHeader = document.createElement('div');
+    groupHeader.className = 'dependency-group-header';
     const groupHeading = document.createElement('h4');
     groupHeading.textContent = group.title;
-    groupEl.appendChild(groupHeading);
+    groupHeader.appendChild(groupHeading);
+
+    if (group.allowAdd) {
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'secondary dependency-add-btn';
+      addBtn.textContent = group.context === 'blocked-by' ? 'Add blocker' : 'Add dependency';
+      addBtn.addEventListener('click', () => {
+        openDependencyPicker(story, group.context);
+      });
+      groupHeader.appendChild(addBtn);
+    }
+
+    groupEl.appendChild(groupHeader);
 
     if (!group.items.length) {
       const empty = document.createElement('p');
@@ -3577,6 +3705,19 @@ async function updateAcceptanceTest(testId, payload) {
     }
     throw error;
   }
+}
+
+async function createDependencyLink(storyId, dependsOnStoryId, relationship = 'depends') {
+  return await sendJson(`/api/stories/${storyId}/dependencies`, {
+    method: 'POST',
+    body: { dependsOnStoryId, relationship },
+  });
+}
+
+async function deleteDependencyLink(storyId, dependsOnStoryId) {
+  return await sendJson(`/api/stories/${storyId}/dependencies/${dependsOnStoryId}`, {
+    method: 'DELETE',
+  });
 }
 
 async function createTask(storyId, payload) {
