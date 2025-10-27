@@ -37,7 +37,8 @@ const STORAGE_KEYS = {
 };
 
 const NODE_WIDTH = 240;
-const NODE_MIN_HEIGHT = 160;
+const NODE_MIN_HEIGHT = 120;
+const NODE_MAX_HEIGHT = 520;
 const NODE_VERTICAL_GAP = 32;
 const MINDMAP_ZOOM_MIN = 0.5;
 const MINDMAP_ZOOM_MAX = 2;
@@ -46,6 +47,10 @@ const HORIZONTAL_STEP = 240;
 const AUTO_LAYOUT_HORIZONTAL_GAP = 80;
 const X_OFFSET = 80;
 const Y_OFFSET = 80;
+const MINDMAP_STAGE_MIN_WIDTH = 1600;
+const MINDMAP_STAGE_MIN_HEIGHT = 1200;
+const MINDMAP_STAGE_PADDING_X = 480;
+const MINDMAP_STAGE_PADDING_Y = 360;
 const HTML_NS = 'http://www.w3.org/1999/xhtml';
 
 const mindmapMeasureRoot = document.createElement('div');
@@ -226,6 +231,7 @@ const storyIndex = new Map();
 const parentById = new Map();
 let toastTimeout = null;
 let mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+let mindmapHasCentered = false;
 
 function updateMindmapZoomControls() {
   if (mindmapZoomDisplay) {
@@ -246,15 +252,10 @@ function applyMindmapZoom() {
   const baseWidth = mindmapBounds.width;
   const baseHeight = mindmapBounds.height;
   if (baseWidth > 0 && baseHeight > 0) {
-    const wrapper = mindmapCanvas.parentElement;
-    const wrapperWidth = wrapper ? wrapper.clientWidth : 0;
-    const wrapperHeight = wrapper ? wrapper.clientHeight : 0;
     const fitWidth = mindmapBounds.fitWidth > 0 ? mindmapBounds.fitWidth : baseWidth;
     const fitHeight = mindmapBounds.fitHeight > 0 ? mindmapBounds.fitHeight : baseHeight;
-    const effectiveWidth = Math.max(fitWidth, wrapperWidth);
-    const effectiveHeight = Math.max(fitHeight, wrapperHeight);
-    const scaledWidth = effectiveWidth * state.mindmapZoom;
-    const scaledHeight = effectiveHeight * state.mindmapZoom;
+    const scaledWidth = fitWidth * state.mindmapZoom;
+    const scaledHeight = fitHeight * state.mindmapZoom;
     mindmapCanvas.style.width = `${scaledWidth}px`;
     mindmapCanvas.style.height = `${scaledHeight}px`;
   } else {
@@ -842,9 +843,11 @@ async function loadStories(preserveSelection = true) {
     if (state.selectedStoryId != null) {
       expandAncestors(state.selectedStoryId);
     }
+    mindmapHasCentered = false;
     renderAll();
   } catch (error) {
     console.error(error);
+    mindmapHasCentered = false;
     renderAll();
     showToast(error.message || 'Unable to load stories', 'error');
   }
@@ -1034,10 +1037,21 @@ function measureMindmapNode(story) {
   measurement.style.width = `${NODE_WIDTH}px`;
   measurement.classList.add('mindmap-node-body--measure');
   mindmapMeasureRoot.appendChild(measurement);
-  const requiredHeight = Math.ceil(measurement.scrollHeight);
+  const scroller = measurement.querySelector('.mindmap-node-scroll');
+  const bodyHeight = Math.ceil(measurement.getBoundingClientRect().height);
+  const scrollerStyles = scroller ? getComputedStyle(scroller) : null;
+  const scrollHeight = scroller
+    ? Math.ceil(
+        scroller.scrollHeight +
+          parseFloat(scrollerStyles?.marginTop || '0') +
+          parseFloat(scrollerStyles?.marginBottom || '0')
+      )
+    : bodyHeight;
   mindmapMeasureRoot.removeChild(measurement);
-  const height = Math.max(NODE_MIN_HEIGHT, requiredHeight);
-  return { height, overflow: false };
+  const naturalHeight = Math.max(bodyHeight, scrollHeight);
+  const cappedHeight = Math.min(Math.max(NODE_MIN_HEIGHT, naturalHeight), NODE_MAX_HEIGHT);
+  const overflow = naturalHeight > NODE_MAX_HEIGHT;
+  return { height: cappedHeight, overflow };
 }
 
 function collectMindmapNodeMetrics(stories) {
@@ -1146,18 +1160,23 @@ function computeDependencyEndpoints(fromNode, toNode) {
 }
 
 function renderMindmap() {
+  const scrollSnapshot = mindmapWrapper
+    ? { left: mindmapWrapper.scrollLeft, top: mindmapWrapper.scrollTop }
+    : null;
   mindmapCanvas.innerHTML = '';
   syncDependencyOverlayControls();
   mindmapCanvas.classList.remove('has-dependencies');
   if (!state.panelVisibility.mindmap) {
     mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
     applyMindmapZoom();
+    mindmapHasCentered = false;
     return;
   }
   if (state.stories.length === 0) {
     layoutStatus.textContent = 'No stories to display yet.';
     mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
     applyMindmapZoom();
+    mindmapHasCentered = false;
     return;
   }
 
@@ -1206,6 +1225,7 @@ function renderMindmap() {
     layoutStatus.textContent = 'Toggle outline items to expand the map.';
     mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
     applyMindmapZoom();
+    mindmapHasCentered = false;
     return;
   }
 
@@ -1214,21 +1234,45 @@ function renderMindmap() {
   const minY = Math.min(...nodes.map((node) => node.y));
   const maxY = Math.max(...nodes.map((node) => node.y + node.height));
   const margin = 120;
-  const viewWidth = maxX - minX + margin * 2;
-  const viewHeight = maxY - minY + margin * 2;
-  mindmapCanvas.setAttribute('viewBox', `${minX - margin} ${minY - margin} ${viewWidth} ${viewHeight}`);
-  mindmapCanvas.setAttribute('width', String(viewWidth));
-  mindmapCanvas.setAttribute('height', String(viewHeight));
+  const baseWidth = maxX - minX;
+  const baseHeight = maxY - minY;
   const wrapper = mindmapCanvas.parentElement;
   const wrapperWidth = wrapper ? wrapper.clientWidth : 0;
   const wrapperHeight = wrapper ? wrapper.clientHeight : 0;
+  const desiredPaddingX = Math.max(margin, MINDMAP_STAGE_PADDING_X);
+  const desiredPaddingY = Math.max(margin, MINDMAP_STAGE_PADDING_Y);
+  const paddedWidth = baseWidth + desiredPaddingX * 2;
+  const paddedHeight = baseHeight + desiredPaddingY * 2;
+  const stageWidth = Math.max(paddedWidth, MINDMAP_STAGE_MIN_WIDTH, wrapperWidth + desiredPaddingX * 2);
+  const stageHeight = Math.max(paddedHeight, MINDMAP_STAGE_MIN_HEIGHT, wrapperHeight + desiredPaddingY * 2);
+  const stageMarginX = (stageWidth - baseWidth) / 2;
+  const stageMarginY = (stageHeight - baseHeight) / 2;
+  const viewMinX = minX - stageMarginX;
+  const viewMinY = minY - stageMarginY;
+  mindmapCanvas.setAttribute('viewBox', `${viewMinX} ${viewMinY} ${stageWidth} ${stageHeight}`);
+  mindmapCanvas.setAttribute('width', String(stageWidth));
+  mindmapCanvas.setAttribute('height', String(stageHeight));
   mindmapBounds = {
-    width: viewWidth,
-    height: viewHeight,
-    fitWidth: Math.max(viewWidth, wrapperWidth),
-    fitHeight: Math.max(viewHeight, wrapperHeight),
+    width: stageWidth,
+    height: stageHeight,
+    fitWidth: stageWidth,
+    fitHeight: stageHeight,
   };
   applyMindmapZoom();
+  if (mindmapWrapper) {
+    if (!mindmapHasCentered && (!scrollSnapshot || (scrollSnapshot.left === 0 && scrollSnapshot.top === 0))) {
+      const centerLeft = Math.max(0, (mindmapWrapper.scrollWidth - mindmapWrapper.clientWidth) / 2);
+      const centerTop = Math.max(0, (mindmapWrapper.scrollHeight - mindmapWrapper.clientHeight) / 2);
+      mindmapWrapper.scrollLeft = centerLeft;
+      mindmapWrapper.scrollTop = centerTop;
+      mindmapHasCentered = true;
+    } else if (scrollSnapshot) {
+      const maxScrollLeft = Math.max(0, mindmapWrapper.scrollWidth - mindmapWrapper.clientWidth);
+      const maxScrollTop = Math.max(0, mindmapWrapper.scrollHeight - mindmapWrapper.clientHeight);
+      mindmapWrapper.scrollLeft = Math.min(Math.max(scrollSnapshot.left, 0), maxScrollLeft);
+      mindmapWrapper.scrollTop = Math.min(Math.max(scrollSnapshot.top, 0), maxScrollTop);
+    }
+  }
 
   const svgNS = 'http://www.w3.org/2000/svg';
 
