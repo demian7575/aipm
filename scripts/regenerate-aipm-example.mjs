@@ -485,7 +485,8 @@ function buildDataset(seedOffset = 0) {
       break;
     }
     const maxChildren = Math.min(5, remaining);
-    const childCount = sampleInt(0, maxChildren);
+    const desiredChildren = sampleInt(0, 5);
+    const childCount = Math.min(desiredChildren, maxChildren);
     for (let childIndex = 0; childIndex < childCount; childIndex += 1) {
       if (userStories.length >= TOTAL_STORIES) {
         break;
@@ -512,7 +513,7 @@ function buildDataset(seedOffset = 0) {
     return false;
   }
 
-  const failingTarget = Math.max(4, Math.ceil(TOTAL_STORIES * 0.08));
+  const failingTarget = Math.max(3, Math.ceil(TOTAL_STORIES * 0.06));
   const eligibleStories = internalStories
     .filter((story) => story.depth > 0)
     .sort((a, b) => a.id - b.id);

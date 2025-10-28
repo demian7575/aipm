@@ -15,4 +15,4 @@ Two example datasets are committed for quick reference:
 | File | Notes |
 | ---- | ----- |
 | `app.sqlite.json` | Authentication-focused backlog used by regression tests for the JSON fallback driver. |
-| `aipm.app.sqlite.json` | AI Project Manager scenario with 3 root epics, uniformly sampled 0–5 child branches (max depth seeded at 3 of the allowed 1–7 range), 50 stories, 200 tasks spread across 15 specialists, and 46/50 acceptance tests passing quality checks with evidence-linked validations. |
+| `aipm.app.sqlite.json` | AI Project Manager scenario with 3 root epics, uniformly sampled 0–5 child branches (max depth seeded at 3 of the allowed 1–7 range), 50 stories, 200 tasks spread across 15 specialists, and 47/50 stories (94/100 acceptance tests) passing evidence-linked quality checks. |
