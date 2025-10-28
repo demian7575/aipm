@@ -240,7 +240,7 @@ function pickComponents(bias = []) {
   return Array.from(selections);
 }
 
-const TOTAL_STORIES = 20;
+const TOTAL_STORIES = 40;
 const MAX_CHILDREN_PER_NODE = 2;
 const MIN_TASKS_PER_STORY = 1;
 const MAX_TASKS_PER_STORY = 4;
