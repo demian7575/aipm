@@ -75,7 +75,7 @@ const TASK_THEMES = [
 const STATUS_OPTIONS = ['Ready', 'In Progress', 'Blocked', 'Done'];
 const TASK_STATUS_OPTIONS = ['Not Started', 'In Progress', 'Blocked', 'Done'];
 const HOURS_PER_STORY_POINT = 8;
-const STORY_POINT_SCALE = 8;
+const STORY_POINT_BUCKETS = [1, 2, 3, 5, 8, 13, 21, 34];
 
 const EPICS = [
   {
@@ -384,10 +384,9 @@ function assignStoryPoints() {
       estimatedHours = scaledChildHours + coordination + wiggleRoom;
     }
     story.estimatedHours = estimatedHours;
-    const storyPoint = Math.max(
-      1,
-      Math.ceil(estimatedHours / (HOURS_PER_STORY_POINT * STORY_POINT_SCALE))
-    );
+    const normalized = Math.max(1, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
+    const storyPoint = STORY_POINT_BUCKETS.find((bucket) => normalized <= bucket) ??
+      STORY_POINT_BUCKETS[STORY_POINT_BUCKETS.length - 1];
     story.story_point = storyPoint;
     story.record.story_point = storyPoint;
   });
