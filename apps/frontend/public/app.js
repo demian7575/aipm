@@ -590,6 +590,11 @@ function getNumericStoryPoint(story) {
 
 function isEpicStory(story) {
   const numericPoint = getNumericStoryPoint(story);
+  const hasHierarchy = Array.isArray(story?.children) && story.children.length > 0;
+  const isRoot = story?.parentId == null;
+  if (isRoot && hasHierarchy) {
+    return true;
+  }
   return Number.isFinite(numericPoint) && numericPoint > EPIC_STORY_POINT_THRESHOLD;
 }
 
@@ -3064,7 +3069,7 @@ function renderDetails() {
               </tr>
               <tr>
                 <th scope="row">Estimation (hrs)</th>
-                <td>${formatEstimationHours(task.estimationHours ?? task.estimation_hours)}</td>
+    <td>${formatEstimationHours(task.estimationHours ?? task.estimation_hours ?? task.estimation)}</td>
               </tr>
             </tbody>
           </table>
@@ -3905,8 +3910,15 @@ function openTaskModal(storyId, task = null) {
     titleInput.value = task.title || '';
     descriptionInput.value = task.description || '';
     assigneeInput.value = task.assigneeEmail || '';
-    if (task.estimationHours != null && task.estimationHours !== '') {
-      estimationInput.value = task.estimationHours;
+    const estimationSources = [task.estimationHours, task.estimation_hours, task.estimation];
+    for (const source of estimationSources) {
+      if (source != null && source !== '') {
+        const numeric = Number(source);
+        if (Number.isFinite(numeric) && numeric >= 0) {
+          estimationInput.value = numeric;
+          break;
+        }
+      }
     }
     if (task.status && TASK_STATUS_OPTIONS.includes(task.status)) {
       statusSelect.value = task.status;

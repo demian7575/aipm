@@ -14,7 +14,8 @@ function createRng(seed = 8731) {
   };
 }
 
-const rng = createRng(24071983);
+const rngBaseSeed = 24071983;
+let rng = createRng(rngBaseSeed);
 
 function sampleInt(min, max) {
   return Math.floor(rng() * (max - min + 1)) + min;
@@ -75,9 +76,10 @@ const TASK_THEMES = [
 const STATUS_OPTIONS = ['Ready', 'In Progress', 'Blocked', 'Done'];
 const TASK_STATUS_OPTIONS = ['Not Started', 'In Progress', 'Blocked', 'Done'];
 const HOURS_PER_STORY_POINT = 8;
-const ESTIMATION_HOURS_SCALE = 0.1;
-const STORY_POINT_SCALE_DIVISOR = 12;
-const STORY_POINT_BUCKETS = Array.from({ length: 21 }, (_, index) => index + 1);
+const ESTIMATION_HOURS_SCALE = 0.02;
+const STORY_POINT_SCALE_DIVISOR = 48;
+const STORY_POINT_BUCKETS = [0, 1, 2, 3, 5, 8, 13, 21];
+const STORY_POINT_COMPRESS_DIVISOR = 6;
 
 const EPICS = [
   {
@@ -241,7 +243,7 @@ function pickComponents(bias = []) {
   return Array.from(selections);
 }
 
-const TOTAL_STORIES = 50;
+const TOTAL_STORIES = 20;
 const MAX_CHILDREN_PER_NODE = 2;
 const TASKS_PER_STORY = 4;
 const TARGET_TASKS = (TOTAL_STORIES - EPICS.length) * TASKS_PER_STORY;
@@ -363,11 +365,11 @@ function createStory({ epic, parent, depth, childIndex }) {
 
 function scaledEstimatedHours(hours) {
   const scaled = Math.round(hours * ESTIMATION_HOURS_SCALE);
-  return Math.max(1, scaled);
+  return Math.max(0, scaled);
 }
 
 function bucketizeStoryPoint(value) {
-  const normalized = Math.max(1, Math.ceil(value));
+  const normalized = Math.max(0, Math.ceil(value));
   const bucket = STORY_POINT_BUCKETS.find((entry) => normalized <= entry);
   if (bucket != null) {
     return bucket;
@@ -401,8 +403,12 @@ function assignStoryPoints() {
       estimatedHours = scaledChildHours + coordination + wiggleRoom;
     }
     estimatedHours = scaledEstimatedHours(estimatedHours);
-    let normalized = Math.max(1, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
+    let normalized = Math.max(0, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
     let storyPoint = bucketizeStoryPoint(normalized);
+
+    if (children.length === 0 && storyPoint > 0) {
+      storyPoint = bucketizeStoryPoint(storyPoint - 1);
+    }
 
     if (children.length > 0) {
       const childStoryPointSum = children.reduce((total, child) => total + (child.story_point ?? 0), 0);
@@ -412,10 +418,11 @@ function assignStoryPoints() {
       }
     }
 
-    const requiredHours = Math.max(estimatedHours, storyPoint * HOURS_PER_STORY_POINT);
+    const minimumPointHours = storyPoint > 0 ? storyPoint * HOURS_PER_STORY_POINT : 0;
+    const requiredHours = Math.max(estimatedHours, minimumPointHours);
     if (requiredHours !== estimatedHours) {
       estimatedHours = requiredHours;
-      normalized = Math.max(1, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
+      normalized = Math.max(0, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
     }
 
     story.estimatedHours = estimatedHours;
@@ -450,9 +457,10 @@ function rebalanceStoryPoints() {
       ? story.originalStoryPoint
       : Number.isFinite(story.story_point)
         ? story.story_point
-        : 1;
-    const scaledBaseline = Math.max(1, Math.round(baselineSource / STORY_POINT_SCALE_DIVISOR));
-    const adjusted = Math.max(scaledBaseline, childSum + 1);
+        : 0;
+    const scaledBaseline = Math.max(0, Math.round(baselineSource / STORY_POINT_SCALE_DIVISOR));
+    const requiredStoryPoints = childSum > 0 ? childSum + 1 : 0;
+    const adjusted = Math.max(scaledBaseline, requiredStoryPoints);
     story.adjustedStoryPoint = bucketizeStoryPoint(adjusted);
     return story.adjustedStoryPoint;
   }
@@ -467,20 +475,75 @@ function rebalanceStoryPoints() {
     const adjusted = Number.isFinite(story.adjustedStoryPoint)
       ? story.adjustedStoryPoint
       : Number.isFinite(story.story_point)
-        ? Math.max(1, Math.round((story.story_point ?? 1) / STORY_POINT_SCALE_DIVISOR))
-        : 1;
+        ? Math.max(0, Math.round((story.story_point ?? 0) / STORY_POINT_SCALE_DIVISOR))
+        : 0;
     const baselineHours = Number.isFinite(story.originalEstimatedHours)
       ? story.originalEstimatedHours
       : Number.isFinite(story.estimatedHours)
         ? story.estimatedHours
         : adjusted * HOURS_PER_STORY_POINT;
-    const scaledEstimate = Math.max(1, Math.round(baselineHours / STORY_POINT_SCALE_DIVISOR));
-    const requiredHours = Math.max(adjusted * HOURS_PER_STORY_POINT, scaledEstimate);
+    const scaledEstimate = Math.max(0, Math.round(baselineHours / STORY_POINT_SCALE_DIVISOR));
+    const pointHours = adjusted > 0 ? adjusted * HOURS_PER_STORY_POINT : 0;
+    const requiredHours = Math.max(pointHours, scaledEstimate);
     story.story_point = adjusted;
     story.record.story_point = adjusted;
     story.estimatedHours = requiredHours;
     delete story.adjustedStoryPoint;
   });
+}
+
+function compressStoryPointHierarchy() {
+  const childrenMap = new Map();
+  internalStories.forEach((story) => {
+    if (story.parent_id !== null) {
+      const list = childrenMap.get(story.parent_id) ?? [];
+      list.push(story);
+      childrenMap.set(story.parent_id, list);
+    }
+  });
+
+  function assign(story) {
+    const children = childrenMap.get(story.id) ?? [];
+    if (children.length === 0) {
+      story.story_point = 0;
+      story.record.story_point = 0;
+      if (!Number.isFinite(story.estimatedHours) || story.estimatedHours < 1) {
+        story.estimatedHours = 1;
+      }
+      return story.story_point;
+    }
+
+    let childSum = 0;
+    children.forEach((child) => {
+      childSum += assign(child);
+    });
+
+    const baseline = Number.isFinite(story.story_point) ? story.story_point : 0;
+    const scaledBaseline = Math.max(0, Math.round(baseline / STORY_POINT_COMPRESS_DIVISOR));
+    let candidate = Math.max(scaledBaseline, childSum + 1);
+    if (candidate <= childSum) {
+      candidate = childSum + 1;
+    }
+
+    let bucketed = bucketizeStoryPoint(candidate);
+    if (bucketed <= childSum) {
+      bucketed = childSum + 1;
+    }
+
+    story.story_point = bucketed;
+    story.record.story_point = bucketed;
+    const pointHours = bucketed > 0 ? bucketed * HOURS_PER_STORY_POINT : 0;
+    if (!Number.isFinite(story.estimatedHours) || story.estimatedHours < pointHours) {
+      story.estimatedHours = pointHours;
+    }
+    return story.story_point;
+  }
+
+  internalStories
+    .filter((story) => story.parent_id === null)
+    .forEach((root) => {
+      assign(root);
+    });
 }
 
 function enforceStoryHierarchyStatuses() {
@@ -1014,6 +1077,7 @@ function planTopology(maxDepth) {
 }
 
 function buildDataset(seedOffset = 0) {
+  rng = createRng(rngBaseSeed + seedOffset);
   // reset state
   userStories.length = 0;
   acceptanceTests.length = 0;
@@ -1049,6 +1113,7 @@ function buildDataset(seedOffset = 0) {
 
   assignStoryPoints();
   rebalanceStoryPoints();
+  compressStoryPointHierarchy();
   enforceStoryHierarchyStatuses();
 
   internalStories.forEach((story) => {
@@ -1078,7 +1143,10 @@ let attempts = 0;
 let generation;
 while (!(generation = buildDataset(attempts))) {
   attempts += 1;
-  if (attempts > 50) {
+  if (attempts % 10 === 0) {
+    console.error(`Regeneration attempt ${attempts} failed to satisfy topology constraints.`);
+  }
+  if (attempts > 200) {
     throw new Error('Unable to generate dataset with required counts');
   }
 }
@@ -1108,7 +1176,7 @@ console.log(
       acceptanceTests: acceptanceTests.length,
       maxDepthSampled: sampledMaxDepth,
       maxDepthObserved: generation.maxObservedDepth,
-      attempts,
+      attempts: attempts + 1,
     },
     null,
     2
