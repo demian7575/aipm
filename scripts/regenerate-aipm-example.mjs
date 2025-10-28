@@ -20,7 +20,7 @@ function sampleInt(min, max) {
   return Math.floor(rng() * (max - min + 1)) + min;
 }
 
-const maxDepth = sampleInt(1, 7);
+let sampledMaxDepth = 0;
 
 const COMPONENT_EXPERTISE = {
   WorkModel: 'Product Strategy',
@@ -414,7 +414,7 @@ function createTasks(story) {
   }
 }
 
-function createAcceptanceTests(story, healthy) {
+function createAcceptanceTests(story) {
   const baseTelemetry = story.componentsList.join(', ');
   const cycleMetrics = [
     600 + story.story_point * 40,
@@ -436,7 +436,7 @@ function createAcceptanceTests(story, healthy) {
       `Then the median response stays under ${metric} ms with p95 under ${Math.round(metric * 1.2)} ms`,
       `And the validation summary at ${evidencePath} lists at least ${events} events with zero Sev-1 regressions`,
     ];
-    const status = healthy ? 'Pass' : testIndex === 0 ? 'Need review with update' : 'Draft';
+    const status = 'Pass';
     const createdAt = nextTimestamp();
     acceptanceTests.push({
       id: testIdCounter++,
@@ -449,6 +449,104 @@ function createAcceptanceTests(story, healthy) {
       updated_at: createdAt,
     });
   }
+}
+
+function planTopology(maxDepth) {
+  const nodes = [];
+  const queue = [];
+
+  function registerNode({ epic, parent, depth }) {
+    const node = {
+      epic,
+      parent,
+      depth,
+      children: [],
+      removed: false,
+      sequence: nodes.length,
+      childIndex: 0,
+    };
+    nodes.push(node);
+    if (depth < maxDepth) {
+      queue.push(node);
+    }
+    return node;
+  }
+
+  EPICS.forEach((epic, index) => {
+    registerNode({ epic: { ...epic, index }, parent: null, depth: 0 });
+  });
+
+  while (queue.length > 0 && nodes.length < TOTAL_STORIES) {
+    const current = queue.shift();
+    if (current.depth >= maxDepth) {
+      continue;
+    }
+    const remainingBudget = TOTAL_STORIES - nodes.length;
+    if (remainingBudget <= 0) {
+      break;
+    }
+    const maxChildren = Math.min(5, remainingBudget);
+    if (maxChildren <= 0) {
+      continue;
+    }
+    const desired = Math.min(sampleInt(0, 5), maxChildren);
+
+    for (let childIndex = 0; childIndex < desired; childIndex += 1) {
+      const child = registerNode({
+        epic: current.epic,
+        parent: current,
+        depth: current.depth + 1,
+      });
+      child.childIndex = current.children.length;
+      current.children.push(child);
+    }
+  }
+
+  if (nodes.length < TOTAL_STORIES) {
+    return null;
+  }
+
+  let overflow = nodes.length - TOTAL_STORIES;
+  if (overflow > 0) {
+    const removable = nodes
+      .filter((node) => node.parent && node.children.length === 0)
+      .sort((a, b) => {
+        if (b.depth !== a.depth) {
+          return b.depth - a.depth;
+        }
+        return b.sequence - a.sequence;
+      });
+    for (const node of removable) {
+      if (overflow === 0) {
+        break;
+      }
+      node.removed = true;
+      if (node.parent) {
+        node.parent.children = node.parent.children.filter((child) => child !== node);
+      }
+      overflow -= 1;
+    }
+    if (overflow > 0) {
+      return null;
+    }
+  }
+
+  const finalNodes = nodes.filter((node) => !node.removed);
+  finalNodes.forEach((node) => {
+    node.children = node.children.filter((child) => !child.removed);
+    node.children.forEach((child, index) => {
+      child.childIndex = index;
+    });
+  });
+
+  finalNodes.sort((a, b) => a.sequence - b.sequence);
+
+  const maxObservedDepth = finalNodes.reduce(
+    (max, node) => Math.max(max, node.depth),
+    0
+  );
+
+  return { nodes: finalNodes, maxObservedDepth };
 }
 
 function buildDataset(seedOffset = 0) {
@@ -467,79 +565,45 @@ function buildDataset(seedOffset = 0) {
     employeeUsage.set(key, 0);
   });
 
-  const queue = [];
-  EPICS.forEach((epic, index) => {
-    const story = createStory({ epic: { ...epic, index }, parent: null, depth: 0, childIndex: index });
-    queue.push(story);
-  });
-
-  let pointer = 0;
-  while (pointer < queue.length && userStories.length < TOTAL_STORIES) {
-    const current = queue[pointer];
-    pointer += 1;
-    if (current.depth >= maxDepth) {
-      continue;
-    }
-    const remaining = TOTAL_STORIES - userStories.length;
-    if (remaining <= 0) {
-      break;
-    }
-    const maxChildren = Math.min(5, remaining);
-    const desiredChildren = sampleInt(0, 5);
-    const childCount = Math.min(desiredChildren, maxChildren);
-    for (let childIndex = 0; childIndex < childCount; childIndex += 1) {
-      if (userStories.length >= TOTAL_STORIES) {
-        break;
-      }
-      const child = createStory({
-        epic: current.epic,
-        parent: current,
-        depth: current.depth + 1,
-        childIndex,
-      });
-      queue.push(child);
-      if (child.depth <= maxDepth - 1 && rng() < 0.35) {
-        addCrossDependency(child);
-      }
-      if (child.status === 'Blocked') {
-        ensureBlocker(child);
-      } else if (rng() < 0.15) {
-        addCrossDependency(child);
-      }
-    }
+  sampledMaxDepth = sampleInt(1, 7);
+  if (sampledMaxDepth === 1) {
+    return false;
   }
-
-  if (userStories.length !== TOTAL_STORIES) {
+  const topology = planTopology(sampledMaxDepth);
+  if (!topology) {
     return false;
   }
 
-  const failingTarget = Math.max(3, Math.ceil(TOTAL_STORIES * 0.06));
-  const eligibleStories = internalStories
-    .filter((story) => story.depth > 0)
-    .sort((a, b) => a.id - b.id);
-  const failingSet = new Set();
-  eligibleStories.forEach((story, index) => {
-    if (failingSet.size >= failingTarget) {
-      return;
-    }
-    const remainingSlots = failingTarget - failingSet.size;
-    const remainingStories = eligibleStories.length - index;
-    const forceSelect = remainingStories === remainingSlots;
-    if (forceSelect || rng() < 0.12) {
-      failingSet.add(story.id);
-    }
+  const nodeToStory = new Map();
+  topology.nodes.forEach((node) => {
+    const parentStory = node.parent ? nodeToStory.get(node.parent) : null;
+    const story = createStory({
+      epic: node.epic,
+      parent: parentStory,
+      depth: node.depth,
+      childIndex: node.childIndex,
+    });
+    nodeToStory.set(node, story);
   });
 
   internalStories.forEach((story) => {
-    const healthy = !failingSet.has(story.id);
-    if (story.status === 'Blocked') {
-      ensureBlocker(story);
+    if (story.parent_id !== null) {
+      if (story.status === 'Blocked') {
+        ensureBlocker(story);
+      } else {
+        if (story.depth <= sampledMaxDepth - 1 && rng() < 0.35) {
+          addCrossDependency(story);
+        }
+        if (rng() < 0.15) {
+          addCrossDependency(story);
+        }
+      }
     }
-    createAcceptanceTests(story, healthy);
+    createAcceptanceTests(story);
     createTasks(story);
   });
 
-  return { failingSet };
+  return { maxObservedDepth: topology.maxObservedDepth };
 }
 
 let attempts = 0;
@@ -554,8 +618,6 @@ while (!(generation = buildDataset(attempts))) {
 if (tasks.length !== TARGET_TASKS) {
   throw new Error(`Expected ${TARGET_TASKS} tasks but generated ${tasks.length}`);
 }
-
-const failingStories = internalStories.filter((story) => generation.failingSet.has(story.id));
 
 const dataset = {
   tables: {
@@ -576,9 +638,9 @@ console.log(
       stories: userStories.length,
       tasks: tasks.length,
       acceptanceTests: acceptanceTests.length,
-      maxDepth,
+      maxDepthSampled: sampledMaxDepth,
+      maxDepthObserved: generation.maxObservedDepth,
       attempts,
-      failingStories: failingStories.length,
     },
     null,
     2
