@@ -483,10 +483,8 @@ function buildDataset(seedOffset = 0) {
     if (remaining <= 0) {
       break;
     }
-    let childCount = Math.floor(rng() * 6);
-    if (childCount > remaining) {
-      childCount = remaining;
-    }
+    const maxChildren = Math.min(5, remaining);
+    const childCount = sampleInt(0, maxChildren);
     for (let childIndex = 0; childIndex < childCount; childIndex += 1) {
       if (userStories.length >= TOTAL_STORIES) {
         break;
