@@ -76,10 +76,7 @@ const TASK_THEMES = [
 const STATUS_OPTIONS = ['Ready', 'In Progress', 'Blocked', 'Done'];
 const TASK_STATUS_OPTIONS = ['Not Started', 'In Progress', 'Blocked', 'Done'];
 const HOURS_PER_STORY_POINT = 8;
-const ESTIMATION_HOURS_SCALE = 0.02;
-const STORY_POINT_SCALE_DIVISOR = 48;
 const STORY_POINT_BUCKETS = [0, 1, 2, 3, 5, 8, 13, 21];
-const STORY_POINT_COMPRESS_DIVISOR = 6;
 
 const EPICS = [
   {
@@ -363,11 +360,6 @@ function createStory({ epic, parent, depth, childIndex }) {
   return internal;
 }
 
-function scaledEstimatedHours(hours) {
-  const scaled = Math.round(hours * ESTIMATION_HOURS_SCALE);
-  return Math.max(0, scaled);
-}
-
 function bucketizeStoryPoint(value) {
   const normalized = Math.max(0, Math.ceil(value));
   const bucket = STORY_POINT_BUCKETS.find((entry) => normalized <= entry);
@@ -377,7 +369,7 @@ function bucketizeStoryPoint(value) {
   return normalized;
 }
 
-function assignStoryPoints() {
+function calculateEffortAndStoryPoints() {
   const childrenMap = new Map();
   internalStories.forEach((story) => {
     if (story.parent_id !== null) {
@@ -390,160 +382,196 @@ function assignStoryPoints() {
   const ordered = [...internalStories].sort((a, b) => b.depth - a.depth);
   ordered.forEach((story) => {
     const children = childrenMap.get(story.id) ?? [];
-    let estimatedHours;
     if (children.length === 0) {
-      const base = sampleInt(12, 32);
-      estimatedHours = base;
+      const minimum = Math.max(4, 6 + Math.min(story.depth, 4) * 2);
+      const maximum = Math.max(minimum + 1, 24 + story.depth * 3);
+      story.estimatedHours = sampleInt(minimum, maximum);
     } else {
       const childHours = children.reduce((total, child) => total + (child.estimatedHours ?? 0), 0);
-      const dampener = Math.max(2, 6 - Math.min(story.depth, 5));
-      const scaledChildHours = Math.ceil(childHours / dampener);
-      const coordination = Math.max(children.length * 4, Math.ceil(scaledChildHours * 0.18));
-      const wiggleRoom = sampleInt(8, Math.max(12, Math.min(28, 16 + story.depth * 4)));
-      estimatedHours = scaledChildHours + coordination + wiggleRoom;
+      const coordination = Math.max(children.length * 2, Math.round(childHours * (0.1 + story.depth * 0.02)));
+      const buffer = sampleInt(3, 6 + story.depth * 2);
+      let totalHours = childHours + coordination + buffer;
+      if (totalHours <= childHours) {
+        totalHours = childHours + Math.max(4, story.depth + 2);
+      }
+      story.estimatedHours = totalHours;
     }
-    estimatedHours = scaledEstimatedHours(estimatedHours);
-    let normalized = Math.max(0, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
+
+    let normalized = Math.ceil((story.estimatedHours ?? 0) / HOURS_PER_STORY_POINT);
+    if (!Number.isFinite(normalized) || normalized < 0) {
+      normalized = 0;
+    }
     let storyPoint = bucketizeStoryPoint(normalized);
 
-    if (children.length === 0 && storyPoint > 0) {
-      storyPoint = bucketizeStoryPoint(storyPoint - 1);
-    }
-
-    if (children.length > 0) {
+    if (children.length === 0) {
+      if (storyPoint === 0 && story.estimatedHours > 0) {
+        storyPoint = 1;
+      }
+    } else {
       const childStoryPointSum = children.reduce((total, child) => total + (child.story_point ?? 0), 0);
       const requiredStoryPoints = childStoryPointSum + 1;
-      if (storyPoint <= childStoryPointSum) {
+      if (storyPoint < requiredStoryPoints) {
         storyPoint = bucketizeStoryPoint(requiredStoryPoints);
       }
     }
 
     const minimumPointHours = storyPoint > 0 ? storyPoint * HOURS_PER_STORY_POINT : 0;
-    const requiredHours = Math.max(estimatedHours, minimumPointHours);
-    if (requiredHours !== estimatedHours) {
-      estimatedHours = requiredHours;
-      normalized = Math.max(0, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
+    if (!Number.isFinite(story.estimatedHours) || story.estimatedHours < minimumPointHours) {
+      story.estimatedHours = minimumPointHours;
     }
 
-    story.estimatedHours = estimatedHours;
     story.story_point = storyPoint;
     story.record.story_point = storyPoint;
-    story.originalStoryPoint = storyPoint;
-    story.originalEstimatedHours = estimatedHours;
-  });
-}
-
-function rebalanceStoryPoints() {
-  const childrenMap = new Map();
-  internalStories.forEach((story) => {
-    if (story.parent_id !== null) {
-      const list = childrenMap.get(story.parent_id) ?? [];
-      list.push(story);
-      childrenMap.set(story.parent_id, list);
-    }
   });
 
-  function computeAdjustedStoryPoint(story) {
-    const children = childrenMap.get(story.id) ?? [];
-    if (children.length === 0) {
-      story.adjustedStoryPoint = 1;
-      return story.adjustedStoryPoint;
-    }
-    let childSum = 0;
-    children.forEach((child) => {
-      childSum += computeAdjustedStoryPoint(child);
-    });
-    const baselineSource = Number.isFinite(story.originalStoryPoint)
-      ? story.originalStoryPoint
-      : Number.isFinite(story.story_point)
-        ? story.story_point
-        : 0;
-    const scaledBaseline = Math.max(0, Math.round(baselineSource / STORY_POINT_SCALE_DIVISOR));
-    const requiredStoryPoints = childSum > 0 ? childSum + 1 : 0;
-    const adjusted = Math.max(scaledBaseline, requiredStoryPoints);
-    story.adjustedStoryPoint = bucketizeStoryPoint(adjusted);
-    return story.adjustedStoryPoint;
-  }
+  const epicStoriesList = internalStories.filter((story) => story.depth === 0);
+  const nonEpicOrdered = ordered.filter((story) => story.depth !== 0);
 
-  internalStories
-    .filter((story) => story.parent_id === null)
-    .forEach((root) => {
-      computeAdjustedStoryPoint(root);
-    });
-
-  internalStories.forEach((story) => {
-    const adjusted = Number.isFinite(story.adjustedStoryPoint)
-      ? story.adjustedStoryPoint
-      : Number.isFinite(story.story_point)
-        ? Math.max(0, Math.round((story.story_point ?? 0) / STORY_POINT_SCALE_DIVISOR))
-        : 0;
-    const baselineHours = Number.isFinite(story.originalEstimatedHours)
-      ? story.originalEstimatedHours
-      : Number.isFinite(story.estimatedHours)
-        ? story.estimatedHours
-        : adjusted * HOURS_PER_STORY_POINT;
-    const scaledEstimate = Math.max(0, Math.round(baselineHours / STORY_POINT_SCALE_DIVISOR));
-    const pointHours = adjusted > 0 ? adjusted * HOURS_PER_STORY_POINT : 0;
-    const requiredHours = Math.max(pointHours, scaledEstimate);
-    story.story_point = adjusted;
-    story.record.story_point = adjusted;
-    story.estimatedHours = requiredHours;
-    delete story.adjustedStoryPoint;
-  });
-}
-
-function compressStoryPointHierarchy() {
-  const childrenMap = new Map();
-  internalStories.forEach((story) => {
-    if (story.parent_id !== null) {
-      const list = childrenMap.get(story.parent_id) ?? [];
-      list.push(story);
-      childrenMap.set(story.parent_id, list);
-    }
-  });
-
-  function assign(story) {
-    const children = childrenMap.get(story.id) ?? [];
-    if (children.length === 0) {
-      story.story_point = 0;
-      story.record.story_point = 0;
-      if (!Number.isFinite(story.estimatedHours) || story.estimatedHours < 1) {
-        story.estimatedHours = 1;
+  const enforceHierarchy = () => {
+    const descending = [...internalStories].sort((a, b) => b.depth - a.depth);
+    descending.forEach((story) => {
+      const children = childrenMap.get(story.id) ?? [];
+      if (children.length === 0) {
+        const minimumHours = (story.story_point ?? 0) * HOURS_PER_STORY_POINT;
+        if (!Number.isFinite(story.estimatedHours) || story.estimatedHours < minimumHours) {
+          story.estimatedHours = minimumHours;
+        }
+        return;
       }
-      return story.story_point;
-    }
 
-    let childSum = 0;
-    children.forEach((child) => {
-      childSum += assign(child);
+      const childPointSum = children.reduce((total, child) => total + (child.story_point ?? 0), 0);
+      const requiredPoints = bucketizeStoryPoint(childPointSum + 1);
+      if ((story.story_point ?? 0) <= childPointSum) {
+        story.story_point = requiredPoints;
+        story.record.story_point = requiredPoints;
+      }
+
+      const childHours = children.reduce((total, child) => total + (child.estimatedHours ?? 0), 0);
+      const requiredHours = Math.max(
+        (story.story_point ?? 0) * HOURS_PER_STORY_POINT,
+        childHours + Math.max(6, Math.round(childHours * 0.08))
+      );
+      if (!Number.isFinite(story.estimatedHours) || story.estimatedHours < requiredHours) {
+        story.estimatedHours = requiredHours;
+      }
     });
+  };
 
-    const baseline = Number.isFinite(story.story_point) ? story.story_point : 0;
-    const scaledBaseline = Math.max(0, Math.round(baseline / STORY_POINT_COMPRESS_DIVISOR));
-    let candidate = Math.max(scaledBaseline, childSum + 1);
-    if (candidate <= childSum) {
-      candidate = childSum + 1;
-    }
+  const computeTotals = () => {
+    const total = internalStories.reduce((sum, story) => sum + (story.story_point ?? 0), 0);
+    const epic = epicStoriesList.reduce((sum, story) => sum + (story.story_point ?? 0), 0);
+    return { total, epic, nonEpic: total - epic };
+  };
 
-    let bucketed = bucketizeStoryPoint(candidate);
-    if (bucketed <= childSum) {
-      bucketed = childSum + 1;
+  const increaseStory = (story) => {
+    const previous = story.story_point ?? 0;
+    let nextPoint = bucketizeStoryPoint(previous + 1);
+    if (nextPoint <= previous) {
+      return 0;
     }
+    const children = childrenMap.get(story.id) ?? [];
+    if (children.length > 0) {
+      const childSum = children.reduce((total, child) => total + (child.story_point ?? 0), 0);
+      if (nextPoint <= childSum) {
+        nextPoint = bucketizeStoryPoint(childSum + 1);
+      }
+    }
+    const addedPoints = nextPoint - previous;
+    const minimumHours = nextPoint * HOURS_PER_STORY_POINT;
+    if (!Number.isFinite(story.estimatedHours) || story.estimatedHours < minimumHours) {
+      story.estimatedHours = minimumHours;
+    }
+    story.story_point = nextPoint;
+    story.record.story_point = nextPoint;
+    return addedPoints;
+  };
 
-    story.story_point = bucketed;
-    story.record.story_point = bucketed;
-    const pointHours = bucketed > 0 ? bucketed * HOURS_PER_STORY_POINT : 0;
-    if (!Number.isFinite(story.estimatedHours) || story.estimatedHours < pointHours) {
-      story.estimatedHours = pointHours;
+  const growNonEpicPoints = (needed) => {
+    if (needed <= 0) {
+      return;
     }
-    return story.story_point;
+    let remaining = needed;
+    let guard = 0;
+    const guardLimit = 5000;
+    while (remaining > 0 && guard < guardLimit) {
+      guard += 1;
+      let added = 0;
+      for (const story of nonEpicOrdered) {
+        if (remaining <= 0) {
+          break;
+        }
+        const increment = increaseStory(story);
+        if (increment > 0) {
+          remaining -= increment;
+          added += increment;
+        }
+      }
+      if (added === 0) {
+        break;
+      }
+    }
+  };
+
+  epicStoriesList.forEach((epic) => {
+    const children = childrenMap.get(epic.id) ?? [];
+    const childStoryPointSum = children.reduce((total, child) => total + (child.story_point ?? 0), 0);
+    const minimalEpicPoints = bucketizeStoryPoint(childStoryPointSum + 1);
+    if (epic.story_point !== minimalEpicPoints) {
+      epic.story_point = minimalEpicPoints;
+      epic.record.story_point = minimalEpicPoints;
+    }
+    const childHours = children.reduce((total, child) => total + (child.estimatedHours ?? 0), 0);
+    const requiredEpicHours = Math.max(
+      epic.story_point * HOURS_PER_STORY_POINT,
+      childHours + Math.max(6, Math.round(childHours * 0.08))
+    );
+    if (!Number.isFinite(epic.estimatedHours) || epic.estimatedHours < requiredEpicHours) {
+      epic.estimatedHours = requiredEpicHours;
+    }
+  });
+
+  enforceHierarchy();
+
+  const maxStoryPoint = internalStories.reduce((max, story) => Math.max(max, story.story_point ?? 0), 0);
+  const scaleDivisor = maxStoryPoint > 16 ? Math.ceil(maxStoryPoint / 16) : 1;
+  if (scaleDivisor > 1) {
+    internalStories.forEach((story) => {
+      const base = story.story_point ?? 0;
+      let scaled = Math.round(base / scaleDivisor);
+      if (base > 0 && scaled === 0) {
+        scaled = 1;
+      }
+      story.story_point = scaled;
+      story.record.story_point = scaled;
+      const minimumHours = scaled * HOURS_PER_STORY_POINT;
+      if (!Number.isFinite(story.estimatedHours) || story.estimatedHours < minimumHours) {
+        story.estimatedHours = minimumHours;
+      }
+    });
+    enforceHierarchy();
   }
 
-  internalStories
-    .filter((story) => story.parent_id === null)
-    .forEach((root) => {
-      assign(root);
-    });
+  let { total, epic, nonEpic } = computeTotals();
+  let guard = 0;
+  const guardLimit = 8;
+  while (total > 0 && epic / total > 0.25 && guard < guardLimit) {
+    guard += 1;
+    const requiredNonEpic = Math.ceil((epic / 0.25) - epic);
+    const deficit = requiredNonEpic - nonEpic;
+    if (deficit <= 0) {
+      break;
+    }
+    growNonEpicPoints(deficit);
+    enforceHierarchy();
+    ({ total, epic, nonEpic } = computeTotals());
+  }
+
+  enforceHierarchy();
+
+  internalStories.forEach((story) => {
+    const alignedHours = (story.story_point ?? 0) * HOURS_PER_STORY_POINT;
+    story.estimatedHours = alignedHours;
+  });
 }
 
 function enforceStoryHierarchyStatuses() {
@@ -1111,9 +1139,7 @@ function buildDataset(seedOffset = 0) {
     nodeToStory.set(node, story);
   });
 
-  assignStoryPoints();
-  rebalanceStoryPoints();
-  compressStoryPointHierarchy();
+  calculateEffortAndStoryPoints();
   enforceStoryHierarchyStatuses();
 
   internalStories.forEach((story) => {
