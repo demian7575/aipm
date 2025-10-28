@@ -3784,6 +3784,32 @@ function attachChildren(stories) {
   return { roots, byId };
 }
 
+function hasActiveProgressChild(children) {
+  if (!Array.isArray(children) || children.length === 0) {
+    return false;
+  }
+  return children.some((child) => {
+    if (!child) return false;
+    const status = safeNormalizeStoryStatus(child.status);
+    return status === 'In Progress' || status === 'Done';
+  });
+}
+
+function propagateParentProgressStatus(nodes) {
+  function walk(story) {
+    if (!story || !Array.isArray(story.children) || story.children.length === 0) {
+      return;
+    }
+    story.children.forEach((child) => walk(child));
+    const storyStatus = safeNormalizeStoryStatus(story.status);
+    if (storyStatus === 'Ready' && hasActiveProgressChild(story.children)) {
+      story.status = 'In Progress';
+    }
+  }
+
+  nodes.forEach((story) => walk(story));
+}
+
 function flattenStories(nodes) {
   const result = [];
   nodes.forEach((node) => {
@@ -3845,6 +3871,8 @@ async function loadStories(db) {
   });
 
   const { roots, byId } = attachChildren(stories);
+
+  propagateParentProgressStatus(roots);
 
   const dependencyRows = loadDependencyRows(db);
   dependencyRows.forEach((row) => {
@@ -4031,6 +4059,11 @@ async function loadStoryWithDetails(db, storyId) {
   taskRows.forEach((taskRow) => {
     story.tasks.push(buildTaskFromRow(taskRow));
   });
+
+  const childRows = db.prepare('SELECT id, status FROM user_stories WHERE parent_id = ?').all(storyId);
+  if (safeNormalizeStoryStatus(story.status) === 'Ready' && hasActiveProgressChild(childRows)) {
+    story.status = 'In Progress';
+  }
 
   const dependencyRows = loadDependencyRows(db).filter(
     (entry) => entry.story_id === storyId || entry.depends_on_story_id === storyId
