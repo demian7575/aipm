@@ -75,6 +75,7 @@ const TASK_THEMES = [
 const STATUS_OPTIONS = ['Ready', 'In Progress', 'Blocked', 'Done'];
 const TASK_STATUS_OPTIONS = ['Not Started', 'In Progress', 'Blocked', 'Done'];
 const HOURS_PER_STORY_POINT = 8;
+const STORY_POINT_SCALE = 8;
 
 const EPICS = [
   {
@@ -239,7 +240,8 @@ function pickComponents(bias = []) {
 }
 
 const TOTAL_STORIES = 50;
-const TARGET_TASKS = 200;
+const TASKS_PER_STORY = 4;
+const TARGET_TASKS = (TOTAL_STORIES - EPICS.length) * TASKS_PER_STORY;
 
 let storyIdCounter = 1;
 let testIdCounter = 1;
@@ -382,7 +384,10 @@ function assignStoryPoints() {
       estimatedHours = scaledChildHours + coordination + wiggleRoom;
     }
     story.estimatedHours = estimatedHours;
-    const storyPoint = Math.max(1, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
+    const storyPoint = Math.max(
+      1,
+      Math.ceil(estimatedHours / (HOURS_PER_STORY_POINT * STORY_POINT_SCALE))
+    );
     story.story_point = storyPoint;
     story.record.story_point = storyPoint;
   });
@@ -463,10 +468,14 @@ function ensureBlocker(story) {
 }
 
 function createTasks(story) {
+  if (story.depth === 0) {
+    return;
+  }
+
   const componentCycle = story.componentsList;
   const underrepresented = EMPLOYEES.filter((member) => (employeeUsage.get(member.email) ?? 0) === 0);
   let forcedIndex = 0;
-  const taskCount = 4;
+  const taskCount = TASKS_PER_STORY;
   const totalHours = Math.max(taskCount, Math.round(story.estimatedHours ?? taskCount));
   const baseAllocations = Array.from({ length: taskCount }, () => 0);
   if (totalHours > 0) {
