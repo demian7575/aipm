@@ -253,6 +253,28 @@ textarea {
 
 .outline-item.status-done {
   border-left-color: #4b5563;
+  background: #374151;
+  color: #d1d5db;
+}
+
+.outline-item.status-done .title {
+  color: #f3f4f6;
+}
+
+.outline-item.status-done .caret-button {
+  background: #4b5563;
+  border-color: #94a3b8;
+  color: #f8fafc;
+}
+
+.outline-item.status-done:hover {
+  background: #4b5563;
+  color: #e5e7eb;
+}
+
+.outline-item.status-done.selected {
+  box-shadow: inset 0 0 0 2px rgba(148, 163, 184, 0.35);
+  color: #f3f4f6;
 }
 
 .outline-item.health-warning .title {
@@ -265,7 +287,7 @@ textarea {
   font-weight: 700;
 }
 
-.outline-item.classification-epic:not(.health-warning):not(.health-critical) .title {
+.outline-item.classification-epic:not(.health-warning):not(.health-critical):not(.status-done) .title {
   color: #92400e;
   font-weight: 600;
 }
@@ -480,8 +502,8 @@ body.is-mindmap-panning {
 }
 
 .mindmap-node.status-done rect {
-  stroke: #374151;
-  fill: #4b5563;
+  stroke: #1f2937;
+  fill: #374151;
 }
 
 .mindmap-node.health-warning rect {
@@ -606,12 +628,12 @@ body.is-mindmap-panning {
 }
 
 .mindmap-node .story-status.status-done {
-  color: #e5e7eb;
+  color: #d1d5db;
 }
 
 .mindmap-node.status-done .story-title,
 .mindmap-node.status-done .story-meta {
-  color: #e5e7eb;
+  color: #f3f4f6;
 }
 
 .mindmap-measure-root {
@@ -693,8 +715,8 @@ body.is-mindmap-panning {
 }
 
 .status-badge.status-done {
-  background: #4b5563;
-  color: #e5e7eb;
+  background: #374151;
+  color: #f3f4f6;
 }
 
 .status-description {

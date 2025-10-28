@@ -222,6 +222,25 @@ function parseStoryPointInput(raw) {
   return { value: numeric, error: null };
 }
 
+function parseEstimationHoursInput(raw) {
+  if (raw == null) {
+    return { value: null, error: null };
+  }
+  const trimmed = String(raw).trim();
+  if (trimmed === '') {
+    return { value: null, error: null };
+  }
+  const numeric = Number(trimmed);
+  if (!Number.isFinite(numeric)) {
+    return { value: null, error: 'Estimation hours must be a number.' };
+  }
+  if (numeric < 0) {
+    return { value: null, error: 'Estimation hours cannot be negative.' };
+  }
+  const rounded = Math.round(numeric * 100) / 100;
+  return { value: rounded, error: null };
+}
+
 const state = {
   stories: [],
   expanded: new Set(),
@@ -535,6 +554,18 @@ function formatStoryPointSummary(value) {
     return '';
   }
   return `${value} pt${value === 1 ? '' : 's'}`;
+}
+
+function formatEstimationHours(value) {
+  if (value == null || value === '') {
+    return '—';
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return '—';
+  }
+  const display = Number.isInteger(numeric) ? numeric.toString() : numeric.toFixed(1);
+  return `${display} h`;
 }
 
 function filterEpicSizingWarnings(story, issues) {
@@ -2976,6 +3007,10 @@ function renderDetails() {
                 <th scope="row">Status</th>
                 <td>${escapeHtml(task.status || TASK_STATUS_OPTIONS[0])}</td>
               </tr>
+              <tr>
+                <th scope="row">Estimation (hrs)</th>
+                <td>${formatEstimationHours(task.estimationHours)}</td>
+              </tr>
             </tbody>
           </table>
         `
@@ -3794,12 +3829,14 @@ function openTaskModal(storyId, task = null) {
     <label>Status
       <select id="task-status"></select>
     </label>
+    <label>Estimation (hours)<input id="task-estimation" type="number" min="0" step="0.5" placeholder="e.g. 4" /></label>
     <label>Description<textarea id="task-description" placeholder="Details about the work"></textarea></label>
   `;
 
   const titleInput = container.querySelector('#task-title');
   const assigneeInput = container.querySelector('#task-assignee');
   const statusSelect = container.querySelector('#task-status');
+  const estimationInput = container.querySelector('#task-estimation');
   const descriptionInput = container.querySelector('#task-description');
 
   TASK_STATUS_OPTIONS.forEach((status) => {
@@ -3813,6 +3850,9 @@ function openTaskModal(storyId, task = null) {
     titleInput.value = task.title || '';
     descriptionInput.value = task.description || '';
     assigneeInput.value = task.assigneeEmail || '';
+    if (task.estimationHours != null && task.estimationHours !== '') {
+      estimationInput.value = task.estimationHours;
+    }
     if (task.status && TASK_STATUS_OPTIONS.includes(task.status)) {
       statusSelect.value = task.status;
     }
@@ -3842,11 +3882,18 @@ function openTaskModal(storyId, task = null) {
             assigneeInput.focus();
             return false;
           }
+          const estimationResult = parseEstimationHoursInput(estimationInput.value);
+          if (estimationResult.error) {
+            showToast(estimationResult.error, 'error');
+            estimationInput.focus();
+            return false;
+          }
           const payload = {
             title,
             status: statusSelect.value,
             description: descriptionInput.value.trim(),
             assigneeEmail,
+            estimationHours: estimationResult.value,
           };
           try {
             if (isEdit) {
