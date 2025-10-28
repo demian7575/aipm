@@ -371,6 +371,42 @@ function assignStoryPoints() {
   });
 }
 
+function enforceStoryHierarchyStatuses() {
+  const childrenMap = new Map();
+  internalStories.forEach((story) => {
+    if (story.parent_id !== null) {
+      const list = childrenMap.get(story.parent_id) ?? [];
+      list.push(story);
+      childrenMap.set(story.parent_id, list);
+    }
+  });
+
+  const ordered = [...internalStories].sort((a, b) => b.depth - a.depth);
+  ordered.forEach((story) => {
+    const children = childrenMap.get(story.id) ?? [];
+    if (children.length === 0) {
+      if (story.status !== 'Done' && story.status !== 'Blocked') {
+        if (rng() < 0.6) {
+          story.status = 'Done';
+        } else if (story.status === 'Ready' && rng() < 0.5) {
+          story.status = 'In Progress';
+        }
+      }
+    } else {
+      const allChildrenDone = children.every((child) => child.status === 'Done');
+      if (allChildrenDone) {
+        if (story.status !== 'Blocked') {
+          story.status = 'Done';
+        }
+      } else if (story.status === 'Done') {
+        story.status = 'In Progress';
+      }
+    }
+
+    story.record.status = story.status;
+  });
+}
+
 function addCrossDependency(story) {
   const pool = (epicStories.get(story.epic.code) ?? []).filter(
     (candidate) => candidate.id !== story.id && candidate.id !== story.parent_id
@@ -670,6 +706,7 @@ function buildDataset(seedOffset = 0) {
   });
 
   assignStoryPoints();
+  enforceStoryHierarchyStatuses();
 
   internalStories.forEach((story) => {
     if (story.parent_id !== null) {
