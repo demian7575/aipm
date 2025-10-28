@@ -296,7 +296,7 @@ function createStory({ epic, parent, depth, childIndex }) {
   const components = pickComponents(bias);
   const owner = pickEmployeeForComponent(components[0]);
   const createdAt = nextTimestamp();
-  const storyPoint = depth === 0 ? 13 : sampleInt(3, 8);
+  const storyPoint = 1;
   let status = depth === 0 ? 'Ready' : STATUS_OPTIONS[Math.floor(rng() * STATUS_OPTIONS.length)];
   const record = {
     id: storyIdCounter++,
@@ -342,6 +342,33 @@ function createStory({ epic, parent, depth, childIndex }) {
   }
 
   return internal;
+}
+
+function assignStoryPoints() {
+  const childrenMap = new Map();
+  internalStories.forEach((story) => {
+    if (story.parent_id !== null) {
+      const list = childrenMap.get(story.parent_id) ?? [];
+      list.push(story);
+      childrenMap.set(story.parent_id, list);
+    }
+  });
+
+  const ordered = [...internalStories].sort((a, b) => b.depth - a.depth);
+  ordered.forEach((story) => {
+    const children = childrenMap.get(story.id) ?? [];
+    let storyPoint;
+    if (children.length === 0) {
+      storyPoint = sampleInt(5, 8);
+    } else {
+      const childSum = children.reduce((total, child) => total + child.story_point, 0);
+      const buffer = Math.max(children.length, Math.ceil(childSum * 0.1));
+      const wiggleRoom = sampleInt(1, Math.max(2, Math.min(6, story.depth + 3)));
+      storyPoint = childSum + buffer + wiggleRoom;
+    }
+    story.story_point = storyPoint;
+    story.record.story_point = storyPoint;
+  });
 }
 
 function addCrossDependency(story) {
@@ -455,7 +482,10 @@ function planTopology(maxDepth) {
   const nodes = [];
   const queue = [];
 
-  function registerNode({ epic, parent, depth }) {
+  const depthSevenQuota = maxDepth === 7 ? sampleInt(2, 3) : 0;
+  let depthSevenCreated = 0;
+
+  function registerNode({ epic, parent, depth, protectedNode = false }) {
     const node = {
       epic,
       parent,
@@ -464,6 +494,7 @@ function planTopology(maxDepth) {
       removed: false,
       sequence: nodes.length,
       childIndex: 0,
+      protectedNode,
     };
     nodes.push(node);
     if (depth < maxDepth) {
@@ -472,9 +503,45 @@ function planTopology(maxDepth) {
     return node;
   }
 
+  function attachChild(parent, { protectedNode = false } = {}) {
+    if (nodes.length >= TOTAL_STORIES) {
+      return null;
+    }
+    if (parent.children.length >= 5) {
+      return null;
+    }
+    const child = registerNode({
+      epic: parent.epic,
+      parent,
+      depth: parent.depth + 1,
+      protectedNode,
+    });
+    child.childIndex = parent.children.length;
+    parent.children.push(child);
+    if (child.depth === maxDepth && child.protectedNode) {
+      depthSevenCreated += 1;
+    }
+    return child;
+  }
+
   EPICS.forEach((epic, index) => {
     registerNode({ epic: { ...epic, index }, parent: null, depth: 0 });
   });
+
+  if (depthSevenQuota > 0) {
+    for (let chainIndex = 0; chainIndex < depthSevenQuota; chainIndex += 1) {
+      const root = nodes[chainIndex % EPICS.length];
+      let current = root;
+      while (current.depth < maxDepth) {
+        const isTerminal = current.depth + 1 === maxDepth;
+        const child = attachChild(current, { protectedNode: isTerminal });
+        if (!child) {
+          return null;
+        }
+        current = child;
+      }
+    }
+  }
 
   while (queue.length > 0 && nodes.length < TOTAL_STORIES) {
     const current = queue.shift();
@@ -485,20 +552,32 @@ function planTopology(maxDepth) {
     if (remainingBudget <= 0) {
       break;
     }
-    const maxChildren = Math.min(5, remainingBudget);
+    const availableSlots = Math.max(0, 5 - current.children.length);
+    if (availableSlots <= 0) {
+      continue;
+    }
+    let maxChildren = Math.min(5, remainingBudget, availableSlots);
     if (maxChildren <= 0) {
       continue;
     }
-    const desired = Math.min(sampleInt(0, 5), maxChildren);
+    let desired = Math.min(sampleInt(0, 5), maxChildren);
+    if (current.depth === maxDepth - 1 && depthSevenQuota > 0) {
+      const remainingQuota = Math.max(0, depthSevenQuota - depthSevenCreated);
+      maxChildren = Math.min(maxChildren, remainingQuota);
+      desired = Math.min(desired, maxChildren);
+    }
+    if (desired <= 0) {
+      continue;
+    }
 
     for (let childIndex = 0; childIndex < desired; childIndex += 1) {
-      const child = registerNode({
-        epic: current.epic,
-        parent: current,
-        depth: current.depth + 1,
+      const isTerminal = current.depth + 1 === maxDepth;
+      const child = attachChild(current, {
+        protectedNode: isTerminal && depthSevenQuota > 0 && depthSevenCreated < depthSevenQuota,
       });
-      child.childIndex = current.children.length;
-      current.children.push(child);
+      if (!child) {
+        break;
+      }
     }
   }
 
@@ -509,7 +588,7 @@ function planTopology(maxDepth) {
   let overflow = nodes.length - TOTAL_STORIES;
   if (overflow > 0) {
     const removable = nodes
-      .filter((node) => node.parent && node.children.length === 0)
+      .filter((node) => node.parent && node.children.length === 0 && !node.protectedNode)
       .sort((a, b) => {
         if (b.depth !== a.depth) {
           return b.depth - a.depth;
@@ -541,6 +620,13 @@ function planTopology(maxDepth) {
 
   finalNodes.sort((a, b) => a.sequence - b.sequence);
 
+  if (maxDepth === 7) {
+    const depthSevenNodes = finalNodes.filter((node) => node.depth === 7);
+    if (depthSevenNodes.length < depthSevenQuota || depthSevenNodes.length > depthSevenQuota) {
+      return null;
+    }
+  }
+
   const maxObservedDepth = finalNodes.reduce(
     (max, node) => Math.max(max, node.depth),
     0
@@ -565,10 +651,7 @@ function buildDataset(seedOffset = 0) {
     employeeUsage.set(key, 0);
   });
 
-  sampledMaxDepth = sampleInt(1, 7);
-  if (sampledMaxDepth === 1) {
-    return false;
-  }
+  sampledMaxDepth = 7;
   const topology = planTopology(sampledMaxDepth);
   if (!topology) {
     return false;
@@ -586,6 +669,8 @@ function buildDataset(seedOffset = 0) {
     nodeToStory.set(node, story);
   });
 
+  assignStoryPoints();
+
   internalStories.forEach((story) => {
     if (story.parent_id !== null) {
       if (story.status === 'Blocked') {
@@ -599,6 +684,9 @@ function buildDataset(seedOffset = 0) {
         }
       }
     }
+  });
+
+  internalStories.forEach((story) => {
     createAcceptanceTests(story);
     createTasks(story);
   });
