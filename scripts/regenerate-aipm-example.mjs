@@ -431,9 +431,10 @@ function createAcceptanceTests(story, healthy) {
       `When the autonomous routines execute scenario ${testIndex + 1} for ${story.title}`,
       `And observers watch deployment metrics for a ${90 + story.depth * 15}-minute window`,
     ];
+    const evidencePath = `/evidence/${story.epic.code.toLowerCase()}/${story.id}/scenario-${testIndex + 1}.json`;
     const then = [
       `Then the median response stays under ${metric} ms with p95 under ${Math.round(metric * 1.2)} ms`,
-      `And at least ${events} validation events are recorded with zero Sev-1 regressions`,
+      `And the validation summary at ${evidencePath} lists at least ${events} events with zero Sev-1 regressions`,
     ];
     const status = healthy ? 'Pass' : testIndex === 0 ? 'Need review with update' : 'Draft';
     const createdAt = nextTimestamp();
@@ -511,7 +512,7 @@ function buildDataset(seedOffset = 0) {
     return false;
   }
 
-  const failingTarget = Math.max(5, Math.round(TOTAL_STORIES * 0.1));
+  const failingTarget = Math.max(4, Math.ceil(TOTAL_STORIES * 0.08));
   const eligibleStories = internalStories
     .filter((story) => story.depth > 0)
     .sort((a, b) => a.id - b.id);

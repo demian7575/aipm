@@ -95,7 +95,7 @@
         ],
         "blocked_by": [
           4,
-          7
+          21
         ]
       },
       {
@@ -199,7 +199,7 @@
         ],
         "blocked_by": [
           9,
-          35
+          29
         ]
       },
       {
@@ -223,7 +223,7 @@
         ],
         "blocked_by": [
           10,
-          33
+          30
         ]
       },
       {
@@ -246,7 +246,7 @@
         ],
         "blocked_by": [
           9,
-          36
+          35
         ]
       },
       {
@@ -392,7 +392,7 @@
         ],
         "blocked_by": [
           17,
-          47
+          18
         ]
       },
       {
@@ -415,7 +415,7 @@
         ],
         "blocked_by": [
           17,
-          19
+          15
         ]
       },
       {
@@ -459,7 +459,7 @@
         ],
         "blocked_by": [
           21,
-          16
+          19
         ]
       },
       {
@@ -524,7 +524,7 @@
         ],
         "blocked_by": [
           15,
-          49
+          17
         ]
       },
       {
@@ -649,7 +649,7 @@
         ],
         "blocked_by": [
           10,
-          36
+          12
         ]
       },
       {
@@ -673,7 +673,7 @@
         ],
         "blocked_by": [
           2,
-          9
+          11
         ]
       },
       {
@@ -717,7 +717,7 @@
         ],
         "blocked_by": [
           29,
-          12
+          2
         ]
       },
       {
@@ -947,7 +947,7 @@
         ],
         "blocked_by": [
           21,
-          44
+          47
         ]
       },
       {
@@ -1012,7 +1012,7 @@
         ],
         "blocked_by": [
           44,
-          46
+          22
         ]
       },
       {
@@ -1062,7 +1062,7 @@
         "story_id": 1,
         "given": "[\"Given EPIC: Strategic Alignment OS telemetry for WorkModel, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for EPIC: Strategic Alignment OS\",\"And observers watch deployment metrics for a 90-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1120 ms with p95 under 1344 ms\",\"And at least 4 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1120 ms with p95 under 1344 ms\",\"And the validation summary at /evidence/align/1/scenario-1.json lists at least 4 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T09:50:00.000Z",
         "updated_at": "2024-07-15T09:50:00.000Z"
@@ -1072,7 +1072,7 @@
         "story_id": 1,
         "given": "[\"Given EPIC: Strategic Alignment OS telemetry for WorkModel, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for EPIC: Strategic Alignment OS\",\"And observers watch deployment metrics for a 90-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1125 ms with p95 under 1350 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1125 ms with p95 under 1350 ms\",\"And the validation summary at /evidence/align/1/scenario-2.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T09:51:00.000Z",
         "updated_at": "2024-07-15T09:51:00.000Z"
@@ -1082,7 +1082,7 @@
         "story_id": 2,
         "given": "[\"Given EPIC: Autonomous Delivery Coordination telemetry for Orchestration_Engagement, Run_Verify is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for EPIC: Autonomous Delivery Coordination\",\"And observers watch deployment metrics for a 90-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1120 ms with p95 under 1344 ms\",\"And at least 4 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1120 ms with p95 under 1344 ms\",\"And the validation summary at /evidence/coord/2/scenario-1.json lists at least 4 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T09:56:00.000Z",
         "updated_at": "2024-07-15T09:56:00.000Z"
@@ -1092,7 +1092,7 @@
         "story_id": 2,
         "given": "[\"Given EPIC: Autonomous Delivery Coordination telemetry for Orchestration_Engagement, Run_Verify is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for EPIC: Autonomous Delivery Coordination\",\"And observers watch deployment metrics for a 90-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1125 ms with p95 under 1350 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1125 ms with p95 under 1350 ms\",\"And the validation summary at /evidence/coord/2/scenario-2.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T09:57:00.000Z",
         "updated_at": "2024-07-15T09:57:00.000Z"
@@ -1102,7 +1102,7 @@
         "story_id": 3,
         "given": "[\"Given EPIC: Insight Co-Pilot Analytics telemetry for Traceabilty_Insight, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for EPIC: Insight Co-Pilot Analytics\",\"And observers watch deployment metrics for a 90-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1120 ms with p95 under 1344 ms\",\"And at least 4 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1120 ms with p95 under 1344 ms\",\"And the validation summary at /evidence/insight/3/scenario-1.json lists at least 4 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:02:00.000Z",
         "updated_at": "2024-07-15T10:02:00.000Z"
@@ -1112,7 +1112,7 @@
         "story_id": 3,
         "given": "[\"Given EPIC: Insight Co-Pilot Analytics telemetry for Traceabilty_Insight, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for EPIC: Insight Co-Pilot Analytics\",\"And observers watch deployment metrics for a 90-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1125 ms with p95 under 1350 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1125 ms with p95 under 1350 ms\",\"And the validation summary at /evidence/insight/3/scenario-2.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:03:00.000Z",
         "updated_at": "2024-07-15T10:03:00.000Z"
@@ -1122,7 +1122,7 @@
         "story_id": 4,
         "given": "[\"Given ALIGN-1.1: Human-in-the-loop Oversight telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1: Human-in-the-loop Oversight\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/align/4/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:08:00.000Z",
         "updated_at": "2024-07-15T10:08:00.000Z"
@@ -1132,7 +1132,7 @@
         "story_id": 4,
         "given": "[\"Given ALIGN-1.1: Human-in-the-loop Oversight telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1: Human-in-the-loop Oversight\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 945 ms with p95 under 1134 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 945 ms with p95 under 1134 ms\",\"And the validation summary at /evidence/align/4/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:09:00.000Z",
         "updated_at": "2024-07-15T10:09:00.000Z"
@@ -1142,7 +1142,7 @@
         "story_id": 5,
         "given": "[\"Given ALIGN-1.2: Human-in-the-loop Oversight telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.2: Human-in-the-loop Oversight\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/align/5/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:14:00.000Z",
         "updated_at": "2024-07-15T10:14:00.000Z"
@@ -1152,7 +1152,7 @@
         "story_id": 5,
         "given": "[\"Given ALIGN-1.2: Human-in-the-loop Oversight telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.2: Human-in-the-loop Oversight\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1045 ms with p95 under 1254 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1045 ms with p95 under 1254 ms\",\"And the validation summary at /evidence/align/5/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:15:00.000Z",
         "updated_at": "2024-07-15T10:15:00.000Z"
@@ -1162,7 +1162,7 @@
         "story_id": 6,
         "given": "[\"Given ALIGN-1.3: Delivery Capacity Signals telemetry for Orchestration_Engagement, Run_Verify is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.3: Delivery Capacity Signals\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And the validation summary at /evidence/align/6/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:20:00.000Z",
         "updated_at": "2024-07-15T10:20:00.000Z"
@@ -1172,7 +1172,7 @@
         "story_id": 6,
         "given": "[\"Given ALIGN-1.3: Delivery Capacity Signals telemetry for Orchestration_Engagement, Run_Verify is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.3: Delivery Capacity Signals\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 995 ms with p95 under 1194 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 995 ms with p95 under 1194 ms\",\"And the validation summary at /evidence/align/6/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:21:00.000Z",
         "updated_at": "2024-07-15T10:21:00.000Z"
@@ -1182,7 +1182,7 @@
         "story_id": 7,
         "given": "[\"Given ALIGN-1.4: Delivery Capacity Signals telemetry for Orchestration_Engagement, Run_Verify is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.4: Delivery Capacity Signals\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And the validation summary at /evidence/align/7/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:26:00.000Z",
         "updated_at": "2024-07-15T10:26:00.000Z"
@@ -1192,7 +1192,7 @@
         "story_id": 7,
         "given": "[\"Given ALIGN-1.4: Delivery Capacity Signals telemetry for Orchestration_Engagement, Run_Verify is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.4: Delivery Capacity Signals\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1070 ms with p95 under 1284 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1070 ms with p95 under 1284 ms\",\"And the validation summary at /evidence/align/7/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:27:00.000Z",
         "updated_at": "2024-07-15T10:27:00.000Z"
@@ -1202,7 +1202,7 @@
         "story_id": 8,
         "given": "[\"Given COORD-2.1: Intake Prioritisation Canvas telemetry for WorkModel, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.1: Intake Prioritisation Canvas\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 840 ms with p95 under 1008 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 840 ms with p95 under 1008 ms\",\"And the validation summary at /evidence/coord/8/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:32:00.000Z",
         "updated_at": "2024-07-15T10:32:00.000Z"
@@ -1212,7 +1212,7 @@
         "story_id": 8,
         "given": "[\"Given COORD-2.1: Intake Prioritisation Canvas telemetry for WorkModel, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.1: Intake Prioritisation Canvas\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1020 ms with p95 under 1224 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1020 ms with p95 under 1224 ms\",\"And the validation summary at /evidence/coord/8/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:33:00.000Z",
         "updated_at": "2024-07-15T10:33:00.000Z"
@@ -1222,7 +1222,7 @@
         "story_id": 9,
         "given": "[\"Given COORD-2.2: Intake Prioritisation Canvas telemetry for WorkModel, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.2: Intake Prioritisation Canvas\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And the validation summary at /evidence/coord/9/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:38:00.000Z",
         "updated_at": "2024-07-15T10:38:00.000Z"
@@ -1232,7 +1232,7 @@
         "story_id": 9,
         "given": "[\"Given COORD-2.2: Intake Prioritisation Canvas telemetry for WorkModel, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.2: Intake Prioritisation Canvas\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1070 ms with p95 under 1284 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1070 ms with p95 under 1284 ms\",\"And the validation summary at /evidence/coord/9/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:39:00.000Z",
         "updated_at": "2024-07-15T10:39:00.000Z"
@@ -1242,7 +1242,7 @@
         "story_id": 10,
         "given": "[\"Given COORD-2.3: Outcome Evidence Registry telemetry for Traceabilty_Insight, Review_Governance is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.3: Outcome Evidence Registry\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 760 ms with p95 under 912 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 760 ms with p95 under 912 ms\",\"And the validation summary at /evidence/coord/10/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:44:00.000Z",
         "updated_at": "2024-07-15T10:44:00.000Z"
@@ -1252,7 +1252,7 @@
         "story_id": 10,
         "given": "[\"Given COORD-2.3: Outcome Evidence Registry telemetry for Traceabilty_Insight, Review_Governance is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.3: Outcome Evidence Registry\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 970 ms with p95 under 1164 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 970 ms with p95 under 1164 ms\",\"And the validation summary at /evidence/coord/10/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:45:00.000Z",
         "updated_at": "2024-07-15T10:45:00.000Z"
@@ -1262,7 +1262,7 @@
         "story_id": 11,
         "given": "[\"Given COORD-2.4: Delivery Capacity Signals telemetry for Orchestration_Engagement, Run_Verify is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.4: Delivery Capacity Signals\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And the validation summary at /evidence/coord/11/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:50:00.000Z",
         "updated_at": "2024-07-15T10:50:00.000Z"
@@ -1272,7 +1272,7 @@
         "story_id": 11,
         "given": "[\"Given COORD-2.4: Delivery Capacity Signals telemetry for Orchestration_Engagement, Run_Verify is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.4: Delivery Capacity Signals\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1070 ms with p95 under 1284 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1070 ms with p95 under 1284 ms\",\"And the validation summary at /evidence/coord/11/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:51:00.000Z",
         "updated_at": "2024-07-15T10:51:00.000Z"
@@ -1282,7 +1282,7 @@
         "story_id": 12,
         "given": "[\"Given COORD-2.5: Intake Prioritisation Canvas telemetry for WorkModel, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.5: Intake Prioritisation Canvas\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 760 ms with p95 under 912 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 760 ms with p95 under 912 ms\",\"And the validation summary at /evidence/coord/12/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:56:00.000Z",
         "updated_at": "2024-07-15T10:56:00.000Z"
@@ -1292,7 +1292,7 @@
         "story_id": 12,
         "given": "[\"Given COORD-2.5: Intake Prioritisation Canvas telemetry for WorkModel, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.5: Intake Prioritisation Canvas\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 970 ms with p95 under 1164 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 970 ms with p95 under 1164 ms\",\"And the validation summary at /evidence/coord/12/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T10:57:00.000Z",
         "updated_at": "2024-07-15T10:57:00.000Z"
@@ -1302,7 +1302,7 @@
         "story_id": 13,
         "given": "[\"Given INSIGHT-3.1: Human-in-the-loop Oversight telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for INSIGHT-3.1: Human-in-the-loop Oversight\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/insight/13/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:02:00.000Z",
         "updated_at": "2024-07-15T11:02:00.000Z"
@@ -1312,7 +1312,7 @@
         "story_id": 13,
         "given": "[\"Given INSIGHT-3.1: Human-in-the-loop Oversight telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for INSIGHT-3.1: Human-in-the-loop Oversight\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1045 ms with p95 under 1254 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1045 ms with p95 under 1254 ms\",\"And the validation summary at /evidence/insight/13/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:03:00.000Z",
         "updated_at": "2024-07-15T11:03:00.000Z"
@@ -1322,7 +1322,7 @@
         "story_id": 14,
         "given": "[\"Given INSIGHT-3.2: Outcome Evidence Registry telemetry for Traceabilty_Insight, Review_Governance is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for INSIGHT-3.2: Outcome Evidence Registry\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 5 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/insight/14/scenario-1.json lists at least 5 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:08:00.000Z",
         "updated_at": "2024-07-15T11:08:00.000Z"
@@ -1332,7 +1332,7 @@
         "story_id": 14,
         "given": "[\"Given INSIGHT-3.2: Outcome Evidence Registry telemetry for Traceabilty_Insight, Review_Governance is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for INSIGHT-3.2: Outcome Evidence Registry\",\"And observers watch deployment metrics for a 105-minute window\"]",
-        "then_step": "[\"Then the median response stays under 945 ms with p95 under 1134 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 945 ms with p95 under 1134 ms\",\"And the validation summary at /evidence/insight/14/scenario-2.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:09:00.000Z",
         "updated_at": "2024-07-15T11:09:00.000Z"
@@ -1342,7 +1342,7 @@
         "story_id": 15,
         "given": "[\"Given ALIGN-1.1.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/align/15/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:14:00.000Z",
         "updated_at": "2024-07-15T11:14:00.000Z"
@@ -1352,7 +1352,7 @@
         "story_id": 15,
         "given": "[\"Given ALIGN-1.1.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And the validation summary at /evidence/align/15/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:15:00.000Z",
         "updated_at": "2024-07-15T11:15:00.000Z"
@@ -1362,7 +1362,7 @@
         "story_id": 16,
         "given": "[\"Given ALIGN-1.1.2: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1.2: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And the validation summary at /evidence/align/16/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:20:00.000Z",
         "updated_at": "2024-07-15T11:20:00.000Z"
@@ -1372,7 +1372,7 @@
         "story_id": 16,
         "given": "[\"Given ALIGN-1.1.2: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1.2: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And the validation summary at /evidence/align/16/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:21:00.000Z",
         "updated_at": "2024-07-15T11:21:00.000Z"
@@ -1382,7 +1382,7 @@
         "story_id": 17,
         "given": "[\"Given ALIGN-1.2.1: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.2.1: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/align/17/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:26:00.000Z",
         "updated_at": "2024-07-15T11:26:00.000Z"
@@ -1392,7 +1392,7 @@
         "story_id": 17,
         "given": "[\"Given ALIGN-1.2.1: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.2.1: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And the validation summary at /evidence/align/17/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:27:00.000Z",
         "updated_at": "2024-07-15T11:27:00.000Z"
@@ -1402,7 +1402,7 @@
         "story_id": 18,
         "given": "[\"Given ALIGN-1.2.2: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.2.2: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And the validation summary at /evidence/align/18/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:32:00.000Z",
         "updated_at": "2024-07-15T11:32:00.000Z"
@@ -1412,7 +1412,7 @@
         "story_id": 18,
         "given": "[\"Given ALIGN-1.2.2: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.2.2: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And the validation summary at /evidence/align/18/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:33:00.000Z",
         "updated_at": "2024-07-15T11:33:00.000Z"
@@ -1422,7 +1422,7 @@
         "story_id": 19,
         "given": "[\"Given ALIGN-1.2.3: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.2.3: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/align/19/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:38:00.000Z",
         "updated_at": "2024-07-15T11:38:00.000Z"
@@ -1432,7 +1432,7 @@
         "story_id": 19,
         "given": "[\"Given ALIGN-1.2.3: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.2.3: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And the validation summary at /evidence/align/19/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:39:00.000Z",
         "updated_at": "2024-07-15T11:39:00.000Z"
@@ -1442,7 +1442,7 @@
         "story_id": 20,
         "given": "[\"Given ALIGN-1.2.4: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.2.4: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And the validation summary at /evidence/align/20/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:44:00.000Z",
         "updated_at": "2024-07-15T11:44:00.000Z"
@@ -1452,7 +1452,7 @@
         "story_id": 20,
         "given": "[\"Given ALIGN-1.2.4: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.2.4: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And the validation summary at /evidence/align/20/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:45:00.000Z",
         "updated_at": "2024-07-15T11:45:00.000Z"
@@ -1462,7 +1462,7 @@
         "story_id": 21,
         "given": "[\"Given ALIGN-1.3.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.3.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/align/21/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:50:00.000Z",
         "updated_at": "2024-07-15T11:50:00.000Z"
@@ -1472,7 +1472,7 @@
         "story_id": 21,
         "given": "[\"Given ALIGN-1.3.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.3.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And the validation summary at /evidence/align/21/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:51:00.000Z",
         "updated_at": "2024-07-15T11:51:00.000Z"
@@ -1482,7 +1482,7 @@
         "story_id": 22,
         "given": "[\"Given ALIGN-1.3.2: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.3.2: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/align/22/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:56:00.000Z",
         "updated_at": "2024-07-15T11:56:00.000Z"
@@ -1492,7 +1492,7 @@
         "story_id": 22,
         "given": "[\"Given ALIGN-1.3.2: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.3.2: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And the validation summary at /evidence/align/22/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T11:57:00.000Z",
         "updated_at": "2024-07-15T11:57:00.000Z"
@@ -1502,7 +1502,7 @@
         "story_id": 23,
         "given": "[\"Given ALIGN-1.3.3: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.3.3: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And the validation summary at /evidence/align/23/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:02:00.000Z",
         "updated_at": "2024-07-15T12:02:00.000Z"
@@ -1512,7 +1512,7 @@
         "story_id": 23,
         "given": "[\"Given ALIGN-1.3.3: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.3.3: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And the validation summary at /evidence/align/23/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:03:00.000Z",
         "updated_at": "2024-07-15T12:03:00.000Z"
@@ -1522,7 +1522,7 @@
         "story_id": 24,
         "given": "[\"Given ALIGN-1.3.4: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.3.4: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/align/24/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:08:00.000Z",
         "updated_at": "2024-07-15T12:08:00.000Z"
@@ -1532,7 +1532,7 @@
         "story_id": 24,
         "given": "[\"Given ALIGN-1.3.4: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.3.4: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And the validation summary at /evidence/align/24/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:09:00.000Z",
         "updated_at": "2024-07-15T12:09:00.000Z"
@@ -1542,7 +1542,7 @@
         "story_id": 25,
         "given": "[\"Given ALIGN-1.4.1: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.4.1: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And the validation summary at /evidence/align/25/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:14:00.000Z",
         "updated_at": "2024-07-15T12:14:00.000Z"
@@ -1552,7 +1552,7 @@
         "story_id": 25,
         "given": "[\"Given ALIGN-1.4.1: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.4.1: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And the validation summary at /evidence/align/25/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:15:00.000Z",
         "updated_at": "2024-07-15T12:15:00.000Z"
@@ -1562,7 +1562,7 @@
         "story_id": 26,
         "given": "[\"Given ALIGN-1.4.2: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.4.2: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/align/26/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:20:00.000Z",
         "updated_at": "2024-07-15T12:20:00.000Z"
@@ -1572,7 +1572,7 @@
         "story_id": 26,
         "given": "[\"Given ALIGN-1.4.2: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.4.2: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And the validation summary at /evidence/align/26/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:21:00.000Z",
         "updated_at": "2024-07-15T12:21:00.000Z"
@@ -1582,7 +1582,7 @@
         "story_id": 27,
         "given": "[\"Given ALIGN-1.4.3: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.4.3: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/align/27/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:26:00.000Z",
         "updated_at": "2024-07-15T12:26:00.000Z"
@@ -1592,7 +1592,7 @@
         "story_id": 27,
         "given": "[\"Given ALIGN-1.4.3: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.4.3: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And the validation summary at /evidence/align/27/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:27:00.000Z",
         "updated_at": "2024-07-15T12:27:00.000Z"
@@ -1602,7 +1602,7 @@
         "story_id": 28,
         "given": "[\"Given ALIGN-1.4.4: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.4.4: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/align/28/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:32:00.000Z",
         "updated_at": "2024-07-15T12:32:00.000Z"
@@ -1612,7 +1612,7 @@
         "story_id": 28,
         "given": "[\"Given ALIGN-1.4.4: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.4.4: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And the validation summary at /evidence/align/28/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:33:00.000Z",
         "updated_at": "2024-07-15T12:33:00.000Z"
@@ -1622,7 +1622,7 @@
         "story_id": 29,
         "given": "[\"Given COORD-2.1.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.1.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 760 ms with p95 under 912 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 760 ms with p95 under 912 ms\",\"And the validation summary at /evidence/coord/29/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:38:00.000Z",
         "updated_at": "2024-07-15T12:38:00.000Z"
@@ -1632,7 +1632,7 @@
         "story_id": 29,
         "given": "[\"Given COORD-2.1.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.1.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1040 ms with p95 under 1248 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1040 ms with p95 under 1248 ms\",\"And the validation summary at /evidence/coord/29/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:39:00.000Z",
         "updated_at": "2024-07-15T12:39:00.000Z"
@@ -1642,7 +1642,7 @@
         "story_id": 30,
         "given": "[\"Given COORD-2.1.2: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.1.2: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 840 ms with p95 under 1008 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 840 ms with p95 under 1008 ms\",\"And the validation summary at /evidence/coord/30/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:44:00.000Z",
         "updated_at": "2024-07-15T12:44:00.000Z"
@@ -1652,7 +1652,7 @@
         "story_id": 30,
         "given": "[\"Given COORD-2.1.2: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.1.2: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1090 ms with p95 under 1308 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1090 ms with p95 under 1308 ms\",\"And the validation summary at /evidence/coord/30/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:45:00.000Z",
         "updated_at": "2024-07-15T12:45:00.000Z"
@@ -1662,7 +1662,7 @@
         "story_id": 31,
         "given": "[\"Given COORD-2.1.3: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.1.3: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And the validation summary at /evidence/coord/31/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:50:00.000Z",
         "updated_at": "2024-07-15T12:50:00.000Z"
@@ -1672,7 +1672,7 @@
         "story_id": 31,
         "given": "[\"Given COORD-2.1.3: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.1.3: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And the validation summary at /evidence/coord/31/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:51:00.000Z",
         "updated_at": "2024-07-15T12:51:00.000Z"
@@ -1682,7 +1682,7 @@
         "story_id": 32,
         "given": "[\"Given COORD-2.1.4: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.1.4: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/coord/32/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:56:00.000Z",
         "updated_at": "2024-07-15T12:56:00.000Z"
@@ -1692,7 +1692,7 @@
         "story_id": 32,
         "given": "[\"Given COORD-2.1.4: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.1.4: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And the validation summary at /evidence/coord/32/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T12:57:00.000Z",
         "updated_at": "2024-07-15T12:57:00.000Z"
@@ -1702,7 +1702,7 @@
         "story_id": 33,
         "given": "[\"Given COORD-2.1.5: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.1.5: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And the validation summary at /evidence/coord/33/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:02:00.000Z",
         "updated_at": "2024-07-15T13:02:00.000Z"
@@ -1712,7 +1712,7 @@
         "story_id": 33,
         "given": "[\"Given COORD-2.1.5: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.1.5: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And the validation summary at /evidence/coord/33/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:03:00.000Z",
         "updated_at": "2024-07-15T13:03:00.000Z"
@@ -1722,7 +1722,7 @@
         "story_id": 34,
         "given": "[\"Given COORD-2.3.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.3.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/coord/34/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:08:00.000Z",
         "updated_at": "2024-07-15T13:08:00.000Z"
@@ -1732,7 +1732,7 @@
         "story_id": 34,
         "given": "[\"Given COORD-2.3.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.3.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And the validation summary at /evidence/coord/34/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:09:00.000Z",
         "updated_at": "2024-07-15T13:09:00.000Z"
@@ -1742,7 +1742,7 @@
         "story_id": 35,
         "given": "[\"Given COORD-2.5.1: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.5.1: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 760 ms with p95 under 912 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 760 ms with p95 under 912 ms\",\"And the validation summary at /evidence/coord/35/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:14:00.000Z",
         "updated_at": "2024-07-15T13:14:00.000Z"
@@ -1752,7 +1752,7 @@
         "story_id": 35,
         "given": "[\"Given COORD-2.5.1: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.5.1: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1040 ms with p95 under 1248 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1040 ms with p95 under 1248 ms\",\"And the validation summary at /evidence/coord/35/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:15:00.000Z",
         "updated_at": "2024-07-15T13:15:00.000Z"
@@ -1762,7 +1762,7 @@
         "story_id": 36,
         "given": "[\"Given COORD-2.5.2: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.5.2: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/coord/36/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:20:00.000Z",
         "updated_at": "2024-07-15T13:20:00.000Z"
@@ -1772,7 +1772,7 @@
         "story_id": 36,
         "given": "[\"Given COORD-2.5.2: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.5.2: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And the validation summary at /evidence/coord/36/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:21:00.000Z",
         "updated_at": "2024-07-15T13:21:00.000Z"
@@ -1782,7 +1782,7 @@
         "story_id": 37,
         "given": "[\"Given COORD-2.5.3: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for COORD-2.5.3: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/coord/37/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:26:00.000Z",
         "updated_at": "2024-07-15T13:26:00.000Z"
@@ -1792,7 +1792,7 @@
         "story_id": 37,
         "given": "[\"Given COORD-2.5.3: Signal Harmonisation Engine telemetry for Traceabilty_Insight, WorkModel is captured in the evidence lake\",\"And the review cadence for autonomous delivery coordination is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for COORD-2.5.3: Signal Harmonisation Engine\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And the validation summary at /evidence/coord/37/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:27:00.000Z",
         "updated_at": "2024-07-15T13:27:00.000Z"
@@ -1802,7 +1802,7 @@
         "story_id": 38,
         "given": "[\"Given INSIGHT-3.1.1: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for INSIGHT-3.1.1: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/insight/38/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:32:00.000Z",
         "updated_at": "2024-07-15T13:32:00.000Z"
@@ -1812,7 +1812,7 @@
         "story_id": 38,
         "given": "[\"Given INSIGHT-3.1.1: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for INSIGHT-3.1.1: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1115 ms with p95 under 1338 ms\",\"And the validation summary at /evidence/insight/38/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:33:00.000Z",
         "updated_at": "2024-07-15T13:33:00.000Z"
@@ -1822,7 +1822,7 @@
         "story_id": 39,
         "given": "[\"Given INSIGHT-3.1.2: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for INSIGHT-3.1.2: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And the validation summary at /evidence/insight/39/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:38:00.000Z",
         "updated_at": "2024-07-15T13:38:00.000Z"
@@ -1832,7 +1832,7 @@
         "story_id": 39,
         "given": "[\"Given INSIGHT-3.1.2: Experiment Confidence Monitor telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for INSIGHT-3.1.2: Experiment Confidence Monitor\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And the validation summary at /evidence/insight/39/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:39:00.000Z",
         "updated_at": "2024-07-15T13:39:00.000Z"
@@ -1842,7 +1842,7 @@
         "story_id": 40,
         "given": "[\"Given INSIGHT-3.1.3: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for INSIGHT-3.1.3: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And the validation summary at /evidence/insight/40/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:44:00.000Z",
         "updated_at": "2024-07-15T13:44:00.000Z"
@@ -1852,7 +1852,7 @@
         "story_id": 40,
         "given": "[\"Given INSIGHT-3.1.3: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for INSIGHT-3.1.3: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And the validation summary at /evidence/insight/40/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:45:00.000Z",
         "updated_at": "2024-07-15T13:45:00.000Z"
@@ -1862,7 +1862,7 @@
         "story_id": 41,
         "given": "[\"Given INSIGHT-3.2.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for INSIGHT-3.2.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And the validation summary at /evidence/insight/41/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:50:00.000Z",
         "updated_at": "2024-07-15T13:50:00.000Z"
@@ -1872,7 +1872,7 @@
         "story_id": 41,
         "given": "[\"Given INSIGHT-3.2.1: Constraint-aware Sequencer telemetry for Orchestration_Engagement, Review_Governance is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for INSIGHT-3.2.1: Constraint-aware Sequencer\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1065 ms with p95 under 1278 ms\",\"And the validation summary at /evidence/insight/41/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:51:00.000Z",
         "updated_at": "2024-07-15T13:51:00.000Z"
@@ -1882,7 +1882,7 @@
         "story_id": 42,
         "given": "[\"Given INSIGHT-3.2.2: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for INSIGHT-3.2.2: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 920 ms with p95 under 1104 ms\",\"And the validation summary at /evidence/insight/42/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:56:00.000Z",
         "updated_at": "2024-07-15T13:56:00.000Z"
@@ -1892,7 +1892,7 @@
         "story_id": 42,
         "given": "[\"Given INSIGHT-3.2.2: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for INSIGHT-3.2.2: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1140 ms with p95 under 1368 ms\",\"And the validation summary at /evidence/insight/42/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T13:57:00.000Z",
         "updated_at": "2024-07-15T13:57:00.000Z"
@@ -1902,7 +1902,7 @@
         "story_id": 43,
         "given": "[\"Given INSIGHT-3.2.3: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for INSIGHT-3.2.3: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 6 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/insight/43/scenario-1.json lists at least 6 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T14:02:00.000Z",
         "updated_at": "2024-07-15T14:02:00.000Z"
@@ -1912,7 +1912,7 @@
         "story_id": 43,
         "given": "[\"Given INSIGHT-3.2.3: Knowledge Gap Radar telemetry for Document_Intelligence, WorkModel is captured in the evidence lake\",\"And the review cadence for insight co-pilot analytics is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for INSIGHT-3.2.3: Knowledge Gap Radar\",\"And observers watch deployment metrics for a 120-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1015 ms with p95 under 1218 ms\",\"And the validation summary at /evidence/insight/43/scenario-2.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T14:03:00.000Z",
         "updated_at": "2024-07-15T14:03:00.000Z"
@@ -1922,7 +1922,7 @@
         "story_id": 44,
         "given": "[\"Given ALIGN-1.1.1.1: Golden Signal Backfill telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1.1.1: Golden Signal Backfill\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/align/44/scenario-1.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T14:08:00.000Z",
         "updated_at": "2024-07-15T14:08:00.000Z"
@@ -1932,7 +1932,7 @@
         "story_id": 44,
         "given": "[\"Given ALIGN-1.1.1.1: Golden Signal Backfill telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1.1.1: Golden Signal Backfill\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1085 ms with p95 under 1302 ms\",\"And at least 8 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1085 ms with p95 under 1302 ms\",\"And the validation summary at /evidence/align/44/scenario-2.json lists at least 8 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T14:09:00.000Z",
         "updated_at": "2024-07-15T14:09:00.000Z"
@@ -1942,7 +1942,7 @@
         "story_id": 45,
         "given": "[\"Given ALIGN-1.1.1.2: Playbook Drift Checker telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1.1.2: Playbook Drift Checker\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 800 ms with p95 under 960 ms\",\"And the validation summary at /evidence/align/45/scenario-1.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T14:14:00.000Z",
         "updated_at": "2024-07-15T14:14:00.000Z"
@@ -1952,7 +1952,7 @@
         "story_id": 45,
         "given": "[\"Given ALIGN-1.1.1.2: Playbook Drift Checker telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1.1.2: Playbook Drift Checker\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1135 ms with p95 under 1362 ms\",\"And at least 8 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1135 ms with p95 under 1362 ms\",\"And the validation summary at /evidence/align/45/scenario-2.json lists at least 8 events with zero Sev-1 regressions\"]",
         "status": "Pass",
         "created_at": "2024-07-15T14:15:00.000Z",
         "updated_at": "2024-07-15T14:15:00.000Z"
@@ -1962,8 +1962,8 @@
         "story_id": 46,
         "given": "[\"Given ALIGN-1.1.1.3: Cross-team Forecast Sync telemetry for WorkModel, Orchestration_Engagement is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1.1.3: Cross-team Forecast Sync\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
-        "status": "Need review with update",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/align/46/scenario-1.json lists at least 7 events with zero Sev-1 regressions\"]",
+        "status": "Pass",
         "created_at": "2024-07-15T14:20:00.000Z",
         "updated_at": "2024-07-15T14:20:00.000Z"
       },
@@ -1972,8 +1972,8 @@
         "story_id": 46,
         "given": "[\"Given ALIGN-1.1.1.3: Cross-team Forecast Sync telemetry for WorkModel, Orchestration_Engagement is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1.1.3: Cross-team Forecast Sync\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1185 ms with p95 under 1422 ms\",\"And at least 8 validation events are recorded with zero Sev-1 regressions\"]",
-        "status": "Draft",
+        "then_step": "[\"Then the median response stays under 1185 ms with p95 under 1422 ms\",\"And the validation summary at /evidence/align/46/scenario-2.json lists at least 8 events with zero Sev-1 regressions\"]",
+        "status": "Pass",
         "created_at": "2024-07-15T14:21:00.000Z",
         "updated_at": "2024-07-15T14:21:00.000Z"
       },
@@ -1982,7 +1982,7 @@
         "story_id": 47,
         "given": "[\"Given ALIGN-1.1.1.4: Golden Signal Backfill telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1.1.4: Golden Signal Backfill\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/align/47/scenario-1.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Need review with update",
         "created_at": "2024-07-15T14:26:00.000Z",
         "updated_at": "2024-07-15T14:26:00.000Z"
@@ -1992,7 +1992,7 @@
         "story_id": 47,
         "given": "[\"Given ALIGN-1.1.1.4: Golden Signal Backfill telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1.1.4: Golden Signal Backfill\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1185 ms with p95 under 1422 ms\",\"And at least 8 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1185 ms with p95 under 1422 ms\",\"And the validation summary at /evidence/align/47/scenario-2.json lists at least 8 events with zero Sev-1 regressions\"]",
         "status": "Draft",
         "created_at": "2024-07-15T14:27:00.000Z",
         "updated_at": "2024-07-15T14:27:00.000Z"
@@ -2002,7 +2002,7 @@
         "story_id": 48,
         "given": "[\"Given ALIGN-1.1.1.5: Golden Signal Backfill telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1.1.5: Golden Signal Backfill\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/align/48/scenario-1.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Need review with update",
         "created_at": "2024-07-15T14:32:00.000Z",
         "updated_at": "2024-07-15T14:32:00.000Z"
@@ -2012,7 +2012,7 @@
         "story_id": 48,
         "given": "[\"Given ALIGN-1.1.1.5: Golden Signal Backfill telemetry for Run_Verify, Traceabilty_Insight is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1.1.5: Golden Signal Backfill\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1185 ms with p95 under 1422 ms\",\"And at least 8 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1185 ms with p95 under 1422 ms\",\"And the validation summary at /evidence/align/48/scenario-2.json lists at least 8 events with zero Sev-1 regressions\"]",
         "status": "Draft",
         "created_at": "2024-07-15T14:33:00.000Z",
         "updated_at": "2024-07-15T14:33:00.000Z"
@@ -2022,7 +2022,7 @@
         "story_id": 49,
         "given": "[\"Given ALIGN-1.1.2.1: Playbook Drift Checker telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1.2.1: Playbook Drift Checker\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 880 ms with p95 under 1056 ms\",\"And the validation summary at /evidence/align/49/scenario-1.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Need review with update",
         "created_at": "2024-07-15T14:38:00.000Z",
         "updated_at": "2024-07-15T14:38:00.000Z"
@@ -2032,7 +2032,7 @@
         "story_id": 49,
         "given": "[\"Given ALIGN-1.1.2.1: Playbook Drift Checker telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1.2.1: Playbook Drift Checker\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1185 ms with p95 under 1422 ms\",\"And at least 8 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1185 ms with p95 under 1422 ms\",\"And the validation summary at /evidence/align/49/scenario-2.json lists at least 8 events with zero Sev-1 regressions\"]",
         "status": "Draft",
         "created_at": "2024-07-15T14:39:00.000Z",
         "updated_at": "2024-07-15T14:39:00.000Z"
@@ -2042,7 +2042,7 @@
         "story_id": 50,
         "given": "[\"Given ALIGN-1.1.2.2: Playbook Drift Checker telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 1 for ALIGN-1.1.2.2: Playbook Drift Checker\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And at least 7 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 720 ms with p95 under 864 ms\",\"And the validation summary at /evidence/align/50/scenario-1.json lists at least 7 events with zero Sev-1 regressions\"]",
         "status": "Need review with update",
         "created_at": "2024-07-15T14:44:00.000Z",
         "updated_at": "2024-07-15T14:44:00.000Z"
@@ -2052,7 +2052,7 @@
         "story_id": 50,
         "given": "[\"Given ALIGN-1.1.2.2: Playbook Drift Checker telemetry for Review_Governance, Document_Intelligence is captured in the evidence lake\",\"And the review cadence for strategic alignment os is configured at 30 minute intervals\"]",
         "when_step": "[\"When the autonomous routines execute scenario 2 for ALIGN-1.1.2.2: Playbook Drift Checker\",\"And observers watch deployment metrics for a 135-minute window\"]",
-        "then_step": "[\"Then the median response stays under 1085 ms with p95 under 1302 ms\",\"And at least 8 validation events are recorded with zero Sev-1 regressions\"]",
+        "then_step": "[\"Then the median response stays under 1085 ms with p95 under 1302 ms\",\"And the validation summary at /evidence/align/50/scenario-2.json lists at least 8 events with zero Sev-1 regressions\"]",
         "status": "Draft",
         "created_at": "2024-07-15T14:45:00.000Z",
         "updated_at": "2024-07-15T14:45:00.000Z"
@@ -2466,67 +2466,67 @@
       },
       {
         "story_id": 5,
-        "depends_on_story_id": 7,
+        "depends_on_story_id": 21,
         "relationship": "blocks"
       },
       {
         "story_id": 10,
-        "depends_on_story_id": 35,
+        "depends_on_story_id": 29,
         "relationship": "blocks"
       },
       {
         "story_id": 11,
-        "depends_on_story_id": 33,
+        "depends_on_story_id": 30,
         "relationship": "blocks"
       },
       {
         "story_id": 12,
-        "depends_on_story_id": 36,
+        "depends_on_story_id": 35,
         "relationship": "blocks"
       },
       {
         "story_id": 19,
-        "depends_on_story_id": 47,
+        "depends_on_story_id": 18,
         "relationship": "blocks"
       },
       {
         "story_id": 20,
-        "depends_on_story_id": 19,
+        "depends_on_story_id": 15,
         "relationship": "blocks"
       },
       {
         "story_id": 22,
-        "depends_on_story_id": 16,
+        "depends_on_story_id": 19,
         "relationship": "blocks"
       },
       {
         "story_id": 25,
-        "depends_on_story_id": 49,
+        "depends_on_story_id": 17,
         "relationship": "blocks"
       },
       {
         "story_id": 31,
-        "depends_on_story_id": 36,
-        "relationship": "blocks"
-      },
-      {
-        "story_id": 32,
-        "depends_on_story_id": 9,
-        "relationship": "blocks"
-      },
-      {
-        "story_id": 34,
         "depends_on_story_id": 12,
         "relationship": "blocks"
       },
       {
+        "story_id": 32,
+        "depends_on_story_id": 11,
+        "relationship": "blocks"
+      },
+      {
+        "story_id": 34,
+        "depends_on_story_id": 2,
+        "relationship": "blocks"
+      },
+      {
         "story_id": 45,
-        "depends_on_story_id": 44,
+        "depends_on_story_id": 47,
         "relationship": "blocks"
       },
       {
         "story_id": 48,
-        "depends_on_story_id": 46,
+        "depends_on_story_id": 22,
         "relationship": "blocks"
       }
     ],
@@ -2575,9 +2575,9 @@
         "id": 5,
         "story_id": 2,
         "title": "EPIC: Autonomous Delivery Coordination :: Design telemetry wiring",
-        "description": "Apply Orchestration_Engagement expertise for EPIC: Autonomous Delivery Coordination.",
+        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for EPIC: Autonomous Delivery Coordination.",
         "status": "Not Started",
-        "assignee_email": "zara.dev@aipm.example",
+        "assignee_email": "marco.support@aipm.example",
         "created_at": "2024-07-15T09:58:00.000Z",
         "updated_at": "2024-07-15T09:58:00.000Z"
       },
@@ -2595,9 +2595,9 @@
         "id": 7,
         "story_id": 2,
         "title": "EPIC: Autonomous Delivery Coordination :: Publish rollout briefing",
-        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for EPIC: Autonomous Delivery Coordination.",
+        "description": "Apply Orchestration_Engagement expertise for EPIC: Autonomous Delivery Coordination.",
         "status": "Blocked",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "omar.ops@aipm.example",
         "created_at": "2024-07-15T10:00:00.000Z",
         "updated_at": "2024-07-15T10:00:00.000Z"
       },
@@ -2605,9 +2605,9 @@
         "id": 8,
         "story_id": 2,
         "title": "EPIC: Autonomous Delivery Coordination :: Automate mitigation runbook",
-        "description": "Apply Run_Verify expertise for EPIC: Autonomous Delivery Coordination.",
+        "description": "Apply Run_Verify expertise (supporting out-of-band) for EPIC: Autonomous Delivery Coordination.",
         "status": "Done",
-        "assignee_email": "indra.qa@aipm.example",
+        "assignee_email": "anika.change@aipm.example",
         "created_at": "2024-07-15T10:01:00.000Z",
         "updated_at": "2024-07-15T10:01:00.000Z"
       },
@@ -2625,9 +2625,9 @@
         "id": 10,
         "story_id": 3,
         "title": "EPIC: Insight Co-Pilot Analytics :: Instrument dataset validation",
-        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for EPIC: Insight Co-Pilot Analytics.",
+        "description": "Apply Document_Intelligence expertise for EPIC: Insight Co-Pilot Analytics.",
         "status": "In Progress",
-        "assignee_email": "marco.support@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T10:05:00.000Z",
         "updated_at": "2024-07-15T10:05:00.000Z"
       },
@@ -2635,9 +2635,9 @@
         "id": 11,
         "story_id": 3,
         "title": "EPIC: Insight Co-Pilot Analytics :: Publish rollout briefing",
-        "description": "Apply Traceabilty_Insight expertise for EPIC: Insight Co-Pilot Analytics.",
+        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for EPIC: Insight Co-Pilot Analytics.",
         "status": "Blocked",
-        "assignee_email": "li.quants@aipm.example",
+        "assignee_email": "tess.ux@aipm.example",
         "created_at": "2024-07-15T10:06:00.000Z",
         "updated_at": "2024-07-15T10:06:00.000Z"
       },
@@ -2655,9 +2655,9 @@
         "id": 13,
         "story_id": 4,
         "title": "ALIGN-1.1: Human-in-the-loop Oversight :: Design telemetry wiring",
-        "description": "Apply Review_Governance expertise (supporting out-of-band) for ALIGN-1.1: Human-in-the-loop Oversight.",
+        "description": "Apply Review_Governance expertise for ALIGN-1.1: Human-in-the-loop Oversight.",
         "status": "In Progress",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "noah.gov@aipm.example",
         "created_at": "2024-07-15T10:10:00.000Z",
         "updated_at": "2024-07-15T10:10:00.000Z"
       },
@@ -2707,7 +2707,7 @@
         "title": "ALIGN-1.2: Human-in-the-loop Oversight :: Instrument dataset validation",
         "description": "Apply Document_Intelligence expertise for ALIGN-1.2: Human-in-the-loop Oversight.",
         "status": "Blocked",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "gina.enable@aipm.example",
         "created_at": "2024-07-15T10:17:00.000Z",
         "updated_at": "2024-07-15T10:17:00.000Z"
       },
@@ -2725,9 +2725,9 @@
         "id": 20,
         "story_id": 5,
         "title": "ALIGN-1.2: Human-in-the-loop Oversight :: Automate mitigation runbook",
-        "description": "Apply Document_Intelligence expertise for ALIGN-1.2: Human-in-the-loop Oversight.",
+        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for ALIGN-1.2: Human-in-the-loop Oversight.",
         "status": "Not Started",
-        "assignee_email": "gina.enable@aipm.example",
+        "assignee_email": "peter.sec@aipm.example",
         "created_at": "2024-07-15T10:19:00.000Z",
         "updated_at": "2024-07-15T10:19:00.000Z"
       },
@@ -2737,7 +2737,7 @@
         "title": "ALIGN-1.3: Delivery Capacity Signals :: Design telemetry wiring",
         "description": "Apply Orchestration_Engagement expertise for ALIGN-1.3: Delivery Capacity Signals.",
         "status": "In Progress",
-        "assignee_email": "omar.ops@aipm.example",
+        "assignee_email": "zara.dev@aipm.example",
         "created_at": "2024-07-15T10:22:00.000Z",
         "updated_at": "2024-07-15T10:22:00.000Z"
       },
@@ -2757,7 +2757,7 @@
         "title": "ALIGN-1.3: Delivery Capacity Signals :: Publish rollout briefing",
         "description": "Apply Orchestration_Engagement expertise for ALIGN-1.3: Delivery Capacity Signals.",
         "status": "Done",
-        "assignee_email": "zara.dev@aipm.example",
+        "assignee_email": "maya.ops@aipm.example",
         "created_at": "2024-07-15T10:24:00.000Z",
         "updated_at": "2024-07-15T10:24:00.000Z"
       },
@@ -2767,7 +2767,7 @@
         "title": "ALIGN-1.3: Delivery Capacity Signals :: Automate mitigation runbook",
         "description": "Apply Run_Verify expertise (supporting out-of-band) for ALIGN-1.3: Delivery Capacity Signals.",
         "status": "Not Started",
-        "assignee_email": "peter.sec@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T10:25:00.000Z",
         "updated_at": "2024-07-15T10:25:00.000Z"
       },
@@ -2775,9 +2775,9 @@
         "id": 25,
         "story_id": 7,
         "title": "ALIGN-1.4: Delivery Capacity Signals :: Design telemetry wiring",
-        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for ALIGN-1.4: Delivery Capacity Signals.",
+        "description": "Apply Orchestration_Engagement expertise for ALIGN-1.4: Delivery Capacity Signals.",
         "status": "In Progress",
-        "assignee_email": "marco.support@aipm.example",
+        "assignee_email": "omar.ops@aipm.example",
         "created_at": "2024-07-15T10:28:00.000Z",
         "updated_at": "2024-07-15T10:28:00.000Z"
       },
@@ -2797,7 +2797,7 @@
         "title": "ALIGN-1.4: Delivery Capacity Signals :: Publish rollout briefing",
         "description": "Apply Orchestration_Engagement expertise for ALIGN-1.4: Delivery Capacity Signals.",
         "status": "Done",
-        "assignee_email": "maya.ops@aipm.example",
+        "assignee_email": "zara.dev@aipm.example",
         "created_at": "2024-07-15T10:30:00.000Z",
         "updated_at": "2024-07-15T10:30:00.000Z"
       },
@@ -2805,9 +2805,9 @@
         "id": 28,
         "story_id": 7,
         "title": "ALIGN-1.4: Delivery Capacity Signals :: Automate mitigation runbook",
-        "description": "Apply Run_Verify expertise (supporting out-of-band) for ALIGN-1.4: Delivery Capacity Signals.",
+        "description": "Apply Run_Verify expertise for ALIGN-1.4: Delivery Capacity Signals.",
         "status": "Not Started",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "indra.qa@aipm.example",
         "created_at": "2024-07-15T10:31:00.000Z",
         "updated_at": "2024-07-15T10:31:00.000Z"
       },
@@ -2815,9 +2815,9 @@
         "id": 29,
         "story_id": 8,
         "title": "COORD-2.1: Intake Prioritisation Canvas :: Design telemetry wiring",
-        "description": "Apply WorkModel expertise for COORD-2.1: Intake Prioritisation Canvas.",
+        "description": "Apply WorkModel expertise (supporting out-of-band) for COORD-2.1: Intake Prioritisation Canvas.",
         "status": "In Progress",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "marco.support@aipm.example",
         "created_at": "2024-07-15T10:34:00.000Z",
         "updated_at": "2024-07-15T10:34:00.000Z"
       },
@@ -2835,9 +2835,9 @@
         "id": 31,
         "story_id": 8,
         "title": "COORD-2.1: Intake Prioritisation Canvas :: Publish rollout briefing",
-        "description": "Apply WorkModel expertise (supporting out-of-band) for COORD-2.1: Intake Prioritisation Canvas.",
+        "description": "Apply WorkModel expertise for COORD-2.1: Intake Prioritisation Canvas.",
         "status": "Done",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "irene.ml@aipm.example",
         "created_at": "2024-07-15T10:36:00.000Z",
         "updated_at": "2024-07-15T10:36:00.000Z"
       },
@@ -2855,9 +2855,9 @@
         "id": 33,
         "story_id": 9,
         "title": "COORD-2.2: Intake Prioritisation Canvas :: Design telemetry wiring",
-        "description": "Apply WorkModel expertise for COORD-2.2: Intake Prioritisation Canvas.",
+        "description": "Apply WorkModel expertise (supporting out-of-band) for COORD-2.2: Intake Prioritisation Canvas.",
         "status": "In Progress",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "anika.change@aipm.example",
         "created_at": "2024-07-15T10:40:00.000Z",
         "updated_at": "2024-07-15T10:40:00.000Z"
       },
@@ -2867,7 +2867,7 @@
         "title": "COORD-2.2: Intake Prioritisation Canvas :: Instrument dataset validation",
         "description": "Apply Document_Intelligence expertise for COORD-2.2: Intake Prioritisation Canvas.",
         "status": "Blocked",
-        "assignee_email": "gina.enable@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T10:41:00.000Z",
         "updated_at": "2024-07-15T10:41:00.000Z"
       },
@@ -2875,9 +2875,9 @@
         "id": 35,
         "story_id": 9,
         "title": "COORD-2.2: Intake Prioritisation Canvas :: Publish rollout briefing",
-        "description": "Apply WorkModel expertise (supporting out-of-band) for COORD-2.2: Intake Prioritisation Canvas.",
+        "description": "Apply WorkModel expertise for COORD-2.2: Intake Prioritisation Canvas.",
         "status": "Done",
-        "assignee_email": "peter.sec@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T10:42:00.000Z",
         "updated_at": "2024-07-15T10:42:00.000Z"
       },
@@ -2887,7 +2887,7 @@
         "title": "COORD-2.2: Intake Prioritisation Canvas :: Automate mitigation runbook",
         "description": "Apply Document_Intelligence expertise for COORD-2.2: Intake Prioritisation Canvas.",
         "status": "Not Started",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "gina.enable@aipm.example",
         "created_at": "2024-07-15T10:43:00.000Z",
         "updated_at": "2024-07-15T10:43:00.000Z"
       },
@@ -2937,7 +2937,7 @@
         "title": "COORD-2.4: Delivery Capacity Signals :: Design telemetry wiring",
         "description": "Apply Orchestration_Engagement expertise for COORD-2.4: Delivery Capacity Signals.",
         "status": "In Progress",
-        "assignee_email": "omar.ops@aipm.example",
+        "assignee_email": "zara.dev@aipm.example",
         "created_at": "2024-07-15T10:52:00.000Z",
         "updated_at": "2024-07-15T10:52:00.000Z"
       },
@@ -2957,7 +2957,7 @@
         "title": "COORD-2.4: Delivery Capacity Signals :: Publish rollout briefing",
         "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for COORD-2.4: Delivery Capacity Signals.",
         "status": "Done",
-        "assignee_email": "peter.sec@aipm.example",
+        "assignee_email": "tess.ux@aipm.example",
         "created_at": "2024-07-15T10:54:00.000Z",
         "updated_at": "2024-07-15T10:54:00.000Z"
       },
@@ -2987,7 +2987,7 @@
         "title": "COORD-2.5: Intake Prioritisation Canvas :: Instrument dataset validation",
         "description": "Apply Document_Intelligence expertise for COORD-2.5: Intake Prioritisation Canvas.",
         "status": "Blocked",
-        "assignee_email": "gina.enable@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T10:59:00.000Z",
         "updated_at": "2024-07-15T10:59:00.000Z"
       },
@@ -2995,9 +2995,9 @@
         "id": 47,
         "story_id": 12,
         "title": "COORD-2.5: Intake Prioritisation Canvas :: Publish rollout briefing",
-        "description": "Apply WorkModel expertise (supporting out-of-band) for COORD-2.5: Intake Prioritisation Canvas.",
+        "description": "Apply WorkModel expertise for COORD-2.5: Intake Prioritisation Canvas.",
         "status": "Done",
-        "assignee_email": "marco.support@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T11:00:00.000Z",
         "updated_at": "2024-07-15T11:00:00.000Z"
       },
@@ -3007,7 +3007,7 @@
         "title": "COORD-2.5: Intake Prioritisation Canvas :: Automate mitigation runbook",
         "description": "Apply Document_Intelligence expertise for COORD-2.5: Intake Prioritisation Canvas.",
         "status": "Not Started",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "gina.enable@aipm.example",
         "created_at": "2024-07-15T11:01:00.000Z",
         "updated_at": "2024-07-15T11:01:00.000Z"
       },
@@ -3045,9 +3045,9 @@
         "id": 52,
         "story_id": 13,
         "title": "INSIGHT-3.1: Human-in-the-loop Oversight :: Automate mitigation runbook",
-        "description": "Apply Document_Intelligence expertise for INSIGHT-3.1: Human-in-the-loop Oversight.",
+        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for INSIGHT-3.1: Human-in-the-loop Oversight.",
         "status": "Not Started",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "peter.sec@aipm.example",
         "created_at": "2024-07-15T11:07:00.000Z",
         "updated_at": "2024-07-15T11:07:00.000Z"
       },
@@ -3057,7 +3057,7 @@
         "title": "INSIGHT-3.2: Outcome Evidence Registry :: Design telemetry wiring",
         "description": "Apply Traceabilty_Insight expertise for INSIGHT-3.2: Outcome Evidence Registry.",
         "status": "In Progress",
-        "assignee_email": "leo.data@aipm.example",
+        "assignee_email": "li.quants@aipm.example",
         "created_at": "2024-07-15T11:10:00.000Z",
         "updated_at": "2024-07-15T11:10:00.000Z"
       },
@@ -3077,7 +3077,7 @@
         "title": "INSIGHT-3.2: Outcome Evidence Registry :: Publish rollout briefing",
         "description": "Apply Traceabilty_Insight expertise for INSIGHT-3.2: Outcome Evidence Registry.",
         "status": "Done",
-        "assignee_email": "li.quants@aipm.example",
+        "assignee_email": "leo.data@aipm.example",
         "created_at": "2024-07-15T11:12:00.000Z",
         "updated_at": "2024-07-15T11:12:00.000Z"
       },
@@ -3097,7 +3097,7 @@
         "title": "ALIGN-1.1.1: Constraint-aware Sequencer :: Design telemetry wiring",
         "description": "Apply Orchestration_Engagement expertise for ALIGN-1.1.1: Constraint-aware Sequencer.",
         "status": "Blocked",
-        "assignee_email": "zara.dev@aipm.example",
+        "assignee_email": "maya.ops@aipm.example",
         "created_at": "2024-07-15T11:16:00.000Z",
         "updated_at": "2024-07-15T11:16:00.000Z"
       },
@@ -3105,9 +3105,9 @@
         "id": 58,
         "story_id": 15,
         "title": "ALIGN-1.1.1: Constraint-aware Sequencer :: Instrument dataset validation",
-        "description": "Apply Review_Governance expertise (supporting out-of-band) for ALIGN-1.1.1: Constraint-aware Sequencer.",
+        "description": "Apply Review_Governance expertise for ALIGN-1.1.1: Constraint-aware Sequencer.",
         "status": "Done",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "noah.gov@aipm.example",
         "created_at": "2024-07-15T11:17:00.000Z",
         "updated_at": "2024-07-15T11:17:00.000Z"
       },
@@ -3117,7 +3117,7 @@
         "title": "ALIGN-1.1.1: Constraint-aware Sequencer :: Publish rollout briefing",
         "description": "Apply Orchestration_Engagement expertise for ALIGN-1.1.1: Constraint-aware Sequencer.",
         "status": "Not Started",
-        "assignee_email": "maya.ops@aipm.example",
+        "assignee_email": "omar.ops@aipm.example",
         "created_at": "2024-07-15T11:18:00.000Z",
         "updated_at": "2024-07-15T11:18:00.000Z"
       },
@@ -3135,9 +3135,9 @@
         "id": 61,
         "story_id": 16,
         "title": "ALIGN-1.1.2: Constraint-aware Sequencer :: Design telemetry wiring",
-        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for ALIGN-1.1.2: Constraint-aware Sequencer.",
+        "description": "Apply Orchestration_Engagement expertise for ALIGN-1.1.2: Constraint-aware Sequencer.",
         "status": "Blocked",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "omar.ops@aipm.example",
         "created_at": "2024-07-15T11:22:00.000Z",
         "updated_at": "2024-07-15T11:22:00.000Z"
       },
@@ -3157,7 +3157,7 @@
         "title": "ALIGN-1.1.2: Constraint-aware Sequencer :: Publish rollout briefing",
         "description": "Apply Orchestration_Engagement expertise for ALIGN-1.1.2: Constraint-aware Sequencer.",
         "status": "Not Started",
-        "assignee_email": "omar.ops@aipm.example",
+        "assignee_email": "zara.dev@aipm.example",
         "created_at": "2024-07-15T11:24:00.000Z",
         "updated_at": "2024-07-15T11:24:00.000Z"
       },
@@ -3185,9 +3185,9 @@
         "id": 66,
         "story_id": 17,
         "title": "ALIGN-1.2.1: Experiment Confidence Monitor :: Instrument dataset validation",
-        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.2.1: Experiment Confidence Monitor.",
+        "description": "Apply Traceabilty_Insight expertise for ALIGN-1.2.1: Experiment Confidence Monitor.",
         "status": "Done",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "leo.data@aipm.example",
         "created_at": "2024-07-15T11:29:00.000Z",
         "updated_at": "2024-07-15T11:29:00.000Z"
       },
@@ -3207,7 +3207,7 @@
         "title": "ALIGN-1.2.1: Experiment Confidence Monitor :: Automate mitigation runbook",
         "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.2.1: Experiment Confidence Monitor.",
         "status": "In Progress",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "anika.change@aipm.example",
         "created_at": "2024-07-15T11:31:00.000Z",
         "updated_at": "2024-07-15T11:31:00.000Z"
       },
@@ -3225,9 +3225,9 @@
         "id": 70,
         "story_id": 18,
         "title": "ALIGN-1.2.2: Constraint-aware Sequencer :: Instrument dataset validation",
-        "description": "Apply Review_Governance expertise for ALIGN-1.2.2: Constraint-aware Sequencer.",
+        "description": "Apply Review_Governance expertise (supporting out-of-band) for ALIGN-1.2.2: Constraint-aware Sequencer.",
         "status": "Done",
-        "assignee_email": "noah.gov@aipm.example",
+        "assignee_email": "peter.sec@aipm.example",
         "created_at": "2024-07-15T11:35:00.000Z",
         "updated_at": "2024-07-15T11:35:00.000Z"
       },
@@ -3237,7 +3237,7 @@
         "title": "ALIGN-1.2.2: Constraint-aware Sequencer :: Publish rollout briefing",
         "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for ALIGN-1.2.2: Constraint-aware Sequencer.",
         "status": "Not Started",
-        "assignee_email": "peter.sec@aipm.example",
+        "assignee_email": "marco.support@aipm.example",
         "created_at": "2024-07-15T11:36:00.000Z",
         "updated_at": "2024-07-15T11:36:00.000Z"
       },
@@ -3265,9 +3265,9 @@
         "id": 74,
         "story_id": 19,
         "title": "ALIGN-1.2.3: Experiment Confidence Monitor :: Instrument dataset validation",
-        "description": "Apply Traceabilty_Insight expertise for ALIGN-1.2.3: Experiment Confidence Monitor.",
+        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.2.3: Experiment Confidence Monitor.",
         "status": "Done",
-        "assignee_email": "leo.data@aipm.example",
+        "assignee_email": "tess.ux@aipm.example",
         "created_at": "2024-07-15T11:41:00.000Z",
         "updated_at": "2024-07-15T11:41:00.000Z"
       },
@@ -3277,7 +3277,7 @@
         "title": "ALIGN-1.2.3: Experiment Confidence Monitor :: Publish rollout briefing",
         "description": "Apply Run_Verify expertise (supporting out-of-band) for ALIGN-1.2.3: Experiment Confidence Monitor.",
         "status": "Not Started",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "peter.sec@aipm.example",
         "created_at": "2024-07-15T11:42:00.000Z",
         "updated_at": "2024-07-15T11:42:00.000Z"
       },
@@ -3287,7 +3287,7 @@
         "title": "ALIGN-1.2.3: Experiment Confidence Monitor :: Automate mitigation runbook",
         "description": "Apply Traceabilty_Insight expertise for ALIGN-1.2.3: Experiment Confidence Monitor.",
         "status": "In Progress",
-        "assignee_email": "leo.data@aipm.example",
+        "assignee_email": "li.quants@aipm.example",
         "created_at": "2024-07-15T11:43:00.000Z",
         "updated_at": "2024-07-15T11:43:00.000Z"
       },
@@ -3295,9 +3295,9 @@
         "id": 77,
         "story_id": 20,
         "title": "ALIGN-1.2.4: Constraint-aware Sequencer :: Design telemetry wiring",
-        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for ALIGN-1.2.4: Constraint-aware Sequencer.",
+        "description": "Apply Orchestration_Engagement expertise for ALIGN-1.2.4: Constraint-aware Sequencer.",
         "status": "Blocked",
-        "assignee_email": "irene.ml@aipm.example",
+        "assignee_email": "maya.ops@aipm.example",
         "created_at": "2024-07-15T11:46:00.000Z",
         "updated_at": "2024-07-15T11:46:00.000Z"
       },
@@ -3305,9 +3305,9 @@
         "id": 78,
         "story_id": 20,
         "title": "ALIGN-1.2.4: Constraint-aware Sequencer :: Instrument dataset validation",
-        "description": "Apply Review_Governance expertise (supporting out-of-band) for ALIGN-1.2.4: Constraint-aware Sequencer.",
+        "description": "Apply Review_Governance expertise for ALIGN-1.2.4: Constraint-aware Sequencer.",
         "status": "Done",
-        "assignee_email": "marco.support@aipm.example",
+        "assignee_email": "noah.gov@aipm.example",
         "created_at": "2024-07-15T11:47:00.000Z",
         "updated_at": "2024-07-15T11:47:00.000Z"
       },
@@ -3345,9 +3345,9 @@
         "id": 82,
         "story_id": 21,
         "title": "ALIGN-1.3.1: Constraint-aware Sequencer :: Instrument dataset validation",
-        "description": "Apply Review_Governance expertise for ALIGN-1.3.1: Constraint-aware Sequencer.",
+        "description": "Apply Review_Governance expertise (supporting out-of-band) for ALIGN-1.3.1: Constraint-aware Sequencer.",
         "status": "Done",
-        "assignee_email": "noah.gov@aipm.example",
+        "assignee_email": "tess.ux@aipm.example",
         "created_at": "2024-07-15T11:53:00.000Z",
         "updated_at": "2024-07-15T11:53:00.000Z"
       },
@@ -3355,9 +3355,9 @@
         "id": 83,
         "story_id": 21,
         "title": "ALIGN-1.3.1: Constraint-aware Sequencer :: Publish rollout briefing",
-        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for ALIGN-1.3.1: Constraint-aware Sequencer.",
+        "description": "Apply Orchestration_Engagement expertise for ALIGN-1.3.1: Constraint-aware Sequencer.",
         "status": "Not Started",
-        "assignee_email": "irene.ml@aipm.example",
+        "assignee_email": "zara.dev@aipm.example",
         "created_at": "2024-07-15T11:54:00.000Z",
         "updated_at": "2024-07-15T11:54:00.000Z"
       },
@@ -3377,7 +3377,7 @@
         "title": "ALIGN-1.3.2: Knowledge Gap Radar :: Design telemetry wiring",
         "description": "Apply Document_Intelligence expertise for ALIGN-1.3.2: Knowledge Gap Radar.",
         "status": "Blocked",
-        "assignee_email": "gina.enable@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T11:58:00.000Z",
         "updated_at": "2024-07-15T11:58:00.000Z"
       },
@@ -3385,9 +3385,9 @@
         "id": 86,
         "story_id": 22,
         "title": "ALIGN-1.3.2: Knowledge Gap Radar :: Instrument dataset validation",
-        "description": "Apply WorkModel expertise for ALIGN-1.3.2: Knowledge Gap Radar.",
+        "description": "Apply WorkModel expertise (supporting out-of-band) for ALIGN-1.3.2: Knowledge Gap Radar.",
         "status": "Done",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "marco.support@aipm.example",
         "created_at": "2024-07-15T11:59:00.000Z",
         "updated_at": "2024-07-15T11:59:00.000Z"
       },
@@ -3397,7 +3397,7 @@
         "title": "ALIGN-1.3.2: Knowledge Gap Radar :: Publish rollout briefing",
         "description": "Apply Document_Intelligence expertise for ALIGN-1.3.2: Knowledge Gap Radar.",
         "status": "Not Started",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "gina.enable@aipm.example",
         "created_at": "2024-07-15T12:00:00.000Z",
         "updated_at": "2024-07-15T12:00:00.000Z"
       },
@@ -3435,9 +3435,9 @@
         "id": 91,
         "story_id": 23,
         "title": "ALIGN-1.3.3: Signal Harmonisation Engine :: Publish rollout briefing",
-        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.3.3: Signal Harmonisation Engine.",
+        "description": "Apply Traceabilty_Insight expertise for ALIGN-1.3.3: Signal Harmonisation Engine.",
         "status": "Not Started",
-        "assignee_email": "marco.support@aipm.example",
+        "assignee_email": "leo.data@aipm.example",
         "created_at": "2024-07-15T12:06:00.000Z",
         "updated_at": "2024-07-15T12:06:00.000Z"
       },
@@ -3447,7 +3447,7 @@
         "title": "ALIGN-1.3.3: Signal Harmonisation Engine :: Automate mitigation runbook",
         "description": "Apply WorkModel expertise for ALIGN-1.3.3: Signal Harmonisation Engine.",
         "status": "In Progress",
-        "assignee_email": "irene.ml@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T12:07:00.000Z",
         "updated_at": "2024-07-15T12:07:00.000Z"
       },
@@ -3465,9 +3465,9 @@
         "id": 94,
         "story_id": 24,
         "title": "ALIGN-1.3.4: Experiment Confidence Monitor :: Instrument dataset validation",
-        "description": "Apply Traceabilty_Insight expertise for ALIGN-1.3.4: Experiment Confidence Monitor.",
+        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.3.4: Experiment Confidence Monitor.",
         "status": "Done",
-        "assignee_email": "li.quants@aipm.example",
+        "assignee_email": "anika.change@aipm.example",
         "created_at": "2024-07-15T12:11:00.000Z",
         "updated_at": "2024-07-15T12:11:00.000Z"
       },
@@ -3475,9 +3475,9 @@
         "id": 95,
         "story_id": 24,
         "title": "ALIGN-1.3.4: Experiment Confidence Monitor :: Publish rollout briefing",
-        "description": "Apply Run_Verify expertise for ALIGN-1.3.4: Experiment Confidence Monitor.",
+        "description": "Apply Run_Verify expertise (supporting out-of-band) for ALIGN-1.3.4: Experiment Confidence Monitor.",
         "status": "Not Started",
-        "assignee_email": "indra.qa@aipm.example",
+        "assignee_email": "marco.support@aipm.example",
         "created_at": "2024-07-15T12:12:00.000Z",
         "updated_at": "2024-07-15T12:12:00.000Z"
       },
@@ -3495,9 +3495,9 @@
         "id": 97,
         "story_id": 25,
         "title": "ALIGN-1.4.1: Knowledge Gap Radar :: Design telemetry wiring",
-        "description": "Apply Document_Intelligence expertise for ALIGN-1.4.1: Knowledge Gap Radar.",
+        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for ALIGN-1.4.1: Knowledge Gap Radar.",
         "status": "Blocked",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "peter.sec@aipm.example",
         "created_at": "2024-07-15T12:16:00.000Z",
         "updated_at": "2024-07-15T12:16:00.000Z"
       },
@@ -3505,9 +3505,9 @@
         "id": 98,
         "story_id": 25,
         "title": "ALIGN-1.4.1: Knowledge Gap Radar :: Instrument dataset validation",
-        "description": "Apply WorkModel expertise (supporting out-of-band) for ALIGN-1.4.1: Knowledge Gap Radar.",
+        "description": "Apply WorkModel expertise for ALIGN-1.4.1: Knowledge Gap Radar.",
         "status": "Done",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "irene.ml@aipm.example",
         "created_at": "2024-07-15T12:17:00.000Z",
         "updated_at": "2024-07-15T12:17:00.000Z"
       },
@@ -3517,7 +3517,7 @@
         "title": "ALIGN-1.4.1: Knowledge Gap Radar :: Publish rollout briefing",
         "description": "Apply Document_Intelligence expertise for ALIGN-1.4.1: Knowledge Gap Radar.",
         "status": "Not Started",
-        "assignee_email": "gina.enable@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T12:18:00.000Z",
         "updated_at": "2024-07-15T12:18:00.000Z"
       },
@@ -3525,9 +3525,9 @@
         "id": 100,
         "story_id": 25,
         "title": "ALIGN-1.4.1: Knowledge Gap Radar :: Automate mitigation runbook",
-        "description": "Apply WorkModel expertise for ALIGN-1.4.1: Knowledge Gap Radar.",
+        "description": "Apply WorkModel expertise (supporting out-of-band) for ALIGN-1.4.1: Knowledge Gap Radar.",
         "status": "In Progress",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "anika.change@aipm.example",
         "created_at": "2024-07-15T12:19:00.000Z",
         "updated_at": "2024-07-15T12:19:00.000Z"
       },
@@ -3547,7 +3547,7 @@
         "title": "ALIGN-1.4.2: Knowledge Gap Radar :: Instrument dataset validation",
         "description": "Apply WorkModel expertise for ALIGN-1.4.2: Knowledge Gap Radar.",
         "status": "Done",
-        "assignee_email": "irene.ml@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T12:23:00.000Z",
         "updated_at": "2024-07-15T12:23:00.000Z"
       },
@@ -3555,9 +3555,9 @@
         "id": 103,
         "story_id": 26,
         "title": "ALIGN-1.4.2: Knowledge Gap Radar :: Publish rollout briefing",
-        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for ALIGN-1.4.2: Knowledge Gap Radar.",
+        "description": "Apply Document_Intelligence expertise for ALIGN-1.4.2: Knowledge Gap Radar.",
         "status": "Not Started",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T12:24:00.000Z",
         "updated_at": "2024-07-15T12:24:00.000Z"
       },
@@ -3567,7 +3567,7 @@
         "title": "ALIGN-1.4.2: Knowledge Gap Radar :: Automate mitigation runbook",
         "description": "Apply WorkModel expertise for ALIGN-1.4.2: Knowledge Gap Radar.",
         "status": "In Progress",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "irene.ml@aipm.example",
         "created_at": "2024-07-15T12:25:00.000Z",
         "updated_at": "2024-07-15T12:25:00.000Z"
       },
@@ -3575,9 +3575,9 @@
         "id": 105,
         "story_id": 27,
         "title": "ALIGN-1.4.3: Signal Harmonisation Engine :: Design telemetry wiring",
-        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.4.3: Signal Harmonisation Engine.",
+        "description": "Apply Traceabilty_Insight expertise for ALIGN-1.4.3: Signal Harmonisation Engine.",
         "status": "Blocked",
-        "assignee_email": "peter.sec@aipm.example",
+        "assignee_email": "li.quants@aipm.example",
         "created_at": "2024-07-15T12:28:00.000Z",
         "updated_at": "2024-07-15T12:28:00.000Z"
       },
@@ -3587,7 +3587,7 @@
         "title": "ALIGN-1.4.3: Signal Harmonisation Engine :: Instrument dataset validation",
         "description": "Apply WorkModel expertise for ALIGN-1.4.3: Signal Harmonisation Engine.",
         "status": "Done",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "irene.ml@aipm.example",
         "created_at": "2024-07-15T12:29:00.000Z",
         "updated_at": "2024-07-15T12:29:00.000Z"
       },
@@ -3607,7 +3607,7 @@
         "title": "ALIGN-1.4.3: Signal Harmonisation Engine :: Automate mitigation runbook",
         "description": "Apply WorkModel expertise for ALIGN-1.4.3: Signal Harmonisation Engine.",
         "status": "In Progress",
-        "assignee_email": "irene.ml@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T12:31:00.000Z",
         "updated_at": "2024-07-15T12:31:00.000Z"
       },
@@ -3617,7 +3617,7 @@
         "title": "ALIGN-1.4.4: Signal Harmonisation Engine :: Design telemetry wiring",
         "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.4.4: Signal Harmonisation Engine.",
         "status": "Blocked",
-        "assignee_email": "peter.sec@aipm.example",
+        "assignee_email": "tess.ux@aipm.example",
         "created_at": "2024-07-15T12:34:00.000Z",
         "updated_at": "2024-07-15T12:34:00.000Z"
       },
@@ -3625,9 +3625,9 @@
         "id": 110,
         "story_id": 28,
         "title": "ALIGN-1.4.4: Signal Harmonisation Engine :: Instrument dataset validation",
-        "description": "Apply WorkModel expertise (supporting out-of-band) for ALIGN-1.4.4: Signal Harmonisation Engine.",
+        "description": "Apply WorkModel expertise for ALIGN-1.4.4: Signal Harmonisation Engine.",
         "status": "Done",
-        "assignee_email": "marco.support@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T12:35:00.000Z",
         "updated_at": "2024-07-15T12:35:00.000Z"
       },
@@ -3635,9 +3635,9 @@
         "id": 111,
         "story_id": 28,
         "title": "ALIGN-1.4.4: Signal Harmonisation Engine :: Publish rollout briefing",
-        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.4.4: Signal Harmonisation Engine.",
+        "description": "Apply Traceabilty_Insight expertise for ALIGN-1.4.4: Signal Harmonisation Engine.",
         "status": "Not Started",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "li.quants@aipm.example",
         "created_at": "2024-07-15T12:36:00.000Z",
         "updated_at": "2024-07-15T12:36:00.000Z"
       },
@@ -3647,7 +3647,7 @@
         "title": "ALIGN-1.4.4: Signal Harmonisation Engine :: Automate mitigation runbook",
         "description": "Apply WorkModel expertise for ALIGN-1.4.4: Signal Harmonisation Engine.",
         "status": "In Progress",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "irene.ml@aipm.example",
         "created_at": "2024-07-15T12:37:00.000Z",
         "updated_at": "2024-07-15T12:37:00.000Z"
       },
@@ -3657,7 +3657,7 @@
         "title": "COORD-2.1.1: Constraint-aware Sequencer :: Design telemetry wiring",
         "description": "Apply Orchestration_Engagement expertise for COORD-2.1.1: Constraint-aware Sequencer.",
         "status": "Blocked",
-        "assignee_email": "zara.dev@aipm.example",
+        "assignee_email": "omar.ops@aipm.example",
         "created_at": "2024-07-15T12:40:00.000Z",
         "updated_at": "2024-07-15T12:40:00.000Z"
       },
@@ -3677,7 +3677,7 @@
         "title": "COORD-2.1.1: Constraint-aware Sequencer :: Publish rollout briefing",
         "description": "Apply Orchestration_Engagement expertise for COORD-2.1.1: Constraint-aware Sequencer.",
         "status": "Not Started",
-        "assignee_email": "omar.ops@aipm.example",
+        "assignee_email": "maya.ops@aipm.example",
         "created_at": "2024-07-15T12:42:00.000Z",
         "updated_at": "2024-07-15T12:42:00.000Z"
       },
@@ -3705,9 +3705,9 @@
         "id": 118,
         "story_id": 30,
         "title": "COORD-2.1.2: Experiment Confidence Monitor :: Instrument dataset validation",
-        "description": "Apply Traceabilty_Insight expertise for COORD-2.1.2: Experiment Confidence Monitor.",
+        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for COORD-2.1.2: Experiment Confidence Monitor.",
         "status": "Done",
-        "assignee_email": "li.quants@aipm.example",
+        "assignee_email": "peter.sec@aipm.example",
         "created_at": "2024-07-15T12:47:00.000Z",
         "updated_at": "2024-07-15T12:47:00.000Z"
       },
@@ -3715,9 +3715,9 @@
         "id": 119,
         "story_id": 30,
         "title": "COORD-2.1.2: Experiment Confidence Monitor :: Publish rollout briefing",
-        "description": "Apply Run_Verify expertise (supporting out-of-band) for COORD-2.1.2: Experiment Confidence Monitor.",
+        "description": "Apply Run_Verify expertise for COORD-2.1.2: Experiment Confidence Monitor.",
         "status": "Not Started",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "indra.qa@aipm.example",
         "created_at": "2024-07-15T12:48:00.000Z",
         "updated_at": "2024-07-15T12:48:00.000Z"
       },
@@ -3757,7 +3757,7 @@
         "title": "COORD-2.1.3: Constraint-aware Sequencer :: Publish rollout briefing",
         "description": "Apply Orchestration_Engagement expertise for COORD-2.1.3: Constraint-aware Sequencer.",
         "status": "Not Started",
-        "assignee_email": "zara.dev@aipm.example",
+        "assignee_email": "omar.ops@aipm.example",
         "created_at": "2024-07-15T12:54:00.000Z",
         "updated_at": "2024-07-15T12:54:00.000Z"
       },
@@ -3775,9 +3775,9 @@
         "id": 125,
         "story_id": 32,
         "title": "COORD-2.1.4: Knowledge Gap Radar :: Design telemetry wiring",
-        "description": "Apply Document_Intelligence expertise for COORD-2.1.4: Knowledge Gap Radar.",
+        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for COORD-2.1.4: Knowledge Gap Radar.",
         "status": "Blocked",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "marco.support@aipm.example",
         "created_at": "2024-07-15T12:58:00.000Z",
         "updated_at": "2024-07-15T12:58:00.000Z"
       },
@@ -3797,7 +3797,7 @@
         "title": "COORD-2.1.4: Knowledge Gap Radar :: Publish rollout briefing",
         "description": "Apply Document_Intelligence expertise for COORD-2.1.4: Knowledge Gap Radar.",
         "status": "Not Started",
-        "assignee_email": "gina.enable@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T13:00:00.000Z",
         "updated_at": "2024-07-15T13:00:00.000Z"
       },
@@ -3805,9 +3805,9 @@
         "id": 128,
         "story_id": 32,
         "title": "COORD-2.1.4: Knowledge Gap Radar :: Automate mitigation runbook",
-        "description": "Apply WorkModel expertise (supporting out-of-band) for COORD-2.1.4: Knowledge Gap Radar.",
+        "description": "Apply WorkModel expertise for COORD-2.1.4: Knowledge Gap Radar.",
         "status": "In Progress",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T13:01:00.000Z",
         "updated_at": "2024-07-15T13:01:00.000Z"
       },
@@ -3815,9 +3815,9 @@
         "id": 129,
         "story_id": 33,
         "title": "COORD-2.1.5: Signal Harmonisation Engine :: Design telemetry wiring",
-        "description": "Apply Traceabilty_Insight expertise for COORD-2.1.5: Signal Harmonisation Engine.",
+        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for COORD-2.1.5: Signal Harmonisation Engine.",
         "status": "Blocked",
-        "assignee_email": "li.quants@aipm.example",
+        "assignee_email": "anika.change@aipm.example",
         "created_at": "2024-07-15T13:04:00.000Z",
         "updated_at": "2024-07-15T13:04:00.000Z"
       },
@@ -3837,7 +3837,7 @@
         "title": "COORD-2.1.5: Signal Harmonisation Engine :: Publish rollout briefing",
         "description": "Apply Traceabilty_Insight expertise for COORD-2.1.5: Signal Harmonisation Engine.",
         "status": "Not Started",
-        "assignee_email": "leo.data@aipm.example",
+        "assignee_email": "li.quants@aipm.example",
         "created_at": "2024-07-15T13:06:00.000Z",
         "updated_at": "2024-07-15T13:06:00.000Z"
       },
@@ -3855,9 +3855,9 @@
         "id": 133,
         "story_id": 34,
         "title": "COORD-2.3.1: Constraint-aware Sequencer :: Design telemetry wiring",
-        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for COORD-2.3.1: Constraint-aware Sequencer.",
+        "description": "Apply Orchestration_Engagement expertise for COORD-2.3.1: Constraint-aware Sequencer.",
         "status": "Blocked",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "zara.dev@aipm.example",
         "created_at": "2024-07-15T13:10:00.000Z",
         "updated_at": "2024-07-15T13:10:00.000Z"
       },
@@ -3865,9 +3865,9 @@
         "id": 134,
         "story_id": 34,
         "title": "COORD-2.3.1: Constraint-aware Sequencer :: Instrument dataset validation",
-        "description": "Apply Review_Governance expertise (supporting out-of-band) for COORD-2.3.1: Constraint-aware Sequencer.",
+        "description": "Apply Review_Governance expertise for COORD-2.3.1: Constraint-aware Sequencer.",
         "status": "Done",
-        "assignee_email": "peter.sec@aipm.example",
+        "assignee_email": "noah.gov@aipm.example",
         "created_at": "2024-07-15T13:11:00.000Z",
         "updated_at": "2024-07-15T13:11:00.000Z"
       },
@@ -3875,9 +3875,9 @@
         "id": 135,
         "story_id": 34,
         "title": "COORD-2.3.1: Constraint-aware Sequencer :: Publish rollout briefing",
-        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for COORD-2.3.1: Constraint-aware Sequencer.",
+        "description": "Apply Orchestration_Engagement expertise for COORD-2.3.1: Constraint-aware Sequencer.",
         "status": "Not Started",
-        "assignee_email": "marco.support@aipm.example",
+        "assignee_email": "omar.ops@aipm.example",
         "created_at": "2024-07-15T13:12:00.000Z",
         "updated_at": "2024-07-15T13:12:00.000Z"
       },
@@ -3895,9 +3895,9 @@
         "id": 137,
         "story_id": 35,
         "title": "COORD-2.5.1: Experiment Confidence Monitor :: Design telemetry wiring",
-        "description": "Apply Run_Verify expertise for COORD-2.5.1: Experiment Confidence Monitor.",
+        "description": "Apply Run_Verify expertise (supporting out-of-band) for COORD-2.5.1: Experiment Confidence Monitor.",
         "status": "Blocked",
-        "assignee_email": "indra.qa@aipm.example",
+        "assignee_email": "tess.ux@aipm.example",
         "created_at": "2024-07-15T13:16:00.000Z",
         "updated_at": "2024-07-15T13:16:00.000Z"
       },
@@ -3925,9 +3925,9 @@
         "id": 140,
         "story_id": 35,
         "title": "COORD-2.5.1: Experiment Confidence Monitor :: Automate mitigation runbook",
-        "description": "Apply Traceabilty_Insight expertise for COORD-2.5.1: Experiment Confidence Monitor.",
+        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for COORD-2.5.1: Experiment Confidence Monitor.",
         "status": "In Progress",
-        "assignee_email": "li.quants@aipm.example",
+        "assignee_email": "peter.sec@aipm.example",
         "created_at": "2024-07-15T13:19:00.000Z",
         "updated_at": "2024-07-15T13:19:00.000Z"
       },
@@ -3935,9 +3935,9 @@
         "id": 141,
         "story_id": 36,
         "title": "COORD-2.5.2: Signal Harmonisation Engine :: Design telemetry wiring",
-        "description": "Apply Traceabilty_Insight expertise for COORD-2.5.2: Signal Harmonisation Engine.",
+        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for COORD-2.5.2: Signal Harmonisation Engine.",
         "status": "Blocked",
-        "assignee_email": "leo.data@aipm.example",
+        "assignee_email": "marco.support@aipm.example",
         "created_at": "2024-07-15T13:22:00.000Z",
         "updated_at": "2024-07-15T13:22:00.000Z"
       },
@@ -3947,7 +3947,7 @@
         "title": "COORD-2.5.2: Signal Harmonisation Engine :: Instrument dataset validation",
         "description": "Apply WorkModel expertise for COORD-2.5.2: Signal Harmonisation Engine.",
         "status": "Done",
-        "assignee_email": "irene.ml@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T13:23:00.000Z",
         "updated_at": "2024-07-15T13:23:00.000Z"
       },
@@ -3955,9 +3955,9 @@
         "id": 143,
         "story_id": 36,
         "title": "COORD-2.5.2: Signal Harmonisation Engine :: Publish rollout briefing",
-        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for COORD-2.5.2: Signal Harmonisation Engine.",
+        "description": "Apply Traceabilty_Insight expertise for COORD-2.5.2: Signal Harmonisation Engine.",
         "status": "Not Started",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "leo.data@aipm.example",
         "created_at": "2024-07-15T13:24:00.000Z",
         "updated_at": "2024-07-15T13:24:00.000Z"
       },
@@ -3967,7 +3967,7 @@
         "title": "COORD-2.5.2: Signal Harmonisation Engine :: Automate mitigation runbook",
         "description": "Apply WorkModel expertise for COORD-2.5.2: Signal Harmonisation Engine.",
         "status": "In Progress",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "irene.ml@aipm.example",
         "created_at": "2024-07-15T13:25:00.000Z",
         "updated_at": "2024-07-15T13:25:00.000Z"
       },
@@ -3977,7 +3977,7 @@
         "title": "COORD-2.5.3: Signal Harmonisation Engine :: Design telemetry wiring",
         "description": "Apply Traceabilty_Insight expertise for COORD-2.5.3: Signal Harmonisation Engine.",
         "status": "Blocked",
-        "assignee_email": "li.quants@aipm.example",
+        "assignee_email": "leo.data@aipm.example",
         "created_at": "2024-07-15T13:28:00.000Z",
         "updated_at": "2024-07-15T13:28:00.000Z"
       },
@@ -3987,7 +3987,7 @@
         "title": "COORD-2.5.3: Signal Harmonisation Engine :: Instrument dataset validation",
         "description": "Apply WorkModel expertise for COORD-2.5.3: Signal Harmonisation Engine.",
         "status": "Done",
-        "assignee_email": "irene.ml@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T13:29:00.000Z",
         "updated_at": "2024-07-15T13:29:00.000Z"
       },
@@ -3997,7 +3997,7 @@
         "title": "COORD-2.5.3: Signal Harmonisation Engine :: Publish rollout briefing",
         "description": "Apply Traceabilty_Insight expertise for COORD-2.5.3: Signal Harmonisation Engine.",
         "status": "Not Started",
-        "assignee_email": "leo.data@aipm.example",
+        "assignee_email": "li.quants@aipm.example",
         "created_at": "2024-07-15T13:30:00.000Z",
         "updated_at": "2024-07-15T13:30:00.000Z"
       },
@@ -4005,9 +4005,9 @@
         "id": 148,
         "story_id": 37,
         "title": "COORD-2.5.3: Signal Harmonisation Engine :: Automate mitigation runbook",
-        "description": "Apply WorkModel expertise for COORD-2.5.3: Signal Harmonisation Engine.",
+        "description": "Apply WorkModel expertise (supporting out-of-band) for COORD-2.5.3: Signal Harmonisation Engine.",
         "status": "In Progress",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "anika.change@aipm.example",
         "created_at": "2024-07-15T13:31:00.000Z",
         "updated_at": "2024-07-15T13:31:00.000Z"
       },
@@ -4057,7 +4057,7 @@
         "title": "INSIGHT-3.1.2: Experiment Confidence Monitor :: Design telemetry wiring",
         "description": "Apply Run_Verify expertise (supporting out-of-band) for INSIGHT-3.1.2: Experiment Confidence Monitor.",
         "status": "Blocked",
-        "assignee_email": "peter.sec@aipm.example",
+        "assignee_email": "tess.ux@aipm.example",
         "created_at": "2024-07-15T13:40:00.000Z",
         "updated_at": "2024-07-15T13:40:00.000Z"
       },
@@ -4065,9 +4065,9 @@
         "id": 154,
         "story_id": 39,
         "title": "INSIGHT-3.1.2: Experiment Confidence Monitor :: Instrument dataset validation",
-        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for INSIGHT-3.1.2: Experiment Confidence Monitor.",
+        "description": "Apply Traceabilty_Insight expertise for INSIGHT-3.1.2: Experiment Confidence Monitor.",
         "status": "Done",
-        "assignee_email": "marco.support@aipm.example",
+        "assignee_email": "li.quants@aipm.example",
         "created_at": "2024-07-15T13:41:00.000Z",
         "updated_at": "2024-07-15T13:41:00.000Z"
       },
@@ -4095,9 +4095,9 @@
         "id": 157,
         "story_id": 40,
         "title": "INSIGHT-3.1.3: Knowledge Gap Radar :: Design telemetry wiring",
-        "description": "Apply Document_Intelligence expertise for INSIGHT-3.1.3: Knowledge Gap Radar.",
+        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for INSIGHT-3.1.3: Knowledge Gap Radar.",
         "status": "Blocked",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "marco.support@aipm.example",
         "created_at": "2024-07-15T13:46:00.000Z",
         "updated_at": "2024-07-15T13:46:00.000Z"
       },
@@ -4157,7 +4157,7 @@
         "title": "INSIGHT-3.2.1: Constraint-aware Sequencer :: Publish rollout briefing",
         "description": "Apply Orchestration_Engagement expertise for INSIGHT-3.2.1: Constraint-aware Sequencer.",
         "status": "Not Started",
-        "assignee_email": "omar.ops@aipm.example",
+        "assignee_email": "zara.dev@aipm.example",
         "created_at": "2024-07-15T13:54:00.000Z",
         "updated_at": "2024-07-15T13:54:00.000Z"
       },
@@ -4165,9 +4165,9 @@
         "id": 164,
         "story_id": 41,
         "title": "INSIGHT-3.2.1: Constraint-aware Sequencer :: Automate mitigation runbook",
-        "description": "Apply Review_Governance expertise for INSIGHT-3.2.1: Constraint-aware Sequencer.",
+        "description": "Apply Review_Governance expertise (supporting out-of-band) for INSIGHT-3.2.1: Constraint-aware Sequencer.",
         "status": "In Progress",
-        "assignee_email": "noah.gov@aipm.example",
+        "assignee_email": "peter.sec@aipm.example",
         "created_at": "2024-07-15T13:55:00.000Z",
         "updated_at": "2024-07-15T13:55:00.000Z"
       },
@@ -4175,9 +4175,9 @@
         "id": 165,
         "story_id": 42,
         "title": "INSIGHT-3.2.2: Knowledge Gap Radar :: Design telemetry wiring",
-        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for INSIGHT-3.2.2: Knowledge Gap Radar.",
+        "description": "Apply Document_Intelligence expertise for INSIGHT-3.2.2: Knowledge Gap Radar.",
         "status": "Blocked",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "gina.enable@aipm.example",
         "created_at": "2024-07-15T13:58:00.000Z",
         "updated_at": "2024-07-15T13:58:00.000Z"
       },
@@ -4187,7 +4187,7 @@
         "title": "INSIGHT-3.2.2: Knowledge Gap Radar :: Instrument dataset validation",
         "description": "Apply WorkModel expertise for INSIGHT-3.2.2: Knowledge Gap Radar.",
         "status": "Done",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "irene.ml@aipm.example",
         "created_at": "2024-07-15T13:59:00.000Z",
         "updated_at": "2024-07-15T13:59:00.000Z"
       },
@@ -4207,7 +4207,7 @@
         "title": "INSIGHT-3.2.2: Knowledge Gap Radar :: Automate mitigation runbook",
         "description": "Apply WorkModel expertise for INSIGHT-3.2.2: Knowledge Gap Radar.",
         "status": "In Progress",
-        "assignee_email": "irene.ml@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T14:01:00.000Z",
         "updated_at": "2024-07-15T14:01:00.000Z"
       },
@@ -4227,7 +4227,7 @@
         "title": "INSIGHT-3.2.3: Knowledge Gap Radar :: Instrument dataset validation",
         "description": "Apply WorkModel expertise for INSIGHT-3.2.3: Knowledge Gap Radar.",
         "status": "Done",
-        "assignee_email": "dan.strat@aipm.example",
+        "assignee_email": "irene.ml@aipm.example",
         "created_at": "2024-07-15T14:05:00.000Z",
         "updated_at": "2024-07-15T14:05:00.000Z"
       },
@@ -4235,9 +4235,9 @@
         "id": 171,
         "story_id": 43,
         "title": "INSIGHT-3.2.3: Knowledge Gap Radar :: Publish rollout briefing",
-        "description": "Apply Document_Intelligence expertise for INSIGHT-3.2.3: Knowledge Gap Radar.",
+        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for INSIGHT-3.2.3: Knowledge Gap Radar.",
         "status": "Not Started",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "tess.ux@aipm.example",
         "created_at": "2024-07-15T14:06:00.000Z",
         "updated_at": "2024-07-15T14:06:00.000Z"
       },
@@ -4245,9 +4245,9 @@
         "id": 172,
         "story_id": 43,
         "title": "INSIGHT-3.2.3: Knowledge Gap Radar :: Automate mitigation runbook",
-        "description": "Apply WorkModel expertise (supporting out-of-band) for INSIGHT-3.2.3: Knowledge Gap Radar.",
+        "description": "Apply WorkModel expertise for INSIGHT-3.2.3: Knowledge Gap Radar.",
         "status": "In Progress",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "dan.strat@aipm.example",
         "created_at": "2024-07-15T14:07:00.000Z",
         "updated_at": "2024-07-15T14:07:00.000Z"
       },
@@ -4285,9 +4285,9 @@
         "id": 176,
         "story_id": 44,
         "title": "ALIGN-1.1.1.1: Golden Signal Backfill :: Automate mitigation runbook",
-        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.1.1.1: Golden Signal Backfill.",
+        "description": "Apply Traceabilty_Insight expertise for ALIGN-1.1.1.1: Golden Signal Backfill.",
         "status": "Blocked",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "leo.data@aipm.example",
         "created_at": "2024-07-15T14:13:00.000Z",
         "updated_at": "2024-07-15T14:13:00.000Z"
       },
@@ -4307,7 +4307,7 @@
         "title": "ALIGN-1.1.1.2: Playbook Drift Checker :: Instrument dataset validation",
         "description": "Apply Document_Intelligence expertise for ALIGN-1.1.1.2: Playbook Drift Checker.",
         "status": "Not Started",
-        "assignee_email": "gina.enable@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T14:17:00.000Z",
         "updated_at": "2024-07-15T14:17:00.000Z"
       },
@@ -4317,7 +4317,7 @@
         "title": "ALIGN-1.1.1.2: Playbook Drift Checker :: Publish rollout briefing",
         "description": "Apply Review_Governance expertise (supporting out-of-band) for ALIGN-1.1.1.2: Playbook Drift Checker.",
         "status": "In Progress",
-        "assignee_email": "peter.sec@aipm.example",
+        "assignee_email": "anika.change@aipm.example",
         "created_at": "2024-07-15T14:18:00.000Z",
         "updated_at": "2024-07-15T14:18:00.000Z"
       },
@@ -4327,7 +4327,7 @@
         "title": "ALIGN-1.1.1.2: Playbook Drift Checker :: Automate mitigation runbook",
         "description": "Apply Document_Intelligence expertise for ALIGN-1.1.1.2: Playbook Drift Checker.",
         "status": "Blocked",
-        "assignee_email": "vera.know@aipm.example",
+        "assignee_email": "gina.enable@aipm.example",
         "created_at": "2024-07-15T14:19:00.000Z",
         "updated_at": "2024-07-15T14:19:00.000Z"
       },
@@ -4345,9 +4345,9 @@
         "id": 182,
         "story_id": 46,
         "title": "ALIGN-1.1.1.3: Cross-team Forecast Sync :: Instrument dataset validation",
-        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for ALIGN-1.1.1.3: Cross-team Forecast Sync.",
+        "description": "Apply Orchestration_Engagement expertise for ALIGN-1.1.1.3: Cross-team Forecast Sync.",
         "status": "Not Started",
-        "assignee_email": "marco.support@aipm.example",
+        "assignee_email": "zara.dev@aipm.example",
         "created_at": "2024-07-15T14:23:00.000Z",
         "updated_at": "2024-07-15T14:23:00.000Z"
       },
@@ -4365,9 +4365,9 @@
         "id": 184,
         "story_id": 46,
         "title": "ALIGN-1.1.1.3: Cross-team Forecast Sync :: Automate mitigation runbook",
-        "description": "Apply Orchestration_Engagement expertise for ALIGN-1.1.1.3: Cross-team Forecast Sync.",
+        "description": "Apply Orchestration_Engagement expertise (supporting out-of-band) for ALIGN-1.1.1.3: Cross-team Forecast Sync.",
         "status": "Blocked",
-        "assignee_email": "maya.ops@aipm.example",
+        "assignee_email": "tess.ux@aipm.example",
         "created_at": "2024-07-15T14:25:00.000Z",
         "updated_at": "2024-07-15T14:25:00.000Z"
       },
@@ -4385,9 +4385,9 @@
         "id": 186,
         "story_id": 47,
         "title": "ALIGN-1.1.1.4: Golden Signal Backfill :: Instrument dataset validation",
-        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.1.1.4: Golden Signal Backfill.",
+        "description": "Apply Traceabilty_Insight expertise for ALIGN-1.1.1.4: Golden Signal Backfill.",
         "status": "Not Started",
-        "assignee_email": "omar.ops@aipm.example",
+        "assignee_email": "li.quants@aipm.example",
         "created_at": "2024-07-15T14:29:00.000Z",
         "updated_at": "2024-07-15T14:29:00.000Z"
       },
@@ -4445,9 +4445,9 @@
         "id": 192,
         "story_id": 48,
         "title": "ALIGN-1.1.1.5: Golden Signal Backfill :: Automate mitigation runbook",
-        "description": "Apply Traceabilty_Insight expertise (supporting out-of-band) for ALIGN-1.1.1.5: Golden Signal Backfill.",
+        "description": "Apply Traceabilty_Insight expertise for ALIGN-1.1.1.5: Golden Signal Backfill.",
         "status": "Blocked",
-        "assignee_email": "tess.ux@aipm.example",
+        "assignee_email": "leo.data@aipm.example",
         "created_at": "2024-07-15T14:37:00.000Z",
         "updated_at": "2024-07-15T14:37:00.000Z"
       },
@@ -4465,9 +4465,9 @@
         "id": 194,
         "story_id": 49,
         "title": "ALIGN-1.1.2.1: Playbook Drift Checker :: Instrument dataset validation",
-        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for ALIGN-1.1.2.1: Playbook Drift Checker.",
+        "description": "Apply Document_Intelligence expertise for ALIGN-1.1.2.1: Playbook Drift Checker.",
         "status": "Not Started",
-        "assignee_email": "zara.dev@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T14:41:00.000Z",
         "updated_at": "2024-07-15T14:41:00.000Z"
       },
@@ -4475,9 +4475,9 @@
         "id": 195,
         "story_id": 49,
         "title": "ALIGN-1.1.2.1: Playbook Drift Checker :: Publish rollout briefing",
-        "description": "Apply Review_Governance expertise for ALIGN-1.1.2.1: Playbook Drift Checker.",
+        "description": "Apply Review_Governance expertise (supporting out-of-band) for ALIGN-1.1.2.1: Playbook Drift Checker.",
         "status": "In Progress",
-        "assignee_email": "noah.gov@aipm.example",
+        "assignee_email": "peter.sec@aipm.example",
         "created_at": "2024-07-15T14:42:00.000Z",
         "updated_at": "2024-07-15T14:42:00.000Z"
       },
@@ -4485,9 +4485,9 @@
         "id": 196,
         "story_id": 49,
         "title": "ALIGN-1.1.2.1: Playbook Drift Checker :: Automate mitigation runbook",
-        "description": "Apply Document_Intelligence expertise (supporting out-of-band) for ALIGN-1.1.2.1: Playbook Drift Checker.",
+        "description": "Apply Document_Intelligence expertise for ALIGN-1.1.2.1: Playbook Drift Checker.",
         "status": "Blocked",
-        "assignee_email": "anika.change@aipm.example",
+        "assignee_email": "vera.know@aipm.example",
         "created_at": "2024-07-15T14:43:00.000Z",
         "updated_at": "2024-07-15T14:43:00.000Z"
       },
@@ -4495,9 +4495,9 @@
         "id": 197,
         "story_id": 50,
         "title": "ALIGN-1.1.2.2: Playbook Drift Checker :: Design telemetry wiring",
-        "description": "Apply Review_Governance expertise for ALIGN-1.1.2.2: Playbook Drift Checker.",
+        "description": "Apply Review_Governance expertise (supporting out-of-band) for ALIGN-1.1.2.2: Playbook Drift Checker.",
         "status": "Done",
-        "assignee_email": "noah.gov@aipm.example",
+        "assignee_email": "anika.change@aipm.example",
         "created_at": "2024-07-15T14:46:00.000Z",
         "updated_at": "2024-07-15T14:46:00.000Z"
       },
