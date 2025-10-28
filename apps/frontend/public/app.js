@@ -2419,6 +2419,7 @@ function renderDetails() {
     pointInput.step = '1';
     pointInput.placeholder = 'Estimate';
     pointInput.value = story.storyPoint != null ? story.storyPoint : '';
+    pointInput.defaultValue = pointInput.value;
     pointInput.className = 'story-point-input';
     pointCell.appendChild(pointInput);
     pointRow.appendChild(pointHeader);
