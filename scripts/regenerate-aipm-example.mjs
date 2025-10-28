@@ -242,8 +242,8 @@ function pickComponents(bias = []) {
 
 const TOTAL_STORIES = 20;
 const MAX_CHILDREN_PER_NODE = 2;
-const TASKS_PER_STORY = 4;
-const TARGET_TASKS = (TOTAL_STORIES - EPICS.length) * TASKS_PER_STORY;
+const MIN_TASKS_PER_STORY = 1;
+const MAX_TASKS_PER_STORY = 4;
 
 let storyIdCounter = 1;
 let testIdCounter = 1;
@@ -656,8 +656,8 @@ function createTasks(story) {
   const componentCycle = story.componentsList;
   const underrepresented = EMPLOYEES.filter((member) => (employeeUsage.get(member.email) ?? 0) === 0);
   let forcedIndex = 0;
-  const taskCount = TASKS_PER_STORY;
-  const totalHours = Math.max(taskCount, Math.round(story.estimatedHours ?? taskCount));
+  const taskCount = sampleInt(MIN_TASKS_PER_STORY, MAX_TASKS_PER_STORY);
+  const totalHours = Math.max(0, Math.round(story.estimatedHours ?? 0));
   const baseAllocations = Array.from({ length: taskCount }, () => 0);
   if (totalHours > 0) {
     const base = Math.floor(totalHours / taskCount);
@@ -1177,8 +1177,13 @@ while (!(generation = buildDataset(attempts))) {
   }
 }
 
-if (tasks.length !== TARGET_TASKS) {
-  throw new Error(`Expected ${TARGET_TASKS} tasks but generated ${tasks.length}`);
+const nonEpicStoryCount = internalStories.filter((story) => story.depth !== 0).length;
+const minTasks = nonEpicStoryCount * MIN_TASKS_PER_STORY;
+const maxTasks = nonEpicStoryCount * MAX_TASKS_PER_STORY;
+if (tasks.length < minTasks || tasks.length > maxTasks) {
+  throw new Error(
+    `Expected between ${minTasks} and ${maxTasks} tasks but generated ${tasks.length}`
+  );
 }
 
 const dataset = {

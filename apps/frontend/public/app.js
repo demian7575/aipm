@@ -108,7 +108,7 @@ const STATUS_CLASS_MAP = {
   Done: 'status-done',
 };
 
-const EPIC_STORY_POINT_THRESHOLD = 10;
+const EPIC_STORY_POINT_THRESHOLD = 20;
 const SMALL_STORY_POINT_WARNING_MESSAGE = 'Story point suggests the slice may be too large.';
 const EPIC_CLASSIFICATION = {
   key: 'epic',
