@@ -3009,7 +3009,7 @@ function renderDetails() {
               </tr>
               <tr>
                 <th scope="row">Estimation (hrs)</th>
-                <td>${formatEstimationHours(task.estimationHours)}</td>
+                <td>${formatEstimationHours(task.estimationHours ?? task.estimation_hours)}</td>
               </tr>
             </tbody>
           </table>

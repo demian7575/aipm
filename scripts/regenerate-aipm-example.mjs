@@ -75,7 +75,8 @@ const TASK_THEMES = [
 const STATUS_OPTIONS = ['Ready', 'In Progress', 'Blocked', 'Done'];
 const TASK_STATUS_OPTIONS = ['Not Started', 'In Progress', 'Blocked', 'Done'];
 const HOURS_PER_STORY_POINT = 8;
-const STORY_POINT_BUCKETS = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+const ESTIMATION_HOURS_SCALE = 0.1;
+const STORY_POINT_BUCKETS = [1, 2, 3, 5, 8, 13, 21];
 
 const EPICS = [
   {
@@ -358,6 +359,11 @@ function createStory({ epic, parent, depth, childIndex }) {
   return internal;
 }
 
+function scaledEstimatedHours(hours) {
+  const scaled = Math.round(hours * ESTIMATION_HOURS_SCALE);
+  return Math.max(1, scaled);
+}
+
 function assignStoryPoints() {
   const childrenMap = new Map();
   internalStories.forEach((story) => {
@@ -383,6 +389,7 @@ function assignStoryPoints() {
       const wiggleRoom = sampleInt(8, Math.max(12, Math.min(28, 16 + story.depth * 4)));
       estimatedHours = scaledChildHours + coordination + wiggleRoom;
     }
+    estimatedHours = scaledEstimatedHours(estimatedHours);
     let normalized = Math.max(1, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
     let storyPoint = STORY_POINT_BUCKETS.find((bucket) => normalized <= bucket) ??
       STORY_POINT_BUCKETS[STORY_POINT_BUCKETS.length - 1];
@@ -393,11 +400,12 @@ function assignStoryPoints() {
       if (storyPoint <= childStoryPointSum) {
         storyPoint = STORY_POINT_BUCKETS.find((bucket) => bucket >= requiredStoryPoints) ?? requiredStoryPoints;
       }
-      const requiredHours = Math.max(estimatedHours, storyPoint * HOURS_PER_STORY_POINT);
-      if (requiredHours !== estimatedHours) {
-        estimatedHours = requiredHours;
-        normalized = Math.max(1, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
-      }
+    }
+
+    const requiredHours = Math.max(estimatedHours, storyPoint * HOURS_PER_STORY_POINT);
+    if (requiredHours !== estimatedHours) {
+      estimatedHours = requiredHours;
+      normalized = Math.max(1, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
     }
 
     story.estimatedHours = estimatedHours;
