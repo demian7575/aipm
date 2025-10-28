@@ -108,6 +108,15 @@ const STATUS_CLASS_MAP = {
   Done: 'status-done',
 };
 
+const EPIC_STORY_POINT_THRESHOLD = 10;
+const SMALL_STORY_POINT_WARNING_MESSAGE = 'Story point suggests the slice may be too large.';
+const EPIC_CLASSIFICATION = {
+  key: 'epic',
+  label: 'EPIC',
+  color: '#92400e',
+  textColor: '#ffffff',
+};
+
 let modalTeardown = null;
 
 const HEATMAP_ACTIVITIES = [
@@ -211,6 +220,25 @@ function parseStoryPointInput(raw) {
     return { value: null, error: 'Story point cannot be negative.' };
   }
   return { value: numeric, error: null };
+}
+
+function parseEstimationHoursInput(raw) {
+  if (raw == null) {
+    return { value: null, error: null };
+  }
+  const trimmed = String(raw).trim();
+  if (trimmed === '') {
+    return { value: null, error: null };
+  }
+  const numeric = Number(trimmed);
+  if (!Number.isFinite(numeric)) {
+    return { value: null, error: 'Estimation hours must be a number.' };
+  }
+  if (numeric < 0) {
+    return { value: null, error: 'Estimation hours cannot be negative.' };
+  }
+  const rounded = Math.round(numeric * 100) / 100;
+  return { value: rounded, error: null };
 }
 
 const state = {
@@ -487,6 +515,75 @@ updateMindmapZoomControls();
 function getStatusClass(status) {
   const normalized = typeof status === 'string' ? status.trim() : '';
   return STATUS_CLASS_MAP[normalized] || STATUS_CLASS_MAP.Draft;
+}
+
+function getNumericStoryPoint(story) {
+  const raw = story?.storyPoint;
+  if (typeof raw === 'number') {
+    return Number.isFinite(raw) ? raw : Number.NaN;
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return Number.NaN;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+  return Number.NaN;
+}
+
+function isEpicStory(story) {
+  const numericPoint = getNumericStoryPoint(story);
+  return Number.isFinite(numericPoint) && numericPoint > EPIC_STORY_POINT_THRESHOLD;
+}
+
+function getEpicClassification(story) {
+  if (!isEpicStory(story)) {
+    return null;
+  }
+  const numericPoint = getNumericStoryPoint(story);
+  return {
+    ...EPIC_CLASSIFICATION,
+    points: Number.isFinite(numericPoint) ? numericPoint : null,
+  };
+}
+
+function formatStoryPointSummary(value) {
+  if (!Number.isFinite(value)) {
+    return '';
+  }
+  return `${value} pt${value === 1 ? '' : 's'}`;
+}
+
+function formatEstimationHours(value) {
+  if (value == null || value === '') {
+    return '—';
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return '—';
+  }
+  const display = Number.isInteger(numeric) ? numeric.toString() : numeric.toFixed(1);
+  return `${display} h`;
+}
+
+function filterEpicSizingWarnings(story, issues) {
+  const list = Array.isArray(issues) ? issues : [];
+  if (!isEpicStory(story)) {
+    return list.slice();
+  }
+  return list.filter((issue) => {
+    if (!issue || issue.source !== 'heuristic') {
+      return true;
+    }
+    const message = typeof issue.message === 'string' ? issue.message.trim() : '';
+    if (message !== SMALL_STORY_POINT_WARNING_MESSAGE) {
+      return true;
+    }
+    const criterion = typeof issue.criterion === 'string' ? issue.criterion.trim().toLowerCase() : '';
+    return criterion !== 'small';
+  });
 }
 
 function normalizeDependencyRelationship(value) {
@@ -1020,6 +1117,9 @@ function renderOutline() {
     } else if (severity === 'warning') {
       row.classList.add('health-warning');
     }
+    if (getEpicClassification(story)) {
+      row.classList.add('classification-epic');
+    }
 
     const caret = document.createElement('div');
     caret.className = 'caret-button';
@@ -1087,6 +1187,21 @@ function createMindmapElement(tag, namespace = false) {
 
 function buildMindmapMetaLines(story) {
   const metaLines = [];
+
+  const epicClassification = getEpicClassification(story);
+  if (epicClassification) {
+    const parts = [epicClassification.label];
+    if (Number.isFinite(epicClassification.points)) {
+      const summary = formatStoryPointSummary(epicClassification.points);
+      if (summary) {
+        parts.push(summary);
+      }
+    }
+    metaLines.push({
+      value: parts.join(' · '),
+      classNames: ['story-meta', 'story-classification', 'is-epic'],
+    });
+  }
 
   return metaLines
     .map((line) => {
@@ -1482,6 +1597,9 @@ function renderMindmap() {
     const group = document.createElementNS(svgNS, 'g');
     group.classList.add('mindmap-node');
     group.setAttribute('data-story-id', String(node.id));
+    if (getEpicClassification(node.story)) {
+      group.classList.add('classification-epic');
+    }
     if (node.story.id === state.selectedStoryId) {
       group.classList.add('selected');
     }
@@ -2183,14 +2301,20 @@ function renderDetails() {
     </div>
   `;
 
-  const investHealth = story.investHealth || {
+  const rawInvestHealth = story.investHealth || {
     satisfied: !story.investWarnings || story.investWarnings.length === 0,
     issues: story.investWarnings || [],
   };
+  const investHealthIssues = filterEpicSizingWarnings(story, rawInvestHealth.issues);
+  const investHealth = {
+    satisfied: investHealthIssues.length === 0,
+    issues: investHealthIssues,
+  };
   const analysisInfo = story.investAnalysis || null;
-  const fallbackWarnings = Array.isArray(analysisInfo?.fallbackWarnings)
-    ? analysisInfo.fallbackWarnings
-    : [];
+  const fallbackWarnings = filterEpicSizingWarnings(
+    story,
+    Array.isArray(analysisInfo?.fallbackWarnings) ? analysisInfo.fallbackWarnings : []
+  );
   let statusSelect = null;
   let statusValueEl = null;
   let statusDescriptionEl = null;
@@ -2232,6 +2356,39 @@ function renderDetails() {
     const summaryCell = document.createElement('td');
     const metaGrid = document.createElement('div');
     metaGrid.className = 'story-meta-grid';
+
+    const epicClassification = getEpicClassification(story);
+    if (epicClassification) {
+      const typeItem = document.createElement('div');
+      typeItem.className = 'story-meta-item';
+      const typeLabel = document.createElement('span');
+      typeLabel.className = 'story-meta-label';
+      typeLabel.textContent = 'Story Type';
+      typeItem.appendChild(typeLabel);
+
+      const typeValue = document.createElement('span');
+      typeValue.className = 'story-meta-value';
+      const badge = document.createElement('span');
+      badge.className = 'story-classification-badge';
+      badge.textContent = epicClassification.label;
+      badge.classList.add(`is-${epicClassification.key}`);
+      badge.style.backgroundColor = epicClassification.color;
+      badge.style.color = epicClassification.textColor;
+      typeValue.appendChild(badge);
+
+      if (Number.isFinite(epicClassification.points)) {
+        const summary = formatStoryPointSummary(epicClassification.points);
+        if (summary) {
+          const detail = document.createElement('span');
+          detail.className = 'story-classification-detail';
+          detail.textContent = `· ${summary}`;
+          typeValue.appendChild(detail);
+        }
+      }
+
+      typeItem.appendChild(typeValue);
+      metaGrid.appendChild(typeItem);
+    }
 
     const healthItem = document.createElement('div');
     healthItem.className = 'story-meta-item';
@@ -2419,6 +2576,7 @@ function renderDetails() {
     pointInput.step = '1';
     pointInput.placeholder = 'Estimate';
     pointInput.value = story.storyPoint != null ? story.storyPoint : '';
+    pointInput.defaultValue = pointInput.value;
     pointInput.className = 'story-point-input';
     pointCell.appendChild(pointInput);
     pointRow.appendChild(pointHeader);
@@ -2848,6 +3006,10 @@ function renderDetails() {
               <tr>
                 <th scope="row">Status</th>
                 <td>${escapeHtml(task.status || TASK_STATUS_OPTIONS[0])}</td>
+              </tr>
+              <tr>
+                <th scope="row">Estimation (hrs)</th>
+                <td>${formatEstimationHours(task.estimationHours)}</td>
               </tr>
             </tbody>
           </table>
@@ -3667,12 +3829,14 @@ function openTaskModal(storyId, task = null) {
     <label>Status
       <select id="task-status"></select>
     </label>
+    <label>Estimation (hours)<input id="task-estimation" type="number" min="0" step="0.5" placeholder="e.g. 4" /></label>
     <label>Description<textarea id="task-description" placeholder="Details about the work"></textarea></label>
   `;
 
   const titleInput = container.querySelector('#task-title');
   const assigneeInput = container.querySelector('#task-assignee');
   const statusSelect = container.querySelector('#task-status');
+  const estimationInput = container.querySelector('#task-estimation');
   const descriptionInput = container.querySelector('#task-description');
 
   TASK_STATUS_OPTIONS.forEach((status) => {
@@ -3686,6 +3850,9 @@ function openTaskModal(storyId, task = null) {
     titleInput.value = task.title || '';
     descriptionInput.value = task.description || '';
     assigneeInput.value = task.assigneeEmail || '';
+    if (task.estimationHours != null && task.estimationHours !== '') {
+      estimationInput.value = task.estimationHours;
+    }
     if (task.status && TASK_STATUS_OPTIONS.includes(task.status)) {
       statusSelect.value = task.status;
     }
@@ -3715,11 +3882,18 @@ function openTaskModal(storyId, task = null) {
             assigneeInput.focus();
             return false;
           }
+          const estimationResult = parseEstimationHoursInput(estimationInput.value);
+          if (estimationResult.error) {
+            showToast(estimationResult.error, 'error');
+            estimationInput.focus();
+            return false;
+          }
           const payload = {
             title,
             status: statusSelect.value,
             description: descriptionInput.value.trim(),
             assigneeEmail,
+            estimationHours: estimationResult.value,
           };
           try {
             if (isEdit) {

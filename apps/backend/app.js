@@ -36,6 +36,8 @@ export const TASK_STATUS_OPTIONS = [
 
 const TASK_STATUS_DEFAULT = TASK_STATUS_OPTIONS[0];
 
+const EPIC_STORY_POINT_THRESHOLD = 10;
+
 const STORY_DEPENDENCY_RELATIONSHIPS = ['depends', 'blocks'];
 const STORY_DEPENDENCY_DEFAULT = STORY_DEPENDENCY_RELATIONSHIPS[0];
 
@@ -131,6 +133,19 @@ def normalize_task_status(value):
     return TASK_STATUS_OPTIONS[0]
 
 
+def normalize_task_estimation(value):
+    text = normalize_text(value, '')
+    if not text:
+        return None
+    try:
+        number = float(text)
+    except Exception:
+        return None
+    if number < 0:
+        return None
+    return number
+
+
 def normalize_task_assignee(value, fallback='owner@example.com'):
     text = normalize_text(value, '')
     if text:
@@ -222,6 +237,7 @@ try:
           description TEXT DEFAULT '',
           status TEXT DEFAULT 'Not Started',
           assignee_email TEXT NOT NULL,
+          estimation_hours REAL,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
@@ -344,6 +360,7 @@ try:
                 normalize_text(row.get('description'), ''),
                 normalize_task_status(row.get('status')),
                 normalize_task_assignee(row.get('assignee_email')),
+                normalize_task_estimation(row.get('estimation_hours')),
                 normalize_timestamp(row.get('created_at'), row.get('updated_at')),
                 normalize_timestamp(row.get('updated_at'), row.get('created_at')),
             )
@@ -353,8 +370,8 @@ try:
         conn.executemany(
             """
             INSERT INTO tasks (
-              id, story_id, title, description, status, assignee_email, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              id, story_id, title, description, status, assignee_email, estimation_hours, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             task_rows,
         )
@@ -660,7 +677,7 @@ const DEFAULT_COLUMNS = {
   ],
   acceptance_tests: ['id', 'story_id', 'given', 'when_step', 'then_step', 'status', 'created_at', 'updated_at'],
   reference_documents: ['id', 'story_id', 'name', 'url', 'created_at', 'updated_at'],
-  tasks: ['id', 'story_id', 'title', 'description', 'status', 'assignee_email', 'created_at', 'updated_at'],
+  tasks: ['id', 'story_id', 'title', 'description', 'status', 'assignee_email', 'estimation_hours', 'created_at', 'updated_at'],
   story_dependencies: ['story_id', 'depends_on_story_id', 'relationship'],
 };
 
@@ -1560,6 +1577,21 @@ function baselineInvestWarnings(story, options = {}) {
     .filter(Boolean)
     .join(' ');
 
+  let numericStoryPoint = Number.NaN;
+  if (typeof story.storyPoint === 'number') {
+    numericStoryPoint = Number.isFinite(story.storyPoint) ? story.storyPoint : Number.NaN;
+  } else if (typeof story.storyPoint === 'string') {
+    const trimmed = story.storyPoint.trim();
+    if (trimmed) {
+      const parsed = Number(trimmed);
+      if (Number.isFinite(parsed)) {
+        numericStoryPoint = parsed;
+      }
+    }
+  }
+  const hasStoryPointEstimate = Number.isFinite(numericStoryPoint);
+  const epicStory = hasStoryPointEstimate && numericStoryPoint > EPIC_STORY_POINT_THRESHOLD;
+
   if (!story.asA || !story.asA.trim()) {
     warnings.push({
       criterion: 'valuable',
@@ -1641,7 +1673,7 @@ function baselineInvestWarnings(story, options = {}) {
     });
   }
 
-  if (typeof story.storyPoint === 'number' && story.storyPoint >= 13) {
+  if (hasStoryPointEstimate && numericStoryPoint >= 13 && !epicStory) {
     warnings.push({
       criterion: 'small',
       message: 'Story point suggests the slice may be too large.',
@@ -1953,6 +1985,24 @@ function normalizeTaskStatus(value) {
     throw error;
   }
   return match;
+}
+
+function normalizeTaskEstimationHours(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    const error = new Error('Estimation hours must be a number');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (numeric < 0) {
+    const error = new Error('Estimation hours cannot be negative');
+    error.statusCode = 400;
+    throw error;
+  }
+  return numeric;
 }
 
 function normalizeDependencyRelationship(value) {
@@ -3187,10 +3237,18 @@ function insertAcceptanceTest(
 
   function insertTask(
     db,
-    { storyId, title, description = '', status = TASK_STATUS_DEFAULT, assigneeEmail, timestamp = now() }
+    {
+      storyId,
+      title,
+      description = '',
+      status = TASK_STATUS_DEFAULT,
+      assigneeEmail,
+      estimationHours = null,
+      timestamp = now(),
+    }
   ) {
     const statement = db.prepare(
-      'INSERT INTO tasks (story_id, title, description, status, assignee_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+      'INSERT INTO tasks (story_id, title, description, status, assignee_email, estimation_hours, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
     );
     return statement.run(
       storyId,
@@ -3198,6 +3256,7 @@ function insertAcceptanceTest(
       description,
       status,
       assigneeEmail,
+      estimationHours,
       timestamp,
       timestamp
     );
@@ -3218,16 +3277,24 @@ function buildTaskFromRow(row) {
   } catch {
     status = TASK_STATUS_DEFAULT;
   }
-    return {
-      id: row.id,
-      storyId: row.story_id,
-      title: row.title ?? '',
-      description: row.description ?? '',
-      status,
-      assigneeEmail: row.assignee_email ?? '',
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
+  let estimationHours = null;
+  if (row != null && Object.prototype.hasOwnProperty.call(row, 'estimation_hours')) {
+    const numeric = Number(row.estimation_hours);
+    if (Number.isFinite(numeric) && numeric >= 0) {
+      estimationHours = numeric;
+    }
+  }
+  return {
+    id: row.id,
+    storyId: row.story_id,
+    title: row.title ?? '',
+    description: row.description ?? '',
+    status,
+    assigneeEmail: row.assignee_email ?? '',
+    estimationHours,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 function normalizeStoryText(value, fallback) {
@@ -3570,6 +3637,7 @@ async function ensureDatabase() {
       description TEXT DEFAULT '',
       status TEXT DEFAULT 'Not Started',
       assignee_email TEXT NOT NULL,
+      estimation_hours REAL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
@@ -3612,6 +3680,7 @@ async function ensureDatabase() {
   ensureColumn(db, 'tasks', 'description', "description TEXT DEFAULT ''");
   ensureColumn(db, 'tasks', 'status', "status TEXT DEFAULT 'Not Started'");
   ensureColumn(db, 'tasks', 'assignee_email', "assignee_email TEXT DEFAULT ''");
+  ensureColumn(db, 'tasks', 'estimation_hours', 'estimation_hours REAL');
   ensureColumn(db, 'tasks', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'tasks', 'updated_at', 'updated_at TEXT');
 
@@ -3767,6 +3836,32 @@ function attachChildren(stories) {
   return { roots, byId };
 }
 
+function hasActiveProgressChild(children) {
+  if (!Array.isArray(children) || children.length === 0) {
+    return false;
+  }
+  return children.some((child) => {
+    if (!child) return false;
+    const status = safeNormalizeStoryStatus(child.status);
+    return status === 'In Progress' || status === 'Done';
+  });
+}
+
+function propagateParentProgressStatus(nodes) {
+  function walk(story) {
+    if (!story || !Array.isArray(story.children) || story.children.length === 0) {
+      return;
+    }
+    story.children.forEach((child) => walk(child));
+    const storyStatus = safeNormalizeStoryStatus(story.status);
+    if (storyStatus === 'Ready' && hasActiveProgressChild(story.children)) {
+      story.status = 'In Progress';
+    }
+  }
+
+  nodes.forEach((story) => walk(story));
+}
+
 function flattenStories(nodes) {
   const result = [];
   nodes.forEach((node) => {
@@ -3828,6 +3923,8 @@ async function loadStories(db) {
   });
 
   const { roots, byId } = attachChildren(stories);
+
+  propagateParentProgressStatus(roots);
 
   const dependencyRows = loadDependencyRows(db);
   dependencyRows.forEach((row) => {
@@ -4014,6 +4111,11 @@ async function loadStoryWithDetails(db, storyId) {
   taskRows.forEach((taskRow) => {
     story.tasks.push(buildTaskFromRow(taskRow));
   });
+
+  const childRows = db.prepare('SELECT id, status FROM user_stories WHERE parent_id = ?').all(storyId);
+  if (safeNormalizeStoryStatus(story.status) === 'Ready' && hasActiveProgressChild(childRows)) {
+    story.status = 'In Progress';
+  }
 
   const dependencyRows = loadDependencyRows(db).filter(
     (entry) => entry.story_id === storyId || entry.depends_on_story_id === storyId
@@ -4789,6 +4891,7 @@ export async function createApp() {
         if (!assigneeEmail) {
           throw Object.assign(new Error('Task assignee is required'), { statusCode: 400 });
         }
+        const estimationHours = normalizeTaskEstimationHours(payload.estimationHours);
         const timestamp = now();
         const { lastInsertRowid } = insertTask(db, {
           storyId,
@@ -4796,6 +4899,7 @@ export async function createApp() {
           description,
           status,
           assigneeEmail,
+          estimationHours,
           timestamp,
         });
         const refreshed = await loadStoryWithDetails(db, storyId);
@@ -4807,6 +4911,7 @@ export async function createApp() {
           description,
           status,
           assignee_email: assigneeEmail,
+          estimation_hours: estimationHours,
           created_at: timestamp,
           updated_at: timestamp,
         }));
@@ -4835,6 +4940,7 @@ export async function createApp() {
         let nextDescription = existing.description ?? '';
         let nextStatus = existing.status ?? TASK_STATUS_DEFAULT;
         let nextAssigneeEmail = existing.assignee_email ?? '';
+        let nextEstimationHours = existing.estimation_hours ?? null;
         if (Object.prototype.hasOwnProperty.call(payload, 'title')) {
           const title = String(payload.title ?? '').trim();
           if (!title) {
@@ -4865,6 +4971,12 @@ export async function createApp() {
           params.push(assigneeEmail);
           nextAssigneeEmail = assigneeEmail;
         }
+        if (Object.prototype.hasOwnProperty.call(payload, 'estimationHours')) {
+          const estimationHours = normalizeTaskEstimationHours(payload.estimationHours);
+          updates.push('estimation_hours = ?');
+          params.push(estimationHours);
+          nextEstimationHours = estimationHours;
+        }
         if (updates.length === 0) {
           throw Object.assign(new Error('No fields to update'), { statusCode: 400 });
         }
@@ -4882,6 +4994,7 @@ export async function createApp() {
           description: nextDescription,
           status: nextStatus,
           assignee_email: nextAssigneeEmail,
+          estimation_hours: nextEstimationHours,
           updated_at: updatedAt,
         }));
       } catch (error) {

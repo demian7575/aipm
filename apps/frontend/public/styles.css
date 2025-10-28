@@ -252,7 +252,30 @@ textarea {
 }
 
 .outline-item.status-done {
-  border-left-color: #4b5563;
+  border-left-color: #2f2f2f;
+  background: #7f7f7f;
+  color: #2f2f2f;
+}
+
+.outline-item.status-done .title {
+  color: #2f2f2f;
+}
+
+.outline-item.status-done .caret-button {
+  background: #666666;
+  border-color: #2f2f2f;
+  color: #2f2f2f;
+}
+
+.outline-item.status-done:hover {
+  background: #6f6f6f;
+  color: #2f2f2f;
+}
+
+.outline-item.status-done.selected {
+  box-shadow: inset 0 0 0 2px rgba(47, 47, 47, 0.35);
+  background: #6f6f6f;
+  color: #2f2f2f;
 }
 
 .outline-item.health-warning .title {
@@ -263,6 +286,26 @@ textarea {
 .outline-item.health-critical .title {
   color: #b91c1c;
   font-weight: 700;
+}
+
+.outline-item.classification-epic:not(.health-warning):not(.health-critical):not(.status-done) {
+  background: #92400e;
+  color: #ffffff;
+}
+
+.outline-item.classification-epic:not(.health-warning):not(.health-critical):not(.status-done) .title {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.outline-item.classification-epic:not(.health-warning):not(.health-critical):not(.status-done):hover {
+  background: #7a350b;
+  color: #ffffff;
+}
+
+.outline-item.classification-epic:not(.health-warning):not(.health-critical):not(.status-done).selected {
+  background: #6b2f0a;
+  color: #ffffff;
 }
 
 .caret-button {
@@ -475,8 +518,8 @@ body.is-mindmap-panning {
 }
 
 .mindmap-node.status-done rect {
-  stroke: #374151;
-  fill: #4b5563;
+  stroke: #2f2f2f;
+  fill: #7f7f7f;
 }
 
 .mindmap-node.health-warning rect {
@@ -553,6 +596,30 @@ body.is-mindmap-panning {
   color: #b91c1c;
 }
 
+.mindmap-node .story-meta.story-classification {
+  font-weight: 600;
+}
+
+.mindmap-node.classification-epic:not(.status-done) rect {
+  stroke: #6b2f0a;
+  fill: #92400e;
+}
+
+.mindmap-node.classification-epic:not(.health-warning):not(.health-critical):not(.status-done) .story-title {
+  color: #ffffff;
+}
+
+.mindmap-node.classification-epic:not(.status-done) .story-meta.story-classification {
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mindmap-node.classification-epic:not(.status-done) .story-meta,
+.mindmap-node.classification-epic:not(.status-done) .story-status {
+  color: #fef3e7;
+}
+
 .mindmap-node .story-meta {
   font-size: 0.75rem;
   color: #334155;
@@ -587,12 +654,13 @@ body.is-mindmap-panning {
 }
 
 .mindmap-node .story-status.status-done {
-  color: #e5e7eb;
+  color: #2f2f2f;
 }
 
 .mindmap-node.status-done .story-title,
-.mindmap-node.status-done .story-meta {
-  color: #e5e7eb;
+.mindmap-node.status-done .story-meta,
+.mindmap-node.status-done .story-status {
+  color: #2f2f2f;
 }
 
 .mindmap-measure-root {
@@ -674,8 +742,8 @@ body.is-mindmap-panning {
 }
 
 .status-badge.status-done {
-  background: #4b5563;
-  color: #e5e7eb;
+  background: #7f7f7f;
+  color: #2f2f2f;
 }
 
 .status-description {
@@ -1036,6 +1104,28 @@ body.is-mindmap-panning {
 .story-meta-value {
   font-size: 0.95rem;
   color: #0f172a;
+}
+
+.story-classification-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: #475569;
+  color: #ffffff;
+}
+
+.story-classification-badge.is-epic {
+  background: #92400e;
+}
+
+.story-classification-detail {
+  margin-left: 0.45rem;
+  font-size: 0.85rem;
+  color: #475569;
 }
 
 .health-pill {
