@@ -265,6 +265,11 @@ textarea {
   font-weight: 700;
 }
 
+.outline-item.classification-epic:not(.health-warning):not(.health-critical) .title {
+  color: #92400e;
+  font-weight: 600;
+}
+
 .caret-button {
   width: 1.4rem;
   height: 1.4rem;
@@ -551,6 +556,20 @@ body.is-mindmap-panning {
 
 .mindmap-node.health-critical .story-title {
   color: #b91c1c;
+}
+
+.mindmap-node .story-meta.story-classification {
+  font-weight: 600;
+}
+
+.mindmap-node.classification-epic:not(.health-warning):not(.health-critical):not(.status-done) .story-title {
+  color: #92400e;
+}
+
+.mindmap-node.classification-epic:not(.status-done) .story-meta.story-classification {
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .mindmap-node .story-meta {
@@ -1036,6 +1055,28 @@ body.is-mindmap-panning {
 .story-meta-value {
   font-size: 0.95rem;
   color: #0f172a;
+}
+
+.story-classification-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: #475569;
+  color: #ffffff;
+}
+
+.story-classification-badge.is-epic {
+  background: #92400e;
+}
+
+.story-classification-detail {
+  margin-left: 0.45rem;
+  font-size: 0.85rem;
+  color: #475569;
 }
 
 .health-pill {

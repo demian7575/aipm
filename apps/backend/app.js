@@ -36,6 +36,8 @@ export const TASK_STATUS_OPTIONS = [
 
 const TASK_STATUS_DEFAULT = TASK_STATUS_OPTIONS[0];
 
+const EPIC_STORY_POINT_THRESHOLD = 10;
+
 const STORY_DEPENDENCY_RELATIONSHIPS = ['depends', 'blocks'];
 const STORY_DEPENDENCY_DEFAULT = STORY_DEPENDENCY_RELATIONSHIPS[0];
 
@@ -1560,6 +1562,21 @@ function baselineInvestWarnings(story, options = {}) {
     .filter(Boolean)
     .join(' ');
 
+  let numericStoryPoint = Number.NaN;
+  if (typeof story.storyPoint === 'number') {
+    numericStoryPoint = Number.isFinite(story.storyPoint) ? story.storyPoint : Number.NaN;
+  } else if (typeof story.storyPoint === 'string') {
+    const trimmed = story.storyPoint.trim();
+    if (trimmed) {
+      const parsed = Number(trimmed);
+      if (Number.isFinite(parsed)) {
+        numericStoryPoint = parsed;
+      }
+    }
+  }
+  const hasStoryPointEstimate = Number.isFinite(numericStoryPoint);
+  const epicStory = hasStoryPointEstimate && numericStoryPoint > EPIC_STORY_POINT_THRESHOLD;
+
   if (!story.asA || !story.asA.trim()) {
     warnings.push({
       criterion: 'valuable',
@@ -1641,7 +1658,7 @@ function baselineInvestWarnings(story, options = {}) {
     });
   }
 
-  if (typeof story.storyPoint === 'number' && story.storyPoint >= 13) {
+  if (hasStoryPointEstimate && numericStoryPoint >= 13 && !epicStory) {
     warnings.push({
       criterion: 'small',
       message: 'Story point suggests the slice may be too large.',
