@@ -74,6 +74,7 @@ const TASK_THEMES = [
 
 const STATUS_OPTIONS = ['Ready', 'In Progress', 'Blocked', 'Done'];
 const TASK_STATUS_OPTIONS = ['Not Started', 'In Progress', 'Blocked', 'Done'];
+const HOURS_PER_STORY_POINT = 8;
 
 const EPICS = [
   {
@@ -337,6 +338,7 @@ function createStory({ epic, parent, depth, childIndex }) {
     owner,
     dependents: [],
     record,
+    estimatedHours: 0,
   };
   internalStories.push(internal);
   epicStories.set(epic.code, [...(epicStories.get(epic.code) ?? []), internal]);
@@ -367,15 +369,20 @@ function assignStoryPoints() {
   const ordered = [...internalStories].sort((a, b) => b.depth - a.depth);
   ordered.forEach((story) => {
     const children = childrenMap.get(story.id) ?? [];
-    let storyPoint;
+    let estimatedHours;
     if (children.length === 0) {
-      storyPoint = sampleInt(5, 8);
+      const base = sampleInt(12, 32);
+      estimatedHours = base;
     } else {
-      const childSum = children.reduce((total, child) => total + child.story_point, 0);
-      const buffer = Math.max(children.length, Math.ceil(childSum * 0.1));
-      const wiggleRoom = sampleInt(1, Math.max(2, Math.min(6, story.depth + 3)));
-      storyPoint = childSum + buffer + wiggleRoom;
+      const childHours = children.reduce((total, child) => total + (child.estimatedHours ?? 0), 0);
+      const dampener = Math.max(2, 6 - Math.min(story.depth, 5));
+      const scaledChildHours = Math.ceil(childHours / dampener);
+      const coordination = Math.max(children.length * 4, Math.ceil(scaledChildHours * 0.18));
+      const wiggleRoom = sampleInt(8, Math.max(12, Math.min(28, 16 + story.depth * 4)));
+      estimatedHours = scaledChildHours + coordination + wiggleRoom;
     }
+    story.estimatedHours = estimatedHours;
+    const storyPoint = Math.max(1, Math.ceil(estimatedHours / HOURS_PER_STORY_POINT));
     story.story_point = storyPoint;
     story.record.story_point = storyPoint;
   });
@@ -459,7 +466,42 @@ function createTasks(story) {
   const componentCycle = story.componentsList;
   const underrepresented = EMPLOYEES.filter((member) => (employeeUsage.get(member.email) ?? 0) === 0);
   let forcedIndex = 0;
-  for (let idx = 0; idx < 4; idx += 1) {
+  const taskCount = 4;
+  const totalHours = Math.max(taskCount, Math.round(story.estimatedHours ?? taskCount));
+  const baseAllocations = Array.from({ length: taskCount }, () => 0);
+  if (totalHours > 0) {
+    const base = Math.floor(totalHours / taskCount);
+    baseAllocations.fill(base);
+    let remainder = totalHours - base * taskCount;
+    const indices = shuffleInPlace([...baseAllocations.keys()]);
+    for (let idx = 0; idx < remainder; idx += 1) {
+      baseAllocations[indices[idx % taskCount]] += 1;
+    }
+    let adjustments = Math.min(Math.floor(totalHours * 0.1), taskCount * 2);
+    while (adjustments > 0) {
+      const donors = baseAllocations
+        .map((value, index) => ({ value, index }))
+        .filter((entry) => entry.value > 1);
+      if (donors.length === 0) {
+        break;
+      }
+      const donor = donors[Math.floor(rng() * donors.length)].index;
+      let receiver = donor;
+      const guardLimit = 10;
+      let guard = 0;
+      while (receiver === donor && guard < guardLimit) {
+        guard += 1;
+        receiver = Math.floor(rng() * taskCount);
+      }
+      if (receiver === donor) {
+        break;
+      }
+      baseAllocations[donor] -= 1;
+      baseAllocations[receiver] += 1;
+      adjustments -= 1;
+    }
+  }
+  for (let idx = 0; idx < taskCount; idx += 1) {
     const component = componentCycle[idx % componentCycle.length];
     const allowCross = rng() < 0.18;
     let assignee;
@@ -474,6 +516,7 @@ function createTasks(story) {
     const description = `Apply ${component} expertise${
       assignee.expertise === COMPONENT_EXPERTISE[component] ? '' : ' (supporting out-of-band)'
     } for ${story.title}.`;
+    const estimationHours = baseAllocations[idx] ?? 0;
     tasks.push({
       id: taskIdCounter++,
       story_id: story.id,
@@ -481,6 +524,7 @@ function createTasks(story) {
       description,
       status,
       assignee_email: assignee.email,
+      estimation_hours: estimationHours,
       created_at: createdAt,
       updated_at: createdAt,
     });
