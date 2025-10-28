@@ -20,6 +20,16 @@ function sampleInt(min, max) {
   return Math.floor(rng() * (max - min + 1)) + min;
 }
 
+function shuffleInPlace(list) {
+  for (let index = list.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(rng() * (index + 1));
+    const temp = list[index];
+    list[index] = list[swapIndex];
+    list[swapIndex] = temp;
+  }
+  return list;
+}
+
 let sampledMaxDepth = 0;
 
 const COMPONENT_EXPERTISE = {
@@ -654,13 +664,202 @@ function planTopology(maxDepth) {
     });
   });
 
-  finalNodes.sort((a, b) => a.sequence - b.sequence);
+  function reindexChildren(target) {
+    target.children.forEach((child, index) => {
+      child.childIndex = index;
+    });
+  }
+
+  function reparentLeaf(leaf, newParent) {
+    if (!leaf.parent) {
+      return false;
+    }
+    const oldParent = leaf.parent;
+    const oldDepth = leaf.depth;
+    if (oldParent === newParent) {
+      return false;
+    }
+    const newDepth = newParent.depth + 1;
+    if (newDepth > maxDepth) {
+      return false;
+    }
+    if (newParent.children.length >= 5) {
+      return false;
+    }
+    oldParent.children = oldParent.children.filter((child) => child !== leaf);
+    reindexChildren(oldParent);
+    newParent.children.push(leaf);
+    reindexChildren(newParent);
+    leaf.parent = newParent;
+    leaf.depth = newDepth;
+    return oldDepth !== newDepth ? newDepth - oldDepth : 0;
+  }
+
+  function isAncestor(candidate, node) {
+    let current = candidate;
+    while (current) {
+      if (current === node) {
+        return true;
+      }
+      current = current.parent;
+    }
+    return false;
+  }
+
+  function rebalanceAverageDepth() {
+    const targetDepthSum = TOTAL_STORIES * 3;
+    let currentDepthSum = finalNodes.reduce((total, node) => total + node.depth, 0);
+    let depthSevenCount = finalNodes.filter((node) => node.depth === 7).length;
+
+    const guardLimit = 2000;
+    let guard = 0;
+
+    while (currentDepthSum !== targetDepthSum && guard < guardLimit) {
+      guard += 1;
+      const needDeeper = currentDepthSum < targetDepthSum;
+      const leaves = finalNodes.filter(
+        (node) => node.children.length === 0 && node.parent && !node.protectedNode
+      );
+      if (leaves.length === 0) {
+        break;
+      }
+      shuffleInPlace(leaves);
+
+      let adjusted = false;
+      if (needDeeper) {
+        for (const leaf of leaves) {
+          if (leaf.depth >= maxDepth) {
+            continue;
+          }
+          const candidates = finalNodes.filter(
+            (candidate) =>
+              candidate !== leaf &&
+              candidate.children.length < 5 &&
+              candidate.depth >= leaf.depth &&
+              candidate.depth < maxDepth &&
+              !isAncestor(candidate, leaf)
+          );
+          shuffleInPlace(candidates);
+          for (const candidate of candidates) {
+            const prospectiveDepth = candidate.depth + 1;
+            if (prospectiveDepth > maxDepth) {
+              continue;
+            }
+            if (prospectiveDepth === 7 && depthSevenCount >= depthSevenQuota) {
+              continue;
+            }
+            const delta = reparentLeaf(leaf, candidate);
+            if (delta === false) {
+              continue;
+            }
+            if (delta === 0) {
+              continue;
+            }
+            const newDepth = leaf.depth;
+            const oldDepth = newDepth - delta;
+            if (oldDepth !== 7 && newDepth === 7) {
+              depthSevenCount += 1;
+            }
+            if (oldDepth === 7 && newDepth !== 7) {
+              depthSevenCount -= 1;
+            }
+            currentDepthSum += delta;
+            adjusted = true;
+            break;
+          }
+          if (adjusted) {
+            break;
+          }
+        }
+      } else {
+        for (const leaf of leaves) {
+          if (leaf.depth === 7) {
+            continue;
+          }
+          if (leaf.depth <= 1) {
+            continue;
+          }
+          const candidates = finalNodes.filter((candidate) => {
+            if (candidate === leaf) {
+              return false;
+            }
+            if (candidate.children.length >= 5) {
+              return false;
+            }
+            if (leaf.depth === 7 && candidate.depth >= 6) {
+              return false;
+            }
+            return candidate.depth <= leaf.depth - 2;
+          });
+          shuffleInPlace(candidates);
+          for (const candidate of candidates) {
+            if (isAncestor(leaf, candidate)) {
+              continue;
+            }
+            const delta = reparentLeaf(leaf, candidate);
+            if (delta === false) {
+              continue;
+            }
+            if (delta === 0) {
+              continue;
+            }
+            const newDepth = leaf.depth;
+            const oldDepth = newDepth - delta;
+            if (oldDepth !== 7 && newDepth === 7) {
+              depthSevenCount += 1;
+            }
+            if (oldDepth === 7 && newDepth !== 7) {
+              depthSevenCount -= 1;
+            }
+            currentDepthSum += delta;
+            adjusted = true;
+            break;
+          }
+          if (adjusted) {
+            break;
+          }
+        }
+      }
+
+      if (!adjusted) {
+        break;
+      }
+    }
+
+    if (currentDepthSum !== targetDepthSum) {
+      return false;
+    }
+
+    finalNodes.forEach((node) => {
+      node.children.forEach((child, index) => {
+        child.childIndex = index;
+      });
+    });
+
+    return true;
+  }
+
+  if (!rebalanceAverageDepth()) {
+    return null;
+  }
+
+  finalNodes.sort((a, b) => {
+    if (a.depth !== b.depth) {
+      return a.depth - b.depth;
+    }
+    return a.sequence - b.sequence;
+  });
 
   if (maxDepth === 7) {
     const depthSevenNodes = finalNodes.filter((node) => node.depth === 7);
     if (depthSevenNodes.length < depthSevenQuota || depthSevenNodes.length > depthSevenQuota) {
       return null;
     }
+  }
+
+  const depthSum = finalNodes.reduce((total, node) => total + node.depth, 0);
+  if (depthSum !== TOTAL_STORIES * 3) {
+    return null;
   }
 
   const maxObservedDepth = finalNodes.reduce(
