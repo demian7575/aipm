@@ -241,6 +241,61 @@ function parseEstimationHoursInput(raw) {
   return { value: rounded, error: null };
 }
 
+function normalizeTaskRecord(task) {
+  if (!task || typeof task !== 'object') {
+    return null;
+  }
+  const normalized = { ...task };
+  const sources = [task.estimationHours, task.estimation_hours, task.estimation];
+  for (const source of sources) {
+    if (source != null && source !== '') {
+      const numeric = Number(source);
+      if (Number.isFinite(numeric) && numeric >= 0) {
+        normalized.estimationHours = numeric;
+        break;
+      }
+    }
+  }
+  if (!Object.prototype.hasOwnProperty.call(normalized, 'estimationHours')) {
+    normalized.estimationHours = null;
+  }
+  return normalized;
+}
+
+function normalizeStoryTree(story) {
+  if (!story || typeof story !== 'object') {
+    return null;
+  }
+  const normalized = { ...story };
+  if (normalized.storyPoint == null && story.story_point != null) {
+    normalized.storyPoint = story.story_point;
+  }
+  if (Array.isArray(story.tasks)) {
+    normalized.tasks = story.tasks
+      .map((task) => normalizeTaskRecord(task))
+      .filter((task) => task != null);
+  } else {
+    normalized.tasks = [];
+  }
+  if (Array.isArray(story.children)) {
+    normalized.children = story.children
+      .map((child) => normalizeStoryTree(child))
+      .filter((child) => child != null);
+  } else {
+    normalized.children = [];
+  }
+  return normalized;
+}
+
+function normalizeStoryCollection(stories) {
+  if (!Array.isArray(stories)) {
+    return [];
+  }
+  return stories
+    .map((story) => normalizeStoryTree(story))
+    .filter((story) => story != null);
+}
+
 const state = {
   stories: [],
   expanded: new Set(),
@@ -1048,7 +1103,7 @@ async function loadStories(preserveSelection = true) {
       throw new Error('Failed to fetch stories');
     }
     const data = await response.json();
-    state.stories = Array.isArray(data) ? data : [];
+    state.stories = normalizeStoryCollection(Array.isArray(data) ? data : []);
     rebuildStoryIndex();
     if (state.stories.length && state.expanded.size === 0) {
       ensureRootExpansion();
