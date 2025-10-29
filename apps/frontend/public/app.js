@@ -108,7 +108,7 @@ const STATUS_CLASS_MAP = {
   Done: 'status-done',
 };
 
-const EPIC_STORY_POINT_THRESHOLD = 10;
+const EPIC_STORY_POINT_THRESHOLD = 20;
 const SMALL_STORY_POINT_WARNING_MESSAGE = 'Story point suggests the slice may be too large.';
 const EPIC_CLASSIFICATION = {
   key: 'epic',
@@ -239,6 +239,61 @@ function parseEstimationHoursInput(raw) {
   }
   const rounded = Math.round(numeric * 100) / 100;
   return { value: rounded, error: null };
+}
+
+function normalizeTaskRecord(task) {
+  if (!task || typeof task !== 'object') {
+    return null;
+  }
+  const normalized = { ...task };
+  const sources = [task.estimationHours, task.estimation_hours, task.estimation];
+  for (const source of sources) {
+    if (source != null && source !== '') {
+      const numeric = Number(source);
+      if (Number.isFinite(numeric) && numeric >= 0) {
+        normalized.estimationHours = numeric;
+        break;
+      }
+    }
+  }
+  if (!Object.prototype.hasOwnProperty.call(normalized, 'estimationHours')) {
+    normalized.estimationHours = null;
+  }
+  return normalized;
+}
+
+function normalizeStoryTree(story) {
+  if (!story || typeof story !== 'object') {
+    return null;
+  }
+  const normalized = { ...story };
+  if (normalized.storyPoint == null && story.story_point != null) {
+    normalized.storyPoint = story.story_point;
+  }
+  if (Array.isArray(story.tasks)) {
+    normalized.tasks = story.tasks
+      .map((task) => normalizeTaskRecord(task))
+      .filter((task) => task != null);
+  } else {
+    normalized.tasks = [];
+  }
+  if (Array.isArray(story.children)) {
+    normalized.children = story.children
+      .map((child) => normalizeStoryTree(child))
+      .filter((child) => child != null);
+  } else {
+    normalized.children = [];
+  }
+  return normalized;
+}
+
+function normalizeStoryCollection(stories) {
+  if (!Array.isArray(stories)) {
+    return [];
+  }
+  return stories
+    .map((story) => normalizeStoryTree(story))
+    .filter((story) => story != null);
 }
 
 const state = {
@@ -535,6 +590,11 @@ function getNumericStoryPoint(story) {
 
 function isEpicStory(story) {
   const numericPoint = getNumericStoryPoint(story);
+  const hasHierarchy = Array.isArray(story?.children) && story.children.length > 0;
+  const isRoot = story?.parentId == null;
+  if (isRoot && hasHierarchy) {
+    return true;
+  }
   return Number.isFinite(numericPoint) && numericPoint > EPIC_STORY_POINT_THRESHOLD;
 }
 
@@ -1048,7 +1108,7 @@ async function loadStories(preserveSelection = true) {
       throw new Error('Failed to fetch stories');
     }
     const data = await response.json();
-    state.stories = Array.isArray(data) ? data : [];
+    state.stories = normalizeStoryCollection(Array.isArray(data) ? data : []);
     rebuildStoryIndex();
     if (state.stories.length && state.expanded.size === 0) {
       ensureRootExpansion();
@@ -3009,7 +3069,7 @@ function renderDetails() {
               </tr>
               <tr>
                 <th scope="row">Estimation (hrs)</th>
-                <td>${formatEstimationHours(task.estimationHours)}</td>
+    <td>${formatEstimationHours(task.estimationHours ?? task.estimation_hours ?? task.estimation)}</td>
               </tr>
             </tbody>
           </table>
@@ -3850,8 +3910,15 @@ function openTaskModal(storyId, task = null) {
     titleInput.value = task.title || '';
     descriptionInput.value = task.description || '';
     assigneeInput.value = task.assigneeEmail || '';
-    if (task.estimationHours != null && task.estimationHours !== '') {
-      estimationInput.value = task.estimationHours;
+    const estimationSources = [task.estimationHours, task.estimation_hours, task.estimation];
+    for (const source of estimationSources) {
+      if (source != null && source !== '') {
+        const numeric = Number(source);
+        if (Number.isFinite(numeric) && numeric >= 0) {
+          estimationInput.value = numeric;
+          break;
+        }
+      }
     }
     if (task.status && TASK_STATUS_OPTIONS.includes(task.status)) {
       statusSelect.value = task.status;
