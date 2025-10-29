@@ -3805,6 +3805,13 @@ function openAcceptanceTestModal(storyId, options = {}) {
       <p class="ai-draft-status">${test ? '' : 'Generating draft with AI…'}</p>
       <button type="button" class="secondary small" id="ai-draft-refresh">Regenerate Draft</button>
     </div>
+    <div class="idea-section" id="test-idea-section" ${test ? 'hidden' : ''}>
+      <label>Idea<textarea id="test-idea" placeholder="Describe the scenario or behaviour to cover"></textarea></label>
+      <div class="idea-actions">
+        <button type="button" class="secondary small" id="test-idea-generate">Generate</button>
+        <p class="form-hint">Use your idea to draft Given/When/Then steps instantly.</p>
+      </div>
+    </div>
     <label>Given<textarea id="test-given" placeholder="One step per line"></textarea></label>
     <label>When<textarea id="test-when" placeholder="One step per line"></textarea></label>
     <label>Then<textarea id="test-then" placeholder="One observable or measurable step per line"></textarea></label>
@@ -3822,23 +3829,30 @@ function openAcceptanceTestModal(storyId, options = {}) {
   const draftControls = container.querySelector('.ai-draft-controls');
   const draftStatus = container.querySelector('.ai-draft-status');
   const regenerateBtn = container.querySelector('#ai-draft-refresh');
+  const ideaField = container.querySelector('#test-idea');
+  const ideaSection = container.querySelector('#test-idea-section');
+  const ideaGenerateBtn = container.querySelector('#test-idea-generate');
   const givenField = container.querySelector('#test-given');
   const whenField = container.querySelector('#test-when');
   const thenField = container.querySelector('#test-then');
   const statusField = container.querySelector('#test-status');
 
-  async function loadDraft() {
+  async function loadDraft({ idea = '' } = {}) {
     if (!draftControls) return;
     draftControls.hidden = false;
     if (draftStatus) {
-      draftStatus.textContent = 'Generating draft with AI…';
+      draftStatus.textContent = idea ? 'Generating draft from your idea…' : 'Generating draft with AI…';
     }
+    const activeIdea = typeof idea === 'string' ? idea.trim() : '';
     if (regenerateBtn) {
       regenerateBtn.disabled = true;
     }
+    if (ideaGenerateBtn) {
+      ideaGenerateBtn.disabled = true;
+    }
     statusField.value = 'Draft';
     try {
-      const draft = await fetchAcceptanceTestDraft(storyId);
+      const draft = await fetchAcceptanceTestDraft(storyId, activeIdea ? { idea: activeIdea } : undefined);
       if (!draft) {
         if (draftStatus) {
           draftStatus.textContent = 'Unable to generate draft. Fill in the steps manually.';
@@ -3870,6 +3884,9 @@ function openAcceptanceTestModal(storyId, options = {}) {
       if (regenerateBtn) {
         regenerateBtn.disabled = false;
       }
+      if (ideaGenerateBtn) {
+        ideaGenerateBtn.disabled = false;
+      }
     }
   }
 
@@ -3877,6 +3894,19 @@ function openAcceptanceTestModal(storyId, options = {}) {
     regenerateBtn.addEventListener('click', (event) => {
       event.preventDefault();
       loadDraft();
+    });
+  }
+
+  if (ideaGenerateBtn && ideaField) {
+    ideaGenerateBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      const ideaText = ideaField.value.trim();
+      if (!ideaText) {
+        showToast('Enter an idea to generate a draft.', 'error');
+        ideaField.focus();
+        return;
+      }
+      loadDraft({ idea: ideaText });
     });
   }
 
@@ -3889,6 +3919,9 @@ function openAcceptanceTestModal(storyId, options = {}) {
     }
     if (draftControls) {
       draftControls.hidden = true;
+    }
+    if (ideaSection) {
+      ideaSection.hidden = true;
     }
   }
 
@@ -4224,8 +4257,12 @@ async function updateStory(storyId, payload) {
   }
 }
 
-async function fetchAcceptanceTestDraft(storyId) {
-  return await sendJson(`/api/stories/${storyId}/tests/draft`, { method: 'POST' });
+async function fetchAcceptanceTestDraft(storyId, options = {}) {
+  const requestOptions = { method: 'POST' };
+  if (options && typeof options === 'object' && options.idea) {
+    requestOptions.body = { idea: options.idea };
+  }
+  return await sendJson(`/api/stories/${storyId}/tests/draft`, requestOptions);
 }
 
 async function createAcceptanceTest(storyId, payload) {
