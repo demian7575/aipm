@@ -5634,9 +5634,11 @@ export async function createApp() {
             body: prBody,
             assignee,
             reviewers,
-            baseBranch: repositoryMetadata.targetBranch,
+            baseBranch: repositoryMetadata.defaultBranch,
             targetBranch: repositoryMetadata.targetBranch,
             branch: repositoryMetadata.targetBranch,
+            headBranch: repositoryMetadata.targetBranch,
+            sourceBranch: repositoryMetadata.targetBranch,
             template: {
               title: prTitleTemplate,
               body: prBodyTemplate,

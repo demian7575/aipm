@@ -1334,9 +1334,11 @@ test('delegate story to Codex creates a task and records PR details', async (t) 
   assert.equal(sent.body.pullRequest.assignee, 'dev@example.com');
   assert.ok(Array.isArray(sent.body.pullRequest.reviewers));
   assert.deepEqual(sent.body.pullRequest.reviewers.sort(), payload.reviewers.slice().sort());
-  assert.equal(sent.body.pullRequest.baseBranch, 'feature/codex');
+  assert.equal(sent.body.pullRequest.baseBranch, 'main');
   assert.equal(sent.body.pullRequest.branch, 'feature/codex');
   assert.equal(sent.body.pullRequest.targetBranch, 'feature/codex');
+  assert.equal(sent.body.pullRequest.headBranch, 'feature/codex');
+  assert.equal(sent.body.pullRequest.sourceBranch, 'feature/codex');
   assert.equal(sent.body.metadata.plan, 'project');
   assert.ok(sent.body.metadata.repository);
   assert.equal(sent.body.metadata.repository.fullName, 'example/repo');
