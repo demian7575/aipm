@@ -2078,6 +2078,253 @@ function serializeComponents(components) {
   return JSON.stringify(Array.isArray(components) ? components : []);
 }
 
+function collapseWhitespace(value) {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function cleanFragment(value) {
+  const collapsed = collapseWhitespace(value);
+  return collapsed.replace(/^[\s,.;:!?-]+/, '').replace(/[\s,.;:!?]+$/, '');
+}
+
+function sentenceFragment(value) {
+  const cleaned = cleanFragment(value);
+  if (!cleaned) {
+    return '';
+  }
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+function ensureSentence(value) {
+  const fragment = cleanFragment(value);
+  if (!fragment) {
+    return '';
+  }
+  const sentence = fragment.charAt(0).toUpperCase() + fragment.slice(1);
+  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
+}
+
+function limitLength(value, maxLength) {
+  const text = String(value ?? '');
+  if (text.length <= maxLength) {
+    return text;
+  }
+  const truncated = text.slice(0, Math.max(0, maxLength - 1)).trimEnd();
+  return `${truncated}…`;
+}
+
+function toStoryTitle(value) {
+  const fragment = cleanFragment(value);
+  if (!fragment) {
+    return 'New User Story';
+  }
+  const words = fragment.split(/\s+/).map((word) => {
+    if (/^[A-Z0-9]+$/.test(word)) {
+      return word;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+  const title = words.join(' ');
+  return limitLength(title, 120);
+}
+
+function cleanupPersona(value) {
+  let persona = cleanFragment(value)
+    .replace(/^(?:the|a|an|my|our)\s+/i, '')
+    .trim();
+  if (!persona) {
+    return '';
+  }
+  return sentenceFragment(persona);
+}
+
+function cleanupGoal(value) {
+  let goal = cleanFragment(value);
+  goal = goal.replace(/^to\s+/i, '').replace(/^that\s+/i, '');
+  return goal.trim();
+}
+
+function cleanupBenefit(value) {
+  return cleanFragment(value);
+}
+
+function parseIdeaSegments(text) {
+  const normalized = collapseWhitespace(text);
+  const result = { persona: '', goal: '', benefit: '' };
+  if (!normalized) {
+    return result;
+  }
+
+  const personaPattern = /\bas\s+(?:an?\s+)?([^,.;]+?)\s*,?\s*i\s+want\s+(.*?)(?:\s*(?:,|\s)+so\s+that\s+(.+))?$/i;
+  const match = normalized.match(personaPattern);
+  if (match) {
+    result.persona = match[1] ?? '';
+    result.goal = match[2] ?? '';
+    result.benefit = match[3] ?? '';
+    return result;
+  }
+
+  const lower = normalized.toLowerCase();
+  const soIndex = lower.indexOf(' so that ');
+  if (soIndex >= 0) {
+    result.goal = normalized.slice(0, soIndex);
+    result.benefit = normalized.slice(soIndex + 9);
+  } else {
+    result.goal = normalized;
+  }
+
+  if (!result.persona) {
+    const forMatch = normalized.match(/\bfor\s+(?:the\s+)?([a-z][^,.;]+)/i);
+    if (forMatch) {
+      result.persona = forMatch[1] ?? '';
+    }
+  }
+
+  return result;
+}
+
+function lowercaseSentenceFragment(value) {
+  const fragment = sentenceFragment(value);
+  if (!fragment) {
+    return '';
+  }
+  return fragment.charAt(0).toLowerCase() + fragment.slice(1);
+}
+
+function formatComponentSentence(components) {
+  const valid = (Array.isArray(components) ? components : [])
+    .map((component) => String(component || '').trim())
+    .filter((component) => component && component !== UNSPECIFIED_COMPONENT);
+  if (valid.length === 0) {
+    return '';
+  }
+  const readable = valid.map((component) => {
+    const spaced = component
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2');
+    return toStoryTitle(spaced);
+  });
+  const [last] = readable.slice(-1);
+  const initial = readable.slice(0, -1);
+  const list = initial.length ? `${initial.join(', ')} and ${last}` : last;
+  const suffix = readable.length > 1 ? 'components' : 'component';
+  return ensureSentence(`Focus on the ${list} ${suffix}.`);
+}
+
+function deriveStoryTitleFromSegments(segments, normalized) {
+  const goal = cleanupGoal(segments.goal);
+  if (goal) {
+    return toStoryTitle(goal);
+  }
+  let candidate = collapseWhitespace(normalized);
+  candidate = candidate.replace(
+    /^as\s+(?:an?\s+)?[^,.;]+?,?\s*i\s+(?:want|need)\s+/i,
+    ''
+  );
+  const soIndex = candidate.toLowerCase().indexOf(' so that ');
+  if (soIndex >= 0) {
+    candidate = candidate.slice(0, soIndex);
+  }
+  const firstSentence = candidate.split(/(?<=[.!?])\s+/)[0] || candidate;
+  const firstClause = firstSentence.split(/[,:;]/)[0] || firstSentence;
+  return toStoryTitle(firstClause);
+}
+
+function deriveDescriptionFromIdea(text, segments, context = {}, wantFragment = '') {
+  const normalized = collapseWhitespace(text);
+  const parent = context?.parent || null;
+  const components = context?.components || [];
+  const persona = cleanupPersona(segments.persona) || sentenceFragment(parent?.asA) || 'User';
+  const benefitRaw =
+    cleanupBenefit(segments.benefit) || cleanFragment(parent?.soThat || '');
+  const benefitClause = lowercaseSentenceFragment(benefitRaw);
+  let goalClause = lowercaseSentenceFragment(wantFragment || segments.goal || normalized);
+  if (goalClause) {
+    goalClause = /^to\s+/i.test(goalClause) ? goalClause : `to ${goalClause}`;
+  }
+
+  const sentences = [];
+
+  if (persona && goalClause) {
+    const firstSentence = `As a ${persona}, I want ${goalClause}`;
+    sentences.push(ensureSentence(firstSentence));
+  } else if (goalClause) {
+    const firstSentence = `This story enables the team ${goalClause}`;
+    sentences.push(ensureSentence(firstSentence));
+  } else if (normalized) {
+    sentences.push(ensureSentence(normalized));
+  }
+
+  if (benefitClause) {
+    sentences.push(ensureSentence(`This ensures ${benefitClause}`));
+  }
+
+  const componentSentence = formatComponentSentence(components);
+  if (componentSentence) {
+    sentences.push(componentSentence);
+  }
+
+  if (parent?.title) {
+    sentences.push(ensureSentence(`This work supports the parent story "${parent.title}".`));
+  }
+
+  return sentences.filter(Boolean).join(' ');
+}
+
+function generateStoryDraftFromIdea(idea, context = {}) {
+  const normalized = collapseWhitespace(idea);
+  if (!normalized) {
+    throw Object.assign(new Error('Idea text is required'), { statusCode: 400 });
+  }
+
+  const segments = parseIdeaSegments(normalized);
+  const persona = cleanupPersona(segments.persona);
+  const goal = cleanupGoal(segments.goal);
+  const benefit = cleanupBenefit(segments.benefit);
+  const parent = context?.parent || null;
+  const parentComponents = parent
+    ? normalizeComponentsInput(parent.components || [])
+    : [];
+  const parentStoryPoint = Number.isFinite(parent?.storyPoint)
+    ? Number(parent.storyPoint)
+    : Number.isFinite(parent?.story_point)
+    ? Number(parent.story_point)
+    : null;
+
+  let suggestedStoryPoint = null;
+  if (Number.isFinite(parentStoryPoint) && parentStoryPoint > 1) {
+    suggestedStoryPoint = Math.max(1, Math.min(8, Math.round(parentStoryPoint / 2)));
+  }
+
+  const verbPattern = /^(?:implement|enable|provide|allow|support|deliver|build|create|add|improve|automate|migrate|configure|update|design|introduce|establish|monitor|audit|analyze|define|draft|refine|document|collect|optimize|secure|measure|track|streamline|orchestrate)\b/i;
+  let wantFragment = goal;
+  if (wantFragment) {
+    const normalizedGoal = wantFragment.trim().toLowerCase();
+    if (!verbPattern.test(wantFragment) || /^audit\s+\w+ing\b/.test(normalizedGoal)) {
+      wantFragment = `implement ${wantFragment}`;
+    }
+  }
+
+  const draft = {
+    title: deriveStoryTitleFromSegments(segments, normalized),
+    description: deriveDescriptionFromIdea(normalized, segments, { parent, components: parentComponents }, wantFragment),
+    asA: persona || sentenceFragment(parent?.asA) || 'User',
+    iWant: wantFragment ? sentenceFragment(wantFragment) : sentenceFragment(normalized),
+    soThat: benefit ? sentenceFragment(benefit) : sentenceFragment(parent?.soThat || ''),
+    components: parentComponents,
+    storyPoint: suggestedStoryPoint,
+    assigneeEmail: parent?.assigneeEmail ? String(parent.assigneeEmail).trim() : '',
+  };
+
+  if (!draft.soThat) {
+    draft.soThat = '';
+  }
+
+  return draft;
+}
+
 function buildStoryPathLabel(story, storyMap) {
   if (!story) return '';
   if (!storyMap) return story.title || '';
@@ -4498,6 +4745,29 @@ export async function createApp() {
         if (error.code) body.code = error.code;
         if (error.details) body.details = error.details;
         sendJson(res, status, body);
+      }
+      return;
+    }
+
+    if (pathname === '/api/stories/draft' && method === 'POST') {
+      try {
+        const payload = await parseJson(req);
+        const idea = String(payload.idea ?? '').trim();
+        if (!idea) {
+          throw Object.assign(new Error('Idea text is required'), { statusCode: 400 });
+        }
+        const parentId =
+          payload.parentId == null || payload.parentId === '' ? null : Number(payload.parentId);
+        let parent = null;
+        if (Number.isFinite(parentId)) {
+          const stories = await loadStories(db);
+          parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
+        }
+        const draft = generateStoryDraftFromIdea(idea, { parent });
+        sendJson(res, 200, draft);
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to generate story draft' });
       }
       return;
     }
