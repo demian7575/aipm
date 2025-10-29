@@ -1504,6 +1504,16 @@ dialog[data-size='content'] {
   font-size: 0.85rem;
 }
 
+.codex-personal-hint {
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
+.codex-personal-hint code {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+}
+
 .codex-form [data-codex-project][data-codex-plan='personal'] {
   opacity: 0.6;
 }

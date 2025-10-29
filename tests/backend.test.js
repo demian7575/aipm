@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createServer as createHttpServer } from 'node:http';
 import {
   COMPONENT_CATALOG,
+  DEFAULT_CODEX_PERSONAL_URL,
   createApp,
   DATABASE_PATH,
   openDatabase,
@@ -1386,6 +1387,126 @@ test('personal Codex plan falls back to configured delegation URL', async (t) =>
   assert.equal(sent.body.metadata.plan, 'personal');
   assert.equal(sent.body.repository.url, 'https://github.com/personal/repo');
   assert.equal(sent.body.repository.targetBranch, 'main');
+});
+
+test('personal Codex plan uses default delegation URL when none configured', async (t) => {
+  await resetDatabaseFiles();
+
+  const originalPersonal = process.env.AI_PM_CODEX_PERSONAL_URL;
+  const originalProject = process.env.AI_PM_CODEX_PROJECT_URL;
+  const originalLegacyPersonal = process.env.CODEX_PERSONAL_URL;
+  const originalLegacyProject = process.env.CODEX_PROJECT_URL;
+  const originalCodexUrl = process.env.CODEX_URL;
+  const originalAiPmCodexUrl = process.env.AI_PM_CODEX_URL;
+  const originalCoderPersonal = process.env.AI_CODER_PERSONAL_URL;
+  const originalCoderUrl = process.env.AI_CODER_URL;
+
+  delete process.env.AI_PM_CODEX_PERSONAL_URL;
+  delete process.env.AI_PM_CODEX_PROJECT_URL;
+  delete process.env.CODEX_PERSONAL_URL;
+  delete process.env.CODEX_PROJECT_URL;
+  delete process.env.CODEX_URL;
+  delete process.env.AI_PM_CODEX_URL;
+  delete process.env.AI_CODER_PERSONAL_URL;
+  delete process.env.AI_CODER_URL;
+
+  const intercepted = [];
+  const originalFetch = global.fetch;
+
+  global.fetch = async (input, init = {}) => {
+    const url = typeof input === 'string' ? input : input?.url;
+    if (url === DEFAULT_CODEX_PERSONAL_URL) {
+      const bodyText = typeof init.body === 'string' ? init.body : '';
+      let parsedBody = {};
+      if (bodyText) {
+        try {
+          parsedBody = JSON.parse(bodyText);
+        } catch {
+          parsedBody = { raw: bodyText };
+        }
+      }
+      intercepted.push({ url, body: parsedBody, method: init.method || 'GET' });
+      return new Response(
+        JSON.stringify({
+          status: 'submitted',
+          pullRequest: {
+            url: 'https://github.com/personal/repo/pull/9',
+            status: 'open',
+            id: 'PR-9',
+            number: 9,
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    return originalFetch(input, init);
+  };
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    if (originalPersonal !== undefined) process.env.AI_PM_CODEX_PERSONAL_URL = originalPersonal;
+    else delete process.env.AI_PM_CODEX_PERSONAL_URL;
+    if (originalProject !== undefined) process.env.AI_PM_CODEX_PROJECT_URL = originalProject;
+    else delete process.env.AI_PM_CODEX_PROJECT_URL;
+    if (originalLegacyPersonal !== undefined) process.env.CODEX_PERSONAL_URL = originalLegacyPersonal;
+    else delete process.env.CODEX_PERSONAL_URL;
+    if (originalLegacyProject !== undefined) process.env.CODEX_PROJECT_URL = originalLegacyProject;
+    else delete process.env.CODEX_PROJECT_URL;
+    if (originalCodexUrl !== undefined) process.env.CODEX_URL = originalCodexUrl;
+    else delete process.env.CODEX_URL;
+    if (originalAiPmCodexUrl !== undefined) process.env.AI_PM_CODEX_URL = originalAiPmCodexUrl;
+    else delete process.env.AI_PM_CODEX_URL;
+    if (originalCoderPersonal !== undefined) process.env.AI_CODER_PERSONAL_URL = originalCoderPersonal;
+    else delete process.env.AI_CODER_PERSONAL_URL;
+    if (originalCoderUrl !== undefined) process.env.AI_CODER_URL = originalCoderUrl;
+    else delete process.env.AI_CODER_URL;
+
+    global.fetch = originalFetch;
+
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories));
+  const story = stories[0];
+  assert.ok(story);
+
+  const payload = {
+    plan: 'personal',
+    repositoryUrl: 'https://github.com/personal/repo',
+    targetBranch: 'feature/default-personal',
+    prTitleTemplate: 'feat: {{storyTitle}}',
+    prBodyTemplate: '',
+    assignee: 'owner@example.com',
+    reviewers: [],
+  };
+
+  const delegateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/codex-delegate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(delegateResponse.status, 200);
+  const result = await delegateResponse.json();
+  assert.equal(result.pullRequest.url, 'https://github.com/personal/repo/pull/9');
+  assert.equal(result.pullRequest.status, 'open');
+
+  assert.equal(intercepted.length, 1);
+  const sent = intercepted[0];
+  assert.equal(sent.method, 'POST');
+  assert.equal(sent.url, DEFAULT_CODEX_PERSONAL_URL);
+  assert.equal(sent.body.metadata.plan, 'personal');
+  assert.equal(sent.body.repository.url, 'https://github.com/personal/repo');
+  assert.equal(sent.body.repository.targetBranch, 'feature/default-personal');
 });
 
 test('sample dataset generator produces 50 stories and mirrored acceptance tests', async () => {

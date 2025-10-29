@@ -1533,6 +1533,7 @@ function ensureArray(value) {
 
 const CODEX_PLAN_PROJECT = 'project';
 const CODEX_PLAN_PERSONAL = 'personal';
+export const DEFAULT_CODEX_PERSONAL_URL = 'https://api.openai.com/v1/codex/personal-delegate';
 
 function normalizeCodexPlan(value) {
   return value === CODEX_PLAN_PERSONAL ? CODEX_PLAN_PERSONAL : CODEX_PLAN_PROJECT;
@@ -1548,9 +1549,19 @@ function resolveCodexProjectUrl(requestValue, plan) {
 
   const candidates = [];
   if (normalizedPlan === CODEX_PLAN_PERSONAL) {
-    candidates.push(process.env.AI_PM_CODEX_PERSONAL_URL, process.env.CODEX_PERSONAL_URL);
+    candidates.push(
+      process.env.AI_PM_CODEX_PERSONAL_URL,
+      process.env.CODEX_PERSONAL_URL,
+      process.env.AI_PM_CODEX_URL,
+      process.env.CODEX_URL,
+      process.env.AI_CODER_PERSONAL_URL,
+      process.env.AI_CODER_URL
+    );
   }
   candidates.push(process.env.AI_PM_CODEX_PROJECT_URL, process.env.CODEX_PROJECT_URL);
+  if (normalizedPlan === CODEX_PLAN_PERSONAL) {
+    candidates.push(DEFAULT_CODEX_PERSONAL_URL);
+  }
 
   const fallback = candidates.find((entry) => typeof entry === 'string' && entry.trim().length > 0);
   if (fallback) {

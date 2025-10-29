@@ -3973,6 +3973,11 @@ function openCodexDelegationModal(story) {
       <label for="codex-project-url">Codex Project URL</label>
       <input id="codex-project-url" type="url" placeholder="https://codex.example.com/api/projects/123/delegate" />
     </div>
+    <p class="form-hint codex-personal-hint" data-codex-personal-hint>
+      Personal plan delegations use the default endpoint
+      <code>https://api.openai.com/v1/codex/personal-delegate</code>. Provide a custom URL if your
+      account uses a different destination.
+    </p>
     <div class="codex-field">
       <label for="codex-repository-url">Repository URL</label>
       <input id="codex-repository-url" type="url" placeholder="https://github.com/org/repo" required />
@@ -4009,6 +4014,7 @@ function openCodexDelegationModal(story) {
   const prBodyInput = container.querySelector('#codex-pr-body-template');
   const assigneeInput = container.querySelector('#codex-assignee');
   const reviewersInput = container.querySelector('#codex-reviewers');
+  const personalHint = container.querySelector('[data-codex-personal-hint]');
 
   const storedPlan = normalizeCodexPlan(stored.plan);
   planSelect.value = storedPlan;
@@ -4045,6 +4051,9 @@ function openCodexDelegationModal(story) {
     }
     if (projectField) {
       projectField.dataset.codexPlan = plan;
+    }
+    if (personalHint) {
+      personalHint.hidden = plan !== CODEX_PLAN_OPTIONS.personal;
     }
   };
 
