@@ -1348,6 +1348,77 @@ test('delegate story to Codex creates a task and records PR details', async (t) 
   assert.ok(createdTask.description.includes('https://github.com/example/repo/pull/42'));
 });
 
+test('Codex response with only a PR number still records a pull request link', async (t) => {
+  await resetDatabaseFiles();
+
+  const { server: codexServer, port: codexPort } = await new Promise((resolve) => {
+    const srv = createHttpServer((req, res) => {
+      req.resume();
+      req.on('end', () => {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(
+          JSON.stringify({
+            status: 'submitted',
+            pullRequest: {
+              status: 'open',
+              number: 123,
+            },
+            pullRequestNumber: 123,
+          })
+        );
+      });
+    });
+    srv.listen(0, () => {
+      const address = srv.address();
+      resolve({ server: srv, port: address.port });
+    });
+  });
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+    await new Promise((resolve, reject) => {
+      codexServer.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  const story = stories[0];
+  assert.ok(story);
+
+  const payload = {
+    plan: 'project',
+    projectUrl: `http://127.0.0.1:${codexPort}/delegate`,
+    repositoryUrl: 'https://github.com/example/repo',
+    targetBranch: 'feature/number-only',
+    prTitleTemplate: 'feat: {{storyTitle}}',
+    prBodyTemplate: 'Implements {{storyId}}',
+  };
+
+  const delegateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/codex-delegate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(delegateResponse.status, 200);
+  const result = await delegateResponse.json();
+
+  assert.equal(result.pullRequest.url, 'https://github.com/example/repo/pull/123');
+  assert.equal(result.pullRequest.status, 'open');
+  assert.equal(result.pullRequest.identifier, '123');
+  assert.equal(result.pullRequest.number, 123);
+  assert.ok(result.task);
+  assert.ok(result.task.description.includes('https://github.com/example/repo/pull/123'));
+  assert.ok(!result.task.description.includes('PR: Pending'));
+});
+
 test('personal Codex plan falls back to configured delegation URL', async (t) => {
   await resetDatabaseFiles();
 

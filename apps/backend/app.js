@@ -1727,42 +1727,205 @@ function applyTemplateString(template, story, options = {}) {
   });
 }
 
-function extractCodexPullRequestInfo(payload) {
-  if (!payload || typeof payload !== 'object') {
-    return { url: '', status: '', identifier: '', number: null };
+function buildPullRequestUrlFromBase(baseUrl, number) {
+  if (!baseUrl || number == null) {
+    return '';
   }
-  const pull =
-    payload.pullRequest ||
-    payload.pull_request ||
-    payload.pr ||
-    (typeof payload.get === 'function' ? payload.get('pullRequest') : null) ||
-    {};
-  const url =
-    pull.url ||
-    pull.html_url ||
-    payload.pullRequestUrl ||
-    payload.html_url ||
-    payload.url ||
-    '';
-  const status = pull.status || payload.status || '';
-  const identifier =
-    pull.identifier ||
-    pull.id ||
-    payload.pullRequestId ||
-    payload.reference ||
-    (pull.number != null ? String(pull.number) : '');
-  const number =
-    pull.number != null
-      ? pull.number
-      : Object.prototype.hasOwnProperty.call(payload, 'pullRequestNumber')
-      ? payload.pullRequestNumber
-      : null;
-  return {
-    url: url ? String(url) : '',
-    status: status ? String(status) : '',
-    identifier: identifier ? String(identifier) : '',
-    number: number != null ? Number(number) : null,
+  const trimmed = String(baseUrl).trim();
+  if (!trimmed) {
+    return '';
+  }
+  try {
+    const parsed = new URL(trimmed);
+    const normalizedPath = parsed.pathname.replace(/\.git$/i, '').replace(/\/+$/, '');
+    return `${parsed.origin}${normalizedPath}/pull/${number}`;
+  } catch {
+    const sanitized = trimmed.replace(/\.git$/i, '').replace(/\/+$/, '');
+    if (!sanitized) {
+      return '';
+    }
+    return `${sanitized}/pull/${number}`;
+  }
+}
+
+function deriveRepositoryBaseUrl(repository = {}, fallbackUrl = '') {
+  const candidates = [
+    fallbackUrl,
+    repository.url,
+    repository.httpUrl,
+    repository.htmlUrl,
+    repository.cloneUrl,
+    repository.gitUrl,
+  ];
+  for (const candidate of candidates) {
+    if (candidate) {
+      const text = String(candidate).trim();
+      if (text) {
+        return text;
+      }
+    }
+  }
+
+  if (repository.fullName) {
+    const host = repository.host || (repository.provider && repository.provider.includes('gitlab')
+      ? 'gitlab.com'
+      : 'github.com');
+    return `https://${host.replace(/^https?:\/\//i, '')}/${repository.fullName}`;
+  }
+
+  return '';
+}
+
+function extractCodexPullRequestInfo(payload, context = {}) {
+  const baseInfo = { url: '', status: '', identifier: '', number: null };
+
+  if (payload == null) {
+    return baseInfo;
+  }
+
+  if (typeof payload === 'string') {
+    const match = payload.match(/https?:[^\s)\]}]+/i);
+    const url = match ? match[0].replace(/[),.;]+$/, '') : '';
+    return finalizePullRequestInfo(
+      { ...baseInfo, url },
+      context,
+    );
+  }
+
+  if (typeof payload !== 'object') {
+    return baseInfo;
+  }
+
+  const info = { ...baseInfo };
+  const seen = new Set();
+  const queue = [payload];
+
+  const enqueue = (value) => {
+    if (!value || typeof value !== 'object') {
+      return;
+    }
+    if (seen.has(value)) {
+      return;
+    }
+    seen.add(value);
+    queue.push(value);
   };
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current || typeof current !== 'object') {
+      continue;
+    }
+
+    const candidate =
+      current.pullRequest ||
+      current.pull_request ||
+      current.pr ||
+      (typeof current.get === 'function' ? current.get('pullRequest') : null);
+    if (candidate && typeof candidate === 'object') {
+      if (!info.url && candidate.url) {
+        info.url = String(candidate.url);
+      } else if (!info.url && candidate.html_url) {
+        info.url = String(candidate.html_url);
+      }
+      if (!info.status && candidate.status) {
+        info.status = String(candidate.status);
+      }
+      if (info.number == null && candidate.number != null) {
+        info.number = Number(candidate.number);
+      }
+      if (!info.identifier) {
+        if (candidate.identifier) {
+          info.identifier = String(candidate.identifier);
+        } else if (candidate.id) {
+          info.identifier = String(candidate.id);
+        } else if (candidate.number != null) {
+          info.identifier = String(candidate.number);
+        }
+      }
+      enqueue(candidate);
+    }
+
+    if (!info.url) {
+      const urlCandidate =
+        current.pullRequestUrl ||
+        current.pull_request_url ||
+        current.prUrl ||
+        current.html_url ||
+        current.url;
+      if (urlCandidate) {
+        info.url = String(urlCandidate);
+      }
+    }
+
+    if (!info.status) {
+      const statusCandidate =
+        current.pullRequestStatus ||
+        current.status ||
+        current.state;
+      if (statusCandidate) {
+        info.status = String(statusCandidate);
+      }
+    }
+
+    if (!info.identifier) {
+      const identifierCandidate =
+        current.pullRequestId ||
+        current.pull_request_id ||
+        current.reference ||
+        current.id;
+      if (identifierCandidate) {
+        info.identifier = String(identifierCandidate);
+      }
+    }
+
+    if (info.number == null) {
+      const numberCandidate =
+        current.pullRequestNumber ??
+        current.pull_request_number ??
+        current.prNumber ??
+        current.number;
+      if (numberCandidate != null) {
+        info.number = Number(numberCandidate);
+      }
+    }
+
+    enqueue(current.result);
+    enqueue(current.data);
+    enqueue(current.payload);
+    enqueue(current.response);
+    enqueue(current.task);
+    enqueue(current.details);
+  }
+
+  return finalizePullRequestInfo(info, context);
+}
+
+function finalizePullRequestInfo(info, context = {}) {
+  const normalized = { ...info };
+
+  if (!normalized.identifier && normalized.number != null) {
+    normalized.identifier = String(normalized.number);
+  }
+
+  const repository = context.repository || {};
+  const fallbackUrl = deriveRepositoryBaseUrl(repository, context.repositoryUrl);
+
+  if (!normalized.url && normalized.number != null && fallbackUrl) {
+    normalized.url = buildPullRequestUrlFromBase(fallbackUrl, normalized.number);
+  }
+
+  if (normalized.url) {
+    normalized.url = String(normalized.url).trim();
+  }
+  if (normalized.status) {
+    normalized.status = String(normalized.status).trim();
+  }
+  if (normalized.identifier) {
+    normalized.identifier = String(normalized.identifier).trim();
+  }
+
+  return normalized;
 }
 
 function parseJsonArray(value) {
@@ -5435,7 +5598,10 @@ export async function createApp() {
           }
         }
 
-        const prInfo = extractCodexPullRequestInfo(codexPayload);
+        const prInfo = extractCodexPullRequestInfo(codexPayload, {
+          repository: { ...repositoryMetadata, url: repositoryUrl },
+          repositoryUrl,
+        });
         const descriptionLines = [];
         if (prInfo.url) {
           descriptionLines.push(`PR: ${prInfo.url}`);
