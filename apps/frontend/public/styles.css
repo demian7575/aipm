@@ -1528,6 +1528,24 @@ dialog[data-size='content'] {
   color: #4b5563;
 }
 
+.task-table.task-highlight {
+  outline: 2px solid #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+  animation: taskHighlightPulse 2.2s ease-out;
+}
+
+@keyframes taskHighlightPulse {
+  0% {
+    background-color: rgba(59, 130, 246, 0.18);
+  }
+  60% {
+    background-color: rgba(59, 130, 246, 0.08);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 .ai-draft-controls {
   display: flex;
   align-items: center;

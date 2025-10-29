@@ -360,6 +360,7 @@ const state = {
     mindmap: true,
     details: true,
   },
+  pendingTaskHighlight: null,
 };
 
 const storyIndex = new Map();
@@ -3139,6 +3140,23 @@ function renderDetails() {
   tasksSection.appendChild(taskList);
   detailsContent.appendChild(tasksSection);
 
+  if (state.pendingTaskHighlight != null) {
+    const highlightId = state.pendingTaskHighlight;
+    const highlightTarget = taskList.querySelector(
+      `.task-table[data-task-id="${highlightId}"]`
+    );
+    if (highlightTarget) {
+      requestAnimationFrame(() => {
+        highlightTarget.classList.add('task-highlight');
+        highlightTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          highlightTarget.classList.remove('task-highlight');
+        }, 2400);
+      });
+      state.pendingTaskHighlight = null;
+    }
+  }
+
   tasksSection
     .querySelector('#create-task-btn')
     ?.addEventListener('click', () => openTaskModal(story.id));
@@ -4163,13 +4181,24 @@ function openCodexDelegationModal(story) {
               assignee,
               reviewers,
             });
+            const rawTaskId =
+              result?.task?.id ?? result?.task?.taskId ?? result?.task?.task_id ?? null;
+            const createdTaskId =
+              rawTaskId !== null && rawTaskId !== '' ? Number(rawTaskId) : Number.NaN;
+            if (Number.isFinite(createdTaskId)) {
+              state.pendingTaskHighlight = createdTaskId;
+            }
             await loadStories();
             const statusLabel = result?.pullRequest?.status
               ? `Codex PR ${String(result.pullRequest.status).toLowerCase()}`
               : 'Codex delegation requested';
-            showToast(statusLabel, 'success');
+            const followUpLabel = Number.isFinite(createdTaskId)
+              ? ' – tracking task added in Tasks section'
+              : '';
+            showToast(`${statusLabel}${followUpLabel}`, 'success');
             return true;
           } catch (error) {
+            state.pendingTaskHighlight = null;
             let message = error?.message || 'Failed to delegate to Codex';
             if (error && error.details) {
               const detailsText = Array.isArray(error.details)
