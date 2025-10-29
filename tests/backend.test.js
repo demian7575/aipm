@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createServer as createHttpServer } from 'node:http';
 import { COMPONENT_CATALOG, createApp, DATABASE_PATH, openDatabase, resetDatabaseFactory } from '../apps/backend/app.js';
+import { findConfiguredPersonalCodexUrl } from '../apps/backend/codex-config.js';
 import { startLocalCodexDelegationServer } from '../apps/backend/local-codex-delegation.js';
 import { generateSampleDataset } from '../scripts/generate-sample-dataset.mjs';
 
@@ -1705,6 +1706,32 @@ test('personal plan 405 responses still encourage POST retries', async (t) => {
   assert.equal(codexRequests.length, 1);
   assert.equal(codexRequests[0].method, 'POST');
   assert.equal(codexRequests[0].url, '/personal-delegate');
+});
+
+test('findConfiguredPersonalCodexUrl honours all alias environment variables', () => {
+  const env = {};
+  let resolved = findConfiguredPersonalCodexUrl(env);
+  assert.equal(resolved, null);
+
+  env.CODEX_PERSONAL_URL = ' https://gateway.example.test/personal ';
+  resolved = findConfiguredPersonalCodexUrl(env);
+  assert.ok(resolved);
+  assert.equal(resolved.key, 'CODEX_PERSONAL_URL');
+  assert.equal(resolved.value, 'https://gateway.example.test/personal');
+
+  env.CODEX_PERSONAL_URL = '   ';
+  env.AI_CODER_URL = 'https://coder.example.test/personal';
+  resolved = findConfiguredPersonalCodexUrl(env);
+  assert.ok(resolved);
+  assert.equal(resolved.key, 'AI_CODER_URL');
+  assert.equal(resolved.value, 'https://coder.example.test/personal');
+
+  env.AI_CODER_URL = '';
+  env.AI_PM_CODEX_PERSONAL_URL = '\nhttps://direct.example.test/delegate\n';
+  resolved = findConfiguredPersonalCodexUrl(env);
+  assert.ok(resolved);
+  assert.equal(resolved.key, 'AI_PM_CODEX_PERSONAL_URL');
+  assert.equal(resolved.value, 'https://direct.example.test/delegate');
 });
 
 test('sample dataset generator produces 50 stories and mirrored acceptance tests', async () => {

@@ -1,4 +1,5 @@
 import { createApp } from './app.js';
+import { findConfiguredPersonalCodexUrl } from './codex-config.js';
 import { startLocalCodexDelegationServer } from './local-codex-delegation.js';
 
 const desiredPort = Number(process.env.PORT || 4000);
@@ -8,7 +9,9 @@ const shouldAutoStartLocalCodex = String(process.env.AI_PM_DISABLE_LOCAL_CODEX |
 async function bootstrap() {
   let localCodex = null;
 
-  if (shouldAutoStartLocalCodex && !process.env.AI_PM_CODEX_PERSONAL_URL) {
+  const configuredPersonalCodex = findConfiguredPersonalCodexUrl();
+
+  if (shouldAutoStartLocalCodex && !configuredPersonalCodex) {
     try {
       localCodex = await startLocalCodexDelegationServer();
       process.env.AI_PM_CODEX_PERSONAL_URL = localCodex.url;

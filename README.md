@@ -40,7 +40,9 @@ When the development server starts without a configured Codex personal-plan endp
 mock delegation service on a random local port and points `AI_PM_CODEX_PERSONAL_URL` at that address. The
 stub accepts `POST /personal-delegate` requests and returns a synthetic pull request response so you can
 exercise the “Develop with Codex” flow without additional setup. Set `AI_PM_DISABLE_LOCAL_CODEX=1` if you
-prefer to manage the Codex endpoint yourself.
+prefer to manage the Codex endpoint yourself. If any supported personal Codex environment variable is already
+set (`AI_PM_CODEX_PERSONAL_URL`, `CODEX_PERSONAL_URL`, `AI_PM_CODEX_URL`, `CODEX_URL`, `AI_CODER_PERSONAL_URL`,
+or `AI_CODER_URL`), the stub is skipped so requests flow to your internet-accessible Codex service instead.
 
 ### Available Panels & Controls
 

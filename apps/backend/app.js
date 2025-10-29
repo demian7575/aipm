@@ -7,6 +7,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 
+import { findConfiguredPersonalCodexUrl } from './codex-config.js';
+
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
 
 export const COMPONENT_CATALOG = [
@@ -1548,14 +1550,10 @@ function resolveCodexProjectUrl(requestValue, plan) {
 
   const candidates = [];
   if (normalizedPlan === CODEX_PLAN_PERSONAL) {
-    candidates.push(
-      process.env.AI_PM_CODEX_PERSONAL_URL,
-      process.env.CODEX_PERSONAL_URL,
-      process.env.AI_PM_CODEX_URL,
-      process.env.CODEX_URL,
-      process.env.AI_CODER_PERSONAL_URL,
-      process.env.AI_CODER_URL
-    );
+    const configuredPersonal = findConfiguredPersonalCodexUrl();
+    if (configuredPersonal && configuredPersonal.value) {
+      return ensureHttpUrl(configuredPersonal.value, label);
+    }
   }
   candidates.push(process.env.AI_PM_CODEX_PROJECT_URL, process.env.CODEX_PROJECT_URL);
 
