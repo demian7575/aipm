@@ -1531,6 +1531,88 @@ function ensureArray(value) {
   return [String(value).trim()].filter(Boolean);
 }
 
+function ensureHttpUrl(value, label) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) {
+    const error = new Error(`${label} is required`);
+    error.statusCode = 400;
+    throw error;
+  }
+  let parsed;
+  try {
+    parsed = new URL(text);
+  } catch {
+    const error = new Error(`${label} must be a valid URL`);
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    const error = new Error(`${label} must use http or https`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return parsed.toString();
+}
+
+function applyTemplateString(template, story, options = {}) {
+  if (template == null) {
+    return '';
+  }
+  const replacements = {
+    storyId: story?.id ?? '',
+    storyTitle: story?.title ?? '',
+    storyDescription: story?.description ?? '',
+    assignee: options.assignee ?? story?.assigneeEmail ?? '',
+    targetBranch: options.targetBranch ?? '',
+    repositoryUrl: options.repositoryUrl ?? '',
+  };
+  return String(template).replace(/{{\s*(\w+)\s*}}/g, (match, key) => {
+    if (Object.prototype.hasOwnProperty.call(replacements, key)) {
+      const value = replacements[key];
+      return value == null ? '' : String(value);
+    }
+    return '';
+  });
+}
+
+function extractCodexPullRequestInfo(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return { url: '', status: '', identifier: '', number: null };
+  }
+  const pull =
+    payload.pullRequest ||
+    payload.pull_request ||
+    payload.pr ||
+    (typeof payload.get === 'function' ? payload.get('pullRequest') : null) ||
+    {};
+  const url =
+    pull.url ||
+    pull.html_url ||
+    payload.pullRequestUrl ||
+    payload.html_url ||
+    payload.url ||
+    '';
+  const status = pull.status || payload.status || '';
+  const identifier =
+    pull.identifier ||
+    pull.id ||
+    payload.pullRequestId ||
+    payload.reference ||
+    (pull.number != null ? String(pull.number) : '');
+  const number =
+    pull.number != null
+      ? pull.number
+      : Object.prototype.hasOwnProperty.call(payload, 'pullRequestNumber')
+      ? payload.pullRequestNumber
+      : null;
+  return {
+    url: url ? String(url) : '',
+    status: status ? String(status) : '',
+    identifier: identifier ? String(identifier) : '',
+    number: number != null ? Number(number) : null,
+  };
+}
+
 function parseJsonArray(value) {
   if (!value) return [];
   try {
@@ -4733,6 +4815,166 @@ export async function createApp() {
       } catch (error) {
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to refresh story health' });
+      }
+      return;
+    }
+
+    const codexMatch = pathname.match(/^\/api\/stories\/(\d+)\/codex-delegate$/);
+    if (codexMatch && method === 'POST') {
+      const storyId = Number(codexMatch[1]);
+      try {
+        const story = await loadStoryWithDetails(db, storyId);
+        if (!story) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+
+        const payload = await parseJson(req);
+        const projectUrl = ensureHttpUrl(payload.projectUrl, 'Codex project URL');
+        const repositoryUrl = ensureHttpUrl(payload.repositoryUrl, 'Repository URL');
+        const targetBranch = String(payload.targetBranch ?? '').trim() || 'main';
+        const prTitleTemplate = String(payload.prTitleTemplate ?? '').trim();
+        if (!prTitleTemplate) {
+          throw Object.assign(new Error('PR title template is required'), { statusCode: 400 });
+        }
+        const prBodyTemplateRaw = payload.prBodyTemplate != null ? String(payload.prBodyTemplate) : '';
+        const prBodyTemplate = prBodyTemplateRaw.trim();
+        const requestedAssignee = String(payload.assignee ?? '').trim();
+        const assignee = requestedAssignee || story.assigneeEmail || 'owner@example.com';
+        const reviewerList = ensureArray(payload.reviewers);
+        const reviewers = Array.from(new Set(reviewerList));
+
+        let prTitle = applyTemplateString(prTitleTemplate, story, {
+          assignee,
+          targetBranch,
+          repositoryUrl,
+        }).trim();
+        if (!prTitle) {
+          prTitle = `Implement Story ${story.id}`;
+        }
+
+        const prBody = prBodyTemplate
+          ? applyTemplateString(prBodyTemplate, story, {
+              assignee,
+              targetBranch,
+              repositoryUrl,
+            })
+          : '';
+
+        const codexRequest = {
+          story: {
+            id: story.id,
+            title: story.title,
+            description: story.description,
+            asA: story.asA,
+            iWant: story.iWant,
+            soThat: story.soThat,
+            components: story.components,
+            storyPoint: story.storyPoint,
+            status: story.status,
+            acceptanceTests: Array.isArray(story.acceptanceTests)
+              ? story.acceptanceTests.map((test) => ({
+                  id: test.id,
+                  given: test.given,
+                  when: test.when,
+                  then: test.then,
+                  status: test.status,
+                }))
+              : [],
+          },
+          repository: {
+            url: repositoryUrl,
+            targetBranch,
+          },
+          pullRequest: {
+            title: prTitle,
+            body: prBody,
+            assignee,
+            reviewers,
+            template: {
+              title: prTitleTemplate,
+              body: prBodyTemplate,
+            },
+          },
+          metadata: {
+            triggeredAt: now(),
+            source: 'ai-pm',
+            storyId,
+          },
+        };
+
+        const codexResponse = await fetch(projectUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(codexRequest),
+        });
+
+        const responseText = await codexResponse.text();
+        if (!codexResponse.ok) {
+          const error = new Error('Codex request failed');
+          error.statusCode = codexResponse.status || 502;
+          error.details = responseText || '';
+          throw error;
+        }
+
+        let codexPayload = null;
+        if (responseText) {
+          try {
+            codexPayload = JSON.parse(responseText);
+          } catch {
+            codexPayload = { raw: responseText };
+          }
+        }
+
+        const prInfo = extractCodexPullRequestInfo(codexPayload);
+        const descriptionLines = [];
+        if (prInfo.url) {
+          descriptionLines.push(`PR: ${prInfo.url}`);
+        } else {
+          descriptionLines.push('PR: Pending');
+        }
+        if (prInfo.status) {
+          descriptionLines.push(`Status: ${prInfo.status}`);
+        }
+        if (prInfo.identifier) {
+          descriptionLines.push(`Reference: ${prInfo.identifier}`);
+        }
+        const taskDescription = descriptionLines.join('\n');
+        const timestamp = now();
+        const taskStatus = normalizeTaskStatus('In Progress');
+        const { lastInsertRowid } = insertTask(db, {
+          storyId,
+          title: `Codex PR: ${prTitle}`,
+          description: taskDescription || 'Codex delegation requested.',
+          status: taskStatus,
+          assigneeEmail: assignee || 'owner@example.com',
+          estimationHours: null,
+          timestamp,
+        });
+
+        const refreshed = await loadStoryWithDetails(db, storyId);
+        const createdTask = refreshed?.tasks.find((task) => task.id === Number(lastInsertRowid)) ?? null;
+
+        sendJson(res, 200, {
+          message: 'Codex delegation requested',
+          pullRequest: {
+            title: prTitle,
+            body: prBody,
+            url: prInfo.url || null,
+            status: prInfo.status || null,
+            identifier: prInfo.identifier || null,
+            number: prInfo.number ?? null,
+          },
+          task: createdTask,
+          codexResponse: codexPayload,
+        });
+      } catch (error) {
+        const status = error.statusCode ?? error.status ?? 500;
+        const body = { message: error.message || 'Failed to delegate story to Codex' };
+        if (error.details) {
+          body.details = error.details;
+        }
+        sendJson(res, status, body);
       }
       return;
     }

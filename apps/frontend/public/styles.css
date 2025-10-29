@@ -1482,6 +1482,27 @@ dialog[data-size='content'] {
   gap: 0.35rem;
 }
 
+.codex-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.codex-form .codex-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.codex-form textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.codex-placeholder-hint {
+  color: #4b5563;
+}
+
 .ai-draft-controls {
   display: flex;
   align-items: center;

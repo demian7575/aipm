@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createServer as createHttpServer } from 'node:http';
 import {
   COMPONENT_CATALOG,
   createApp,
@@ -1181,6 +1182,115 @@ test('story dependency APIs work with JSON fallback database', async (t) => {
   const afterDelete = await deleteResponse.json();
   assert.ok(Array.isArray(afterDelete.dependencies));
   assert.ok(afterDelete.dependencies.every((entry) => entry.storyId !== dependencyStory.id));
+});
+
+test('delegate story to Codex creates a task and records PR details', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const codexRequests = [];
+  const { server: codexServer, port: codexPort } = await new Promise((resolve) => {
+    const srv = createHttpServer((req, res) => {
+      let data = '';
+      req.on('data', (chunk) => {
+        data += chunk;
+      });
+      req.on('end', () => {
+        let body = {};
+        if (data) {
+          try {
+            body = JSON.parse(data);
+          } catch {
+            body = { raw: data };
+          }
+        }
+        codexRequests.push({ method: req.method, url: req.url, body });
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(
+          JSON.stringify({
+            status: 'submitted',
+            pullRequest: {
+              url: 'https://github.com/example/repo/pull/42',
+              status: 'open',
+              id: 'PR-42',
+              number: 42,
+            },
+          })
+        );
+      });
+    });
+    srv.listen(0, () => {
+      const address = srv.address();
+      resolve({ server: srv, port: address.port });
+    });
+  });
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      codexServer.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories));
+  const story = stories[0];
+  assert.ok(story);
+
+  const payload = {
+    projectUrl: `http://127.0.0.1:${codexPort}/delegate`,
+    repositoryUrl: 'https://github.com/example/repo',
+    targetBranch: 'feature/codex',
+    prTitleTemplate: 'feat: {{storyTitle}}',
+    prBodyTemplate: 'Implements {{storyId}}',
+    assignee: 'dev@example.com',
+    reviewers: ['reviewer1@example.com', 'reviewer2@example.com'],
+  };
+
+  const delegateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/codex-delegate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(delegateResponse.status, 200);
+  const result = await delegateResponse.json();
+  assert.equal(result.pullRequest.url, 'https://github.com/example/repo/pull/42');
+  assert.equal(result.pullRequest.status, 'open');
+  assert.ok(result.task);
+  assert.equal(result.task.assigneeEmail, 'dev@example.com');
+  assert.ok(result.task.description.includes('Status: open'));
+  assert.ok(result.task.description.includes('https://github.com/example/repo/pull/42'));
+
+  assert.equal(codexRequests.length, 1);
+  const sent = codexRequests[0];
+  assert.equal(sent.method, 'POST');
+  assert.equal(sent.url, '/delegate');
+  assert.ok(sent.body.story);
+  assert.equal(sent.body.repository.url, 'https://github.com/example/repo');
+  assert.equal(sent.body.repository.targetBranch, 'feature/codex');
+  assert.equal(sent.body.pullRequest.assignee, 'dev@example.com');
+  assert.ok(Array.isArray(sent.body.pullRequest.reviewers));
+  assert.deepEqual(sent.body.pullRequest.reviewers.sort(), payload.reviewers.slice().sort());
+  assert.ok(typeof sent.body.pullRequest.title === 'string');
+  assert.ok(sent.body.pullRequest.title.includes(story.title));
+
+  const refreshedResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(refreshedResponse.status, 200);
+  const refreshedStories = await refreshedResponse.json();
+  const refreshedStory = refreshedStories.find((item) => item.id === story.id);
+  assert.ok(refreshedStory);
+  assert.ok(refreshedStory.tasks.some((task) => task.id === result.task.id));
+  const createdTask = refreshedStory.tasks.find((task) => task.id === result.task.id);
+  assert.ok(createdTask.description.includes('https://github.com/example/repo/pull/42'));
 });
 
 test('sample dataset generator produces 50 stories and mirrored acceptance tests', async () => {

@@ -34,7 +34,42 @@ const STORAGE_KEYS = {
   selection: 'aiPm.selection',
   layout: 'aiPm.layout',
   panels: 'aiPm.panels',
+  codexSettings: 'aiPm.codexSettings',
 };
+
+function loadCodexSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.codexSettings);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return {};
+    }
+    if (Array.isArray(parsed.reviewers)) {
+      parsed.reviewers = parsed.reviewers
+        .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+        .filter(Boolean);
+    }
+    return parsed;
+  } catch (error) {
+    console.error('Failed to load Codex settings', error);
+    return {};
+  }
+}
+
+function saveCodexSettings(settings) {
+  try {
+    const payload = { ...settings };
+    if (Array.isArray(payload.reviewers)) {
+      payload.reviewers = payload.reviewers.filter((entry) => typeof entry === 'string' && entry.trim().length > 0);
+    }
+    localStorage.setItem(STORAGE_KEYS.codexSettings, JSON.stringify(payload));
+  } catch (error) {
+    console.error('Failed to save Codex settings', error);
+  }
+}
 
 const NODE_WIDTH = 240;
 const NODE_MIN_HEIGHT = 120;
@@ -2306,6 +2341,7 @@ function renderDetails() {
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
+      <button type="button" class="secondary" id="develop-codex-btn">Develop with Codex</button>
     </div>
     <div class="full field-row">
       <label>Title</label>
@@ -2702,6 +2738,7 @@ function renderDetails() {
 
   const saveButton = form.querySelector('button[type="submit"]');
   const editButton = form.querySelector('#edit-story-btn');
+  const developCodexButton = form.querySelector('#develop-codex-btn');
   const editableFields = Array.from(
     form.querySelectorAll('input[name], textarea[name], select[name]')
   );
@@ -2765,6 +2802,10 @@ function renderDetails() {
         titleField.focus();
       }
     }
+  });
+
+  developCodexButton?.addEventListener('click', () => {
+    openCodexDelegationModal(story);
   });
 
   const emailBtn = form.querySelector('#assignee-email-btn');
@@ -3879,6 +3920,190 @@ function openAcceptanceTestModal(storyId, options = {}) {
   }
 }
 
+function openCodexDelegationModal(story) {
+  if (!story) {
+    return;
+  }
+
+  const stored = loadCodexSettings();
+  const defaultTitleTemplate = 'feat: {{storyTitle}}';
+  const defaultBodyTemplate = [
+    '## Summary',
+    '- Implements user story {{storyId}}: {{storyTitle}}',
+    '',
+    '## Details',
+    '{{storyDescription}}',
+    '',
+    '## Testing',
+    '- [ ] Update automated and manual coverage as needed',
+  ].join('\n');
+
+  const container = document.createElement('div');
+  container.className = 'modal-form codex-form';
+  container.innerHTML = `
+    <div class="codex-field">
+      <label for="codex-project-url">Codex Project URL</label>
+      <input id="codex-project-url" type="url" placeholder="https://codex.example.com/api/projects/123/delegate" required />
+    </div>
+    <div class="codex-field">
+      <label for="codex-repository-url">Repository URL</label>
+      <input id="codex-repository-url" type="url" placeholder="https://github.com/org/repo" required />
+    </div>
+    <div class="codex-field">
+      <label for="codex-target-branch">Target Branch</label>
+      <input id="codex-target-branch" placeholder="main" />
+    </div>
+    <div class="codex-field">
+      <label for="codex-pr-title-template">PR Title Template</label>
+      <input id="codex-pr-title-template" placeholder="feat: {{storyTitle}}" />
+    </div>
+    <div class="codex-field">
+      <label for="codex-pr-body-template">PR Body Template</label>
+      <textarea id="codex-pr-body-template" rows="6" placeholder="Details for the pull request"></textarea>
+    </div>
+    <div class="codex-field">
+      <label for="codex-assignee">PR Assignee</label>
+      <input id="codex-assignee" type="email" placeholder="owner@example.com" />
+    </div>
+    <div class="codex-field">
+      <label for="codex-reviewers">Reviewers</label>
+      <input id="codex-reviewers" placeholder="reviewer1@example.com, reviewer2@example.com" />
+    </div>
+    <p class="form-hint codex-placeholder-hint">Use placeholders such as {{storyTitle}}, {{storyId}}, {{storyDescription}}, {{assignee}}, {{targetBranch}}, or {{repositoryUrl}} in templates.</p>
+  `;
+
+  const projectInput = container.querySelector('#codex-project-url');
+  const repositoryInput = container.querySelector('#codex-repository-url');
+  const targetBranchInput = container.querySelector('#codex-target-branch');
+  const prTitleInput = container.querySelector('#codex-pr-title-template');
+  const prBodyInput = container.querySelector('#codex-pr-body-template');
+  const assigneeInput = container.querySelector('#codex-assignee');
+  const reviewersInput = container.querySelector('#codex-reviewers');
+
+  projectInput.value = stored.projectUrl || '';
+  repositoryInput.value = stored.repositoryUrl || '';
+  targetBranchInput.value = stored.targetBranch || 'main';
+  prTitleInput.value = stored.prTitleTemplate || defaultTitleTemplate;
+  prBodyInput.value = stored.prBodyTemplate || defaultBodyTemplate;
+  const defaultAssignee = stored.assignee || story.assigneeEmail || '';
+  assigneeInput.value = defaultAssignee;
+  if (Array.isArray(stored.reviewers)) {
+    reviewersInput.value = stored.reviewers.join(', ');
+  } else if (typeof stored.reviewers === 'string') {
+    reviewersInput.value = stored.reviewers;
+  } else {
+    reviewersInput.value = '';
+  }
+
+  let submitting = false;
+
+  openModal({
+    title: 'Develop with Codex',
+    content: container,
+    cancelLabel: 'Close',
+    actions: [
+      {
+        label: 'Delegate to Codex',
+        onClick: async () => {
+          if (submitting) {
+            return false;
+          }
+
+          const projectUrl = projectInput.value.trim();
+          const repositoryUrl = repositoryInput.value.trim();
+          const targetBranch = targetBranchInput.value.trim() || 'main';
+          const prTitleTemplate = prTitleInput.value.trim();
+          const prBodyTemplate = prBodyInput.value.trim();
+          const assignee = assigneeInput.value.trim();
+          const reviewers = Array.from(
+            new Set(
+              reviewersInput.value
+                .split(',')
+                .map((entry) => entry.trim())
+                .filter(Boolean)
+            )
+          );
+
+          if (!projectUrl) {
+            showToast('Codex project URL is required', 'error');
+            projectInput.focus();
+            return false;
+          }
+
+          if (!repositoryUrl) {
+            showToast('Repository URL is required', 'error');
+            repositoryInput.focus();
+            return false;
+          }
+
+          try {
+            new URL(projectUrl);
+          } catch {
+            showToast('Enter a valid Codex project URL', 'error');
+            projectInput.focus();
+            return false;
+          }
+
+          try {
+            new URL(repositoryUrl);
+          } catch {
+            showToast('Enter a valid repository URL', 'error');
+            repositoryInput.focus();
+            return false;
+          }
+
+          if (!prTitleTemplate) {
+            showToast('PR title template is required', 'error');
+            prTitleInput.focus();
+            return false;
+          }
+
+          if (!assignee) {
+            showToast('PR assignee is required', 'error');
+            assigneeInput.focus();
+            return false;
+          }
+
+          submitting = true;
+          try {
+            const result = await delegateStoryToCodex(story.id, {
+              projectUrl,
+              repositoryUrl,
+              targetBranch,
+              prTitleTemplate,
+              prBodyTemplate,
+              assignee,
+              reviewers,
+            });
+            saveCodexSettings({
+              projectUrl,
+              repositoryUrl,
+              targetBranch,
+              prTitleTemplate,
+              prBodyTemplate,
+              assignee,
+              reviewers,
+            });
+            await loadStories();
+            const statusLabel = result?.pullRequest?.status
+              ? `Codex PR ${String(result.pullRequest.status).toLowerCase()}`
+              : 'Codex delegation requested';
+            showToast(statusLabel, 'success');
+            return true;
+          } catch (error) {
+            showToast(error.message || 'Failed to delegate to Codex', 'error');
+            return false;
+          } finally {
+            submitting = false;
+          }
+        },
+      },
+    ],
+  });
+
+  projectInput.focus();
+}
+
 function openTaskModal(storyId, task = null) {
   const isEdit = Boolean(task);
   const container = document.createElement('div');
@@ -4235,6 +4460,10 @@ async function createTask(storyId, payload) {
 
 async function updateTask(taskId, payload) {
   return await sendJson(`/api/tasks/${taskId}`, { method: 'PATCH', body: payload });
+}
+
+async function delegateStoryToCodex(storyId, payload) {
+  return await sendJson(`/api/stories/${storyId}/codex-delegate`, { method: 'POST', body: payload });
 }
 
 async function uploadReferenceFile(file) {
