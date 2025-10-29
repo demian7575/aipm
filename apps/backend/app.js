@@ -3550,16 +3550,17 @@ function normalizeStoryText(value, fallback) {
 }
 
 function normalizeIdeaAction(idea) {
-  if (!idea) return '';
+  if (!idea) return { action: '', summary: '' };
   let text = String(idea).trim();
-  if (!text) return '';
-  text = text.replace(/\s+/g, ' ');
+  if (!text) return { action: '', summary: '' };
+  const summary = text.replace(/\s+/g, ' ');
+  text = summary;
   text = text.replace(/^[Gg]iven\s+/, '');
   text = text.replace(/^[Ww]hen\s+/, '');
   text = text.replace(/^[Tt]hen\s+/, '');
   text = text.replace(/^to\s+/, '');
   text = text.replace(/\.$/, '');
-  if (!text) return '';
+  if (!text) return { action: '', summary };
   if (/^I\s+want\s+to\s+/i.test(text)) {
     text = text.replace(/^I\s+want\s+to\s+/i, '');
   }
@@ -3569,7 +3570,11 @@ function normalizeIdeaAction(idea) {
   if (/^[A-Z]/.test(text)) {
     text = text.charAt(0).toLowerCase() + text.slice(1);
   }
-  return text;
+  const pronounPrefix = /^(?:they|the|a|an|user|customer|system|administrator)\b/i.test(text)
+    ? ''
+    : 'they ';
+  const action = pronounPrefix ? `${pronounPrefix}${text}` : text;
+  return { action, summary };
 }
 
 function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
@@ -3582,17 +3587,13 @@ function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
     ? `${titleBase} – ${verificationLabel} #${ordinal}`
     : '';
 
-  const ideaAction = normalizeIdeaAction(idea);
-  const whenAction = ideaAction
-    ? /^(they|the|a|an|user|customer|system)\b/i.test(ideaAction)
-      ? ideaAction
-      : `they ${ideaAction}`
-    : `they ${action}`;
+  const { action: ideaAction, summary: ideaSummary } = normalizeIdeaAction(idea);
+  const whenAction = ideaAction || `they ${action}`;
   const measurableOutcome = ideaAction
-    ? `evidence shows that ${ideaAction.replace(/^they\s+/i, '')} succeeds`
+    ? `observable evidence confirms that ${ideaAction.replace(/^they\s+/i, '')} meets the acceptance criteria`
     : `${outcome} is completed within 2 seconds and a confirmation code of at least 6 characters is recorded`;
   const givenContext = ideaAction
-    ? `Given ${persona} is ready to experiment with "${idea.toString().trim()}"`
+    ? `Given ${persona} has prioritised the idea "${ideaSummary}" and can work within the system`
     : `Given ${persona} has access to the system`;
 
   const given = [givenContext];

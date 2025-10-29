@@ -263,6 +263,10 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
     ideaDraft.when.some((step) => step.toLowerCase().includes('validate audit log entries')),
     'When step should incorporate the provided idea'
   );
+  assert.ok(
+    ideaDraft.given.some((step) => step.toLowerCase().includes('idea "validate audit log entries for approved changes"')),
+    'Given step should reference the supplied idea explicitly'
+  );
   assert.ok(Array.isArray(ideaDraft.then) && ideaDraft.then.length > 0);
   assert.equal(ideaDraft.status, 'Draft');
 
