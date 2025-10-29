@@ -9,10 +9,14 @@ function buildPullRequestUrl(repositoryUrl, number) {
 
   try {
     const parsed = new URL(repositoryUrl);
-    const normalizedPath = parsed.pathname.replace(/\/+$/, '');
+    const normalizedPath = parsed.pathname
+      .replace(/\/+$/, '')
+      .replace(/\.git$/i, '');
     return `${parsed.origin}${normalizedPath}/pull/${number}`;
   } catch {
-    const sanitized = String(repositoryUrl).replace(/\/+$/, '');
+    const sanitized = String(repositoryUrl)
+      .replace(/\/+$/, '')
+      .replace(/\.git$/i, '');
     return `${sanitized}/pull/${number}`;
   }
 }

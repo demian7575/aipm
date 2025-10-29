@@ -1441,7 +1441,7 @@ test('local Codex delegation stub returns synthetic pull request info', async (t
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      repository: { url: 'https://github.com/example/repo' },
+      repository: { url: 'https://github.com/example/repo.git' },
       pullRequest: { title: 'feat: demo' },
     }),
   });
@@ -1456,6 +1456,7 @@ test('local Codex delegation stub returns synthetic pull request info', async (t
   assert.ok(typeof body.pullRequest.url === 'string');
   assert.ok(body.pullRequest.url.includes('/pull/'));
   assert.ok(body.pullRequest.url.startsWith('https://github.com/example/repo'));
+  assert.ok(!body.pullRequest.url.includes('.git/'));
 });
 
 test('personal Codex plan without configuration returns helpful guidance', async (t) => {
