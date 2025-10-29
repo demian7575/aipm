@@ -3377,6 +3377,7 @@ function openModal({
   cancelBtn.addEventListener('click', closeModal);
   modalFooter.appendChild(cancelBtn);
 
+  const actionButtons = [];
   if (actions && actions.length > 0) {
     actions.forEach((action) => {
       const button = document.createElement('button');
@@ -3392,6 +3393,7 @@ function openModal({
         }
       });
       modalFooter.appendChild(button);
+      actionButtons.push(button);
     });
   }
 
@@ -3407,6 +3409,10 @@ function openModal({
   };
 
   modal.showModal();
+  return {
+    close: closeModal,
+    actionButtons,
+  };
 }
 
 function openHealthIssueModal(title, issue, context = null) {
@@ -3996,8 +4002,10 @@ function openCodexDelegationModal(story) {
   }
 
   let submitting = false;
+  let delegateButton = null;
+  let delegateButtonLabel = '';
 
-  openModal({
+  const modalHandle = openModal({
     title: 'Develop with Codex',
     content: container,
     cancelLabel: 'Close',
@@ -4065,6 +4073,12 @@ function openCodexDelegationModal(story) {
           }
 
           submitting = true;
+          if (delegateButton) {
+            delegateButtonLabel = delegateButtonLabel || delegateButton.textContent;
+            delegateButton.disabled = true;
+            delegateButton.setAttribute('aria-busy', 'true');
+            delegateButton.textContent = 'Delegating…';
+          }
           try {
             const result = await delegateStoryToCodex(story.id, {
               projectUrl,
@@ -4091,10 +4105,26 @@ function openCodexDelegationModal(story) {
             showToast(statusLabel, 'success');
             return true;
           } catch (error) {
-            showToast(error.message || 'Failed to delegate to Codex', 'error');
+            let message = error?.message || 'Failed to delegate to Codex';
+            if (error && error.details) {
+              const detailsText = Array.isArray(error.details)
+                ? error.details.join('\n')
+                : String(error.details);
+              if (detailsText.trim()) {
+                message = `${message}: ${detailsText}`;
+              }
+            }
+            showToast(message, 'error');
             return false;
           } finally {
             submitting = false;
+            if (delegateButton) {
+              delegateButton.disabled = false;
+              delegateButton.removeAttribute('aria-busy');
+              if (delegateButtonLabel) {
+                delegateButton.textContent = delegateButtonLabel;
+              }
+            }
           }
         },
       },
@@ -4102,6 +4132,11 @@ function openCodexDelegationModal(story) {
   });
 
   projectInput.focus();
+
+  delegateButton = modalHandle?.actionButtons?.[0] ?? null;
+  if (delegateButton) {
+    delegateButtonLabel = delegateButton.textContent;
+  }
 }
 
 function openTaskModal(storyId, task = null) {
