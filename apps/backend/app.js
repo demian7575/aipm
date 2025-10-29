@@ -1527,6 +1527,44 @@ function now() {
   return new Date().toISOString();
 }
 
+function truncateForLog(value, limit = 2000) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  if (value.length <= limit) {
+    return value;
+  }
+  const omitted = value.length - limit;
+  return `${value.slice(0, limit)}… (truncated ${omitted} characters)`;
+}
+
+function logCodexDelegation(stage, details = {}, options = {}) {
+  const { level = 'log' } = options || {};
+  const entry = {
+    stage,
+    timestamp: now(),
+    ...details,
+  };
+
+  let serialized = '';
+  try {
+    serialized = JSON.stringify(entry, null, 2);
+  } catch (serializationError) {
+    serialized = JSON.stringify(
+      {
+        stage,
+        timestamp: entry.timestamp,
+        message: serializationError.message,
+      },
+      null,
+      2,
+    );
+  }
+
+  const logger = typeof console[level] === 'function' ? console[level] : console.log;
+  logger(`[codex-delegation] ${serialized}`);
+}
+
 function ensureArray(value) {
   if (Array.isArray(value)) return value.map((entry) => String(entry).trim()).filter(Boolean);
   if (value == null) return [];
@@ -5465,6 +5503,17 @@ export async function createApp() {
     const codexMatch = pathname.match(/^\/api\/stories\/(\d+)\/codex-delegate$/);
     if (codexMatch && method === 'POST') {
       const storyId = Number(codexMatch[1]);
+      let payload = null;
+      let plan = CODEX_PLAN_PERSONAL;
+      let projectUrl = '';
+      let repositoryUrl = '';
+      let repositoryMetadata = null;
+      let codexRequest = null;
+      let codexResponseStatus = null;
+      let codexResponseStatusText = '';
+      let responseText = '';
+      let codexPayload = null;
+      const delegationTraceId = randomUUID();
       try {
         const story = await loadStoryWithDetails(db, storyId);
         if (!story) {
@@ -5472,10 +5521,10 @@ export async function createApp() {
           return;
         }
 
-        const payload = await parseJson(req);
-        const plan = normalizeCodexPlan(payload.plan);
-        const projectUrl = resolveCodexProjectUrl(payload.projectUrl, plan);
-        const repositoryUrl = ensureHttpUrl(payload.repositoryUrl, 'Repository URL');
+        payload = await parseJson(req);
+        plan = normalizeCodexPlan(payload.plan);
+        projectUrl = resolveCodexProjectUrl(payload.projectUrl, plan);
+        repositoryUrl = ensureHttpUrl(payload.repositoryUrl, 'Repository URL');
         const targetBranch = String(payload.targetBranch ?? '').trim() || 'main';
         const prTitleTemplate = String(payload.prTitleTemplate ?? '').trim();
         if (!prTitleTemplate) {
@@ -5505,12 +5554,12 @@ export async function createApp() {
             })
           : '';
 
-        const repositoryMetadata = parseRepositoryMetadata(repositoryUrl, {
+        repositoryMetadata = parseRepositoryMetadata(repositoryUrl, {
           targetBranch,
           defaultBranch: story.defaultBranch || 'main',
         });
 
-        const codexRequest = {
+        codexRequest = {
           story: {
             id: story.id,
             title: story.title,
@@ -5564,14 +5613,45 @@ export async function createApp() {
           },
         };
 
+        logCodexDelegation('request.prepared', {
+          traceId: delegationTraceId,
+          storyId,
+          plan,
+          endpoint: projectUrl,
+          repository: repositoryMetadata,
+          pullRequest: {
+            title: prTitle,
+            targetBranch: repositoryMetadata.targetBranch,
+            assignee,
+            reviewers,
+          },
+          request: codexRequest,
+        });
+
         const codexResponse = await fetch(projectUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(codexRequest),
         });
 
-        const responseText = await codexResponse.text();
+        codexResponseStatus = codexResponse.status ?? null;
+        codexResponseStatusText = codexResponse.statusText ?? '';
+
+        responseText = await codexResponse.text();
         if (!codexResponse.ok) {
+          logCodexDelegation(
+            'response.error',
+            {
+              traceId: delegationTraceId,
+              storyId,
+              plan,
+              endpoint: projectUrl,
+              status: codexResponse.status,
+              statusText: codexResponse.statusText,
+              responseBody: truncateForLog(responseText),
+            },
+            { level: 'warn' },
+          );
           const error = new Error('Codex request failed');
           error.statusCode = codexResponse.status || 502;
           const details = summarizeCodexFailure({
@@ -5587,7 +5667,6 @@ export async function createApp() {
           throw error;
         }
 
-        let codexPayload = null;
         if (responseText) {
           try {
             codexPayload = JSON.parse(responseText);
@@ -5595,6 +5674,16 @@ export async function createApp() {
             codexPayload = { raw: responseText };
           }
         }
+
+        logCodexDelegation('response.success', {
+          traceId: delegationTraceId,
+          storyId,
+          plan,
+          endpoint: projectUrl,
+          status: codexResponseStatus,
+          statusText: codexResponseStatusText,
+          response: codexPayload,
+        });
 
         const prInfo = extractCodexPullRequestInfo(codexPayload, {
           repository: { ...repositoryMetadata, url: repositoryUrl },
@@ -5628,6 +5717,15 @@ export async function createApp() {
         const refreshed = await loadStoryWithDetails(db, storyId);
         const createdTask = refreshed?.tasks.find((task) => task.id === Number(lastInsertRowid)) ?? null;
 
+        logCodexDelegation('task.created', {
+          traceId: delegationTraceId,
+          storyId,
+          plan,
+          endpoint: projectUrl,
+          pullRequest: prInfo,
+          task: createdTask,
+        });
+
         sendJson(res, 200, {
           message: 'Codex delegation requested',
           pullRequest: {
@@ -5642,6 +5740,26 @@ export async function createApp() {
           codexResponse: codexPayload,
         });
       } catch (error) {
+        logCodexDelegation(
+          'request.failed',
+          {
+            traceId: delegationTraceId,
+            storyId,
+            plan,
+            endpoint: projectUrl,
+            request: codexRequest,
+            status: codexResponseStatus,
+            statusText: codexResponseStatusText,
+            responseBody: truncateForLog(responseText),
+            error: {
+              message: error.message,
+              stack: error.stack,
+              details: error.details ?? null,
+              statusCode: error.statusCode ?? error.status ?? null,
+            },
+          },
+          { level: 'error' },
+        );
         const status = error.statusCode ?? error.status ?? 500;
         const body = { message: error.message || 'Failed to delegate story to Codex' };
         if (error.details) {
