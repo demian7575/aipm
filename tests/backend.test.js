@@ -213,6 +213,25 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
     'Automatically created acceptance tests include Then steps'
   );
 
+  const draftIdea =
+    'As a compliance officer I want audit logging so that we meet regulations and pass audits';
+  const draftResponse = await fetch(`${baseUrl}/api/stories/draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idea: draftIdea, parentId: story.id }),
+  });
+  assert.equal(draftResponse.status, 200);
+  const draftStory = await draftResponse.json();
+  assert.equal(typeof draftStory.title, 'string');
+  assert.ok(draftStory.title.toLowerCase().includes('audit logging'));
+  assert.equal(draftStory.asA, 'Compliance officer');
+  assert.ok(draftStory.iWant.toLowerCase().includes('audit'));
+  assert.equal(draftStory.soThat, 'We meet regulations and pass audits');
+  assert.equal(draftStory.storyPoint, 4);
+  assert.equal(draftStory.assigneeEmail, 'owner@example.com');
+  assert.ok(Array.isArray(draftStory.components));
+  assert.deepEqual(draftStory.components, updated.components);
+
   const aiDraftResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tests/draft`, {
     method: 'POST',
   });

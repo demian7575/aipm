@@ -1307,7 +1307,21 @@ function createMindmapNodeBody(story, options = {}) {
   const titleEl = createMindmapElement('div', namespace);
   titleEl.className = 'story-title';
   titleEl.textContent = title;
-  content.appendChild(titleEl);
+  const header = createMindmapElement('div', namespace);
+  header.className = 'mindmap-node-header';
+  header.appendChild(titleEl);
+
+  const actions = createMindmapElement('div', namespace);
+  actions.className = 'mindmap-node-actions';
+  const deleteButton = createMindmapElement('button', namespace);
+  deleteButton.type = 'button';
+  deleteButton.className = 'danger small mindmap-delete-button';
+  deleteButton.textContent = 'Delete';
+  deleteButton.setAttribute('data-action', 'mindmap-delete');
+  deleteButton.setAttribute('data-prevent-mindmap-pan', 'true');
+  actions.appendChild(deleteButton);
+  header.appendChild(actions);
+  content.appendChild(header);
 
   const metaLines = buildMindmapMetaLines(story);
   metaLines.forEach((line) => {
@@ -1692,6 +1706,18 @@ function renderMindmap() {
     }
     foreignObject.appendChild(body);
     group.appendChild(foreignObject);
+
+    const deleteButton = body.querySelector('.mindmap-delete-button');
+    if (deleteButton) {
+      ['pointerdown', 'mousedown', 'mouseup', 'touchstart'].forEach((eventName) => {
+        deleteButton.addEventListener(eventName, (event) => event.stopPropagation());
+      });
+      deleteButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void confirmAndDeleteStory(node.story.id);
+      });
+    }
 
     if (node.story.children && node.story.children.length > 0) {
       const toggleBg = document.createElementNS(svgNS, 'circle');
@@ -3171,20 +3197,10 @@ function renderDetails() {
   });
 
   childList.querySelectorAll('[data-action="delete-story"]').forEach((button) => {
-    button.addEventListener('click', async () => {
+    button.addEventListener('click', () => {
       const storyId = Number(button.getAttribute('data-story-id'));
       if (!Number.isFinite(storyId)) return;
-      if (!window.confirm('Delete this story and all nested items?')) return;
-      try {
-        await sendJson(`/api/stories/${storyId}`, { method: 'DELETE' });
-        if (state.selectedStoryId === storyId) {
-          state.selectedStoryId = story.id;
-        }
-        await loadStories();
-        showToast('Story deleted', 'success');
-      } catch (error) {
-        showToast(error.message || 'Failed to delete story', 'error');
-      }
+      void confirmAndDeleteStory(storyId, { fallbackSelectionId: story.id });
     });
   });
 }
@@ -3636,7 +3652,15 @@ function openDocumentPanel() {
 
 function openChildStoryModal(parentId) {
   const container = document.createElement('div');
+  container.className = 'modal-form child-story-form';
   container.innerHTML = `
+    <div class="child-story-generator">
+      <label>Idea<textarea id="child-idea" placeholder="Describe the user story idea"></textarea></label>
+      <div class="child-story-generator-actions">
+        <button type="button" class="secondary" id="child-generate-btn">Generate</button>
+        <p class="form-hint">Use your idea to draft the story details automatically.</p>
+      </div>
+    </div>
     <label>Title<input id="child-title" /></label>
     <label>Story Point<input id="child-point" type="number" min="0" step="1" placeholder="Estimate" /></label>
     <label>Assignee Email<input id="child-assignee" type="email" placeholder="name@example.com" /></label>
@@ -3672,6 +3696,8 @@ function openChildStoryModal(parentId) {
   let childComponents = [];
   const childComponentsDisplay = container.querySelector('[data-child-components-display]');
   const childComponentsButton = container.querySelector('#child-components-btn');
+  const ideaInput = container.querySelector('#child-idea');
+  const generateBtn = container.querySelector('#child-generate-btn');
 
   const refreshChildComponents = () => {
     if (!childComponentsDisplay) return;
@@ -3687,6 +3713,53 @@ function openChildStoryModal(parentId) {
     if (Array.isArray(picked)) {
       childComponents = picked;
       refreshChildComponents();
+    }
+  });
+
+  generateBtn?.addEventListener('click', async () => {
+    const idea = ideaInput?.value.trim();
+    if (!idea) {
+      showToast('Describe your idea before generating a draft', 'error');
+      ideaInput?.focus();
+      return;
+    }
+
+    const restore = { text: generateBtn.textContent, disabled: generateBtn.disabled };
+    generateBtn.textContent = 'Generating…';
+    generateBtn.disabled = true;
+    try {
+      const draft = await sendJson('/api/stories/draft', {
+        method: 'POST',
+        body: { idea, parentId },
+      });
+      if (draft && typeof draft === 'object') {
+        const titleInput = container.querySelector('#child-title');
+        const pointInput = container.querySelector('#child-point');
+        const assigneeInput = container.querySelector('#child-assignee');
+        const descriptionInput = container.querySelector('#child-description');
+        const asAInput = container.querySelector('#child-asa');
+        const iWantInput = container.querySelector('#child-iwant');
+        const soThatInput = container.querySelector('#child-sothat');
+
+        if (titleInput) titleInput.value = draft.title || '';
+        if (pointInput) pointInput.value = draft.storyPoint != null ? draft.storyPoint : '';
+        if (assigneeInput) assigneeInput.value = draft.assigneeEmail || '';
+        if (descriptionInput) descriptionInput.value = draft.description || '';
+        if (asAInput) asAInput.value = draft.asA || '';
+        if (iWantInput) iWantInput.value = draft.iWant || '';
+        if (soThatInput) soThatInput.value = draft.soThat || '';
+
+        if (Array.isArray(draft.components)) {
+          childComponents = normalizeComponentSelection(draft.components);
+          refreshChildComponents();
+        }
+        showToast('Draft story generated', 'success');
+      }
+    } catch (error) {
+      showToast(error.message || 'Failed to generate story draft', 'error');
+    } finally {
+      generateBtn.textContent = restore.text;
+      generateBtn.disabled = restore.disabled;
     }
   });
 
@@ -4322,6 +4395,51 @@ function formatComponentsSummary(components) {
     .map((entry) => formatComponentLabel(entry))
     .filter((entry) => entry && entry.length > 0);
   return labels.length > 0 ? labels.join(', ') : 'Not specified';
+}
+
+async function confirmAndDeleteStory(storyId, options = {}) {
+  if (!Number.isFinite(storyId)) {
+    return false;
+  }
+
+  if (!window.confirm('Delete this story and all nested items?')) {
+    return false;
+  }
+
+  const subtree = [];
+  const target = storyIndex.get(storyId);
+  if (target) {
+    flattenStories([target]).forEach((entry) => {
+      if (entry && entry.id != null) {
+        subtree.push(entry.id);
+      }
+    });
+  } else {
+    subtree.push(storyId);
+  }
+
+  try {
+    await sendJson(`/api/stories/${storyId}`, { method: 'DELETE' });
+    subtree.forEach((id) => state.expanded.delete(id));
+    persistExpanded();
+
+    if (subtree.includes(state.selectedStoryId)) {
+      const fallback =
+        options.fallbackSelectionId != null
+          ? options.fallbackSelectionId
+          : parentById.get(storyId) ?? null;
+      state.selectedStoryId = fallback;
+      persistSelection();
+    }
+
+    await loadStories();
+    persistSelection();
+    showToast('Story deleted', 'success');
+    return true;
+  } catch (error) {
+    showToast(error.message || 'Failed to delete story', 'error');
+    return false;
+  }
 }
 
 async function sendJson(url, options = {}) {
