@@ -1,6 +1,45 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { URL } from 'node:url';
+import { mkdirSync, appendFileSync } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+
+const CODEX_LOG_DIR = path.resolve(process.cwd(), 'apps', 'log');
+const CODEX_LOG_FILE = path.join(CODEX_LOG_DIR, 'codex-delegation.log');
+let codexLogDirectoryEnsured = false;
+
+function ensureCodexLogDirectory() {
+  if (codexLogDirectoryEnsured) {
+    return true;
+  }
+
+  try {
+    mkdirSync(CODEX_LOG_DIR, { recursive: true });
+    codexLogDirectoryEnsured = true;
+    return true;
+  } catch (error) {
+    const logger = typeof console.error === 'function' ? console.error : console.log;
+    logger(`[codex-delegation:stub] Failed to create log directory: ${error.message}`);
+    return false;
+  }
+}
+
+function writeCodexDelegationLogLine(message) {
+  if (!message) {
+    return;
+  }
+  if (!ensureCodexLogDirectory()) {
+    return;
+  }
+
+  try {
+    appendFileSync(CODEX_LOG_FILE, `${message}${os.EOL}`);
+  } catch (error) {
+    const logger = typeof console.error === 'function' ? console.error : console.log;
+    logger(`[codex-delegation:stub] Failed to write log entry: ${error.message}`);
+  }
+}
 
 function logLocalCodexDelegation(stage, traceId, details = {}, options = {}) {
   const { level = 'log' } = options || {};
@@ -19,7 +58,9 @@ function logLocalCodexDelegation(stage, traceId, details = {}, options = {}) {
   }
 
   const logger = typeof console[level] === 'function' ? console[level] : console.log;
-  logger(`[codex-delegation:stub] ${serialized}`);
+  const output = `[codex-delegation:stub] ${serialized}`;
+  logger(output);
+  writeCodexDelegationLogLine(output);
 }
 
 function buildPullRequestUrl(repositoryUrl, number) {

@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync, appendFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +10,10 @@ import os from 'node:os';
 import { findConfiguredPersonalCodexUrl } from './codex-config.js';
 
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
+
+const CODEX_LOG_DIR = path.resolve(process.cwd(), 'apps', 'log');
+const CODEX_LOG_FILE = path.join(CODEX_LOG_DIR, 'codex-delegation.log');
+let codexLogDirectoryEnsured = false;
 
 export const COMPONENT_CATALOG = [
   'WorkModel',
@@ -1538,6 +1542,38 @@ function truncateForLog(value, limit = 2000) {
   return `${value.slice(0, limit)}… (truncated ${omitted} characters)`;
 }
 
+function ensureCodexLogDirectory() {
+  if (codexLogDirectoryEnsured) {
+    return true;
+  }
+
+  try {
+    mkdirSync(CODEX_LOG_DIR, { recursive: true });
+    codexLogDirectoryEnsured = true;
+    return true;
+  } catch (error) {
+    const logger = typeof console.error === 'function' ? console.error : console.log;
+    logger(`[codex-delegation] Failed to create log directory: ${error.message}`);
+    return false;
+  }
+}
+
+function writeCodexDelegationLogLine(message) {
+  if (!message) {
+    return;
+  }
+  if (!ensureCodexLogDirectory()) {
+    return;
+  }
+
+  try {
+    appendFileSync(CODEX_LOG_FILE, `${message}${os.EOL}`);
+  } catch (error) {
+    const logger = typeof console.error === 'function' ? console.error : console.log;
+    logger(`[codex-delegation] Failed to write log entry: ${error.message}`);
+  }
+}
+
 function logCodexDelegation(stage, details = {}, options = {}) {
   const { level = 'log' } = options || {};
   const entry = {
@@ -1562,7 +1598,9 @@ function logCodexDelegation(stage, details = {}, options = {}) {
   }
 
   const logger = typeof console[level] === 'function' ? console[level] : console.log;
-  logger(`[codex-delegation] ${serialized}`);
+  const output = `[codex-delegation] ${serialized}`;
+  logger(output);
+  writeCodexDelegationLogLine(output);
 }
 
 function ensureArray(value) {

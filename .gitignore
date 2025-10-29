@@ -2,6 +2,7 @@ node_modules/
 data/
 apps/backend/data/
 apps/backend/uploads/
+apps/log/
 docs/examples/*.sqlite
 docs/examples/*.json
 !docs/examples/app.sqlite.json

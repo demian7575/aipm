@@ -1229,12 +1229,16 @@ test('story dependency APIs work with JSON fallback database', async (t) => {
 
 test('delegate story to Codex creates a task and records PR details', async (t) => {
   await resetDatabaseFiles();
+  const codexLogDir = path.join(process.cwd(), 'apps', 'log');
+  const codexLogFile = path.join(codexLogDir, 'codex-delegation.log');
+  await fs.rm(codexLogDir, { recursive: true, force: true });
   const { server, port } = await startServer();
 
   t.after(async () => {
     await new Promise((resolve, reject) => {
       server.close((err) => (err ? reject(err) : resolve()));
     });
+    await fs.rm(codexLogDir, { recursive: true, force: true });
   });
 
   const codexRequests = [];
@@ -1347,6 +1351,20 @@ test('delegate story to Codex creates a task and records PR details', async (t) 
   assert.ok(refreshedStory.tasks.some((task) => task.id === result.task.id));
   const createdTask = refreshedStory.tasks.find((task) => task.id === result.task.id);
   assert.ok(createdTask.description.includes('https://github.com/example/repo/pull/42'));
+
+  const logContents = await fs.readFile(codexLogFile, 'utf8');
+  assert.ok(
+    logContents.includes('"stage": "request.prepared"'),
+    'Codex request should be logged to apps/log/codex-delegation.log',
+  );
+  assert.ok(
+    logContents.includes('"stage": "response.success"'),
+    'Successful Codex response should be logged to apps/log/codex-delegation.log',
+  );
+  assert.ok(
+    logContents.includes('"stage": "task.created"'),
+    'Codex task creation should be logged to apps/log/codex-delegation.log',
+  );
 });
 
 test('Codex response with only a PR number still records a pull request link', async (t) => {
