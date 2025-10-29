@@ -3577,6 +3577,14 @@ function normalizeIdeaAction(idea) {
   return { action, summary };
 }
 
+function describePersona(persona) {
+  const normalized = normalizeStoryText(persona, 'the user');
+  if (/^(?:the|a|an)\b/i.test(normalized)) {
+    return normalized;
+  }
+  return `the ${normalized}`;
+}
+
 function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
   const persona = normalizeStoryText(story.asA, 'the user');
   const action = normalizeStoryText(story.iWant, 'perform the described action');
@@ -3587,18 +3595,34 @@ function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
     ? `${titleBase} – ${verificationLabel} #${ordinal}`
     : '';
 
-  const { action: ideaAction, summary: ideaSummary } = normalizeIdeaAction(idea);
-  const whenAction = ideaAction || `they ${action}`;
-  const measurableOutcome = ideaAction
-    ? `observable evidence confirms that ${ideaAction.replace(/^they\s+/i, '')} meets the acceptance criteria`
-    : `${outcome} is completed within 2 seconds and a confirmation code of at least 6 characters is recorded`;
-  const givenContext = ideaAction
-    ? `Given ${persona} has prioritised the idea "${ideaSummary}" and can work within the system`
-    : `Given ${persona} has access to the system`;
+  const personaSubject = describePersona(persona);
+  const normalizedAction = action.replace(/^to\s+/i, '').replace(/\.$/, '');
+  const sanitizedAction = normalizedAction.replace(/^(?:attempts|tries)\s+to\s+/i, '');
+  const fallbackAction = sanitizedAction
+    ? `attempts to ${sanitizedAction}`
+    : 'attempts to perform the described action';
+  const { summary: ideaSummary } = normalizeIdeaAction(idea);
 
-  const given = [givenContext];
-  const when = [`When ${whenAction}`];
-  const then = [`Then ${measurableOutcome} and ${outcome} is verified with observable evidence`];
+  const given = ideaSummary
+    ? [
+        `Given ${personaSubject} has access to the system`,
+        `And the idea "${ideaSummary}" has been prioritised for implementation`,
+      ]
+    : [`Given ${personaSubject} has access to the system`];
+
+  const when = ideaSummary
+    ? [`When ${personaSubject} works on the idea "${ideaSummary}" within the system`]
+    : [`When ${personaSubject} ${fallbackAction}`];
+
+  const then = ideaSummary
+    ? [
+        `Then observable evidence confirms "${ideaSummary}" meets the acceptance criteria`,
+        `And ${outcome} is verified with stakeholders`,
+      ]
+    : [
+        `Then ${outcome} is completed within 2 seconds`,
+        'And a confirmation code of at least 6 characters is recorded',
+      ];
 
   return { title, given, when, then, source: 'fallback', summary: '' };
 }
