@@ -3549,7 +3549,30 @@ function normalizeStoryText(value, fallback) {
   return text || fallback;
 }
 
-function defaultAcceptanceTestDraft(story, ordinal, reason) {
+function normalizeIdeaAction(idea) {
+  if (!idea) return '';
+  let text = String(idea).trim();
+  if (!text) return '';
+  text = text.replace(/\s+/g, ' ');
+  text = text.replace(/^[Gg]iven\s+/, '');
+  text = text.replace(/^[Ww]hen\s+/, '');
+  text = text.replace(/^[Tt]hen\s+/, '');
+  text = text.replace(/^to\s+/, '');
+  text = text.replace(/\.$/, '');
+  if (!text) return '';
+  if (/^I\s+want\s+to\s+/i.test(text)) {
+    text = text.replace(/^I\s+want\s+to\s+/i, '');
+  }
+  if (/^We\s+need\s+to\s+/i.test(text)) {
+    text = text.replace(/^We\s+need\s+to\s+/i, '');
+  }
+  if (/^[A-Z]/.test(text)) {
+    text = text.charAt(0).toLowerCase() + text.slice(1);
+  }
+  return text;
+}
+
+function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
   const persona = normalizeStoryText(story.asA, 'the user');
   const action = normalizeStoryText(story.iWant, 'perform the described action');
   const outcome = normalizeStoryText(story.soThat, 'achieve the desired outcome');
@@ -3559,11 +3582,22 @@ function defaultAcceptanceTestDraft(story, ordinal, reason) {
     ? `${titleBase} – ${verificationLabel} #${ordinal}`
     : '';
 
-  const given = [`Given ${persona} has access to the system`];
-  const when = [`When they ${action}`];
-  const then = [
-    `Then ${outcome} is completed within 2 seconds and a confirmation code of at least 6 characters is recorded`,
-  ];
+  const ideaAction = normalizeIdeaAction(idea);
+  const whenAction = ideaAction
+    ? /^(they|the|a|an|user|customer|system)\b/i.test(ideaAction)
+      ? ideaAction
+      : `they ${ideaAction}`
+    : `they ${action}`;
+  const measurableOutcome = ideaAction
+    ? `evidence shows that ${ideaAction.replace(/^they\s+/i, '')} succeeds`
+    : `${outcome} is completed within 2 seconds and a confirmation code of at least 6 characters is recorded`;
+  const givenContext = ideaAction
+    ? `Given ${persona} is ready to experiment with "${idea.toString().trim()}"`
+    : `Given ${persona} has access to the system`;
+
+  const given = [givenContext];
+  const when = [`When ${whenAction}`];
+  const then = [`Then ${measurableOutcome} and ${outcome} is verified with observable evidence`];
 
   return { title, given, when, then, source: 'fallback', summary: '' };
 }
@@ -3577,7 +3611,7 @@ function normalizeGeneratedSteps(value) {
     .filter((entry) => entry && entry.length > 0);
 }
 
-async function requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, config) {
+async function requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, config, { idea = '' } = {}) {
   if (!config.enabled) {
     return null;
   }
@@ -3607,6 +3641,7 @@ async function requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, conf
             reason,
             ordinal,
           },
+          idea: idea || undefined,
         },
         null,
         2
@@ -3684,14 +3719,14 @@ async function requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, conf
   };
 }
 
-async function generateAcceptanceTestDraft(story, ordinal, reason) {
+async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' } = {}) {
   const config = readOpenAiConfig();
   if (!config.enabled) {
-    return defaultAcceptanceTestDraft(story, ordinal, reason);
+    return defaultAcceptanceTestDraft(story, ordinal, reason, idea);
   }
 
   try {
-    const aiDraft = await requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, config);
+    const aiDraft = await requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, config, { idea });
     if (aiDraft) {
       return aiDraft;
     }
@@ -3699,7 +3734,7 @@ async function generateAcceptanceTestDraft(story, ordinal, reason) {
     console.error('OpenAI acceptance test draft generation failed', error);
   }
 
-  return defaultAcceptanceTestDraft(story, ordinal, reason);
+  return defaultAcceptanceTestDraft(story, ordinal, reason, idea);
 }
 
 async function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingCount = null } = {}) {
@@ -5023,6 +5058,8 @@ export async function createApp() {
     if (testDraftMatch && method === 'POST') {
       const storyId = Number(testDraftMatch[1]);
       try {
+        const payload = await parseJson(req);
+        const idea = typeof payload.idea === 'string' ? payload.idea.trim() : '';
         const allStories = flattenStories(await loadStories(db));
         const story = allStories.find((node) => node.id === storyId);
         if (!story) {
@@ -5030,7 +5067,7 @@ export async function createApp() {
           return;
         }
         const ordinal = story.acceptanceTests.length + 1;
-        const draft = await generateAcceptanceTestDraft(story, ordinal, 'manual');
+        const draft = await generateAcceptanceTestDraft(story, ordinal, 'manual', { idea });
         sendJson(res, 200, {
           ...draft,
           status: ACCEPTANCE_TEST_STATUS_DRAFT,

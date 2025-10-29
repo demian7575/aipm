@@ -250,6 +250,22 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.ok(Array.isArray(aiDraft.then) && aiDraft.then.length > 0);
   assert.equal(aiDraft.status, 'Draft');
 
+  const ideaText = 'validate audit log entries for approved changes';
+  const ideaDraftResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tests/draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idea: ideaText }),
+  });
+  assert.equal(ideaDraftResponse.status, 200);
+  const ideaDraft = await ideaDraftResponse.json();
+  assert.ok(Array.isArray(ideaDraft.when) && ideaDraft.when.length > 0);
+  assert.ok(
+    ideaDraft.when.some((step) => step.toLowerCase().includes('validate audit log entries')),
+    'When step should incorporate the provided idea'
+  );
+  assert.ok(Array.isArray(ideaDraft.then) && ideaDraft.then.length > 0);
+  assert.equal(ideaDraft.status, 'Draft');
+
   const taskCreateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tasks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
