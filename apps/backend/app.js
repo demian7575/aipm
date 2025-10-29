@@ -1583,6 +1583,7 @@ function resolveCodexProjectUrl(requestValue, plan) {
 
 function summarizeCodexFailure({ status, statusText, bodyText, url, plan }) {
   const parts = [];
+  let responseSummary = '';
   if (status || statusText) {
     const statusBits = [status ? String(status) : null, statusText ? String(statusText) : null]
       .filter(Boolean)
@@ -1622,9 +1623,19 @@ function summarizeCodexFailure({ status, statusText, bodyText, url, plan }) {
         }
       }
       if (summary) {
+        responseSummary = summary;
         parts.push(`Response body: ${summary}`);
       }
     }
+  }
+
+  const summaryText = `${statusText ?? ''} ${responseSummary ?? ''}`;
+  if (
+    (status && Number(status) === 405) ||
+    /method not allowed/i.test(summaryText) ||
+    /only\s+post/i.test(summaryText)
+  ) {
+    parts.push('Retry the delegation using a POST request; other HTTP methods are not accepted');
   }
 
   if (plan === CODEX_PLAN_PERSONAL && url === DEFAULT_CODEX_PERSONAL_URL) {
