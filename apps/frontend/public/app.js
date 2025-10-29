@@ -3996,9 +3996,10 @@ function openCodexDelegationModal(story) {
     <p class="form-hint codex-personal-hint" data-codex-personal-hint>
       Personal plan delegations require an environment variable such as
       <code>AI_PM_CODEX_PERSONAL_URL</code> (or <code>CODEX_PERSONAL_URL</code>) to point at the
-      gateway that handles your Codex authentication. Provide that URL here if you need to override
-      the configured value. These endpoints usually reject unauthenticated browser requests, so
-      they may not load directly in a new tab.
+      gateway that handles your Codex authentication. When the bundled dev server runs without that
+      configuration it automatically boots a local mock delegate endpoint, but you can provide a URL
+      here to target your own gateway instead. These endpoints usually reject unauthenticated browser
+      requests, so they may not load directly in a new tab.
     </p>
     <div class="codex-field">
       <label for="codex-repository-url">Repository URL</label>

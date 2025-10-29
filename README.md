@@ -34,6 +34,14 @@ npm run dev
 - The service binds to port `4000` by default and automatically retries on the next available port if the address is in use.
 - Static assets live under `apps/frontend/public/` and are served by the backend.
 
+### Local Codex delegation stub
+
+When the development server starts without a configured Codex personal-plan endpoint, it now launches a
+mock delegation service on a random local port and points `AI_PM_CODEX_PERSONAL_URL` at that address. The
+stub accepts `POST /personal-delegate` requests and returns a synthetic pull request response so you can
+exercise the “Develop with Codex” flow without additional setup. Set `AI_PM_DISABLE_LOCAL_CODEX=1` if you
+prefer to manage the Codex endpoint yourself.
+
 ### Available Panels & Controls
 
 The workspace header exposes three panel toggles that persist in `localStorage`:

@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createServer as createHttpServer } from 'node:http';
 import { COMPONENT_CATALOG, createApp, DATABASE_PATH, openDatabase, resetDatabaseFactory } from '../apps/backend/app.js';
+import { startLocalCodexDelegationServer } from '../apps/backend/local-codex-delegation.js';
 import { generateSampleDataset } from '../scripts/generate-sample-dataset.mjs';
 
 process.env.AI_PM_DISABLE_OPENAI = '1';
@@ -1380,6 +1381,34 @@ test('personal Codex plan falls back to configured delegation URL', async (t) =>
   assert.equal(sent.body.metadata.plan, 'personal');
   assert.equal(sent.body.repository.url, 'https://github.com/personal/repo');
   assert.equal(sent.body.repository.targetBranch, 'main');
+});
+
+test('local Codex delegation stub returns synthetic pull request info', async (t) => {
+  const stub = await startLocalCodexDelegationServer();
+
+  t.after(async () => {
+    await stub.close();
+  });
+
+  const response = await fetch(stub.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      repository: { url: 'https://github.com/example/repo' },
+      pullRequest: { title: 'feat: demo' },
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.status, 'submitted');
+  assert.ok(body.pullRequest);
+  assert.equal(body.pullRequest.status, 'open');
+  assert.ok(body.pullRequest.identifier);
+  assert.equal(typeof body.pullRequest.number, 'number');
+  assert.ok(typeof body.pullRequest.url === 'string');
+  assert.ok(body.pullRequest.url.includes('/pull/'));
+  assert.ok(body.pullRequest.url.startsWith('https://github.com/example/repo'));
 });
 
 test('personal Codex plan without configuration returns helpful guidance', async (t) => {
