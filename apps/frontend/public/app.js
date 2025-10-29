@@ -1311,16 +1311,6 @@ function createMindmapNodeBody(story, options = {}) {
   header.className = 'mindmap-node-header';
   header.appendChild(titleEl);
 
-  const actions = createMindmapElement('div', namespace);
-  actions.className = 'mindmap-node-actions';
-  const deleteButton = createMindmapElement('button', namespace);
-  deleteButton.type = 'button';
-  deleteButton.className = 'danger small mindmap-delete-button';
-  deleteButton.textContent = 'Delete';
-  deleteButton.setAttribute('data-action', 'mindmap-delete');
-  deleteButton.setAttribute('data-prevent-mindmap-pan', 'true');
-  actions.appendChild(deleteButton);
-  header.appendChild(actions);
   content.appendChild(header);
 
   const metaLines = buildMindmapMetaLines(story);
@@ -1706,18 +1696,6 @@ function renderMindmap() {
     }
     foreignObject.appendChild(body);
     group.appendChild(foreignObject);
-
-    const deleteButton = body.querySelector('.mindmap-delete-button');
-    if (deleteButton) {
-      ['pointerdown', 'mousedown', 'mouseup', 'touchstart'].forEach((eventName) => {
-        deleteButton.addEventListener(eventName, (event) => event.stopPropagation());
-      });
-      deleteButton.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        void confirmAndDeleteStory(node.story.id);
-      });
-    }
 
     if (node.story.children && node.story.children.length > 0) {
       const toggleBg = document.createElementNS(svgNS, 'circle');
@@ -2332,6 +2310,7 @@ function renderDetails() {
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
+      <button type="button" class="danger" id="delete-story-btn">Delete</button>
     </div>
     <div class="full field-row">
       <label>Title</label>
@@ -2728,6 +2707,7 @@ function renderDetails() {
 
   const saveButton = form.querySelector('button[type="submit"]');
   const editButton = form.querySelector('#edit-story-btn');
+  const deleteButton = form.querySelector('#delete-story-btn');
   const editableFields = Array.from(
     form.querySelectorAll('input[name], textarea[name], select[name]')
   );
@@ -2791,6 +2771,11 @@ function renderDetails() {
         titleField.focus();
       }
     }
+  });
+
+  deleteButton?.addEventListener('click', (event) => {
+    event.preventDefault();
+    void confirmAndDeleteStory(story.id);
   });
 
   const emailBtn = form.querySelector('#assignee-email-btn');
