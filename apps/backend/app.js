@@ -1536,7 +1536,7 @@ const CODEX_PLAN_PERSONAL = 'personal';
 export const DEFAULT_CODEX_PERSONAL_URL = 'https://api.openai.com/v1/codex/personal-delegate';
 
 function normalizeCodexPlan(value) {
-  return value === CODEX_PLAN_PERSONAL ? CODEX_PLAN_PERSONAL : CODEX_PLAN_PROJECT;
+  return value === CODEX_PLAN_PROJECT ? CODEX_PLAN_PROJECT : CODEX_PLAN_PERSONAL;
 }
 
 function resolveCodexProjectUrl(requestValue, plan) {

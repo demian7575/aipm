@@ -42,11 +42,13 @@ const CODEX_PLAN_OPTIONS = {
   personal: 'personal',
 };
 
+const DEFAULT_CODEX_REPOSITORY_URL = 'https://github.com/demian7575/aipm.git';
+
 function normalizeCodexPlan(value) {
-  if (value === CODEX_PLAN_OPTIONS.personal) {
-    return CODEX_PLAN_OPTIONS.personal;
+  if (value === CODEX_PLAN_OPTIONS.project) {
+    return CODEX_PLAN_OPTIONS.project;
   }
-  return CODEX_PLAN_OPTIONS.project;
+  return CODEX_PLAN_OPTIONS.personal;
 }
 
 function loadCodexSettings() {
@@ -4019,7 +4021,7 @@ function openCodexDelegationModal(story) {
   const storedPlan = normalizeCodexPlan(stored.plan);
   planSelect.value = storedPlan;
   projectInput.value = stored.projectUrl || '';
-  repositoryInput.value = stored.repositoryUrl || '';
+  repositoryInput.value = stored.repositoryUrl || DEFAULT_CODEX_REPOSITORY_URL;
   targetBranchInput.value = stored.targetBranch || 'main';
   prTitleInput.value = stored.prTitleTemplate || defaultTitleTemplate;
   prBodyInput.value = stored.prBodyTemplate || defaultBodyTemplate;
