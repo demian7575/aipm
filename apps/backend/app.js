@@ -1533,7 +1533,6 @@ function ensureArray(value) {
 
 const CODEX_PLAN_PROJECT = 'project';
 const CODEX_PLAN_PERSONAL = 'personal';
-export const DEFAULT_CODEX_PERSONAL_URL = 'https://api.openai.com/v1/codex/personal-delegate';
 
 function normalizeCodexPlan(value) {
   return value === CODEX_PLAN_PROJECT ? CODEX_PLAN_PROJECT : CODEX_PLAN_PERSONAL;
@@ -1559,9 +1558,6 @@ function resolveCodexProjectUrl(requestValue, plan) {
     );
   }
   candidates.push(process.env.AI_PM_CODEX_PROJECT_URL, process.env.CODEX_PROJECT_URL);
-  if (normalizedPlan === CODEX_PLAN_PERSONAL) {
-    candidates.push(DEFAULT_CODEX_PERSONAL_URL);
-  }
 
   const fallback = candidates.find((entry) => typeof entry === 'string' && entry.trim().length > 0);
   if (fallback) {
@@ -1636,12 +1632,6 @@ function summarizeCodexFailure({ status, statusText, bodyText, url, plan }) {
     /only\s+post/i.test(summaryText)
   ) {
     parts.push('Retry the delegation using a POST request; other HTTP methods are not accepted');
-  }
-
-  if (plan === CODEX_PLAN_PERSONAL && url === DEFAULT_CODEX_PERSONAL_URL) {
-    parts.push(
-      'Set AI_PM_CODEX_PERSONAL_URL (or CODEX_PERSONAL_URL) to the personal delegation endpoint provided for your workspace, or supply a project URL in the delegation modal'
-    );
   }
 
   return parts.join('. ');

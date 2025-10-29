@@ -3976,11 +3976,11 @@ function openCodexDelegationModal(story) {
       <input id="codex-project-url" type="url" placeholder="https://codex.example.com/api/projects/123/delegate" />
     </div>
     <p class="form-hint codex-personal-hint" data-codex-personal-hint>
-      Personal plan delegations use the default endpoint
-      <code>https://api.openai.com/v1/codex/personal-delegate</code>. Provide a custom URL if your
-      account uses a different destination. This endpoint is only accessible via authenticated API
-      requests, so opening it directly in a browser will report an error even when the configuration
-      is correct.
+      Personal plan delegations require an environment variable such as
+      <code>AI_PM_CODEX_PERSONAL_URL</code> (or <code>CODEX_PERSONAL_URL</code>) to point at the
+      gateway that handles your Codex authentication. Provide that URL here if you need to override
+      the configured value. These endpoints usually reject unauthenticated browser requests, so
+      they may not load directly in a new tab.
     </p>
     <div class="codex-field">
       <label for="codex-repository-url">Repository URL</label>
