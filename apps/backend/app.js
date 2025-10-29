@@ -1660,6 +1660,52 @@ function ensureHttpUrl(value, label) {
   return parsed.toString();
 }
 
+function parseRepositoryMetadata(repositoryUrl, options = {}) {
+  const { targetBranch: requestedTargetBranch = 'main', defaultBranch: requestedDefaultBranch = 'main' } =
+    options ?? {};
+  const normalized = ensureHttpUrl(repositoryUrl, 'Repository URL');
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    return {
+      host: '',
+      owner: '',
+      name: '',
+      fullName: '',
+      httpUrl: normalized,
+      sshUrl: '',
+      defaultBranch: requestedDefaultBranch || 'main',
+      targetBranch: requestedTargetBranch || requestedDefaultBranch || 'main',
+      provider: '',
+    };
+  }
+
+  const host = parsed.host || '';
+  const provider = host.replace(/^www\./i, '').toLowerCase();
+  const path = parsed.pathname.replace(/\.git$/i, '').replace(/\/+$/, '');
+  const segments = path.split('/').filter(Boolean);
+  const owner = segments[0] || '';
+  const name = segments[1] || '';
+  const fullName = owner && name ? `${owner}/${name}` : '';
+  const httpUrl = fullName ? `${parsed.origin}/${fullName}` : normalized;
+  const sshUrl = fullName ? `git@${host}:${fullName}.git` : '';
+  const defaultBranch = requestedDefaultBranch || 'main';
+  const targetBranch = requestedTargetBranch || defaultBranch;
+
+  return {
+    host,
+    owner,
+    name,
+    fullName,
+    httpUrl,
+    sshUrl,
+    defaultBranch,
+    targetBranch,
+    provider,
+  };
+}
+
 function applyTemplateString(template, story, options = {}) {
   if (template == null) {
     return '';
@@ -5298,6 +5344,11 @@ export async function createApp() {
             })
           : '';
 
+        const repositoryMetadata = parseRepositoryMetadata(repositoryUrl, {
+          targetBranch,
+          defaultBranch: story.defaultBranch || 'main',
+        });
+
         const codexRequest = {
           story: {
             id: story.id,
@@ -5322,12 +5373,22 @@ export async function createApp() {
           repository: {
             url: repositoryUrl,
             targetBranch,
+            defaultBranch: repositoryMetadata.defaultBranch,
+            provider: repositoryMetadata.provider,
+            owner: repositoryMetadata.owner,
+            name: repositoryMetadata.name,
+            fullName: repositoryMetadata.fullName,
+            httpUrl: repositoryMetadata.httpUrl,
+            sshUrl: repositoryMetadata.sshUrl,
           },
           pullRequest: {
             title: prTitle,
             body: prBody,
             assignee,
             reviewers,
+            baseBranch: repositoryMetadata.targetBranch,
+            targetBranch: repositoryMetadata.targetBranch,
+            branch: repositoryMetadata.targetBranch,
             template: {
               title: prTitleTemplate,
               body: prBodyTemplate,
@@ -5338,6 +5399,7 @@ export async function createApp() {
             source: 'ai-pm',
             storyId,
             plan,
+            repository: repositoryMetadata,
           },
         };
 

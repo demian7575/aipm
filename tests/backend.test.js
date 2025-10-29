@@ -1320,10 +1320,21 @@ test('delegate story to Codex creates a task and records PR details', async (t) 
   assert.ok(sent.body.story);
   assert.equal(sent.body.repository.url, 'https://github.com/example/repo');
   assert.equal(sent.body.repository.targetBranch, 'feature/codex');
+  assert.equal(sent.body.repository.defaultBranch, 'main');
+  assert.equal(sent.body.repository.owner, 'example');
+  assert.equal(sent.body.repository.name, 'repo');
+  assert.equal(sent.body.repository.fullName, 'example/repo');
+  assert.equal(sent.body.repository.httpUrl, 'https://github.com/example/repo');
+  assert.equal(sent.body.repository.sshUrl, 'git@github.com:example/repo.git');
   assert.equal(sent.body.pullRequest.assignee, 'dev@example.com');
   assert.ok(Array.isArray(sent.body.pullRequest.reviewers));
   assert.deepEqual(sent.body.pullRequest.reviewers.sort(), payload.reviewers.slice().sort());
+  assert.equal(sent.body.pullRequest.baseBranch, 'feature/codex');
+  assert.equal(sent.body.pullRequest.branch, 'feature/codex');
+  assert.equal(sent.body.pullRequest.targetBranch, 'feature/codex');
   assert.equal(sent.body.metadata.plan, 'project');
+  assert.ok(sent.body.metadata.repository);
+  assert.equal(sent.body.metadata.repository.fullName, 'example/repo');
   assert.ok(typeof sent.body.pullRequest.title === 'string');
   assert.ok(sent.body.pullRequest.title.includes(story.title));
 
