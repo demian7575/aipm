@@ -1581,6 +1581,61 @@ function resolveCodexProjectUrl(requestValue, plan) {
   throw error;
 }
 
+function summarizeCodexFailure({ status, statusText, bodyText, url, plan }) {
+  const parts = [];
+  if (status || statusText) {
+    const statusBits = [status ? String(status) : null, statusText ? String(statusText) : null]
+      .filter(Boolean)
+      .join(' ');
+    const location = url ? ` (${url})` : '';
+    if (statusBits) {
+      parts.push(`Codex endpoint responded with ${statusBits}${location}`);
+    } else if (url) {
+      parts.push(`Codex endpoint ${url} responded with an error`);
+    }
+  } else if (url) {
+    parts.push(`Codex endpoint ${url} responded with an error`);
+  }
+
+  if (bodyText) {
+    const trimmed = String(bodyText).trim();
+    if (trimmed) {
+      let summary = '';
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.message) {
+            summary = String(parsed.message);
+          } else if (parsed.error) {
+            summary = typeof parsed.error === 'string' ? parsed.error : JSON.stringify(parsed.error);
+          } else {
+            summary = JSON.stringify(parsed);
+          }
+        } else {
+          summary = trimmed;
+        }
+      } catch {
+        if (/^</.test(trimmed)) {
+          summary = trimmed.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        } else {
+          summary = trimmed;
+        }
+      }
+      if (summary) {
+        parts.push(`Response body: ${summary}`);
+      }
+    }
+  }
+
+  if (plan === CODEX_PLAN_PERSONAL && url === DEFAULT_CODEX_PERSONAL_URL) {
+    parts.push(
+      'Set AI_PM_CODEX_PERSONAL_URL (or CODEX_PERSONAL_URL) to the personal delegation endpoint provided for your workspace, or supply a project URL in the delegation modal'
+    );
+  }
+
+  return parts.join('. ');
+}
+
 function ensureHttpUrl(value, label) {
   const text = typeof value === 'string' ? value.trim() : '';
   if (!text) {
@@ -4965,7 +5020,16 @@ export async function createApp() {
         if (!codexResponse.ok) {
           const error = new Error('Codex request failed');
           error.statusCode = codexResponse.status || 502;
-          error.details = responseText || '';
+          const details = summarizeCodexFailure({
+            status: codexResponse.status,
+            statusText: codexResponse.statusText,
+            bodyText: responseText,
+            url: projectUrl,
+            plan,
+          });
+          if (details) {
+            error.details = details;
+          }
           throw error;
         }
 
