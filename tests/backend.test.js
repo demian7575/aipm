@@ -209,6 +209,33 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
     'Automatically created acceptance tests include Then steps'
   );
 
+  const draftIdea =
+    'As a compliance officer I want audit logging so that we meet regulations and pass audits';
+  const draftResponse = await fetch(`${baseUrl}/api/stories/draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idea: draftIdea, parentId: story.id }),
+  });
+  assert.equal(draftResponse.status, 200);
+  const draftStory = await draftResponse.json();
+  assert.equal(typeof draftStory.title, 'string');
+  assert.ok(draftStory.title.toLowerCase().includes('audit logging'));
+  assert.equal(draftStory.asA, 'Compliance officer');
+  assert.ok(draftStory.iWant.toLowerCase().includes('audit'));
+  assert.equal(draftStory.soThat, 'We meet regulations and pass audits');
+  assert.ok(
+    draftStory.description.includes('As a Compliance officer'),
+    'Generated description should mention the persona'
+  );
+  assert.ok(
+    draftStory.description.toLowerCase().includes('implement audit logging'),
+    'Generated description should describe the goal naturally'
+  );
+  assert.equal(draftStory.storyPoint, 4);
+  assert.equal(draftStory.assigneeEmail, 'owner@example.com');
+  assert.ok(Array.isArray(draftStory.components));
+  assert.deepEqual(draftStory.components, updated.components);
+
   const aiDraftResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tests/draft`, {
     method: 'POST',
   });
@@ -218,6 +245,26 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.ok(Array.isArray(aiDraft.when) && aiDraft.when.length > 0);
   assert.ok(Array.isArray(aiDraft.then) && aiDraft.then.length > 0);
   assert.equal(aiDraft.status, 'Draft');
+
+  const ideaText = 'validate audit log entries for approved changes';
+  const ideaDraftResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tests/draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idea: ideaText }),
+  });
+  assert.equal(ideaDraftResponse.status, 200);
+  const ideaDraft = await ideaDraftResponse.json();
+  assert.ok(Array.isArray(ideaDraft.when) && ideaDraft.when.length > 0);
+  assert.ok(
+    ideaDraft.when.some((step) => step.toLowerCase().includes('validate audit log entries')),
+    'When step should incorporate the provided idea'
+  );
+  assert.ok(
+    ideaDraft.given.some((step) => step.toLowerCase().includes('idea "validate audit log entries for approved changes"')),
+    'Given step should reference the supplied idea explicitly'
+  );
+  assert.ok(Array.isArray(ideaDraft.then) && ideaDraft.then.length > 0);
+  assert.equal(ideaDraft.status, 'Draft');
 
   const taskCreateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tasks`, {
     method: 'POST',
