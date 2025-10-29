@@ -123,6 +123,10 @@ textarea {
   gap: 0.75rem;
 }
 
+#runtime-data-link {
+  font-weight: 700;
+}
+
 .panel-toggles {
   display: flex;
   gap: 1rem;

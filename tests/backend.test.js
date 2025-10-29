@@ -227,6 +227,14 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.equal(draftStory.asA, 'Compliance officer');
   assert.ok(draftStory.iWant.toLowerCase().includes('audit'));
   assert.equal(draftStory.soThat, 'We meet regulations and pass audits');
+  assert.ok(
+    draftStory.description.includes('As a Compliance officer'),
+    'Generated description should mention the persona'
+  );
+  assert.ok(
+    draftStory.description.toLowerCase().includes('implement audit logging'),
+    'Generated description should describe the goal naturally'
+  );
   assert.equal(draftStory.storyPoint, 4);
   assert.equal(draftStory.assigneeEmail, 'owner@example.com');
   assert.ok(Array.isArray(draftStory.components));
