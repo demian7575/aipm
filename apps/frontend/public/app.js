@@ -3978,7 +3978,9 @@ function openCodexDelegationModal(story) {
     <p class="form-hint codex-personal-hint" data-codex-personal-hint>
       Personal plan delegations use the default endpoint
       <code>https://api.openai.com/v1/codex/personal-delegate</code>. Provide a custom URL if your
-      account uses a different destination.
+      account uses a different destination. This endpoint is only accessible via authenticated API
+      requests, so opening it directly in a browser will report an error even when the configuration
+      is correct.
     </p>
     <div class="codex-field">
       <label for="codex-repository-url">Repository URL</label>
