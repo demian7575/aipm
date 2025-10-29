@@ -1531,6 +1531,45 @@ function ensureArray(value) {
   return [String(value).trim()].filter(Boolean);
 }
 
+const CODEX_PLAN_PROJECT = 'project';
+const CODEX_PLAN_PERSONAL = 'personal';
+
+function normalizeCodexPlan(value) {
+  return value === CODEX_PLAN_PERSONAL ? CODEX_PLAN_PERSONAL : CODEX_PLAN_PROJECT;
+}
+
+function resolveCodexProjectUrl(requestValue, plan) {
+  const normalizedPlan = normalizeCodexPlan(plan);
+  const label = normalizedPlan === CODEX_PLAN_PERSONAL ? 'Codex delegation URL' : 'Codex project URL';
+  const requested = typeof requestValue === 'string' ? requestValue.trim() : '';
+  if (requested) {
+    return ensureHttpUrl(requested, label);
+  }
+
+  const candidates = [];
+  if (normalizedPlan === CODEX_PLAN_PERSONAL) {
+    candidates.push(process.env.AI_PM_CODEX_PERSONAL_URL, process.env.CODEX_PERSONAL_URL);
+  }
+  candidates.push(process.env.AI_PM_CODEX_PROJECT_URL, process.env.CODEX_PROJECT_URL);
+
+  const fallback = candidates.find((entry) => typeof entry === 'string' && entry.trim().length > 0);
+  if (fallback) {
+    return ensureHttpUrl(fallback, label);
+  }
+
+  const error = new Error(
+    normalizedPlan === CODEX_PLAN_PERSONAL
+      ? 'Codex personal delegation URL is not configured'
+      : 'Codex project URL is required'
+  );
+  error.statusCode = 400;
+  error.details =
+    normalizedPlan === CODEX_PLAN_PERSONAL
+      ? 'Provide projectUrl in the request body or set AI_PM_CODEX_PERSONAL_URL (or CODEX_PERSONAL_URL).'
+      : 'Provide projectUrl in the request body or set AI_PM_CODEX_PROJECT_URL (or CODEX_PROJECT_URL).';
+  throw error;
+}
+
 function ensureHttpUrl(value, label) {
   const text = typeof value === 'string' ? value.trim() : '';
   if (!text) {
@@ -4830,7 +4869,8 @@ export async function createApp() {
         }
 
         const payload = await parseJson(req);
-        const projectUrl = ensureHttpUrl(payload.projectUrl, 'Codex project URL');
+        const plan = normalizeCodexPlan(payload.plan);
+        const projectUrl = resolveCodexProjectUrl(payload.projectUrl, plan);
         const repositoryUrl = ensureHttpUrl(payload.repositoryUrl, 'Repository URL');
         const targetBranch = String(payload.targetBranch ?? '').trim() || 'main';
         const prTitleTemplate = String(payload.prTitleTemplate ?? '').trim();
@@ -4900,6 +4940,7 @@ export async function createApp() {
             triggeredAt: now(),
             source: 'ai-pm',
             storyId,
+            plan,
           },
         };
 

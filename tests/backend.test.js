@@ -1247,6 +1247,7 @@ test('delegate story to Codex creates a task and records PR details', async (t) 
   assert.ok(story);
 
   const payload = {
+    plan: 'project',
     projectUrl: `http://127.0.0.1:${codexPort}/delegate`,
     repositoryUrl: 'https://github.com/example/repo',
     targetBranch: 'feature/codex',
@@ -1280,6 +1281,7 @@ test('delegate story to Codex creates a task and records PR details', async (t) 
   assert.equal(sent.body.pullRequest.assignee, 'dev@example.com');
   assert.ok(Array.isArray(sent.body.pullRequest.reviewers));
   assert.deepEqual(sent.body.pullRequest.reviewers.sort(), payload.reviewers.slice().sort());
+  assert.equal(sent.body.metadata.plan, 'project');
   assert.ok(typeof sent.body.pullRequest.title === 'string');
   assert.ok(sent.body.pullRequest.title.includes(story.title));
 
@@ -1291,6 +1293,99 @@ test('delegate story to Codex creates a task and records PR details', async (t) 
   assert.ok(refreshedStory.tasks.some((task) => task.id === result.task.id));
   const createdTask = refreshedStory.tasks.find((task) => task.id === result.task.id);
   assert.ok(createdTask.description.includes('https://github.com/example/repo/pull/42'));
+});
+
+test('personal Codex plan falls back to configured delegation URL', async (t) => {
+  await resetDatabaseFiles();
+
+  const codexRequests = [];
+  const { server: codexServer, port: codexPort } = await new Promise((resolve) => {
+    const srv = createHttpServer((req, res) => {
+      let data = '';
+      req.on('data', (chunk) => {
+        data += chunk;
+      });
+      req.on('end', () => {
+        let body = {};
+        if (data) {
+          try {
+            body = JSON.parse(data);
+          } catch {
+            body = { raw: data };
+          }
+        }
+        codexRequests.push({ method: req.method, url: req.url, body });
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(
+          JSON.stringify({
+            status: 'submitted',
+            pullRequest: {
+              url: 'https://github.com/personal/repo/pull/7',
+              status: 'open',
+              id: 'PR-7',
+              number: 7,
+            },
+          })
+        );
+      });
+    });
+    srv.listen(0, () => {
+      const address = srv.address();
+      resolve({ server: srv, port: address.port });
+    });
+  });
+
+  process.env.AI_PM_CODEX_PERSONAL_URL = `http://127.0.0.1:${codexPort}/personal-delegate`;
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    delete process.env.AI_PM_CODEX_PERSONAL_URL;
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+    await new Promise((resolve, reject) => {
+      codexServer.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories));
+  const story = stories[0];
+  assert.ok(story);
+
+  const payload = {
+    plan: 'personal',
+    repositoryUrl: 'https://github.com/personal/repo',
+    targetBranch: '',
+    prTitleTemplate: 'feat: {{storyTitle}}',
+    prBodyTemplate: '',
+    assignee: 'owner@example.com',
+    reviewers: [],
+  };
+
+  const delegateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/codex-delegate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(delegateResponse.status, 200);
+  const result = await delegateResponse.json();
+  assert.equal(result.pullRequest.url, 'https://github.com/personal/repo/pull/7');
+  assert.equal(result.pullRequest.status, 'open');
+  assert.ok(result.task);
+  assert.equal(result.task.status, 'In Progress');
+
+  assert.equal(codexRequests.length, 1);
+  const sent = codexRequests[0];
+  assert.equal(sent.url, '/personal-delegate');
+  assert.equal(sent.body.metadata.plan, 'personal');
+  assert.equal(sent.body.repository.url, 'https://github.com/personal/repo');
+  assert.equal(sent.body.repository.targetBranch, 'main');
 });
 
 test('sample dataset generator produces 50 stories and mirrored acceptance tests', async () => {

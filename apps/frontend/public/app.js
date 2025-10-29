@@ -37,6 +37,18 @@ const STORAGE_KEYS = {
   codexSettings: 'aiPm.codexSettings',
 };
 
+const CODEX_PLAN_OPTIONS = {
+  project: 'project',
+  personal: 'personal',
+};
+
+function normalizeCodexPlan(value) {
+  if (value === CODEX_PLAN_OPTIONS.personal) {
+    return CODEX_PLAN_OPTIONS.personal;
+  }
+  return CODEX_PLAN_OPTIONS.project;
+}
+
 function loadCodexSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.codexSettings);
@@ -52,6 +64,7 @@ function loadCodexSettings() {
         .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
         .filter(Boolean);
     }
+    parsed.plan = normalizeCodexPlan(parsed.plan);
     return parsed;
   } catch (error) {
     console.error('Failed to load Codex settings', error);
@@ -65,6 +78,7 @@ function saveCodexSettings(settings) {
     if (Array.isArray(payload.reviewers)) {
       payload.reviewers = payload.reviewers.filter((entry) => typeof entry === 'string' && entry.trim().length > 0);
     }
+    payload.plan = normalizeCodexPlan(payload.plan);
     localStorage.setItem(STORAGE_KEYS.codexSettings, JSON.stringify(payload));
   } catch (error) {
     console.error('Failed to save Codex settings', error);
@@ -3948,8 +3962,16 @@ function openCodexDelegationModal(story) {
   container.className = 'modal-form codex-form';
   container.innerHTML = `
     <div class="codex-field">
+      <label for="codex-plan">Codex Plan</label>
+      <select id="codex-plan">
+        <option value="${CODEX_PLAN_OPTIONS.project}">Team or Enterprise project</option>
+        <option value="${CODEX_PLAN_OPTIONS.personal}">Personal (Plus) subscription</option>
+      </select>
+      <p class="form-hint codex-plan-hint">Select Personal (Plus) if you delegate without a Codex project URL.</p>
+    </div>
+    <div class="codex-field" data-codex-project>
       <label for="codex-project-url">Codex Project URL</label>
-      <input id="codex-project-url" type="url" placeholder="https://codex.example.com/api/projects/123/delegate" required />
+      <input id="codex-project-url" type="url" placeholder="https://codex.example.com/api/projects/123/delegate" />
     </div>
     <div class="codex-field">
       <label for="codex-repository-url">Repository URL</label>
@@ -3978,6 +4000,8 @@ function openCodexDelegationModal(story) {
     <p class="form-hint codex-placeholder-hint">Use placeholders such as {{storyTitle}}, {{storyId}}, {{storyDescription}}, {{assignee}}, {{targetBranch}}, or {{repositoryUrl}} in templates.</p>
   `;
 
+  const planSelect = container.querySelector('#codex-plan');
+  const projectField = container.querySelector('[data-codex-project]');
   const projectInput = container.querySelector('#codex-project-url');
   const repositoryInput = container.querySelector('#codex-repository-url');
   const targetBranchInput = container.querySelector('#codex-target-branch');
@@ -3986,6 +4010,8 @@ function openCodexDelegationModal(story) {
   const assigneeInput = container.querySelector('#codex-assignee');
   const reviewersInput = container.querySelector('#codex-reviewers');
 
+  const storedPlan = normalizeCodexPlan(stored.plan);
+  planSelect.value = storedPlan;
   projectInput.value = stored.projectUrl || '';
   repositoryInput.value = stored.repositoryUrl || '';
   targetBranchInput.value = stored.targetBranch || 'main';
@@ -4005,6 +4031,26 @@ function openCodexDelegationModal(story) {
   let delegateButton = null;
   let delegateButtonLabel = '';
 
+  const updateProjectFieldState = () => {
+    const plan = normalizeCodexPlan(planSelect.value);
+    const requiresProjectUrl = plan !== CODEX_PLAN_OPTIONS.personal;
+    if (projectInput) {
+      if (requiresProjectUrl) {
+        projectInput.setAttribute('aria-required', 'true');
+        projectInput.required = true;
+      } else {
+        projectInput.required = false;
+        projectInput.removeAttribute('aria-required');
+      }
+    }
+    if (projectField) {
+      projectField.dataset.codexPlan = plan;
+    }
+  };
+
+  planSelect.addEventListener('change', updateProjectFieldState);
+  updateProjectFieldState();
+
   const modalHandle = openModal({
     title: 'Develop with Codex',
     content: container,
@@ -4017,7 +4063,9 @@ function openCodexDelegationModal(story) {
             return false;
           }
 
-          const projectUrl = projectInput.value.trim();
+          const plan = normalizeCodexPlan(planSelect.value);
+          const projectUrlRaw = projectInput.value.trim();
+          const projectUrl = projectUrlRaw;
           const repositoryUrl = repositoryInput.value.trim();
           const targetBranch = targetBranchInput.value.trim() || 'main';
           const prTitleTemplate = prTitleInput.value.trim();
@@ -4032,7 +4080,7 @@ function openCodexDelegationModal(story) {
             )
           );
 
-          if (!projectUrl) {
+          if (plan !== CODEX_PLAN_OPTIONS.personal && !projectUrl) {
             showToast('Codex project URL is required', 'error');
             projectInput.focus();
             return false;
@@ -4045,7 +4093,9 @@ function openCodexDelegationModal(story) {
           }
 
           try {
-            new URL(projectUrl);
+            if (projectUrl) {
+              new URL(projectUrl);
+            }
           } catch {
             showToast('Enter a valid Codex project URL', 'error');
             projectInput.focus();
@@ -4081,7 +4131,8 @@ function openCodexDelegationModal(story) {
           }
           try {
             const result = await delegateStoryToCodex(story.id, {
-              projectUrl,
+              plan,
+              projectUrl: projectUrl || undefined,
               repositoryUrl,
               targetBranch,
               prTitleTemplate,
@@ -4090,6 +4141,7 @@ function openCodexDelegationModal(story) {
               reviewers,
             });
             saveCodexSettings({
+              plan,
               projectUrl,
               repositoryUrl,
               targetBranch,
@@ -4131,7 +4183,11 @@ function openCodexDelegationModal(story) {
     ],
   });
 
-  projectInput.focus();
+  if (normalizeCodexPlan(planSelect.value) === CODEX_PLAN_OPTIONS.personal) {
+    repositoryInput.focus();
+  } else {
+    projectInput.focus();
+  }
 
   delegateButton = modalHandle?.actionButtons?.[0] ?? null;
   if (delegateButton) {

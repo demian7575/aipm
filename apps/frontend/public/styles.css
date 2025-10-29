@@ -1499,6 +1499,21 @@ dialog[data-size='content'] {
   resize: vertical;
 }
 
+.codex-plan-hint {
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
+.codex-form [data-codex-project][data-codex-plan='personal'] {
+  opacity: 0.6;
+}
+
+.codex-form [data-codex-project][data-codex-plan='personal'] label::after {
+  content: ' (not required)';
+  font-weight: normal;
+  color: #6b7280;
+}
+
 .codex-placeholder-hint {
   color: #4b5563;
 }
