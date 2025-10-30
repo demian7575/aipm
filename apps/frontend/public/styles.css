@@ -1536,6 +1536,12 @@ dialog[data-size='content'] {
   line-height: 1.45;
 }
 
+.codex-delegation-form .codex-token-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: -0.35rem;
+}
+
 .codex-preview {
   display: flex;
   flex-direction: column;

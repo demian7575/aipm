@@ -162,6 +162,18 @@ If the API key is omitted or the OpenAI request fails, the backend automatically
 When ChatGPT is active, heuristics are still evaluated but presented only as optional suggestions while the AI verdict determines INVEST pass/fail.
 The frontend surfaces whether the feedback came from ChatGPT or the local rule engine so product managers always know which signals informed the INVEST health check.
 
+### Codex Delegation Configuration
+
+The **Develop with Codex** workflow forwards implementation requests to an external delegation service that is responsible for opening pull requests. Configure the integration through environment variables before starting the backend:
+
+| Variable | Description |
+| --- | --- |
+| `AI_PM_CODEX_DELEGATION_URL` | Optional override for the delegation endpoint. Defaults to `http://127.0.0.1:5005/delegate`. |
+| `AI_PM_CODEX_DELEGATION_TOKEN` | Bearer token forwarded to the delegation service for authentication (also enterable per request in the modal). |
+| `AI_PM_CODEX_PROJECT_URL` | Optional Codex project identifier forwarded with each request. |
+
+When the backend cannot reach the configured endpoint it now returns a clear `Unable to reach Codex delegation server …` error describing the URL that was attempted. Update the URL or start the bundled delegation service before re-submitting the story.
+
 ## Scripts
 
 | Command            | Description                                                |

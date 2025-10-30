@@ -2024,13 +2024,14 @@ function readCodexDelegationConfig(overrides = {}) {
     typeof overrides.endpoint === 'string' ? overrides.endpoint.trim() : '';
   const overrideProjectUrl =
     typeof overrides.projectUrl === 'string' ? overrides.projectUrl.trim() : '';
+  const overrideToken = typeof overrides.token === 'string' ? overrides.token.trim() : '';
 
   const endpoint = overrideEndpoint || envEndpoint || CODEX_DEFAULT_DELEGATION_ENDPOINT;
 
   return {
     endpoint,
     projectUrl: overrideProjectUrl || envProjectUrl,
-    token: envToken,
+    token: overrideToken || envToken,
   };
 }
 
@@ -2218,9 +2219,24 @@ async function delegateImplementationToCodex(story, options) {
       body: JSON.stringify(body),
     });
   } catch (error) {
-    const requestError = new Error('Failed to contact Codex delegation server');
+    const networkCode =
+      (error && typeof error === 'object' && 'code' in error && error.code) ||
+      (error && typeof error === 'object' && 'cause' in error && error.cause && error.cause.code);
+
+    let message = 'Failed to contact Codex delegation server';
+    let statusCode = 502;
+    if (networkCode && typeof networkCode === 'string') {
+      const normalized = networkCode.toUpperCase();
+      if (['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH'].includes(normalized)) {
+        message = `Unable to reach Codex delegation server at ${endpoint}. Confirm the service is running or update the delegation URL.`;
+        statusCode = 503;
+      }
+    }
+
+    const requestError = new Error(message);
     requestError.cause = error;
-    requestError.statusCode = 502;
+    requestError.statusCode = statusCode;
+    requestError.details = { endpoint, code: networkCode };
     throw requestError;
   }
 
@@ -5511,6 +5527,8 @@ export async function createApp() {
 
         const delegationOverride =
           typeof payload.delegationServerUrl === 'string' ? payload.delegationServerUrl.trim() : '';
+        const delegationToken =
+          typeof payload.delegationToken === 'string' ? payload.delegationToken.trim() : '';
         let delegationEndpoint = delegationOverride;
         if (delegationEndpoint) {
           try {
@@ -5528,6 +5546,7 @@ export async function createApp() {
         const config = readCodexDelegationConfig({
           endpoint: delegationEndpoint,
           projectUrl,
+          token: delegationToken,
         });
 
         if (!config.endpoint) {

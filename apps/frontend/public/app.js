@@ -4159,11 +4159,24 @@ function openCodexDelegationModal(story) {
   const serverInput = serverLabel.querySelector('input');
   serverInput.value = defaults.delegationServerUrl || CODEX_DEFAULT_DELEGATION_SERVER_URL;
 
+  const tokenLabel = document.createElement('label');
+  tokenLabel.innerHTML =
+    'Access Token (optional)<input id="codex-token" type="password" autocomplete="off" placeholder="sk-..." />';
+  container.appendChild(tokenLabel);
+  const tokenInput = tokenLabel.querySelector('input');
+  tokenInput.value = '';
+
   const hint = document.createElement('p');
   hint.className = 'codex-template-hint';
   hint.innerHTML =
     'Templates support placeholders such as <code>{{storyTitle}}</code>, <code>{{storyId}}</code>, <code>{{storyNarrative}}</code>, <code>{{storyComponents}}</code>, <code>{{storyDescription}}</code>, <code>{{acceptanceCriteria}}</code>, and <code>{{today}}</code>.';
   container.appendChild(hint);
+
+  const tokenHint = document.createElement('p');
+  tokenHint.className = 'codex-token-hint';
+  tokenHint.innerHTML =
+    'Tokens are sent directly to the delegation service and are never stored. Configure <code>AI_PM_CODEX_DELEGATION_TOKEN</code> on the backend to avoid retyping.';
+  container.appendChild(tokenHint);
 
   const previewWrapper = document.createElement('section');
   previewWrapper.className = 'codex-preview';
@@ -4222,6 +4235,7 @@ function openCodexDelegationModal(story) {
           const branchName = branchInput.value.trim();
           const projectUrl = projectInput.value.trim();
           const serverUrl = serverInput.value.trim();
+          const token = tokenInput.value.trim();
 
           const renderedTitle = renderCodexTemplate(prTitleTemplate, story).trim();
           if (!renderedTitle) {
@@ -4242,6 +4256,7 @@ function openCodexDelegationModal(story) {
               branchName: branchName || undefined,
               projectUrl: projectUrl || undefined,
               delegationServerUrl: serverUrl || undefined,
+              delegationToken: token || undefined,
             });
 
             saveCodexDelegationSettings({
