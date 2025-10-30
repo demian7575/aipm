@@ -7,8 +7,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 
+import {
+  ensureEmbeddedCodexDelegationServer,
+  getEmbeddedCodexDelegationUrl,
+} from './codex-delegation-server.js';
+
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
-const CODEX_DEFAULT_DELEGATION_ENDPOINT = 'http://127.0.0.1:5005/delegate';
+const CODEX_DEFAULT_DELEGATION_ENDPOINT = getEmbeddedCodexDelegationUrl();
+
+const embeddedCodexServerStartup = ensureEmbeddedCodexDelegationServer().catch((error) => {
+  console.warn('Failed to start embedded Codex delegation server', error);
+  return null;
+});
 
 export const COMPONENT_CATALOG = [
   'WorkModel',
@@ -4933,6 +4943,7 @@ async function handleFileUpload(req, res, url) {
 
 export async function createApp() {
   const db = await ensureDatabase();
+  await embeddedCodexServerStartup;
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');

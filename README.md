@@ -164,15 +164,20 @@ The frontend surfaces whether the feedback came from ChatGPT or the local rule e
 
 ### Codex Delegation Configuration
 
-The **Develop with Codex** workflow forwards implementation requests to an external delegation service that is responsible for opening pull requests. Configure the integration through environment variables before starting the backend:
+The **Develop with Codex** workflow now ships with an embedded delegation service that listens on `http://127.0.0.1:5005/delegate` by default. The embedded service accepts requests from the backend immediately after startup so you can test the flow without wiring an external Codex instance. Deployments that already have a delegation API can still point the integration elsewhere via environment variables:
 
 | Variable | Description |
 | --- | --- |
-| `AI_PM_CODEX_DELEGATION_URL` | Optional override for the delegation endpoint. Defaults to `http://127.0.0.1:5005/delegate`. |
+| `AI_PM_CODEX_DELEGATION_URL` | Optional override for the delegation endpoint. Defaults to the embedded server URL. |
 | `AI_PM_CODEX_DELEGATION_TOKEN` | Bearer token forwarded to the delegation service for authentication (also enterable per request in the modal). |
 | `AI_PM_CODEX_PROJECT_URL` | Optional Codex project identifier forwarded with each request. |
+| `AI_PM_DISABLE_EMBEDDED_CODEX` | Set to `1`/`true` to skip starting the embedded delegation server. |
+| `AI_PM_CODEX_EMBEDDED_HOST` | Hostname/interface for the embedded server (default `127.0.0.1`). |
+| `AI_PM_CODEX_EMBEDDED_PORT` | Listening port for the embedded server (default `5005`). |
+| `AI_PM_CODEX_EMBEDDED_PATH` | Request path for the embedded `/delegate` endpoint (default `/delegate`). |
+| `AI_PM_CODEX_EMBEDDED_PROTOCOL` | Protocol used when advertising the embedded endpoint (default `http`). |
 
-When the backend cannot reach the configured endpoint it now returns a clear `Unable to reach Codex delegation server …` error describing the URL that was attempted. Update the URL or start the bundled delegation service before re-submitting the story.
+When the backend cannot reach the configured endpoint it returns a clear `Unable to reach Codex delegation server …` error describing the URL that was attempted. Update the URL or disable the embedded service if you plan to run an external delegation server on a different host/port.
 
 ## Scripts
 
