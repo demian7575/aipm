@@ -101,6 +101,10 @@ export async function createChatgptCodexTask(record) {
           message: text,
           rawText: text,
         };
+      } else if (!response.ok) {
+        data = {
+          rawText: text,
+        };
       } else {
         throw Object.assign(new Error('ChatGPT Codex service returned invalid JSON'), {
           statusCode: response.status || 502,
