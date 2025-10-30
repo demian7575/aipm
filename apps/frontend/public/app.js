@@ -2310,6 +2310,7 @@ function renderDetails() {
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
+      <button type="button" class="secondary" id="codex-delegate-btn">Develop with Codex</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
     </div>
     <div class="full field-row">
@@ -2707,6 +2708,7 @@ function renderDetails() {
 
   const saveButton = form.querySelector('button[type="submit"]');
   const editButton = form.querySelector('#edit-story-btn');
+  const codexButton = form.querySelector('#codex-delegate-btn');
   const deleteButton = form.querySelector('#delete-story-btn');
   const editableFields = Array.from(
     form.querySelectorAll('input[name], textarea[name], select[name]')
@@ -2727,6 +2729,14 @@ function renderDetails() {
     }
     if (editButton) {
       editButton.textContent = enabled ? 'Cancel Edit' : 'Edit Story';
+    }
+    if (codexButton) {
+      codexButton.disabled = enabled;
+      if (enabled) {
+        codexButton.title = 'Save or cancel edits before delegating to Codex.';
+      } else {
+        codexButton.removeAttribute('title');
+      }
     }
     if (componentsHint) {
       componentsHint.style.display = enabled ? 'block' : 'none';
@@ -2771,6 +2781,10 @@ function renderDetails() {
         titleField.focus();
       }
     }
+  });
+
+  codexButton?.addEventListener('click', () => {
+    openCodexDelegationModal(story);
   });
 
   deleteButton?.addEventListener('click', (event) => {
@@ -3970,6 +3984,170 @@ function openAcceptanceTestModal(storyId, options = {}) {
   }
 }
 
+function buildCodexDelegationBrief(story) {
+  if (!story || typeof story !== 'object') {
+    return '';
+  }
+  const lines = [];
+  const title = story.title || 'Untitled Story';
+  lines.push(`Implement story "${title}" (ID ${story.id ?? 'n/a'}).`);
+  if (story.description) {
+    lines.push(`Description: ${story.description}`);
+  }
+  const personaParts = [];
+  if (story.asA) {
+    personaParts.push(`As a ${story.asA}`);
+  }
+  if (story.iWant) {
+    personaParts.push(`I want ${story.iWant}`);
+  }
+  if (story.soThat) {
+    personaParts.push(`So that ${story.soThat}`);
+  }
+  if (personaParts.length) {
+    lines.push(`${personaParts.join('. ')}.`);
+  }
+  if (Array.isArray(story.components) && story.components.length) {
+    lines.push(`Components: ${story.components.join(', ')}`);
+  }
+  if (story.storyPoint != null) {
+    lines.push(`Story points: ${story.storyPoint}`);
+  }
+  if (Array.isArray(story.acceptanceTests) && story.acceptanceTests.length) {
+    lines.push('Acceptance tests:');
+    story.acceptanceTests.slice(0, 5).forEach((test, index) => {
+      const label = test.title && test.title.trim().length ? test.title : `Test ${index + 1}`;
+      lines.push(`- ${label}`);
+    });
+    if (story.acceptanceTests.length > 5) {
+      lines.push(`- ...and ${story.acceptanceTests.length - 5} more`);
+    }
+  } else {
+    lines.push('Acceptance tests: none documented yet.');
+  }
+  return lines.join('\n');
+}
+
+function openCodexDelegationModal(story) {
+  if (!story) {
+    showToast('Select a story before delegating to Codex.', 'error');
+    return;
+  }
+  const defaultInstructions = buildCodexDelegationBrief(story);
+  const container = document.createElement('div');
+  container.className = 'modal-form codex-delegation-form';
+  container.innerHTML = `
+    <p>Codex will implement <strong>${escapeHtml(story.title || 'Untitled Story')}</strong>. Provide the repository and guidance required for the Personal Plus agent.</p>
+    <label>
+      <span>Codex plan<span class="required-indicator">*</span></span>
+      <select id="codex-plan">
+        <option value="personal">Personal</option>
+        <option value="personal-plus" selected>Personal Plus</option>
+        <option value="team">Team</option>
+        <option value="enterprise">Enterprise</option>
+      </select>
+    </label>
+    <label>
+      <span>Repository URL<span class="required-indicator">*</span></span>
+      <input id="codex-repo" type="url" placeholder="https://github.com/org/project" />
+    </label>
+    <label>
+      <span>Branch name</span>
+      <input id="codex-branch" placeholder="main" />
+    </label>
+    <label>
+      <span>Codex operator email<span class="required-indicator">*</span></span>
+      <input id="codex-operator" type="email" placeholder="owner@example.com" value="${escapeHtml(
+        story.assigneeEmail || ''
+      )}" />
+    </label>
+    <label>
+      <span>Instructions for Codex<span class="required-indicator">*</span></span>
+      <textarea id="codex-instructions" rows="8">${escapeHtml(defaultInstructions)}</textarea>
+    </label>
+    <label>
+      <span>Additional context</span>
+      <textarea id="codex-context" rows="4" placeholder="Links, testing steps, or deployment notes"></textarea>
+    </label>
+  `;
+
+  const planSelect = container.querySelector('#codex-plan');
+  const repoInput = container.querySelector('#codex-repo');
+  const branchInput = container.querySelector('#codex-branch');
+  const operatorInput = container.querySelector('#codex-operator');
+  const instructionsInput = container.querySelector('#codex-instructions');
+  const contextInput = container.querySelector('#codex-context');
+
+  if (!branchInput.value) {
+    branchInput.value = 'main';
+  }
+  if (!planSelect.value) {
+    planSelect.value = 'personal-plus';
+  }
+
+  openModal({
+    title: 'Develop with Codex',
+    content: container,
+    size: 'wide',
+    actions: [
+      {
+        label: 'Start Delegation',
+        onClick: async () => {
+          const repositoryUrl = repoInput.value.trim();
+          if (!repositoryUrl) {
+            showToast('Repository URL is required', 'error');
+            repoInput.focus();
+            return false;
+          }
+          const operatorEmail = operatorInput.value.trim();
+          if (!operatorEmail) {
+            showToast('Codex operator email is required', 'error');
+            operatorInput.focus();
+            return false;
+          }
+          const instructions = instructionsInput.value.trim();
+          if (!instructions) {
+            showToast('Provide instructions for Codex', 'error');
+            instructionsInput.focus();
+            return false;
+          }
+          const payload = {
+            repositoryUrl,
+            branch: branchInput.value.trim() || 'main',
+            plan: planSelect.value,
+            codexUserEmail: operatorEmail,
+            instructions,
+            additionalContext: contextInput.value.trim(),
+          };
+          try {
+            const result = await delegateStoryToCodex(story.id, payload);
+            const delegation = result?.delegation ?? null;
+            const isMock = Boolean(delegation?.isMock);
+            const prUrl = delegation?.prUrl;
+            const messageParts = ['Codex delegation queued'];
+            if (prUrl) {
+              messageParts.push(`PR: ${prUrl}`);
+            }
+            if (isMock) {
+              messageParts.push('(mock response)');
+            }
+            showToast(messageParts.join(' • '), isMock ? 'warning' : 'success');
+            await loadStories();
+            return true;
+          } catch (error) {
+            showToast(error.message || 'Failed to delegate story to Codex', 'error');
+            return false;
+          }
+        },
+      },
+    ],
+  });
+
+  setTimeout(() => {
+    repoInput.focus();
+  }, 0);
+}
+
 function openTaskModal(storyId, task = null) {
   const isEdit = Boolean(task);
   const container = document.createElement('div');
@@ -4330,6 +4508,13 @@ async function createTask(storyId, payload) {
 
 async function updateTask(taskId, payload) {
   return await sendJson(`/api/tasks/${taskId}`, { method: 'PATCH', body: payload });
+}
+
+async function delegateStoryToCodex(storyId, payload) {
+  return await sendJson(`/api/stories/${storyId}/codex/delegate`, {
+    method: 'POST',
+    body: payload,
+  });
 }
 
 async function uploadReferenceFile(file) {

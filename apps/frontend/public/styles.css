@@ -1466,6 +1466,40 @@ dialog[data-size='content'] {
   max-width: 98vw;
 }
 
+.codex-delegation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.codex-delegation-form p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.codex-delegation-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.codex-delegation-form label > span {
+  font-weight: 600;
+  color: #1f2933;
+}
+
+.codex-delegation-form textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.codex-delegation-form .required-indicator {
+  color: #dc2626;
+  margin-left: 0.25rem;
+  font-weight: 600;
+}
+
 .modal-shell {
   background: #fff;
   border-radius: 12px;

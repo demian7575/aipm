@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
+import { delegateToCodex } from './codex-delegation.js';
 
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
 
@@ -35,6 +36,22 @@ export const TASK_STATUS_OPTIONS = [
 ];
 
 const TASK_STATUS_DEFAULT = TASK_STATUS_OPTIONS[0];
+
+const CODEX_PLAN_LABELS = new Map([
+  ['personal', 'Personal'],
+  ['personal-plus', 'Personal Plus'],
+  ['plus', 'Personal Plus'],
+  ['team', 'Team'],
+  ['enterprise', 'Enterprise'],
+]);
+
+function describeCodexPlan(value) {
+  if (!value) {
+    return 'Personal Plus';
+  }
+  const normalized = String(value).trim().toLowerCase();
+  return CODEX_PLAN_LABELS.get(normalized) || value;
+}
 
 const EPIC_STORY_POINT_THRESHOLD = 10;
 
@@ -5199,6 +5216,126 @@ export async function createApp() {
         sendJson(res, 404, { message: 'Acceptance test not found' });
       } else {
         sendJson(res, 204, {});
+      }
+      return;
+    }
+
+    const codexDelegateMatch = pathname.match(/^\/api\/stories\/(\d+)\/codex\/delegate$/);
+    if (codexDelegateMatch && method === 'POST') {
+      const storyId = Number(codexDelegateMatch[1]);
+      let initialTaskId = null;
+      try {
+        const story = await loadStoryWithDetails(db, storyId);
+        if (!story) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        const payload = await parseJson(req);
+        const repositoryUrl = String(payload.repositoryUrl ?? '').trim();
+        if (!repositoryUrl) {
+          sendJson(res, 400, { message: 'Repository URL is required' });
+          return;
+        }
+        const instructions = String(payload.instructions ?? '').trim();
+        if (!instructions) {
+          sendJson(res, 400, { message: 'Instructions are required' });
+          return;
+        }
+        const plan = String(payload.plan ?? 'personal-plus').trim() || 'personal-plus';
+        const planLabel = describeCodexPlan(plan);
+        const branch = String(payload.branch ?? '').trim() || 'main';
+        const codexUserEmail = String(payload.codexUserEmail ?? '').trim() || story.assigneeEmail || '';
+        if (!codexUserEmail) {
+          sendJson(res, 400, { message: 'Codex operator email is required' });
+          return;
+        }
+        const additionalContext = String(payload.additionalContext ?? payload.context ?? '').trim();
+        const baseDescriptionParts = [
+          `Repository: ${repositoryUrl}`,
+          `Branch: ${branch}`,
+          `Plan: ${planLabel}`,
+          `Operator: ${codexUserEmail}`,
+          instructions ? `Instructions:\n${instructions}` : null,
+          additionalContext ? `Additional context:\n${additionalContext}` : null,
+        ].filter(Boolean);
+        const baseDescription = baseDescriptionParts.join('\n\n');
+        const initialInsert = insertTask(db, {
+          storyId,
+          title: `Develop with Codex (${planLabel})`,
+          description: baseDescription,
+          status: 'In Progress',
+          assigneeEmail: codexUserEmail,
+          estimationHours: null,
+          timestamp: now(),
+        });
+        initialTaskId = Number(initialInsert.lastInsertRowid);
+        const updateTaskStatement = db.prepare(
+          'UPDATE tasks SET status = ?, description = ?, updated_at = ? WHERE id = ?'
+        );
+        let delegationResult;
+        try {
+          delegationResult = await delegateToCodex({
+            story,
+            repositoryUrl,
+            branch,
+            plan,
+            instructions,
+            additionalContext,
+            codexUserEmail,
+          });
+        } catch (error) {
+          const failureDescription = `${baseDescription}\n\nDelegation failed: ${
+            error?.message || 'Unknown error'
+          }`;
+          updateTaskStatement.run('Blocked', failureDescription, now(), initialTaskId);
+          throw error;
+        }
+        const successDescription = `${baseDescription}\n\nDelegation request acknowledged${
+          delegationResult.id ? `\nDelegation ID: ${delegationResult.id}` : ''
+        }.`;
+        updateTaskStatement.run('Done', successDescription, now(), initialTaskId);
+        const prStatus = delegationResult.status || 'PR Created';
+        const prTaskDescriptionParts = [
+          delegationResult.id ? `Delegation ID: ${delegationResult.id}` : null,
+          `Plan: ${planLabel}`,
+          `Operator: ${codexUserEmail}`,
+          delegationResult.summary ? `Summary: ${delegationResult.summary}` : null,
+          delegationResult.prUrl
+            ? `Pull request: ${delegationResult.prUrl}`
+            : 'Pull request: pending',
+        ];
+        if (additionalContext) {
+          prTaskDescriptionParts.push(`Additional context:\n${additionalContext}`);
+        }
+        const prTaskDescription = prTaskDescriptionParts.filter(Boolean).join('\n\n');
+        const prTaskStatus = /merge|complete|done|approved/i.test(prStatus) ? 'Done' : 'In Progress';
+        const prInsert = insertTask(db, {
+          storyId,
+          title: `Codex PR (${prStatus})`,
+          description: prTaskDescription,
+          status: prTaskStatus,
+          assigneeEmail: codexUserEmail,
+          estimationHours: null,
+          timestamp: now(),
+        });
+        const refreshed = await loadStoryWithDetails(db, storyId);
+        const createdTaskIds = [initialTaskId, Number(prInsert.lastInsertRowid)];
+        const createdTasks = refreshed?.tasks.filter((task) => createdTaskIds.includes(task.id)) ?? [];
+        sendJson(res, 200, {
+          delegation: {
+            ...delegationResult,
+            plan: planLabel,
+            branch,
+            repositoryUrl,
+            assigneeEmail: codexUserEmail,
+          },
+          tasks: createdTasks,
+        });
+      } catch (error) {
+        const status = error?.statusCode ?? (error?.code === 'ECONNREFUSED' ? 503 : 500);
+        sendJson(res, status, {
+          message: error?.message || 'Failed to delegate story to Codex',
+        });
       }
       return;
     }
