@@ -1607,6 +1607,77 @@ test('Codex delegation surfaces ChatGPT error responses when require success is 
   assert.equal(capturedRequests[0].options?.headers?.Authorization, 'Bearer test-token');
 });
 
+test('Codex delegation summarizes ChatGPT HTML challenge responses when require success is enabled', async (t) => {
+  await resetDatabaseFiles();
+  process.env.CODEX_DEFAULT_REPOSITORY_URL = 'https://api.github.com/repos/demian7575/aipm';
+  process.env.CODEX_CHATGPT_AUTH_TOKEN = 'test-token';
+  process.env.CODEX_CHATGPT_TASKS_URL = 'https://chatgpt.example/api/tasks';
+  process.env.CODEX_CHATGPT_REQUIRE_SUCCESS = '1';
+
+  const originalFetch = globalThis.fetch;
+  const capturedRequests = [];
+  globalThis.fetch = async (url, options) => {
+    if (String(url) === process.env.CODEX_CHATGPT_TASKS_URL) {
+      capturedRequests.push({ url: String(url), options });
+      return new Response(
+        '<html><body><h1>Enable JavaScript and cookies to continue</h1></body></html>',
+        {
+          status: 403,
+          headers: { 'Content-Type': 'text/html' },
+        },
+      );
+    }
+    return originalFetch(url, options);
+  };
+
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+    delete process.env.CODEX_CHATGPT_AUTH_TOKEN;
+    delete process.env.CODEX_CHATGPT_TASKS_URL;
+    delete process.env.CODEX_CHATGPT_REQUIRE_SUCCESS;
+    delete process.env.CODEX_DEFAULT_REPOSITORY_URL;
+  });
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories));
+  assert.ok(stories.length > 0);
+  const story = stories[0];
+
+  const delegateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/codex/delegate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      repositoryUrl: '',
+      plan: 'personal-plus',
+      branch: '',
+      codexUserEmail: 'delegate@example.com',
+      instructions: 'Implement via ChatGPT Codex integration.',
+      additionalContext: 'HTML challenge integration test',
+    }),
+  });
+
+  assert.equal(delegateResponse.status, 403);
+  const errorBody = await delegateResponse.json();
+  assert.equal(
+    errorBody?.message,
+    'ChatGPT Codex service returned HTML: Enable JavaScript and cookies to continue',
+  );
+
+  assert.equal(capturedRequests.length, 1);
+  assert.equal(capturedRequests[0].options?.headers?.Authorization, 'Bearer test-token');
+});
+
 test('sample dataset generator produces 50 stories and mirrored acceptance tests', async () => {
   const outputPath = path.join(process.cwd(), 'docs', 'examples', 'generated-sample.sqlite');
   await fs.rm(outputPath, { force: true });
