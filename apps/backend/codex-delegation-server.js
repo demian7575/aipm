@@ -152,6 +152,8 @@ async function handleDelegationRequest(req, res, context) {
       return;
     }
 
+    const prBody =
+      typeof payload.prBody === 'string' ? payload.prBody : '';
     const story = sanitizeStory(payload.story);
     const preferredBranch =
       typeof payload.branchName === 'string' ? payload.branchName.trim() : '';
