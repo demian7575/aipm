@@ -38,8 +38,8 @@ const STORAGE_KEYS = {
 
 const CODEX_SETTINGS_STORAGE_KEY = 'aiPm.codexSettings';
 const CODEX_DEFAULT_REPOSITORY_URL = 'https://github.com/demian7575/aipm.git';
-const CODEX_DEFAULT_PR_TITLE_TEMPLATE = '[Codex] Implement {{storyTitle}} (Story #{{storyId}})';
-const CODEX_DEFAULT_PR_BODY_TEMPLATE = [
+const CODEX_DEFAULT_TASK_TITLE_TEMPLATE = '[Codex] Implement {{storyTitle}} (Story #{{storyId}})';
+const CODEX_DEFAULT_TASK_BODY_TEMPLATE = [
   '## Summary',
   '- Story: {{storyTitle}} (ID: {{storyId}})',
   '- Components: {{storyComponents}}',
@@ -62,19 +62,10 @@ const CODEX_TOKEN_GUIDANCE = Object.freeze({
   environmentVariables: [
     {
       name: 'AI_PM_CODEX_DELEGATION_TOKEN',
-      description:
-        'Forwarded with every delegation request from the backend to authenticate GitHub API calls.',
-    },
-    {
-      name: 'AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN',
-      description:
-        'Fallback token used by the embedded delegation server when a request does not include credentials.',
+      description: 'Optional bearer token forwarded with each Codex delegation request.',
     },
   ],
-  tokenExamples: [
-    'github_pat_1A2B3C4D5E6F7G8H9J0K1L2M3N4O5P6Q7R',
-    'ghp_exampleToken1234567890abcdef1234567890',
-  ],
+  tokenExamples: [],
   documentation: 'README.md#codex-token-configuration',
 });
 
@@ -4128,7 +4119,7 @@ function describeCodexTokenSource(source) {
     case 'authorization-header':
       return 'Token forwarded via the HTTP Authorization header.';
     case 'embedded-env':
-      return 'Token loaded from AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN.';
+      return 'Token loaded from the embedded delegation server environment.';
     case 'delegation-env':
       return 'Token loaded from AI_PM_CODEX_DELEGATION_TOKEN.';
     case 'missing':
@@ -4166,7 +4157,7 @@ function openCodexDelegationModal(story) {
   const intro = document.createElement('p');
   intro.className = 'form-hint';
   intro.textContent =
-    'Provide repository details so Codex can implement this story and open a pull request automatically.';
+    'Provide repository details so Codex can implement this story and create a task automatically.';
   container.appendChild(intro);
 
   const repoLabel = document.createElement('label');
@@ -4177,16 +4168,16 @@ function openCodexDelegationModal(story) {
   repoInput.value = defaults.repositoryUrl || CODEX_DEFAULT_REPOSITORY_URL;
 
   const titleLabel = document.createElement('label');
-  titleLabel.innerHTML = 'PR Title Template<input id="codex-pr-title" />';
+  titleLabel.innerHTML = 'Task Title Template<input id="codex-pr-title" />';
   container.appendChild(titleLabel);
   const titleInput = titleLabel.querySelector('input');
-  titleInput.value = defaults.prTitleTemplate || CODEX_DEFAULT_PR_TITLE_TEMPLATE;
+  titleInput.value = defaults.prTitleTemplate || CODEX_DEFAULT_TASK_TITLE_TEMPLATE;
 
   const bodyLabel = document.createElement('label');
-  bodyLabel.innerHTML = 'PR Body Template<textarea id="codex-pr-body" rows="8"></textarea>';
+  bodyLabel.innerHTML = 'Task Brief Template<textarea id="codex-pr-body" rows="8"></textarea>';
   container.appendChild(bodyLabel);
   const bodyInput = bodyLabel.querySelector('textarea');
-  bodyInput.value = defaults.prBodyTemplate || CODEX_DEFAULT_PR_BODY_TEMPLATE;
+  bodyInput.value = defaults.prBodyTemplate || CODEX_DEFAULT_TASK_BODY_TEMPLATE;
 
   const branchLabel = document.createElement('label');
   branchLabel.innerHTML =
@@ -4225,32 +4216,31 @@ function openCodexDelegationModal(story) {
   const tokenHint = document.createElement('p');
   tokenHint.className = 'codex-token-hint';
   tokenHint.innerHTML =
-    'Tokens are sent directly to the delegation service and are never stored. Configure <code>AI_PM_CODEX_DELEGATION_TOKEN</code> (backend default) or <code>AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN</code> (embedded fallback) to avoid retyping.';
+    'Tokens are sent directly to the delegation service and are never stored. Configure <code>AI_PM_CODEX_DELEGATION_TOKEN</code> to avoid retyping.';
   container.appendChild(tokenHint);
 
   const tokenConfig = document.createElement('details');
   tokenConfig.className = 'codex-token-config';
   const tokenConfigSummary = document.createElement('summary');
-  tokenConfigSummary.textContent = 'How do I configure the GitHub tokens?';
+  tokenConfigSummary.textContent = 'How do I configure delegation tokens?';
   tokenConfig.appendChild(tokenConfigSummary);
 
   const tokenConfigBody = document.createElement('div');
   tokenConfigBody.className = 'codex-token-config-body';
 
   const tokenConfigIntro = document.createElement('p');
-  tokenConfigIntro.innerHTML = 'Export these variables before running <code>npm run dev</code>:';
+  tokenConfigIntro.innerHTML = 'Export this variable before running <code>npm run dev</code>:';
   tokenConfigBody.appendChild(tokenConfigIntro);
 
   const tokenConfigPre = document.createElement('pre');
   const tokenConfigCode = document.createElement('code');
-  tokenConfigCode.textContent =
-    'export AI_PM_CODEX_DELEGATION_TOKEN="github_pat_..."\nexport AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN="github_pat_..."';
+  tokenConfigCode.textContent = 'export AI_PM_CODEX_DELEGATION_TOKEN="codex_token_..."';
   tokenConfigPre.appendChild(tokenConfigCode);
   tokenConfigBody.appendChild(tokenConfigPre);
 
   const tokenConfigNote = document.createElement('p');
   tokenConfigNote.innerHTML =
-    'Tokens usually start with <code>github_pat_</code> (fine-grained) or <code>ghp_</code> (classic) and must include <code>repo</code> scope.';
+    'Tokens should be issued by your Codex delegation service with sufficient permissions to create tasks.';
   tokenConfigBody.appendChild(tokenConfigNote);
 
   tokenConfig.appendChild(tokenConfigBody);
@@ -4306,16 +4296,16 @@ function openCodexDelegationModal(story) {
       insightItems.push(`Token source: ${describeCodexTokenSource(details.tokenSource)}`);
     }
     if (details.githubMessage) {
-      insightItems.push(`GitHub response: ${details.githubMessage}`);
+      insightItems.push(`Server response: ${details.githubMessage}`);
     }
     if (details.documentationUrl) {
-      insightItems.push(`GitHub docs: ${details.documentationUrl}`);
+      insightItems.push(`Documentation: ${details.documentationUrl}`);
     }
     if (details.requestId) {
-      insightItems.push(`GitHub request id: ${details.requestId}`);
+      insightItems.push(`Request id: ${details.requestId}`);
     }
     if (details.traceId) {
-      insightItems.push(`GitHub trace id: ${details.traceId}`);
+      insightItems.push(`Trace id: ${details.traceId}`);
     }
     if (details.rateLimitRemaining) {
       insightItems.push(`Rate limit remaining: ${details.rateLimitRemaining}`);
@@ -4424,7 +4414,7 @@ function openCodexDelegationModal(story) {
 
           const prTitleTemplate = titleInput.value.trim();
           if (!prTitleTemplate) {
-            showToast('PR title template is required.', 'error');
+            showToast('Task title template is required.', 'error');
             titleInput.focus();
             return false;
           }
@@ -4437,7 +4427,7 @@ function openCodexDelegationModal(story) {
 
           const renderedTitle = renderCodexTemplate(prTitleTemplate, story).trim();
           if (!renderedTitle) {
-            showToast('PR title cannot be empty after applying the template.', 'error');
+            showToast('Task title cannot be empty after applying the template.', 'error');
             return false;
           }
 
@@ -4481,11 +4471,10 @@ function openCodexDelegationModal(story) {
             }
 
             await loadStories();
-            if (normalized.pullRequestUrl) {
-              clearDelegationError();
-              showToast('Codex delegation started – pull request created.', 'success');
+            clearDelegationError();
+            if (normalized.taskUrl) {
+              showToast('Codex delegation started – task created.', 'success');
             } else {
-              clearDelegationError();
               showToast('Codex delegation started.', 'success');
             }
             return true;
@@ -5010,6 +4999,8 @@ function normalizeCodexDelegationResult(result) {
   const fallback = {
     pullRequestUrl: '',
     pullRequestNumber: null,
+    taskUrl: '',
+    taskId: null,
     status: '',
     branchName: '',
     message: '',
@@ -5019,6 +5010,7 @@ function normalizeCodexDelegationResult(result) {
     return fallback;
   }
   const metadata = result.metadata && typeof result.metadata === 'object' ? result.metadata : {};
+  const merged = { ...metadata, ...result, ...(metadata.task || {}) };
   const prUrlCandidates = [
     result.pullRequestUrl,
     result.prUrl,
@@ -5056,41 +5048,57 @@ function normalizeCodexDelegationResult(result) {
     }
   }
 
+  const taskUrlCandidates = [
+    result.taskUrl,
+    result.task_url,
+    metadata.taskUrl,
+    metadata.task_url,
+    metadata.task && metadata.task.url,
+  ];
+  const taskUrl = taskUrlCandidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+
+  const taskIdCandidate = [
+    result.taskId,
+    result.task_id,
+    metadata.taskId,
+    metadata.task_id,
+    metadata.task && metadata.task.id,
+  ].find((entry) => entry != null && entry !== '');
+  const taskId =
+    taskIdCandidate == null
+      ? null
+      : Number.isInteger(Number(taskIdCandidate))
+      ? Number(taskIdCandidate)
+      : String(taskIdCandidate);
+
   const statusCandidates = [
-    result.status,
-    result.state,
-    metadata.status,
-    metadata.state,
-    metadata.pullRequest && metadata.pullRequest.status,
-    metadata.pullRequest && metadata.pullRequest.state,
+    merged.status,
+    merged.state,
+    merged.taskStatus,
+    merged.task_state,
   ];
   const status = statusCandidates.find((value) => typeof value === 'string' && value.trim().length > 0) || '';
 
   const branchCandidates = [
-    result.branchName,
-    result.branch,
-    result.headRef,
-    result.headRefName,
-    metadata.branchName,
-    metadata.branch,
-    metadata.headRef,
-    metadata.headRefName,
-    metadata.pullRequest && metadata.pullRequest.headRefName,
+    merged.branchName,
+    merged.branch,
+    merged.headRef,
+    merged.headRefName,
   ];
   const branchName = branchCandidates.find((value) => typeof value === 'string' && value.trim().length > 0) || '';
 
   const messageCandidates = [
-    result.message,
-    result.summary,
-    metadata.message,
-    metadata.summary,
-    metadata.statusMessage,
+    merged.message,
+    merged.summary,
+    merged.statusMessage,
   ];
   const message = messageCandidates.find((value) => typeof value === 'string' && value.trim().length > 0) || '';
 
   return {
     pullRequestUrl: pullRequestUrl ? pullRequestUrl.trim() : '',
     pullRequestNumber,
+    taskUrl: taskUrl ? taskUrl.trim() : '',
+    taskId,
     status,
     branchName,
     message,
@@ -5104,11 +5112,14 @@ function buildCodexTaskPayload(result, assigneeEmail) {
       ? result
       : normalizeCodexDelegationResult(result);
   const lines = [];
-  if (normalized.pullRequestUrl) {
+  if (normalized.taskUrl) {
+    lines.push(`Codex Task: ${normalized.taskUrl}`);
+  } else if (normalized.pullRequestUrl) {
     lines.push(`Pull Request: ${normalized.pullRequestUrl}`);
   }
   const statusLink = extractCodexStatusLink(normalized.metadata);
-  if (statusLink && statusLink !== normalized.pullRequestUrl) {
+  const primaryLink = normalized.taskUrl || normalized.pullRequestUrl;
+  if (statusLink && statusLink !== primaryLink) {
     lines.push(`Codex status: ${statusLink}`);
   }
   if (normalized.status) {
@@ -5121,13 +5132,27 @@ function buildCodexTaskPayload(result, assigneeEmail) {
     lines.push(normalized.message);
   }
   const description = lines.length ? lines.join('\n') : 'Codex delegation submitted.';
-  const title = normalized.pullRequestNumber
-    ? `Review Codex PR #${normalized.pullRequestNumber}`
-    : 'Review Codex Pull Request';
+  let title = 'Review Codex Task';
+  if (normalized.taskId != null && normalized.taskId !== '') {
+    title = `Review Codex Task ${normalized.taskId}`;
+  } else if (normalized.pullRequestNumber) {
+    title = `Review Codex PR #${normalized.pullRequestNumber}`;
+  }
+
+  const normalizedStatus = (normalized.status || '').toLowerCase();
+  let taskStatus = 'Not Started';
+  if (['in progress', 'running', 'active'].includes(normalizedStatus)) {
+    taskStatus = 'In Progress';
+  } else if (['done', 'complete', 'completed', 'success', 'succeeded', 'closed'].includes(normalizedStatus)) {
+    taskStatus = 'Done';
+  } else if (['failed', 'error', 'blocked'].includes(normalizedStatus)) {
+    taskStatus = 'Blocked';
+  }
+
   return {
     title,
     description,
-    status: normalized.pullRequestUrl ? 'In Progress' : 'Not Started',
+    status: taskStatus,
     assigneeEmail,
     estimationHours: null,
   };

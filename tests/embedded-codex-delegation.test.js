@@ -39,6 +39,7 @@ test('embedded delegation server accepts basic delegation requests', async (t) =
   const payload = await response.json();
 
   assert.equal(payload.status, 'queued');
+  assert.equal(payload.taskUrl.includes('/codex-tasks/'), true);
   assert.equal(payload.metadata.repositoryUrl, 'https://example.com/demo.git');
-  assert.equal(payload.message, 'Embedded Codex delegation server accepted the request.');
+  assert.equal(payload.message, 'Codex task created.');
 });

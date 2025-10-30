@@ -169,36 +169,32 @@ The **Develop with Codex** workflow now ships with an embedded delegation servic
 | Variable | Description |
 | --- | --- |
 | `AI_PM_CODEX_DELEGATION_URL` | Optional override for the delegation endpoint. Defaults to the embedded server URL. |
-| `AI_PM_CODEX_DELEGATION_TOKEN` | Bearer token forwarded to the delegation service for authentication (also enterable per request in the modal). |
+| `AI_PM_CODEX_DELEGATION_TOKEN` | Optional bearer token forwarded to the delegation service for authentication (also enterable per request in the modal). |
 | `AI_PM_CODEX_PROJECT_URL` | Optional Codex project identifier forwarded with each request. |
 | `AI_PM_DISABLE_EMBEDDED_CODEX` | Set to `1`/`true` to skip starting the embedded delegation server. |
 | `AI_PM_CODEX_EMBEDDED_HOST` | Hostname/interface for the embedded server (default `127.0.0.1`). |
 | `AI_PM_CODEX_EMBEDDED_PORT` | Listening port for the embedded server (default `5005`). |
 | `AI_PM_CODEX_EMBEDDED_PATH` | Request path for the embedded `/delegate` endpoint (default `/delegate`). |
 | `AI_PM_CODEX_EMBEDDED_PROTOCOL` | Protocol used when advertising the embedded endpoint (default `http`). |
-| `AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN` | Optional fallback GitHub token used by the embedded server when the delegation request does not provide one. |
-| `AI_PM_CODEX_GITHUB_API_URL` | Override for the GitHub REST API base URL (defaults to `https://api.github.com`). |
-
-> **GitHub authentication:** The embedded delegation server automatically creates a placeholder commit and opens a pull request on GitHub. Supply a personal access token with `repo` permissions via `AI_PM_CODEX_DELEGATION_TOKEN`, the modal input field, or `AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN`; otherwise the server returns a `401` error indicating that authentication is required.
+> **Delegation output:** The embedded server now generates Codex task metadata (ID, URL, status) rather than creating GitHub pull requests. Use the returned task details to track progress or surface follow-up actions inside AIPM.
 
 #### Codex token configuration
 
-Most authentication issues stem from the GitHub token not being available when the delegation flow runs. Follow these steps before launching the backend:
+Most authentication issues stem from a missing token when your delegation service requires one. Follow these steps before launching the backend whenever credentials are needed:
 
-1. Generate a GitHub personal access token with **`repo`** scope. Fine-grained tokens typically begin with `github_pat_…` while classic tokens start with `ghp_…`.
+1. Obtain a bearer token from your Codex delegation service (if authentication is required).
 2. Export the token in the same terminal session that will run `npm run dev` or `npm run start`:
 
    ```bash
-   export AI_PM_CODEX_DELEGATION_TOKEN="github_pat_example1234567890TOKEN"
-   export AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN="github_pat_example1234567890TOKEN"
+   export AI_PM_CODEX_DELEGATION_TOKEN="codex_token_example123"
    ```
 
-   The two variables can share the same token. `AI_PM_CODEX_DELEGATION_TOKEN` is forwarded with every request made by the backend, while `AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN` is a fallback that only the embedded delegation server uses when a request omits credentials.
+   Tokens entered in the modal take precedence over the environment variable for a single request.
 
-3. Start the backend (`npm run dev`). The embedded delegation server reads both variables during startup.
-4. Trigger the **Develop with Codex** flow from the UI or repeat your `curl` call. Successful responses include a `pullRequestUrl`, confirming the token was accepted.
+3. Start the backend (`npm run dev`). The embedded delegation server reads the variable during startup.
+4. Trigger the **Develop with Codex** flow from the UI or repeat your `curl` call. Successful responses include a `taskUrl`, confirming the request was accepted.
 
-If GitHub returns “Bad credentials,” the embedded server now reports whether it used the modal input, HTTP header, or environment variable. Use that context to double-check which token needs to be updated.
+The embedded server reports which token source (modal input, Authorization header, or environment variable) was used so you can quickly verify the credential that needs updating.
 
 When the backend cannot reach the configured endpoint it returns a clear `Unable to reach Codex delegation server …` error describing the URL that was attempted. Update the URL or disable the embedded service if you plan to run an external delegation server on a different host/port.
 

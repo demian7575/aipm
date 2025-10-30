@@ -12,26 +12,18 @@ function createResponse(status, body) {
   });
 }
 
-test('delegateImplementationToCodex retries with embedded token after auth failure', async (t) => {
+test('delegateImplementationToCodex returns normalized Codex task data', async (t) => {
   const calls = [];
-  process.env.AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN = 'github_pat_fallback_token';
 
   globalThis.fetch = async (url, options = {}) => {
     calls.push({ url, options });
-    if (calls.length === 1) {
-      return createResponse(401, {
-        message: 'GitHub authentication failed while creating the pull request.',
-        code: 'GITHUB_AUTH_FAILED',
-        details: { tokenSource: 'authorization-header' },
-      });
-    }
     return createResponse(200, {
-      pullRequestUrl: 'https://example.com/pull/42',
-      pullRequestNumber: 42,
-      status: 'open',
-      branchName: 'feature/fallback',
-      message: 'GitHub pull request created.',
-      metadata: { tokenSource: 'embedded-env' },
+      taskUrl: 'https://example.com/codex-tasks/42',
+      taskId: 42,
+      status: 'queued',
+      branchName: 'codex/story-7',
+      message: 'Codex task created.',
+      metadata: { requestId: 'abc-123', task: { id: 42, url: 'https://example.com/codex-tasks/42' } },
     });
   };
 
@@ -39,35 +31,29 @@ test('delegateImplementationToCodex retries with embedded token after auth failu
     if (ORIGINAL_FETCH) {
       globalThis.fetch = ORIGINAL_FETCH;
     }
-    delete process.env.AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN;
   });
 
   const story = { id: 7, title: 'Retry story', status: 'Draft' };
   const result = await delegateImplementationToCodex(story, {
     endpoint: 'http://127.0.0.1:5005/delegate',
-    token: 'github_pat_invalid_token',
+    token: 'example-token',
     repositoryUrl: 'https://github.com/example/repo.git',
-    prTitle: 'Retry fallback test',
+    prTitle: 'Generate Codex task',
     prBody: 'Body',
-    prTitleTemplate: 'Retry fallback test',
+    prTitleTemplate: 'Generate Codex task',
     prBodyTemplate: 'Body template',
     branchName: 'feature/test',
     projectUrl: '',
   });
 
-  assert.equal(calls.length, 2, 'expected two delegation attempts');
+  assert.equal(calls.length, 1, 'expected a single delegation request');
   assert.equal(
     calls[0].options.headers.Authorization,
-    'Bearer github_pat_invalid_token',
-    'first attempt should use the provided token'
-  );
-  assert.equal(
-    calls[1].options.headers.Authorization,
-    'Bearer github_pat_fallback_token',
-    'second attempt should use embedded fallback token'
+    'Bearer example-token',
+    'delegation request should forward provided token'
   );
 
-  assert.equal(result.pullRequestUrl, 'https://example.com/pull/42');
-  assert.equal(result.pullRequestNumber, 42);
-  assert.equal(result.status, 'open');
+  assert.equal(result.taskUrl, 'https://example.com/codex-tasks/42');
+  assert.equal(result.taskId, 42);
+  assert.equal(result.status, 'queued');
 });

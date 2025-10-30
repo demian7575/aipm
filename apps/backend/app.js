@@ -2104,6 +2104,8 @@ function normalizeDelegationResponse(value) {
     return {
       pullRequestUrl: '',
       pullRequestNumber: null,
+      taskUrl: '',
+      taskId: null,
       status: '',
       branchName: '',
       message: '',
@@ -2111,7 +2113,10 @@ function normalizeDelegationResponse(value) {
     };
   }
 
-  const metadata = value;
+  const metadata =
+    value.metadata && typeof value.metadata === 'object' ? value.metadata : value;
+  const merged = { ...metadata, ...value, ...(metadata.task || {}) };
+
   const pullRequestUrl = [
     value.pullRequestUrl,
     value.prUrl,
@@ -2141,42 +2146,57 @@ function normalizeDelegationResponse(value) {
     }
   }
 
+  const taskUrl = [
+    value.taskUrl,
+    value.task_url,
+    metadata.taskUrl,
+    metadata.task_url,
+    metadata.task && metadata.task.url,
+  ].find((entry) => typeof entry === 'string' && entry.trim().length > 0);
+
+  const taskIdCandidate = [
+    value.taskId,
+    value.task_id,
+    metadata.taskId,
+    metadata.task_id,
+    metadata.task && metadata.task.id,
+  ].find((entry) => entry != null && entry !== '');
+  const taskId =
+    taskIdCandidate == null
+      ? null
+      : Number.isFinite(Number(taskIdCandidate))
+      ? Number(taskIdCandidate)
+      : String(taskIdCandidate);
+
   const status = [
-    value.status,
-    value.state,
-    metadata.status,
-    metadata.state,
-    metadata.pullRequest && metadata.pullRequest.status,
-    metadata.pullRequest && metadata.pullRequest.state,
+    merged.status,
+    merged.state,
+    merged.taskStatus,
+    merged.task_state,
   ].find((entry) => typeof entry === 'string' && entry.trim().length > 0);
 
   const branchName = [
-    value.branchName,
-    value.branch,
-    value.headRef,
-    value.headRefName,
-    metadata.branchName,
-    metadata.branch,
-    metadata.headRef,
-    metadata.headRefName,
-    metadata.pullRequest && metadata.pullRequest.headRefName,
+    merged.branchName,
+    merged.branch,
+    merged.headRef,
+    merged.headRefName,
   ].find((entry) => typeof entry === 'string' && entry.trim().length > 0);
 
   const message = [
-    value.message,
-    value.summary,
-    metadata.message,
-    metadata.summary,
-    metadata.statusMessage,
+    merged.message,
+    merged.summary,
+    merged.statusMessage,
   ].find((entry) => typeof entry === 'string' && entry.trim().length > 0);
 
   return {
     pullRequestUrl: pullRequestUrl ? pullRequestUrl.trim() : '',
     pullRequestNumber,
+    taskUrl: taskUrl ? taskUrl.trim() : '',
+    taskId,
     status: status ? status.trim() : '',
     branchName: branchName ? branchName.trim() : '',
     message: message ? message.trim() : '',
-    metadata,
+    metadata: value,
   };
 }
 
@@ -2216,71 +2236,8 @@ export async function delegateImplementationToCodex(story, options) {
     body.projectUrl = options.projectUrl;
   }
 
-  const attempts = buildCodexDelegationAttempts(options.token);
-  let lastError = null;
-
-  for (let index = 0; index < attempts.length; index += 1) {
-    const attempt = attempts[index];
-    try {
-      return await performCodexDelegationRequest({ endpoint, token: attempt.token, body });
-    } catch (error) {
-      lastError = error;
-      const nextAttempt = attempts[index + 1];
-      if (
-        nextAttempt &&
-        nextAttempt.fallback &&
-        shouldRetryCodexDelegation(error)
-      ) {
-        console.warn(
-          'Codex delegation retrying with embedded GitHub token after authentication failure.'
-        );
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw lastError;
-}
-
-function buildCodexDelegationAttempts(primaryToken) {
-  const attempts = [];
-  const trimmedPrimary = typeof primaryToken === 'string' ? primaryToken.trim() : '';
-  const fallbackToken = getEmbeddedGitHubToken();
-
-  if (trimmedPrimary) {
-    attempts.push({ token: trimmedPrimary, fallback: false });
-  }
-
-  if (fallbackToken && fallbackToken !== trimmedPrimary) {
-    attempts.push({ token: fallbackToken, fallback: true });
-  }
-
-  if (attempts.length === 0) {
-    attempts.push({ token: '', fallback: false });
-  }
-
-  return attempts;
-}
-
-function getEmbeddedGitHubToken() {
-  const raw = process.env.AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN;
-  return typeof raw === 'string' ? raw.trim() : '';
-}
-
-function shouldRetryCodexDelegation(error) {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const code =
-    (error.details && typeof error.details === 'object' && error.details.code) || error.code;
-  if (code === 'GITHUB_AUTH_FAILED' || code === 'GITHUB_TOKEN_REQUIRED') {
-    return true;
-  }
-  if (error.statusCode === 401) {
-    return true;
-  }
-  return false;
+  const token = typeof options.token === 'string' ? options.token.trim() : '';
+  return await performCodexDelegationRequest({ endpoint, token, body });
 }
 
 async function performCodexDelegationRequest({ endpoint, token, body }) {
