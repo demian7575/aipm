@@ -2180,7 +2180,7 @@ function normalizeDelegationResponse(value) {
   };
 }
 
-async function delegateImplementationToCodex(story, options) {
+export async function delegateImplementationToCodex(story, options) {
   if (!options || typeof options !== 'object') {
     throw Object.assign(new Error('Delegation options are required'), { statusCode: 400 });
   }
@@ -2216,9 +2216,77 @@ async function delegateImplementationToCodex(story, options) {
     body.projectUrl = options.projectUrl;
   }
 
+  const attempts = buildCodexDelegationAttempts(options.token);
+  let lastError = null;
+
+  for (let index = 0; index < attempts.length; index += 1) {
+    const attempt = attempts[index];
+    try {
+      return await performCodexDelegationRequest({ endpoint, token: attempt.token, body });
+    } catch (error) {
+      lastError = error;
+      const nextAttempt = attempts[index + 1];
+      if (
+        nextAttempt &&
+        nextAttempt.fallback &&
+        shouldRetryCodexDelegation(error)
+      ) {
+        console.warn(
+          'Codex delegation retrying with embedded GitHub token after authentication failure.'
+        );
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastError;
+}
+
+function buildCodexDelegationAttempts(primaryToken) {
+  const attempts = [];
+  const trimmedPrimary = typeof primaryToken === 'string' ? primaryToken.trim() : '';
+  const fallbackToken = getEmbeddedGitHubToken();
+
+  if (trimmedPrimary) {
+    attempts.push({ token: trimmedPrimary, fallback: false });
+  }
+
+  if (fallbackToken && fallbackToken !== trimmedPrimary) {
+    attempts.push({ token: fallbackToken, fallback: true });
+  }
+
+  if (attempts.length === 0) {
+    attempts.push({ token: '', fallback: false });
+  }
+
+  return attempts;
+}
+
+function getEmbeddedGitHubToken() {
+  const raw = process.env.AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN;
+  return typeof raw === 'string' ? raw.trim() : '';
+}
+
+function shouldRetryCodexDelegation(error) {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const code =
+    (error.details && typeof error.details === 'object' && error.details.code) || error.code;
+  if (code === 'GITHUB_AUTH_FAILED' || code === 'GITHUB_TOKEN_REQUIRED') {
+    return true;
+  }
+  if (error.statusCode === 401) {
+    return true;
+  }
+  return false;
+}
+
+async function performCodexDelegationRequest({ endpoint, token, body }) {
   const headers = { 'Content-Type': 'application/json' };
-  if (options.token) {
-    headers.Authorization = `Bearer ${options.token}`;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   let response;
