@@ -1542,6 +1542,97 @@ dialog[data-size='content'] {
   margin-top: -0.35rem;
 }
 
+.codex-token-config {
+  font-size: 0.85rem;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+}
+
+.codex-token-config summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #1d4ed8;
+  margin-bottom: 0.4rem;
+}
+
+.codex-token-config summary::-webkit-details-marker {
+  color: #1d4ed8;
+}
+
+.codex-token-config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #1f2937;
+}
+
+.codex-token-config pre {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  background: #1f2937;
+  color: #f8fafc;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  overflow-x: auto;
+}
+
+.codex-token-config code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+.codex-error-panel {
+  border: 1px solid #fca5a5;
+  background: #fef2f2;
+  color: #7f1d1d;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.codex-error-panel[hidden] {
+  display: none;
+}
+
+.codex-error-heading {
+  font-weight: 700;
+}
+
+.codex-error-subheading {
+  font-weight: 600;
+}
+
+.codex-error-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.codex-error-list li {
+  list-style: disc;
+}
+
+.codex-error-list code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  background: rgba(15, 23, 42, 0.08);
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+}
+
+.codex-error-doc {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.codex-error-doc code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+
 .codex-preview {
   display: flex;
   flex-direction: column;

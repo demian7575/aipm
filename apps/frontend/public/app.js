@@ -58,6 +58,25 @@ const CODEX_DEFAULT_PR_BODY_TEMPLATE = [
   'Generated on {{today}} by AIPM.',
 ].join('\n');
 const CODEX_DEFAULT_DELEGATION_SERVER_URL = 'http://127.0.0.1:5005/delegate';
+const CODEX_TOKEN_GUIDANCE = Object.freeze({
+  environmentVariables: [
+    {
+      name: 'AI_PM_CODEX_DELEGATION_TOKEN',
+      description:
+        'Forwarded with every delegation request from the backend to authenticate GitHub API calls.',
+    },
+    {
+      name: 'AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN',
+      description:
+        'Fallback token used by the embedded delegation server when a request does not include credentials.',
+    },
+  ],
+  tokenExamples: [
+    'github_pat_1A2B3C4D5E6F7G8H9J0K1L2M3N4O5P6Q7R',
+    'ghp_exampleToken1234567890abcdef1234567890',
+  ],
+  documentation: 'README.md#codex-token-configuration',
+});
 
 const NODE_WIDTH = 240;
 const NODE_MIN_HEIGHT = 120;
@@ -4102,6 +4121,37 @@ function openTaskModal(storyId, task = null) {
   });
 }
 
+function describeCodexTokenSource(source) {
+  switch (source) {
+    case 'request-payload':
+      return 'Token supplied in the modal input.';
+    case 'authorization-header':
+      return 'Token forwarded via the HTTP Authorization header.';
+    case 'embedded-env':
+      return 'Token loaded from AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN.';
+    case 'delegation-env':
+      return 'Token loaded from AI_PM_CODEX_DELEGATION_TOKEN.';
+    case 'missing':
+      return 'No token was available for this request.';
+    default:
+      return 'Token source could not be determined.';
+  }
+}
+
+function mergeCodexTokenGuidance(details) {
+  const envVars = Array.isArray(details?.environmentVariables) && details.environmentVariables.length
+    ? details.environmentVariables
+    : CODEX_TOKEN_GUIDANCE.environmentVariables;
+  const examples = Array.isArray(details?.tokenExamples) && details.tokenExamples.length
+    ? details.tokenExamples
+    : CODEX_TOKEN_GUIDANCE.tokenExamples;
+  const documentation =
+    details && typeof details.documentation === 'string' && details.documentation.trim()
+      ? details.documentation.trim()
+      : CODEX_TOKEN_GUIDANCE.documentation;
+  return { environmentVariables: envVars, tokenExamples: examples, documentation };
+}
+
 function openCodexDelegationModal(story) {
   if (!story || typeof story !== 'object') {
     showToast('Select a story before delegating.', 'error');
@@ -4175,8 +4225,36 @@ function openCodexDelegationModal(story) {
   const tokenHint = document.createElement('p');
   tokenHint.className = 'codex-token-hint';
   tokenHint.innerHTML =
-    'Tokens are sent directly to the delegation service and are never stored. Configure <code>AI_PM_CODEX_DELEGATION_TOKEN</code> on the backend to avoid retyping.';
+    'Tokens are sent directly to the delegation service and are never stored. Configure <code>AI_PM_CODEX_DELEGATION_TOKEN</code> (backend default) or <code>AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN</code> (embedded fallback) to avoid retyping.';
   container.appendChild(tokenHint);
+
+  const tokenConfig = document.createElement('details');
+  tokenConfig.className = 'codex-token-config';
+  const tokenConfigSummary = document.createElement('summary');
+  tokenConfigSummary.textContent = 'How do I configure the GitHub tokens?';
+  tokenConfig.appendChild(tokenConfigSummary);
+
+  const tokenConfigBody = document.createElement('div');
+  tokenConfigBody.className = 'codex-token-config-body';
+
+  const tokenConfigIntro = document.createElement('p');
+  tokenConfigIntro.innerHTML = 'Export these variables before running <code>npm run dev</code>:';
+  tokenConfigBody.appendChild(tokenConfigIntro);
+
+  const tokenConfigPre = document.createElement('pre');
+  const tokenConfigCode = document.createElement('code');
+  tokenConfigCode.textContent =
+    'export AI_PM_CODEX_DELEGATION_TOKEN="github_pat_..."\nexport AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN="github_pat_..."';
+  tokenConfigPre.appendChild(tokenConfigCode);
+  tokenConfigBody.appendChild(tokenConfigPre);
+
+  const tokenConfigNote = document.createElement('p');
+  tokenConfigNote.innerHTML =
+    'Tokens usually start with <code>github_pat_</code> (fine-grained) or <code>ghp_</code> (classic) and must include <code>repo</code> scope.';
+  tokenConfigBody.appendChild(tokenConfigNote);
+
+  tokenConfig.appendChild(tokenConfigBody);
+  container.appendChild(tokenConfig);
 
   const previewWrapper = document.createElement('section');
   previewWrapper.className = 'codex-preview';
@@ -4195,6 +4273,126 @@ function openCodexDelegationModal(story) {
   previewWrapper.appendChild(previewBody);
 
   container.appendChild(previewWrapper);
+
+  const errorPanel = document.createElement('section');
+  errorPanel.className = 'codex-error-panel';
+  errorPanel.hidden = true;
+  container.appendChild(errorPanel);
+
+  const clearDelegationError = () => {
+    errorPanel.hidden = true;
+    errorPanel.innerHTML = '';
+  };
+
+  const renderDelegationError = (err) => {
+    const fallbackMessage = 'Codex delegation failed.';
+    const message = err && typeof err === 'object' && err.message ? err.message : fallbackMessage;
+    const details = err && typeof err === 'object' && err.details && typeof err.details === 'object' ? err.details : {};
+    const guidance = mergeCodexTokenGuidance(details);
+
+    errorPanel.hidden = false;
+    errorPanel.innerHTML = '';
+
+    const heading = document.createElement('div');
+    heading.className = 'codex-error-heading';
+    heading.textContent = message;
+    errorPanel.appendChild(heading);
+
+    const insightItems = [];
+    if (details.hint) {
+      insightItems.push(details.hint);
+    }
+    if (details.tokenSource) {
+      insightItems.push(`Token source: ${describeCodexTokenSource(details.tokenSource)}`);
+    }
+    if (details.githubMessage) {
+      insightItems.push(`GitHub response: ${details.githubMessage}`);
+    }
+    if (details.documentationUrl) {
+      insightItems.push(`GitHub docs: ${details.documentationUrl}`);
+    }
+    if (details.requestId) {
+      insightItems.push(`GitHub request id: ${details.requestId}`);
+    }
+    if (details.traceId) {
+      insightItems.push(`GitHub trace id: ${details.traceId}`);
+    }
+    if (details.rateLimitRemaining) {
+      insightItems.push(`Rate limit remaining: ${details.rateLimitRemaining}`);
+    }
+    if (details.rateLimitReset) {
+      insightItems.push(`Rate limit resets at: ${details.rateLimitReset}`);
+    }
+
+    if (insightItems.length > 0) {
+      const list = document.createElement('ul');
+      list.className = 'codex-error-list';
+      insightItems.forEach((item) => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        list.appendChild(li);
+      });
+      errorPanel.appendChild(list);
+    }
+
+    if (guidance.environmentVariables && guidance.environmentVariables.length > 0) {
+      const envHeading = document.createElement('div');
+      envHeading.className = 'codex-error-subheading';
+      envHeading.textContent = 'Environment variables to check';
+      errorPanel.appendChild(envHeading);
+
+      const envList = document.createElement('ul');
+      envList.className = 'codex-error-list';
+      guidance.environmentVariables.forEach((entry) => {
+        if (!entry || typeof entry !== 'object' || !entry.name) {
+          return;
+        }
+        const li = document.createElement('li');
+        const code = document.createElement('code');
+        code.textContent = entry.name;
+        li.appendChild(code);
+        if (entry.description) {
+          const span = document.createElement('span');
+          span.textContent = ` – ${entry.description}`;
+          li.appendChild(span);
+        }
+        envList.appendChild(li);
+      });
+      errorPanel.appendChild(envList);
+    }
+
+    if (guidance.tokenExamples && guidance.tokenExamples.length > 0) {
+      const exampleHeading = document.createElement('div');
+      exampleHeading.className = 'codex-error-subheading';
+      exampleHeading.textContent = 'Token examples';
+      errorPanel.appendChild(exampleHeading);
+
+      const exampleList = document.createElement('ul');
+      exampleList.className = 'codex-error-list';
+      guidance.tokenExamples.forEach((example) => {
+        if (!example) {
+          return;
+        }
+        const li = document.createElement('li');
+        const code = document.createElement('code');
+        code.textContent = example;
+        li.appendChild(code);
+        exampleList.appendChild(li);
+      });
+      errorPanel.appendChild(exampleList);
+    }
+
+    if (guidance.documentation) {
+      const doc = document.createElement('p');
+      doc.className = 'codex-error-doc';
+      doc.append('See ');
+      const code = document.createElement('code');
+      code.textContent = guidance.documentation;
+      doc.appendChild(code);
+      doc.append(' for full setup steps.');
+      errorPanel.appendChild(doc);
+    }
+  };
 
   const updatePreview = () => {
     previewTitle.textContent = renderCodexTemplate(titleInput.value, story).trim();
@@ -4246,6 +4444,7 @@ function openCodexDelegationModal(story) {
           const renderedBody = renderCodexTemplate(prBodyTemplate, story);
 
           container.dataset.busy = '1';
+          clearDelegationError();
           try {
             const result = await delegateStoryToCodex(story.id, {
               repositoryUrl,
@@ -4283,15 +4482,20 @@ function openCodexDelegationModal(story) {
 
             await loadStories();
             if (normalized.pullRequestUrl) {
+              clearDelegationError();
               showToast('Codex delegation started – pull request created.', 'success');
             } else {
+              clearDelegationError();
               showToast('Codex delegation started.', 'success');
             }
             return true;
           } catch (error) {
             console.error('Codex delegation failed', error);
-            const message = error?.message || 'Failed to delegate story to Codex.';
+            const normalizedError =
+              error && typeof error === 'object' ? error : { message: String(error) };
+            const message = normalizedError.message || 'Failed to delegate story to Codex.';
             showToast(message, 'error');
+            renderDelegationError(normalizedError);
             return false;
           } finally {
             container.dataset.busy = '0';

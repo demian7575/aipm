@@ -181,6 +181,25 @@ The **Develop with Codex** workflow now ships with an embedded delegation servic
 
 > **GitHub authentication:** The embedded delegation server automatically creates a placeholder commit and opens a pull request on GitHub. Supply a personal access token with `repo` permissions via `AI_PM_CODEX_DELEGATION_TOKEN`, the modal input field, or `AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN`; otherwise the server returns a `401` error indicating that authentication is required.
 
+#### Codex token configuration
+
+Most authentication issues stem from the GitHub token not being available when the delegation flow runs. Follow these steps before launching the backend:
+
+1. Generate a GitHub personal access token with **`repo`** scope. Fine-grained tokens typically begin with `github_pat_…` while classic tokens start with `ghp_…`.
+2. Export the token in the same terminal session that will run `npm run dev` or `npm run start`:
+
+   ```bash
+   export AI_PM_CODEX_DELEGATION_TOKEN="github_pat_example1234567890TOKEN"
+   export AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN="github_pat_example1234567890TOKEN"
+   ```
+
+   The two variables can share the same token. `AI_PM_CODEX_DELEGATION_TOKEN` is forwarded with every request made by the backend, while `AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN` is a fallback that only the embedded delegation server uses when a request omits credentials.
+
+3. Start the backend (`npm run dev`). The embedded delegation server reads both variables during startup.
+4. Trigger the **Develop with Codex** flow from the UI or repeat your `curl` call. Successful responses include a `pullRequestUrl`, confirming the token was accepted.
+
+If GitHub returns “Bad credentials,” the embedded server now reports whether it used the modal input, HTTP header, or environment variable. Use that context to double-check which token needs to be updated.
+
 When the backend cannot reach the configured endpoint it returns a clear `Unable to reach Codex delegation server …` error describing the URL that was attempted. Update the URL or disable the embedded service if you plan to run an external delegation server on a different host/port.
 
 ## Scripts

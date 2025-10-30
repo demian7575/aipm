@@ -294,7 +294,10 @@ async function maybeCreateGitHubPullRequest({
       code: 'GITHUB_TOKEN_REQUIRED',
       message:
         'GitHub token is required to create a pull request. Provide AI_PM_CODEX_DELEGATION_TOKEN or enter a token in the delegation modal.',
-      details: { repository: `${repoInfo.owner}/${repoInfo.repo}` },
+      details: {
+        repository: `${repoInfo.owner}/${repoInfo.repo}`,
+        ...buildGitHubTokenGuidance(),
+      },
     };
   }
 
@@ -396,6 +399,7 @@ async function maybeCreateGitHubPullRequest({
         const authDetails = {
           ...formatGitHubErrorDetails(error.details),
           tokenSource: tokenSource || 'unknown',
+          ...buildGitHubTokenGuidance(),
         };
         console.error('GitHub authentication failed for embedded delegation request', {
           repository: repoInfo ? `${repoInfo.owner}/${repoInfo.repo}` : repositoryUrl,
@@ -455,6 +459,28 @@ function sanitizeGitHubLogDetails(details) {
     clone.responseBody = { message, documentation_url: documentationUrl };
   }
   return clone;
+}
+
+function buildGitHubTokenGuidance() {
+  return {
+    environmentVariables: [
+      {
+        name: 'AI_PM_CODEX_DELEGATION_TOKEN',
+        description:
+          'Forwarded with every delegation request from the backend to authenticate GitHub API calls.',
+      },
+      {
+        name: 'AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN',
+        description:
+          'Fallback token consumed by the embedded delegation server when a request omits credentials.',
+      },
+    ],
+    tokenExamples: [
+      'github_pat_1A2B3C4D5E6F7G8H9J0K1L2M3N4O5P6Q7R',
+      'ghp_exampleToken1234567890abcdef1234567890',
+    ],
+    documentation: 'README.md#codex-token-configuration',
+  };
 }
 
 function buildGitHubPlaceholderContent({
