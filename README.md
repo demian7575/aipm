@@ -176,6 +176,10 @@ The **Develop with Codex** workflow now ships with an embedded delegation servic
 | `AI_PM_CODEX_EMBEDDED_PORT` | Listening port for the embedded server (default `5005`). |
 | `AI_PM_CODEX_EMBEDDED_PATH` | Request path for the embedded `/delegate` endpoint (default `/delegate`). |
 | `AI_PM_CODEX_EMBEDDED_PROTOCOL` | Protocol used when advertising the embedded endpoint (default `http`). |
+| `AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN` | Optional fallback GitHub token used by the embedded server when the delegation request does not provide one. |
+| `AI_PM_CODEX_GITHUB_API_URL` | Override for the GitHub REST API base URL (defaults to `https://api.github.com`). |
+
+> **GitHub authentication:** The embedded delegation server automatically creates a placeholder commit and opens a pull request on GitHub. Supply a personal access token with `repo` permissions via `AI_PM_CODEX_DELEGATION_TOKEN`, the modal input field, or `AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN`; otherwise the server returns a `401` error indicating that authentication is required.
 
 When the backend cannot reach the configured endpoint it returns a clear `Unable to reach Codex delegation server …` error describing the URL that was attempted. Update the URL or disable the embedded service if you plan to run an external delegation server on a different host/port.
 
