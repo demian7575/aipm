@@ -57,6 +57,7 @@ const CODEX_DEFAULT_PR_BODY_TEMPLATE = [
   '## Notes',
   'Generated on {{today}} by AIPM.',
 ].join('\n');
+const CODEX_DEFAULT_DELEGATION_SERVER_URL = 'http://127.0.0.1:5005/delegate';
 
 const NODE_WIDTH = 240;
 const NODE_MIN_HEIGHT = 120;
@@ -4153,10 +4154,10 @@ function openCodexDelegationModal(story) {
 
   const serverLabel = document.createElement('label');
   serverLabel.innerHTML =
-    'Delegation Server URL (optional)<input id="codex-server-url" type="url" placeholder="http://127.0.0.1:5005/delegate" />';
+    `Delegation Server URL (optional)<input id="codex-server-url" type="url" placeholder="${CODEX_DEFAULT_DELEGATION_SERVER_URL}" />`;
   container.appendChild(serverLabel);
   const serverInput = serverLabel.querySelector('input');
-  serverInput.value = defaults.delegationServerUrl || '';
+  serverInput.value = defaults.delegationServerUrl || CODEX_DEFAULT_DELEGATION_SERVER_URL;
 
   const hint = document.createElement('p');
   hint.className = 'codex-template-hint';

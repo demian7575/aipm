@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
+const CODEX_DEFAULT_DELEGATION_ENDPOINT = 'http://127.0.0.1:5005/delegate';
 
 export const COMPONENT_CATALOG = [
   'WorkModel',
@@ -2024,8 +2025,10 @@ function readCodexDelegationConfig(overrides = {}) {
   const overrideProjectUrl =
     typeof overrides.projectUrl === 'string' ? overrides.projectUrl.trim() : '';
 
+  const endpoint = overrideEndpoint || envEndpoint || CODEX_DEFAULT_DELEGATION_ENDPOINT;
+
   return {
-    endpoint: overrideEndpoint || envEndpoint,
+    endpoint,
     projectUrl: overrideProjectUrl || envProjectUrl,
     token: envToken,
   };
