@@ -70,6 +70,22 @@ Run the Node.js test suite (using the built-in `node:test` harness) to exercise 
 npm test
 ```
 
+### Verifying the built-in Codex delegation service
+
+Run the smoke test to confirm that the built-in delegation workflow queues work, creates tracking tasks, and records the request in the local ledger:
+
+```bash
+npm run codex:smoke
+```
+
+The command launches an ephemeral server, posts a delegation for the seeded story, prints the tasks that were created, and reports the ledger entry stored at `apps/backend/data/codex-delegations.json`. Rerun the script any time you need a clean reset—it recreates the database and delegation ledger on each invocation.
+
+To exercise the workflow manually:
+
+1. Start the development server with `npm run dev` (defaults to port 4000).
+2. Delegate a story with `curl -X POST http://127.0.0.1:4000/api/stories/1/codex/delegate -H 'Content-Type: application/json' -d '{"repositoryUrl":"","plan":"personal-plus","branch":"","codexUserEmail":"owner@example.com","instructions":"Implement the story end-to-end.","additionalContext":"Manual smoke test"}'`.
+3. Inspect the stored delegations with `curl http://127.0.0.1:4000/api/codex/delegations` and reopen the story in the UI to confirm the `Develop with Codex` and `Codex PR` tasks appear.
+
 ## Branching
 
 All active development has been merged into the `main` branch; check out `main` to run the workspace locally or to build new
