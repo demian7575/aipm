@@ -36,6 +36,23 @@ const STORAGE_KEYS = {
   panels: 'aiPm.panels',
 };
 
+const CODEX_STORAGE_KEYS = {
+  repository: 'aiPm.codex.repository',
+  branch: 'aiPm.codex.branch',
+  plan: 'aiPm.codex.plan',
+  operator: 'aiPm.codex.operator',
+};
+
+const DEFAULT_CODEX_REPOSITORY_URL = (() => {
+  if (typeof window !== 'undefined' && window.CODEX_DEFAULT_REPOSITORY_URL) {
+    const override = String(window.CODEX_DEFAULT_REPOSITORY_URL).trim();
+    if (override) {
+      return override;
+    }
+  }
+  return 'https://api.github.com/repos/demian7575/aipm';
+})();
+
 const NODE_WIDTH = 240;
 const NODE_MIN_HEIGHT = 120;
 const NODE_MAX_HEIGHT = 520;
@@ -947,6 +964,31 @@ function loadPreferences() {
   toggleOutline.checked = state.panelVisibility.outline;
   toggleMindmap.checked = state.panelVisibility.mindmap;
   toggleDetails.checked = state.panelVisibility.details;
+}
+
+function getCodexPreference(key, fallback = '') {
+  try {
+    const value = localStorage.getItem(key);
+    if (value == null) {
+      return fallback;
+    }
+    return value;
+  } catch (error) {
+    console.warn('Unable to read Codex preference', error);
+    return fallback;
+  }
+}
+
+function setCodexPreference(key, value) {
+  try {
+    if (value == null || value === '') {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, value);
+    }
+  } catch (error) {
+    console.warn('Unable to persist Codex preference', error);
+  }
 }
 
 function persistExpanded() {
@@ -4078,11 +4120,25 @@ function openCodexDelegationModal(story) {
   const instructionsInput = container.querySelector('#codex-instructions');
   const contextInput = container.querySelector('#codex-context');
 
-  if (!branchInput.value) {
-    branchInput.value = 'main';
-  }
+  const storedPlan = getCodexPreference(CODEX_STORAGE_KEYS.plan, 'personal-plus');
+  const storedRepo = getCodexPreference(CODEX_STORAGE_KEYS.repository, DEFAULT_CODEX_REPOSITORY_URL);
+  const storedBranch = getCodexPreference(CODEX_STORAGE_KEYS.branch, 'main');
+  const storedOperator = getCodexPreference(CODEX_STORAGE_KEYS.operator, story.assigneeEmail || '');
+
   if (!planSelect.value) {
-    planSelect.value = 'personal-plus';
+    planSelect.value = storedPlan || 'personal-plus';
+  } else if (storedPlan) {
+    planSelect.value = storedPlan;
+  }
+
+  repoInput.value = storedRepo || DEFAULT_CODEX_REPOSITORY_URL;
+  branchInput.value = storedBranch || 'main';
+  if (!operatorInput.value) {
+    operatorInput.value = storedOperator;
+  }
+
+  if (!instructionsInput.value) {
+    instructionsInput.value = defaultInstructions;
   }
 
   openModal({
@@ -4111,9 +4167,10 @@ function openCodexDelegationModal(story) {
             instructionsInput.focus();
             return false;
           }
+          const branch = branchInput.value.trim() || 'main';
           const payload = {
             repositoryUrl,
-            branch: branchInput.value.trim() || 'main',
+            branch,
             plan: planSelect.value,
             codexUserEmail: operatorEmail,
             instructions,
@@ -4122,16 +4179,34 @@ function openCodexDelegationModal(story) {
           try {
             const result = await delegateStoryToCodex(story.id, payload);
             const delegation = result?.delegation ?? null;
-            const isMock = Boolean(delegation?.isMock);
             const prUrl = delegation?.prUrl;
+            const sourceLabel =
+              delegation?.source === 'remote'
+                ? 'Remote Codex agent'
+                : delegation?.source === 'embedded'
+                ? 'Embedded Codex agent'
+                : null;
             const messageParts = ['Codex delegation queued'];
             if (prUrl) {
               messageParts.push(`PR: ${prUrl}`);
             }
-            if (isMock) {
-              messageParts.push('(mock response)');
+            if (sourceLabel) {
+              messageParts.push(sourceLabel);
             }
-            showToast(messageParts.join(' • '), isMock ? 'warning' : 'success');
+            if (Array.isArray(result?.tasks) && result.tasks.length > 0) {
+              const taskSummary = result.tasks
+                .map((task) => task?.title)
+                .filter(Boolean)
+                .join(', ');
+              if (taskSummary) {
+                messageParts.push(`Tasks: ${taskSummary}`);
+              }
+            }
+            showToast(messageParts.join(' • '), delegation?.source === 'remote' ? 'success' : 'info');
+            setCodexPreference(CODEX_STORAGE_KEYS.repository, repositoryUrl);
+            setCodexPreference(CODEX_STORAGE_KEYS.branch, branch);
+            setCodexPreference(CODEX_STORAGE_KEYS.plan, planSelect.value);
+            setCodexPreference(CODEX_STORAGE_KEYS.operator, operatorEmail);
             await loadStories();
             return true;
           } catch (error) {

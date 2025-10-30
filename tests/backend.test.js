@@ -1230,6 +1230,79 @@ test('story dependency APIs work with JSON fallback database', async (t) => {
   assert.ok(afterDelete.dependencies.every((entry) => entry.storyId !== dependencyStory.id));
 });
 
+test('Codex delegation creates tracking tasks with embedded workflow fallback', async (t) => {
+  await resetDatabaseFiles();
+  process.env.CODEX_DEFAULT_REPOSITORY_URL = 'https://api.github.com/repos/demian7575/aipm';
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories));
+  assert.ok(stories.length > 0, 'Sample dataset should include at least one story');
+  const story = stories[0];
+
+  const delegateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/codex/delegate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      repositoryUrl: '',
+      plan: 'personal-plus',
+      branch: '',
+      codexUserEmail: 'delegate@example.com',
+      instructions: 'Implement the story end-to-end using the embedded workflow.',
+      additionalContext: 'Integration test execution',
+    }),
+  });
+
+  assert.equal(delegateResponse.status, 200);
+  const delegationBody = await delegateResponse.json();
+  assert.ok(delegationBody.delegation);
+  assert.equal(delegationBody.delegation.source, 'embedded');
+  assert.ok(delegationBody.delegation.id.startsWith('embedded-'));
+  assert.equal(
+    delegationBody.delegation.repositoryUrl,
+    'https://api.github.com/repos/demian7575/aipm',
+    'Fallback repository URL should be applied when none is provided',
+  );
+  assert.equal(delegationBody.delegation.branch, 'main');
+  assert.equal(delegationBody.delegation.plan, 'Personal Plus');
+  assert.ok(delegationBody.delegation.prUrl.includes('/pull/'));
+
+  assert.ok(Array.isArray(delegationBody.tasks));
+  assert.equal(
+    delegationBody.tasks.length,
+    2,
+    'Delegation should create an execution task and a PR tracking task',
+  );
+  const taskTitles = delegationBody.tasks.map((task) => task.title);
+  assert.ok(taskTitles.some((title) => title.includes('Develop with Codex')));
+  assert.ok(taskTitles.some((title) => title.includes('Codex PR')));
+
+  const refreshedStoriesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(refreshedStoriesResponse.status, 200);
+  const refreshedStories = await refreshedStoriesResponse.json();
+  assert.ok(Array.isArray(refreshedStories));
+  const refreshedStory = refreshedStories.find((item) => item.id === story.id);
+  assert.ok(refreshedStory, 'Story should still be retrievable after delegation');
+  assert.ok(Array.isArray(refreshedStory.tasks));
+  assert.ok(
+    refreshedStory.tasks.some((task) => task.title.includes('Develop with Codex')),
+    'Story payload should include Codex execution task',
+  );
+  assert.ok(
+    refreshedStory.tasks.some((task) => task.title.includes('Codex PR')),
+    'Story payload should include Codex PR tracking task',
+  );
+});
+
 test('sample dataset generator produces 50 stories and mirrored acceptance tests', async () => {
   const outputPath = path.join(process.cwd(), 'docs', 'examples', 'generated-sample.sqlite');
   await fs.rm(outputPath, { force: true });

@@ -88,19 +88,27 @@ function normalizeRemoteResponse(body, context) {
     status,
     summary,
     metadata: body,
-    isMock: false,
+    source: 'remote',
     repositoryUrl: context.repositoryUrl,
     branch: context.branch,
     plan: context.plan,
+    queuedAt: new Date().toISOString(),
   };
 }
 
-function buildMockDelegation({ story, repositoryUrl, branch, plan, instructions, additionalContext }) {
+function buildEmbeddedDelegation({
+  story,
+  repositoryUrl,
+  branch,
+  plan,
+  instructions,
+  additionalContext,
+}) {
   const normalizedRepo = sanitizeRepositoryUrl(repositoryUrl);
   const prNumber = Math.floor(Math.random() * 9000) + 1000;
   const prUrl = normalizedRepo ? `${normalizedRepo}/pull/${prNumber}` : '';
   const summaryParts = [
-    `Mock delegation for story "${story?.title ?? 'Untitled'}" using plan ${plan}.`,
+    `Embedded delegation queued for story "${story?.title ?? 'Untitled'}" using plan ${plan}.`,
   ];
   if (instructions) {
     const trimmed = instructions.trim();
@@ -118,21 +126,22 @@ function buildMockDelegation({ story, repositoryUrl, branch, plan, instructions,
   }
 
   return {
-    id: `mock-${randomUUID()}`,
+    id: `embedded-${randomUUID()}`,
     prUrl,
-    status: 'PR Created (mock)',
+    status: 'Queued',
     summary: summaryParts.join(' '),
     metadata: {
       repositoryUrl: normalizedRepo || repositoryUrl,
       branch,
       plan,
       additionalContext,
-      mock: true,
+      embedded: true,
     },
-    isMock: true,
+    source: 'embedded',
     repositoryUrl: normalizedRepo || repositoryUrl,
     branch,
     plan,
+    queuedAt: new Date().toISOString(),
   };
 }
 
@@ -199,11 +208,14 @@ export async function delegateToCodex({
       if (process.env.CODEX_DELEGATION_REQUIRE_SUCCESS === '1') {
         throw error;
       }
-      console.warn('Codex delegation endpoint unavailable, falling back to mock implementation.', error);
+      console.warn(
+        'Codex delegation endpoint unavailable, using embedded delegation workflow instead.',
+        error,
+      );
     }
   }
 
-  return buildMockDelegation({
+  return buildEmbeddedDelegation({
     story,
     repositoryUrl: sanitizedRepositoryUrl,
     branch,

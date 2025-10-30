@@ -45,6 +45,17 @@ const CODEX_PLAN_LABELS = new Map([
   ['enterprise', 'Enterprise'],
 ]);
 
+const CODEX_DEFAULT_REPOSITORY_URL = (() => {
+  const raw = process.env.CODEX_DEFAULT_REPOSITORY_URL;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return 'https://api.github.com/repos/demian7575/aipm';
+})();
+
 function describeCodexPlan(value) {
   if (!value) {
     return 'Personal Plus';
@@ -5231,7 +5242,10 @@ export async function createApp() {
           return;
         }
         const payload = await parseJson(req);
-        const repositoryUrl = String(payload.repositoryUrl ?? '').trim();
+        let repositoryUrl = String(payload.repositoryUrl ?? '').trim();
+        if (!repositoryUrl) {
+          repositoryUrl = CODEX_DEFAULT_REPOSITORY_URL;
+        }
         if (!repositoryUrl) {
           sendJson(res, 400, { message: 'Repository URL is required' });
           return;
@@ -5326,7 +5340,7 @@ export async function createApp() {
             ...delegationResult,
             plan: planLabel,
             branch,
-            repositoryUrl,
+            repositoryUrl: delegationResult.repositoryUrl || repositoryUrl,
             assigneeEmail: codexUserEmail,
           },
           tasks: createdTasks,
