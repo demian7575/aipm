@@ -2005,6 +2005,248 @@ function normalizeTaskEstimationHours(value) {
   return numeric;
 }
 
+function readCodexDelegationConfig(overrides = {}) {
+  const envEndpoint =
+    typeof process.env.AI_PM_CODEX_DELEGATION_URL === 'string'
+      ? process.env.AI_PM_CODEX_DELEGATION_URL.trim()
+      : '';
+  const envProjectUrl =
+    typeof process.env.AI_PM_CODEX_PROJECT_URL === 'string'
+      ? process.env.AI_PM_CODEX_PROJECT_URL.trim()
+      : '';
+  const envToken =
+    typeof process.env.AI_PM_CODEX_DELEGATION_TOKEN === 'string'
+      ? process.env.AI_PM_CODEX_DELEGATION_TOKEN.trim()
+      : '';
+
+  const overrideEndpoint =
+    typeof overrides.endpoint === 'string' ? overrides.endpoint.trim() : '';
+  const overrideProjectUrl =
+    typeof overrides.projectUrl === 'string' ? overrides.projectUrl.trim() : '';
+
+  return {
+    endpoint: overrideEndpoint || envEndpoint,
+    projectUrl: overrideProjectUrl || envProjectUrl,
+    token: envToken,
+  };
+}
+
+function buildDelegationStoryPayload(story) {
+  if (!story || typeof story !== 'object') {
+    return null;
+  }
+  const payload = {
+    id: story.id,
+    mrId: story.mrId,
+    parentId: story.parentId,
+    title: story.title || '',
+    description: story.description || '',
+    asA: story.asA || story.as_a || '',
+    iWant: story.iWant || story.i_want || '',
+    soThat: story.soThat || story.so_that || '',
+    components: Array.isArray(story.components) ? [...story.components] : [],
+    storyPoint: story.storyPoint ?? null,
+    status: story.status || '',
+    assigneeEmail: story.assigneeEmail || story.assignee_email || '',
+    acceptanceTests: [],
+    tasks: [],
+    referenceDocuments: Array.isArray(story.referenceDocuments)
+      ? story.referenceDocuments.map((doc) => ({
+          id: doc.id,
+          name: doc.name || '',
+          url: doc.url || '',
+        }))
+      : [],
+  };
+
+  if (Array.isArray(story.acceptanceTests)) {
+    payload.acceptanceTests = story.acceptanceTests.map((test) => ({
+      id: test.id,
+      title: test.title || '',
+      given: Array.isArray(test.given) ? [...test.given] : [],
+      when: Array.isArray(test.when) ? [...test.when] : [],
+      then: Array.isArray(test.then) ? [...test.then] : [],
+      status: test.status || '',
+    }));
+  }
+
+  if (Array.isArray(story.tasks)) {
+    payload.tasks = story.tasks.map((task) => ({
+      id: task.id,
+      title: task.title || '',
+      description: task.description || '',
+      status: task.status || '',
+      assigneeEmail: task.assigneeEmail || task.assignee_email || '',
+      estimationHours:
+        task.estimationHours ?? task.estimation_hours ?? task.estimation ?? null,
+    }));
+  }
+
+  return payload;
+}
+
+function normalizeDelegationResponse(value) {
+  if (!value || typeof value !== 'object') {
+    return {
+      pullRequestUrl: '',
+      pullRequestNumber: null,
+      status: '',
+      branchName: '',
+      message: '',
+      metadata: value,
+    };
+  }
+
+  const metadata = value;
+  const pullRequestUrl = [
+    value.pullRequestUrl,
+    value.prUrl,
+    value.pull_request_url,
+    value.htmlUrl,
+    value.html_url,
+    metadata.pullRequest && metadata.pullRequest.htmlUrl,
+    metadata.pullRequest && metadata.pullRequest.url,
+  ].find((entry) => typeof entry === 'string' && entry.trim().length > 0);
+
+  const numberCandidates = [
+    value.pullRequestNumber,
+    value.prNumber,
+    value.pull_request_number,
+    metadata.pullRequest && metadata.pullRequest.number,
+    metadata.number,
+  ];
+  let pullRequestNumber = null;
+  for (const candidate of numberCandidates) {
+    if (candidate == null || candidate === '') {
+      continue;
+    }
+    const numeric = Number(candidate);
+    if (Number.isInteger(numeric)) {
+      pullRequestNumber = numeric;
+      break;
+    }
+  }
+
+  const status = [
+    value.status,
+    value.state,
+    metadata.status,
+    metadata.state,
+    metadata.pullRequest && metadata.pullRequest.status,
+    metadata.pullRequest && metadata.pullRequest.state,
+  ].find((entry) => typeof entry === 'string' && entry.trim().length > 0);
+
+  const branchName = [
+    value.branchName,
+    value.branch,
+    value.headRef,
+    value.headRefName,
+    metadata.branchName,
+    metadata.branch,
+    metadata.headRef,
+    metadata.headRefName,
+    metadata.pullRequest && metadata.pullRequest.headRefName,
+  ].find((entry) => typeof entry === 'string' && entry.trim().length > 0);
+
+  const message = [
+    value.message,
+    value.summary,
+    metadata.message,
+    metadata.summary,
+    metadata.statusMessage,
+  ].find((entry) => typeof entry === 'string' && entry.trim().length > 0);
+
+  return {
+    pullRequestUrl: pullRequestUrl ? pullRequestUrl.trim() : '',
+    pullRequestNumber,
+    status: status ? status.trim() : '',
+    branchName: branchName ? branchName.trim() : '',
+    message: message ? message.trim() : '',
+    metadata,
+  };
+}
+
+async function delegateImplementationToCodex(story, options) {
+  if (!options || typeof options !== 'object') {
+    throw Object.assign(new Error('Delegation options are required'), { statusCode: 400 });
+  }
+  const endpoint = typeof options.endpoint === 'string' ? options.endpoint.trim() : '';
+  if (!endpoint) {
+    const error = new Error('Codex delegation endpoint is not configured');
+    error.statusCode = 503;
+    throw error;
+  }
+
+  const body = {
+    repositoryUrl: options.repositoryUrl,
+    prTitle: options.prTitle,
+    prBody: options.prBody,
+    story: buildDelegationStoryPayload(story),
+    metadata: {
+      source: 'aipm',
+      storyId: story?.id ?? null,
+      storyStatus: story?.status ?? null,
+      submittedAt: now(),
+    },
+  };
+  if (options.prTitleTemplate) {
+    body.prTitleTemplate = options.prTitleTemplate;
+  }
+  if (options.prBodyTemplate) {
+    body.prBodyTemplate = options.prBodyTemplate;
+  }
+  if (options.branchName) {
+    body.branchName = options.branchName;
+  }
+  if (options.projectUrl) {
+    body.projectUrl = options.projectUrl;
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (options.token) {
+    headers.Authorization = `Bearer ${options.token}`;
+  }
+
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    const requestError = new Error('Failed to contact Codex delegation server');
+    requestError.cause = error;
+    requestError.statusCode = 502;
+    throw requestError;
+  }
+
+  const text = await response.text();
+  let payload = {};
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = { message: text };
+    }
+  }
+
+  if (!response.ok) {
+    const error = new Error(
+      payload && typeof payload.message === 'string'
+        ? payload.message
+        : `Codex delegation failed with status ${response.status}`
+    );
+    error.statusCode = response.status;
+    if (payload && typeof payload === 'object') {
+      error.details = payload;
+    }
+    throw error;
+  }
+
+  return normalizeDelegationResponse(payload);
+}
+
 function normalizeDependencyRelationship(value) {
   if (value == null) {
     return STORY_DEPENDENCY_DEFAULT;
@@ -5199,6 +5441,117 @@ export async function createApp() {
         sendJson(res, 404, { message: 'Acceptance test not found' });
       } else {
         sendJson(res, 204, {});
+      }
+      return;
+    }
+
+    const codexDelegationMatch = pathname.match(/^\/api\/stories\/(\d+)\/codex-delegation$/);
+    if (codexDelegationMatch && method === 'POST') {
+      const storyId = Number(codexDelegationMatch[1]);
+      try {
+        const story = await loadStoryWithDetails(db, storyId);
+        if (!story) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+
+        const payload = await parseJson(req);
+        const repositoryUrlInput =
+          typeof payload.repositoryUrl === 'string' ? payload.repositoryUrl.trim() : '';
+        if (!repositoryUrlInput) {
+          sendJson(res, 400, { message: 'Repository URL is required' });
+          return;
+        }
+        let repositoryUrl;
+        try {
+          const parsedRepository = new URL(repositoryUrlInput);
+          if (!['http:', 'https:'].includes(parsedRepository.protocol)) {
+            throw new Error('Repository URL must use HTTP or HTTPS');
+          }
+          repositoryUrl = parsedRepository.toString();
+        } catch (error) {
+          sendJson(res, 400, { message: 'Repository URL must be a valid HTTP(S) address' });
+          return;
+        }
+
+        const prTitle = String(payload.prTitle ?? '').trim();
+        if (!prTitle) {
+          sendJson(res, 400, { message: 'PR title is required' });
+          return;
+        }
+
+        const prBody = typeof payload.prBody === 'string' ? payload.prBody : '';
+        const prTitleTemplate =
+          typeof payload.prTitleTemplate === 'string' ? payload.prTitleTemplate : '';
+        const prBodyTemplate =
+          typeof payload.prBodyTemplate === 'string' ? payload.prBodyTemplate : '';
+        const branchName = typeof payload.branchName === 'string' ? payload.branchName.trim() : '';
+        if (branchName && /\s/.test(branchName)) {
+          sendJson(res, 400, { message: 'Branch name cannot contain whitespace' });
+          return;
+        }
+
+        const projectUrlInput = typeof payload.projectUrl === 'string' ? payload.projectUrl.trim() : '';
+        let projectUrl = projectUrlInput;
+        if (projectUrl) {
+          try {
+            const parsedProject = new URL(projectUrl);
+            if (!['http:', 'https:'].includes(parsedProject.protocol)) {
+              throw new Error('Codex project URL must use HTTP or HTTPS');
+            }
+            projectUrl = parsedProject.toString();
+          } catch (error) {
+            sendJson(res, 400, { message: 'Codex project URL must be a valid HTTP(S) address' });
+            return;
+          }
+        }
+
+        const delegationOverride =
+          typeof payload.delegationServerUrl === 'string' ? payload.delegationServerUrl.trim() : '';
+        let delegationEndpoint = delegationOverride;
+        if (delegationEndpoint) {
+          try {
+            const parsedDelegation = new URL(delegationEndpoint);
+            if (!['http:', 'https:'].includes(parsedDelegation.protocol)) {
+              throw new Error('Delegation server URL must use HTTP or HTTPS');
+            }
+            delegationEndpoint = parsedDelegation.toString();
+          } catch (error) {
+            sendJson(res, 400, { message: 'Delegation server URL must be a valid HTTP(S) address' });
+            return;
+          }
+        }
+
+        const config = readCodexDelegationConfig({
+          endpoint: delegationEndpoint,
+          projectUrl,
+        });
+
+        if (!config.endpoint) {
+          sendJson(res, 503, { message: 'Codex delegation endpoint is not configured' });
+          return;
+        }
+
+        const result = await delegateImplementationToCodex(story, {
+          endpoint: config.endpoint,
+          token: config.token,
+          repositoryUrl,
+          prTitle,
+          prBody,
+          prTitleTemplate,
+          prBodyTemplate,
+          branchName,
+          projectUrl: config.projectUrl || undefined,
+        });
+
+        sendJson(res, 200, result);
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        const body = { message: error.message || 'Failed to delegate story to Codex' };
+        if (error.details) {
+          body.details = error.details;
+        }
+        sendJson(res, status, body);
       }
       return;
     }
