@@ -4183,6 +4183,8 @@ function openCodexDelegationModal(story) {
             const sourceLabel =
               delegation?.source === 'remote'
                 ? 'Remote Codex agent'
+                : delegation?.source === 'chatgpt'
+                ? 'ChatGPT Codex agent'
                 : delegation?.source === 'builtin'
                 ? 'Built-in Codex agent'
                 : delegation?.source === 'embedded'
@@ -4195,6 +4197,13 @@ function openCodexDelegationModal(story) {
             if (sourceLabel) {
               messageParts.push(sourceLabel);
             }
+            const chatgptTask = delegation?.metadata?.chatgptTask;
+            if (chatgptTask?.url) {
+              messageParts.push(`ChatGPT task: ${chatgptTask.url}`);
+            }
+            if (chatgptTask?.status) {
+              messageParts.push(`Codex status: ${chatgptTask.status}`);
+            }
             if (Array.isArray(result?.tasks) && result.tasks.length > 0) {
               const taskSummary = result.tasks
                 .map((task) => task?.title)
@@ -4204,7 +4213,11 @@ function openCodexDelegationModal(story) {
                 messageParts.push(`Tasks: ${taskSummary}`);
               }
             }
-            showToast(messageParts.join(' • '), delegation?.source === 'remote' ? 'success' : 'info');
+            const successSources = new Set(['remote', 'chatgpt']);
+            showToast(
+              messageParts.join(' • '),
+              successSources.has(delegation?.source) ? 'success' : 'info',
+            );
             setCodexPreference(CODEX_STORAGE_KEYS.repository, repositoryUrl);
             setCodexPreference(CODEX_STORAGE_KEYS.branch, branch);
             setCodexPreference(CODEX_STORAGE_KEYS.plan, planSelect.value);

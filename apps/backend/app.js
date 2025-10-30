@@ -5357,11 +5357,20 @@ export async function createApp() {
           updateTaskStatement.run('Blocked', failureDescription, now(), initialTaskId);
           throw error;
         }
-        const successDescription = `${baseDescription}\n\nDelegation request acknowledged${
+        const chatgptTask = delegationResult.metadata?.chatgptTask;
+        const chatgptTaskUrl = chatgptTask?.url || delegationResult.chatgptTaskUrl || '';
+        const chatgptTaskStatus = chatgptTask?.status || null;
+        let successDescription = `${baseDescription}\n\nDelegation request acknowledged${
           delegationResult.id ? `\nDelegation ID: ${delegationResult.id}` : ''
         }.`;
+        if (chatgptTaskUrl) {
+          successDescription += `\n\nChatGPT Codex task: ${chatgptTaskUrl}`;
+        }
+        if (chatgptTaskStatus) {
+          successDescription += `\n\nChatGPT Codex status: ${chatgptTaskStatus}`;
+        }
         updateTaskStatement.run('Done', successDescription, now(), initialTaskId);
-        const prStatus = delegationResult.status || 'PR Created';
+        const prStatus = chatgptTaskStatus || delegationResult.status || 'PR Created';
         const prTaskDescriptionParts = [
           delegationResult.id ? `Delegation ID: ${delegationResult.id}` : null,
           `Plan: ${planLabel}`,
@@ -5371,6 +5380,12 @@ export async function createApp() {
             ? `Pull request: ${delegationResult.prUrl}`
             : 'Pull request: pending',
         ];
+        if (chatgptTaskUrl) {
+          prTaskDescriptionParts.push(`ChatGPT Codex task: ${chatgptTaskUrl}`);
+        }
+        if (chatgptTaskStatus) {
+          prTaskDescriptionParts.push(`Codex task status: ${chatgptTaskStatus}`);
+        }
         if (additionalContext) {
           prTaskDescriptionParts.push(`Additional context:\n${additionalContext}`);
         }

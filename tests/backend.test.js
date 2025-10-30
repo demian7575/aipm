@@ -14,6 +14,9 @@ import { generateSampleDataset } from '../scripts/generate-sample-dataset.mjs';
 process.env.AI_PM_DISABLE_OPENAI = '1';
 delete process.env.AI_PM_OPENAI_API_KEY;
 delete process.env.OPENAI_API_KEY;
+delete process.env.CODEX_CHATGPT_AUTH_TOKEN;
+delete process.env.CODEX_CHATGPT_TASKS_URL;
+delete process.env.CODEX_CHATGPT_REQUIRE_SUCCESS;
 
 async function resetDatabaseFiles() {
   await fs.rm(DATABASE_PATH, { force: true });
@@ -1245,6 +1248,9 @@ test('Codex delegation uses built-in service when remote is unavailable', async 
       server.close((err) => (err ? reject(err) : resolve()));
     });
   });
+  t.after(() => {
+    delete process.env.CODEX_DEFAULT_REPOSITORY_URL;
+  });
 
   const baseUrl = `http://127.0.0.1:${port}`;
   const storiesResponse = await fetch(`${baseUrl}/api/stories`);
@@ -1346,6 +1352,107 @@ test('Codex delegation uses built-in service when remote is unavailable', async 
   assert.ok(
     fetchedDelegation.events.some((event) => event && event.type === 'progress'),
     'Delegation fetch should include updated events',
+  );
+});
+
+test('Codex delegation syncs with ChatGPT Codex when configured', async (t) => {
+  await resetDatabaseFiles();
+  process.env.CODEX_DEFAULT_REPOSITORY_URL = 'https://api.github.com/repos/demian7575/aipm';
+  process.env.CODEX_CHATGPT_AUTH_TOKEN = 'test-token';
+  process.env.CODEX_CHATGPT_TASKS_URL = 'https://chatgpt.example/api/tasks';
+
+  const originalFetch = globalThis.fetch;
+  const capturedRequests = [];
+  globalThis.fetch = async (url, options) => {
+    if (String(url) === process.env.CODEX_CHATGPT_TASKS_URL) {
+      capturedRequests.push({ url: String(url), options });
+      return new Response(
+        JSON.stringify({
+          id: 'chatgpt-task-42',
+          url: 'https://chatgpt.com/codex/tasks/42',
+          status: 'Queued',
+          summary: 'ChatGPT Codex task created',
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+    return originalFetch(url, options);
+  };
+
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+    delete process.env.CODEX_CHATGPT_AUTH_TOKEN;
+    delete process.env.CODEX_CHATGPT_TASKS_URL;
+    delete process.env.CODEX_CHATGPT_REQUIRE_SUCCESS;
+    delete process.env.CODEX_DEFAULT_REPOSITORY_URL;
+  });
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storiesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(storiesResponse.status, 200);
+  const stories = await storiesResponse.json();
+  assert.ok(Array.isArray(stories));
+  assert.ok(stories.length > 0);
+  const story = stories[0];
+
+  const delegateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/codex/delegate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      repositoryUrl: '',
+      plan: 'personal-plus',
+      branch: '',
+      codexUserEmail: 'delegate@example.com',
+      instructions: 'Implement via ChatGPT Codex integration.',
+      additionalContext: 'Integration test execution',
+    }),
+  });
+
+  assert.equal(delegateResponse.status, 200);
+  const delegationBody = await delegateResponse.json();
+  assert.equal(delegationBody.delegation.source, 'chatgpt');
+  assert.ok(delegationBody.delegation.metadata?.chatgptTask);
+  assert.equal(
+    delegationBody.delegation.metadata.chatgptTask.url,
+    'https://chatgpt.com/codex/tasks/42',
+  );
+  assert.equal(delegationBody.delegation.metadata.chatgptTask.status, 'Queued');
+  assert.ok(Array.isArray(delegationBody.tasks));
+  assert.ok(
+    delegationBody.tasks.some((task) =>
+      typeof task.description === 'string' && task.description.includes('ChatGPT Codex task'),
+    ),
+    'Execution task should reference ChatGPT Codex task URL',
+  );
+
+  assert.equal(capturedRequests.length, 1);
+  const captured = capturedRequests[0];
+  assert.equal(captured.options?.method, 'POST');
+  assert.equal(captured.options?.headers?.Authorization, 'Bearer test-token');
+
+  const ledgerResponse = await fetch(`${baseUrl}/api/codex/delegations`);
+  assert.equal(ledgerResponse.status, 200);
+  const ledger = await ledgerResponse.json();
+  const storedDelegation = ledger.find((entry) => entry && entry.id === delegationBody.delegation.id);
+  assert.ok(storedDelegation, 'Delegation should be written to ledger');
+  assert.equal(storedDelegation.chatgptTaskId, 'chatgpt-task-42');
+  assert.equal(storedDelegation.chatgptTaskUrl, 'https://chatgpt.com/codex/tasks/42');
+  assert.equal(storedDelegation.chatgptTaskStatus, 'Queued');
+  assert.ok(
+    Array.isArray(storedDelegation.events) &&
+      storedDelegation.events.some((event) => event && event.type === 'chatgpt-sync'),
+    'Ledger should include ChatGPT sync event',
   );
 });
 

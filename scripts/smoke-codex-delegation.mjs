@@ -98,6 +98,13 @@ async function main() {
     if (delegation?.delegation?.prUrl) {
       console.log(`Pull request placeholder: ${delegation.delegation.prUrl}`);
     }
+    const chatgptTask = delegation?.delegation?.metadata?.chatgptTask;
+    if (chatgptTask?.url) {
+      console.log(`ChatGPT Codex task: ${chatgptTask.url}`);
+    }
+    if (chatgptTask?.status) {
+      console.log(`ChatGPT Codex status: ${chatgptTask.status}`);
+    }
 
     const tasks = Array.isArray(delegation?.tasks) ? delegation.tasks : [];
     if (!tasks.length) {

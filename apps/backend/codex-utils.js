@@ -18,8 +18,9 @@ export function buildDelegationSummary({
   plan,
   instructions,
   additionalContext,
+  originLabel = 'Built-in',
 }) {
-  const parts = [`Built-in delegation queued for story "${storyTitle ?? 'Untitled'}" using plan ${plan}.`];
+  const parts = [`${originLabel} delegation queued for story "${storyTitle ?? 'Untitled'}" using plan ${plan}.`];
   if (instructions) {
     const trimmed = instructions.trim();
     if (trimmed) {

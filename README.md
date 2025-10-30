@@ -86,6 +86,21 @@ To exercise the workflow manually:
 2. Delegate a story with `curl -X POST http://127.0.0.1:4000/api/stories/1/codex/delegate -H 'Content-Type: application/json' -d '{"repositoryUrl":"","plan":"personal-plus","branch":"","codexUserEmail":"owner@example.com","instructions":"Implement the story end-to-end.","additionalContext":"Manual smoke test"}'`.
 3. Inspect the stored delegations with `curl http://127.0.0.1:4000/api/codex/delegations` and reopen the story in the UI to confirm the `Develop with Codex` and `Codex PR` tasks appear.
 
+#### Syncing with ChatGPT Codex
+
+The built-in service can create a live task inside [https://chatgpt.com/codex](https://chatgpt.com/codex) whenever a delegation is queued. Configure the credentials before starting the server:
+
+```bash
+export CODEX_CHATGPT_AUTH_TOKEN="<your ChatGPT Codex API token>"
+# Optional overrides
+export CODEX_CHATGPT_TASKS_URL="https://chatgpt.com/codex/api/tasks"
+# Fail the request if ChatGPT Codex is unavailable
+export CODEX_CHATGPT_REQUIRE_SUCCESS=1
+npm run dev
+```
+
+With the token set, the delegation response (and toast notification in the UI) will include the ChatGPT Codex task URL and status. The task is also recorded in the ledger (`apps/backend/data/codex-delegations.json`) so you can review the external task ID and sync events later.
+
 ## Branching
 
 All active development has been merged into the `main` branch; check out `main` to run the workspace locally or to build new

@@ -8,6 +8,10 @@ import {
   generatePullRequestUrl,
   sanitizeRepositoryUrl,
 } from './codex-utils.js';
+import {
+  createChatgptCodexTask,
+  isChatgptCodexConfigured,
+} from './codex-chatgpt-service.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
@@ -74,6 +78,9 @@ function presentDelegation(record) {
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     queuedAt: record.queuedAt ?? record.createdAt,
+    chatgptTaskId: record.chatgptTaskId ?? null,
+    chatgptTaskUrl: record.chatgptTaskUrl ?? '',
+    chatgptTaskStatus: record.chatgptTaskStatus ?? null,
     events,
   };
 }
@@ -106,10 +113,14 @@ function createDelegationRecord({
       plan,
       instructions,
       additionalContext,
+      originLabel: isChatgptCodexConfigured() ? 'ChatGPT Codex' : 'Built-in',
     }),
     createdAt,
     updatedAt: createdAt,
     queuedAt: createdAt,
+    chatgptTaskId: null,
+    chatgptTaskUrl: '',
+    chatgptTaskStatus: null,
     events: [
       createDelegationEvent({
         type: 'queued',
@@ -147,6 +158,61 @@ export async function queueBuiltInDelegation({
   });
   store.delegations.unshift(record);
   await writeStore(store);
+
+  let chatgptTask = null;
+  if (isChatgptCodexConfigured()) {
+    try {
+      chatgptTask = await createChatgptCodexTask(record);
+      if (chatgptTask) {
+        record.chatgptTaskId = chatgptTask.id;
+        record.chatgptTaskUrl = chatgptTask.url;
+        record.chatgptTaskStatus = chatgptTask.status;
+        if (chatgptTask.summary) {
+          record.summary = chatgptTask.summary;
+        }
+        if (chatgptTask.status) {
+          record.status = chatgptTask.status;
+        }
+        record.events.push(
+          createDelegationEvent({
+            type: 'chatgpt-sync',
+            status: record.status,
+            message:
+              chatgptTask.summary || 'Delegation synced with ChatGPT Codex',
+            details: {
+              taskId: chatgptTask.id,
+              taskUrl: chatgptTask.url,
+              endpoint: chatgptTask.endpoint,
+            },
+          }),
+        );
+        record.result = {
+          ...(record.result ?? {}),
+          chatgpt: chatgptTask.raw ?? null,
+        };
+        record.updatedAt = new Date().toISOString();
+        await writeStore(store);
+      }
+    } catch (error) {
+      record.events.push(
+        createDelegationEvent({
+          type: 'chatgpt-sync-failed',
+          status: record.status,
+          message: error?.message || 'Failed to sync with ChatGPT Codex',
+          details: {
+            endpoint: process.env.CODEX_CHATGPT_TASKS_URL || undefined,
+          },
+        }),
+      );
+      record.updatedAt = new Date().toISOString();
+      await writeStore(store);
+      if (process.env.CODEX_CHATGPT_REQUIRE_SUCCESS === '1') {
+        throw error;
+      }
+      console.warn('Failed to sync delegation with ChatGPT Codex', error);
+    }
+  }
+
   return {
     id: record.id,
     prUrl: record.prUrl,
@@ -158,12 +224,20 @@ export async function queueBuiltInDelegation({
       plan: record.plan,
       additionalContext: record.additionalContext,
       builtIn: true,
+      chatgptTask: chatgptTask
+        ? {
+            id: chatgptTask.id,
+            url: chatgptTask.url,
+            status: chatgptTask.status,
+          }
+        : null,
     },
-    source: 'builtin',
+    source: chatgptTask ? 'chatgpt' : 'builtin',
     repositoryUrl: record.repositoryUrl,
     branch: record.branch,
     plan: record.plan,
     queuedAt: record.queuedAt,
+    chatgptTaskUrl: record.chatgptTaskUrl,
   };
 }
 
@@ -198,6 +272,18 @@ function applyPatch(record, patch) {
   }
   if (typeof patch.result === 'object' && patch.result !== null) {
     record.result = patch.result;
+    changed = true;
+  }
+  if (typeof patch.chatgptTaskId === 'string') {
+    record.chatgptTaskId = patch.chatgptTaskId.trim();
+    changed = true;
+  }
+  if (typeof patch.chatgptTaskUrl === 'string') {
+    record.chatgptTaskUrl = patch.chatgptTaskUrl.trim();
+    changed = true;
+  }
+  if (typeof patch.chatgptTaskStatus === 'string') {
+    record.chatgptTaskStatus = patch.chatgptTaskStatus.trim();
     changed = true;
   }
   if (typeof patch.additionalContext === 'string') {
