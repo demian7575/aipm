@@ -173,6 +173,15 @@ async function handleDelegationRequest(req, res, context) {
         ? process.env.AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN.trim()
         : '';
     const effectiveToken = bodyToken || headerToken || envToken;
+    const tokenSource = effectiveToken
+      ? bodyToken
+        ? 'request-payload'
+        : headerToken
+        ? 'authorization-header'
+        : envToken
+        ? 'embedded-env'
+        : 'unknown'
+      : 'missing';
 
     const responseBody = {
       pullRequestUrl,
@@ -203,6 +212,7 @@ async function handleDelegationRequest(req, res, context) {
       token: effectiveToken,
       story,
       requestId,
+      tokenSource,
     });
 
     if (githubResult.fatal) {
@@ -269,6 +279,7 @@ async function maybeCreateGitHubPullRequest({
   token,
   story,
   requestId,
+  tokenSource,
 }) {
   const repoInfo = parseGitHubRepository(repositoryUrl);
   if (!repoInfo) {
@@ -381,17 +392,69 @@ async function maybeCreateGitHubPullRequest({
     };
   } catch (error) {
     if (error && typeof error === 'object' && !error.fatal) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        const authDetails = {
+          ...formatGitHubErrorDetails(error.details),
+          tokenSource: tokenSource || 'unknown',
+        };
+        console.error('GitHub authentication failed for embedded delegation request', {
+          repository: repoInfo ? `${repoInfo.owner}/${repoInfo.repo}` : repositoryUrl,
+          statusCode: error.statusCode,
+          tokenSource: authDetails.tokenSource,
+          github: sanitizeGitHubLogDetails(error.details),
+        });
+        return {
+          fatal: true,
+          statusCode: error.statusCode,
+          code: 'GITHUB_AUTH_FAILED',
+          message:
+            'GitHub authentication failed while creating the pull request. Confirm that the provided personal access token is valid and has repo scope.',
+          details: {
+            hint:
+              'Verify the AI_PM_CODEX_DELEGATION_TOKEN or AI_PM_CODEX_EMBEDDED_GITHUB_TOKEN environment variables (or the token supplied in the request) and ensure they match a GitHub personal access token with repo permissions.',
+            ...authDetails,
+          },
+        };
+      }
+
       return {
         fatal: true,
         statusCode: error.statusCode || 502,
-        code: error.code,
+        code: error.code || 'GITHUB_REQUEST_FAILED',
         message:
           error.message || 'GitHub integration failed while creating the pull request.',
-        details: error.details,
+        details: formatGitHubErrorDetails(error.details),
       };
     }
     throw error;
   }
+}
+
+function formatGitHubErrorDetails(details) {
+  if (!details || typeof details !== 'object') {
+    return {};
+  }
+  const formatted = { ...details };
+  if (details.responseBody && typeof details.responseBody === 'object') {
+    formatted.githubMessage = details.responseBody.message;
+    formatted.documentationUrl = details.responseBody.documentation_url;
+    if (!formatted.githubError) {
+      formatted.githubError = details.responseBody;
+    }
+  }
+  return formatted;
+}
+
+function sanitizeGitHubLogDetails(details) {
+  if (!details || typeof details !== 'object') {
+    return undefined;
+  }
+  const clone = { ...details };
+  if (clone.responseBody && typeof clone.responseBody === 'object') {
+    const { message, documentation_url: documentationUrl } = clone.responseBody;
+    clone.responseBody = { message, documentation_url: documentationUrl };
+  }
+  return clone;
 }
 
 function buildGitHubPlaceholderContent({
@@ -491,6 +554,15 @@ async function githubRequest(method, path, { token, body, acceptStatus = [] } = 
     }
   }
 
+  const responseDetails = {
+    status: response.status,
+    requestId: response.headers.get('x-github-request-id') || undefined,
+    traceId: response.headers.get('x-github-trace-id') || undefined,
+    rateLimitRemaining: response.headers.get('x-ratelimit-remaining') || undefined,
+    rateLimitReset: response.headers.get('x-ratelimit-reset') || undefined,
+    responseBody: data && typeof data === 'object' ? data : undefined,
+  };
+
   if (!response.ok && !acceptStatus.includes(response.status)) {
     const error = new Error(
       data && typeof data === 'object' && data.message
@@ -498,13 +570,16 @@ async function githubRequest(method, path, { token, body, acceptStatus = [] } = 
         : `GitHub request failed with status ${response.status}`
     );
     error.statusCode = response.status;
-    if (data && typeof data === 'object') {
-      error.details = data;
+    error.details = responseDetails;
+    if (response.status === 401) {
+      error.code = 'GITHUB_BAD_CREDENTIALS';
+    } else if (response.status === 403) {
+      error.code = 'GITHUB_FORBIDDEN';
     }
     throw error;
   }
 
-  return { status: response.status, data };
+  return { status: response.status, data, details: responseDetails };
 }
 
 function readRequestBody(req) {
