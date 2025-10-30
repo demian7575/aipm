@@ -90,24 +90,51 @@ export async function createChatgptCodexTask(record) {
   });
   const text = await response.text();
   let data = null;
+  let parseError = null;
   if (text) {
     try {
       data = JSON.parse(text);
     } catch (error) {
-      throw Object.assign(new Error('ChatGPT Codex service returned invalid JSON'), {
-        statusCode: 502,
-        cause: error,
-      });
+      parseError = error;
+      if (response.ok && process.env.CODEX_CHATGPT_REQUIRE_SUCCESS !== '1') {
+        data = {
+          message: text,
+          rawText: text,
+        };
+      } else {
+        throw Object.assign(new Error('ChatGPT Codex service returned invalid JSON'), {
+          statusCode: response.status || 502,
+          cause: error,
+          responseText: text,
+        });
+      }
     }
   }
   if (!response.ok) {
+    const fallbackMessage = text && text.trim() ? text.trim() : null;
     const error = new Error(
       (data && typeof data.message === 'string' && data.message) ||
+        fallbackMessage ||
         `ChatGPT Codex service responded with status ${response.status}`,
     );
     error.statusCode = response.status || 502;
-    error.details = data;
+    if (data) {
+      error.details = data;
+    } else if (text) {
+      error.details = { rawText: text };
+    }
     throw error;
+  }
+  if (!data) {
+    data = {};
+  }
+  if (typeof data === 'object') {
+    if (text && typeof data.rawText !== 'string') {
+      data.rawText = text;
+    }
+    if (parseError && typeof parseError?.message === 'string' && !data.parseError) {
+      data.parseError = parseError.message;
+    }
   }
   return normalizeChatgptResponse(data, endpoint);
 }
