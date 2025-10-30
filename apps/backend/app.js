@@ -7,6 +7,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import { delegateToCodex } from './codex-delegation.js';
+import {
+  getBuiltInDelegation,
+  listBuiltInDelegations,
+  updateBuiltInDelegation,
+} from './codex-builtin-service.js';
 
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
 
@@ -4748,6 +4753,54 @@ export async function createApp() {
         }
       }
       return;
+    }
+
+    if (pathname === '/api/codex/delegations' && method === 'GET') {
+      try {
+        const delegations = await listBuiltInDelegations();
+        sendJson(res, 200, delegations);
+      } catch (error) {
+        console.error('Failed to list built-in Codex delegations', error);
+        sendJson(res, 500, { message: 'Failed to list Codex delegations' });
+      }
+      return;
+    }
+
+    const builtInDelegationMatch = pathname.match(/^\/api\/codex\/delegations\/([^/]+)$/);
+    if (builtInDelegationMatch) {
+      const delegationId = decodeURIComponent(builtInDelegationMatch[1]);
+      if (method === 'GET') {
+        try {
+          const delegation = await getBuiltInDelegation(delegationId);
+          if (!delegation) {
+            sendJson(res, 404, { message: 'Delegation not found' });
+          } else {
+            sendJson(res, 200, delegation);
+          }
+        } catch (error) {
+          console.error('Failed to load built-in Codex delegation', error);
+          sendJson(res, 500, { message: 'Failed to load Codex delegation' });
+        }
+        return;
+      }
+      if (method === 'PATCH') {
+        try {
+          const payload = await parseJson(req);
+          const updated = await updateBuiltInDelegation(delegationId, payload);
+          if (!updated) {
+            sendJson(res, 404, { message: 'Delegation not found' });
+          } else {
+            sendJson(res, 200, updated);
+          }
+        } catch (error) {
+          console.error('Failed to update built-in Codex delegation', error);
+          const statusCode = error?.statusCode ?? 500;
+          sendJson(res, statusCode, {
+            message: error?.message || 'Failed to update Codex delegation',
+          });
+        }
+        return;
+      }
     }
 
     if (pathname === '/api/stories' && method === 'GET') {

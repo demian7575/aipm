@@ -1,17 +1,6 @@
 import { randomUUID } from 'node:crypto';
-
-function sanitizeRepositoryUrl(value) {
-  if (!value) {
-    return '';
-  }
-  let text = String(value).trim();
-  if (!text) {
-    return '';
-  }
-  text = text.replace(/\.git$/i, '');
-  text = text.replace(/\/+$/, '');
-  return text;
-}
+import { sanitizeRepositoryUrl } from './codex-utils.js';
+import { queueBuiltInDelegation } from './codex-builtin-service.js';
 
 function buildStorySnapshot(story) {
   if (!story || typeof story !== 'object') {
@@ -96,55 +85,6 @@ function normalizeRemoteResponse(body, context) {
   };
 }
 
-function buildEmbeddedDelegation({
-  story,
-  repositoryUrl,
-  branch,
-  plan,
-  instructions,
-  additionalContext,
-}) {
-  const normalizedRepo = sanitizeRepositoryUrl(repositoryUrl);
-  const prNumber = Math.floor(Math.random() * 9000) + 1000;
-  const prUrl = normalizedRepo ? `${normalizedRepo}/pull/${prNumber}` : '';
-  const summaryParts = [
-    `Embedded delegation queued for story "${story?.title ?? 'Untitled'}" using plan ${plan}.`,
-  ];
-  if (instructions) {
-    const trimmed = instructions.trim();
-    if (trimmed) {
-      const truncated = trimmed.length > 180 ? `${trimmed.slice(0, 177)}…` : trimmed;
-      summaryParts.push(`Instructions: ${truncated}`);
-    }
-  }
-  if (additionalContext) {
-    const trimmed = additionalContext.trim();
-    if (trimmed) {
-      const truncated = trimmed.length > 160 ? `${trimmed.slice(0, 157)}…` : trimmed;
-      summaryParts.push(`Context: ${truncated}`);
-    }
-  }
-
-  return {
-    id: `embedded-${randomUUID()}`,
-    prUrl,
-    status: 'Queued',
-    summary: summaryParts.join(' '),
-    metadata: {
-      repositoryUrl: normalizedRepo || repositoryUrl,
-      branch,
-      plan,
-      additionalContext,
-      embedded: true,
-    },
-    source: 'embedded',
-    repositoryUrl: normalizedRepo || repositoryUrl,
-    branch,
-    plan,
-    queuedAt: new Date().toISOString(),
-  };
-}
-
 export async function delegateToCodex({
   story,
   repositoryUrl,
@@ -209,18 +149,19 @@ export async function delegateToCodex({
         throw error;
       }
       console.warn(
-        'Codex delegation endpoint unavailable, using embedded delegation workflow instead.',
+        'Codex delegation endpoint unavailable, using built-in delegation service instead.',
         error,
       );
     }
   }
 
-  return buildEmbeddedDelegation({
+  return queueBuiltInDelegation({
     story,
     repositoryUrl: sanitizedRepositoryUrl,
     branch,
     plan,
     instructions,
     additionalContext,
+    codexUserEmail,
   });
 }

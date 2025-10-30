@@ -18,6 +18,11 @@ delete process.env.OPENAI_API_KEY;
 async function resetDatabaseFiles() {
   await fs.rm(DATABASE_PATH, { force: true });
   await fs.rm(`${DATABASE_PATH}.json`, { force: true });
+  const builtInDelegationsPath = path.join(
+    path.dirname(DATABASE_PATH),
+    'codex-delegations.json'
+  );
+  await fs.rm(builtInDelegationsPath, { force: true });
 }
 
 async function startServer() {
@@ -1230,7 +1235,7 @@ test('story dependency APIs work with JSON fallback database', async (t) => {
   assert.ok(afterDelete.dependencies.every((entry) => entry.storyId !== dependencyStory.id));
 });
 
-test('Codex delegation creates tracking tasks with embedded workflow fallback', async (t) => {
+test('Codex delegation uses built-in service when remote is unavailable', async (t) => {
   await resetDatabaseFiles();
   process.env.CODEX_DEFAULT_REPOSITORY_URL = 'https://api.github.com/repos/demian7575/aipm';
   const { server, port } = await startServer();
@@ -1265,8 +1270,8 @@ test('Codex delegation creates tracking tasks with embedded workflow fallback', 
   assert.equal(delegateResponse.status, 200);
   const delegationBody = await delegateResponse.json();
   assert.ok(delegationBody.delegation);
-  assert.equal(delegationBody.delegation.source, 'embedded');
-  assert.ok(delegationBody.delegation.id.startsWith('embedded-'));
+  assert.equal(delegationBody.delegation.source, 'builtin');
+  assert.ok(delegationBody.delegation.id.startsWith('builtin-'));
   assert.equal(
     delegationBody.delegation.repositoryUrl,
     'https://api.github.com/repos/demian7575/aipm',
@@ -1300,6 +1305,47 @@ test('Codex delegation creates tracking tasks with embedded workflow fallback', 
   assert.ok(
     refreshedStory.tasks.some((task) => task.title.includes('Codex PR')),
     'Story payload should include Codex PR tracking task',
+  );
+
+  const listResponse = await fetch(`${baseUrl}/api/codex/delegations`);
+  assert.equal(listResponse.status, 200);
+  const delegations = await listResponse.json();
+  assert.ok(Array.isArray(delegations));
+  const storedDelegation = delegations.find(
+    (item) => item && item.id === delegationBody.delegation.id
+  );
+  assert.ok(storedDelegation, 'Delegation should be stored in built-in service ledger');
+  assert.equal(storedDelegation.status, 'Queued');
+
+  const updateResponse = await fetch(
+    `${baseUrl}/api/codex/delegations/${encodeURIComponent(delegationBody.delegation.id)}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'In Progress',
+        appendEvent: { type: 'progress', message: 'Agent picked up the work' },
+      }),
+    }
+  );
+  assert.equal(updateResponse.status, 200);
+  const updatedDelegation = await updateResponse.json();
+  assert.equal(updatedDelegation.status, 'In Progress');
+  assert.ok(Array.isArray(updatedDelegation.events));
+  assert.ok(
+    updatedDelegation.events.some((event) => event && event.type === 'progress'),
+    'Delegation update should record a progress event',
+  );
+
+  const getResponse = await fetch(
+    `${baseUrl}/api/codex/delegations/${encodeURIComponent(delegationBody.delegation.id)}`
+  );
+  assert.equal(getResponse.status, 200);
+  const fetchedDelegation = await getResponse.json();
+  assert.equal(fetchedDelegation.status, 'In Progress');
+  assert.ok(
+    fetchedDelegation.events.some((event) => event && event.type === 'progress'),
+    'Delegation fetch should include updated events',
   );
 });
 

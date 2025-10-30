@@ -4183,6 +4183,8 @@ function openCodexDelegationModal(story) {
             const sourceLabel =
               delegation?.source === 'remote'
                 ? 'Remote Codex agent'
+                : delegation?.source === 'builtin'
+                ? 'Built-in Codex agent'
                 : delegation?.source === 'embedded'
                 ? 'Embedded Codex agent'
                 : null;
