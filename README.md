@@ -174,3 +174,6 @@ The frontend surfaces whether the feedback came from ChatGPT or the local rule e
 ## Support
 
 If the SQLite driver emits an experimental warning, ensure you are running Node 22+. When running on the JSON fallback, remove both `apps/backend/data/app.sqlite` and `apps/backend/data/app.sqlite.json` before restarting the server to trigger a clean seed.
+
+
+AIPM: placeholder change
