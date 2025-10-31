@@ -4191,7 +4191,7 @@ function openCodexDelegationModal(story) {
     title: 'Delegate to Codex',
     content: form,
     cancelLabel: 'Cancel',
-    size: 'wide',
+    size: 'content',
     actions: [
       {
         label: 'Create Task',
