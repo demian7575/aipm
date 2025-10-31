@@ -99,7 +99,7 @@ export CODEX_CHATGPT_REQUIRE_SUCCESS=1
 npm run dev
 ```
 
-With the token set, the delegation response (and toast notification in the UI) will include the ChatGPT Codex task URL and status. The task is also recorded in the ledger (`apps/backend/data/codex-delegations.json`) so you can review the external task ID and sync events later.
+With the token set, the delegation response (and toast notification in the UI) will include the ChatGPT Codex task URL and status. The task is also recorded in the ledger (`apps/backend/data/codex-delegations.json`) so you can review the external task ID and sync events later. If you only see the generated GitHub issue (or the local follow-up tasks) without a corresponding Codex task, double-check that the `CODEX_CHATGPT_AUTH_TOKEN` environment variable was exported before starting the server—without that token the ChatGPT Codex integration is disabled.
 
 ## Branching
 
