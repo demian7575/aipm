@@ -55,6 +55,7 @@ const MINDMAP_ZOOM_MIN = 0.5;
 const MINDMAP_ZOOM_MAX = 2;
 const MINDMAP_ZOOM_STEP = 0.1;
 const MINDMAP_PAN_THRESHOLD = 5;
+const MINDMAP_DRAG_THRESHOLD = 4;
 const HORIZONTAL_STEP = 240;
 const AUTO_LAYOUT_HORIZONTAL_GAP = 80;
 const X_OFFSET = 80;
@@ -2206,9 +2207,17 @@ function setupNodeInteraction(group, node) {
   let originY = 0;
 
   function onMouseMove(event) {
-    dragging = true;
     const dx = event.clientX - startX;
     const dy = event.clientY - startY;
+    if (!dragging) {
+      if (
+        Math.abs(dx) < MINDMAP_DRAG_THRESHOLD &&
+        Math.abs(dy) < MINDMAP_DRAG_THRESHOLD
+      ) {
+        return;
+      }
+      dragging = true;
+    }
     state.manualPositions[node.id] = { x: originX + dx, y: originY + dy };
     state.autoLayout = false;
     renderMindmap();
