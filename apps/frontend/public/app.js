@@ -4204,6 +4204,16 @@ function openCodexDelegationModal(story) {
             if (chatgptTask?.status) {
               messageParts.push(`Codex status: ${chatgptTask.status}`);
             }
+            if (typeof chatgptTask?.durationMs === 'number') {
+              messageParts.push(`Codex sync: ${chatgptTask.durationMs} ms`);
+            }
+            if (chatgptTask?.error?.message) {
+              const statusInfo =
+                chatgptTask.error.statusCode != null
+                  ? ` (status ${chatgptTask.error.statusCode})`
+                  : '';
+              messageParts.push(`ChatGPT error: ${chatgptTask.error.message}${statusInfo}`);
+            }
             if (Array.isArray(result?.tasks) && result.tasks.length > 0) {
               const taskSummary = result.tasks
                 .map((task) => task?.title)

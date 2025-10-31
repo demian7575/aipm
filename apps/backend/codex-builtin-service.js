@@ -160,9 +160,13 @@ export async function queueBuiltInDelegation({
   await writeStore(store);
 
   let chatgptTask = null;
+  let chatgptError = null;
+  let chatgptSyncDurationMs = null;
   if (isChatgptCodexConfigured()) {
+    let chatgptStartedAt = Date.now();
     try {
       chatgptTask = await createChatgptCodexTask(record);
+      chatgptSyncDurationMs = Date.now() - chatgptStartedAt;
       if (chatgptTask) {
         record.chatgptTaskId = chatgptTask.id;
         record.chatgptTaskUrl = chatgptTask.url;
@@ -183,27 +187,57 @@ export async function queueBuiltInDelegation({
               taskId: chatgptTask.id,
               taskUrl: chatgptTask.url,
               endpoint: chatgptTask.endpoint,
+              ...(chatgptSyncDurationMs != null
+                ? { durationMs: chatgptSyncDurationMs }
+                : {}),
             },
           }),
         );
         record.result = {
           ...(record.result ?? {}),
-          chatgpt: chatgptTask.raw ?? null,
+          chatgpt: {
+            raw: chatgptTask.raw ?? null,
+            durationMs: chatgptSyncDurationMs,
+          },
         };
         record.updatedAt = new Date().toISOString();
         await writeStore(store);
       }
     } catch (error) {
+      if (chatgptStartedAt != null) {
+        chatgptSyncDurationMs = Date.now() - chatgptStartedAt;
+      }
+      const failureMessage = error?.message || 'Failed to sync with ChatGPT Codex';
+      const statusCode = error?.statusCode ?? null;
+      chatgptError = {
+        message: failureMessage,
+        statusCode,
+      };
+      if (error?.details) {
+        chatgptError.details = error.details;
+      }
+      record.chatgptTaskId = null;
+      record.chatgptTaskUrl = '';
+      record.chatgptTaskStatus = 'Failed';
       record.events.push(
         createDelegationEvent({
           type: 'chatgpt-sync-failed',
           status: record.status,
-          message: error?.message || 'Failed to sync with ChatGPT Codex',
+          message: failureMessage,
           details: {
             endpoint: process.env.CODEX_CHATGPT_TASKS_URL || undefined,
+            ...(statusCode != null ? { statusCode } : {}),
+            ...(chatgptSyncDurationMs != null ? { durationMs: chatgptSyncDurationMs } : {}),
           },
         }),
       );
+      record.result = {
+        ...(record.result ?? {}),
+        chatgpt: {
+          error: chatgptError,
+          durationMs: chatgptSyncDurationMs,
+        },
+      };
       record.updatedAt = new Date().toISOString();
       await writeStore(store);
       if (process.env.CODEX_CHATGPT_REQUIRE_SUCCESS === '1') {
@@ -229,8 +263,21 @@ export async function queueBuiltInDelegation({
             id: chatgptTask.id,
             url: chatgptTask.url,
             status: chatgptTask.status,
+            ...(chatgptSyncDurationMs != null
+              ? { durationMs: chatgptSyncDurationMs }
+              : {}),
+          }
+        : chatgptError
+        ? {
+            error: chatgptError,
+            ...(chatgptSyncDurationMs != null
+              ? { durationMs: chatgptSyncDurationMs }
+              : {}),
           }
         : null,
+      ...(chatgptSyncDurationMs != null
+        ? { timings: { chatgptSyncMs: chatgptSyncDurationMs } }
+        : {}),
     },
     source: chatgptTask ? 'chatgpt' : 'builtin',
     repositoryUrl: record.repositoryUrl,
@@ -238,6 +285,9 @@ export async function queueBuiltInDelegation({
     plan: record.plan,
     queuedAt: record.queuedAt,
     chatgptTaskUrl: record.chatgptTaskUrl,
+    chatgptError,
+    timings:
+      chatgptSyncDurationMs != null ? { chatgptSyncMs: chatgptSyncDurationMs } : undefined,
   };
 }
 

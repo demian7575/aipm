@@ -3623,7 +3623,12 @@ function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
   const action = normalizeStoryText(story.iWant, 'perform the described action');
   const outcome = normalizeStoryText(story.soThat, 'achieve the desired outcome');
   const titleBase = normalizeStoryText(story.title, `Story ${story.id}`);
-  const verificationLabel = reason === 'update' ? 'Update verification' : 'Initial verification';
+  let verificationLabel = 'Initial verification';
+  if (reason === 'update') {
+    verificationLabel = 'Update verification';
+  } else if (reason === 'codex') {
+    verificationLabel = 'Codex delegation verification';
+  }
   const title = acceptanceTestsHasTitleColumn
     ? `${titleBase} – ${verificationLabel} #${ordinal}`
     : '';
@@ -3645,11 +3650,18 @@ function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
 
   const when = ideaSummary
     ? [`When ${personaSubject} works on the idea "${ideaSummary}" within the system`]
+    : reason === 'codex'
+    ? [`When ${personaSubject} validates the Codex-delivered implementation end to end`]
     : [`When ${personaSubject} ${fallbackAction}`];
 
   const then = ideaSummary
     ? [
         `Then observable evidence confirms "${ideaSummary}" meets the acceptance criteria`,
+        `And ${outcome} is verified with stakeholders`,
+      ]
+    : reason === 'codex'
+    ? [
+        'Then the Codex-delivered pull request passes automated checks and peer review',
         `And ${outcome} is verified with stakeholders`,
       ]
     : [
@@ -3795,7 +3807,11 @@ async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' }
   return defaultAcceptanceTestDraft(story, ordinal, reason, idea);
 }
 
-async function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingCount = null } = {}) {
+async function createAutomaticAcceptanceTest(
+  db,
+  story,
+  { reason = 'create', existingCount = null, idea = '' } = {}
+) {
   const countRow =
     existingCount != null
       ? { count: existingCount }
@@ -3803,7 +3819,7 @@ async function createAutomaticAcceptanceTest(db, story, { reason = 'create', exi
           count: 0,
         };
   const ordinal = Number(countRow.count ?? 0) + 1;
-  const content = await generateAcceptanceTestDraft(story, ordinal, reason);
+  const content = await generateAcceptanceTestDraft(story, ordinal, reason, { idea });
   return insertAcceptanceTest(db, {
     storyId: story.id,
     title: content.title,
@@ -5289,7 +5305,7 @@ export async function createApp() {
       const storyId = Number(codexDelegateMatch[1]);
       let initialTaskId = null;
       try {
-        const story = await loadStoryWithDetails(db, storyId);
+        let story = await loadStoryWithDetails(db, storyId);
         if (!story) {
           sendJson(res, 404, { message: 'Story not found' });
           return;
@@ -5317,6 +5333,21 @@ export async function createApp() {
           return;
         }
         const additionalContext = String(payload.additionalContext ?? payload.context ?? '').trim();
+        if (!Array.isArray(story.acceptanceTests) || story.acceptanceTests.length === 0) {
+          await createAutomaticAcceptanceTest(
+            db,
+            {
+              id: story.id,
+              title: story.title,
+              asA: story.asA,
+              iWant: story.iWant,
+              soThat: story.soThat,
+              components: story.components,
+            },
+            { reason: 'codex', existingCount: 0, idea: instructions }
+          );
+          story = await loadStoryWithDetails(db, storyId);
+        }
         const baseDescriptionParts = [
           `Repository: ${repositoryUrl}`,
           `Branch: ${branch}`,
@@ -5357,9 +5388,17 @@ export async function createApp() {
           updateTaskStatement.run('Blocked', failureDescription, now(), initialTaskId);
           throw error;
         }
-        const chatgptTask = delegationResult.metadata?.chatgptTask;
+        const chatgptMetadata = delegationResult.metadata?.chatgptTask;
+        const chatgptTask =
+          chatgptMetadata && !chatgptMetadata.error ? chatgptMetadata : null;
+        const chatgptError =
+          (chatgptMetadata && chatgptMetadata.error) || delegationResult.chatgptError || null;
         const chatgptTaskUrl = chatgptTask?.url || delegationResult.chatgptTaskUrl || '';
         const chatgptTaskStatus = chatgptTask?.status || null;
+        const chatgptSyncMs =
+          delegationResult.timings?.chatgptSyncMs ??
+          delegationResult.metadata?.timings?.chatgptSyncMs ??
+          null;
         let successDescription = `${baseDescription}\n\nDelegation request acknowledged${
           delegationResult.id ? `\nDelegation ID: ${delegationResult.id}` : ''
         }.`;
@@ -5368,6 +5407,18 @@ export async function createApp() {
         }
         if (chatgptTaskStatus) {
           successDescription += `\n\nChatGPT Codex status: ${chatgptTaskStatus}`;
+        }
+        if (chatgptSyncMs != null) {
+          successDescription += `\n\nChatGPT Codex sync duration: ${chatgptSyncMs} ms`;
+        }
+        if (chatgptError?.message) {
+          successDescription += `\n\nChatGPT Codex sync failed: ${chatgptError.message}`;
+          if (chatgptSyncMs != null) {
+            successDescription += ` (after ${chatgptSyncMs} ms)`;
+          }
+          if (chatgptError.statusCode != null) {
+            successDescription += ` [status ${chatgptError.statusCode}]`;
+          }
         }
         updateTaskStatement.run('Done', successDescription, now(), initialTaskId);
         const prStatus = chatgptTaskStatus || delegationResult.status || 'PR Created';
@@ -5385,6 +5436,18 @@ export async function createApp() {
         }
         if (chatgptTaskStatus) {
           prTaskDescriptionParts.push(`Codex task status: ${chatgptTaskStatus}`);
+        }
+        if (chatgptSyncMs != null) {
+          prTaskDescriptionParts.push(`Codex sync duration: ${chatgptSyncMs} ms`);
+        }
+        if (chatgptError?.message) {
+          prTaskDescriptionParts.push(
+            `Codex task sync failed: ${chatgptError.message}${
+              chatgptSyncMs != null ? ` (after ${chatgptSyncMs} ms)` : ''
+            }${
+              chatgptError.statusCode != null ? ` [status ${chatgptError.statusCode}]` : ''
+            }`
+          );
         }
         if (additionalContext) {
           prTaskDescriptionParts.push(`Additional context:\n${additionalContext}`);
