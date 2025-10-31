@@ -1558,8 +1558,8 @@ dialog {
 }
 
 dialog[data-size='wide'] {
-  max-width: min(2400px, 98vw);
-  width: min(2400px, 98vw);
+  max-width: min(960px, 96vw);
+  width: min(960px, 96vw);
 }
 
 dialog[data-size='content'] {
