@@ -48,6 +48,52 @@ export function computePrTitle(story) {
   return `AIPM: ${story.title ?? 'Story Implementation'}`;
 }
 
+export function deriveAcceptanceCriteriaDefaults(story) {
+  if (!story) {
+    return '';
+  }
+
+  const acceptanceTests = Array.isArray(story.acceptanceTests)
+    ? story.acceptanceTests
+    : [];
+
+  const thenLines = acceptanceTests
+    .flatMap((test) => (Array.isArray(test?.then) ? test.then : []))
+    .map((line) => String(line || '').trim())
+    .map((line) => line.replace(/^(?:then|and)\s+/i, ''))
+    .map((line) => line.replace(/\.$/, ''))
+    .filter((line) => line.length > 0);
+
+  const uniqueThenLines = [];
+  const seen = new Set();
+  thenLines.forEach((line) => {
+    const normalized = line.toLowerCase();
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      uniqueThenLines.push(line);
+    }
+  });
+
+  if (uniqueThenLines.length > 0) {
+    return uniqueThenLines.join('\n');
+  }
+
+  const persona = describePersona(story.asA);
+  const actionSource = story.iWant || story.title || '';
+  const action = normalizeActionPhrase(actionSource);
+  const outcome = normalizeOutcomePhrase(story.soThat);
+
+  const fallbackLines = [];
+  if (action) {
+    fallbackLines.push(`${persona} ${action}`);
+  }
+  if (outcome) {
+    fallbackLines.push(`Outcome confirmed: ${outcome}`);
+  }
+
+  return fallbackLines.join('\n');
+}
+
 export function createDefaultCodexForm(story) {
   return {
     repositoryApiUrl: DEFAULT_REPO_API_URL,
@@ -60,7 +106,7 @@ export function createDefaultCodexForm(story) {
     objective: computeObjective(story),
     prTitle: computePrTitle(story),
     constraints: 'TypeScript, unit tests, no UI regressions',
-    acceptanceCriteria: '',
+    acceptanceCriteria: deriveAcceptanceCriteriaDefaults(story),
     createTrackingCard: true,
   };
 }

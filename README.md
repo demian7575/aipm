@@ -52,6 +52,8 @@ The Details panel now includes a **Develop with Codex** button next to the story
 - Sends the modal payload to `/personal-delegate`, which posts the `@codex` brief using the bundled delegation server.
 - Automatically drafts a Given/When/Then acceptance test for the story after a successful delegation, seeding the steps with the
   acceptance criteria entered in the modal.
+- Prefills the acceptance criteria textarea with de-duplicated Then steps from the story's existing acceptance tests (or a
+  persona/action/outcome fallback) so you can immediately submit or tweak the draft.
 
 If **Create tracking card** remains checked (the default), the UI stores a lightweight tracking entry in `localStorage` and renders a Codex task card beneath the story. Each card:
 

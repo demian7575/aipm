@@ -5,6 +5,7 @@ import {
   createDefaultCodexForm,
   buildAcceptanceTestFallback,
   buildAcceptanceTestIdea,
+  deriveAcceptanceCriteriaDefaults,
   validateCodexInput,
 } from '../apps/frontend/public/codex.js';
 
@@ -113,4 +114,34 @@ test('buildAcceptanceTestFallback maps acceptance criteria into then steps', () 
   assert.equal(fallback.then[1], 'And Show deployment checklist');
   assert.match(fallback.title, /Improve notifications/);
   assert.match(fallback.when[0], /Product manager/i);
+});
+
+test('deriveAcceptanceCriteriaDefaults prefers then steps from acceptance tests', () => {
+  const criteria = deriveAcceptanceCriteriaDefaults({
+    acceptanceTests: [
+      { then: ['Then displays report', 'And sends notification.'] },
+      { then: ['Then displays report', 'And records metrics'] },
+    ],
+    asA: 'analyst',
+    iWant: 'to view insights',
+    soThat: 'decisions improve',
+  });
+
+  const lines = criteria.split('\n');
+  assert.deepEqual(lines, ['displays report', 'sends notification', 'records metrics']);
+});
+
+test('deriveAcceptanceCriteriaDefaults falls back to persona, action, and outcome', () => {
+  const criteria = deriveAcceptanceCriteriaDefaults({
+    acceptanceTests: [],
+    asA: 'sales manager',
+    iWant: 'review pipeline',
+    soThat: 'forecasts stay accurate.',
+  });
+
+  const lines = criteria.split('\n');
+  assert.ok(lines[0].includes('sales manager'));
+  assert.ok(/reviews|review/i.test(lines[0]));
+  assert.ok(lines[1].startsWith('Outcome confirmed:'));
+  assert.ok(/forecasts stay accurate/i.test(lines[1]));
 });
