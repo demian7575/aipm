@@ -1432,6 +1432,7 @@ const ACCEPTANCE_TEST_STATUS_DRAFT = 'Draft';
 const ACCEPTANCE_TEST_STATUS_REVIEW = 'Need review with update';
 
 let acceptanceTestsHasTitleColumn = false;
+let acceptanceTestsHasHealthColumns = false;
 
 const INVEST_DEPENDENCY_HINTS = [
   'blocked by',
@@ -1543,6 +1544,19 @@ function parseJsonArray(value) {
   } catch {
     return [];
   }
+}
+
+function parseJsonObject(value, fallback = {}) {
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+  } catch {
+    // ignore JSON parse errors and fall back
+  }
+  return fallback;
 }
 
 function sanitizeFilename(name) {
@@ -1930,6 +1944,59 @@ async function analyzeInvest(story, options = {}) {
       usedFallback: true,
     };
   }
+}
+
+function normalizeInvestAnalysisForStorage(analysis) {
+  const aiSection = analysis && typeof analysis === 'object' && analysis.ai && typeof analysis.ai === 'object'
+    ? analysis.ai
+    : null;
+  const aiWarnings = Array.isArray(aiSection?.warnings)
+    ? aiSection.warnings
+    : Array.isArray(analysis?.aiWarnings)
+    ? analysis.aiWarnings
+    : [];
+  const fallbackWarnings = Array.isArray(analysis?.fallbackWarnings) ? analysis.fallbackWarnings : [];
+  const summary = typeof analysis?.summary === 'string' ? analysis.summary : '';
+  const aiSummary =
+    typeof analysis?.aiSummary === 'string'
+      ? analysis.aiSummary
+      : typeof aiSection?.summary === 'string'
+      ? aiSection.summary
+      : '';
+  const aiModel =
+    aiSection && Object.prototype.hasOwnProperty.call(aiSection, 'model')
+      ? aiSection.model
+      : Object.prototype.hasOwnProperty.call(analysis || {}, 'aiModel')
+      ? analysis.aiModel
+      : null;
+  const errorValue =
+    (aiSection && Object.prototype.hasOwnProperty.call(aiSection, 'error') ? aiSection.error : undefined) ??
+    (analysis && Object.prototype.hasOwnProperty.call(analysis, 'error') ? analysis.error : undefined) ??
+    null;
+  return {
+    source: typeof analysis?.source === 'string' ? analysis.source : '',
+    summary,
+    aiSummary,
+    aiWarnings,
+    aiModel,
+    usedFallback: Boolean(analysis?.usedFallback),
+    error: errorValue,
+    fallbackWarnings,
+  };
+}
+
+function normalizeInvestAnalysisFromStorage(raw) {
+  const analysis = raw && typeof raw === 'object' ? raw : {};
+  return {
+    source: typeof analysis.source === 'string' ? analysis.source : '',
+    summary: typeof analysis.summary === 'string' ? analysis.summary : '',
+    aiSummary: typeof analysis.aiSummary === 'string' ? analysis.aiSummary : '',
+    aiWarnings: Array.isArray(analysis.aiWarnings) ? analysis.aiWarnings : [],
+    aiModel: Object.prototype.hasOwnProperty.call(analysis, 'aiModel') ? analysis.aiModel : null,
+    usedFallback: Boolean(analysis.usedFallback),
+    error: Object.prototype.hasOwnProperty.call(analysis, 'error') ? analysis.error : null,
+    fallbackWarnings: Array.isArray(analysis.fallbackWarnings) ? analysis.fallbackWarnings : [],
+  };
 }
 
 function normalizeStoryPoint(value) {
@@ -3443,47 +3510,78 @@ function buildGwtHealth(given, when, then, measurability) {
   return { satisfied: issues.length === 0, issues };
 }
 
+function calculateAcceptanceTestHealth(given, when, then) {
+  const { warnings, suggestions } = measurabilityWarnings(then);
+  const gwtHealth = buildGwtHealth(given, when, then, warnings);
+  return { warnings, suggestions, gwtHealth };
+}
+
 function acceptanceTestColumnsForInsert() {
+  const columns = ['story_id'];
   if (acceptanceTestsHasTitleColumn) {
-    return {
-      columns:
-        'story_id, title, given, when_step, then_step, status, created_at, updated_at', // prettier-ignore
-      placeholders: '?, ?, ?, ?, ?, ?, ?, ?',
-    };
+    columns.push('title');
   }
-  return {
-    columns: 'story_id, given, when_step, then_step, status, created_at, updated_at',
-    placeholders: '?, ?, ?, ?, ?, ?, ?',
-  };
+  columns.push('given', 'when_step', 'then_step', 'status');
+  if (acceptanceTestsHasHealthColumns) {
+    columns.push('measurability_warnings', 'measurability_suggestions', 'gwt_health', 'health_checked_at');
+  }
+  columns.push('created_at', 'updated_at');
+  return columns;
 }
 
 function insertAcceptanceTest(
   db,
   { storyId, title = '', given, when, then, status = ACCEPTANCE_TEST_STATUS_DRAFT, timestamp = now() }
 ) {
-  const { columns, placeholders } = acceptanceTestColumnsForInsert();
-  const statement = db.prepare(`INSERT INTO acceptance_tests (${columns}) VALUES (${placeholders})`);
-  const params = acceptanceTestsHasTitleColumn
-    ? [
-        storyId,
-        title,
-        JSON.stringify(given),
-        JSON.stringify(when),
-        JSON.stringify(then),
-        status,
-        timestamp,
-        timestamp,
-      ]
-    : [
-        storyId,
-        JSON.stringify(given),
-        JSON.stringify(when),
-        JSON.stringify(then),
-        status,
-        timestamp,
-        timestamp,
-      ];
+  const columns = acceptanceTestColumnsForInsert();
+  const placeholders = columns.map(() => '?').join(', ');
+  const statement = db.prepare(`INSERT INTO acceptance_tests (${columns.join(', ')}) VALUES (${placeholders})`);
+  const params = [storyId];
+  if (acceptanceTestsHasTitleColumn) {
+    params.push(title);
+  }
+  params.push(JSON.stringify(given), JSON.stringify(when), JSON.stringify(then), status);
+  if (acceptanceTestsHasHealthColumns) {
+    const health = calculateAcceptanceTestHealth(given, when, then);
+    params.push(
+      JSON.stringify(health.warnings),
+      JSON.stringify(health.suggestions),
+      JSON.stringify(health.gwtHealth),
+      timestamp
+    );
+  }
+  params.push(timestamp, timestamp);
   return statement.run(...params);
+}
+
+function updateAcceptanceTestHealth(db, testId, health, { checkedAt = now() } = {}) {
+  if (!acceptanceTestsHasHealthColumns) {
+    return;
+  }
+  const statement = db.prepare(
+    'UPDATE acceptance_tests SET measurability_warnings = ?, measurability_suggestions = ?, gwt_health = ?, health_checked_at = ? WHERE id = ?'
+  );
+  statement.run(
+    JSON.stringify(Array.isArray(health.warnings) ? health.warnings : []),
+    JSON.stringify(Array.isArray(health.suggestions) ? health.suggestions : []),
+    JSON.stringify(health.gwtHealth || { satisfied: true, issues: [] }),
+    checkedAt,
+    testId
+  );
+}
+
+function updateStoryHealth(db, storyId, warnings, analysis, { checkedAt = now() } = {}) {
+  const normalizedAnalysis = normalizeInvestAnalysisForStorage(analysis);
+  const statement = db.prepare(
+    'UPDATE user_stories SET invest_warnings = ?, invest_analysis = ?, invest_checked_at = ? WHERE id = ?'
+  );
+  statement.run(
+    JSON.stringify(Array.isArray(warnings) ? warnings : []),
+    JSON.stringify(normalizedAnalysis),
+    checkedAt,
+    storyId
+  );
+  return normalizedAnalysis;
 }
 
   function insertTask(
@@ -3629,6 +3727,16 @@ function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
       ];
 
   return { title, given, when, then, source: 'fallback', summary: '' };
+}
+
+function applyStoredStoryHealth(story, row) {
+  const warnings = parseJsonArray(row.invest_warnings);
+  const analysis = normalizeInvestAnalysisFromStorage(parseJsonObject(row.invest_analysis, {}));
+  story.investWarnings = warnings;
+  story.investAnalysis = analysis;
+  story.investSatisfied = warnings.length === 0;
+  story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
+  story.investCheckedAt = row.invest_checked_at ?? null;
 }
 
 function normalizeGeneratedSteps(value) {
@@ -3975,6 +4083,9 @@ async function ensureDatabase() {
   ensureColumn(db, 'user_stories', 'status', "status TEXT DEFAULT 'Draft'");
   ensureColumn(db, 'user_stories', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'user_stories', 'updated_at', 'updated_at TEXT');
+  ensureColumn(db, 'user_stories', 'invest_warnings', "invest_warnings TEXT DEFAULT '[]'");
+  ensureColumn(db, 'user_stories', 'invest_analysis', "invest_analysis TEXT DEFAULT '{}'");
+  ensureColumn(db, 'user_stories', 'invest_checked_at', 'invest_checked_at TEXT');
 
   ensureColumn(db, 'acceptance_tests', 'given', "given TEXT NOT NULL DEFAULT '[]'");
   ensureColumn(db, 'acceptance_tests', 'when_step', "when_step TEXT NOT NULL DEFAULT '[]'");
@@ -3982,6 +4093,10 @@ async function ensureDatabase() {
   ensureColumn(db, 'acceptance_tests', 'status', "status TEXT DEFAULT 'Draft'");
   ensureColumn(db, 'acceptance_tests', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'acceptance_tests', 'updated_at', 'updated_at TEXT');
+  ensureColumn(db, 'acceptance_tests', 'measurability_warnings', "measurability_warnings TEXT DEFAULT '[]'");
+  ensureColumn(db, 'acceptance_tests', 'measurability_suggestions', "measurability_suggestions TEXT DEFAULT '[]'");
+  ensureColumn(db, 'acceptance_tests', 'gwt_health', "gwt_health TEXT DEFAULT '{}'");
+  ensureColumn(db, 'acceptance_tests', 'health_checked_at', 'health_checked_at TEXT');
 
   ensureColumn(db, 'reference_documents', 'name', "name TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, 'reference_documents', 'url', "url TEXT NOT NULL DEFAULT ''");
@@ -4015,9 +4130,18 @@ async function ensureDatabase() {
     WHERE assignee_email IS NULL OR TRIM(assignee_email) = '';
   `);
 
-  acceptanceTestsHasTitleColumn = tableColumns(db, 'acceptance_tests').some((column) => column.name === 'title');
+  const acceptanceTestColumnInfo = tableColumns(db, 'acceptance_tests');
+  acceptanceTestsHasTitleColumn = acceptanceTestColumnInfo.some((column) => column.name === 'title');
+  acceptanceTestsHasHealthColumns = acceptanceTestColumnInfo.some((column) => column.name === 'gwt_health');
   if (acceptanceTestsHasTitleColumn) {
     db.exec("UPDATE acceptance_tests SET title = COALESCE(title, '')");
+  }
+  if (acceptanceTestsHasHealthColumns) {
+    db.exec(`
+      UPDATE acceptance_tests SET measurability_warnings = '[]' WHERE measurability_warnings IS NULL;
+      UPDATE acceptance_tests SET measurability_suggestions = '[]' WHERE measurability_suggestions IS NULL;
+      UPDATE acceptance_tests SET gwt_health = '{}' WHERE gwt_health IS NULL;
+    `);
   }
 
   ensureNotNullDefaults(db);
@@ -4125,6 +4249,10 @@ async function ensureDatabase() {
       'INSERT INTO reference_documents (story_id, name, url, created_at, updated_at) VALUES (?, ?, ?, ?, ?)' // prettier-ignore
     );
     insertDoc.run(rootId, 'Security checklist', 'https://example.com/security.pdf', timestamp, timestamp);
+
+    await refreshStoryHealth(db, Number(rootId));
+    await refreshStoryHealth(db, Number(formStoryId));
+    await refreshStoryHealth(db, Number(apiStoryId));
   }
 
   return db;
@@ -4230,6 +4358,7 @@ async function loadStories(db) {
       blockedBy: [],
       blocking: [],
     };
+    applyStoredStoryHealth(story, row);
     return story;
   });
 
@@ -4286,8 +4415,16 @@ async function loadStories(db) {
     const given = parseJsonArray(row.given);
     const when = parseJsonArray(row.when_step);
     const then = parseJsonArray(row.then_step);
-    const { warnings, suggestions } = measurabilityWarnings(then);
-    const gwtHealth = buildGwtHealth(given, when, then, warnings);
+    let warnings = parseJsonArray(row.measurability_warnings);
+    let suggestions = parseJsonArray(row.measurability_suggestions);
+    let gwtHealth = parseJsonObject(row.gwt_health, null);
+    if (!Array.isArray(warnings) || !Array.isArray(suggestions) || !gwtHealth || !Array.isArray(gwtHealth.issues)) {
+      const health = calculateAcceptanceTestHealth(given, when, then);
+      warnings = health.warnings;
+      suggestions = health.suggestions;
+      gwtHealth = health.gwtHealth;
+      updateAcceptanceTestHealth(db, row.id, health);
+    }
     story.acceptanceTests.push({
       id: row.id,
       storyId: row.story_id,
@@ -4301,6 +4438,7 @@ async function loadStories(db) {
       measurabilityWarnings: warnings,
       measurabilitySuggestions: suggestions,
       gwtHealth,
+      healthCheckedAt: row.health_checked_at ?? null,
     });
   });
 
@@ -4322,28 +4460,6 @@ async function loadStories(db) {
     if (!story) return;
     story.tasks.push(buildTaskFromRow(row));
   });
-
-  await Promise.all(
-    stories.map(async (story) => {
-      const analysis = await analyzeInvest(story, {
-        acceptanceTests: story.acceptanceTests,
-        includeTestChecks: true,
-      });
-      story.investWarnings = analysis.warnings;
-      story.investSatisfied = analysis.warnings.length === 0;
-      story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
-      story.investAnalysis = {
-        source: analysis.source,
-        summary: analysis.summary,
-        aiSummary: analysis.ai?.summary || '',
-        aiWarnings: analysis.ai?.warnings || [],
-        aiModel: analysis.ai?.model || null,
-        usedFallback: analysis.usedFallback,
-        error: analysis.ai?.error || null,
-        fallbackWarnings: analysis.fallbackWarnings || [],
-      };
-    })
-  );
 
   return roots;
 }
@@ -4378,6 +4494,7 @@ async function loadStoryWithDetails(db, storyId) {
     blockedBy: [],
     blocking: [],
   };
+  applyStoredStoryHealth(story, row);
 
   const testRows = db
     .prepare('SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id')
@@ -4386,8 +4503,16 @@ async function loadStoryWithDetails(db, storyId) {
     const given = parseJsonArray(testRow.given);
     const when = parseJsonArray(testRow.when_step);
     const then = parseJsonArray(testRow.then_step);
-    const { warnings, suggestions } = measurabilityWarnings(then);
-    const gwtHealth = buildGwtHealth(given, when, then, warnings);
+    let warnings = parseJsonArray(testRow.measurability_warnings);
+    let suggestions = parseJsonArray(testRow.measurability_suggestions);
+    let gwtHealth = parseJsonObject(testRow.gwt_health, null);
+    if (!Array.isArray(warnings) || !Array.isArray(suggestions) || !gwtHealth || !Array.isArray(gwtHealth.issues)) {
+      const health = calculateAcceptanceTestHealth(given, when, then);
+      warnings = health.warnings;
+      suggestions = health.suggestions;
+      gwtHealth = health.gwtHealth;
+      updateAcceptanceTestHealth(db, testRow.id, health);
+    }
     story.acceptanceTests.push({
       id: testRow.id,
       storyId: testRow.story_id,
@@ -4401,6 +4526,7 @@ async function loadStoryWithDetails(db, storyId) {
       measurabilityWarnings: warnings,
       measurabilitySuggestions: suggestions,
       gwtHealth,
+      healthCheckedAt: testRow.health_checked_at ?? null,
     });
   });
 
@@ -4501,25 +4627,59 @@ async function loadStoryWithDetails(db, storyId) {
     story.blocking.sort(sortByStoryId);
   }
 
-  const analysis = await analyzeInvest(story, {
-    acceptanceTests: story.acceptanceTests,
-    includeTestChecks: true,
-  });
-  story.investWarnings = analysis.warnings;
-  story.investSatisfied = analysis.warnings.length === 0;
-  story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
-  story.investAnalysis = {
-    source: analysis.source,
-    summary: analysis.summary,
-    aiSummary: analysis.ai?.summary || '',
-    aiWarnings: analysis.ai?.warnings || [],
-    aiModel: analysis.ai?.model || null,
-    usedFallback: analysis.usedFallback,
-    error: analysis.ai?.error || null,
-    fallbackWarnings: analysis.fallbackWarnings || [],
+  return story;
+}
+
+async function refreshStoryHealth(db, storyId) {
+  const row = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
+  if (!row) {
+    return null;
+  }
+
+  const components = normalizeComponentsInput(parseJsonArray(row.components));
+  const storyForAnalysis = {
+    id: row.id,
+    title: row.title || '',
+    asA: row.as_a || '',
+    iWant: row.i_want || '',
+    soThat: row.so_that || '',
+    description: row.description || '',
+    storyPoint: row.story_point,
+    components,
   };
 
-  return story;
+  const acceptanceTestRows = db
+    .prepare('SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id')
+    .all(storyId);
+  const acceptanceTests = acceptanceTestRows.map((testRow) => {
+    const given = parseJsonArray(testRow.given);
+    const when = parseJsonArray(testRow.when_step);
+    const then = parseJsonArray(testRow.then_step);
+    const health = calculateAcceptanceTestHealth(given, when, then);
+    updateAcceptanceTestHealth(db, testRow.id, health);
+    return {
+      id: testRow.id,
+      storyId: testRow.story_id,
+      title: acceptanceTestsHasTitleColumn ? testRow.title ?? '' : '',
+      given,
+      when,
+      then,
+      status: testRow.status,
+      createdAt: testRow.created_at,
+      updatedAt: testRow.updated_at,
+      measurabilityWarnings: health.warnings,
+      measurabilitySuggestions: health.suggestions,
+      gwtHealth: health.gwtHealth,
+    };
+  });
+
+  const analysis = await analyzeInvest(
+    { ...storyForAnalysis, acceptanceTests },
+    { acceptanceTests, includeTestChecks: true }
+  );
+  updateStoryHealth(db, storyId, analysis.warnings, analysis);
+
+  return loadStoryWithDetails(db, storyId);
 }
 
 function sendJson(res, statusCode, payload) {
@@ -4811,6 +4971,7 @@ export async function createApp() {
           soThat,
           components,
         });
+        await refreshStoryHealth(db, newStoryId);
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
         sendJson(res, 201, created ?? null);
       } catch (error) {
@@ -4975,6 +5136,7 @@ export async function createApp() {
             { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
           );
         }
+        await refreshStoryHealth(db, storyId);
         const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
         sendJson(res, 200, updated ?? null);
       } catch (error) {
@@ -5068,7 +5230,7 @@ export async function createApp() {
     if (recheckMatch && method === 'POST') {
       const storyId = Number(recheckMatch[1]);
       try {
-        const story = await loadStoryWithDetails(db, storyId);
+        const story = await refreshStoryHealth(db, storyId);
         if (!story) {
           sendJson(res, 404, { message: 'Story not found' });
           return;
@@ -5153,6 +5315,7 @@ export async function createApp() {
           status: payload.status ? String(payload.status) : 'Draft',
           timestamp,
         });
+        await refreshStoryHealth(db, storyId);
         const refreshedStory = flattenStories(await loadStories(db)).find((node) => node.id === storyId);
         const created = refreshedStory?.acceptanceTests.find((item) => item.id === Number(lastInsertRowid)) ?? null;
         sendJson(res, 201, created);
@@ -5179,25 +5342,48 @@ export async function createApp() {
           });
           return;
         }
-        const statement = db.prepare(
-          'UPDATE acceptance_tests SET given = ?, when_step = ?, then_step = ?, status = ?, updated_at = ? WHERE id = ?' // prettier-ignore
-        );
-        statement.run(
-          JSON.stringify(given),
-          JSON.stringify(when),
-          JSON.stringify(then),
-          payload.status ? String(payload.status) : 'Draft',
-          now(),
-          testId
-        );
-        const test = flattenStories(await loadStories(db))
-          .flatMap((story) => story.acceptanceTests)
-          .find((item) => item.id === testId);
+        const existing = db.prepare('SELECT story_id FROM acceptance_tests WHERE id = ?').get(testId);
+        if (!existing) {
+          sendJson(res, 404, { message: 'Acceptance test not found' });
+          return;
+        }
+        const timestamp = now();
+        if (acceptanceTestsHasHealthColumns) {
+          const statement = db.prepare(
+            'UPDATE acceptance_tests SET given = ?, when_step = ?, then_step = ?, status = ?, updated_at = ?, measurability_warnings = ?, measurability_suggestions = ?, gwt_health = ?, health_checked_at = ? WHERE id = ?'
+          );
+          statement.run(
+            JSON.stringify(given),
+            JSON.stringify(when),
+            JSON.stringify(then),
+            payload.status ? String(payload.status) : 'Draft',
+            timestamp,
+            JSON.stringify(warnings),
+            JSON.stringify(suggestions),
+            JSON.stringify(buildGwtHealth(given, when, then, warnings)),
+            timestamp,
+            testId
+          );
+        } else {
+          const statement = db.prepare(
+            'UPDATE acceptance_tests SET given = ?, when_step = ?, then_step = ?, status = ?, updated_at = ? WHERE id = ?'
+          );
+          statement.run(
+            JSON.stringify(given),
+            JSON.stringify(when),
+            JSON.stringify(then),
+            payload.status ? String(payload.status) : 'Draft',
+            timestamp,
+            testId
+          );
+        }
+        const refreshedStory = await refreshStoryHealth(db, Number(existing.story_id));
+        const test = refreshedStory?.acceptanceTests.find((item) => item.id === testId) ?? null;
         if (!test) {
           sendJson(res, 404, { message: 'Acceptance test not found' });
-        } else {
-          sendJson(res, 200, test);
+          return;
         }
+        sendJson(res, 200, test);
       } catch (error) {
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to update acceptance test' });
@@ -5207,13 +5393,19 @@ export async function createApp() {
 
     if (testIdMatch && method === 'DELETE') {
       const testId = Number(testIdMatch[1]);
+      const existing = db.prepare('SELECT story_id FROM acceptance_tests WHERE id = ?').get(testId);
+      if (!existing) {
+        sendJson(res, 404, { message: 'Acceptance test not found' });
+        return;
+      }
       const statement = db.prepare('DELETE FROM acceptance_tests WHERE id = ?');
       const result = statement.run(testId);
       if (result.changes === 0) {
         sendJson(res, 404, { message: 'Acceptance test not found' });
-      } else {
-        sendJson(res, 204, {});
+        return;
       }
+      await refreshStoryHealth(db, Number(existing.story_id));
+      sendJson(res, 204, {});
       return;
     }
 
