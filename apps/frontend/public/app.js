@@ -1,3 +1,13 @@
+import {
+  DEFAULT_REPO_API_URL,
+  buildAcceptanceTestFallback,
+  buildAcceptanceTestIdea,
+  createDefaultCodexForm,
+  createLocalDelegationEntry,
+  summarizeCommentBody,
+  validateCodexInput,
+} from './codex.js';
+
 const outlineTreeEl = document.getElementById('outline-tree');
 const mindmapCanvas = document.getElementById('mindmap-canvas');
 const detailsPanel = document.getElementById('details-panel');
@@ -34,6 +44,7 @@ const STORAGE_KEYS = {
   selection: 'aiPm.selection',
   layout: 'aiPm.layout',
   panels: 'aiPm.panels',
+  codexDelegations: 'aiPm.codexDelegations',
 };
 
 const NODE_WIDTH = 240;
@@ -53,6 +64,8 @@ const MINDMAP_STAGE_MIN_HEIGHT = 1200;
 const MINDMAP_STAGE_PADDING_X = 480;
 const MINDMAP_STAGE_PADDING_Y = 360;
 const HTML_NS = 'http://www.w3.org/1999/xhtml';
+const CODEX_POLL_INTERVAL_MS = 45000;
+const CODEX_AUTHOR_PATTERN = /codex/i;
 
 const mindmapMeasureRoot = document.createElement('div');
 mindmapMeasureRoot.className = 'mindmap-measure-root';
@@ -309,6 +322,7 @@ const state = {
     mindmap: true,
     details: true,
   },
+  codexDelegations: new Map(),
 };
 
 const storyIndex = new Map();
@@ -324,6 +338,7 @@ const mindmapPanState = {
   scrollTop: 0,
   dragging: false,
 };
+const codexPollers = new Map();
 
 function updateMindmapZoomControls() {
   if (mindmapZoomDisplay) {
@@ -971,6 +986,419 @@ function persistLayout() {
 
 function persistPanels() {
   localStorage.setItem(STORAGE_KEYS.panels, JSON.stringify(state.panelVisibility));
+}
+
+function ensureCodexEntryShape(entry, storyId) {
+  if (!entry || typeof entry !== 'object') {
+    return null;
+  }
+  const normalized = { ...entry };
+  normalized.storyId = normalized.storyId ?? storyId;
+  if (!normalized.localId) {
+    normalized.localId = `codex-${normalized.storyId}-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+  }
+  normalized.createTrackingCard = normalized.createTrackingCard !== false;
+  normalized.latestStatus = normalized.latestStatus ?? null;
+  normalized.lastCheckedAt = normalized.lastCheckedAt ?? null;
+  normalized.lastError = normalized.lastError ?? null;
+  if (normalized.targetNumber != null && normalized.targetNumber !== '') {
+    const parsed = Number(normalized.targetNumber);
+    normalized.targetNumber = Number.isFinite(parsed) ? parsed : null;
+  } else if (normalized.target === 'new-issue') {
+    normalized.targetNumber = normalized.targetNumber ?? null;
+  }
+  return normalized;
+}
+
+function loadCodexDelegationsFromStorage() {
+  state.codexDelegations = new Map();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.codexDelegations);
+    if (!raw) {
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return;
+    }
+    Object.entries(parsed).forEach(([key, list]) => {
+      const storyId = Number(key);
+      if (!Number.isFinite(storyId) || !Array.isArray(list)) {
+        return;
+      }
+      const entries = list
+        .map((entry) => ensureCodexEntryShape(entry, storyId))
+        .filter((entry) => entry != null);
+      if (entries.length > 0) {
+        state.codexDelegations.set(storyId, entries);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to load Codex delegations', error);
+  }
+}
+
+function persistCodexDelegations() {
+  try {
+    const plain = {};
+    state.codexDelegations.forEach((entries, storyId) => {
+      plain[storyId] = entries.map((entry) => ({ ...entry }));
+    });
+    localStorage.setItem(STORAGE_KEYS.codexDelegations, JSON.stringify(plain));
+  } catch (error) {
+    console.error('Failed to persist Codex delegations', error);
+  }
+}
+
+function getCodexDelegations(storyId) {
+  const key = Number(storyId);
+  if (!Number.isFinite(key)) {
+    return [];
+  }
+  const entries = state.codexDelegations.get(key);
+  return Array.isArray(entries) ? entries : [];
+}
+
+function setCodexDelegations(storyId, entries) {
+  const key = Number(storyId);
+  if (!Number.isFinite(key)) {
+    return;
+  }
+  if (!Array.isArray(entries) || entries.length === 0) {
+    state.codexDelegations.delete(key);
+  } else {
+    state.codexDelegations.set(key, entries);
+  }
+  persistCodexDelegations();
+}
+
+function addCodexDelegationEntry(storyId, entry) {
+  const current = getCodexDelegations(storyId);
+  const next = current.concat(entry);
+  setCodexDelegations(storyId, next);
+  if (entry.createTrackingCard !== false) {
+    startCodexPolling(entry);
+  }
+  if (state.selectedStoryId === storyId) {
+    refreshCodexSection(storyId);
+  }
+}
+
+function removeCodexDelegation(storyId, localId) {
+  const current = getCodexDelegations(storyId);
+  if (!current.length) {
+    return;
+  }
+  const next = current.filter((entry) => entry.localId !== localId);
+  if (next.length === current.length) {
+    return;
+  }
+  setCodexDelegations(storyId, next);
+  const poller = codexPollers.get(localId);
+  if (poller) {
+    clearInterval(poller);
+    codexPollers.delete(localId);
+  }
+  if (state.selectedStoryId === storyId) {
+    refreshCodexSection(storyId);
+  }
+  showToast('Codex tracking removed', 'info');
+}
+
+function refreshCodexSection(storyId) {
+  const section = detailsContent.querySelector(
+    `.codex-section[data-story-id="${storyId}"]`
+  );
+  if (!section) {
+    return;
+  }
+  const list = section.querySelector('.codex-task-list');
+  const story = storyIndex.get(storyId);
+  if (!list || !story) {
+    return;
+  }
+  renderCodexSectionList(list, story);
+}
+
+function formatCodexTargetLabel(entry) {
+  if (!entry) {
+    return '';
+  }
+  const number = Number(entry.targetNumber);
+  const hasNumber = Number.isFinite(number);
+  if (entry.target === 'pr') {
+    return hasNumber ? `PR #${number}` : 'PR';
+  }
+  if (entry.target === 'issue') {
+    return hasNumber ? `Issue #${number}` : 'Issue';
+  }
+  if (entry.target === 'new-issue') {
+    return hasNumber ? `Issue #${number}` : 'New Issue';
+  }
+  return hasNumber ? `Item #${number}` : 'Tracked Item';
+}
+
+function formatRelativeTime(isoString) {
+  if (!isoString) {
+    return '';
+  }
+  const timestamp = new Date(isoString).getTime();
+  if (!Number.isFinite(timestamp)) {
+    return '';
+  }
+  const diff = Date.now() - timestamp;
+  if (diff < 0) {
+    return 'just now';
+  }
+  const seconds = Math.round(diff / 1000);
+  if (seconds < 60) {
+    return `${seconds}s ago`;
+  }
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+  const days = Math.round(hours / 24);
+  if (days < 7) {
+    return `${days}d ago`;
+  }
+  const weeks = Math.round(days / 7);
+  if (weeks < 5) {
+    return `${weeks}w ago`;
+  }
+  return new Date(isoString).toLocaleDateString();
+}
+
+function renderCodexSectionList(container, story) {
+  container.innerHTML = '';
+  const entries = getCodexDelegations(story.id);
+  if (!entries.length) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-state';
+    empty.textContent = 'No Codex tasks yet.';
+    container.appendChild(empty);
+    return;
+  }
+
+  entries.forEach((entry) => {
+    const card = document.createElement('article');
+    card.className = 'codex-task-card';
+    card.dataset.localId = entry.localId;
+
+    const header = document.createElement('header');
+    header.className = 'codex-task-card-header';
+
+    const title = document.createElement('h4');
+    title.textContent = entry.taskTitle || 'Codex task';
+    header.appendChild(title);
+
+    const badge = document.createElement('span');
+    badge.className = 'codex-target-badge';
+    badge.textContent = formatCodexTargetLabel(entry);
+    header.appendChild(badge);
+
+    card.appendChild(header);
+
+    if (entry.branchName) {
+      const branch = document.createElement('p');
+      branch.className = 'codex-branch';
+      branch.innerHTML = `<span>Branch:</span> ${escapeHtml(entry.branchName)}`;
+      card.appendChild(branch);
+    }
+
+    const status = document.createElement('p');
+    status.className = 'codex-status-line';
+
+    if (entry.latestStatus) {
+      const actor = entry.latestStatus.author || 'Codex';
+      const when = formatRelativeTime(entry.latestStatus.createdAt);
+      const snippet = entry.latestStatus.snippet || summarizeCommentBody(entry.latestStatus.body);
+      status.innerHTML = `<strong>${escapeHtml(actor)}</strong>${
+        when ? ` · ${escapeHtml(when)}` : ''
+      } — ${escapeHtml(snippet || 'Update available.')}`;
+    } else if (entry.lastError) {
+      status.classList.add('is-error');
+      status.textContent = entry.lastError;
+    } else {
+      status.textContent = 'Waiting for Codex to respond…';
+    }
+    card.appendChild(status);
+
+    if (entry.lastCheckedAt && !entry.lastError && !entry.latestStatus) {
+      const meta = document.createElement('p');
+      meta.className = 'codex-status-meta';
+      meta.textContent = `Last checked ${formatRelativeTime(entry.lastCheckedAt)}`;
+      card.appendChild(meta);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'codex-task-actions';
+
+    if (entry.htmlUrl) {
+      const openLink = document.createElement('a');
+      openLink.href = entry.htmlUrl;
+      openLink.className = 'button secondary';
+      openLink.target = '_blank';
+      openLink.rel = 'noreferrer noopener';
+      openLink.textContent = 'Open in GitHub';
+      actions.appendChild(openLink);
+    }
+
+    if (entry.latestStatus && entry.latestStatus.htmlUrl) {
+      const updateLink = document.createElement('a');
+      updateLink.href = entry.latestStatus.htmlUrl;
+      updateLink.className = 'link-button';
+      updateLink.target = '_blank';
+      updateLink.rel = 'noreferrer noopener';
+      updateLink.textContent = 'View latest update';
+      actions.appendChild(updateLink);
+    } else if (entry.latestStatus && Array.isArray(entry.latestStatus.links) && entry.latestStatus.links.length) {
+      const extraLink = document.createElement('a');
+      extraLink.href = entry.latestStatus.links[0];
+      extraLink.className = 'link-button';
+      extraLink.target = '_blank';
+      extraLink.rel = 'noreferrer noopener';
+      extraLink.textContent = 'Latest link';
+      actions.appendChild(extraLink);
+    }
+
+    if (entry.createTrackingCard !== false) {
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'link-button codex-remove';
+      removeBtn.textContent = 'Stop tracking';
+      removeBtn.addEventListener('click', () => {
+        removeCodexDelegation(entry.storyId, entry.localId);
+      });
+      actions.appendChild(removeBtn);
+    }
+
+    if (actions.children.length) {
+      card.appendChild(actions);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+function buildCodexSection(story) {
+  const section = document.createElement('section');
+  section.className = 'codex-section';
+  section.dataset.role = 'codex-section';
+  section.dataset.storyId = story?.id != null ? String(story.id) : '';
+
+  const heading = document.createElement('div');
+  heading.className = 'section-heading';
+  const title = document.createElement('h3');
+  title.textContent = 'Codex Delegations';
+  heading.appendChild(title);
+
+  const actionBtn = document.createElement('button');
+  actionBtn.type = 'button';
+  actionBtn.className = 'secondary';
+  actionBtn.textContent = 'Develop with Codex';
+  actionBtn.addEventListener('click', () => openCodexDelegationModal(story));
+  heading.appendChild(actionBtn);
+
+  section.appendChild(heading);
+
+  const list = document.createElement('div');
+  list.className = 'codex-task-list';
+  section.appendChild(list);
+  renderCodexSectionList(list, story);
+  return section;
+}
+
+function startCodexPolling(entry, { immediate = true } = {}) {
+  if (!entry || entry.createTrackingCard === false) {
+    return;
+  }
+  const key = entry.localId;
+  if (!key || codexPollers.has(key)) {
+    return;
+  }
+
+  const executePoll = async () => {
+    try {
+      await pollCodexStatus(entry);
+    } catch (error) {
+      entry.lastError = error.message || 'Unable to update Codex status.';
+      entry.lastCheckedAt = new Date().toISOString();
+      persistCodexDelegations();
+      if (state.selectedStoryId === entry.storyId) {
+        refreshCodexSection(entry.storyId);
+      }
+    }
+  };
+
+  if (immediate) {
+    void executePoll();
+  }
+
+  const timer = setInterval(() => {
+    void executePoll();
+  }, CODEX_POLL_INTERVAL_MS);
+  codexPollers.set(key, timer);
+}
+
+async function pollCodexStatus(entry) {
+  if (!entry || entry.createTrackingCard === false) {
+    return;
+  }
+  if (!entry.owner || !entry.repo) {
+    return;
+  }
+  const number = Number(entry.targetNumber);
+  if (!Number.isFinite(number) || number <= 0) {
+    return;
+  }
+
+  const params = new URLSearchParams({
+    owner: entry.owner,
+    repo: entry.repo,
+    number: String(number),
+    targetType: entry.target === 'pr' ? 'pr' : 'issue',
+  });
+
+  const data = await sendJson(`/personal-delegate/status?${params.toString()}`);
+  entry.lastCheckedAt = data?.fetchedAt ?? new Date().toISOString();
+  entry.lastError = null;
+
+  if (data?.latestComment) {
+    entry.latestStatus = {
+      id: data.latestComment.id ?? null,
+      author: data.latestComment.author ?? '',
+      body: data.latestComment.body ?? '',
+      createdAt: data.latestComment.created_at ?? entry.lastCheckedAt,
+      htmlUrl: data.latestComment.html_url ?? null,
+      snippet: data.latestComment.snippet ?? summarizeCommentBody(data.latestComment.body),
+      links: Array.isArray(data.latestComment.links) ? data.latestComment.links : [],
+    };
+  } else {
+    entry.latestStatus = null;
+  }
+
+  persistCodexDelegations();
+  if (state.selectedStoryId === entry.storyId) {
+    refreshCodexSection(entry.storyId);
+  }
+}
+
+function initializeCodexDelegations() {
+  loadCodexDelegationsFromStorage();
+  state.codexDelegations.forEach((entries) => {
+    entries.forEach((entry) => {
+      if (entry.createTrackingCard !== false) {
+        startCodexPolling(entry, { immediate: true });
+      }
+    });
+  });
 }
 
 function rebuildStoryIndex() {
@@ -2310,6 +2738,7 @@ function renderDetails() {
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
+      <button type="button" class="secondary" id="codex-delegate-btn">Develop with Codex</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
     </div>
     <div class="full field-row">
@@ -2708,6 +3137,7 @@ function renderDetails() {
   const saveButton = form.querySelector('button[type="submit"]');
   const editButton = form.querySelector('#edit-story-btn');
   const deleteButton = form.querySelector('#delete-story-btn');
+  const codexButton = form.querySelector('#codex-delegate-btn');
   const editableFields = Array.from(
     form.querySelectorAll('input[name], textarea[name], select[name]')
   );
@@ -2778,6 +3208,10 @@ function renderDetails() {
     void confirmAndDeleteStory(story.id);
   });
 
+  codexButton?.addEventListener('click', () => {
+    openCodexDelegationModal(story);
+  });
+
   const emailBtn = form.querySelector('#assignee-email-btn');
   emailBtn?.addEventListener('click', () => {
     const email = form.elements.assigneeEmail.value.trim();
@@ -2785,6 +3219,9 @@ function renderDetails() {
       window.open(`mailto:${email}`);
     }
   });
+
+  const codexSection = buildCodexSection(story);
+  detailsContent.appendChild(codexSection);
 
   const dependencySection = document.createElement('section');
   dependencySection.className = 'dependencies-section';
@@ -3367,6 +3804,411 @@ function openModal({
   };
 
   modal.showModal();
+}
+
+function openCodexDelegationModal(story) {
+  const defaults = createDefaultCodexForm(story);
+  const form = document.createElement('form');
+  form.className = 'modal-form codex-form';
+  form.noValidate = true;
+  form.innerHTML = `
+    <div class="form-error-banner" data-role="codex-error" hidden></div>
+    <div class="field">
+      <label for="codex-repo-url">Repository API URL</label>
+      <input id="codex-repo-url" name="repositoryApiUrl" type="url" placeholder="${escapeHtml(
+        DEFAULT_REPO_API_URL
+      )}" required />
+      <p class="field-error" data-error-for="repositoryApiUrl" hidden></p>
+    </div>
+    <div class="field">
+      <label for="codex-owner">Owner</label>
+      <input id="codex-owner" name="owner" required />
+      <p class="field-error" data-error-for="owner" hidden></p>
+    </div>
+    <div class="field">
+      <label for="codex-repo">Repository</label>
+      <input id="codex-repo" name="repo" required />
+      <p class="field-error" data-error-for="repo" hidden></p>
+    </div>
+    <fieldset class="field full codex-target-fieldset">
+      <legend>Target</legend>
+      <label><input type="radio" name="target" value="new-issue" /> New issue</label>
+      <label><input type="radio" name="target" value="issue" /> Existing issue</label>
+      <label><input type="radio" name="target" value="pr" /> Pull request</label>
+    </fieldset>
+    <div class="field" data-role="target-number">
+      <label for="codex-target-number">Issue / PR number</label>
+      <input id="codex-target-number" name="targetNumber" inputmode="numeric" pattern="\\d*" />
+      <p class="field-error" data-error-for="targetNumber" hidden></p>
+    </div>
+    <div class="field">
+      <label for="codex-branch">Branch name</label>
+      <input id="codex-branch" name="branchName" required />
+      <p class="field-error" data-error-for="branchName" hidden></p>
+    </div>
+    <div class="field">
+      <label for="codex-task-title">Task title</label>
+      <input id="codex-task-title" name="taskTitle" required />
+      <p class="field-error" data-error-for="taskTitle" hidden></p>
+    </div>
+    <div class="field full">
+      <label for="codex-objective">Objective</label>
+      <input id="codex-objective" name="objective" required />
+      <p class="field-error" data-error-for="objective" hidden></p>
+    </div>
+    <div class="field">
+      <label for="codex-pr-title">PR title</label>
+      <input id="codex-pr-title" name="prTitle" required />
+      <p class="field-error" data-error-for="prTitle" hidden></p>
+    </div>
+    <div class="field">
+      <label for="codex-constraints">Constraints</label>
+      <textarea id="codex-constraints" name="constraints" rows="3" required></textarea>
+      <p class="field-error" data-error-for="constraints" hidden></p>
+    </div>
+    <div class="field full">
+      <label for="codex-acceptance">Acceptance criteria</label>
+      <textarea
+        id="codex-acceptance"
+        name="acceptanceCriteria"
+        rows="4"
+        placeholder="List each criterion on a new line"
+        required
+      ></textarea>
+      <p class="field-error" data-error-for="acceptanceCriteria" hidden></p>
+    </div>
+    <div class="field full codex-checkbox">
+      <label>
+        <input type="checkbox" name="createTrackingCard" checked />
+        <span>Create tracking card</span>
+      </label>
+    </div>
+  `;
+
+  const errorBanner = form.querySelector('[data-role="codex-error"]');
+  const targetNumberGroup = form.querySelector('[data-role="target-number"]');
+  const fieldErrors = new Map(
+    Array.from(form.querySelectorAll('[data-error-for]')).map((el) => [el.dataset.errorFor, el])
+  );
+  const touchedFields = new Set();
+
+  const repoInput = form.elements.repositoryApiUrl;
+  const ownerInput = form.elements.owner;
+  const repoNameInput = form.elements.repo;
+  const branchInput = form.elements.branchName;
+  const taskTitleInput = form.elements.taskTitle;
+  const objectiveInput = form.elements.objective;
+  const prTitleInput = form.elements.prTitle;
+  const constraintsInput = form.elements.constraints;
+  const acceptanceInput = form.elements.acceptanceCriteria;
+  const createCardInput = form.elements.createTrackingCard;
+  const targetInputs = Array.from(form.querySelectorAll('input[name="target"]'));
+  const targetNumberInput = form.elements.targetNumber;
+
+  const acceptancePrefill = defaults.acceptanceCriteria?.trim()
+    ? defaults.acceptanceCriteria
+    : Array.isArray(story?.acceptanceTests)
+    ? story.acceptanceTests
+        .map((test) => (test && test.title ? String(test.title).trim() : ''))
+        .filter((value) => value.length > 0)
+        .join('\n')
+    : '';
+
+  repoInput.value = defaults.repositoryApiUrl || DEFAULT_REPO_API_URL;
+  ownerInput.value = defaults.owner || '';
+  repoNameInput.value = defaults.repo || '';
+  branchInput.value = defaults.branchName || '';
+  taskTitleInput.value = defaults.taskTitle || '';
+  objectiveInput.value = defaults.objective || '';
+  prTitleInput.value = defaults.prTitle || '';
+  constraintsInput.value = defaults.constraints || '';
+  acceptanceInput.value = acceptancePrefill;
+  createCardInput.checked = defaults.createTrackingCard !== false;
+  targetInputs.forEach((input) => {
+    input.checked = input.value === defaults.target;
+  });
+  targetNumberInput.value = defaults.targetNumber || '';
+
+  let submitButton = null;
+  let submitting = false;
+  let latestValidation = { valid: false, errors: {} };
+
+  function showBanner(message) {
+    if (!errorBanner) return;
+    if (message) {
+      errorBanner.textContent = message;
+      errorBanner.hidden = false;
+    } else {
+      errorBanner.textContent = '';
+      errorBanner.hidden = true;
+    }
+  }
+
+  function applyErrors(errors, { force = false } = {}) {
+    fieldErrors.forEach((el, name) => {
+      const message = errors[name] || '';
+      if (force || touchedFields.has(name)) {
+        if (message) {
+          el.textContent = message;
+          el.hidden = false;
+        } else {
+          el.textContent = '';
+          el.hidden = true;
+        }
+      } else {
+        el.textContent = '';
+        el.hidden = true;
+      }
+    });
+  }
+
+  function readValues() {
+    const target = targetInputs.find((input) => input.checked)?.value || 'new-issue';
+    return {
+      repositoryApiUrl: repoInput.value.trim() || DEFAULT_REPO_API_URL,
+      owner: ownerInput.value.trim(),
+      repo: repoNameInput.value.trim(),
+      branchName: branchInput.value.trim(),
+      taskTitle: taskTitleInput.value.trim(),
+      objective: objectiveInput.value.trim(),
+      prTitle: prTitleInput.value.trim(),
+      constraints: constraintsInput.value.trim(),
+      acceptanceCriteria: acceptanceInput.value,
+      target,
+      targetNumber: targetNumberInput.value.trim(),
+      createTrackingCard: Boolean(createCardInput.checked),
+    };
+  }
+
+  function updateTargetNumberVisibility(target) {
+    if (!targetNumberGroup) return;
+    if (target === 'new-issue') {
+      targetNumberGroup.setAttribute('hidden', 'hidden');
+    } else {
+      targetNumberGroup.removeAttribute('hidden');
+    }
+  }
+
+  async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
+    if (!story || story.id == null) {
+      return false;
+    }
+    const idea = buildAcceptanceTestIdea(acceptanceCriteriaText);
+    const attempts = [];
+    let draft = null;
+
+    try {
+      draft = await fetchAcceptanceTestDraft(story.id, idea ? { idea } : undefined);
+    } catch (error) {
+      console.error('Codex delegation acceptance test draft failed', error);
+    }
+
+    if (draft) {
+      const given = Array.isArray(draft.given)
+        ? draft.given.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+        : [];
+      const when = Array.isArray(draft.when)
+        ? draft.when.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+        : [];
+      const then = Array.isArray(draft.then)
+        ? draft.then.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+        : [];
+      if (given.length && when.length && then.length) {
+        attempts.push({
+          title: typeof draft.title === 'string' ? draft.title : undefined,
+          given,
+          when,
+          then,
+          status: draft.status || 'Draft',
+        });
+      }
+    }
+
+    const fallbackDraft = buildAcceptanceTestFallback(story, acceptanceCriteriaText);
+    if (fallbackDraft) {
+      const normalizedFallback = {
+        title: fallbackDraft.title || undefined,
+        status: fallbackDraft.status || 'Draft',
+        given: Array.isArray(fallbackDraft.given)
+          ? fallbackDraft.given.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+          : [],
+        when: Array.isArray(fallbackDraft.when)
+          ? fallbackDraft.when.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+          : [],
+        then: Array.isArray(fallbackDraft.then)
+          ? fallbackDraft.then.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+          : [],
+      };
+      if (
+        normalizedFallback.given.length &&
+        normalizedFallback.when.length &&
+        normalizedFallback.then.length &&
+        !attempts.some(
+          (attempt) =>
+            attempt &&
+            JSON.stringify(attempt.given) === JSON.stringify(normalizedFallback.given) &&
+            JSON.stringify(attempt.when) === JSON.stringify(normalizedFallback.when) &&
+            JSON.stringify(attempt.then) === JSON.stringify(normalizedFallback.then)
+        )
+      ) {
+        attempts.push(normalizedFallback);
+      }
+    }
+
+    let lastError = null;
+    for (const attempt of attempts) {
+      try {
+        await sendJson(`/api/stories/${story.id}/tests`, {
+          method: 'POST',
+          body: {
+            title: attempt.title,
+            given: attempt.given,
+            when: attempt.when,
+            then: attempt.then,
+            status: attempt.status || 'Draft',
+            acceptWarnings: true,
+          },
+        });
+        await loadStories();
+        return true;
+      } catch (error) {
+        lastError = error;
+        console.error('Codex delegation acceptance test creation attempt failed', error);
+      }
+    }
+
+    if (lastError) {
+      console.error('Codex delegation acceptance test generation failed', lastError);
+    }
+    return false;
+  }
+
+  function setSubmitButtonState(validation) {
+    if (!submitButton) {
+      return;
+    }
+    const stateValidation = validation ?? latestValidation;
+    submitButton.disabled = submitting || !stateValidation.valid;
+    submitButton.textContent = submitting ? 'Creating…' : 'Create Task';
+  }
+
+  function evaluate({ forceErrors = false } = {}) {
+    const values = readValues();
+    const validation = validateCodexInput(values);
+    latestValidation = validation;
+    applyErrors(validation.errors, { force: forceErrors });
+    setSubmitButtonState(validation);
+    return { values, validation };
+  }
+
+  const handleChange = (event) => {
+    if (event?.target?.name) {
+      touchedFields.add(event.target.name);
+    }
+    const { values } = evaluate();
+    updateTargetNumberVisibility(values.target);
+    showBanner('');
+  };
+
+  form.addEventListener('input', handleChange);
+  form.addEventListener('change', handleChange);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void handleSubmit();
+  });
+
+  const handleSubmit = async () => {
+    if (submitting) {
+      return false;
+    }
+    const { values, validation } = evaluate({ forceErrors: true });
+    updateTargetNumberVisibility(values.target);
+    if (!validation.valid) {
+      showBanner('Please resolve the highlighted fields.');
+      return false;
+    }
+
+    showBanner('');
+    submitting = true;
+    setSubmitButtonState(validation);
+
+    try {
+      const acceptanceCriteriaText = values.acceptanceCriteria;
+      const acceptanceCriteriaList = splitLines(acceptanceCriteriaText);
+      const payload = {
+        storyId: story?.id ?? null,
+        storyTitle: story?.title ?? '',
+        repositoryApiUrl: values.repositoryApiUrl,
+        owner: values.owner,
+        repo: values.repo,
+        target: values.target,
+        targetNumber:
+          values.target === 'new-issue' || values.targetNumber === ''
+            ? undefined
+            : Number(values.targetNumber),
+        branchName: values.branchName,
+        taskTitle: values.taskTitle,
+        objective: values.objective,
+        prTitle: values.prTitle,
+        constraints: values.constraints,
+        acceptanceCriteria: acceptanceCriteriaList,
+      };
+
+      const result = await sendJson('/personal-delegate', {
+        method: 'POST',
+        body: payload,
+      });
+
+      let acceptanceTestCreated = false;
+      if (story?.id != null) {
+        acceptanceTestCreated = await generateAcceptanceTestForDelegation(acceptanceCriteriaText);
+      }
+
+      if (values.createTrackingCard) {
+        const entry = createLocalDelegationEntry(story, values, result);
+        if (entry) {
+          addCodexDelegationEntry(story.id, entry);
+        }
+      }
+
+      const toastMessage = acceptanceTestCreated
+        ? 'Codex task created and acceptance test drafted.'
+        : 'Codex task created';
+      showToast(toastMessage, 'success');
+      return true;
+    } catch (error) {
+      const message =
+        (error && error.message) || 'Failed to create Codex task. Please try again.';
+      showBanner(message);
+      return false;
+    } finally {
+      submitting = false;
+      setSubmitButtonState();
+    }
+  };
+
+  openModal({
+    title: 'Delegate to Codex',
+    content: form,
+    cancelLabel: 'Cancel',
+    size: 'content',
+    actions: [
+      {
+        label: 'Create Task',
+        onClick: handleSubmit,
+      },
+    ],
+  });
+
+  submitButton = Array.from(modalFooter.querySelectorAll('button')).find((button) =>
+    button.textContent && button.textContent.trim().toLowerCase() === 'create task'
+  );
+
+  const initialValues = readValues();
+  updateTargetNumberVisibility(initialValues.target);
+  latestValidation = validateCodexInput(initialValues);
+  applyErrors(latestValidation.errors, { force: false });
+  setSubmitButtonState(latestValidation);
 }
 
 function openHealthIssueModal(title, issue, context = null) {
@@ -4497,6 +5339,7 @@ function splitLines(value) {
 
 function initialize() {
   loadPreferences();
+  initializeCodexDelegations();
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();

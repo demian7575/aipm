@@ -989,6 +989,107 @@ body.is-mindmap-panning {
   font-size: 1.05rem;
 }
 
+.codex-section {
+  border: 1px solid #e5e9f5;
+  border-radius: 14px;
+  padding: 1rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.codex-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.codex-task-card {
+  border: 1px solid #dbe3ff;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: #f8faff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.codex-task-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.codex-task-card-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.codex-target-badge {
+  background: #1d4ed8;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.codex-branch {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #1f2937;
+}
+
+.codex-branch span {
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.codex-status-line {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.codex-status-line.is-error {
+  color: #b91c1c;
+}
+
+.codex-status-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.codex-task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.codex-task-actions .button.secondary {
+  padding: 0.35rem 0.75rem;
+}
+
+.codex-task-actions .link-button {
+  font-size: 0.85rem;
+}
+
+.codex-task-actions .codex-remove {
+  color: #dc2626;
+}
+
+.codex-task-actions .codex-remove:hover,
+.codex-task-actions .codex-remove:focus {
+  color: #991b1b;
+}
+
 .record-list {
   display: flex;
   flex-direction: column;
@@ -1457,12 +1558,19 @@ dialog {
 }
 
 dialog[data-size='wide'] {
-  max-width: min(2400px, 98vw);
-  width: min(2400px, 98vw);
+  max-width: min(960px, 96vw);
+  width: min(960px, 96vw);
 }
 
 dialog[data-size='content'] {
-  width: auto;
+  width: fit-content;
+  max-width: 98vw;
+}
+
+dialog[data-size='content'] .modal-shell {
+  display: inline-flex;
+  flex-direction: column;
+  width: fit-content;
   max-width: 98vw;
 }
 
@@ -1525,6 +1633,94 @@ dialog[data-size='content'] {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.codex-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  width: min(48rem, 90vw);
+}
+
+.codex-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.codex-form .field.full {
+  grid-column: span 2;
+}
+
+.codex-form label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.codex-form input,
+.codex-form textarea {
+  width: 100%;
+}
+
+.codex-form fieldset {
+  border: 1px solid #dbe3ff;
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  background: #f8faff;
+}
+
+.codex-form fieldset legend {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #1f2937;
+  margin-right: 1rem;
+}
+
+.codex-form fieldset label {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: #1d4ed8;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.codex-form fieldset input[type='radio'] {
+  width: auto;
+}
+
+.codex-form .field-error {
+  margin: 0;
+  font-size: 0.78rem;
+  min-height: 1rem;
+  color: #dc2626;
+}
+
+.codex-form .form-error-banner {
+  grid-column: span 2;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  font-weight: 600;
+}
+
+.codex-checkbox label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.codex-checkbox input[type='checkbox'] {
+  width: auto;
 }
 
 .child-story-generator {

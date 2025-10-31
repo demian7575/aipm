@@ -25,14 +25,44 @@ npm install
 
 ## Development
 
-Launch the API server and static frontend with:
+Launch the API server, delegation service, and static frontend with:
 
 ```bash
 npm run dev
 ```
 
-- The service binds to port `4000` by default and automatically retries on the next available port if the address is in use.
+- The primary API binds to port `4000` by default and automatically retries on the next available port if the address is in use.
+- A companion delegation server for GitHub automation starts alongside the API (default port `4100`).
 - Static assets live under `apps/frontend/public/` and are served by the backend.
+
+To run just one component, use `npm run serve:api` (workspace API + frontend) or `npm run serve:delegate` (delegation server only).
+
+### Codex Delegation Flow
+
+The Details panel now includes a **Develop with Codex** button next to the story editor controls. Clicking it opens a modal that collects the GitHub repository, target issue/PR, branch plan, constraints, and acceptance criteria. The form:
+
+- Prefills the default AIPM repository (`demian7575/aipm`) and API URL. You can override these values per task; the new defaults persist only for that submission.
+- Requires a `GITHUB_TOKEN` environment variable with `repo:write` permissions. Export it before launching `npm run dev`/`npm run start`:
+
+  ```bash
+  export GITHUB_TOKEN=ghp_your_token_here
+  ```
+
+- Can create a brand-new issue (`Target = new issue`) or comment on an existing issue/PR by supplying its number.
+- Sends the modal payload to `/personal-delegate`, which posts the `@codex` brief using the bundled delegation server.
+- Automatically drafts a Given/When/Then acceptance test for the story after a successful delegation, seeding the steps with the
+  acceptance criteria entered in the modal.
+- Prefills the acceptance criteria textarea with de-duplicated Then steps from the story's existing acceptance tests (or a
+  persona/action/outcome fallback) so you can immediately submit or tweak the draft.
+
+If **Create tracking card** remains checked (the default), the UI stores a lightweight tracking entry in `localStorage` and renders a Codex task card beneath the story. Each card:
+
+- Links directly to the created issue or comment.
+- Polls GitHub every ~45 seconds for replies authored by Codex and surfaces the latest snippet plus any links it shared.
+- Includes **Stop tracking**, which removes the card and halts polling for that delegation. Uncheck **Create tracking card** in the modal to skip tracking altogether for a specific submission.
+- Persists across reloads (stored under the `aiPm.codexDelegations` key in `localStorage`). Clearing the key removes all cards and stops their polling timers.
+
+To adjust the default repository permanently, edit `apps/frontend/public/codex.js` (see `createDefaultCodexForm`).
 
 ### Available Panels & Controls
 

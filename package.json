@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node apps/backend/server.js",
-    "start": "node apps/backend/server.js",
+    "dev": "node scripts/run-with-delegate.mjs",
+    "start": "node scripts/run-with-delegate.mjs",
+    "serve:api": "node apps/backend/server.js",
+    "serve:delegate": "node server.js",
     "build": "node scripts/build.js",
     "test": "node --test",
     "lint": "echo 'No lint step configured'",
