@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_REPO_API_URL,
   createDefaultCodexForm,
+  buildAcceptanceTestIdea,
   validateCodexInput,
 } from '../apps/frontend/public/codex.js';
 
@@ -75,4 +76,17 @@ test('validateCodexInput requires a numeric identifier for existing issues', () 
   const validNumber = validateCodexInput({ ...base, target: 'issue', targetNumber: '42' });
   assert.equal(validNumber.valid, true);
   assert.deepEqual(validNumber.errors, {});
+});
+
+test('buildAcceptanceTestIdea summarises multiline criteria', () => {
+  const idea = buildAcceptanceTestIdea('First criterion\nSecond item');
+  assert.equal(idea, 'Acceptance criteria: First criterion; Second item');
+});
+
+test('buildAcceptanceTestIdea truncates lengthy summaries', () => {
+  const long = 'A'.repeat(1000);
+  const idea = buildAcceptanceTestIdea([long]);
+  assert.ok(idea.startsWith('Acceptance criterion: '));
+  assert.ok(idea.endsWith('…'));
+  assert.ok(idea.length <= 480);
 });

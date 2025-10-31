@@ -155,6 +155,17 @@ export function normalizeAcceptanceCriteria(text) {
     .filter((line) => line.length > 0);
 }
 
+export function buildAcceptanceTestIdea(input) {
+  const criteria = normalizeAcceptanceCriteria(input);
+  if (criteria.length === 0) {
+    return '';
+  }
+  const prefix = criteria.length === 1 ? 'Acceptance criterion: ' : 'Acceptance criteria: ';
+  const idea = `${prefix}${criteria.join('; ')}`;
+  const limit = 480;
+  return idea.length > limit ? `${idea.slice(0, limit - 1)}…` : idea;
+}
+
 export function buildDelegatePayload(story, formValues) {
   const values = { ...formValues };
   values.acceptanceCriteria = normalizeAcceptanceCriteria(values.acceptanceCriteria);

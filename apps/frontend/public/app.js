@@ -1,5 +1,6 @@
 import {
   DEFAULT_REPO_API_URL,
+  buildAcceptanceTestIdea,
   createDefaultCodexForm,
   createLocalDelegationEntry,
   summarizeCommentBody,
@@ -3987,6 +3988,46 @@ function openCodexDelegationModal(story) {
     }
   }
 
+  async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
+    if (!story || story.id == null) {
+      return false;
+    }
+    const idea = buildAcceptanceTestIdea(acceptanceCriteriaText);
+    try {
+      const draft = await fetchAcceptanceTestDraft(story.id, idea ? { idea } : undefined);
+      if (!draft) {
+        return false;
+      }
+      const given = Array.isArray(draft.given)
+        ? draft.given.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+        : [];
+      const when = Array.isArray(draft.when)
+        ? draft.when.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+        : [];
+      const then = Array.isArray(draft.then)
+        ? draft.then.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+        : [];
+      if (!given.length || !when.length || !then.length) {
+        return false;
+      }
+      await sendJson(`/api/stories/${story.id}/tests`, {
+        method: 'POST',
+        body: {
+          given,
+          when,
+          then,
+          status: draft.status || 'Draft',
+          acceptWarnings: true,
+        },
+      });
+      await loadStories();
+      return true;
+    } catch (error) {
+      console.error('Codex delegation acceptance test generation failed', error);
+      return false;
+    }
+  }
+
   function setSubmitButtonState(validation) {
     if (!submitButton) {
       return;
@@ -4037,6 +4078,8 @@ function openCodexDelegationModal(story) {
     setSubmitButtonState(validation);
 
     try {
+      const acceptanceCriteriaText = values.acceptanceCriteria;
+      const acceptanceCriteriaList = splitLines(acceptanceCriteriaText);
       const payload = {
         storyId: story?.id ?? null,
         storyTitle: story?.title ?? '',
@@ -4053,13 +4096,18 @@ function openCodexDelegationModal(story) {
         objective: values.objective,
         prTitle: values.prTitle,
         constraints: values.constraints,
-        acceptanceCriteria: splitLines(values.acceptanceCriteria),
+        acceptanceCriteria: acceptanceCriteriaList,
       };
 
       const result = await sendJson('/personal-delegate', {
         method: 'POST',
         body: payload,
       });
+
+      let acceptanceTestCreated = false;
+      if (story?.id != null) {
+        acceptanceTestCreated = await generateAcceptanceTestForDelegation(acceptanceCriteriaText);
+      }
 
       if (values.createTrackingCard) {
         const entry = createLocalDelegationEntry(story, values, result);
@@ -4068,7 +4116,10 @@ function openCodexDelegationModal(story) {
         }
       }
 
-      showToast('Codex task created', 'success');
+      const toastMessage = acceptanceTestCreated
+        ? 'Codex task created and acceptance test drafted.'
+        : 'Codex task created';
+      showToast(toastMessage, 'success');
       return true;
     } catch (error) {
       const message =
