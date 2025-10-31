@@ -213,11 +213,16 @@ export async function performDelegation(payload) {
         body,
       }),
     });
+    const comment = await githubRequest(`${repoPath}/issues/${issue.number}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    });
     return {
       type: 'issue',
       id: issue.id,
-      html_url: issue.html_url,
+      html_url: comment?.html_url || issue.html_url,
       number: issue.number,
+      commentId: comment?.id ?? null,
     };
   }
 

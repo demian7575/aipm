@@ -43,8 +43,11 @@ test('performDelegation posts to GitHub issues when creating new tasks', async (
   global.fetch = async (input, init = {}) => {
     const target = typeof input === 'string' ? input : input?.href || '';
     requests.push({ input, init });
-    if (target.includes('/issues')) {
+    if (target.endsWith('/issues')) {
       return createJsonResponse({ id: 123, html_url: 'https://github.com/issue/1', number: 77 }, 201);
+    }
+    if (target.includes('/issues/77/comments')) {
+      return createJsonResponse({ id: 456, html_url: 'https://github.com/issue/1#comment-456' }, 201);
     }
     return createJsonResponse({}, 200);
   };
@@ -64,10 +67,18 @@ test('performDelegation posts to GitHub issues when creating new tasks', async (
 
   assert.equal(result.type, 'issue');
   assert.equal(result.number, 77);
-  assert.equal(requests.length, 1);
-  const firstUrl =
-    typeof requests[0].input === 'string' ? requests[0].input : requests[0].input?.href || '';
-  assert.ok(firstUrl.includes('/repos/demian7575/aipm/issues'));
+  assert.equal(requests.length, 2);
+  const [issueRequest, commentRequest] = requests;
+  const issueUrl =
+    typeof issueRequest.input === 'string' ? issueRequest.input : issueRequest.input?.href || '';
+  assert.ok(issueUrl.includes('/repos/demian7575/aipm/issues'));
+  const commentUrl =
+    typeof commentRequest.input === 'string'
+      ? commentRequest.input
+      : commentRequest.input?.href || '';
+  assert.ok(commentUrl.includes('/repos/demian7575/aipm/issues/77/comments'));
+  assert.equal(result.commentId, 456);
+  assert.equal(result.html_url, 'https://github.com/issue/1#comment-456');
 
   t.after(() => {
     process.env.GITHUB_TOKEN = ORIGINAL_TOKEN;
@@ -79,6 +90,10 @@ test('delegation server endpoints respond with mocked GitHub data', async (t) =>
   process.env.GITHUB_TOKEN = 'test-token';
   const responses = {
     issues: createJsonResponse({ id: 1, html_url: 'https://github.com/issue/2', number: 99 }, 201),
+    creationComment: createJsonResponse(
+      { id: 401, html_url: 'https://github.com/issue/2#comment-401' },
+      201
+    ),
     comments: createJsonResponse([
       {
         id: 400,
@@ -93,6 +108,9 @@ test('delegation server endpoints respond with mocked GitHub data', async (t) =>
   global.fetch = async (input, init = {}) => {
     const target = typeof input === 'string' ? input : input?.href || '';
     if (target.includes('/issues/99/comments')) {
+      if ((init.method || 'GET').toUpperCase() === 'POST') {
+        return responses.creationComment;
+      }
       return responses.comments;
     }
     if (target.includes('/issues')) {
