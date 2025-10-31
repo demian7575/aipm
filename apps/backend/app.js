@@ -6,10 +6,6 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
-import {
-  handlePersonalDelegateRequest,
-  handlePersonalDelegateStatusRequest,
-} from '../../server.js';
 
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
 
@@ -4689,16 +4685,6 @@ export async function createApp() {
         'Access-Control-Allow-Headers': 'Content-Type',
       });
       res.end();
-      return;
-    }
-
-    if (pathname === '/personal-delegate' && method === 'POST') {
-      await handlePersonalDelegateRequest(req, res, url);
-      return;
-    }
-
-    if (pathname === '/personal-delegate/status' && method === 'GET') {
-      await handlePersonalDelegateStatusRequest(req, res, url);
       return;
     }
 

@@ -1366,7 +1366,7 @@ async function pollCodexStatus(entry) {
     targetType: entry.target === 'pr' ? 'pr' : 'issue',
   });
 
-  const data = await sendJson(`/personal-delegate/status?${params.toString()}`);
+  const data = await sendDelegationJson(`/personal-delegate/status?${params.toString()}`);
   entry.lastCheckedAt = data?.fetchedAt ?? new Date().toISOString();
   entry.lastError = null;
 
@@ -4154,7 +4154,7 @@ function openCodexDelegationModal(story) {
         acceptanceCriteria: acceptanceCriteriaList,
       };
 
-      const result = await sendJson('/personal-delegate', {
+      const result = await sendDelegationJson('/personal-delegate', {
         method: 'POST',
         body: payload,
       });
@@ -5328,6 +5328,84 @@ async function sendJson(url, options = {}) {
     throw error;
   }
   return data;
+}
+
+const DELEGATION_DEFAULT_PORT = 4100;
+
+function normalizeOrigin(origin) {
+  if (typeof origin !== 'string') {
+    return '';
+  }
+  const trimmed = origin.trim();
+  if (!trimmed) {
+    return '';
+  }
+  return trimmed.replace(/\/$/, '');
+}
+
+function buildDelegationOrigins() {
+  const origins = [];
+  const override = normalizeOrigin(window.DELEGATION_SERVER_ORIGIN);
+  if (override) {
+    origins.push(override);
+  }
+
+  const { protocol, hostname } = window.location;
+  const customPort = Number.parseInt(window.DELEGATION_SERVER_PORT, 10);
+  const port = Number.isFinite(customPort) && customPort > 0 ? customPort : DELEGATION_DEFAULT_PORT;
+
+  if (protocol && hostname) {
+    const defaultOrigin = normalizeOrigin(`${protocol}//${hostname}:${port}`);
+    if (defaultOrigin && !origins.includes(defaultOrigin)) {
+      origins.push(defaultOrigin);
+    }
+
+    if (hostname !== 'localhost') {
+      const localhostOrigin = normalizeOrigin(`${protocol}//localhost:${port}`);
+      if (localhostOrigin && !origins.includes(localhostOrigin)) {
+        origins.push(localhostOrigin);
+      }
+    }
+
+    if (hostname !== '127.0.0.1') {
+      const loopbackOrigin = normalizeOrigin(`${protocol}//127.0.0.1:${port}`);
+      if (loopbackOrigin && !origins.includes(loopbackOrigin)) {
+        origins.push(loopbackOrigin);
+      }
+    }
+  }
+
+  const sameOrigin = normalizeOrigin(window.location.origin);
+  if (sameOrigin && !origins.includes(sameOrigin)) {
+    origins.push(sameOrigin);
+  }
+
+  return origins;
+}
+
+async function sendDelegationJson(path, options = {}) {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const origins = buildDelegationOrigins();
+  let lastError = null;
+
+  for (const origin of origins) {
+    const target = origin ? `${origin}${normalizedPath}` : normalizedPath;
+    try {
+      return await sendJson(target, options);
+    } catch (error) {
+      lastError = error;
+      const status = error?.status;
+      if (status === 404 || status === 405 || error instanceof TypeError) {
+        continue;
+      }
+      break;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+  throw new Error('Delegation request failed');
 }
 
 function splitLines(value) {
