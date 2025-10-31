@@ -166,6 +166,119 @@ export function buildAcceptanceTestIdea(input) {
   return idea.length > limit ? `${idea.slice(0, limit - 1)}…` : idea;
 }
 
+function describePersona(persona) {
+  const text = String(persona || '').trim();
+  if (!text) {
+    return 'the user';
+  }
+  if (/^(?:the|a|an)\b/i.test(text)) {
+    return text;
+  }
+  return `the ${text}`;
+}
+
+function conjugateVerb(value) {
+  const verb = String(value || '').trim();
+  if (!verb) {
+    return verb;
+  }
+  const lower = verb.toLowerCase();
+  let conjugated = '';
+  if (/(?:s|sh|ch|x|z|o)$/i.test(lower)) {
+    conjugated = `${lower}es`;
+  } else if (/[bcdfghjklmnpqrstvwxyz]y$/i.test(lower)) {
+    conjugated = `${lower.slice(0, -1)}ies`;
+  } else {
+    conjugated = `${lower}s`;
+  }
+  if (verb[0] === verb[0].toUpperCase()) {
+    return conjugated.charAt(0).toUpperCase() + conjugated.slice(1);
+  }
+  return conjugated;
+}
+
+function normalizeActionPhrase(text) {
+  const raw = String(text || '').trim();
+  if (!raw) {
+    return 'works on the story requirements';
+  }
+  let normalized = raw.replace(/^to\s+/i, '').replace(/\.$/, '');
+  if (!normalized) {
+    return 'works on the story requirements';
+  }
+  const lowered = normalized.toLowerCase();
+  const leadingVerbs = /^(?:can|must|should|needs to|attempts to|tries to|works to|is able to)\b/;
+  if (leadingVerbs.test(lowered)) {
+    return normalized;
+  }
+  const directVerbs = /^(?:review|view|update|create|delete|manage|configure|complete|submit|see|access|verify|schedule|plan|approve|delegate)\b/;
+  if (directVerbs.test(lowered)) {
+    const [verb, ...rest] = normalized.split(/\s+/);
+    const conjugated = conjugateVerb(verb);
+    const remainder = rest.join(' ');
+    return remainder ? `${conjugated} ${remainder}` : conjugated;
+  }
+  return `works to ${normalized}`;
+}
+
+function normalizeOutcomePhrase(text) {
+  const raw = String(text || '').trim();
+  if (!raw) {
+    return 'the desired outcome is verified with stakeholders';
+  }
+  const normalized = raw.replace(/^so that\s+/i, '').replace(/\.$/, '');
+  if (!normalized) {
+    return 'the desired outcome is verified with stakeholders';
+  }
+  return normalized;
+}
+
+function buildThenStepsFromCriteria(criteria) {
+  if (!Array.isArray(criteria) || criteria.length === 0) {
+    return null;
+  }
+  const steps = criteria
+    .map((line) => String(line || '').trim())
+    .filter((line) => line.length > 0)
+    .map((line) => line.replace(/^[-*]\s*/, ''))
+    .map((line) => line.replace(/^(?:then|and)\s+/i, ''))
+    .map((line) => line.replace(/\.$/, ''))
+    .filter((line) => line.length > 0);
+  if (!steps.length) {
+    return null;
+  }
+  return steps.map((line, index) => `${index === 0 ? 'Then' : 'And'} ${line}`);
+}
+
+export function buildAcceptanceTestFallback(story, acceptanceCriteriaInput) {
+  const persona = describePersona(story?.asA);
+  const actionSource = story?.iWant || story?.title || '';
+  const action = normalizeActionPhrase(actionSource);
+  const outcome = normalizeOutcomePhrase(story?.soThat);
+  const ordinal = Array.isArray(story?.acceptanceTests)
+    ? story.acceptanceTests.length + 1
+    : 1;
+  const titleBase = String(story?.title || '').trim() || `Story ${story?.id ?? ''}`.trim();
+  const titleSuffix = titleBase ? `${titleBase} – Delegation verification #${ordinal}` : `Delegation verification #${ordinal}`;
+  const criteria = normalizeAcceptanceCriteria(acceptanceCriteriaInput);
+  const thenSteps = buildThenStepsFromCriteria(criteria);
+
+  const given = [`Given ${persona} has access to the system`];
+  const when = [`When ${persona} ${action}`];
+  const then = thenSteps ?? [
+    `Then ${outcome}`,
+    'And the implementation meets the documented acceptance criteria',
+  ];
+
+  return {
+    title: titleSuffix,
+    given,
+    when,
+    then,
+    status: 'Draft',
+  };
+}
+
 export function buildDelegatePayload(story, formValues) {
   const values = { ...formValues };
   values.acceptanceCriteria = normalizeAcceptanceCriteria(values.acceptanceCriteria);

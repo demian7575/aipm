@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_REPO_API_URL,
   createDefaultCodexForm,
+  buildAcceptanceTestFallback,
   buildAcceptanceTestIdea,
   validateCodexInput,
 } from '../apps/frontend/public/codex.js';
@@ -89,4 +90,27 @@ test('buildAcceptanceTestIdea truncates lengthy summaries', () => {
   assert.ok(idea.startsWith('Acceptance criterion: '));
   assert.ok(idea.endsWith('…'));
   assert.ok(idea.length <= 480);
+});
+
+test('buildAcceptanceTestFallback maps acceptance criteria into then steps', () => {
+  const fallback = buildAcceptanceTestFallback(
+    {
+      id: 7,
+      title: 'Improve notifications',
+      asA: 'Product manager',
+      iWant: 'to review release readiness',
+      soThat: 'stakeholders stay informed',
+      acceptanceTests: [{ id: 1 }],
+    },
+    'Send summary email\nShow deployment checklist'
+  );
+
+  assert.equal(fallback.status, 'Draft');
+  assert.ok(Array.isArray(fallback.given));
+  assert.ok(Array.isArray(fallback.when));
+  assert.ok(Array.isArray(fallback.then));
+  assert.equal(fallback.then[0], 'Then Send summary email');
+  assert.equal(fallback.then[1], 'And Show deployment checklist');
+  assert.match(fallback.title, /Improve notifications/);
+  assert.match(fallback.when[0], /Product manager/i);
 });

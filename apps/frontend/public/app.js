@@ -1,5 +1,6 @@
 import {
   DEFAULT_REPO_API_URL,
+  buildAcceptanceTestFallback,
   buildAcceptanceTestIdea,
   createDefaultCodexForm,
   createLocalDelegationEntry,
@@ -3993,11 +3994,16 @@ function openCodexDelegationModal(story) {
       return false;
     }
     const idea = buildAcceptanceTestIdea(acceptanceCriteriaText);
+    const attempts = [];
+    let draft = null;
+
     try {
-      const draft = await fetchAcceptanceTestDraft(story.id, idea ? { idea } : undefined);
-      if (!draft) {
-        return false;
-      }
+      draft = await fetchAcceptanceTestDraft(story.id, idea ? { idea } : undefined);
+    } catch (error) {
+      console.error('Codex delegation acceptance test draft failed', error);
+    }
+
+    if (draft) {
       const given = Array.isArray(draft.given)
         ? draft.given.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
         : [];
@@ -4007,25 +4013,74 @@ function openCodexDelegationModal(story) {
       const then = Array.isArray(draft.then)
         ? draft.then.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
         : [];
-      if (!given.length || !when.length || !then.length) {
-        return false;
-      }
-      await sendJson(`/api/stories/${story.id}/tests`, {
-        method: 'POST',
-        body: {
+      if (given.length && when.length && then.length) {
+        attempts.push({
+          title: typeof draft.title === 'string' ? draft.title : undefined,
           given,
           when,
           then,
           status: draft.status || 'Draft',
-          acceptWarnings: true,
-        },
-      });
-      await loadStories();
-      return true;
-    } catch (error) {
-      console.error('Codex delegation acceptance test generation failed', error);
-      return false;
+        });
+      }
     }
+
+    const fallbackDraft = buildAcceptanceTestFallback(story, acceptanceCriteriaText);
+    if (fallbackDraft) {
+      const normalizedFallback = {
+        title: fallbackDraft.title || undefined,
+        status: fallbackDraft.status || 'Draft',
+        given: Array.isArray(fallbackDraft.given)
+          ? fallbackDraft.given.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+          : [],
+        when: Array.isArray(fallbackDraft.when)
+          ? fallbackDraft.when.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+          : [],
+        then: Array.isArray(fallbackDraft.then)
+          ? fallbackDraft.then.map((step) => String(step || '').trim()).filter((step) => step.length > 0)
+          : [],
+      };
+      if (
+        normalizedFallback.given.length &&
+        normalizedFallback.when.length &&
+        normalizedFallback.then.length &&
+        !attempts.some(
+          (attempt) =>
+            attempt &&
+            JSON.stringify(attempt.given) === JSON.stringify(normalizedFallback.given) &&
+            JSON.stringify(attempt.when) === JSON.stringify(normalizedFallback.when) &&
+            JSON.stringify(attempt.then) === JSON.stringify(normalizedFallback.then)
+        )
+      ) {
+        attempts.push(normalizedFallback);
+      }
+    }
+
+    let lastError = null;
+    for (const attempt of attempts) {
+      try {
+        await sendJson(`/api/stories/${story.id}/tests`, {
+          method: 'POST',
+          body: {
+            title: attempt.title,
+            given: attempt.given,
+            when: attempt.when,
+            then: attempt.then,
+            status: attempt.status || 'Draft',
+            acceptWarnings: true,
+          },
+        });
+        await loadStories();
+        return true;
+      } catch (error) {
+        lastError = error;
+        console.error('Codex delegation acceptance test creation attempt failed', error);
+      }
+    }
+
+    if (lastError) {
+      console.error('Codex delegation acceptance test generation failed', lastError);
+    }
+    return false;
   }
 
   function setSubmitButtonState(validation) {
