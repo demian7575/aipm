@@ -6,5 +6,6 @@ docs/examples/*.sqlite
 docs/examples/*.json
 !docs/examples/app.sqlite.json
 !docs/examples/aipm.app.sqlite.json
+!docs/examples/codex-delegation-sample.json
 dist/
 .DS_Store

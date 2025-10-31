@@ -1,0 +1,51 @@
+{
+  "delegation": {
+    "id": "builtin-2d5b4a1e-9af5-47ec-9c19-11a1dfc84571",
+    "prUrl": "https://api.github.com/repos/acme/security-suite/pull/4821",
+    "status": "Queued",
+    "summary": "ChatGPT Codex delegation queued for story \"Enable passwordless login\" using plan Personal Plus. Instructions: Implement WebAuthn enrollment and authentication for desktop and mobile flows. Context: Linked to epic PAM-1043 for audit reporting.",
+    "metadata": {
+      "repositoryUrl": "https://api.github.com/repos/acme/security-suite",
+      "branch": "feature/passwordless-login",
+      "plan": "personal-plus",
+      "additionalContext": "Linked to epic PAM-1043 for audit reporting.",
+      "builtIn": true,
+      "chatgptTask": {
+        "id": "task_e_6902ec7a04008333a862a9facfbfc6bc",
+        "url": "https://chatgpt.com/codex/tasks/task_e_6902ec7a04008333a862a9facfbfc6bc",
+        "status": "Queued"
+      }
+    },
+    "source": "chatgpt",
+    "repositoryUrl": "https://api.github.com/repos/acme/security-suite",
+    "branch": "feature/passwordless-login",
+    "plan": "Personal Plus",
+    "queuedAt": "2024-06-18T15:02:41.102Z",
+    "chatgptTaskUrl": "https://chatgpt.com/codex/tasks/task_e_6902ec7a04008333a862a9facfbfc6bc",
+    "assigneeEmail": "delegate@example.com"
+  },
+  "tasks": [
+    {
+      "id": 301,
+      "storyId": 7,
+      "title": "Develop with Codex (Personal Plus)",
+      "description": "Repository: https://api.github.com/repos/acme/security-suite\n\nBranch: feature/passwordless-login\n\nPlan: Personal Plus\n\nInstructions: Implement WebAuthn enrollment and authentication for desktop and mobile flows.\n\nAdditional context: Linked to epic PAM-1043 for audit reporting.\n\nDelegation request acknowledged\nDelegation ID: builtin-2d5b4a1e-9af5-47ec-9c19-11a1dfc84571.\n\nChatGPT Codex task: https://chatgpt.com/codex/tasks/task_e_6902ec7a04008333a862a9facfbfc6bc\n\nChatGPT Codex status: Queued",
+      "status": "Done",
+      "assigneeEmail": "delegate@example.com",
+      "estimationHours": null,
+      "createdAt": "2024-06-18T15:02:41.102Z",
+      "updatedAt": "2024-06-18T15:02:41.568Z"
+    },
+    {
+      "id": 302,
+      "storyId": 7,
+      "title": "Codex PR (Queued)",
+      "description": "Delegation ID: builtin-2d5b4a1e-9af5-47ec-9c19-11a1dfc84571\n\nPlan: Personal Plus\n\nOperator: delegate@example.com\n\nSummary: ChatGPT Codex delegation queued for story \"Enable passwordless login\" using plan Personal Plus. Instructions: Implement WebAuthn enrollment and authentication for desktop and mobile flows. Context: Linked to epic PAM-1043 for audit reporting.\n\nPull request: https://api.github.com/repos/acme/security-suite/pull/4821\n\nChatGPT Codex task: https://chatgpt.com/codex/tasks/task_e_6902ec7a04008333a862a9facfbfc6bc\n\nCodex task status: Queued\n\nAdditional context:\nLinked to epic PAM-1043 for audit reporting.",
+      "status": "In Progress",
+      "assigneeEmail": "delegate@example.com",
+      "estimationHours": null,
+      "createdAt": "2024-06-18T15:02:41.430Z",
+      "updatedAt": "2024-06-18T15:02:41.430Z"
+    }
+  ]
+}
