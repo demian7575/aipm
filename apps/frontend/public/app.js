@@ -3517,7 +3517,14 @@ function renderDetails() {
               </tr>
               <tr>
                 <th scope="row">Estimation (hrs)</th>
-    <td>${formatEstimationHours(task.estimationHours ?? task.estimation_hours ?? task.estimation)}</td>
+                <td>${formatEstimationHours(task.estimationHours ?? task.estimation_hours ?? task.estimation)}</td>
+              </tr>
+              <tr>
+                <th scope="row">Actions</th>
+                <td class="actions">
+                  <button type="button" class="secondary" data-action="edit-task" data-task-id="${task.id}">Edit</button>
+                  <button type="button" class="danger" data-action="delete-task" data-task-id="${task.id}">Delete</button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -3535,13 +3542,52 @@ function renderDetails() {
     ?.addEventListener('click', () => openTaskModal(story.id));
 
   taskList.querySelectorAll('.task-table').forEach((table) => {
-    table.addEventListener('click', () => {
+    table.addEventListener('click', (event) => {
+      if (event.target.closest('[data-action]')) {
+        return;
+      }
       const taskId = Number(table.getAttribute('data-task-id'));
       const target = Array.isArray(story.tasks)
         ? story.tasks.find((item) => item.id === taskId)
         : null;
       if (target) {
         openTaskModal(story.id, target);
+      }
+    });
+  });
+
+  taskList.querySelectorAll('[data-action="edit-task"]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const taskId = Number(button.getAttribute('data-task-id'));
+      if (!Number.isFinite(taskId)) {
+        return;
+      }
+      const target = Array.isArray(story.tasks)
+        ? story.tasks.find((item) => item.id === taskId)
+        : null;
+      if (target) {
+        openTaskModal(story.id, target);
+      }
+    });
+  });
+
+  taskList.querySelectorAll('[data-action="delete-task"]').forEach((button) => {
+    button.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      const taskId = Number(button.getAttribute('data-task-id'));
+      if (!Number.isFinite(taskId)) {
+        return;
+      }
+      if (!window.confirm('Delete this task?')) {
+        return;
+      }
+      try {
+        await deleteTask(taskId);
+        await loadStories();
+        showToast('Task deleted', 'success');
+      } catch (error) {
+        showToast(error.message || 'Failed to delete task', 'error');
       }
     });
   });
@@ -5172,6 +5218,10 @@ async function createTask(storyId, payload) {
 
 async function updateTask(taskId, payload) {
   return await sendJson(`/api/tasks/${taskId}`, { method: 'PATCH', body: payload });
+}
+
+async function deleteTask(taskId) {
+  return await sendJson(`/api/tasks/${taskId}`, { method: 'DELETE' });
 }
 
 async function uploadReferenceFile(file) {

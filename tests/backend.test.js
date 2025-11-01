@@ -49,6 +49,7 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.equal(stories.length, 1);
   const story = stories[0];
   const originalTestCount = Array.isArray(story.acceptanceTests) ? story.acceptanceTests.length : 0;
+  const originalTaskCount = Array.isArray(story.tasks) ? story.tasks.length : 0;
   assert.equal(story.storyPoint, 5);
   assert.equal(story.assigneeEmail, 'pm@example.com');
   assert.ok(Array.isArray(story.components));
@@ -320,6 +321,23 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.ok(refreshedStory);
   assert.ok(Array.isArray(refreshedStory.tasks));
   assert.ok(refreshedStory.tasks.some((task) => task.id === createdTask.id && task.status === 'Done'));
+  const postTaskCount = refreshedStory.tasks.length;
+
+  const deleteTaskResponse = await fetch(`${baseUrl}/api/tasks/${createdTask.id}`, {
+    method: 'DELETE',
+  });
+  assert.equal(deleteTaskResponse.status, 204);
+  await deleteTaskResponse.text();
+
+  const postDeleteStoriesResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(postDeleteStoriesResponse.status, 200);
+  const postDeleteStories = await postDeleteStoriesResponse.json();
+  const afterDeleteStory = postDeleteStories.find((item) => item.id === story.id);
+  assert.ok(afterDeleteStory);
+  assert.ok(Array.isArray(afterDeleteStory.tasks));
+  assert.equal(afterDeleteStory.tasks.length, postTaskCount - 1);
+  assert.ok(afterDeleteStory.tasks.every((task) => task.id !== createdTask.id));
+  assert.ok(afterDeleteStory.tasks.length >= originalTaskCount);
 
   const fallbackComponent = primaryComponents[0] || COMPONENT_CATALOG[0] || 'WorkModel';
   const invalidStoryPoint = await fetch(`${baseUrl}/api/stories`, {
