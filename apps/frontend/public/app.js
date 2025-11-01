@@ -2738,7 +2738,6 @@ function renderDetails() {
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
-      <button type="button" class="secondary" id="codex-delegate-btn">Develop with Codex</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
     </div>
     <div class="full field-row">
@@ -3137,7 +3136,6 @@ function renderDetails() {
   const saveButton = form.querySelector('button[type="submit"]');
   const editButton = form.querySelector('#edit-story-btn');
   const deleteButton = form.querySelector('#delete-story-btn');
-  const codexButton = form.querySelector('#codex-delegate-btn');
   const editableFields = Array.from(
     form.querySelectorAll('input[name], textarea[name], select[name]')
   );
@@ -3206,10 +3204,6 @@ function renderDetails() {
   deleteButton?.addEventListener('click', (event) => {
     event.preventDefault();
     void confirmAndDeleteStory(story.id);
-  });
-
-  codexButton?.addEventListener('click', () => {
-    openCodexDelegationModal(story);
   });
 
   const emailBtn = form.querySelector('#assignee-email-btn');
