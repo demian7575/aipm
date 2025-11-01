@@ -1230,6 +1230,52 @@ test('story dependency APIs work with JSON fallback database', async (t) => {
   assert.ok(afterDelete.dependencies.every((entry) => entry.storyId !== dependencyStory.id));
 });
 
+test('personalized dashboard surfaces assignee workload', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  const missingResponse = await fetch(`${baseUrl}/api/dashboard/personalized`);
+  assert.equal(missingResponse.status, 400);
+
+  const pmResponse = await fetch(
+    `${baseUrl}/api/dashboard/personalized?assigneeEmail=pm@example.com`
+  );
+  assert.equal(pmResponse.status, 200);
+  const pmData = await pmResponse.json();
+  assert.equal(pmData.assigneeEmail, 'pm@example.com');
+  assert.equal(pmData.requestedAssigneeEmail, 'pm@example.com');
+  assert.equal(pmData.totals.stories, 1);
+  assert.ok(pmData.totals.storyPoints >= 5);
+  assert.ok(Array.isArray(pmData.stories));
+  assert.equal(pmData.stories.length, 1);
+  assert.ok(Array.isArray(pmData.stories[0].acceptanceTests));
+  assert.ok(
+    Object.values(pmData.statuses || {}).some((count) => Number(count) >= 1),
+    'Personalized dashboard should report at least one story status summary'
+  );
+  assert.ok(Array.isArray(pmData.componentFocus));
+  assert.ok(pmData.componentFocus.length >= 1);
+
+  const designerResponse = await fetch(
+    `${baseUrl}/api/dashboard/personalized?assigneeEmail=designer@example.com`
+  );
+  assert.equal(designerResponse.status, 200);
+  const designerData = await designerResponse.json();
+  assert.ok(designerData.totals.tasks >= 2);
+  assert.ok(
+    designerData.tasks.every((task) => task.assigneeEmail === 'designer@example.com')
+  );
+  assert.ok((designerData.taskStatuses?.['In Progress'] ?? 0) >= 1);
+});
+
 test('sample dataset generator produces 50 stories and mirrored acceptance tests', async () => {
   const outputPath = path.join(process.cwd(), 'docs', 'examples', 'generated-sample.sqlite');
   await fs.rm(outputPath, { force: true });

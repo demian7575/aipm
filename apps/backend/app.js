@@ -1991,6 +1991,13 @@ function normalizeTaskStatus(value) {
   return match;
 }
 
+function normalizeAssigneeEmailInput(value) {
+  if (value == null) {
+    return '';
+  }
+  return String(value).trim();
+}
+
 function normalizeTaskEstimationHours(value) {
   if (value == null || value === '') {
     return null;
@@ -4197,6 +4204,121 @@ function loadDependencyRows(db) {
   }
 }
 
+function buildStatusCounts(collection, accessor) {
+  const counts = Object.create(null);
+  collection.forEach((item) => {
+    const key = accessor(item);
+    if (!key) {
+      return;
+    }
+    counts[key] = (counts[key] ?? 0) + 1;
+  });
+  return counts;
+}
+
+function buildComponentCounts(stories) {
+  const counts = new Map();
+  stories.forEach((story) => {
+    if (!Array.isArray(story.components)) {
+      return;
+    }
+    story.components.forEach((component) => {
+      if (!component) {
+        return;
+      }
+      const normalized = COMPONENT_LOOKUP.get(String(component).toLowerCase()) || component;
+      counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+    });
+  });
+  return Array.from(counts.entries())
+    .map(([component, count]) => ({ component, count }))
+    .sort((a, b) => a.component.localeCompare(b.component));
+}
+
+async function loadPersonalizedDashboard(db, assigneeEmail) {
+  const requestedAssigneeEmail = normalizeAssigneeEmailInput(assigneeEmail);
+  const lookupKey = requestedAssigneeEmail.toLowerCase();
+
+  if (!lookupKey) {
+    return {
+      requestedAssigneeEmail: '',
+      assigneeEmail: '',
+      totals: { stories: 0, storyPoints: 0, blockedStories: 0, tasks: 0, blockedTasks: 0 },
+      statuses: {},
+      taskStatuses: {},
+      componentFocus: [],
+      stories: [],
+      tasks: [],
+    };
+  }
+
+  const storyRows = db
+    .prepare(
+      "SELECT id, assignee_email FROM user_stories WHERE assignee_email IS NOT NULL AND TRIM(assignee_email) <> '' ORDER BY id"
+    )
+    .all();
+
+  const matchingStoryRows = storyRows.filter((row) => {
+    const candidate = normalizeAssigneeEmailInput(row.assignee_email).toLowerCase();
+    return candidate === lookupKey;
+  });
+
+  const stories = [];
+  let totalStoryPoints = 0;
+  let blockedStories = 0;
+
+  for (const row of matchingStoryRows) {
+    const story = await loadStoryWithDetails(db, row.id);
+    if (!story) {
+      continue;
+    }
+    stories.push(story);
+    const numericPoint = Number(story.storyPoint);
+    if (Number.isFinite(numericPoint)) {
+      totalStoryPoints += numericPoint;
+    }
+    if (story.status === 'Blocked') {
+      blockedStories += 1;
+    }
+  }
+
+  const taskRows = db
+    .prepare(
+      "SELECT * FROM tasks WHERE assignee_email IS NOT NULL AND TRIM(assignee_email) <> '' ORDER BY updated_at DESC, id DESC"
+    )
+    .all()
+    .filter((row) => normalizeAssigneeEmailInput(row.assignee_email).toLowerCase() === lookupKey);
+
+  const tasks = taskRows.map((row) => buildTaskFromRow(row));
+
+  const totals = {
+    stories: stories.length,
+    storyPoints: totalStoryPoints,
+    blockedStories,
+    tasks: tasks.length,
+    blockedTasks: tasks.filter((task) => task.status === 'Blocked').length,
+  };
+
+  const statuses = buildStatusCounts(stories, (story) => story.status);
+  const taskStatuses = buildStatusCounts(tasks, (task) => task.status);
+  const componentFocus = buildComponentCounts(stories);
+
+  const assigneeDisplayEmail =
+    normalizeAssigneeEmailInput(matchingStoryRows[0]?.assignee_email) ||
+    (tasks[0]?.assigneeEmail ?? requestedAssigneeEmail);
+
+  return {
+    requestedAssigneeEmail,
+    assigneeEmail: assigneeDisplayEmail,
+    totals,
+    statuses,
+    taskStatuses,
+    componentFocus,
+    stories,
+    tasks,
+  };
+}
+
 async function loadStories(db) {
   const storyRows = db
     .prepare('SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id')
@@ -4732,6 +4854,27 @@ export async function createApp() {
             details: error.message,
           });
         }
+      }
+      return;
+    }
+
+    if (pathname === '/api/dashboard/personalized' && method === 'GET') {
+      const assigneeEmail = normalizeAssigneeEmailInput(
+        url.searchParams.get('assigneeEmail') ?? url.searchParams.get('assignee') ?? ''
+      );
+      if (!assigneeEmail) {
+        sendJson(res, 400, { message: 'assigneeEmail query parameter is required' });
+        return;
+      }
+      try {
+        const payload = await loadPersonalizedDashboard(db, assigneeEmail);
+        sendJson(res, 200, payload);
+      } catch (error) {
+        console.error('Failed to load personalized dashboard', error);
+        const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
+        sendJson(res, statusCode, {
+          message: error.message || 'Failed to load personalized dashboard',
+        });
       }
       return;
     }
