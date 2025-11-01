@@ -2738,8 +2738,10 @@ function renderDetails() {
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
-      <button type="button" class="secondary" id="codex-delegate-btn">Develop with Codex</button>
-      <button type="button" class="danger" id="delete-story-btn">Delete</button>
+      <div class="form-toolbar__actions" role="group" aria-label="Story actions">
+        <button type="button" class="danger" id="delete-story-btn">Delete</button>
+        <button type="button" class="secondary" id="codex-delegate-btn">Develop with Codex</button>
+      </div>
     </div>
     <div class="full field-row">
       <label>Title</label>

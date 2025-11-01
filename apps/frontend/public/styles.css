@@ -826,6 +826,24 @@ body.is-mindmap-panning {
   background: #ffffff;
 }
 
+.form-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.form-toolbar__actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.form-toolbar__actions > button {
+  flex: 0 0 auto;
+}
+
 .form-actions {
   display: flex;
   gap: 0.75rem;
@@ -1818,5 +1836,24 @@ dialog[data-size='content'] .modal-shell {
   }
   .panel {
     min-height: 300px;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .form-toolbar__actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+
+  .form-toolbar__actions > button {
+    width: 100%;
   }
 }
