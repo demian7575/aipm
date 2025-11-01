@@ -1,17 +1,38 @@
 import { spawn } from 'node:child_process';
 
+function shouldStartDelegateServer() {
+  const value = process.env.AI_PM_ENABLE_CODEX_DELEGATION;
+  if (value == null) {
+    return false;
+  }
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized.length === 0) {
+    return false;
+  }
+  return ['1', 'true', 'yes', 'on', 'enable', 'enabled'].includes(normalized);
+}
+
 const processes = [
   {
     name: 'backend',
     command: 'node',
     args: ['apps/backend/server.js'],
   },
-  {
+];
+
+const includeDelegate = shouldStartDelegateServer();
+
+if (includeDelegate) {
+  processes.push({
     name: 'delegate',
     command: 'node',
     args: ['server.js'],
-  },
-];
+  });
+} else {
+  console.log(
+    '[delegate] Skipping Codex delegation server (set AI_PM_ENABLE_CODEX_DELEGATION=1 to enable).'
+  );
+}
 
 const children = [];
 let shuttingDown = false;

@@ -25,21 +25,21 @@ npm install
 
 ## Development
 
-Launch the API server, delegation service, and static frontend with:
+Launch the API server (and optionally the Codex delegation service) plus the static frontend with:
 
 ```bash
 npm run dev
 ```
 
 - The primary API binds to port `4000` by default and automatically retries on the next available port if the address is in use.
-- A companion delegation server for GitHub automation starts alongside the API (default port `4100`).
+- Set `AI_PM_ENABLE_CODEX_DELEGATION=1` before running the command to automatically start the companion delegation server for GitHub automation (default port `4100`). Otherwise launch it on demand with `npm run serve:delegate` when you plan to use Codex delegation.
 - Static assets live under `apps/frontend/public/` and are served by the backend.
 
 To run just one component, use `npm run serve:api` (workspace API + frontend) or `npm run serve:delegate` (delegation server only).
 
 ### Codex Delegation Flow
 
-The Details panel now includes a **Develop with Codex** button next to the story editor controls. Clicking it opens a modal that collects the GitHub repository, target issue/PR, branch plan, constraints, and acceptance criteria. The form:
+The Details panel now includes a **Develop with Codex** button next to the story editor controls. Start the delegation server manually (for example with `npm run serve:delegate`) or set `AI_PM_ENABLE_CODEX_DELEGATION=1` before `npm run dev`/`npm run start` when you plan to use the Codex delegation feature. Clicking it opens a modal that collects the GitHub repository, target issue/PR, branch plan, constraints, and acceptance criteria. The form:
 
 - Prefills the default AIPM repository (`demian7575/aipm`) and API URL. You can override these values per task; the new defaults persist only for that submission.
 - Requires a `GITHUB_TOKEN` environment variable with `repo:write` permissions. Export it before launching `npm run dev`/`npm run start`:
