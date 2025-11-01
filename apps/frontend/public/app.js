@@ -112,6 +112,8 @@ const UNSPECIFIED_COMPONENT = 'Unspecified';
 
 const TASK_STATUS_OPTIONS = ['Not Started', 'In Progress', 'Blocked', 'Done'];
 
+const TASK_TYPE_OPTIONS = ['Manual', 'Codex task'];
+
 const STATUS_CLASS_MAP = {
   Draft: 'status-draft',
   Ready: 'status-ready',
@@ -272,6 +274,19 @@ function normalizeTaskRecord(task) {
   if (!Object.prototype.hasOwnProperty.call(normalized, 'estimationHours')) {
     normalized.estimationHours = null;
   }
+  const statusText = typeof normalized.status === 'string' ? normalized.status.trim() : '';
+  const statusMatch = TASK_STATUS_OPTIONS.find(
+    (option) => option.toLowerCase() === statusText.toLowerCase()
+  );
+  normalized.status = statusMatch || TASK_STATUS_OPTIONS[0];
+  const typeText = typeof normalized.type === 'string' ? normalized.type.trim() : '';
+  const typeMatch = TASK_TYPE_OPTIONS.find(
+    (option) => option.toLowerCase() === typeText.toLowerCase()
+  );
+  normalized.type = typeMatch || TASK_TYPE_OPTIONS[0];
+  normalized.assigneeEmail = normalized.assigneeEmail ? String(normalized.assigneeEmail).trim() : '';
+  normalized.title = normalized.title ? String(normalized.title).trim() : '';
+  normalized.description = normalized.description ? String(normalized.description) : '';
   return normalized;
 }
 
@@ -3504,6 +3519,10 @@ function renderDetails() {
                 <td>${escapeHtml(task.title || '')}</td>
               </tr>
               <tr>
+                <th scope="row">Type</th>
+                <td>${escapeHtml(task.type || TASK_TYPE_OPTIONS[0])}</td>
+              </tr>
+              <tr>
                 <th scope="row">Assignee</th>
                 <td>${task.assigneeEmail ? escapeHtml(task.assigneeEmail) : '—'}</td>
               </tr>
@@ -4818,6 +4837,16 @@ function openTaskModal(storyId, task = null) {
   container.className = 'modal-form task-form';
   container.innerHTML = `
     <label>Title<input id="task-title" /></label>
+    <label>Task Type
+      <select id="task-type"></select>
+    </label>
+    <div class="idea-section" id="task-idea-section">
+      <label>Idea<textarea id="task-idea" placeholder="Describe the outcome or idea for this task"></textarea></label>
+      <div class="idea-actions">
+        <button type="button" class="secondary small" id="task-idea-generate">Generate</button>
+        <p class="form-hint">Use your idea to draft the task details automatically.</p>
+      </div>
+    </div>
     <label>Assignee<input id="task-assignee" type="email" placeholder="owner@example.com" /></label>
     <label>Status
       <select id="task-status"></select>
@@ -4827,10 +4856,23 @@ function openTaskModal(storyId, task = null) {
   `;
 
   const titleInput = container.querySelector('#task-title');
+  const typeSelect = container.querySelector('#task-type');
+  const ideaSection = container.querySelector('#task-idea-section');
+  const ideaInput = container.querySelector('#task-idea');
+  const ideaGenerateBtn = container.querySelector('#task-idea-generate');
   const assigneeInput = container.querySelector('#task-assignee');
   const statusSelect = container.querySelector('#task-status');
   const estimationInput = container.querySelector('#task-estimation');
   const descriptionInput = container.querySelector('#task-description');
+
+  if (typeSelect) {
+    TASK_TYPE_OPTIONS.forEach((type) => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = type;
+      typeSelect.appendChild(option);
+    });
+  }
 
   TASK_STATUS_OPTIONS.forEach((status) => {
     const option = document.createElement('option');
@@ -4838,6 +4880,12 @@ function openTaskModal(storyId, task = null) {
     option.textContent = status;
     statusSelect.appendChild(option);
   });
+
+  const refreshIdeaVisibility = () => {
+    if (!ideaSection) return;
+    const selectedType = typeSelect ? typeSelect.value : TASK_TYPE_OPTIONS[0];
+    ideaSection.hidden = selectedType !== 'Codex task';
+  };
 
   if (task) {
     titleInput.value = task.title || '';
@@ -4856,12 +4904,72 @@ function openTaskModal(storyId, task = null) {
     if (task.status && TASK_STATUS_OPTIONS.includes(task.status)) {
       statusSelect.value = task.status;
     }
+    if (typeSelect && task.type && TASK_TYPE_OPTIONS.includes(task.type)) {
+      typeSelect.value = task.type;
+    }
   } else {
     statusSelect.value = TASK_STATUS_OPTIONS[0];
+    if (typeSelect) {
+      typeSelect.value = TASK_TYPE_OPTIONS[0];
+    }
     const parentStory = state.stories.find((item) => item.id === storyId);
     if (parentStory?.assigneeEmail) {
       assigneeInput.value = parentStory.assigneeEmail;
     }
+  }
+
+  refreshIdeaVisibility();
+  typeSelect?.addEventListener('change', refreshIdeaVisibility);
+
+  if (ideaGenerateBtn && ideaInput) {
+    ideaGenerateBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      const ideaText = ideaInput.value.trim();
+      if (!ideaText) {
+        showToast('Enter an idea to generate a Codex task.', 'error');
+        ideaInput.focus();
+        return;
+      }
+      const originalLabel = ideaGenerateBtn.textContent;
+      ideaGenerateBtn.disabled = true;
+      ideaGenerateBtn.textContent = 'Generating…';
+      try {
+        const draft = await fetchTaskDraft(storyId, { idea: ideaText });
+        if (draft?.title) {
+          titleInput.value = draft.title;
+        }
+        if (draft?.description) {
+          descriptionInput.value = draft.description;
+        }
+        if (draft?.assigneeEmail) {
+          assigneeInput.value = draft.assigneeEmail;
+        }
+        if (draft?.status && TASK_STATUS_OPTIONS.includes(draft.status)) {
+          statusSelect.value = draft.status;
+        }
+        if (typeSelect && draft?.type && TASK_TYPE_OPTIONS.includes(draft.type)) {
+          typeSelect.value = draft.type;
+        } else if (typeSelect) {
+          typeSelect.value = 'Codex task';
+        }
+        if (draft?.estimationHours != null && draft.estimationHours !== '') {
+          const numeric = Number(draft.estimationHours);
+          if (Number.isFinite(numeric) && numeric >= 0) {
+            estimationInput.value = numeric;
+          }
+        }
+        if (draft?.idea && ideaInput) {
+          ideaInput.value = draft.idea;
+        }
+        refreshIdeaVisibility();
+        showToast('Task draft generated', 'success');
+      } catch (error) {
+        showToast(error.message || 'Failed to generate task draft', 'error');
+      } finally {
+        ideaGenerateBtn.disabled = false;
+        ideaGenerateBtn.textContent = originalLabel;
+      }
+    });
   }
 
   openModal({
@@ -4888,10 +4996,21 @@ function openTaskModal(storyId, task = null) {
             estimationInput.focus();
             return false;
           }
+          const typeValue = typeSelect ? typeSelect.value : TASK_TYPE_OPTIONS[0];
+          const ideaText = ideaInput?.value.trim() ?? '';
+          let description = descriptionInput.value.trim();
+          if (!isEdit && typeValue === 'Codex task' && ideaText) {
+            const marker = ideaText.toLowerCase();
+            if (!description.toLowerCase().includes(marker)) {
+              const ideaLine = `Idea source: ${ideaText}`;
+              description = description ? `${description}\n\n${ideaLine}` : ideaLine;
+            }
+          }
           const payload = {
             title,
+            type: typeValue,
             status: statusSelect.value,
-            description: descriptionInput.value.trim(),
+            description,
             assigneeEmail,
             estimationHours: estimationResult.value,
           };
@@ -5105,6 +5224,14 @@ async function fetchAcceptanceTestDraft(storyId, options = {}) {
     requestOptions.body = { idea: options.idea };
   }
   return await sendJson(`/api/stories/${storyId}/tests/draft`, requestOptions);
+}
+
+async function fetchTaskDraft(storyId, options = {}) {
+  const requestOptions = { method: 'POST' };
+  if (options && typeof options === 'object' && options.idea) {
+    requestOptions.body = { idea: options.idea };
+  }
+  return await sendJson(`/api/stories/${storyId}/tasks/draft`, requestOptions);
 }
 
 async function createAcceptanceTest(storyId, payload) {

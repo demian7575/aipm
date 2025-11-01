@@ -40,6 +40,10 @@ export const TASK_STATUS_OPTIONS = [
 
 const TASK_STATUS_DEFAULT = TASK_STATUS_OPTIONS[0];
 
+export const TASK_TYPE_OPTIONS = ['Manual', 'Codex task'];
+
+const TASK_TYPE_DEFAULT = TASK_TYPE_OPTIONS[0];
+
 const EPIC_STORY_POINT_THRESHOLD = 10;
 
 const STORY_DEPENDENCY_RELATIONSHIPS = ['depends', 'blocks'];
@@ -69,6 +73,9 @@ ALLOWED_LOOKUP = {item.lower(): item for item in ALLOWED_COMPONENTS}
 
 TASK_STATUS_OPTIONS = ${JSON.stringify(TASK_STATUS_OPTIONS)}
 TASK_STATUS_LOOKUP = {item.lower(): item for item in TASK_STATUS_OPTIONS}
+
+TASK_TYPE_OPTIONS = ${JSON.stringify(TASK_TYPE_OPTIONS)}
+TASK_TYPE_LOOKUP = {item.lower(): item for item in TASK_TYPE_OPTIONS}
 
 
 def normalize_text(value, default=''):
@@ -135,6 +142,16 @@ def normalize_task_status(value):
     if lookup:
         return lookup
     return TASK_STATUS_OPTIONS[0]
+
+
+def normalize_task_type(value):
+    text = normalize_text(value, '')
+    if not text:
+        return TASK_TYPE_OPTIONS[0]
+    lookup = TASK_TYPE_LOOKUP.get(text.lower())
+    if lookup:
+        return lookup
+    return TASK_TYPE_OPTIONS[0]
 
 
 def normalize_task_estimation(value):
@@ -240,6 +257,7 @@ try:
           title TEXT NOT NULL,
           description TEXT DEFAULT '',
           status TEXT DEFAULT 'Not Started',
+          task_type TEXT DEFAULT 'Manual',
           assignee_email TEXT NOT NULL,
           estimation_hours REAL,
           created_at TEXT NOT NULL,
@@ -363,6 +381,7 @@ try:
                 normalize_text(row.get('title'), ''),
                 normalize_text(row.get('description'), ''),
                 normalize_task_status(row.get('status')),
+                normalize_task_type(row.get('task_type')),
                 normalize_task_assignee(row.get('assignee_email')),
                 normalize_task_estimation(row.get('estimation_hours')),
                 normalize_timestamp(row.get('created_at'), row.get('updated_at')),
@@ -374,8 +393,8 @@ try:
         conn.executemany(
             """
             INSERT INTO tasks (
-              id, story_id, title, description, status, assignee_email, estimation_hours, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              id, story_id, title, description, status, task_type, assignee_email, estimation_hours, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             task_rows,
         )
@@ -681,7 +700,18 @@ const DEFAULT_COLUMNS = {
   ],
   acceptance_tests: ['id', 'story_id', 'given', 'when_step', 'then_step', 'status', 'created_at', 'updated_at'],
   reference_documents: ['id', 'story_id', 'name', 'url', 'created_at', 'updated_at'],
-  tasks: ['id', 'story_id', 'title', 'description', 'status', 'assignee_email', 'estimation_hours', 'created_at', 'updated_at'],
+  tasks: [
+    'id',
+    'story_id',
+    'title',
+    'description',
+    'status',
+    'task_type',
+    'assignee_email',
+    'estimation_hours',
+    'created_at',
+    'updated_at',
+  ],
   story_dependencies: ['story_id', 'depends_on_story_id', 'relationship'],
 };
 
@@ -1991,6 +2021,31 @@ function normalizeTaskStatus(value) {
   return match;
 }
 
+function normalizeTaskType(value) {
+  if (value == null) {
+    return TASK_TYPE_DEFAULT;
+  }
+  const text = String(value).trim();
+  if (!text) {
+    return TASK_TYPE_DEFAULT;
+  }
+  const match = TASK_TYPE_OPTIONS.find((option) => option.toLowerCase() === text.toLowerCase());
+  if (!match) {
+    const error = new Error(`Task type must be one of: ${TASK_TYPE_OPTIONS.join(', ')}`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return match;
+}
+
+function safeNormalizeTaskType(value) {
+  try {
+    return normalizeTaskType(value);
+  } catch (error) {
+    return TASK_TYPE_DEFAULT;
+  }
+}
+
 function normalizeTaskEstimationHours(value) {
   if (value == null || value === '') {
     return null;
@@ -2327,6 +2382,38 @@ function generateStoryDraftFromIdea(idea, context = {}) {
   }
 
   return draft;
+}
+
+function generateTaskDraftFromIdea(idea, context = {}) {
+  const normalized = collapseWhitespace(idea);
+  if (!normalized) {
+    throw Object.assign(new Error('Idea text is required'), { statusCode: 400 });
+  }
+  const story = context?.story ?? null;
+  const { summary } = normalizeIdeaAction(normalized);
+  const storyTitle = story?.title ? String(story.title).trim() : '';
+  const baseTitle = summary || normalized;
+  const trimmedTitle = baseTitle.length > 120 ? `${baseTitle.slice(0, 119)}…` : baseTitle;
+  const title = trimmedTitle ? trimmedTitle.charAt(0).toUpperCase() + trimmedTitle.slice(1) : 'Codex task';
+  const descriptionLines = [];
+  if (storyTitle) {
+    descriptionLines.push(`Story: ${storyTitle}`);
+  }
+  if (summary) {
+    descriptionLines.push(`Objective: ${summary.charAt(0).toUpperCase() + summary.slice(1)}`);
+  }
+  descriptionLines.push('');
+  descriptionLines.push(`Idea source: ${normalized}`);
+  const description = descriptionLines.filter((line) => line != null).join('\n');
+  return {
+    title: title || 'Codex task',
+    description,
+    status: TASK_STATUS_DEFAULT,
+    type: 'Codex task',
+    assigneeEmail: story?.assigneeEmail ? String(story.assigneeEmail).trim() : '',
+    estimationHours: null,
+    idea: normalized,
+  };
 }
 
 function buildStoryPathLabel(story, storyMap) {
@@ -3493,19 +3580,21 @@ function insertAcceptanceTest(
       title,
       description = '',
       status = TASK_STATUS_DEFAULT,
+      type = TASK_TYPE_DEFAULT,
       assigneeEmail,
       estimationHours = null,
       timestamp = now(),
     }
   ) {
     const statement = db.prepare(
-      'INSERT INTO tasks (story_id, title, description, status, assignee_email, estimation_hours, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+      'INSERT INTO tasks (story_id, title, description, status, task_type, assignee_email, estimation_hours, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
     );
     return statement.run(
       storyId,
       title,
       description,
       status,
+      type,
       assigneeEmail,
       estimationHours,
       timestamp,
@@ -3535,12 +3624,17 @@ function buildTaskFromRow(row) {
       estimationHours = numeric;
     }
   }
+  const type =
+    row != null && Object.prototype.hasOwnProperty.call(row, 'task_type')
+      ? safeNormalizeTaskType(row.task_type)
+      : TASK_TYPE_DEFAULT;
   return {
     id: row.id,
     storyId: row.story_id,
     title: row.title ?? '',
     description: row.description ?? '',
     status,
+    type,
     assigneeEmail: row.assignee_email ?? '',
     estimationHours,
     createdAt: row.created_at,
@@ -3947,6 +4041,7 @@ async function ensureDatabase() {
       title TEXT NOT NULL,
       description TEXT DEFAULT '',
       status TEXT DEFAULT 'Not Started',
+      task_type TEXT DEFAULT 'Manual',
       assignee_email TEXT NOT NULL,
       estimation_hours REAL,
       created_at TEXT NOT NULL,
@@ -3990,6 +4085,7 @@ async function ensureDatabase() {
 
   ensureColumn(db, 'tasks', 'description', "description TEXT DEFAULT ''");
   ensureColumn(db, 'tasks', 'status', "status TEXT DEFAULT 'Not Started'");
+  ensureColumn(db, 'tasks', 'task_type', "task_type TEXT DEFAULT 'Manual'");
   ensureColumn(db, 'tasks', 'assignee_email', "assignee_email TEXT DEFAULT ''");
   ensureColumn(db, 'tasks', 'estimation_hours', 'estimation_hours REAL');
   ensureColumn(db, 'tasks', 'created_at', 'created_at TEXT');
@@ -5217,6 +5313,29 @@ export async function createApp() {
       return;
     }
 
+    const taskDraftMatch = pathname.match(/^\/api\/stories\/(\d+)\/tasks\/draft$/);
+    if (taskDraftMatch && method === 'POST') {
+      const storyId = Number(taskDraftMatch[1]);
+      try {
+        const story = await loadStoryWithDetails(db, storyId);
+        if (!story) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        const payload = await parseJson(req);
+        const idea = String(payload.idea ?? '').trim();
+        if (!idea) {
+          throw Object.assign(new Error('Idea text is required'), { statusCode: 400 });
+        }
+        const draft = generateTaskDraftFromIdea(idea, { story });
+        sendJson(res, 200, draft);
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to generate task draft' });
+      }
+      return;
+    }
+
     const taskCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/tasks$/);
     if (taskCreateMatch && method === 'POST') {
       const storyId = Number(taskCreateMatch[1]);
@@ -5233,6 +5352,7 @@ export async function createApp() {
         }
         const description = String(payload.description ?? '').trim();
         const status = normalizeTaskStatus(payload.status);
+        const type = normalizeTaskType(payload.type);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         if (!assigneeEmail) {
           throw Object.assign(new Error('Task assignee is required'), { statusCode: 400 });
@@ -5244,6 +5364,7 @@ export async function createApp() {
           title,
           description,
           status,
+          type,
           assigneeEmail,
           estimationHours,
           timestamp,
@@ -5256,6 +5377,7 @@ export async function createApp() {
           title,
           description,
           status,
+          task_type: type,
           assignee_email: assigneeEmail,
           estimation_hours: estimationHours,
           created_at: timestamp,
@@ -5287,6 +5409,7 @@ export async function createApp() {
         let nextStatus = existing.status ?? TASK_STATUS_DEFAULT;
         let nextAssigneeEmail = existing.assignee_email ?? '';
         let nextEstimationHours = existing.estimation_hours ?? null;
+        let nextType = safeNormalizeTaskType(existing.task_type);
         if (Object.prototype.hasOwnProperty.call(payload, 'title')) {
           const title = String(payload.title ?? '').trim();
           if (!title) {
@@ -5307,6 +5430,12 @@ export async function createApp() {
           updates.push('status = ?');
           params.push(status);
           nextStatus = status;
+        }
+        if (Object.prototype.hasOwnProperty.call(payload, 'type')) {
+          const type = normalizeTaskType(payload.type);
+          updates.push('task_type = ?');
+          params.push(type);
+          nextType = type;
         }
         if (Object.prototype.hasOwnProperty.call(payload, 'assigneeEmail')) {
           const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
@@ -5339,6 +5468,7 @@ export async function createApp() {
           title: nextTitle,
           description: nextDescription,
           status: nextStatus,
+          task_type: nextType,
           assignee_email: nextAssigneeEmail,
           estimation_hours: nextEstimationHours,
           updated_at: updatedAt,

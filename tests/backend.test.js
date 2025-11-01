@@ -270,6 +270,23 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.ok(Array.isArray(ideaDraft.then) && ideaDraft.then.length > 0);
   assert.equal(ideaDraft.status, 'Draft');
 
+  const taskDraftIdea = 'instrument login success metrics for release readiness';
+  const taskDraftResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tasks/draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idea: taskDraftIdea }),
+  });
+  assert.equal(taskDraftResponse.status, 200);
+  const taskDraft = await taskDraftResponse.json();
+  assert.equal(taskDraft.type, 'Codex task');
+  assert.equal(taskDraft.status, 'Not Started');
+  assert.ok(taskDraft.description.includes('Idea source'), 'Task draft should include idea source label');
+  assert.ok(
+    taskDraft.description.toLowerCase().includes(taskDraftIdea.toLowerCase()),
+    'Task draft description should reference the supplied idea'
+  );
+  assert.equal(taskDraft.assigneeEmail, updated.assigneeEmail);
+
   const taskCreateResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tasks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -278,6 +295,7 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
       status: 'In Progress',
       description: 'Review telemetry and confirm KPI coverage.',
       assigneeEmail: 'qa@example.com',
+      type: 'Manual',
     }),
   });
   assert.equal(taskCreateResponse.status, 201);
@@ -285,6 +303,7 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.equal(createdTask.title, 'Validate login analytics');
   assert.equal(createdTask.status, 'In Progress');
   assert.equal(createdTask.assigneeEmail, 'qa@example.com');
+  assert.equal(createdTask.type, 'Manual');
 
   const missingAssigneeResponse = await fetch(`${baseUrl}/api/stories/${story.id}/tasks`, {
     method: 'POST',
@@ -293,6 +312,7 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
       title: 'Unassigned task',
       status: 'Not Started',
       description: 'Should fail due to missing assignee',
+      type: 'Manual',
     }),
   });
   assert.equal(missingAssigneeResponse.status, 400);
@@ -305,6 +325,7 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
       status: 'Done',
       description: 'Telemetry confirms success.',
       assigneeEmail: 'lead.qa@example.com',
+      type: 'Codex task',
     }),
   });
   assert.equal(taskUpdateResponse.status, 200);
@@ -312,6 +333,7 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.equal(updatedTask.status, 'Done');
   assert.equal(updatedTask.description, 'Telemetry confirms success.');
   assert.equal(updatedTask.assigneeEmail, 'lead.qa@example.com');
+  assert.equal(updatedTask.type, 'Codex task');
 
   const postTaskStoriesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.equal(postTaskStoriesResponse.status, 200);
@@ -319,7 +341,11 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   const refreshedStory = postTaskStories.find((item) => item.id === story.id);
   assert.ok(refreshedStory);
   assert.ok(Array.isArray(refreshedStory.tasks));
-  assert.ok(refreshedStory.tasks.some((task) => task.id === createdTask.id && task.status === 'Done'));
+  assert.ok(
+    refreshedStory.tasks.some(
+      (task) => task.id === createdTask.id && task.status === 'Done' && task.type === 'Codex task'
+    )
+  );
 
   const fallbackComponent = primaryComponents[0] || COMPONENT_CATALOG[0] || 'WorkModel';
   const invalidStoryPoint = await fetch(`${baseUrl}/api/stories`, {
