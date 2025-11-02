@@ -157,6 +157,49 @@ def normalize_task_assignee(value, fallback='owner@example.com'):
     return fallback
 
 
+def normalize_invest_warnings(value):
+    if isinstance(value, list):
+        try:
+            return json.dumps(value)
+        except Exception:
+            return '[]'
+    text = normalize_text(value, '')
+    if not text:
+        return '[]'
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, list):
+            return json.dumps(parsed)
+    except Exception:
+        return '[]'
+    return '[]'
+
+
+def normalize_invest_analysis(value):
+    if isinstance(value, dict):
+        try:
+            return json.dumps(value)
+        except Exception:
+            return '{}'
+    text = normalize_text(value, '')
+    if not text:
+        return '{}'
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return json.dumps(parsed)
+    except Exception:
+        return '{}'
+    return '{}'
+
+
+def normalize_optional_timestamp(value):
+    text = normalize_text(value, '')
+    if text:
+        return text
+    return None
+
+
 try:
     conn = sqlite3.connect(target)
     conn.execute("PRAGMA foreign_keys = ON;")
@@ -179,6 +222,9 @@ try:
           status TEXT DEFAULT 'Draft',
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
+          invest_warnings TEXT NOT NULL DEFAULT '[]',
+          invest_analysis TEXT NOT NULL DEFAULT '{}',
+          invest_validated_at TEXT,
           FOREIGN KEY(parent_id) REFERENCES user_stories(id) ON DELETE CASCADE
         );
         """
@@ -295,6 +341,9 @@ try:
                 normalize_text(row.get('status'), 'Draft'),
                 normalize_timestamp(row.get('created_at'), row.get('updated_at')),
                 normalize_timestamp(row.get('updated_at'), row.get('created_at')),
+                normalize_invest_warnings(row.get('invest_warnings')),
+                normalize_invest_analysis(row.get('invest_analysis')),
+                normalize_optional_timestamp(row.get('invest_validated_at')),
             )
         )
 
@@ -303,8 +352,9 @@ try:
             """
             INSERT INTO user_stories (
               id, mr_id, parent_id, title, description, as_a, i_want, so_that, components,
-              story_point, assignee_email, status, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              story_point, assignee_email, status, created_at, updated_at,
+              invest_warnings, invest_analysis, invest_validated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             story_rows,
         )
@@ -717,6 +767,9 @@ const DEFAULT_COLUMNS = {
     'status',
     'created_at',
     'updated_at',
+    'invest_warnings',
+    'invest_analysis',
+    'invest_validated_at',
   ],
   acceptance_tests: ['id', 'story_id', 'given', 'when_step', 'then_step', 'status', 'created_at', 'updated_at'],
   reference_documents: ['id', 'story_id', 'name', 'url', 'created_at', 'updated_at'],
@@ -932,6 +985,14 @@ class JsonDatabase {
     }
     if (normalized.includes('UPDATE user_stories SET assignee_email =')) {
       this._setDefault('user_stories', 'assignee_email', '');
+      return;
+    }
+    if (normalized.includes("UPDATE user_stories SET invest_warnings = '[]'")) {
+      this._setDefault('user_stories', 'invest_warnings', '[]');
+      return;
+    }
+    if (normalized.includes("UPDATE user_stories SET invest_analysis = '{}'")) {
+      this._setDefault('user_stories', 'invest_analysis', '{}');
       return;
     }
     if (normalized.includes("UPDATE user_stories SET status = 'Draft'")) {
@@ -1444,6 +1505,15 @@ class JsonDatabase {
       if (!('so_that' in row) || row.so_that == null) row.so_that = '';
       if (!('components' in row) || row.components == null) row.components = '[]';
       if (!('assignee_email' in row) || row.assignee_email == null) row.assignee_email = '';
+      if (!('invest_warnings' in row) || row.invest_warnings == null) {
+        row.invest_warnings = '[]';
+      }
+      if (!('invest_analysis' in row) || row.invest_analysis == null) {
+        row.invest_analysis = '{}';
+      }
+      if (!('invest_validated_at' in row)) {
+        row.invest_validated_at = null;
+      }
     } else if (table === 'acceptance_tests') {
       if (!('status' in row) || row.status == null) row.status = 'Draft';
       if (!('created_at' in row)) row.created_at = now();
@@ -4045,6 +4115,8 @@ function ensureNotNullDefaults(db) {
     UPDATE user_stories SET components = '[]' WHERE components IS NULL OR TRIM(components) = '';
     UPDATE user_stories SET assignee_email = '' WHERE assignee_email IS NULL;
     UPDATE user_stories SET status = 'Draft' WHERE status IS NULL;
+    UPDATE user_stories SET invest_warnings = '[]' WHERE invest_warnings IS NULL OR TRIM(invest_warnings) = '';
+    UPDATE user_stories SET invest_analysis = '{}' WHERE invest_analysis IS NULL OR TRIM(invest_analysis) = '';
     UPDATE acceptance_tests SET status = 'Draft' WHERE status IS NULL;
     UPDATE reference_documents SET name = '' WHERE name IS NULL;
     UPDATE reference_documents SET url = '' WHERE url IS NULL;
@@ -4167,6 +4239,9 @@ async function ensureDatabase() {
   ensureColumn(db, 'user_stories', 'status', "status TEXT DEFAULT 'Draft'");
   ensureColumn(db, 'user_stories', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'user_stories', 'updated_at', 'updated_at TEXT');
+  ensureColumn(db, 'user_stories', 'invest_warnings', "invest_warnings TEXT NOT NULL DEFAULT '[]'");
+  ensureColumn(db, 'user_stories', 'invest_analysis', "invest_analysis TEXT NOT NULL DEFAULT '{}'");
+  ensureColumn(db, 'user_stories', 'invest_validated_at', 'invest_validated_at TEXT');
 
   ensureColumn(db, 'acceptance_tests', 'given', "given TEXT NOT NULL DEFAULT '[]'");
   ensureColumn(db, 'acceptance_tests', 'when_step', "when_step TEXT NOT NULL DEFAULT '[]'");
@@ -4415,6 +4490,115 @@ function mapDelayLogRow(row) {
   };
 }
 
+function baseStoryFromRow(row) {
+  const components = normalizeComponentsInput(parseJsonArray(row.components));
+  return {
+    id: row.id,
+    mrId: row.mr_id,
+    parentId: row.parent_id,
+    title: row.title,
+    description: row.description ?? '',
+    asA: row.as_a ?? '',
+    iWant: row.i_want ?? '',
+    soThat: row.so_that ?? '',
+    components,
+    storyPoint: row.story_point,
+    assigneeEmail: row.assignee_email ?? '',
+    status: safeNormalizeStoryStatus(row.status),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    acceptanceTests: [],
+    referenceDocuments: [],
+    tasks: [],
+    dependencies: [],
+    dependents: [],
+    blockedBy: [],
+    blocking: [],
+    children: [],
+  };
+}
+
+function defaultInvestAnalysis() {
+  return {
+    source: 'heuristic',
+    summary: '',
+    aiSummary: '',
+    aiWarnings: [],
+    aiModel: null,
+    usedFallback: true,
+    error: null,
+    fallbackWarnings: [],
+  };
+}
+
+function parseStoredInvestWarnings(raw) {
+  if (typeof raw !== 'string') {
+    return { value: [], needsRefresh: true };
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { value: [], needsRefresh: true };
+  }
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return { value: parsed, needsRefresh: false };
+    }
+  } catch (error) {
+    return { value: [], needsRefresh: true };
+  }
+  return { value: [], needsRefresh: true };
+}
+
+function parseStoredInvestAnalysis(raw) {
+  const defaults = defaultInvestAnalysis();
+  if (typeof raw !== 'string') {
+    return { value: defaults, needsRefresh: true };
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { value: defaults, needsRefresh: true };
+  }
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && typeof parsed === 'object') {
+      return { value: { ...defaults, ...parsed }, needsRefresh: false };
+    }
+  } catch (error) {
+    return { value: defaults, needsRefresh: true };
+  }
+  return { value: defaults, needsRefresh: true };
+}
+
+function applyStoredInvestState(story, row) {
+  const warningsState = parseStoredInvestWarnings(row?.invest_warnings ?? '');
+  const analysisState = parseStoredInvestAnalysis(row?.invest_analysis ?? '');
+  const validatedAtRaw = row?.invest_validated_at;
+  const validatedAt =
+    typeof validatedAtRaw === 'string' && validatedAtRaw.trim().length > 0
+      ? validatedAtRaw
+      : null;
+
+  const analysis = analysisState.value || defaultInvestAnalysis();
+  analysis.aiWarnings = Array.isArray(analysis.aiWarnings) ? analysis.aiWarnings : [];
+  analysis.fallbackWarnings = Array.isArray(analysis.fallbackWarnings)
+    ? analysis.fallbackWarnings
+    : [];
+  analysis.aiSummary = analysis.aiSummary || '';
+  analysis.summary = analysis.summary || '';
+  analysis.aiModel = analysis.aiModel ?? null;
+  analysis.error = analysis.error ?? null;
+  analysis.usedFallback = Boolean(analysis.usedFallback);
+
+  story.investWarnings = warningsState.value;
+  story.investSatisfied = story.investWarnings.length === 0;
+  story.investHealth = { satisfied: story.investSatisfied, issues: story.investWarnings };
+  story.investAnalysis = analysis;
+  story.investValidatedAt = validatedAt;
+
+  return warningsState.needsRefresh || analysisState.needsRefresh || !validatedAt;
+}
+
 async function loadStories(db) {
   const storyRows = db
     .prepare('SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id')
@@ -4423,32 +4607,10 @@ async function loadStories(db) {
   const docRows = db.prepare('SELECT * FROM reference_documents ORDER BY story_id, id').all();
   const taskRows = db.prepare('SELECT * FROM tasks ORDER BY story_id, id').all();
 
+  const rowById = new Map();
   const stories = storyRows.map((row) => {
-    const components = normalizeComponentsInput(parseJsonArray(row.components));
-    const story = {
-      id: row.id,
-      mrId: row.mr_id,
-      parentId: row.parent_id,
-      title: row.title,
-      description: row.description ?? '',
-      asA: row.as_a ?? '',
-      iWant: row.i_want ?? '',
-      soThat: row.so_that ?? '',
-      components,
-      storyPoint: row.story_point,
-      assigneeEmail: row.assignee_email ?? '',
-      status: safeNormalizeStoryStatus(row.status),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      acceptanceTests: [],
-      referenceDocuments: [],
-      tasks: [],
-      dependencies: [],
-      dependents: [],
-      blockedBy: [],
-      blocking: [],
-    };
-    return story;
+    rowById.set(row.id, row);
+    return baseStoryFromRow(row);
   });
 
   const { roots, byId } = attachChildren(stories);
@@ -4541,61 +4703,29 @@ async function loadStories(db) {
     story.tasks.push(buildTaskFromRow(row));
   });
 
-  await Promise.all(
-    stories.map(async (story) => {
-      const analysis = await analyzeInvest(story, {
-        acceptanceTests: story.acceptanceTests,
-        includeTestChecks: true,
-      });
-      story.investWarnings = analysis.warnings;
-      story.investSatisfied = analysis.warnings.length === 0;
-      story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
-      story.investAnalysis = {
-        source: analysis.source,
-        summary: analysis.summary,
-        aiSummary: analysis.ai?.summary || '',
-        aiWarnings: analysis.ai?.warnings || [],
-        aiModel: analysis.ai?.model || null,
-        usedFallback: analysis.usedFallback,
-        error: analysis.ai?.error || null,
-        fallbackWarnings: analysis.fallbackWarnings || [],
-      };
-    })
-  );
+  const pendingRefreshes = [];
+  stories.forEach((story) => {
+    const sourceRow = rowById.get(story.id) || {};
+    const needsRefresh = applyStoredInvestState(story, sourceRow);
+    if (needsRefresh) {
+      pendingRefreshes.push(story);
+    }
+  });
+
+  for (const story of pendingRefreshes) {
+    await refreshStoryInvestData(db, story.id, story);
+  }
 
   return roots;
 }
 
-async function loadStoryWithDetails(db, storyId) {
+async function buildStoryDetailSnapshot(db, storyId) {
   const row = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
   if (!row) {
     return null;
   }
 
-  const story = {
-    id: row.id,
-    mrId: row.mr_id,
-    parentId: row.parent_id,
-    title: row.title,
-    description: row.description ?? '',
-    asA: row.as_a ?? '',
-    iWant: row.i_want ?? '',
-    soThat: row.so_that ?? '',
-    components: normalizeComponentsInput(parseJsonArray(row.components)),
-    storyPoint: row.story_point,
-    assigneeEmail: row.assignee_email ?? '',
-    status: safeNormalizeStoryStatus(row.status),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    acceptanceTests: [],
-    referenceDocuments: [],
-    tasks: [],
-    children: [],
-    dependencies: [],
-    dependents: [],
-    blockedBy: [],
-    blocking: [],
-  };
+  const story = baseStoryFromRow(row);
 
   const testRows = db
     .prepare('SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id')
@@ -4719,24 +4849,69 @@ async function loadStoryWithDetails(db, storyId) {
     story.blocking.sort(sortByStoryId);
   }
 
-  const analysis = await analyzeInvest(story, {
-    acceptanceTests: story.acceptanceTests,
+  return { story, row };
+}
+
+async function refreshStoryInvestData(db, storyId, existingStory = null) {
+  let targetStory = existingStory || null;
+  if (!targetStory) {
+    const snapshot = await buildStoryDetailSnapshot(db, storyId);
+    if (!snapshot) {
+      return null;
+    }
+    targetStory = snapshot.story;
+  }
+
+  const analysis = await analyzeInvest(targetStory, {
+    acceptanceTests: targetStory.acceptanceTests,
     includeTestChecks: true,
   });
-  story.investWarnings = analysis.warnings;
-  story.investSatisfied = analysis.warnings.length === 0;
-  story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
-  story.investAnalysis = {
-    source: analysis.source,
-    summary: analysis.summary,
-    aiSummary: analysis.ai?.summary || '',
-    aiWarnings: analysis.ai?.warnings || [],
-    aiModel: analysis.ai?.model || null,
-    usedFallback: analysis.usedFallback,
-    error: analysis.ai?.error || null,
-    fallbackWarnings: analysis.fallbackWarnings || [],
+
+  const warnings = Array.isArray(analysis.warnings) ? analysis.warnings : [];
+  const baseAnalysis = defaultInvestAnalysis();
+  const investAnalysis = {
+    ...baseAnalysis,
+    source: analysis.source || baseAnalysis.source,
+    summary: analysis.summary || baseAnalysis.summary,
+    aiSummary: analysis.ai?.summary || baseAnalysis.aiSummary,
+    aiWarnings: Array.isArray(analysis.ai?.warnings)
+      ? analysis.ai.warnings
+      : baseAnalysis.aiWarnings,
+    aiModel: analysis.ai?.model ?? baseAnalysis.aiModel,
+    usedFallback:
+      analysis.usedFallback === undefined ? baseAnalysis.usedFallback : Boolean(analysis.usedFallback),
+    error: analysis.ai?.error ?? baseAnalysis.error,
+    fallbackWarnings: Array.isArray(analysis.fallbackWarnings)
+      ? analysis.fallbackWarnings
+      : baseAnalysis.fallbackWarnings,
   };
 
+  const validatedAt = now();
+
+  db.prepare(
+    'UPDATE user_stories SET invest_warnings = ?, invest_analysis = ?, invest_validated_at = ? WHERE id = ?'
+  ).run(JSON.stringify(warnings), JSON.stringify(investAnalysis), validatedAt, storyId);
+
+  targetStory.investWarnings = warnings;
+  targetStory.investSatisfied = warnings.length === 0;
+  targetStory.investHealth = { satisfied: targetStory.investSatisfied, issues: warnings };
+  targetStory.investAnalysis = investAnalysis;
+  targetStory.investValidatedAt = validatedAt;
+
+  return targetStory;
+}
+
+async function loadStoryWithDetails(db, storyId) {
+  const snapshot = await buildStoryDetailSnapshot(db, storyId);
+  if (!snapshot) {
+    return null;
+  }
+
+  const { story, row } = snapshot;
+  const needsRefresh = applyStoredInvestState(story, row);
+  if (needsRefresh) {
+    await refreshStoryInvestData(db, storyId, story);
+  }
   return story;
 }
 
@@ -5120,6 +5295,7 @@ export async function createApp() {
           soThat,
           components,
         });
+        await refreshStoryInvestData(db, newStoryId);
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
         sendJson(res, 201, created ?? null);
       } catch (error) {
@@ -5301,6 +5477,7 @@ export async function createApp() {
             },
             { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
           );
+          await refreshStoryInvestData(db, storyId);
         }
         const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
         sendJson(res, 200, updated ?? null);
@@ -5354,6 +5531,7 @@ export async function createApp() {
           insertDependency(db, { storyId, dependsOnStoryId, relationship });
         }
 
+        await refreshStoryInvestData(db, storyId);
         const refreshed = await loadStoryWithDetails(db, storyId);
         sendJson(res, 201, refreshed ?? null);
       } catch (error) {
@@ -5382,6 +5560,7 @@ export async function createApp() {
           return;
         }
 
+        await refreshStoryInvestData(db, storyId);
         const refreshed = await loadStoryWithDetails(db, storyId);
         sendJson(res, 200, refreshed ?? null);
       } catch (error) {
@@ -5480,6 +5659,7 @@ export async function createApp() {
           status: payload.status ? String(payload.status) : 'Draft',
           timestamp,
         });
+        await refreshStoryInvestData(db, storyId);
         const refreshedStory = flattenStories(await loadStories(db)).find((node) => node.id === storyId);
         const created = refreshedStory?.acceptanceTests.find((item) => item.id === Number(lastInsertRowid)) ?? null;
         sendJson(res, 201, created);
@@ -5506,6 +5686,8 @@ export async function createApp() {
           });
           return;
         }
+        const ownerRow = db.prepare('SELECT story_id FROM acceptance_tests WHERE id = ?').get(testId);
+        const owningStoryId = ownerRow ? Number(ownerRow.story_id) : null;
         const statement = db.prepare(
           'UPDATE acceptance_tests SET given = ?, when_step = ?, then_step = ?, status = ?, updated_at = ? WHERE id = ?' // prettier-ignore
         );
@@ -5517,6 +5699,9 @@ export async function createApp() {
           now(),
           testId
         );
+        if (Number.isFinite(owningStoryId)) {
+          await refreshStoryInvestData(db, Number(owningStoryId));
+        }
         const test = flattenStories(await loadStories(db))
           .flatMap((story) => story.acceptanceTests)
           .find((item) => item.id === testId);
@@ -5534,11 +5719,16 @@ export async function createApp() {
 
     if (testIdMatch && method === 'DELETE') {
       const testId = Number(testIdMatch[1]);
+      const ownerRow = db.prepare('SELECT story_id FROM acceptance_tests WHERE id = ?').get(testId);
+      const owningStoryId = ownerRow ? Number(ownerRow.story_id) : null;
       const statement = db.prepare('DELETE FROM acceptance_tests WHERE id = ?');
       const result = statement.run(testId);
       if (result.changes === 0) {
         sendJson(res, 404, { message: 'Acceptance test not found' });
       } else {
+        if (Number.isFinite(owningStoryId)) {
+          await refreshStoryInvestData(db, Number(owningStoryId));
+        }
         sendJson(res, 204, {});
       }
       return;

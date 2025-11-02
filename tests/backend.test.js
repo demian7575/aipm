@@ -1084,6 +1084,150 @@ test('baseline INVEST heuristics flag dependency, negotiable, estimable, and siz
   assert.ok(created.investHealth.issues.some((issue) => issue.criterion === 'independent'));
 });
 
+test('INVEST validation timestamps refresh only on content edits', async (t) => {
+  await resetDatabaseFiles();
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const createPayload = {
+    title: 'Track validation timestamps',
+    asA: 'Delivery lead',
+    iWant: 'understand when INVEST analysis runs',
+    soThat: 'I can monitor validation cadence',
+    description: 'Initial draft ready for validation checks.',
+    components: COMPONENT_CATALOG.length ? [COMPONENT_CATALOG[0]] : [],
+  };
+
+  const createResponse = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(createPayload),
+  });
+
+  assert.equal(createResponse.status, 201);
+  const created = await createResponse.json();
+  assert.ok(created.investValidatedAt);
+  const initialValidatedAt = created.investValidatedAt;
+  assert.equal(typeof initialValidatedAt, 'string');
+
+  const flattenTree = (nodes) => {
+    const list = [];
+    const stack = Array.isArray(nodes) ? [...nodes] : [];
+    while (stack.length) {
+      const node = stack.pop();
+      if (!node) continue;
+      list.push(node);
+      if (Array.isArray(node.children) && node.children.length) {
+        stack.push(...node.children);
+      }
+    }
+    return list;
+  };
+
+  const firstListResponse = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(firstListResponse.status, 200);
+  const initialTree = await firstListResponse.json();
+  const initialStory = flattenTree(initialTree).find((story) => story.id === created.id);
+  assert.ok(initialStory);
+  assert.equal(initialStory.investValidatedAt, initialValidatedAt);
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  const statusOnlyResponse = await fetch(`${baseUrl}/api/stories/${created.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: created.title,
+      description: created.description ?? '',
+      components: created.components,
+      storyPoint: created.storyPoint,
+      assigneeEmail: created.assigneeEmail ?? '',
+      status: 'Blocked',
+    }),
+  });
+
+  assert.equal(statusOnlyResponse.status, 200);
+  const statusStory = await statusOnlyResponse.json();
+  assert.equal(statusStory.status, 'Blocked');
+  assert.equal(statusStory.investValidatedAt, initialValidatedAt);
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  const contentUpdateResponse = await fetch(`${baseUrl}/api/stories/${created.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: created.title,
+      description: `${created.description || ''} Updated with more detail for validation.`,
+      components: created.components,
+      storyPoint: created.storyPoint,
+      assigneeEmail: created.assigneeEmail ?? '',
+      asA: created.asA ?? createPayload.asA,
+      iWant: created.iWant ?? createPayload.iWant,
+      soThat: created.soThat ?? createPayload.soThat,
+    }),
+  });
+
+  assert.equal(contentUpdateResponse.status, 200);
+  const contentStory = await contentUpdateResponse.json();
+  assert.notEqual(contentStory.investValidatedAt, initialValidatedAt);
+  const postEditValidatedAt = contentStory.investValidatedAt;
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  const testCreateResponse = await fetch(`${baseUrl}/api/stories/${created.id}/tests`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      given: ['Given the story is ready for testing'],
+      when: ['When the INVEST health is reviewed'],
+      then: ['Then the status updates within 2 seconds'],
+    }),
+  });
+
+  assert.equal(testCreateResponse.status, 201);
+  const createdTest = await testCreateResponse.json();
+  assert.ok(createdTest);
+
+  const afterTestList = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(afterTestList.status, 200);
+  const afterTestTree = await afterTestList.json();
+  const afterTestStory = flattenTree(afterTestTree).find((story) => story.id === created.id);
+  assert.ok(afterTestStory);
+  assert.notEqual(afterTestStory.investValidatedAt, postEditValidatedAt);
+  const afterTestValidatedAt = afterTestStory.investValidatedAt;
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  const testUpdateResponse = await fetch(`${baseUrl}/api/tests/${createdTest.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      given: createdTest.given,
+      when: createdTest.when,
+      then: createdTest.then,
+      status: 'Pass',
+    }),
+  });
+
+  assert.equal(testUpdateResponse.status, 200);
+  const updatedTest = await testUpdateResponse.json();
+  assert.equal(updatedTest.status, 'Pass');
+
+  const finalList = await fetch(`${baseUrl}/api/stories`);
+  assert.equal(finalList.status, 200);
+  const finalTree = await finalList.json();
+  const finalStory = flattenTree(finalTree).find((story) => story.id === created.id);
+  assert.ok(finalStory);
+  assert.notEqual(finalStory.investValidatedAt, afterTestValidatedAt);
+});
+
 test('document generation endpoints produce tailored content', async (t) => {
   await resetDatabaseFiles();
   const { server, port } = await startServer();
