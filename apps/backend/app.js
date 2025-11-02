@@ -262,6 +262,21 @@ try:
         """
     )
 
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS delay_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          story_id INTEGER,
+          reported_by TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          delay_occurred_at TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE SET NULL
+        );
+        """
+    )
+
     story_rows = []
     for row in tables.get('user_stories', []):
         story_rows.append(
@@ -397,6 +412,30 @@ try:
             VALUES (?, ?, ?)
             """,
             dependency_rows,
+        )
+
+    delay_rows = []
+    for row in tables.get('delay_logs', []):
+        delay_rows.append(
+            (
+                normalize_int(row.get('id'), 0),
+                normalize_int(row.get('story_id')),
+                normalize_text(row.get('reported_by'), ''),
+                normalize_text(row.get('reason'), ''),
+                normalize_timestamp(row.get('delay_occurred_at'), row.get('created_at')),
+                normalize_timestamp(row.get('created_at'), row.get('delay_occurred_at')),
+                normalize_timestamp(row.get('updated_at'), row.get('created_at')),
+            )
+        )
+
+    if delay_rows:
+        conn.executemany(
+            """
+            INSERT INTO delay_logs (
+              id, story_id, reported_by, reason, delay_occurred_at, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            delay_rows,
         )
 
     conn.commit()
@@ -683,6 +722,7 @@ const DEFAULT_COLUMNS = {
   reference_documents: ['id', 'story_id', 'name', 'url', 'created_at', 'updated_at'],
   tasks: ['id', 'story_id', 'title', 'description', 'status', 'assignee_email', 'estimation_hours', 'created_at', 'updated_at'],
   story_dependencies: ['story_id', 'depends_on_story_id', 'relationship'],
+  delay_logs: ['id', 'story_id', 'reported_by', 'reason', 'delay_occurred_at', 'created_at', 'updated_at'],
 };
 
 class JsonStatement {
@@ -716,6 +756,7 @@ class JsonDatabase {
       reference_documents: [],
       tasks: [],
       story_dependencies: [],
+      delay_logs: [],
     };
     this.sequences = {
       user_stories: 0,
@@ -723,6 +764,7 @@ class JsonDatabase {
       reference_documents: 0,
       tasks: 0,
       story_dependencies: 0,
+      delay_logs: 0,
     };
     this.columns = JSON.parse(JSON.stringify(DEFAULT_COLUMNS));
     this.driver = 'json-fallback';
@@ -741,6 +783,7 @@ class JsonDatabase {
             this.tables.reference_documents = data.tables.reference_documents ?? [];
             this.tables.tasks = data.tables.tasks ?? [];
             this.tables.story_dependencies = data.tables.story_dependencies ?? [];
+            this.tables.delay_logs = data.tables.delay_logs ?? [];
           }
           if (data.sequences) {
             this.sequences = {
@@ -751,6 +794,7 @@ class JsonDatabase {
                 data.sequences.reference_documents ?? this._maxId(this.tables.reference_documents),
               tasks: data.sequences.tasks ?? this._maxId(this.tables.tasks),
               story_dependencies: data.sequences.story_dependencies ?? 0,
+              delay_logs: data.sequences.delay_logs ?? this._maxId(this.tables.delay_logs),
             };
           } else {
             this._refreshSequences();
@@ -763,6 +807,7 @@ class JsonDatabase {
                 data.columns.reference_documents ?? this.columns.reference_documents,
               tasks: data.columns.tasks ?? this.columns.tasks,
               story_dependencies: data.columns.story_dependencies ?? this.columns.story_dependencies,
+              delay_logs: data.columns.delay_logs ?? this.columns.delay_logs,
             };
           }
         }
@@ -783,6 +828,7 @@ class JsonDatabase {
     this.sequences.reference_documents = this._maxId(this.tables.reference_documents);
     this.sequences.tasks = this._maxId(this.tables.tasks);
     this.sequences.story_dependencies = 0;
+    this.sequences.delay_logs = this._maxId(this.tables.delay_logs);
   }
 
   _maxId(rows) {
@@ -797,6 +843,7 @@ class JsonDatabase {
         reference_documents: this.tables.reference_documents.map((row) => ({ ...row })),
         tasks: this.tables.tasks.map((row) => ({ ...row })),
         story_dependencies: this.tables.story_dependencies.map((row) => ({ ...row })),
+        delay_logs: this.tables.delay_logs.map((row) => ({ ...row })),
       },
       sequences: { ...this.sequences },
       columns: {
@@ -805,6 +852,7 @@ class JsonDatabase {
         reference_documents: [...(this.columns.reference_documents ?? [])],
         tasks: [...(this.columns.tasks ?? [])],
         story_dependencies: [...(this.columns.story_dependencies ?? [])],
+        delay_logs: [...(this.columns.delay_logs ?? [])],
       },
       driver: 'json-fallback',
     };
@@ -939,6 +987,7 @@ class JsonDatabase {
       this.tables.reference_documents = [];
       this.tables.tasks = [];
       this.tables.story_dependencies = [];
+      this.tables.delay_logs = [];
       if (hadRows) {
         this._refreshSequences();
       }
@@ -1049,6 +1098,11 @@ class JsonDatabase {
       const row = this.tables.tasks.find((entry) => entry.id === id);
       return row ? [this._clone(row)] : [];
     }
+    if (sql.startsWith('SELECT * FROM delay_logs WHERE id = ?')) {
+      const id = Number(params[0]);
+      const row = this.tables.delay_logs.find((entry) => entry.id === id);
+      return row ? [this._clone(row)] : [];
+    }
     if (sql.startsWith('PRAGMA table_info(')) {
       const table = sql.match(/PRAGMA table_info\((\w+)\)/i)?.[1];
       const columns = this.columns[table] ?? [];
@@ -1096,6 +1150,29 @@ class JsonDatabase {
           return a.story_id - b.story_id;
         }
         return a.id - b.id;
+      });
+      return rows;
+    }
+    if (sql.startsWith('SELECT * FROM delay_logs WHERE story_id = ? ORDER BY')) {
+      const storyId = Number(params[0]);
+      const rows = this.tables.delay_logs
+        .filter((row) => row.story_id === storyId)
+        .map((row) => this._clone(row));
+      rows.sort((a, b) => {
+        if (a.delay_occurred_at === b.delay_occurred_at) {
+          return b.id - a.id;
+        }
+        return String(b.delay_occurred_at).localeCompare(String(a.delay_occurred_at));
+      });
+      return rows;
+    }
+    if (sql.startsWith('SELECT * FROM delay_logs ORDER BY')) {
+      const rows = this.tables.delay_logs.map((row) => this._clone(row));
+      rows.sort((a, b) => {
+        if (a.delay_occurred_at === b.delay_occurred_at) {
+          return b.id - a.id;
+        }
+        return String(b.delay_occurred_at).localeCompare(String(a.delay_occurred_at));
       });
       return rows;
     }
@@ -1238,6 +1315,9 @@ class JsonDatabase {
     if (sql.startsWith('DELETE FROM tasks WHERE id = ?')) {
       return this._deleteRow('tasks', params[0]);
     }
+    if (sql.startsWith('DELETE FROM delay_logs WHERE id = ?')) {
+      return this._deleteRow('delay_logs', params[0]);
+    }
     if (sql.startsWith('DELETE FROM story_dependencies WHERE story_id = ? AND depends_on_story_id = ?')) {
       const [storyId, dependsOnId] = params.map(Number);
       const rows = this.tables.story_dependencies;
@@ -1317,6 +1397,9 @@ class JsonDatabase {
       this.tables.story_dependencies = this.tables.story_dependencies.filter(
         (link) => !targetSet.has(link.story_id) && !targetSet.has(link.depends_on_story_id)
       );
+      this.tables.delay_logs = this.tables.delay_logs.filter(
+        (entry) => !targetSet.has(entry.story_id)
+      );
     }
     if (changes > 0) {
       this._persist();
@@ -1332,6 +1415,9 @@ class JsonDatabase {
     }
     if (key === 'story_point') {
       return value == null ? null : Number(value);
+    }
+    if (/_at$/.test(key) && value instanceof Date) {
+      return value.toISOString();
     }
     if (key === 'components') {
       if (Array.isArray(value)) {
@@ -1373,6 +1459,18 @@ class JsonDatabase {
       }
       if (!('created_at' in row)) row.created_at = now();
       if (!('updated_at' in row)) row.updated_at = now();
+    } else if (table === 'delay_logs') {
+      if (!('reported_by' in row) || row.reported_by == null) row.reported_by = '';
+      if (!('reason' in row) || row.reason == null) row.reason = '';
+      if (!('delay_occurred_at' in row) || row.delay_occurred_at == null) {
+        row.delay_occurred_at = now();
+      }
+      if (!('created_at' in row) || row.created_at == null) {
+        row.created_at = now();
+      }
+      if (!('updated_at' in row) || row.updated_at == null) {
+        row.updated_at = row.created_at ?? now();
+      }
     }
   }
 }
@@ -2007,6 +2105,26 @@ function normalizeTaskEstimationHours(value) {
     throw error;
   }
   return numeric;
+}
+
+function normalizeDelayOccurredAt(value) {
+  if (value == null || value === '') {
+    return now();
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  const text = String(value).trim();
+  if (!text) {
+    return now();
+  }
+  const parsed = new Date(text);
+  if (!Number.isFinite(parsed.getTime())) {
+    const error = new Error('Delay time must be a valid ISO 8601 timestamp');
+    error.statusCode = 400;
+    throw error;
+  }
+  return parsed.toISOString();
 }
 
 function normalizeDependencyRelationship(value) {
@@ -3883,6 +4001,17 @@ function ensureNotNullDefaults(db) {
     UPDATE tasks SET description = '' WHERE description IS NULL;
     UPDATE tasks SET status = 'Not Started' WHERE status IS NULL OR TRIM(status) = '';
     UPDATE story_dependencies SET relationship = 'depends' WHERE relationship IS NULL OR TRIM(relationship) = '';
+    UPDATE delay_logs SET reported_by = '' WHERE reported_by IS NULL;
+    UPDATE delay_logs SET reason = '' WHERE reason IS NULL;
+    UPDATE delay_logs
+    SET delay_occurred_at = COALESCE(delay_occurred_at, created_at, updated_at, '')
+    WHERE delay_occurred_at IS NULL OR TRIM(delay_occurred_at) = '';
+    UPDATE delay_logs
+    SET created_at = COALESCE(created_at, updated_at, delay_occurred_at, '')
+    WHERE created_at IS NULL OR TRIM(created_at) = '';
+    UPDATE delay_logs
+    SET updated_at = COALESCE(updated_at, created_at, delay_occurred_at, '')
+    WHERE updated_at IS NULL OR TRIM(updated_at) = '';
   `);
 }
 
@@ -3961,6 +4090,16 @@ async function ensureDatabase() {
       FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE,
       FOREIGN KEY(depends_on_story_id) REFERENCES user_stories(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS delay_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      story_id INTEGER,
+      reported_by TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      delay_occurred_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE SET NULL
+    );
   `);
 
   ensureColumn(db, 'user_stories', 'mr_id', 'mr_id INTEGER DEFAULT 1');
@@ -3994,6 +4133,13 @@ async function ensureDatabase() {
   ensureColumn(db, 'tasks', 'estimation_hours', 'estimation_hours REAL');
   ensureColumn(db, 'tasks', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'tasks', 'updated_at', 'updated_at TEXT');
+
+  ensureColumn(db, 'delay_logs', 'story_id', 'story_id INTEGER');
+  ensureColumn(db, 'delay_logs', 'reported_by', "reported_by TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'delay_logs', 'reason', "reason TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'delay_logs', 'delay_occurred_at', 'delay_occurred_at TEXT');
+  ensureColumn(db, 'delay_logs', 'created_at', 'created_at TEXT');
+  ensureColumn(db, 'delay_logs', 'updated_at', 'updated_at TEXT');
 
   db.exec(`
     UPDATE tasks
@@ -4195,6 +4341,19 @@ function loadDependencyRows(db) {
     }
     throw error;
   }
+}
+
+function mapDelayLogRow(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    storyId: row.story_id == null ? null : Number(row.story_id),
+    reportedBy: row.reported_by ?? '',
+    reason: row.reason ?? '',
+    delayOccurredAt: row.delay_occurred_at ?? '',
+    createdAt: row.created_at ?? '',
+    updatedAt: row.updated_at ?? '',
+  };
 }
 
 async function loadStories(db) {
@@ -4709,6 +4868,79 @@ export async function createApp() {
 
     if (pathname === '/api/uploads') {
       await handleFileUpload(req, res, url);
+      return;
+    }
+
+    if (pathname === '/api/delays' && method === 'POST') {
+      try {
+        const payload = await parseJson(req);
+        const reason = String(payload.reason ?? '').trim();
+        if (!reason) {
+          throw Object.assign(new Error('Reason is required'), { statusCode: 400 });
+        }
+        const reporterInput = payload.reportedBy ?? payload.reporter ?? payload.user;
+        const reportedBy = String(reporterInput ?? '').trim();
+        if (!reportedBy) {
+          throw Object.assign(new Error('reportedBy is required'), { statusCode: 400 });
+        }
+        let storyId = null;
+        if (payload.storyId != null && payload.storyId !== '') {
+          storyId = Number(payload.storyId);
+          if (!Number.isFinite(storyId)) {
+            throw Object.assign(new Error('storyId must be a number'), { statusCode: 400 });
+          }
+          const existingStory = db.prepare('SELECT id FROM user_stories WHERE id = ?').get(storyId);
+          if (!existingStory) {
+            sendJson(res, 404, { message: 'Story not found' });
+            return;
+          }
+        }
+        const delayOccurredAt = normalizeDelayOccurredAt(payload.delayAt ?? payload.delayOccurredAt);
+        const timestamp = now();
+        const insert = db.prepare(
+          'INSERT INTO delay_logs (story_id, reported_by, reason, delay_occurred_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)' // prettier-ignore
+        );
+        const { lastInsertRowid } = insert.run(
+          storyId,
+          reportedBy,
+          reason,
+          delayOccurredAt,
+          timestamp,
+          timestamp
+        );
+        const createdRow = db
+          .prepare('SELECT * FROM delay_logs WHERE id = ?')
+          .get(Number(lastInsertRowid));
+        sendJson(res, 201, mapDelayLogRow(createdRow));
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to log delay' });
+      }
+      return;
+    }
+
+    if (pathname === '/api/delays' && method === 'GET') {
+      const storyIdParam = url.searchParams.get('storyId');
+      try {
+        let rows;
+        if (storyIdParam != null) {
+          const storyId = Number(storyIdParam);
+          if (!Number.isFinite(storyId)) {
+            throw Object.assign(new Error('storyId must be a number'), { statusCode: 400 });
+          }
+          rows = db
+            .prepare(
+              'SELECT * FROM delay_logs WHERE story_id = ? ORDER BY delay_occurred_at DESC, id DESC'
+            )
+            .all(storyId);
+        } else {
+          rows = db.prepare('SELECT * FROM delay_logs ORDER BY delay_occurred_at DESC, id DESC').all();
+        }
+        sendJson(res, 200, rows.map((row) => mapDelayLogRow(row)));
+      } catch (error) {
+        const status = error.statusCode ?? 500;
+        sendJson(res, status, { message: error.message || 'Failed to load delay logs' });
+      }
       return;
     }
 

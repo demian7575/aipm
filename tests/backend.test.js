@@ -420,6 +420,44 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
     assert.ok(finalData[0].acceptanceTests[0].gwtHealth);
   }
 
+  const delayTimestamp = '2024-05-01T10:15:30.000Z';
+  const delayResponse = await fetch(`${baseUrl}/api/delays`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      storyId: story.id,
+      reason: 'Waiting on data load for BugFix scenario',
+      reportedBy: 'bugfix@example.com',
+      delayAt: delayTimestamp,
+    }),
+  });
+  assert.equal(delayResponse.status, 201);
+  const delayLog = await delayResponse.json();
+  assert.ok(delayLog.id > 0);
+  assert.equal(delayLog.storyId, story.id);
+  assert.equal(delayLog.reason, 'Waiting on data load for BugFix scenario');
+  assert.equal(delayLog.reportedBy, 'bugfix@example.com');
+  assert.equal(delayLog.delayOccurredAt, new Date(delayTimestamp).toISOString());
+  assert.ok(delayLog.createdAt);
+  assert.ok(delayLog.updatedAt);
+
+  const dashboardResponse = await fetch(`${baseUrl}/`);
+  assert.equal(dashboardResponse.status, 200);
+  const dashboardHtml = await dashboardResponse.text();
+  assert.ok(dashboardHtml.includes('<!DOCTYPE html>'));
+
+  const adminDelayResponse = await fetch(`${baseUrl}/api/delays`);
+  assert.equal(adminDelayResponse.status, 200);
+  const delayEntries = await adminDelayResponse.json();
+  assert.ok(Array.isArray(delayEntries));
+  assert.ok(delayEntries.some((entry) => entry.id === delayLog.id));
+
+  const storyDelayResponse = await fetch(`${baseUrl}/api/delays?storyId=${story.id}`);
+  assert.equal(storyDelayResponse.status, 200);
+  const storyDelayEntries = await storyDelayResponse.json();
+  assert.ok(Array.isArray(storyDelayEntries));
+  assert.ok(storyDelayEntries.every((entry) => entry.storyId === story.id));
+
   const runtimeResponse = await fetch(`${baseUrl}/api/runtime-data`);
   assert.equal(runtimeResponse.status, 200);
   const disposition = runtimeResponse.headers.get('content-disposition') ?? '';
