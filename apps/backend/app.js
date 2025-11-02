@@ -1795,6 +1795,56 @@ function markBaselineWarnings(warnings) {
   return warnings.map((warning) => ({ ...warning, source: 'heuristic' }));
 }
 
+function compactObject(input) {
+  if (!input || typeof input !== 'object') {
+    return input;
+  }
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined && value !== null)
+  );
+}
+
+function logCodexUsageMetrics(payload, config) {
+  if (!payload || typeof payload !== 'object') {
+    return;
+  }
+
+  const usage = payload.usage;
+  if (!usage || typeof usage !== 'object') {
+    return;
+  }
+
+  const promptTokens =
+    usage.prompt_tokens ?? usage.input_tokens ?? usage.total_prompt_tokens ?? null;
+  const completionTokens =
+    usage.completion_tokens ?? usage.output_tokens ?? usage.total_completion_tokens ?? null;
+  const totalTokens =
+    usage.total_tokens ??
+    (promptTokens != null && completionTokens != null ? promptTokens + completionTokens : null);
+
+  const promptDetails =
+    usage.prompt_tokens_details ?? usage.input_token_details ?? usage.prompt ?? null;
+  const completionDetails =
+    usage.completion_tokens_details ?? usage.output_token_details ?? usage.completion ?? null;
+
+  const logPayload = compactObject({
+    id: payload.id,
+    model: payload.model || config?.model,
+    systemFingerprint: payload.system_fingerprint,
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    promptTokensDetails: promptDetails || undefined,
+    completionTokensDetails: completionDetails || undefined,
+  });
+
+  if (Object.keys(logPayload).length === 0) {
+    return;
+  }
+
+  console.log(`[${new Date().toISOString()}] [codex] Usage`, logPayload);
+}
+
 async function requestInvestAnalysisFromOpenAi(story, options, config) {
   if (!config.enabled) {
     return null;
@@ -1854,6 +1904,11 @@ async function requestInvestAnalysisFromOpenAi(story, options, config) {
   }
 
   const payload = await response.json();
+  try {
+    logCodexUsageMetrics(payload, config);
+  } catch (loggingError) {
+    console.warn('[codex] Failed to log usage metrics', loggingError);
+  }
   const content = payload?.choices?.[0]?.message?.content;
   const jsonText = extractJsonObject(content);
   if (!jsonText) {
