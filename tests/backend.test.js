@@ -36,6 +36,11 @@ test('stories CRUD with reference documents', async (t) => {
   await resetDatabaseFiles();
   const { server, port } = await startServer();
 
+  const startupLog = await fs.readFile(DELAY_ACTIVITY_LOG_PATH, 'utf8');
+  assert.match(startupLog, /Backend initialization started/, 'startup log should include initialization start');
+  assert.match(startupLog, /Database ready for requests/, 'startup log should confirm database readiness');
+  assert.match(startupLog, /Backend listening on port/, 'startup log should record listening port');
+
   t.after(async () => {
     await new Promise((resolve, reject) => {
       server.close((err) => (err ? reject(err) : resolve()));
@@ -493,6 +498,41 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
     'Runtime data should be a valid SQLite database file'
   );
   await fs.access(DATABASE_PATH);
+
+  for (const testCase of child.acceptanceTests) {
+    const promoteResponse = await fetch(`${baseUrl}/api/tests/${testCase.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        given: testCase.given,
+        when: testCase.when,
+        then: testCase.then,
+        status: 'Pass',
+      }),
+    });
+    assert.equal(promoteResponse.status, 200);
+  }
+
+  const childHealthResponse = await fetch(`${baseUrl}/api/stories/${child.id}/health-check`, {
+    method: 'POST',
+  });
+  assert.equal(childHealthResponse.status, 200);
+  const readyChild = await childHealthResponse.json();
+
+  const doneResponse = await fetch(`${baseUrl}/api/stories/${child.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: readyChild.title,
+      status: 'Done',
+      acceptWarnings: true,
+    }),
+  });
+  assert.equal(doneResponse.status, 200);
+  const doneStory = await doneResponse.json();
+  assert.equal(doneStory.status, 'Done');
+  assert.equal(doneStory.acceptanceTests.length, readyChild.acceptanceTests.length);
+  assert.ok(doneStory.acceptanceTests.every((test) => test.status === 'Pass'));
 });
 
 test('acceptance tests allow observable outcomes without numeric metrics', async (t) => {

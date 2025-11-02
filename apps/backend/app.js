@@ -1525,6 +1525,8 @@ const UPLOAD_DIR = path.join(__dirname, 'uploads');
 export const DATABASE_PATH = path.join(DATA_DIR, 'app.sqlite');
 export const DELAY_ACTIVITY_LOG_PATH = path.join(DATA_DIR, 'delay-activity.log');
 
+let delayActivityLogPrepared = false;
+
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const ACCEPTANCE_TEST_STATUS_DRAFT = 'Draft';
@@ -1674,12 +1676,39 @@ function resolveUploadPath(urlPath) {
   return resolved;
 }
 
+async function ensureDelayActivityLogReady() {
+  if (delayActivityLogPrepared) {
+    return;
+  }
+  try {
+    await mkdir(DATA_DIR, { recursive: true });
+    await writeFile(DELAY_ACTIVITY_LOG_PATH, '', { flag: 'a' });
+    delayActivityLogPrepared = true;
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      console.error('Failed to prepare delay activity log', error);
+    }
+    throw error;
+  }
+}
+
 async function logDelayActivity(activity, { echo = false } = {}) {
   const entry = `[${now()}] ${activity}\n`;
   try {
+    await ensureDelayActivityLogReady();
     await appendFile(DELAY_ACTIVITY_LOG_PATH, entry, 'utf8');
   } catch (error) {
-    console.error('Failed to write delay activity log', error);
+    if (error?.code === 'ENOENT') {
+      delayActivityLogPrepared = false;
+      try {
+        await ensureDelayActivityLogReady();
+        await appendFile(DELAY_ACTIVITY_LOG_PATH, entry, 'utf8');
+      } catch (retryError) {
+        console.error('Failed to write delay activity log', retryError);
+      }
+    } else {
+      console.error('Failed to write delay activity log', error);
+    }
   }
   if (echo) {
     console.log(entry.trimEnd());
@@ -4049,8 +4078,11 @@ async function removeUploadIfLocal(urlPath) {
 }
 
 async function ensureDatabase() {
+  await logDelayActivity('Preparing runtime data directories', { echo: true });
   await Promise.all([mkdir(DATA_DIR, { recursive: true }), mkdir(UPLOAD_DIR, { recursive: true })]);
+  await logDelayActivity('Opening runtime database', { echo: true });
   const db = await openDatabase(DATABASE_PATH);
+  await logDelayActivity('Applying database migrations', { echo: true });
   db.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
@@ -4189,9 +4221,12 @@ async function ensureDatabase() {
 
   ensureNotNullDefaults(db);
 
+  await logDelayActivity('Database migrations complete', { echo: true });
+
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM user_stories');
   const { count } = countStmt.get();
   if (count === 0) {
+    await logDelayActivity('Seeding starter workspace stories', { echo: true });
     const timestamp = now();
     const insertStory = db.prepare(
       'INSERT INTO user_stories (title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
@@ -4292,7 +4327,10 @@ async function ensureDatabase() {
       'INSERT INTO reference_documents (story_id, name, url, created_at, updated_at) VALUES (?, ?, ?, ?, ?)' // prettier-ignore
     );
     insertDoc.run(rootId, 'Security checklist', 'https://example.com/security.pdf', timestamp, timestamp);
+    await logDelayActivity('Starter workspace stories inserted', { echo: true });
   }
+
+  await logDelayActivity('Database ready for requests', { echo: true });
 
   return db;
 }
@@ -4855,7 +4893,9 @@ async function handleFileUpload(req, res, url) {
 }
 
 export async function createApp() {
+  await logDelayActivity('Backend initialization started', { echo: true });
   const db = await ensureDatabase();
+  await logDelayActivity('Backend initialization finished', { echo: true });
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
@@ -5124,18 +5164,31 @@ export async function createApp() {
         if (!title) {
           throw Object.assign(new Error('Title is required'), { statusCode: 400 });
         }
-        const description = String(payload.description ?? '').trim();
-        const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
-        const asA = payload.asA != null ? String(payload.asA).trim() : undefined;
-        const iWant = payload.iWant != null ? String(payload.iWant).trim() : undefined;
-        const soThat = payload.soThat != null ? String(payload.soThat).trim() : undefined;
-        const requestedComponents = payload.components;
-
         const existingStmt = db.prepare('SELECT * FROM user_stories WHERE id = ?');
         const existing = existingStmt.get(storyId);
         if (!existing) {
           throw Object.assign(new Error('Story not found'), { statusCode: 404 });
         }
+
+        const existingDescription = existing.description ?? '';
+        const hasDescription = Object.prototype.hasOwnProperty.call(payload, 'description');
+        const nextDescription = hasDescription
+          ? String(payload.description ?? '').trim()
+          : existingDescription;
+
+        const existingAssignee = existing.assignee_email ?? '';
+        const hasAssigneeEmail = Object.prototype.hasOwnProperty.call(payload, 'assigneeEmail');
+        const nextAssigneeEmail = hasAssigneeEmail
+          ? String(payload.assigneeEmail ?? '').trim()
+          : existingAssignee;
+
+        const hasAsA = Object.prototype.hasOwnProperty.call(payload, 'asA');
+        const asA = hasAsA ? String(payload.asA ?? '').trim() : undefined;
+        const hasIWant = Object.prototype.hasOwnProperty.call(payload, 'iWant');
+        const iWant = hasIWant ? String(payload.iWant ?? '').trim() : undefined;
+        const hasSoThat = Object.prototype.hasOwnProperty.call(payload, 'soThat');
+        const soThat = hasSoThat ? String(payload.soThat ?? '').trim() : undefined;
+        const requestedComponents = payload.components;
 
         const storyPoint =
           payload.storyPoint === undefined ? existing.story_point : normalizeStoryPoint(payload.storyPoint);
@@ -5150,51 +5203,21 @@ export async function createApp() {
         const nextStatus =
           payload.status === undefined ? currentStatus : normalizeStoryStatus(payload.status);
 
-        const storyForValidation = {
-          title,
-          asA: asA ?? existing.as_a,
-          iWant: iWant ?? existing.i_want,
-          soThat: soThat ?? existing.so_that,
-          description: description || existing.description || '',
-          storyPoint,
-          components,
-        };
-        const analysis = await analyzeInvest(storyForValidation);
-        const warnings = analysis.warnings;
-        if (warnings.length > 0 && !payload.acceptWarnings) {
-          sendJson(res, 409, {
-            code: 'INVEST_WARNINGS',
-            message: 'User story does not meet INVEST criteria.',
-            warnings,
-            analysis: {
-              source: analysis.source,
-              summary: analysis.summary,
-              aiSummary: analysis.ai?.summary || '',
-              aiModel: analysis.ai?.model || null,
-              usedFallback: analysis.usedFallback,
-              error: analysis.ai?.error || null,
-              fallbackWarnings: analysis.fallbackWarnings || [],
-            },
-          });
-          return;
-        }
-
-        if (nextStatus === 'Done') {
-          ensureCanMarkStoryDone(db, storyId);
-        }
-
-        const nextAsA = asA ?? existing.as_a ?? '';
-        const nextIWant = iWant ?? existing.i_want ?? '';
-        const nextSoThat = soThat ?? existing.so_that ?? '';
-        const descriptionChanged = description !== (existing.description ?? '');
-        const assigneeChanged = assigneeEmail !== (existing.assignee_email ?? '');
-        const storyPointChanged = (storyPoint ?? null) !== (existing.story_point ?? null);
-        const asAChanged = nextAsA !== (existing.as_a ?? '');
-        const iWantChanged = nextIWant !== (existing.i_want ?? '');
-        const soThatChanged = nextSoThat !== (existing.so_that ?? '');
+        const nextAsA = hasAsA ? asA : existing.as_a ?? '';
+        const nextIWant = hasIWant ? iWant : existing.i_want ?? '';
+        const nextSoThat = hasSoThat ? soThat : existing.so_that ?? '';
+        const descriptionChanged = hasDescription && nextDescription !== existingDescription;
+        const assigneeChanged = hasAssigneeEmail && nextAssigneeEmail !== existingAssignee;
+        const storyPointChanged =
+          payload.storyPoint !== undefined && (storyPoint ?? null) !== (existing.story_point ?? null);
+        const asAChanged = hasAsA && nextAsA !== (existing.as_a ?? '');
+        const iWantChanged = hasIWant && nextIWant !== (existing.i_want ?? '');
+        const soThatChanged = hasSoThat && nextSoThat !== (existing.so_that ?? '');
         const titleChanged = title !== existing.title;
         const componentsChanged =
-          JSON.stringify(components) !== JSON.stringify(normalizedExistingComponents);
+          requestedComponents !== undefined
+            ? JSON.stringify(components) !== JSON.stringify(normalizedExistingComponents)
+            : false;
         const contentChanged =
           titleChanged ||
           descriptionChanged ||
@@ -5205,15 +5228,50 @@ export async function createApp() {
           soThatChanged ||
           componentsChanged;
 
+        if (contentChanged) {
+          const storyForValidation = {
+            title,
+            asA: nextAsA,
+            iWant: nextIWant,
+            soThat: nextSoThat,
+            description: nextDescription,
+            storyPoint,
+            components,
+          };
+          const analysis = await analyzeInvest(storyForValidation);
+          const warnings = analysis.warnings;
+          if (warnings.length > 0 && !payload.acceptWarnings) {
+            sendJson(res, 409, {
+              code: 'INVEST_WARNINGS',
+              message: 'User story does not meet INVEST criteria.',
+              warnings,
+              analysis: {
+                source: analysis.source,
+                summary: analysis.summary,
+                aiSummary: analysis.ai?.summary || '',
+                aiModel: analysis.ai?.model || null,
+                usedFallback: analysis.usedFallback,
+                error: analysis.ai?.error || null,
+                fallbackWarnings: analysis.fallbackWarnings || [],
+              },
+            });
+            return;
+          }
+        }
+
+        if (nextStatus === 'Done') {
+          ensureCanMarkStoryDone(db, storyId);
+        }
+
         const update = db.prepare(
           'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ? WHERE id = ?' // prettier-ignore
         );
         update.run(
           title,
-          description,
+          nextDescription,
           serializeComponents(components),
           storyPoint,
-          assigneeEmail,
+          nextAssigneeEmail,
           nextAsA,
           nextIWant,
           nextSoThat,
@@ -5719,6 +5777,16 @@ export async function createApp() {
     }
 
     await serveStatic(req, res);
+  });
+
+  server.on('listening', () => {
+    const address = server.address();
+    const port =
+      typeof address === 'object' && address && typeof address.port === 'number'
+        ? address.port
+        : null;
+    const message = port == null ? 'Backend listening' : `Backend listening on port ${port}`;
+    logDelayActivity(message, { echo: true }).catch(() => {});
   });
 
   server.on('close', () => {
