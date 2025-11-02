@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
+import { readFile, stat, mkdir, writeFile, unlink, appendFile } from 'node:fs/promises';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -1523,6 +1523,7 @@ const FRONTEND_DIR = path.join(__dirname, '..', 'frontend', 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 export const DATABASE_PATH = path.join(DATA_DIR, 'app.sqlite');
+export const DELAY_ACTIVITY_LOG_PATH = path.join(DATA_DIR, 'delay-activity.log');
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -1647,6 +1648,14 @@ function sanitizeFilename(name) {
   return name.replace(/[^a-zA-Z0-9_.-]/g, '_');
 }
 
+function toBoolean(value) {
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
+  }
+  return Boolean(value);
+}
+
 function isLocalUpload(urlPath) {
   return typeof urlPath === 'string' && urlPath.startsWith('/uploads/');
 }
@@ -1663,6 +1672,18 @@ function resolveUploadPath(urlPath) {
     return null;
   }
   return resolved;
+}
+
+async function logDelayActivity(activity, { echo = false } = {}) {
+  const entry = `[${now()}] ${activity}\n`;
+  try {
+    await appendFile(DELAY_ACTIVITY_LOG_PATH, entry, 'utf8');
+  } catch (error) {
+    console.error('Failed to write delay activity log', error);
+  }
+  if (echo) {
+    console.log(entry.trimEnd());
+  }
 }
 
 function baselineInvestWarnings(story, options = {}) {
@@ -4883,6 +4904,13 @@ export async function createApp() {
         if (!reportedBy) {
           throw Object.assign(new Error('reportedBy is required'), { statusCode: 400 });
         }
+        const echoPreference =
+          payload.printToScreen ??
+          payload.print ??
+          payload.logToConsole ??
+          payload.echo ??
+          payload.notify;
+        const shouldEcho = toBoolean(echoPreference);
         let storyId = null;
         if (payload.storyId != null && payload.storyId !== '') {
           storyId = Number(payload.storyId);
@@ -4911,7 +4939,16 @@ export async function createApp() {
         const createdRow = db
           .prepare('SELECT * FROM delay_logs WHERE id = ?')
           .get(Number(lastInsertRowid));
-        sendJson(res, 201, mapDelayLogRow(createdRow));
+        const mapped = mapDelayLogRow(createdRow);
+        const logContext = [
+          mapped.storyId ? `story ${mapped.storyId}` : 'no story reference',
+          `reportedBy=${mapped.reportedBy || 'unknown'}`,
+          `reason="${mapped.reason}"`,
+          `delayOccurredAt=${mapped.delayOccurredAt}`,
+          `logId=${mapped.id}`,
+        ].join(' | ');
+        await logDelayActivity(`Delay recorded: ${logContext}`, { echo: shouldEcho });
+        sendJson(res, 201, mapped);
       } catch (error) {
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to log delay' });

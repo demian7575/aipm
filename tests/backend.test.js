@@ -6,6 +6,7 @@ import {
   COMPONENT_CATALOG,
   createApp,
   DATABASE_PATH,
+  DELAY_ACTIVITY_LOG_PATH,
   openDatabase,
   resetDatabaseFactory,
 } from '../apps/backend/app.js';
@@ -18,6 +19,7 @@ delete process.env.OPENAI_API_KEY;
 async function resetDatabaseFiles() {
   await fs.rm(DATABASE_PATH, { force: true });
   await fs.rm(`${DATABASE_PATH}.json`, { force: true });
+  await fs.rm(DELAY_ACTIVITY_LOG_PATH, { force: true });
 }
 
 async function startServer() {
@@ -421,6 +423,11 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   }
 
   const delayTimestamp = '2024-05-01T10:15:30.000Z';
+  const originalConsoleLog = console.log;
+  const consoleMessages = [];
+  console.log = (...args) => {
+    consoleMessages.push(args.join(' '));
+  };
   const delayResponse = await fetch(`${baseUrl}/api/delays`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -429,8 +436,10 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
       reason: 'Waiting on data load for BugFix scenario',
       reportedBy: 'bugfix@example.com',
       delayAt: delayTimestamp,
+      printToScreen: true,
     }),
   });
+  console.log = originalConsoleLog;
   assert.equal(delayResponse.status, 201);
   const delayLog = await delayResponse.json();
   assert.ok(delayLog.id > 0);
@@ -440,6 +449,19 @@ const storiesResponse = await fetch(`${baseUrl}/api/stories`);
   assert.equal(delayLog.delayOccurredAt, new Date(delayTimestamp).toISOString());
   assert.ok(delayLog.createdAt);
   assert.ok(delayLog.updatedAt);
+  const logFileContents = await fs.readFile(DELAY_ACTIVITY_LOG_PATH, 'utf8');
+  assert.ok(
+    logFileContents.includes('Delay recorded:'),
+    'delay activity log file should include recorded entry'
+  );
+  assert.ok(
+    logFileContents.includes('bugfix@example.com'),
+    'delay activity log file should mention reporter'
+  );
+  assert.ok(
+    consoleMessages.some((message) => message.includes('Delay recorded:')),
+    'console output should include delay record when printToScreen is true'
+  );
 
   const dashboardResponse = await fetch(`${baseUrl}/`);
   assert.equal(dashboardResponse.status, 200);
