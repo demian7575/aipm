@@ -177,6 +177,8 @@ try:
           story_point INTEGER,
           assignee_email TEXT DEFAULT '',
           status TEXT DEFAULT 'Draft',
+          invest_warnings TEXT,
+          invest_analysis TEXT,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           FOREIGN KEY(parent_id) REFERENCES user_stories(id) ON DELETE CASCADE
@@ -195,6 +197,9 @@ try:
               when_step TEXT NOT NULL,
               then_step TEXT NOT NULL,
               status TEXT DEFAULT 'Draft',
+              measurability_warnings TEXT,
+              measurability_suggestions TEXT,
+              gwt_health TEXT,
               created_at TEXT NOT NULL,
               updated_at TEXT NOT NULL,
               FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
@@ -211,6 +216,9 @@ try:
               when_step TEXT NOT NULL,
               then_step TEXT NOT NULL,
               status TEXT DEFAULT 'Draft',
+              measurability_warnings TEXT,
+              measurability_suggestions TEXT,
+              gwt_health TEXT,
               created_at TEXT NOT NULL,
               updated_at TEXT NOT NULL,
               FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
@@ -278,6 +286,8 @@ try:
                 normalize_int(row.get('story_point')),
                 normalize_text(row.get('assignee_email'), ''),
                 normalize_text(row.get('status'), 'Draft'),
+                normalize_text(row.get('invest_warnings'), '[]'),
+                normalize_text(row.get('invest_analysis'), '{}'),
                 normalize_timestamp(row.get('created_at'), row.get('updated_at')),
                 normalize_timestamp(row.get('updated_at'), row.get('created_at')),
             )
@@ -288,8 +298,9 @@ try:
             """
             INSERT INTO user_stories (
               id, mr_id, parent_id, title, description, as_a, i_want, so_that, components,
-              story_point, assignee_email, status, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              story_point, assignee_email, status, invest_warnings, invest_analysis,
+              created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             story_rows,
         )
@@ -305,6 +316,9 @@ try:
                 normalize_text(row.get('when_step'), '[]'),
                 normalize_text(row.get('then_step'), '[]'),
                 normalize_text(row.get('status'), 'Draft'),
+                normalize_text(row.get('measurability_warnings'), '[]'),
+                normalize_text(row.get('measurability_suggestions'), '[]'),
+                normalize_text(row.get('gwt_health'), ''),
                 normalize_timestamp(row.get('created_at'), row.get('updated_at')),
                 normalize_timestamp(row.get('updated_at'), row.get('created_at')),
             ]
@@ -316,8 +330,10 @@ try:
             conn.executemany(
                 """
                 INSERT INTO acceptance_tests (
-                  id, story_id, title, given, when_step, then_step, status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  id, story_id, title, given, when_step, then_step, status,
+                  measurability_warnings, measurability_suggestions, gwt_health,
+                  created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 test_rows,
             )
@@ -325,8 +341,10 @@ try:
             conn.executemany(
                 """
                 INSERT INTO acceptance_tests (
-                  id, story_id, given, when_step, then_step, status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                  id, story_id, given, when_step, then_step, status,
+                  measurability_warnings, measurability_suggestions, gwt_health,
+                  created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 test_rows,
             )
@@ -1542,6 +1560,38 @@ function parseJsonArray(value) {
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
+  }
+}
+
+function parseOptionalJsonArray(value) {
+  if (value == null) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseOptionalJsonObject(value) {
+  if (!value) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeJsonStringify(value) {
+  try {
+    return JSON.stringify(value ?? null);
+  } catch {
+    return JSON.stringify(null);
   }
 }
 
@@ -3498,43 +3548,123 @@ function buildGwtHealth(given, when, then, measurability) {
   return { satisfied: issues.length === 0, issues };
 }
 
+function buildInvestAnalysisPayload(analysis) {
+  return {
+    source: analysis.source,
+    summary: analysis.summary,
+    aiSummary: analysis.ai?.summary || '',
+    aiWarnings: Array.isArray(analysis.ai?.warnings) ? analysis.ai.warnings : [],
+    aiModel: analysis.ai?.model || null,
+    usedFallback: Boolean(analysis.usedFallback),
+    error: analysis.ai?.error || null,
+    fallbackWarnings: Array.isArray(analysis.fallbackWarnings) ? analysis.fallbackWarnings : [],
+  };
+}
+
+function applyInvestAnalysisToStory(story, warnings, analysisPayload) {
+  const normalizedWarnings = Array.isArray(warnings) ? warnings : [];
+  story.investWarnings = normalizedWarnings;
+  story.investSatisfied = normalizedWarnings.length === 0;
+  story.investHealth = {
+    satisfied: story.investSatisfied,
+    issues: normalizedWarnings,
+  };
+  story.investAnalysis = {
+    source: analysisPayload?.source || 'heuristic',
+    summary: analysisPayload?.summary || '',
+    aiSummary: analysisPayload?.aiSummary || '',
+    aiWarnings: Array.isArray(analysisPayload?.aiWarnings)
+      ? analysisPayload.aiWarnings
+      : [],
+    aiModel: analysisPayload?.aiModel ?? null,
+    usedFallback: Boolean(analysisPayload?.usedFallback),
+    error: analysisPayload?.error || null,
+    fallbackWarnings: Array.isArray(analysisPayload?.fallbackWarnings)
+      ? analysisPayload.fallbackWarnings
+      : [],
+  };
+}
+
+function computeAcceptanceTestHealth(given, when, then) {
+  const { warnings, suggestions } = measurabilityWarnings(then);
+  const gwtHealth = buildGwtHealth(given, when, then, warnings);
+  return {
+    warnings,
+    suggestions,
+    gwtHealth,
+  };
+}
+
 function acceptanceTestColumnsForInsert() {
   if (acceptanceTestsHasTitleColumn) {
     return {
       columns:
-        'story_id, title, given, when_step, then_step, status, created_at, updated_at', // prettier-ignore
-      placeholders: '?, ?, ?, ?, ?, ?, ?, ?',
+        'story_id, title, given, when_step, then_step, status, measurability_warnings, measurability_suggestions, gwt_health, created_at, updated_at', // prettier-ignore
+      placeholders: '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?',
     };
   }
   return {
-    columns: 'story_id, given, when_step, then_step, status, created_at, updated_at',
-    placeholders: '?, ?, ?, ?, ?, ?, ?',
+    columns:
+      'story_id, given, when_step, then_step, status, measurability_warnings, measurability_suggestions, gwt_health, created_at, updated_at',
+    placeholders: '?, ?, ?, ?, ?, ?, ?, ?, ?, ?',
   };
 }
 
 function insertAcceptanceTest(
   db,
-  { storyId, title = '', given, when, then, status = ACCEPTANCE_TEST_STATUS_DRAFT, timestamp = now() }
+  {
+    storyId,
+    title = '',
+    given,
+    when,
+    then,
+    status = ACCEPTANCE_TEST_STATUS_DRAFT,
+    measurabilityWarnings = null,
+    measurabilitySuggestions = null,
+    gwtHealth = null,
+    timestamp = now(),
+  }
 ) {
   const { columns, placeholders } = acceptanceTestColumnsForInsert();
+  const givenJson = JSON.stringify(given);
+  const whenJson = JSON.stringify(when);
+  const thenJson = JSON.stringify(then);
+  let warnings = Array.isArray(measurabilityWarnings) ? measurabilityWarnings : null;
+  let suggestions = Array.isArray(measurabilitySuggestions) ? measurabilitySuggestions : null;
+  let health = gwtHealth && typeof gwtHealth === 'object' ? gwtHealth : null;
+  if (!warnings || !suggestions || !health) {
+    const computed = computeAcceptanceTestHealth(given, when, then);
+    warnings = computed.warnings;
+    suggestions = computed.suggestions;
+    health = computed.gwtHealth;
+  }
+  const warningsJson = safeJsonStringify(warnings);
+  const suggestionsJson = safeJsonStringify(suggestions);
+  const healthJson = safeJsonStringify(health);
   const statement = db.prepare(`INSERT INTO acceptance_tests (${columns}) VALUES (${placeholders})`);
   const params = acceptanceTestsHasTitleColumn
     ? [
         storyId,
         title,
-        JSON.stringify(given),
-        JSON.stringify(when),
-        JSON.stringify(then),
+        givenJson,
+        whenJson,
+        thenJson,
         status,
+        warningsJson,
+        suggestionsJson,
+        healthJson,
         timestamp,
         timestamp,
       ]
     : [
         storyId,
-        JSON.stringify(given),
-        JSON.stringify(when),
-        JSON.stringify(then),
+        givenJson,
+        whenJson,
+        thenJson,
         status,
+        warningsJson,
+        suggestionsJson,
+        healthJson,
         timestamp,
         timestamp,
       ];
@@ -3830,6 +3960,11 @@ async function createAutomaticAcceptanceTest(db, story, { reason = 'create', exi
         };
   const ordinal = Number(countRow.count ?? 0) + 1;
   const content = await generateAcceptanceTestDraft(story, ordinal, reason);
+  const { warnings, suggestions, gwtHealth } = computeAcceptanceTestHealth(
+    content.given,
+    content.when,
+    content.then
+  );
   return insertAcceptanceTest(db, {
     storyId: story.id,
     title: content.title,
@@ -3837,6 +3972,9 @@ async function createAutomaticAcceptanceTest(db, story, { reason = 'create', exi
     when: content.when,
     then: content.then,
     status: ACCEPTANCE_TEST_STATUS_DRAFT,
+    measurabilityWarnings: warnings,
+    measurabilitySuggestions: suggestions,
+    gwtHealth,
   });
 }
 
@@ -4030,6 +4168,8 @@ async function ensureDatabase() {
   ensureColumn(db, 'user_stories', 'status', "status TEXT DEFAULT 'Draft'");
   ensureColumn(db, 'user_stories', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'user_stories', 'updated_at', 'updated_at TEXT');
+  ensureColumn(db, 'user_stories', 'invest_warnings', 'invest_warnings TEXT');
+  ensureColumn(db, 'user_stories', 'invest_analysis', 'invest_analysis TEXT');
 
   ensureColumn(db, 'acceptance_tests', 'given', "given TEXT NOT NULL DEFAULT '[]'");
   ensureColumn(db, 'acceptance_tests', 'when_step', "when_step TEXT NOT NULL DEFAULT '[]'");
@@ -4037,6 +4177,9 @@ async function ensureDatabase() {
   ensureColumn(db, 'acceptance_tests', 'status', "status TEXT DEFAULT 'Draft'");
   ensureColumn(db, 'acceptance_tests', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'acceptance_tests', 'updated_at', 'updated_at TEXT');
+  ensureColumn(db, 'acceptance_tests', 'measurability_warnings', 'measurability_warnings TEXT');
+  ensureColumn(db, 'acceptance_tests', 'measurability_suggestions', 'measurability_suggestions TEXT');
+  ensureColumn(db, 'acceptance_tests', 'gwt_health', 'gwt_health TEXT');
 
   ensureColumn(db, 'reference_documents', 'name', "name TEXT NOT NULL DEFAULT ''");
   ensureColumn(db, 'reference_documents', 'url', "url TEXT NOT NULL DEFAULT ''");
@@ -4081,8 +4224,19 @@ async function ensureDatabase() {
   const { count } = countStmt.get();
   if (count === 0) {
     const timestamp = now();
+    const defaultInvestWarningsJson = safeJsonStringify([]);
+    const defaultInvestAnalysisJson = safeJsonStringify({
+      source: 'seed',
+      summary: '',
+      aiSummary: '',
+      aiWarnings: [],
+      aiModel: null,
+      usedFallback: true,
+      error: null,
+      fallbackWarnings: [],
+    });
     const insertStory = db.prepare(
-      'INSERT INTO user_stories (title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+      'INSERT INTO user_stories (title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, invest_warnings, invest_analysis, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
     );
     const { lastInsertRowid: rootId } = insertStory.run(
       'Enable secure login',
@@ -4094,12 +4248,14 @@ async function ensureDatabase() {
       5,
       'pm@example.com',
       'Ready',
+      defaultInvestWarningsJson,
+      defaultInvestAnalysisJson,
       timestamp,
       timestamp
     );
 
     const insertChild = db.prepare(
-      'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+      'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, invest_warnings, invest_analysis, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
     );
     const { lastInsertRowid: formStoryId } = insertChild.run(
       rootId,
@@ -4112,6 +4268,8 @@ async function ensureDatabase() {
       3,
       'designer@example.com',
       'Blocked',
+      defaultInvestWarningsJson,
+      defaultInvestAnalysisJson,
       timestamp,
       timestamp
     );
@@ -4128,10 +4286,17 @@ async function ensureDatabase() {
       5,
       'lead@example.com',
       'In Progress',
+      defaultInvestWarningsJson,
+      defaultInvestAnalysisJson,
       blockerTimestamp,
       blockerTimestamp
     );
 
+    const apiTestHealth = computeAcceptanceTestHealth(
+      ['The platform team has drafted the login API schema'],
+      ['The schema is shared with downstream integrators'],
+      ['All dependent teams confirm compatibility within 3 business days']
+    );
     insertAcceptanceTest(db, {
       storyId: Number(apiStoryId),
       title: 'API contract published',
@@ -4140,6 +4305,9 @@ async function ensureDatabase() {
       then: ['All dependent teams confirm compatibility within 3 business days'],
       status: 'Draft',
       timestamp: blockerTimestamp,
+      measurabilityWarnings: apiTestHealth.warnings,
+      measurabilitySuggestions: apiTestHealth.suggestions,
+      gwtHealth: apiTestHealth.gwtHealth,
     });
 
     insertDependency(db, {
@@ -4148,6 +4316,11 @@ async function ensureDatabase() {
       relationship: 'blocks',
     });
 
+    const rootTestHealth = computeAcceptanceTestHealth(
+      ['A customer with valid credentials'],
+      ['They submit the login form'],
+      ['Dashboard loads within 2000 ms']
+    );
     insertAcceptanceTest(db, {
       storyId: rootId,
       title: 'Happy path login',
@@ -4156,6 +4329,9 @@ async function ensureDatabase() {
       then: ['Dashboard loads within 2000 ms'],
       status: 'Ready',
       timestamp,
+      measurabilityWarnings: rootTestHealth.warnings,
+      measurabilitySuggestions: rootTestHealth.suggestions,
+      gwtHealth: rootTestHealth.gwtHealth,
     });
 
     insertTask(db, {
@@ -4180,6 +4356,10 @@ async function ensureDatabase() {
       'INSERT INTO reference_documents (story_id, name, url, created_at, updated_at) VALUES (?, ?, ?, ?, ?)' // prettier-ignore
     );
     insertDoc.run(rootId, 'Security checklist', 'https://example.com/security.pdf', timestamp, timestamp);
+
+    await recomputeStoryHealth(db, rootId);
+    await recomputeStoryHealth(db, Number(formStoryId));
+    await recomputeStoryHealth(db, Number(apiStoryId));
   }
 
   return db;
@@ -4259,6 +4439,10 @@ async function loadStories(db) {
   const testRows = db.prepare('SELECT * FROM acceptance_tests ORDER BY story_id, id').all();
   const docRows = db.prepare('SELECT * FROM reference_documents ORDER BY story_id, id').all();
   const taskRows = db.prepare('SELECT * FROM tasks ORDER BY story_id, id').all();
+  const storiesMissingInvest = [];
+  const updateTestHealthStmt = db.prepare(
+    'UPDATE acceptance_tests SET measurability_warnings = ?, measurability_suggestions = ?, gwt_health = ? WHERE id = ?'
+  );
 
   const stories = storyRows.map((row) => {
     const components = normalizeComponentsInput(parseJsonArray(row.components));
@@ -4285,6 +4469,13 @@ async function loadStories(db) {
       blockedBy: [],
       blocking: [],
     };
+    const storedInvestWarnings = parseOptionalJsonArray(row.invest_warnings);
+    const storedInvestAnalysis = parseOptionalJsonObject(row.invest_analysis);
+    if (storedInvestWarnings == null || storedInvestAnalysis == null) {
+      storiesMissingInvest.push(story.id);
+    }
+    const investWarnings = Array.isArray(storedInvestWarnings) ? storedInvestWarnings : [];
+    applyInvestAnalysisToStory(story, investWarnings, storedInvestAnalysis);
     return story;
   });
 
@@ -4341,8 +4532,21 @@ async function loadStories(db) {
     const given = parseJsonArray(row.given);
     const when = parseJsonArray(row.when_step);
     const then = parseJsonArray(row.then_step);
-    const { warnings, suggestions } = measurabilityWarnings(then);
-    const gwtHealth = buildGwtHealth(given, when, then, warnings);
+    let measurabilityWarnings = parseOptionalJsonArray(row.measurability_warnings);
+    let measurabilitySuggestions = parseOptionalJsonArray(row.measurability_suggestions);
+    let gwtHealth = parseOptionalJsonObject(row.gwt_health);
+    if (!Array.isArray(measurabilityWarnings) || !Array.isArray(measurabilitySuggestions) || !gwtHealth) {
+      const computed = computeAcceptanceTestHealth(given, when, then);
+      measurabilityWarnings = computed.warnings;
+      measurabilitySuggestions = computed.suggestions;
+      gwtHealth = computed.gwtHealth;
+      updateTestHealthStmt.run(
+        safeJsonStringify(measurabilityWarnings),
+        safeJsonStringify(measurabilitySuggestions),
+        safeJsonStringify(gwtHealth),
+        row.id
+      );
+    }
     story.acceptanceTests.push({
       id: row.id,
       storyId: row.story_id,
@@ -4353,8 +4557,8 @@ async function loadStories(db) {
       status: row.status,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      measurabilityWarnings: warnings,
-      measurabilitySuggestions: suggestions,
+      measurabilityWarnings: Array.isArray(measurabilityWarnings) ? measurabilityWarnings : [],
+      measurabilitySuggestions: Array.isArray(measurabilitySuggestions) ? measurabilitySuggestions : [],
       gwtHealth,
     });
   });
@@ -4378,27 +4582,14 @@ async function loadStories(db) {
     story.tasks.push(buildTaskFromRow(row));
   });
 
-  await Promise.all(
-    stories.map(async (story) => {
-      const analysis = await analyzeInvest(story, {
-        acceptanceTests: story.acceptanceTests,
-        includeTestChecks: true,
-      });
-      story.investWarnings = analysis.warnings;
-      story.investSatisfied = analysis.warnings.length === 0;
-      story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
-      story.investAnalysis = {
-        source: analysis.source,
-        summary: analysis.summary,
-        aiSummary: analysis.ai?.summary || '',
-        aiWarnings: analysis.ai?.warnings || [],
-        aiModel: analysis.ai?.model || null,
-        usedFallback: analysis.usedFallback,
-        error: analysis.ai?.error || null,
-        fallbackWarnings: analysis.fallbackWarnings || [],
-      };
-    })
-  );
+  for (const storyId of storiesMissingInvest) {
+    const story = byId.get(storyId);
+    if (!story) continue;
+    const result = await recomputeStoryHealth(db, storyId);
+    if (result) {
+      applyInvestAnalysisToStory(story, result.warnings, result.analysis);
+    }
+  }
 
   return roots;
 }
@@ -4433,16 +4624,37 @@ async function loadStoryWithDetails(db, storyId) {
     blockedBy: [],
     blocking: [],
   };
+  const storedInvestWarnings = parseOptionalJsonArray(row.invest_warnings);
+  const storedInvestAnalysis = parseOptionalJsonObject(row.invest_analysis);
+  const investWarnings = Array.isArray(storedInvestWarnings) ? storedInvestWarnings : [];
+  applyInvestAnalysisToStory(story, investWarnings, storedInvestAnalysis);
+  let needsInvestRefresh = storedInvestWarnings == null || storedInvestAnalysis == null;
 
   const testRows = db
     .prepare('SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id')
     .all(storyId);
+  const updateTestHealthStmt = db.prepare(
+    'UPDATE acceptance_tests SET measurability_warnings = ?, measurability_suggestions = ?, gwt_health = ? WHERE id = ?'
+  );
   testRows.forEach((testRow) => {
     const given = parseJsonArray(testRow.given);
     const when = parseJsonArray(testRow.when_step);
     const then = parseJsonArray(testRow.then_step);
-    const { warnings, suggestions } = measurabilityWarnings(then);
-    const gwtHealth = buildGwtHealth(given, when, then, warnings);
+    let measurabilityWarnings = parseOptionalJsonArray(testRow.measurability_warnings);
+    let measurabilitySuggestions = parseOptionalJsonArray(testRow.measurability_suggestions);
+    let gwtHealth = parseOptionalJsonObject(testRow.gwt_health);
+    if (!Array.isArray(measurabilityWarnings) || !Array.isArray(measurabilitySuggestions) || !gwtHealth) {
+      const computed = computeAcceptanceTestHealth(given, when, then);
+      measurabilityWarnings = computed.warnings;
+      measurabilitySuggestions = computed.suggestions;
+      gwtHealth = computed.gwtHealth;
+      updateTestHealthStmt.run(
+        safeJsonStringify(measurabilityWarnings),
+        safeJsonStringify(measurabilitySuggestions),
+        safeJsonStringify(gwtHealth),
+        testRow.id
+      );
+    }
     story.acceptanceTests.push({
       id: testRow.id,
       storyId: testRow.story_id,
@@ -4453,8 +4665,8 @@ async function loadStoryWithDetails(db, storyId) {
       status: testRow.status,
       createdAt: testRow.created_at,
       updatedAt: testRow.updated_at,
-      measurabilityWarnings: warnings,
-      measurabilitySuggestions: suggestions,
+      measurabilityWarnings: Array.isArray(measurabilityWarnings) ? measurabilityWarnings : [],
+      measurabilitySuggestions: Array.isArray(measurabilitySuggestions) ? measurabilitySuggestions : [],
       gwtHealth,
     });
   });
@@ -4556,25 +4768,74 @@ async function loadStoryWithDetails(db, storyId) {
     story.blocking.sort(sortByStoryId);
   }
 
-  const analysis = await analyzeInvest(story, {
-    acceptanceTests: story.acceptanceTests,
-    includeTestChecks: true,
-  });
-  story.investWarnings = analysis.warnings;
-  story.investSatisfied = analysis.warnings.length === 0;
-  story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
-  story.investAnalysis = {
-    source: analysis.source,
-    summary: analysis.summary,
-    aiSummary: analysis.ai?.summary || '',
-    aiWarnings: analysis.ai?.warnings || [],
-    aiModel: analysis.ai?.model || null,
-    usedFallback: analysis.usedFallback,
-    error: analysis.ai?.error || null,
-    fallbackWarnings: analysis.fallbackWarnings || [],
-  };
+  if (needsInvestRefresh) {
+    const result = await recomputeStoryHealth(db, storyId);
+    if (result) {
+      applyInvestAnalysisToStory(story, result.warnings, result.analysis);
+    }
+  }
 
   return story;
+}
+
+async function recomputeStoryHealth(db, storyId) {
+  const storyRow = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
+  if (!storyRow) {
+    return null;
+  }
+
+  const components = normalizeComponentsInput(parseJsonArray(storyRow.components));
+  const storyForAnalysis = {
+    id: storyRow.id,
+    title: storyRow.title,
+    description: storyRow.description ?? '',
+    asA: storyRow.as_a ?? '',
+    iWant: storyRow.i_want ?? '',
+    soThat: storyRow.so_that ?? '',
+    components,
+    storyPoint: storyRow.story_point,
+    status: safeNormalizeStoryStatus(storyRow.status),
+  };
+
+  const testRows = db
+    .prepare('SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id')
+    .all(storyId);
+  const updateTestHealthStmt = db.prepare(
+    'UPDATE acceptance_tests SET measurability_warnings = ?, measurability_suggestions = ?, gwt_health = ? WHERE id = ?'
+  );
+  const acceptanceTestsForAnalysis = testRows.map((row) => {
+    const given = parseJsonArray(row.given);
+    const when = parseJsonArray(row.when_step);
+    const then = parseJsonArray(row.then_step);
+    const computed = computeAcceptanceTestHealth(given, when, then);
+    updateTestHealthStmt.run(
+      safeJsonStringify(computed.warnings),
+      safeJsonStringify(computed.suggestions),
+      safeJsonStringify(computed.gwtHealth),
+      row.id
+    );
+    return {
+      id: row.id,
+      storyId: row.story_id,
+      given,
+      when,
+      then,
+      status: row.status,
+    };
+  });
+
+  const analysis = await analyzeInvest(storyForAnalysis, {
+    acceptanceTests: acceptanceTestsForAnalysis,
+    includeTestChecks: true,
+  });
+  const investWarnings = Array.isArray(analysis.warnings) ? analysis.warnings : [];
+  const investAnalysisPayload = buildInvestAnalysisPayload(analysis);
+  db.prepare('UPDATE user_stories SET invest_warnings = ?, invest_analysis = ? WHERE id = ?').run(
+    safeJsonStringify(investWarnings),
+    safeJsonStringify(investAnalysisPayload),
+    storyId
+  );
+  return { warnings: investWarnings, analysis: investAnalysisPayload };
 }
 
 function sendJson(res, statusCode, payload) {
@@ -4840,8 +5101,11 @@ export async function createApp() {
           return;
         }
         const timestamp = now();
+        const investWarningsJson = safeJsonStringify(analysis.warnings || []);
+        const investAnalysisPayload = buildInvestAnalysisPayload(analysis);
+        const investAnalysisJson = safeJsonStringify(investAnalysisPayload);
         const statement = db.prepare(
-          'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+          'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, invest_warnings, invest_analysis, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
         );
         const { lastInsertRowid } = statement.run(
           parentId,
@@ -4854,6 +5118,8 @@ export async function createApp() {
           storyPoint,
           assigneeEmail,
           'Draft',
+          investWarningsJson,
+          investAnalysisJson,
           timestamp,
           timestamp
         );
@@ -4866,6 +5132,7 @@ export async function createApp() {
           soThat,
           components,
         });
+        await recomputeStoryHealth(db, newStoryId);
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
         sendJson(res, 201, created ?? null);
       } catch (error) {
@@ -5030,6 +5297,7 @@ export async function createApp() {
             { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
           );
         }
+        await recomputeStoryHealth(db, storyId);
         const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
         sendJson(res, 200, updated ?? null);
       } catch (error) {
@@ -5123,11 +5391,13 @@ export async function createApp() {
     if (recheckMatch && method === 'POST') {
       const storyId = Number(recheckMatch[1]);
       try {
-        const story = await loadStoryWithDetails(db, storyId);
-        if (!story) {
+        const existing = db.prepare('SELECT id FROM user_stories WHERE id = ?').get(storyId);
+        if (!existing) {
           sendJson(res, 404, { message: 'Story not found' });
           return;
         }
+        await recomputeStoryHealth(db, storyId);
+        const story = await loadStoryWithDetails(db, storyId);
         sendJson(res, 200, story);
       } catch (error) {
         const status = error.statusCode ?? 500;
@@ -5179,7 +5449,7 @@ export async function createApp() {
       try {
         const payload = await parseJson(req);
         const { given, when, then } = measurablePayload(payload);
-        const { warnings, suggestions } = measurabilityWarnings(then);
+        const { warnings, suggestions, gwtHealth } = computeAcceptanceTestHealth(given, when, then);
         if (warnings.length > 0 && !payload.acceptWarnings) {
           sendJson(res, 409, {
             code: 'MEASURABILITY_WARNINGS',
@@ -5207,7 +5477,11 @@ export async function createApp() {
           then,
           status: payload.status ? String(payload.status) : 'Draft',
           timestamp,
+          measurabilityWarnings: warnings,
+          measurabilitySuggestions: suggestions,
+          gwtHealth,
         });
+        await recomputeStoryHealth(db, storyId);
         const refreshedStory = flattenStories(await loadStories(db)).find((node) => node.id === storyId);
         const created = refreshedStory?.acceptanceTests.find((item) => item.id === Number(lastInsertRowid)) ?? null;
         sendJson(res, 201, created);
@@ -5224,7 +5498,7 @@ export async function createApp() {
       try {
         const payload = await parseJson(req);
         const { given, when, then } = measurablePayload(payload);
-        const { warnings, suggestions } = measurabilityWarnings(then);
+        const { warnings, suggestions, gwtHealth } = computeAcceptanceTestHealth(given, when, then);
         if (warnings.length > 0 && !payload.acceptWarnings) {
           sendJson(res, 409, {
             code: 'MEASURABILITY_WARNINGS',
@@ -5234,17 +5508,29 @@ export async function createApp() {
           });
           return;
         }
+        const existingTest = db
+          .prepare('SELECT story_id FROM acceptance_tests WHERE id = ?')
+          .get(testId);
+        if (!existingTest) {
+          sendJson(res, 404, { message: 'Acceptance test not found' });
+          return;
+        }
+        const storyId = Number(existingTest.story_id);
         const statement = db.prepare(
-          'UPDATE acceptance_tests SET given = ?, when_step = ?, then_step = ?, status = ?, updated_at = ? WHERE id = ?' // prettier-ignore
+          'UPDATE acceptance_tests SET given = ?, when_step = ?, then_step = ?, status = ?, measurability_warnings = ?, measurability_suggestions = ?, gwt_health = ?, updated_at = ? WHERE id = ?' // prettier-ignore
         );
         statement.run(
           JSON.stringify(given),
           JSON.stringify(when),
           JSON.stringify(then),
           payload.status ? String(payload.status) : 'Draft',
+          safeJsonStringify(warnings),
+          safeJsonStringify(suggestions),
+          safeJsonStringify(gwtHealth),
           now(),
           testId
         );
+        await recomputeStoryHealth(db, storyId);
         const test = flattenStories(await loadStories(db))
           .flatMap((story) => story.acceptanceTests)
           .find((item) => item.id === testId);
@@ -5262,12 +5548,18 @@ export async function createApp() {
 
     if (testIdMatch && method === 'DELETE') {
       const testId = Number(testIdMatch[1]);
-      const statement = db.prepare('DELETE FROM acceptance_tests WHERE id = ?');
-      const result = statement.run(testId);
-      if (result.changes === 0) {
+      const existing = db.prepare('SELECT story_id FROM acceptance_tests WHERE id = ?').get(testId);
+      if (!existing) {
         sendJson(res, 404, { message: 'Acceptance test not found' });
       } else {
-        sendJson(res, 204, {});
+        const statement = db.prepare('DELETE FROM acceptance_tests WHERE id = ?');
+        const result = statement.run(testId);
+        if (result.changes === 0) {
+          sendJson(res, 404, { message: 'Acceptance test not found' });
+        } else {
+          await recomputeStoryHealth(db, Number(existing.story_id));
+          sendJson(res, 204, {});
+        }
       }
       return;
     }
