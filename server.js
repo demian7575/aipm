@@ -1,6 +1,167 @@
 import { createServer } from 'node:http';
 import { URL } from 'node:url';
 
+const nativeFetch = globalThis.fetch ? globalThis.fetch.bind(globalThis) : null;
+
+const isHeadersClassAvailable = typeof Headers !== 'undefined';
+const isRequestClassAvailable = typeof Request !== 'undefined';
+const isReadableStreamAvailable = typeof ReadableStream !== 'undefined';
+
+function headersToRecord(headers) {
+  if (!headers) {
+    return undefined;
+  }
+
+  const record = {};
+  const assignEntry = (key, value) => {
+    if (key == null) {
+      return;
+    }
+    const normalizedKey = String(key).toLowerCase();
+    const normalizedValue = Array.isArray(value) ? value.join(', ') : value;
+    if (normalizedValue == null) {
+      return;
+    }
+    record[normalizedKey] = String(normalizedValue);
+  };
+
+  if (isHeadersClassAvailable && headers instanceof Headers) {
+    headers.forEach((value, key) => assignEntry(key, value));
+  } else if (Array.isArray(headers)) {
+    headers.forEach(([key, value]) => assignEntry(key, value));
+  } else if (typeof headers === 'object') {
+    Object.entries(headers).forEach(([key, value]) => assignEntry(key, value));
+  }
+
+  return Object.keys(record).length > 0 ? record : undefined;
+}
+
+function mergeHeaderRecords(...records) {
+  return records.reduce((acc, record) => {
+    if (!record) {
+      return acc;
+    }
+    return { ...acc, ...record };
+  }, undefined);
+}
+
+function describeBody(body) {
+  if (body == null) {
+    return undefined;
+  }
+
+  if (typeof body === 'string') {
+    return { type: 'string', length: body.length };
+  }
+
+  if (body instanceof ArrayBuffer) {
+    return { type: 'ArrayBuffer', byteLength: body.byteLength };
+  }
+
+  if (ArrayBuffer.isView(body)) {
+    return { type: body.constructor?.name || 'ArrayBufferView', byteLength: body.byteLength };
+  }
+
+  if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) {
+    const serialized = body.toString();
+    return { type: 'URLSearchParams', length: serialized.length };
+  }
+
+  if (typeof FormData !== 'undefined' && body instanceof FormData) {
+    return { type: 'FormData' };
+  }
+
+  if (isReadableStreamAvailable && body instanceof ReadableStream) {
+    return { type: 'ReadableStream' };
+  }
+
+  if (typeof body === 'object' && typeof body.getBoundary === 'function') {
+    return { type: 'MultipartBody' };
+  }
+
+  return { type: body?.constructor?.name || typeof body };
+}
+
+if (nativeFetch) {
+  const originalFetch = nativeFetch;
+
+  const loggingFetch = async (input, init) => {
+    const requestInit = init ?? {};
+    const startedAt = new Date();
+
+    let urlDescription;
+    let requestMethod = requestInit.method || 'GET';
+    let requestHeaders;
+    let requestBodyDescription = describeBody(requestInit.body);
+
+    const isRequestInstance = isRequestClassAvailable && input instanceof Request;
+
+    if (isRequestInstance) {
+      urlDescription = input.url;
+      if (!requestInit.method && input.method) {
+        requestMethod = input.method;
+      }
+      requestHeaders = mergeHeaderRecords(headersToRecord(input.headers), headersToRecord(requestInit.headers));
+      if (!requestBodyDescription) {
+        requestBodyDescription = describeBody(input.body);
+      }
+    } else if (typeof input === 'string' || input instanceof URL) {
+      urlDescription = String(input);
+      requestHeaders = mergeHeaderRecords(undefined, headersToRecord(requestInit.headers));
+    } else if (input && typeof input === 'object' && 'url' in input) {
+      urlDescription = String(input.url);
+      requestHeaders = mergeHeaderRecords(headersToRecord(input.headers), headersToRecord(requestInit.headers));
+      if (!requestBodyDescription && 'body' in input) {
+        requestBodyDescription = describeBody(input.body);
+      }
+    } else {
+      urlDescription = String(input);
+      requestHeaders = mergeHeaderRecords(undefined, headersToRecord(requestInit.headers));
+    }
+
+    const requestSummary = Object.fromEntries(
+      Object.entries({
+        method: requestMethod,
+        url: urlDescription,
+        headers: requestHeaders,
+        body: requestBodyDescription,
+      }).filter(([, value]) => value != null)
+    );
+
+    console.log(
+      `[${startedAt.toISOString()}] [network] Request -> ${requestMethod} ${urlDescription}`,
+      requestSummary
+    );
+
+    const startedAtMs = Date.now();
+
+    try {
+      const response = await originalFetch(input, init);
+      const finishedAt = new Date();
+      const duration = Date.now() - startedAtMs;
+      console.log(
+        `[${finishedAt.toISOString()}] [network] Response <- ${requestMethod} ${urlDescription} ${response.status} ${
+          response.statusText || ''
+        } (${duration}ms)`
+      );
+      return response;
+    } catch (error) {
+      const finishedAt = new Date();
+      const duration = Date.now() - startedAtMs;
+      console.log(
+        `[${finishedAt.toISOString()}] [network] Response <- ${requestMethod} ${urlDescription} FAILED (${duration}ms): ${
+          error && error.message ? error.message : error
+        }`
+      );
+      throw error;
+    }
+  };
+
+  loggingFetch.__aipmOriginalFetch = originalFetch;
+
+  globalThis.fetch = loggingFetch;
+}
+
 const CODEX_AUTHOR_PATTERN = /codex/i;
 
 function sendJson(res, statusCode, payload) {
