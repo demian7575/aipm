@@ -1079,6 +1079,22 @@ class JsonDatabase {
       result.sort((a, b) => a.id - b.id);
       return result;
     }
+    if (sql === 'SELECT id, status FROM acceptance_tests WHERE story_id = ?') {
+      const storyId = Number(params[0]);
+      const rows = this.tables.acceptance_tests
+        .filter((row) => row.story_id === storyId)
+        .map((row) => ({ id: row.id, status: row.status }))
+        .sort((a, b) => a.id - b.id);
+      return rows;
+    }
+    if (sql === 'SELECT id, title, status FROM acceptance_tests WHERE story_id = ?') {
+      const storyId = Number(params[0]);
+      const rows = this.tables.acceptance_tests
+        .filter((row) => row.story_id === storyId)
+        .map((row) => ({ id: row.id, title: row.title, status: row.status }))
+        .sort((a, b) => a.id - b.id);
+      return rows;
+    }
     if (sql.startsWith('SELECT * FROM acceptance_tests ORDER BY')) {
       const rows = this.tables.acceptance_tests.map((row) => this._clone(row));
       rows.sort((a, b) => {
