@@ -1079,6 +1079,22 @@ class JsonDatabase {
       result.sort((a, b) => a.id - b.id);
       return result;
     }
+    if (sql === 'SELECT id, status FROM acceptance_tests WHERE story_id = ?') {
+      const storyId = Number(params[0]);
+      const rows = this.tables.acceptance_tests
+        .filter((row) => row.story_id === storyId)
+        .map((row) => ({ id: row.id, status: row.status }))
+        .sort((a, b) => a.id - b.id);
+      return rows;
+    }
+    if (sql === 'SELECT id, title, status FROM acceptance_tests WHERE story_id = ?') {
+      const storyId = Number(params[0]);
+      const rows = this.tables.acceptance_tests
+        .filter((row) => row.story_id === storyId)
+        .map((row) => ({ id: row.id, title: row.title, status: row.status }))
+        .sort((a, b) => a.id - b.id);
+      return rows;
+    }
     if (sql.startsWith('SELECT * FROM acceptance_tests ORDER BY')) {
       const rows = this.tables.acceptance_tests.map((row) => this._clone(row));
       rows.sort((a, b) => {
@@ -4938,6 +4954,7 @@ export async function createApp() {
         const draft = generateStoryDraftFromIdea(idea, { parent });
         sendJson(res, 200, draft);
       } catch (error) {
+        console.error('Failed to generate story draft', error);
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to generate story draft' });
       }
@@ -5215,6 +5232,7 @@ export async function createApp() {
           status: ACCEPTANCE_TEST_STATUS_DRAFT,
         });
       } catch (error) {
+        console.error('Failed to generate acceptance test draft', error);
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to generate acceptance test draft' });
       }
@@ -5490,6 +5508,7 @@ export async function createApp() {
         res.setHeader('X-Generated-At', now());
         res.end(buffer);
       } catch (error) {
+        console.error('Failed to generate document', error);
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to generate document' });
       }

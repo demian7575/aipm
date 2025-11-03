@@ -164,8 +164,21 @@ if (nativeFetch) {
 
 const CODEX_AUTHOR_PATTERN = /codex/i;
 
+function logWithTimestamp(scope, message, details) {
+  const timestamp = new Date().toISOString();
+  if (details !== undefined) {
+    console.log(`[${timestamp}] [delegation:${scope}] ${message}`, details);
+  } else {
+    console.log(`[${timestamp}] [delegation:${scope}] ${message}`);
+  }
+}
+
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload ?? {});
+  logWithTimestamp('response', `Sending response ${statusCode}`, {
+    statusCode,
+    body: payload ?? {},
+  });
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
@@ -181,10 +194,13 @@ async function readJson(req) {
     chunks.push(chunk);
   }
   if (chunks.length === 0) {
+    logWithTimestamp('request', 'Received empty JSON body');
     return {};
   }
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const rawBody = Buffer.concat(chunks).toString('utf8');
+    logWithTimestamp('request', 'Received JSON body', rawBody);
+    return JSON.parse(rawBody);
   } catch {
     throw Object.assign(new Error('Invalid JSON body'), { statusCode: 400 });
   }
@@ -356,6 +372,12 @@ async function githubRequest(path, options = {}) {
   if (!response.ok) {
     const message =
       (data && data.message) || `GitHub request failed with status ${response.status}`;
+    console.error('GitHub request failed', {
+      path: url.pathname,
+      status: response.status,
+      message,
+      details: data,
+    });
     throw Object.assign(new Error(message), { statusCode: response.status || 502, details: data });
   }
   return data;
@@ -406,10 +428,18 @@ export async function handlePersonalDelegateRequest(req, res, url = new URL(req.
       sendJson(res, 405, { message: 'Method not allowed' });
       return;
     }
+    logWithTimestamp('request', 'Handling /personal-delegate request', {
+      method: req.method,
+      url: url.toString(),
+      headers: headersToRecord(req.headers),
+    });
     const payload = await readJson(req);
+    logWithTimestamp('request', 'Parsed delegation payload', payload);
     const result = await performDelegation(payload);
+    logWithTimestamp('response', 'Delegation result generated', result);
     sendJson(res, 201, result);
   } catch (error) {
+    console.error('Personal delegation request failed', error);
     const status = error.statusCode && Number.isFinite(error.statusCode) ? error.statusCode : 500;
     const message = error.message || 'Failed to delegate task';
     sendJson(res, status, { message });
@@ -462,6 +492,12 @@ export async function handlePersonalDelegateStatusRequest(
       sendJson(res, 405, { message: 'Method not allowed' });
       return;
     }
+    logWithTimestamp('request', 'Handling /personal-delegate/status request', {
+      method: req.method,
+      url: url.toString(),
+      headers: headersToRecord(req.headers),
+      query: Object.fromEntries(url.searchParams.entries()),
+    });
     const owner = url.searchParams.get('owner')?.trim();
     const repo = url.searchParams.get('repo')?.trim();
     const numberParam = url.searchParams.get('number');
@@ -503,8 +539,10 @@ export async function handlePersonalDelegateStatusRequest(
           }
         : null,
     };
+    logWithTimestamp('response', 'Delegation status response ready', response);
     sendJson(res, 200, response);
   } catch (error) {
+    console.error('Personal delegation status request failed', error);
     const status = error.statusCode && Number.isFinite(error.statusCode) ? error.statusCode : 500;
     const message = error.message || 'Failed to fetch Codex status';
     sendJson(res, status, { message });
@@ -515,6 +553,11 @@ export function createDelegationServer(options = {}) {
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const method = req.method ?? 'GET';
+    logWithTimestamp('request', 'Incoming delegation server request', {
+      method,
+      url: url.toString(),
+      headers: headersToRecord(req.headers),
+    });
 
     if (method === 'OPTIONS') {
       res.writeHead(204, {
@@ -522,6 +565,7 @@ export function createDelegationServer(options = {}) {
         'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type,Authorization',
       });
+      logWithTimestamp('response', 'Responding to OPTIONS preflight');
       res.end();
       return;
     }

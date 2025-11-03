@@ -64,7 +64,6 @@ const MINDMAP_STAGE_MIN_HEIGHT = 1200;
 const MINDMAP_STAGE_PADDING_X = 480;
 const MINDMAP_STAGE_PADDING_Y = 360;
 const HTML_NS = 'http://www.w3.org/1999/xhtml';
-const CODEX_POLL_INTERVAL_MS = 45000;
 const CODEX_AUTHOR_PATTERN = /codex/i;
 
 const mindmapMeasureRoot = document.createElement('div');
@@ -338,7 +337,6 @@ const mindmapPanState = {
   scrollTop: 0,
   dragging: false,
 };
-const codexPollers = new Map();
 
 function updateMindmapZoomControls() {
   if (mindmapZoomDisplay) {
@@ -1078,9 +1076,6 @@ function addCodexDelegationEntry(storyId, entry) {
   const current = getCodexDelegations(storyId);
   const next = current.concat(entry);
   setCodexDelegations(storyId, next);
-  if (entry.createTrackingCard !== false) {
-    startCodexPolling(entry);
-  }
   if (state.selectedStoryId === storyId) {
     refreshCodexSection(storyId);
   }
@@ -1096,11 +1091,6 @@ function removeCodexDelegation(storyId, localId) {
     return;
   }
   setCodexDelegations(storyId, next);
-  const poller = codexPollers.get(localId);
-  if (poller) {
-    clearInterval(poller);
-    codexPollers.delete(localId);
-  }
   if (state.selectedStoryId === storyId) {
     refreshCodexSection(storyId);
   }
@@ -1230,10 +1220,11 @@ function renderCodexSectionList(container, story) {
     }
     card.appendChild(status);
 
-    if (entry.lastCheckedAt && !entry.lastError && !entry.latestStatus) {
+    if (entry.lastCheckedAt) {
       const meta = document.createElement('p');
       meta.className = 'codex-status-meta';
-      meta.textContent = `Last checked ${formatRelativeTime(entry.lastCheckedAt)}`;
+      const label = entry.lastError ? 'Last attempted' : 'Last checked';
+      meta.textContent = `${label} ${formatRelativeTime(entry.lastCheckedAt)}`;
       card.appendChild(meta);
     }
 
@@ -1269,6 +1260,32 @@ function renderCodexSectionList(container, story) {
     }
 
     if (entry.createTrackingCard !== false) {
+      const checkBtn = document.createElement('button');
+      checkBtn.type = 'button';
+      checkBtn.className = 'link-button codex-refresh';
+      checkBtn.textContent = 'Check status';
+      checkBtn.addEventListener('click', async () => {
+        if (checkBtn.disabled) {
+          return;
+        }
+        const original = checkBtn.textContent;
+        checkBtn.disabled = true;
+        checkBtn.textContent = 'Checking…';
+        const success = await requestCodexStatus(entry);
+        if (!success) {
+          const message = entry.lastError || 'Unable to update Codex status.';
+          showToast(message, 'error');
+        }
+        if (!success) {
+          checkBtn.disabled = false;
+          checkBtn.textContent = original;
+        }
+        if (state.selectedStoryId === entry.storyId) {
+          refreshCodexSection(entry.storyId);
+        }
+      });
+      actions.appendChild(checkBtn);
+
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'link-button codex-remove';
@@ -1315,48 +1332,22 @@ function buildCodexSection(story) {
   return section;
 }
 
-function startCodexPolling(entry, { immediate = true } = {}) {
+async function requestCodexStatus(entry) {
   if (!entry || entry.createTrackingCard === false) {
-    return;
-  }
-  const key = entry.localId;
-  if (!key || codexPollers.has(key)) {
-    return;
-  }
-
-  const executePoll = async () => {
-    try {
-      await pollCodexStatus(entry);
-    } catch (error) {
-      entry.lastError = error.message || 'Unable to update Codex status.';
-      entry.lastCheckedAt = new Date().toISOString();
-      persistCodexDelegations();
-      if (state.selectedStoryId === entry.storyId) {
-        refreshCodexSection(entry.storyId);
-      }
-    }
-  };
-
-  if (immediate) {
-    void executePoll();
-  }
-
-  const timer = setInterval(() => {
-    void executePoll();
-  }, CODEX_POLL_INTERVAL_MS);
-  codexPollers.set(key, timer);
-}
-
-async function pollCodexStatus(entry) {
-  if (!entry || entry.createTrackingCard === false) {
-    return;
+    return false;
   }
   if (!entry.owner || !entry.repo) {
-    return;
+    entry.lastError = 'Owner and repository are required to check Codex status.';
+    entry.lastCheckedAt = new Date().toISOString();
+    persistCodexDelegations();
+    return false;
   }
   const number = Number(entry.targetNumber);
   if (!Number.isFinite(number) || number <= 0) {
-    return;
+    entry.lastError = 'A valid issue or pull request number is required to check Codex status.';
+    entry.lastCheckedAt = new Date().toISOString();
+    persistCodexDelegations();
+    return false;
   }
 
   const params = new URLSearchParams({
@@ -1366,39 +1357,43 @@ async function pollCodexStatus(entry) {
     targetType: entry.target === 'pr' ? 'pr' : 'issue',
   });
 
-  const data = await sendJson(`/personal-delegate/status?${params.toString()}`);
-  entry.lastCheckedAt = data?.fetchedAt ?? new Date().toISOString();
-  entry.lastError = null;
+  try {
+    const data = await sendJson(`/personal-delegate/status?${params.toString()}`);
+    entry.lastCheckedAt = data?.fetchedAt ?? new Date().toISOString();
+    entry.lastError = null;
 
-  if (data?.latestComment) {
-    entry.latestStatus = {
-      id: data.latestComment.id ?? null,
-      author: data.latestComment.author ?? '',
-      body: data.latestComment.body ?? '',
-      createdAt: data.latestComment.created_at ?? entry.lastCheckedAt,
-      htmlUrl: data.latestComment.html_url ?? null,
-      snippet: data.latestComment.snippet ?? summarizeCommentBody(data.latestComment.body),
-      links: Array.isArray(data.latestComment.links) ? data.latestComment.links : [],
-    };
-  } else {
-    entry.latestStatus = null;
-  }
+    if (data?.latestComment) {
+      entry.latestStatus = {
+        id: data.latestComment.id ?? null,
+        author: data.latestComment.author ?? '',
+        body: data.latestComment.body ?? '',
+        createdAt: data.latestComment.created_at ?? entry.lastCheckedAt,
+        htmlUrl: data.latestComment.html_url ?? null,
+        snippet:
+          data.latestComment.snippet ?? summarizeCommentBody(data.latestComment.body),
+        links: Array.isArray(data.latestComment.links) ? data.latestComment.links : [],
+      };
+    } else {
+      entry.latestStatus = null;
+    }
 
-  persistCodexDelegations();
-  if (state.selectedStoryId === entry.storyId) {
-    refreshCodexSection(entry.storyId);
+    persistCodexDelegations();
+    return true;
+  } catch (error) {
+    console.error('Codex status request failed', error);
+    const message =
+      (typeof error?.message === 'string' && error.message) ||
+      (typeof error?.error === 'string' && error.error) ||
+      'Unable to update Codex status.';
+    entry.lastError = message;
+    entry.lastCheckedAt = new Date().toISOString();
+    persistCodexDelegations();
+    return false;
   }
 }
 
 function initializeCodexDelegations() {
   loadCodexDelegationsFromStorage();
-  state.codexDelegations.forEach((entries) => {
-    entries.forEach((entry) => {
-      if (entry.createTrackingCard !== false) {
-        startCodexPolling(entry, { immediate: true });
-      }
-    });
-  });
 }
 
 function rebuildStoryIndex() {
@@ -4317,6 +4312,7 @@ function openCodexDelegationModal(story) {
       showToast(toastMessage, 'success');
       return true;
     } catch (error) {
+      console.error('Codex task creation failed', error);
       const message =
         (error && error.message) || 'Failed to create Codex task. Please try again.';
       showBanner(message);
@@ -4577,6 +4573,7 @@ function openDocumentPanel() {
         showToast('Document generated with fallback formatter and downloaded.', 'warning');
       }
     } catch (error) {
+      console.error('Document generation failed', error);
       resultMeta.textContent = error.message || 'Failed to generate document';
       resultOutput.textContent = '';
       copyBtn.disabled = true;
@@ -4723,6 +4720,7 @@ function openChildStoryModal(parentId) {
         showToast('Draft story generated', 'success');
       }
     } catch (error) {
+      console.error('Story draft generation failed', error);
       showToast(error.message || 'Failed to generate story draft', 'error');
     } finally {
       generateBtn.textContent = restore.text;

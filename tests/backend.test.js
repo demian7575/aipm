@@ -1248,6 +1248,83 @@ test('story dependency APIs work with JSON fallback database', async (t) => {
   assert.ok(afterDelete.dependencies.every((entry) => entry.storyId !== dependencyStory.id));
 });
 
+test('story Done status honors acceptance tests with JSON fallback database', async (t) => {
+  await resetDatabaseFiles();
+  resetDatabaseFactory();
+  process.env.AI_PM_FORCE_JSON_DB = '1';
+
+  const { server, port } = await startServer();
+
+  t.after(async () => {
+    delete process.env.AI_PM_FORCE_JSON_DB;
+    resetDatabaseFactory();
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  });
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const storyPayload = {
+    title: 'JSON fallback done gating',
+    description: 'Ensure Done validation inspects acceptance tests in fallback mode.',
+    asA: 'As a quality lead',
+    iWant: 'I want to verify acceptance coverage enforcement',
+    soThat: 'So that done stories always include passing tests',
+    components: COMPONENT_CATALOG.length ? [COMPONENT_CATALOG[0]] : ['WorkModel'],
+    storyPoint: 3,
+    assigneeEmail: 'fallback@example.com',
+  };
+
+  const createStoryResponse = await fetch(`${baseUrl}/api/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(storyPayload),
+  });
+  assert.equal(createStoryResponse.status, 201);
+  const story = await createStoryResponse.json();
+  assert.ok(Array.isArray(story.acceptanceTests));
+  assert.ok(story.acceptanceTests.length > 0);
+
+  const acceptanceTest = story.acceptanceTests[0];
+  const updateTestResponse = await fetch(`${baseUrl}/api/tests/${acceptanceTest.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      given: acceptanceTest.given,
+      when: acceptanceTest.when,
+      then: acceptanceTest.then,
+      status: 'Pass',
+    }),
+  });
+  assert.equal(updateTestResponse.status, 200);
+
+  const updatePayload = {
+    title: story.title,
+    description: story.description,
+    asA: story.asA,
+    iWant: story.iWant,
+    soThat: story.soThat,
+    storyPoint: story.storyPoint,
+    assigneeEmail: story.assigneeEmail,
+    components: Array.isArray(story.components) ? story.components : storyPayload.components,
+    status: 'Done',
+    acceptWarnings: true,
+  };
+
+  const markDoneResponse = await fetch(`${baseUrl}/api/stories/${story.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updatePayload),
+  });
+  assert.equal(markDoneResponse.status, 200);
+  const completed = await markDoneResponse.json();
+  assert.equal(completed.status, 'Done');
+  assert.ok(
+    Array.isArray(completed.acceptanceTests) &&
+      completed.acceptanceTests.every((test) => test.status === 'Pass')
+  );
+});
+
 test('sample dataset generator produces 50 stories and mirrored acceptance tests', async () => {
   const outputPath = path.join(process.cwd(), 'docs', 'examples', 'generated-sample.sqlite');
   await fs.rm(outputPath, { force: true });
