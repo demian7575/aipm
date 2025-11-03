@@ -4938,6 +4938,7 @@ export async function createApp() {
         const draft = generateStoryDraftFromIdea(idea, { parent });
         sendJson(res, 200, draft);
       } catch (error) {
+        console.error('Failed to generate story draft', error);
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to generate story draft' });
       }
@@ -5215,6 +5216,7 @@ export async function createApp() {
           status: ACCEPTANCE_TEST_STATUS_DRAFT,
         });
       } catch (error) {
+        console.error('Failed to generate acceptance test draft', error);
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to generate acceptance test draft' });
       }
@@ -5490,6 +5492,7 @@ export async function createApp() {
         res.setHeader('X-Generated-At', now());
         res.end(buffer);
       } catch (error) {
+        console.error('Failed to generate document', error);
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to generate document' });
       }

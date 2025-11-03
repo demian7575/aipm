@@ -1328,6 +1328,7 @@ function startCodexPolling(entry, { immediate = true } = {}) {
     try {
       await pollCodexStatus(entry);
     } catch (error) {
+      console.error('Codex status polling failed', error);
       entry.lastError = error.message || 'Unable to update Codex status.';
       entry.lastCheckedAt = new Date().toISOString();
       persistCodexDelegations();
@@ -4317,6 +4318,7 @@ function openCodexDelegationModal(story) {
       showToast(toastMessage, 'success');
       return true;
     } catch (error) {
+      console.error('Codex task creation failed', error);
       const message =
         (error && error.message) || 'Failed to create Codex task. Please try again.';
       showBanner(message);
@@ -4577,6 +4579,7 @@ function openDocumentPanel() {
         showToast('Document generated with fallback formatter and downloaded.', 'warning');
       }
     } catch (error) {
+      console.error('Document generation failed', error);
       resultMeta.textContent = error.message || 'Failed to generate document';
       resultOutput.textContent = '';
       copyBtn.disabled = true;
@@ -4723,6 +4726,7 @@ function openChildStoryModal(parentId) {
         showToast('Draft story generated', 'success');
       }
     } catch (error) {
+      console.error('Story draft generation failed', error);
       showToast(error.message || 'Failed to generate story draft', 'error');
     } finally {
       generateBtn.textContent = restore.text;
