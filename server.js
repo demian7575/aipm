@@ -387,6 +387,7 @@ export async function performDelegation(payload) {
   const normalized = normalizeDelegatePayload(payload);
   const body = buildTaskBrief({ ...normalized, owner: normalized.owner, repo: normalized.repo });
   const repoPath = `/repos/${normalized.owner}/${normalized.repo}`;
+  const confirmationCode = generateConfirmationCode();
 
   if (normalized.target === 'new-issue') {
     const issue = await githubRequest(`${repoPath}/issues`, {
@@ -406,6 +407,9 @@ export async function performDelegation(payload) {
       html_url: comment?.html_url || issue.html_url,
       number: issue.number,
       commentId: comment?.id ?? null,
+      taskHtmlUrl: issue.html_url,
+      threadHtmlUrl: comment?.html_url || issue.html_url,
+      confirmationCode,
     };
   }
 
@@ -419,6 +423,9 @@ export async function performDelegation(payload) {
     id: comment.id,
     html_url: comment.html_url,
     number,
+    taskHtmlUrl: comment.html_url ? comment.html_url.split('#')[0] : null,
+    threadHtmlUrl: comment.html_url,
+    confirmationCode,
   };
 }
 
@@ -480,6 +487,16 @@ function summarizeComment(body) {
     return text;
   }
   return `${text.slice(0, max - 1)}…`;
+}
+
+function generateConfirmationCode(length = 8) {
+  const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < length; i += 1) {
+    const index = Math.floor(Math.random() * alphabet.length);
+    code += alphabet.charAt(index);
+  }
+  return code;
 }
 
 export async function handlePersonalDelegateStatusRequest(

@@ -7,6 +7,7 @@ import {
   buildAcceptanceTestIdea,
   deriveAcceptanceCriteriaDefaults,
   validateCodexInput,
+  createLocalDelegationEntry,
 } from '../apps/frontend/public/codex.js';
 
 test('validateCodexInput flags missing required fields', () => {
@@ -144,4 +145,37 @@ test('deriveAcceptanceCriteriaDefaults falls back to persona, action, and outcom
   assert.ok(/reviews|review/i.test(lines[0]));
   assert.ok(lines[1].startsWith('Outcome confirmed:'));
   assert.ok(/forecasts stay accurate/i.test(lines[1]));
+});
+
+test('createLocalDelegationEntry captures task and confirmation metadata', () => {
+  const story = { id: 42, title: 'Improve analytics' };
+  const formValues = {
+    owner: 'demian7575',
+    repo: 'aipm',
+    repositoryApiUrl: DEFAULT_REPO_API_URL,
+    branchName: 'aipm/codex/42-improve-analytics',
+    taskTitle: 'AIPM: 42 Improve analytics — Delegate to Codex',
+    objective: 'Enable better analytics',
+    prTitle: 'AIPM: Improve analytics',
+    constraints: 'TypeScript only',
+    acceptanceCriteria: 'Done',
+    target: 'new-issue',
+    targetNumber: '',
+    createTrackingCard: true,
+  };
+
+  const response = {
+    number: 101,
+    id: 555,
+    html_url: 'https://github.com/demian7575/aipm/issues/101',
+    taskHtmlUrl: 'https://github.com/demian7575/aipm/issues/101',
+    threadHtmlUrl: 'https://github.com/demian7575/aipm/issues/101#comment-12345',
+    confirmationCode: 'ABC1234',
+  };
+
+  const entry = createLocalDelegationEntry(story, formValues, response);
+  assert.equal(entry.taskUrl, 'https://github.com/demian7575/aipm/issues/101');
+  assert.equal(entry.threadUrl, 'https://github.com/demian7575/aipm/issues/101#comment-12345');
+  assert.equal(entry.confirmationCode, 'ABC1234');
+  assert.equal(entry.htmlUrl, 'https://github.com/demian7575/aipm/issues/101#comment-12345');
 });
