@@ -1987,6 +1987,42 @@ async function analyzeInvest(story, options = {}) {
   }
 }
 
+function buildBaselineInvestAnalysis(story, options = {}) {
+  const warnings = markBaselineWarnings(baselineInvestWarnings(story, options));
+  return {
+    warnings,
+    source: 'heuristic',
+    summary: '',
+    ai: null,
+    fallbackWarnings: warnings,
+    usedFallback: true,
+  };
+}
+
+async function evaluateInvestAnalysis(story, options = {}, controls = {}) {
+  const includeAiInvest = controls?.includeAiInvest === true;
+  if (includeAiInvest) {
+    return analyzeInvest(story, options);
+  }
+  return buildBaselineInvestAnalysis(story, options);
+}
+
+function applyInvestAnalysisToStory(story, analysis) {
+  story.investWarnings = analysis.warnings;
+  story.investSatisfied = analysis.warnings.length === 0;
+  story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
+  story.investAnalysis = {
+    source: analysis.source,
+    summary: analysis.summary,
+    aiSummary: analysis.ai?.summary || '',
+    aiWarnings: analysis.ai?.warnings || [],
+    aiModel: analysis.ai?.model || null,
+    usedFallback: analysis.usedFallback,
+    error: analysis.ai?.error || null,
+    fallbackWarnings: analysis.fallbackWarnings || [],
+  };
+}
+
 function normalizeStoryPoint(value) {
   if (value == null || value === '') {
     return null;
@@ -2135,6 +2171,23 @@ function normalizeComponentsInput(value, options = {}) {
 
 function serializeComponents(components) {
   return JSON.stringify(Array.isArray(components) ? components : []);
+}
+
+function toBoolean(value) {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+      return false;
+    }
+    return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+  }
+  return false;
 }
 
 function collapseWhitespace(value) {
@@ -4252,7 +4305,8 @@ function loadDependencyRows(db) {
   }
 }
 
-async function loadStories(db) {
+async function loadStories(db, options = {}) {
+  const { includeAiInvest = false } = options;
   const storyRows = db
     .prepare('SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id')
     .all();
@@ -4380,30 +4434,23 @@ async function loadStories(db) {
 
   await Promise.all(
     stories.map(async (story) => {
-      const analysis = await analyzeInvest(story, {
-        acceptanceTests: story.acceptanceTests,
-        includeTestChecks: true,
-      });
-      story.investWarnings = analysis.warnings;
-      story.investSatisfied = analysis.warnings.length === 0;
-      story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
-      story.investAnalysis = {
-        source: analysis.source,
-        summary: analysis.summary,
-        aiSummary: analysis.ai?.summary || '',
-        aiWarnings: analysis.ai?.warnings || [],
-        aiModel: analysis.ai?.model || null,
-        usedFallback: analysis.usedFallback,
-        error: analysis.ai?.error || null,
-        fallbackWarnings: analysis.fallbackWarnings || [],
-      };
+      const analysis = await evaluateInvestAnalysis(
+        story,
+        {
+          acceptanceTests: story.acceptanceTests,
+          includeTestChecks: true,
+        },
+        { includeAiInvest }
+      );
+      applyInvestAnalysisToStory(story, analysis);
     })
   );
 
   return roots;
 }
 
-async function loadStoryWithDetails(db, storyId) {
+async function loadStoryWithDetails(db, storyId, options = {}) {
+  const { includeAiInvest = false } = options;
   const row = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
   if (!row) {
     return null;
@@ -4556,23 +4603,15 @@ async function loadStoryWithDetails(db, storyId) {
     story.blocking.sort(sortByStoryId);
   }
 
-  const analysis = await analyzeInvest(story, {
-    acceptanceTests: story.acceptanceTests,
-    includeTestChecks: true,
-  });
-  story.investWarnings = analysis.warnings;
-  story.investSatisfied = analysis.warnings.length === 0;
-  story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
-  story.investAnalysis = {
-    source: analysis.source,
-    summary: analysis.summary,
-    aiSummary: analysis.ai?.summary || '',
-    aiWarnings: analysis.ai?.warnings || [],
-    aiModel: analysis.ai?.model || null,
-    usedFallback: analysis.usedFallback,
-    error: analysis.ai?.error || null,
-    fallbackWarnings: analysis.fallbackWarnings || [],
-  };
+  const analysis = await evaluateInvestAnalysis(
+    story,
+    {
+      acceptanceTests: story.acceptanceTests,
+      includeTestChecks: true,
+    },
+    { includeAiInvest }
+  );
+  applyInvestAnalysisToStory(story, analysis);
 
   return story;
 }
@@ -4792,7 +4831,8 @@ export async function createApp() {
     }
 
     if (pathname === '/api/stories' && method === 'GET') {
-      const stories = await loadStories(db);
+      const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
+      const stories = await loadStories(db, { includeAiInvest });
       sendJson(res, 200, stories);
       return;
     }
@@ -4867,6 +4907,9 @@ export async function createApp() {
           components,
         });
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
+        if (created) {
+          applyInvestAnalysisToStory(created, analysis);
+        }
         sendJson(res, 201, created ?? null);
       } catch (error) {
         const status = error.statusCode ?? 500;
@@ -5031,6 +5074,9 @@ export async function createApp() {
           );
         }
         const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
+        if (updated) {
+          applyInvestAnalysisToStory(updated, analysis);
+        }
         sendJson(res, 200, updated ?? null);
       } catch (error) {
         const status = error.statusCode ?? 500;
@@ -5123,7 +5169,9 @@ export async function createApp() {
     if (recheckMatch && method === 'POST') {
       const storyId = Number(recheckMatch[1]);
       try {
-        const story = await loadStoryWithDetails(db, storyId);
+        const payload = await parseJson(req);
+        const includeAiInvest = toBoolean(payload.includeAiInvest);
+        const story = await loadStoryWithDetails(db, storyId, { includeAiInvest });
         if (!story) {
           sendJson(res, 404, { message: 'Story not found' });
           return;

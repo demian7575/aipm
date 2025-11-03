@@ -1434,6 +1434,55 @@ function ensureRootExpansion() {
   persistExpanded();
 }
 
+function applyStoryUpdate(updatedStory, options = {}) {
+  const normalized = normalizeStoryTree(updatedStory);
+  if (!normalized) {
+    return false;
+  }
+
+  let found = false;
+
+  function updateNodes(nodes) {
+    let mutated = false;
+    const next = nodes.map((node) => {
+      if (!node) {
+        return node;
+      }
+      if (node.id === normalized.id) {
+        found = true;
+        mutated = true;
+        const hasNewChildren = Array.isArray(normalized.children) && normalized.children.length > 0;
+        const children = hasNewChildren ? normalized.children : node.children || [];
+        return { ...node, ...normalized, children };
+      }
+      if (node.children && node.children.length > 0) {
+        const updatedChildren = updateNodes(node.children);
+        if (updatedChildren !== node.children) {
+          mutated = true;
+          return { ...node, children: updatedChildren };
+        }
+      }
+      return node;
+    });
+    return mutated ? next : nodes;
+  }
+
+  const nextStories = updateNodes(state.stories);
+  if (!found) {
+    return false;
+  }
+
+  state.stories = nextStories;
+  state.selectedStoryId = normalized.id;
+  rebuildStoryIndex();
+
+  if (options.reRender) {
+    renderAll();
+  }
+
+  return true;
+}
+
 function flattenStories(nodes) {
   const result = [];
   function walk(items) {
@@ -1487,8 +1536,14 @@ async function handleStorySaveSuccess(result, message) {
   }
 }
 
-async function recheckStoryHealth(storyId) {
-  const response = await fetch(`/api/stories/${storyId}/health-check`, { method: 'POST' });
+async function recheckStoryHealth(storyId, options = {}) {
+  const includeAiInvest = options?.includeAiInvest === true;
+  const requestInit = { method: 'POST' };
+  if (includeAiInvest) {
+    requestInit.headers = { 'Content-Type': 'application/json' };
+    requestInit.body = JSON.stringify({ includeAiInvest: true });
+  }
+  const response = await fetch(`/api/stories/${storyId}/health-check`, requestInit);
   if (!response.ok) {
     const message = await safeReadError(response);
     const error = new Error(message || 'Failed to refresh story health');
@@ -2942,6 +2997,51 @@ function renderDetails() {
       }
       healthItem.appendChild(analysisNote);
     }
+
+    const healthActions = document.createElement('div');
+    healthActions.className = 'health-actions';
+    healthActions.style.marginTop = '0.75rem';
+    const aiButton = document.createElement('button');
+    aiButton.type = 'button';
+    aiButton.className = 'secondary';
+    const aiButtonLabel =
+      analysisInfo && analysisInfo.source === 'openai'
+        ? 'Re-run AI INVEST check'
+        : 'Run AI INVEST check';
+    aiButton.textContent = aiButtonLabel;
+    aiButton.addEventListener('click', async () => {
+      if (aiButton.disabled) {
+        return;
+      }
+      const originalLabel = aiButton.textContent;
+      aiButton.disabled = true;
+      aiButton.textContent = 'Running…';
+      let applied = false;
+      try {
+        const refreshed = await recheckStoryHealth(story.id, { includeAiInvest: true });
+        applied = applyStoryUpdate(refreshed);
+        if (!applied) {
+          throw new Error('Story could not be refreshed.');
+        }
+        persistSelection();
+        showToast('AI INVEST check completed.', 'success');
+      } catch (error) {
+        console.error('Failed to run AI INVEST check', error);
+        const message =
+          error && typeof error.message === 'string'
+            ? error.message
+            : 'Failed to run AI INVEST check.';
+        showToast(message, 'error');
+      } finally {
+        aiButton.disabled = false;
+        aiButton.textContent = originalLabel;
+        if (applied) {
+          renderAll();
+        }
+      }
+    });
+    healthActions.appendChild(aiButton);
+    healthItem.appendChild(healthActions);
 
     if (analysisInfo && analysisInfo.source === 'openai' && fallbackWarnings.length) {
       const aiMessages = new Set(
