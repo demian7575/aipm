@@ -3926,6 +3926,16 @@ function normalizeToastMessage(input, type = 'info') {
     info: 'Notice.',
   };
   const fallback = FALLBACKS[type] || FALLBACKS.info;
+  const shouldDeferToFallback = () => {
+    if (type !== 'error') {
+      return false;
+    }
+    const wordCount = message.split(/\s+/).filter(Boolean).length;
+    if (wordCount > 40 || message.length > 200) {
+      return true;
+    }
+    return false;
+  };
   if (input == null) {
     return fallback;
   }
@@ -3968,6 +3978,11 @@ function normalizeToastMessage(input, type = 'info') {
   }
 
   if (!message) {
+    return fallback;
+  }
+
+  if (shouldDeferToFallback()) {
+    console.warn('Toast message replaced with fallback', message);
     return fallback;
   }
 
