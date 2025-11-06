@@ -1001,6 +1001,25 @@ function ensureCodexEntryShape(entry, storyId) {
   normalized.latestStatus = normalized.latestStatus ?? null;
   normalized.lastCheckedAt = normalized.lastCheckedAt ?? null;
   normalized.lastError = normalized.lastError ?? null;
+  if (normalized.htmlUrl == null && typeof normalized.threadUrl === 'string') {
+    normalized.htmlUrl = normalized.threadUrl;
+  }
+  if (typeof normalized.taskUrl === 'string' && !normalized.taskUrl) {
+    normalized.taskUrl = null;
+  }
+  if (normalized.taskUrl == null && typeof normalized.htmlUrl === 'string') {
+    const baseUrl = normalized.htmlUrl.split('#')[0];
+    normalized.taskUrl = baseUrl || normalized.htmlUrl;
+  }
+  if (normalized.threadUrl == null && typeof normalized.htmlUrl === 'string') {
+    normalized.threadUrl = normalized.htmlUrl;
+  }
+  if (typeof normalized.confirmationCode === 'string') {
+    const trimmed = normalized.confirmationCode.trim();
+    normalized.confirmationCode = trimmed.length >= 6 ? trimmed : null;
+  } else {
+    normalized.confirmationCode = null;
+  }
   if (normalized.targetNumber != null && normalized.targetNumber !== '') {
     const parsed = Number(normalized.targetNumber);
     normalized.targetNumber = Number.isFinite(parsed) ? parsed : null;
@@ -1195,6 +1214,15 @@ function renderCodexSectionList(container, story) {
 
     card.appendChild(header);
 
+    if (entry.confirmationCode) {
+      const confirmation = document.createElement('p');
+      confirmation.className = 'codex-confirmation';
+      confirmation.innerHTML = `<span>Confirmation:</span> <code>${escapeHtml(
+        entry.confirmationCode
+      )}</code>`;
+      card.appendChild(confirmation);
+    }
+
     if (entry.branchName) {
       const branch = document.createElement('p');
       branch.className = 'codex-branch';
@@ -1231,14 +1259,27 @@ function renderCodexSectionList(container, story) {
     const actions = document.createElement('div');
     actions.className = 'codex-task-actions';
 
-    if (entry.htmlUrl) {
+    const taskUrl = entry.taskUrl || entry.htmlUrl;
+    const threadUrl = entry.threadUrl || entry.htmlUrl;
+
+    if (taskUrl) {
       const openLink = document.createElement('a');
-      openLink.href = entry.htmlUrl;
+      openLink.href = taskUrl;
       openLink.className = 'button secondary';
       openLink.target = '_blank';
       openLink.rel = 'noreferrer noopener';
-      openLink.textContent = 'Open in GitHub';
+      openLink.textContent = 'Open Codex task';
       actions.appendChild(openLink);
+    }
+
+    if (threadUrl && (!taskUrl || threadUrl !== taskUrl)) {
+      const threadLink = document.createElement('a');
+      threadLink.href = threadUrl;
+      threadLink.className = 'link-button';
+      threadLink.target = '_blank';
+      threadLink.rel = 'noreferrer noopener';
+      threadLink.textContent = 'View conversation';
+      actions.appendChild(threadLink);
     }
 
     if (entry.latestStatus && entry.latestStatus.htmlUrl) {
@@ -1373,6 +1414,13 @@ async function requestCodexStatus(entry) {
           data.latestComment.snippet ?? summarizeCommentBody(data.latestComment.body),
         links: Array.isArray(data.latestComment.links) ? data.latestComment.links : [],
       };
+      if (data.latestComment.html_url) {
+        entry.threadUrl = data.latestComment.html_url;
+        if (!entry.taskUrl) {
+          const base = data.latestComment.html_url.split('#')[0];
+          entry.taskUrl = base || data.latestComment.html_url;
+        }
+      }
     } else {
       entry.latestStatus = null;
     }
@@ -4306,9 +4354,18 @@ function openCodexDelegationModal(story) {
         }
       }
 
-      const toastMessage = acceptanceTestCreated
+      const confirmationCode =
+        typeof result?.confirmationCode === 'string' && result.confirmationCode.length >= 6
+          ? result.confirmationCode
+          : null;
+
+      const toastBase = acceptanceTestCreated
         ? 'Codex task created and acceptance test drafted.'
         : 'Codex task created';
+
+      const toastMessage = confirmationCode
+        ? `${toastBase} Confirmation: ${confirmationCode}.`
+        : toastBase;
       showToast(toastMessage, 'success');
       return true;
     } catch (error) {

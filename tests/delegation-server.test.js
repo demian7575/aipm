@@ -79,6 +79,10 @@ test('performDelegation posts to GitHub issues when creating new tasks', async (
   assert.ok(commentUrl.includes('/repos/demian7575/aipm/issues/77/comments'));
   assert.equal(result.commentId, 456);
   assert.equal(result.html_url, 'https://github.com/issue/1#comment-456');
+  assert.equal(result.taskHtmlUrl, 'https://github.com/issue/1');
+  assert.equal(result.threadHtmlUrl, 'https://github.com/issue/1#comment-456');
+  assert.ok(typeof result.confirmationCode === 'string');
+  assert.ok(result.confirmationCode.length >= 6);
 
   t.after(() => {
     process.env.GITHUB_TOKEN = ORIGINAL_TOKEN;
@@ -142,6 +146,10 @@ test('delegation server endpoints respond with mocked GitHub data', async (t) =>
   assert.equal(postResponse.status, 201);
   const postBody = await postResponse.json();
   assert.equal(postBody.number, 99);
+  assert.equal(postBody.taskHtmlUrl, 'https://github.com/issue/2');
+  assert.equal(postBody.threadHtmlUrl, 'https://github.com/issue/2#comment-401');
+  assert.ok(typeof postBody.confirmationCode === 'string');
+  assert.ok(postBody.confirmationCode.length >= 6);
 
   const statusResponse = await ORIGINAL_FETCH(
     `http://127.0.0.1:${port}/personal-delegate/status?owner=demian7575&repo=aipm&number=99`

@@ -1028,6 +1028,26 @@ body.is-mindmap-panning {
   color: #0f172a;
 }
 
+.codex-confirmation {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #1f2937;
+}
+
+.codex-confirmation span {
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.codex-confirmation code {
+  font-family: 'Source Code Pro', Consolas, 'Courier New', monospace;
+  font-size: 0.85rem;
+  background: #e0e7ff;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  color: #1e293b;
+}
+
 .codex-target-badge {
   background: #1d4ed8;
   color: #fff;

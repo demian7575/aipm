@@ -363,13 +363,19 @@ export function createLocalDelegationEntry(story, formValues, response) {
     acceptanceCriteria: formValues.acceptanceCriteria,
     target: formValues.target,
     targetNumber: response?.number ?? (formValues.target === 'new-issue' ? null : Number(formValues.targetNumber)),
-    htmlUrl: response?.html_url ?? null,
+    htmlUrl: response?.threadHtmlUrl ?? response?.html_url ?? null,
+    taskUrl: response?.taskHtmlUrl ?? response?.html_url ?? null,
+    threadUrl: response?.threadHtmlUrl ?? response?.html_url ?? null,
     remoteId: response?.id ?? null,
     createdAt: timestamp,
     createTrackingCard: formValues.createTrackingCard !== false,
     latestStatus: null,
     lastCheckedAt: null,
     lastError: null,
+    confirmationCode:
+      typeof response?.confirmationCode === 'string' && response.confirmationCode.length >= 6
+        ? response.confirmationCode
+        : null,
   };
 }
 
