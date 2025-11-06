@@ -49,6 +49,12 @@ test('performDelegation posts to GitHub issues when creating new tasks', async (
     if (target.includes('/issues/77/comments')) {
       return createJsonResponse({ id: 456, html_url: 'https://github.com/issue/1#comment-456' }, 201);
     }
+    if (target.endsWith('/repos/demian7575/aipm')) {
+      return createJsonResponse({ default_branch: 'main' }, 200);
+    }
+    if (target.endsWith('/pulls')) {
+      return createJsonResponse({ id: 789, html_url: 'https://github.com/pr/202', number: 202 }, 201);
+    }
     return createJsonResponse({}, 200);
   };
 
@@ -67,8 +73,8 @@ test('performDelegation posts to GitHub issues when creating new tasks', async (
 
   assert.equal(result.type, 'issue');
   assert.equal(result.number, 77);
-  assert.equal(requests.length, 2);
-  const [issueRequest, commentRequest] = requests;
+  assert.equal(requests.length, 4);
+  const [issueRequest, commentRequest, repoRequest, pullRequest] = requests;
   const issueUrl =
     typeof issueRequest.input === 'string' ? issueRequest.input : issueRequest.input?.href || '';
   assert.ok(issueUrl.includes('/repos/demian7575/aipm/issues'));
@@ -79,7 +85,14 @@ test('performDelegation posts to GitHub issues when creating new tasks', async (
   assert.ok(commentUrl.includes('/repos/demian7575/aipm/issues/77/comments'));
   assert.equal(result.commentId, 456);
   assert.equal(result.html_url, 'https://github.com/issue/1#comment-456');
-  assert.equal(result.taskHtmlUrl, 'https://github.com/issue/1');
+  assert.equal(result.taskHtmlUrl, 'https://github.com/pr/202');
+  assert.equal(result.pullRequestHtmlUrl, 'https://github.com/pr/202');
+  assert.equal(result.pullRequestNumber, 202);
+  assert.equal(result.trackingHtmlUrl, 'https://github.com/issue/1');
+  const repoUrl = typeof repoRequest.input === 'string' ? repoRequest.input : repoRequest.input?.href || '';
+  assert.ok(repoUrl.endsWith('/repos/demian7575/aipm'));
+  const pullUrl = typeof pullRequest.input === 'string' ? pullRequest.input : pullRequest.input?.href || '';
+  assert.ok(pullUrl.endsWith('/pulls'));
   assert.equal(result.threadHtmlUrl, 'https://github.com/issue/1#comment-456');
   assert.ok(typeof result.confirmationCode === 'string');
   assert.ok(result.confirmationCode.length >= 6);
@@ -96,6 +109,11 @@ test('delegation server endpoints respond with mocked GitHub data', async (t) =>
     issues: createJsonResponse({ id: 1, html_url: 'https://github.com/issue/2', number: 99 }, 201),
     creationComment: createJsonResponse(
       { id: 401, html_url: 'https://github.com/issue/2#comment-401' },
+      201
+    ),
+    repo: createJsonResponse({ default_branch: 'main' }),
+    pull: createJsonResponse(
+      { id: 901, html_url: 'https://github.com/pull/301', number: 301 },
       201
     ),
     comments: createJsonResponse([
@@ -119,6 +137,12 @@ test('delegation server endpoints respond with mocked GitHub data', async (t) =>
     }
     if (target.includes('/issues')) {
       return responses.issues;
+    }
+    if (target.endsWith('/repos/demian7575/aipm')) {
+      return responses.repo;
+    }
+    if (target.endsWith('/pulls')) {
+      return responses.pull;
     }
     return ORIGINAL_FETCH(input, init);
   };
@@ -146,7 +170,10 @@ test('delegation server endpoints respond with mocked GitHub data', async (t) =>
   assert.equal(postResponse.status, 201);
   const postBody = await postResponse.json();
   assert.equal(postBody.number, 99);
-  assert.equal(postBody.taskHtmlUrl, 'https://github.com/issue/2');
+  assert.equal(postBody.taskHtmlUrl, 'https://github.com/pull/301');
+  assert.equal(postBody.pullRequestHtmlUrl, 'https://github.com/pull/301');
+  assert.equal(postBody.pullRequestNumber, 301);
+  assert.equal(postBody.trackingHtmlUrl, 'https://github.com/issue/2');
   assert.equal(postBody.threadHtmlUrl, 'https://github.com/issue/2#comment-401');
   assert.ok(typeof postBody.confirmationCode === 'string');
   assert.ok(postBody.confirmationCode.length >= 6);

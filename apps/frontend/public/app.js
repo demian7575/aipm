@@ -1011,8 +1011,21 @@ function ensureCodexEntryShape(entry, storyId) {
     const baseUrl = normalized.htmlUrl.split('#')[0];
     normalized.taskUrl = baseUrl || normalized.htmlUrl;
   }
+  if (typeof normalized.pullRequestUrl === 'string' && !normalized.pullRequestUrl) {
+    normalized.pullRequestUrl = null;
+  }
+  if (normalized.pullRequestUrl == null && typeof normalized.taskUrl === 'string') {
+    normalized.pullRequestUrl = normalized.taskUrl;
+  }
   if (normalized.threadUrl == null && typeof normalized.htmlUrl === 'string') {
     normalized.threadUrl = normalized.htmlUrl;
+  }
+  if (typeof normalized.trackingUrl === 'string' && !normalized.trackingUrl) {
+    normalized.trackingUrl = null;
+  }
+  if (normalized.trackingUrl == null && typeof normalized.threadUrl === 'string') {
+    const base = normalized.threadUrl.split('#')[0];
+    normalized.trackingUrl = base || normalized.threadUrl;
   }
   if (typeof normalized.confirmationCode === 'string') {
     const trimmed = normalized.confirmationCode.trim();
@@ -1259,20 +1272,34 @@ function renderCodexSectionList(container, story) {
     const actions = document.createElement('div');
     actions.className = 'codex-task-actions';
 
-    const taskUrl = entry.taskUrl || entry.htmlUrl;
+    const primaryUrl = entry.pullRequestUrl || entry.taskUrl || entry.htmlUrl;
     const threadUrl = entry.threadUrl || entry.htmlUrl;
+    const trackingUrl =
+      entry.trackingUrl && (!primaryUrl || entry.trackingUrl !== primaryUrl)
+        ? entry.trackingUrl
+        : null;
 
-    if (taskUrl) {
+    if (primaryUrl) {
       const openLink = document.createElement('a');
-      openLink.href = taskUrl;
+      openLink.href = primaryUrl;
       openLink.className = 'button secondary';
       openLink.target = '_blank';
       openLink.rel = 'noreferrer noopener';
-      openLink.textContent = 'Open Codex task';
+      openLink.textContent = entry.pullRequestUrl ? 'Open Codex PR' : 'Open Codex task';
       actions.appendChild(openLink);
     }
 
-    if (threadUrl && (!taskUrl || threadUrl !== taskUrl)) {
+    if (trackingUrl) {
+      const trackLink = document.createElement('a');
+      trackLink.href = trackingUrl;
+      trackLink.className = 'link-button';
+      trackLink.target = '_blank';
+      trackLink.rel = 'noreferrer noopener';
+      trackLink.textContent = 'View tracking issue';
+      actions.appendChild(trackLink);
+    }
+
+    if (threadUrl && (!primaryUrl || threadUrl !== primaryUrl)) {
       const threadLink = document.createElement('a');
       threadLink.href = threadUrl;
       threadLink.className = 'link-button';
@@ -1419,6 +1446,13 @@ async function requestCodexStatus(entry) {
         if (!entry.taskUrl) {
           const base = data.latestComment.html_url.split('#')[0];
           entry.taskUrl = base || data.latestComment.html_url;
+        }
+        if (!entry.pullRequestUrl && entry.taskUrl) {
+          entry.pullRequestUrl = entry.taskUrl;
+        }
+        if (!entry.trackingUrl) {
+          const base = data.latestComment.html_url.split('#')[0];
+          entry.trackingUrl = base || data.latestComment.html_url;
         }
       }
     } else {

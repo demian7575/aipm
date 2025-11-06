@@ -147,7 +147,7 @@ test('deriveAcceptanceCriteriaDefaults falls back to persona, action, and outcom
   assert.ok(/forecasts stay accurate/i.test(lines[1]));
 });
 
-test('createLocalDelegationEntry captures task and confirmation metadata', () => {
+test('createLocalDelegationEntry captures PR, tracking, and confirmation metadata', () => {
   const story = { id: 42, title: 'Improve analytics' };
   const formValues = {
     owner: 'demian7575',
@@ -167,15 +167,21 @@ test('createLocalDelegationEntry captures task and confirmation metadata', () =>
   const response = {
     number: 101,
     id: 555,
-    html_url: 'https://github.com/demian7575/aipm/issues/101',
-    taskHtmlUrl: 'https://github.com/demian7575/aipm/issues/101',
+    html_url: 'https://github.com/demian7575/aipm/issues/101#comment-12345',
+    taskHtmlUrl: 'https://github.com/demian7575/aipm/pull/88',
     threadHtmlUrl: 'https://github.com/demian7575/aipm/issues/101#comment-12345',
+    trackingHtmlUrl: 'https://github.com/demian7575/aipm/issues/101',
+    pullRequestHtmlUrl: 'https://github.com/demian7575/aipm/pull/88',
+    pullRequestNumber: 88,
     confirmationCode: 'ABC1234',
   };
 
   const entry = createLocalDelegationEntry(story, formValues, response);
-  assert.equal(entry.taskUrl, 'https://github.com/demian7575/aipm/issues/101');
+  assert.equal(entry.taskUrl, 'https://github.com/demian7575/aipm/pull/88');
   assert.equal(entry.threadUrl, 'https://github.com/demian7575/aipm/issues/101#comment-12345');
+  assert.equal(entry.trackingUrl, 'https://github.com/demian7575/aipm/issues/101');
+  assert.equal(entry.pullRequestUrl, 'https://github.com/demian7575/aipm/pull/88');
+  assert.equal(entry.pullRequestNumber, 88);
   assert.equal(entry.confirmationCode, 'ABC1234');
   assert.equal(entry.htmlUrl, 'https://github.com/demian7575/aipm/issues/101#comment-12345');
 });

@@ -345,6 +345,23 @@ export function buildTaskBrief(payload) {
   return lines.join('\n');
 }
 
+function buildPullRequestBody({ trackingUrl, threadUrl, confirmationCode }) {
+  const sections = [];
+  if (trackingUrl) {
+    sections.push(`Tracking: ${trackingUrl}`);
+  }
+  if (threadUrl && threadUrl !== trackingUrl) {
+    sections.push(`Discussion: ${threadUrl}`);
+  }
+  if (confirmationCode) {
+    sections.push(`Confirmation Code: ${confirmationCode}`);
+  }
+  if (sections.length === 0) {
+    return undefined;
+  }
+  return sections.join('\n\n');
+}
+
 async function githubRequest(path, options = {}) {
   const token = ensureGithubToken();
   const url = new URL(path, 'https://api.github.com');
@@ -401,15 +418,37 @@ export async function performDelegation(payload) {
       method: 'POST',
       body: JSON.stringify({ body }),
     });
+    const repo = await githubRequest(repoPath);
+    const defaultBranch = repo?.default_branch || 'main';
+    const trackingHtmlUrl = issue.html_url;
+    const threadHtmlUrl = comment?.html_url || issue.html_url;
+    const prBody = buildPullRequestBody({
+      trackingUrl: trackingHtmlUrl,
+      threadUrl: threadHtmlUrl,
+      confirmationCode,
+    });
+    const pullRequest = await githubRequest(`${repoPath}/pulls`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: normalized.prTitle,
+        head: normalized.branchName,
+        base: defaultBranch,
+        body: prBody,
+        draft: true,
+      }),
+    });
     return {
       type: 'issue',
       id: issue.id,
       html_url: comment?.html_url || issue.html_url,
       number: issue.number,
       commentId: comment?.id ?? null,
-      taskHtmlUrl: issue.html_url,
-      threadHtmlUrl: comment?.html_url || issue.html_url,
+      taskHtmlUrl: pullRequest?.html_url || issue.html_url,
+      threadHtmlUrl,
+      trackingHtmlUrl,
       confirmationCode,
+      pullRequestNumber: pullRequest?.number ?? null,
+      pullRequestHtmlUrl: pullRequest?.html_url ?? null,
     };
   }
 
@@ -418,14 +457,36 @@ export async function performDelegation(payload) {
     method: 'POST',
     body: JSON.stringify({ body }),
   });
+  const repo = await githubRequest(repoPath);
+  const defaultBranch = repo?.default_branch || 'main';
+  const trackingHtmlUrl = comment?.html_url ? comment.html_url.split('#')[0] : null;
+  const threadHtmlUrl = comment?.html_url;
+  const prBody = buildPullRequestBody({
+    trackingUrl: trackingHtmlUrl,
+    threadUrl: threadHtmlUrl,
+    confirmationCode,
+  });
+  const pullRequest = await githubRequest(`${repoPath}/pulls`, {
+    method: 'POST',
+    body: JSON.stringify({
+      title: normalized.prTitle,
+      head: normalized.branchName,
+      base: defaultBranch,
+      body: prBody,
+      draft: true,
+    }),
+  });
   return {
     type: 'comment',
     id: comment.id,
     html_url: comment.html_url,
     number,
-    taskHtmlUrl: comment.html_url ? comment.html_url.split('#')[0] : null,
-    threadHtmlUrl: comment.html_url,
+    taskHtmlUrl: pullRequest?.html_url || (comment.html_url ? comment.html_url.split('#')[0] : null),
+    threadHtmlUrl,
+    trackingHtmlUrl,
     confirmationCode,
+    pullRequestNumber: pullRequest?.number ?? null,
+    pullRequestHtmlUrl: pullRequest?.html_url ?? null,
   };
 }
 
