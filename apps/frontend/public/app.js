@@ -1598,14 +1598,28 @@ async function recheckStoryHealth(storyId, options = {}) {
 }
 
 async function safeReadError(response) {
+  if (!response) {
+    return '';
+  }
+
   try {
-    const payload = await response.json();
+    const payload = await response.clone().json();
     if (payload && typeof payload.message === 'string') {
       return payload.message;
     }
   } catch (error) {
     console.error('Failed to parse error payload', error);
   }
+
+  try {
+    const text = await response.text();
+    if (typeof text === 'string' && text.trim().length > 0) {
+      return text.trim();
+    }
+  } catch (error) {
+    console.error('Failed to read error payload as text', error);
+  }
+
   return response.statusText;
 }
 
@@ -1632,7 +1646,10 @@ async function loadStories(preserveSelection = true) {
   try {
     const response = await fetch('/api/stories');
     if (!response.ok) {
-      throw new Error('Failed to fetch stories');
+      const message = await safeReadError(response);
+      const error = new Error(message || 'Failed to fetch stories');
+      error.status = response.status;
+      throw error;
     }
     const data = await response.json();
     state.stories = normalizeStoryCollection(Array.isArray(data) ? data : []);
@@ -1654,7 +1671,11 @@ async function loadStories(preserveSelection = true) {
     console.error(error);
     mindmapHasCentered = false;
     renderAll();
-    showToast(error.message || 'Unable to load stories', 'error');
+    let message = error?.message;
+    if (error?.name === 'TypeError' && /failed to fetch/i.test(error.message || '')) {
+      message = 'Cannot reach the AIPM server. Start the backend and try again.';
+    }
+    showToast(message || 'Unable to load stories', 'error');
   }
 }
 
