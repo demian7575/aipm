@@ -1066,6 +1066,12 @@ body.is-mindmap-panning {
   color: #64748b;
 }
 
+.codex-confirmation {
+  margin-top: 0.35rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .codex-task-actions {
   display: flex;
   flex-wrap: wrap;

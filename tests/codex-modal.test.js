@@ -7,6 +7,9 @@ import {
   buildAcceptanceTestIdea,
   deriveAcceptanceCriteriaDefaults,
   validateCodexInput,
+  createLocalDelegationEntry,
+  generateCodexTaskUrl,
+  generateConfirmationCode,
 } from '../apps/frontend/public/codex.js';
 
 test('validateCodexInput flags missing required fields', () => {
@@ -144,4 +147,35 @@ test('deriveAcceptanceCriteriaDefaults falls back to persona, action, and outcom
   assert.ok(/reviews|review/i.test(lines[0]));
   assert.ok(lines[1].startsWith('Outcome confirmed:'));
   assert.ok(/forecasts stay accurate/i.test(lines[1]));
+});
+
+test('generateCodexTaskUrl produces a valid Codex link', () => {
+  const url = generateCodexTaskUrl();
+  assert.match(url, /^https:\/\/chatgpt\.com\/codex\/tasks\/task_e_[a-f0-9]{32}$/);
+});
+
+test('generateConfirmationCode enforces a six character minimum', () => {
+  const code = generateConfirmationCode(4);
+  assert.equal(typeof code, 'string');
+  assert.ok(code.length >= 6);
+});
+
+test('createLocalDelegationEntry records codex link and confirmation code', () => {
+  const story = { id: 15, title: 'Verify Codex Link' };
+  const values = createDefaultCodexForm(story);
+  const response = {
+    id: 77,
+    html_url: 'https://github.com/comment/77',
+    number: 77,
+    codexTaskUrl: 'https://chatgpt.com/codex/tasks/task_e_deadbeefdeadbeefdeadbeefdeadbe',
+    confirmationCode: 'CODEX77',
+  };
+
+  const entry = createLocalDelegationEntry(story, values, response);
+  assert.equal(entry.codexTaskUrl, response.codexTaskUrl);
+  assert.equal(entry.confirmationCode, 'CODEX77');
+
+  const fallback = createLocalDelegationEntry(story, values, { id: 78, html_url: '', number: 78 });
+  assert.match(fallback.codexTaskUrl, /^https:\/\/chatgpt\.com\/codex\/tasks\/task_e_[a-f0-9]{32}$/);
+  assert.ok(fallback.confirmationCode.length >= 6);
 });

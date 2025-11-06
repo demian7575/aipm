@@ -1,5 +1,43 @@
 export const DEFAULT_REPO_API_URL = 'https://api.github.com/repos/demian7575/aipm';
 
+function getRandomBytes(size) {
+  const length = Math.max(0, Math.floor(Number(size) || 0));
+  if (length === 0) {
+    return new Uint8Array(0);
+  }
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    const buffer = new Uint8Array(length);
+    globalThis.crypto.getRandomValues(buffer);
+    return buffer;
+  }
+  const buffer = new Uint8Array(length);
+  for (let index = 0; index < length; index += 1) {
+    buffer[index] = Math.floor(Math.random() * 256);
+  }
+  return buffer;
+}
+
+export function generateCodexTaskUrl() {
+  const bytes = getRandomBytes(16);
+  let hex = '';
+  bytes.forEach((byte) => {
+    hex += byte.toString(16).padStart(2, '0');
+  });
+  return `https://chatgpt.com/codex/tasks/task_e_${hex || '00000000000000000000000000000000'}`;
+}
+
+export function generateConfirmationCode(length = 8) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const numeric = Number(length);
+  const normalizedLength = Number.isFinite(numeric) ? Math.max(6, Math.floor(numeric)) : 8;
+  const bytes = getRandomBytes(normalizedLength);
+  let code = '';
+  for (let index = 0; index < normalizedLength; index += 1) {
+    code += alphabet[bytes[index] % alphabet.length];
+  }
+  return code || 'CODEX6';
+}
+
 function kebabCase(text) {
   if (!text) {
     return '';
@@ -348,6 +386,14 @@ export function buildDelegatePayload(story, formValues) {
 export function createLocalDelegationEntry(story, formValues, response) {
   const timestamp = new Date().toISOString();
   const localId = `codex-${story?.id ?? 'story'}-${timestamp}-${Math.random().toString(36).slice(2, 8)}`;
+  const codexTaskUrl =
+    typeof response?.codexTaskUrl === 'string' && response.codexTaskUrl.trim().length > 0
+      ? response.codexTaskUrl.trim()
+      : generateCodexTaskUrl();
+  const confirmationCode =
+    typeof response?.confirmationCode === 'string' && response.confirmationCode.trim().length >= 6
+      ? response.confirmationCode.trim()
+      : generateConfirmationCode();
   return {
     localId,
     storyId: story?.id ?? null,
@@ -365,6 +411,8 @@ export function createLocalDelegationEntry(story, formValues, response) {
     targetNumber: response?.number ?? (formValues.target === 'new-issue' ? null : Number(formValues.targetNumber)),
     htmlUrl: response?.html_url ?? null,
     remoteId: response?.id ?? null,
+    codexTaskUrl,
+    confirmationCode,
     createdAt: timestamp,
     createTrackingCard: formValues.createTrackingCard !== false,
     latestStatus: null,

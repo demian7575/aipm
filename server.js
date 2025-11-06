@@ -1,11 +1,12 @@
+import { randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 import { URL } from 'node:url';
 
-const nativeFetch = globalThis.fetch ? globalThis.fetch.bind(globalThis) : null;
-
 const isHeadersClassAvailable = typeof Headers !== 'undefined';
-const isRequestClassAvailable = typeof Request !== 'undefined';
-const isReadableStreamAvailable = typeof ReadableStream !== 'undefined';
+
+function resolveFetch() {
+  return typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
+}
 
 function headersToRecord(headers) {
   if (!headers) {
@@ -34,132 +35,6 @@ function headersToRecord(headers) {
   }
 
   return Object.keys(record).length > 0 ? record : undefined;
-}
-
-function mergeHeaderRecords(...records) {
-  return records.reduce((acc, record) => {
-    if (!record) {
-      return acc;
-    }
-    return { ...acc, ...record };
-  }, undefined);
-}
-
-function describeBody(body) {
-  if (body == null) {
-    return undefined;
-  }
-
-  if (typeof body === 'string') {
-    return { type: 'string', length: body.length };
-  }
-
-  if (body instanceof ArrayBuffer) {
-    return { type: 'ArrayBuffer', byteLength: body.byteLength };
-  }
-
-  if (ArrayBuffer.isView(body)) {
-    return { type: body.constructor?.name || 'ArrayBufferView', byteLength: body.byteLength };
-  }
-
-  if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) {
-    const serialized = body.toString();
-    return { type: 'URLSearchParams', length: serialized.length };
-  }
-
-  if (typeof FormData !== 'undefined' && body instanceof FormData) {
-    return { type: 'FormData' };
-  }
-
-  if (isReadableStreamAvailable && body instanceof ReadableStream) {
-    return { type: 'ReadableStream' };
-  }
-
-  if (typeof body === 'object' && typeof body.getBoundary === 'function') {
-    return { type: 'MultipartBody' };
-  }
-
-  return { type: body?.constructor?.name || typeof body };
-}
-
-if (nativeFetch) {
-  const originalFetch = nativeFetch;
-
-  const loggingFetch = async (input, init) => {
-    const requestInit = init ?? {};
-    const startedAt = new Date();
-
-    let urlDescription;
-    let requestMethod = requestInit.method || 'GET';
-    let requestHeaders;
-    let requestBodyDescription = describeBody(requestInit.body);
-
-    const isRequestInstance = isRequestClassAvailable && input instanceof Request;
-
-    if (isRequestInstance) {
-      urlDescription = input.url;
-      if (!requestInit.method && input.method) {
-        requestMethod = input.method;
-      }
-      requestHeaders = mergeHeaderRecords(headersToRecord(input.headers), headersToRecord(requestInit.headers));
-      if (!requestBodyDescription) {
-        requestBodyDescription = describeBody(input.body);
-      }
-    } else if (typeof input === 'string' || input instanceof URL) {
-      urlDescription = String(input);
-      requestHeaders = mergeHeaderRecords(undefined, headersToRecord(requestInit.headers));
-    } else if (input && typeof input === 'object' && 'url' in input) {
-      urlDescription = String(input.url);
-      requestHeaders = mergeHeaderRecords(headersToRecord(input.headers), headersToRecord(requestInit.headers));
-      if (!requestBodyDescription && 'body' in input) {
-        requestBodyDescription = describeBody(input.body);
-      }
-    } else {
-      urlDescription = String(input);
-      requestHeaders = mergeHeaderRecords(undefined, headersToRecord(requestInit.headers));
-    }
-
-    const requestSummary = Object.fromEntries(
-      Object.entries({
-        method: requestMethod,
-        url: urlDescription,
-        headers: requestHeaders,
-        body: requestBodyDescription,
-      }).filter(([, value]) => value != null)
-    );
-
-    console.log(
-      `[${startedAt.toISOString()}] [network] Request -> ${requestMethod} ${urlDescription}`,
-      requestSummary
-    );
-
-    const startedAtMs = Date.now();
-
-    try {
-      const response = await originalFetch(input, init);
-      const finishedAt = new Date();
-      const duration = Date.now() - startedAtMs;
-      console.log(
-        `[${finishedAt.toISOString()}] [network] Response <- ${requestMethod} ${urlDescription} ${response.status} ${
-          response.statusText || ''
-        } (${duration}ms)`
-      );
-      return response;
-    } catch (error) {
-      const finishedAt = new Date();
-      const duration = Date.now() - startedAtMs;
-      console.log(
-        `[${finishedAt.toISOString()}] [network] Response <- ${requestMethod} ${urlDescription} FAILED (${duration}ms): ${
-          error && error.message ? error.message : error
-        }`
-      );
-      throw error;
-    }
-  };
-
-  loggingFetch.__aipmOriginalFetch = originalFetch;
-
-  globalThis.fetch = loggingFetch;
 }
 
 const CODEX_AUTHOR_PATTERN = /codex/i;
@@ -229,6 +104,24 @@ function normalizeAcceptanceCriteria(input) {
       .filter((line) => line.length > 0);
   }
   return [];
+}
+
+function generateCodexTaskUrl() {
+  const id = randomBytes(16).toString('hex');
+  return `https://chatgpt.com/codex/tasks/task_e_${id}`;
+}
+
+function generateConfirmationCode(length = 8) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const numeric = Number(length);
+  const normalizedLength = Number.isFinite(numeric) ? Math.max(6, Math.floor(numeric)) : 8;
+  const bytes = randomBytes(normalizedLength);
+  let code = '';
+  for (let index = 0; index < normalizedLength; index += 1) {
+    const byte = bytes[index];
+    code += alphabet[byte % alphabet.length];
+  }
+  return code;
 }
 
 function normalizeDelegatePayload(payload) {
@@ -335,6 +228,16 @@ export function buildTaskBrief(payload) {
     lines.push('- Define measurable acceptance criteria with Codex.');
   }
 
+  if (payload.codexTaskUrl || payload.confirmationCode) {
+    lines.push('', '## Codex Task');
+    if (payload.codexTaskUrl) {
+      lines.push(`Link: ${payload.codexTaskUrl}`);
+    }
+    if (payload.confirmationCode) {
+      lines.push(`Confirmation Code: ${payload.confirmationCode}`);
+    }
+  }
+
   lines.push(
     '',
     '## Repo',
@@ -356,7 +259,11 @@ async function githubRequest(path, options = {}) {
   if (options.body && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
-  const response = await fetch(url, {
+  const fetchFn = resolveFetch();
+  if (!fetchFn) {
+    throw Object.assign(new Error('global fetch is not available'), { statusCode: 500 });
+  }
+  const response = await fetchFn(url, {
     ...options,
     headers: { ...headers, ...(options.headers || {}) },
   });
@@ -385,7 +292,21 @@ async function githubRequest(path, options = {}) {
 
 export async function performDelegation(payload) {
   const normalized = normalizeDelegatePayload(payload);
-  const body = buildTaskBrief({ ...normalized, owner: normalized.owner, repo: normalized.repo });
+  const codexTaskUrl =
+    typeof payload?.codexTaskUrl === 'string' && payload.codexTaskUrl.trim().length > 0
+      ? payload.codexTaskUrl.trim()
+      : generateCodexTaskUrl();
+  const confirmationCode =
+    typeof payload?.confirmationCode === 'string' && payload.confirmationCode.trim().length >= 6
+      ? payload.confirmationCode.trim()
+      : generateConfirmationCode();
+  const body = buildTaskBrief({
+    ...normalized,
+    owner: normalized.owner,
+    repo: normalized.repo,
+    codexTaskUrl,
+    confirmationCode,
+  });
   const repoPath = `/repos/${normalized.owner}/${normalized.repo}`;
 
   if (normalized.target === 'new-issue') {
@@ -406,6 +327,8 @@ export async function performDelegation(payload) {
       html_url: comment?.html_url || issue.html_url,
       number: issue.number,
       commentId: comment?.id ?? null,
+      codexTaskUrl,
+      confirmationCode,
     };
   }
 
@@ -419,6 +342,8 @@ export async function performDelegation(payload) {
     id: comment.id,
     html_url: comment.html_url,
     number,
+    codexTaskUrl,
+    confirmationCode,
   };
 }
 

@@ -1001,6 +1001,14 @@ function ensureCodexEntryShape(entry, storyId) {
   normalized.latestStatus = normalized.latestStatus ?? null;
   normalized.lastCheckedAt = normalized.lastCheckedAt ?? null;
   normalized.lastError = normalized.lastError ?? null;
+  normalized.codexTaskUrl =
+    typeof normalized.codexTaskUrl === 'string' && normalized.codexTaskUrl.trim().length > 0
+      ? normalized.codexTaskUrl.trim()
+      : null;
+  normalized.confirmationCode =
+    typeof normalized.confirmationCode === 'string' && normalized.confirmationCode.trim().length >= 6
+      ? normalized.confirmationCode.trim()
+      : null;
   if (normalized.targetNumber != null && normalized.targetNumber !== '') {
     const parsed = Number(normalized.targetNumber);
     normalized.targetNumber = Number.isFinite(parsed) ? parsed : null;
@@ -1231,6 +1239,16 @@ function renderCodexSectionList(container, story) {
     const actions = document.createElement('div');
     actions.className = 'codex-task-actions';
 
+    if (entry.codexTaskUrl) {
+      const codexLink = document.createElement('a');
+      codexLink.href = entry.codexTaskUrl;
+      codexLink.className = 'button secondary';
+      codexLink.target = '_blank';
+      codexLink.rel = 'noreferrer noopener';
+      codexLink.textContent = 'Open Codex Task';
+      actions.appendChild(codexLink);
+    }
+
     if (entry.htmlUrl) {
       const openLink = document.createElement('a');
       openLink.href = entry.htmlUrl;
@@ -1257,6 +1275,13 @@ function renderCodexSectionList(container, story) {
       extraLink.rel = 'noreferrer noopener';
       extraLink.textContent = 'Latest link';
       actions.appendChild(extraLink);
+    }
+
+    if (entry.confirmationCode) {
+      const confirmation = document.createElement('p');
+      confirmation.className = 'codex-status-meta codex-confirmation';
+      confirmation.textContent = `Confirmation code: ${entry.confirmationCode}`;
+      card.appendChild(confirmation);
     }
 
     if (entry.createTrackingCard !== false) {

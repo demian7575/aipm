@@ -28,6 +28,8 @@ test('buildTaskBrief renders required sections', () => {
     acceptanceCriteria: ['First', 'Second'],
     owner: 'demian7575',
     repo: 'aipm',
+    codexTaskUrl: 'https://chatgpt.com/codex/tasks/task_e_example',
+    confirmationCode: 'CODEX9',
   });
 
   assert.match(brief, /^@codex/m);
@@ -35,6 +37,9 @@ test('buildTaskBrief renders required sections', () => {
   assert.match(brief, /## Deliverables/m);
   assert.match(brief, /## Acceptance Criteria\n- First\n- Second/m);
   assert.match(brief, /Owner\/Repo: demian7575\/aipm/m);
+  assert.match(brief, /## Codex Task/m);
+  assert.match(brief, /Link: https:\/\/chatgpt\.com\/codex\/tasks\/task_e_example/m);
+  assert.match(brief, /Confirmation Code: CODEX9/m);
 });
 
 test('performDelegation posts to GitHub issues when creating new tasks', async (t) => {
@@ -79,6 +84,12 @@ test('performDelegation posts to GitHub issues when creating new tasks', async (
   assert.ok(commentUrl.includes('/repos/demian7575/aipm/issues/77/comments'));
   assert.equal(result.commentId, 456);
   assert.equal(result.html_url, 'https://github.com/issue/1#comment-456');
+  assert.match(result.codexTaskUrl, /^https:\/\/chatgpt\.com\/codex\/tasks\/task_e_[a-f0-9]{32}$/);
+  assert.equal(typeof result.confirmationCode, 'string');
+  assert.ok(result.confirmationCode.length >= 6);
+  const commentPayload = JSON.parse(commentRequest.init.body);
+  assert.ok(commentPayload.body.includes(result.codexTaskUrl));
+  assert.ok(commentPayload.body.includes(result.confirmationCode));
 
   t.after(() => {
     process.env.GITHUB_TOKEN = ORIGINAL_TOKEN;
@@ -142,6 +153,9 @@ test('delegation server endpoints respond with mocked GitHub data', async (t) =>
   assert.equal(postResponse.status, 201);
   const postBody = await postResponse.json();
   assert.equal(postBody.number, 99);
+  assert.match(postBody.codexTaskUrl, /^https:\/\/chatgpt\.com\/codex\/tasks\/task_e_[a-f0-9]{32}$/);
+  assert.equal(typeof postBody.confirmationCode, 'string');
+  assert.ok(postBody.confirmationCode.length >= 6);
 
   const statusResponse = await ORIGINAL_FETCH(
     `http://127.0.0.1:${port}/personal-delegate/status?owner=demian7575&repo=aipm&number=99`
