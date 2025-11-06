@@ -816,6 +816,20 @@ body.is-mindmap-panning {
   color: #6b7280;
 }
 
+.placeholder .empty-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.placeholder .empty-actions button {
+  min-width: 12rem;
+}
+
+.placeholder .empty-actions + .form-hint {
+  margin-top: 0.75rem;
+}
+
 .story-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

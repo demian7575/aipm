@@ -13,6 +13,7 @@ const mindmapCanvas = document.getElementById('mindmap-canvas');
 const detailsPanel = document.getElementById('details-panel');
 const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
+const defaultDetailsPlaceholder = detailsPlaceholder ? detailsPlaceholder.innerHTML : '';
 const refreshBtn = document.getElementById('refresh-btn');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
@@ -1684,6 +1685,13 @@ function updateWorkspaceColumns() {
 
 function renderOutline() {
   outlineTreeEl.innerHTML = '';
+  if (state.stories.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-state';
+    empty.textContent = 'No user stories yet. Create the first story to get started.';
+    outlineTreeEl.appendChild(empty);
+    return;
+  }
   const list = document.createDocumentFragment();
 
   function renderNode(story, depth) {
@@ -2819,10 +2827,25 @@ function renderDetails() {
   const story = state.selectedStoryId != null ? storyIndex.get(state.selectedStoryId) : null;
   detailsContent.innerHTML = '';
   if (!story) {
+    if (state.stories.length === 0) {
+      detailsPlaceholder.innerHTML = `
+        <p class="empty-state">No user stories yet.</p>
+        <div class="empty-actions">
+          <button type="button" id="create-root-story-btn">Create First Story</button>
+        </div>
+        <p class="form-hint">Start with a top-level goal or let AI suggest the details.</p>
+      `;
+      detailsPlaceholder
+        .querySelector('#create-root-story-btn')
+        ?.addEventListener('click', () => openStoryCreationModal());
+    } else {
+      detailsPlaceholder.innerHTML = defaultDetailsPlaceholder;
+    }
     detailsPlaceholder.classList.remove('hidden');
     return;
   }
 
+  detailsPlaceholder.innerHTML = defaultDetailsPlaceholder;
   detailsPlaceholder.classList.add('hidden');
 
   const form = document.createElement('form');
@@ -3789,7 +3812,7 @@ function renderDetails() {
 
   childrenSection
     .querySelector('#add-child-btn')
-    .addEventListener('click', () => openChildStoryModal(story.id));
+    .addEventListener('click', () => openStoryCreationModal(story.id));
 
   childList.querySelectorAll('[data-action="select-story"]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -4671,15 +4694,22 @@ function openDocumentPanel() {
   openModal({ title: 'Generate Document', content: container, cancelLabel: 'Close' });
 }
 
-function openChildStoryModal(parentId) {
+function openStoryCreationModal(parentId = null) {
+  const isRootStory = parentId == null;
   const container = document.createElement('div');
   container.className = 'modal-form child-story-form';
+  const generatorHint = isRootStory
+    ? 'Need inspiration? Describe the outcome and let AI draft the story details automatically.'
+    : 'Use your idea to draft the story details automatically.';
+  const componentsHint = isRootStory
+    ? 'Pick the components this story will deliver.'
+    : 'Pick the components this child story will deliver.';
   container.innerHTML = `
     <div class="child-story-generator">
       <label>Idea<textarea id="child-idea" placeholder="Describe the user story idea"></textarea></label>
       <div class="child-story-generator-actions">
         <button type="button" class="secondary" id="child-generate-btn">Generate</button>
-        <p class="form-hint">Use your idea to draft the story details automatically.</p>
+        <p class="form-hint">${generatorHint}</p>
       </div>
     </div>
     <label>Title<input id="child-title" /></label>
@@ -4706,7 +4736,7 @@ function openChildStoryModal(parentId) {
             <p class="components-display" data-child-components-display>Not specified</p>
             <div class="components-actions">
               <button type="button" class="secondary components-edit-btn" id="child-components-btn">Choose components</button>
-              <p class="components-hint">Pick the components this child story will deliver.</p>
+              <p class="components-hint">${componentsHint}</p>
             </div>
           </td>
         </tr>
@@ -4714,7 +4744,7 @@ function openChildStoryModal(parentId) {
     </table>
   `;
 
-  let childComponents = [];
+  let selectedComponents = [];
   const childComponentsDisplay = container.querySelector('[data-child-components-display]');
   const childComponentsButton = container.querySelector('#child-components-btn');
   const ideaInput = container.querySelector('#child-idea');
@@ -4722,7 +4752,7 @@ function openChildStoryModal(parentId) {
 
   const refreshChildComponents = () => {
     if (!childComponentsDisplay) return;
-    const summary = formatComponentsSummary(childComponents);
+    const summary = formatComponentsSummary(selectedComponents);
     childComponentsDisplay.textContent = summary;
     childComponentsDisplay.classList.toggle('empty', summary === 'Not specified');
   };
@@ -4730,9 +4760,9 @@ function openChildStoryModal(parentId) {
   refreshChildComponents();
 
   childComponentsButton?.addEventListener('click', async () => {
-    const picked = await openComponentPicker(childComponents, { title: 'Select Components' });
+    const picked = await openComponentPicker(selectedComponents, { title: 'Select Components' });
     if (Array.isArray(picked)) {
-      childComponents = picked;
+      selectedComponents = picked;
       refreshChildComponents();
     }
   });
@@ -4749,9 +4779,10 @@ function openChildStoryModal(parentId) {
     generateBtn.textContent = 'Generating…';
     generateBtn.disabled = true;
     try {
+      const body = parentId == null ? { idea } : { idea, parentId };
       const draft = await sendJson('/api/stories/draft', {
         method: 'POST',
-        body: { idea, parentId },
+        body,
       });
       if (draft && typeof draft === 'object') {
         const titleInput = container.querySelector('#child-title');
@@ -4771,7 +4802,7 @@ function openChildStoryModal(parentId) {
         if (soThatInput) soThatInput.value = draft.soThat || '';
 
         if (Array.isArray(draft.components)) {
-          childComponents = normalizeComponentSelection(draft.components);
+          selectedComponents = normalizeComponentSelection(draft.components);
           refreshChildComponents();
         }
         showToast('Draft story generated', 'success');
@@ -4785,8 +4816,10 @@ function openChildStoryModal(parentId) {
     }
   });
 
+  const successMessage = isRootStory ? 'Story created' : 'Child story created';
+
   openModal({
-    title: 'Create Child Story',
+    title: isRootStory ? 'Create Root Story' : 'Create Child Story',
     content: container,
     actions: [
       {
@@ -4807,22 +4840,24 @@ function openChildStoryModal(parentId) {
           }
           const payload = {
             title,
-            parentId,
             storyPoint: storyPointResult.value,
             assigneeEmail: container.querySelector('#child-assignee').value.trim(),
             description: container.querySelector('#child-description').value.trim(),
             asA: container.querySelector('#child-asa').value.trim(),
             iWant: container.querySelector('#child-iwant').value.trim(),
             soThat: container.querySelector('#child-sothat').value.trim(),
-            components: childComponents,
+            components: selectedComponents,
           };
+          if (parentId != null) {
+            payload.parentId = parentId;
+          }
           try {
             const created = await createStory(payload);
             if (created === null) {
               return false;
             }
             await loadStories();
-            showToast('Child story created', 'success');
+            showToast(successMessage, 'success');
           } catch (error) {
             showToast(error.message || 'Failed to create story', 'error');
             return false;
