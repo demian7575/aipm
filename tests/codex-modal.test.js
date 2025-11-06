@@ -168,7 +168,7 @@ test('createLocalDelegationEntry captures PR, tracking, and confirmation metadat
     number: 101,
     id: 555,
     html_url: 'https://github.com/demian7575/aipm/issues/101#comment-12345',
-    taskHtmlUrl: 'https://github.com/demian7575/aipm/pull/88',
+    taskHtmlUrl: 'https://github.com/demian7575/aipm/issues/101',
     threadHtmlUrl: 'https://github.com/demian7575/aipm/issues/101#comment-12345',
     trackingHtmlUrl: 'https://github.com/demian7575/aipm/issues/101',
     pullRequestHtmlUrl: 'https://github.com/demian7575/aipm/pull/88',
@@ -177,7 +177,7 @@ test('createLocalDelegationEntry captures PR, tracking, and confirmation metadat
   };
 
   const entry = createLocalDelegationEntry(story, formValues, response);
-  assert.equal(entry.taskUrl, 'https://github.com/demian7575/aipm/pull/88');
+  assert.equal(entry.taskUrl, 'https://github.com/demian7575/aipm/issues/101');
   assert.equal(entry.threadUrl, 'https://github.com/demian7575/aipm/issues/101#comment-12345');
   assert.equal(entry.trackingUrl, 'https://github.com/demian7575/aipm/issues/101');
   assert.equal(entry.pullRequestUrl, 'https://github.com/demian7575/aipm/pull/88');

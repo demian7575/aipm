@@ -85,7 +85,7 @@ test('performDelegation posts to GitHub issues when creating new tasks', async (
   assert.ok(commentUrl.includes('/repos/demian7575/aipm/issues/77/comments'));
   assert.equal(result.commentId, 456);
   assert.equal(result.html_url, 'https://github.com/issue/1#comment-456');
-  assert.equal(result.taskHtmlUrl, 'https://github.com/pr/202');
+  assert.equal(result.taskHtmlUrl, 'https://github.com/issue/1');
   assert.equal(result.pullRequestHtmlUrl, 'https://github.com/pr/202');
   assert.equal(result.pullRequestNumber, 202);
   assert.equal(result.trackingHtmlUrl, 'https://github.com/issue/1');
@@ -170,7 +170,7 @@ test('delegation server endpoints respond with mocked GitHub data', async (t) =>
   assert.equal(postResponse.status, 201);
   const postBody = await postResponse.json();
   assert.equal(postBody.number, 99);
-  assert.equal(postBody.taskHtmlUrl, 'https://github.com/pull/301');
+  assert.equal(postBody.taskHtmlUrl, 'https://github.com/issue/2');
   assert.equal(postBody.pullRequestHtmlUrl, 'https://github.com/pull/301');
   assert.equal(postBody.pullRequestNumber, 301);
   assert.equal(postBody.trackingHtmlUrl, 'https://github.com/issue/2');

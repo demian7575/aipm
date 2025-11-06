@@ -365,18 +365,13 @@ export function createLocalDelegationEntry(story, formValues, response) {
     targetNumber:
       response?.number ?? (formValues.target === 'new-issue' ? null : Number(formValues.targetNumber)),
     htmlUrl: response?.threadHtmlUrl ?? response?.html_url ?? null,
-    taskUrl:
-      response?.taskHtmlUrl ??
-      response?.pullRequestHtmlUrl ??
-      response?.html_url ??
-      null,
+    taskUrl: response?.taskHtmlUrl ?? response?.html_url ?? null,
     threadUrl: response?.threadHtmlUrl ?? response?.html_url ?? null,
     trackingUrl:
       response?.trackingHtmlUrl ??
       (response?.threadHtmlUrl ? response.threadHtmlUrl.split('#')[0] : null) ??
       null,
-    pullRequestUrl:
-      response?.pullRequestHtmlUrl ?? response?.taskHtmlUrl ?? response?.html_url ?? null,
+    pullRequestUrl: response?.pullRequestHtmlUrl ?? null,
     pullRequestNumber: response?.pullRequestNumber ?? null,
     remoteId: response?.id ?? null,
     createdAt: timestamp,
