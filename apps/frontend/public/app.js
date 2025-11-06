@@ -3918,8 +3918,68 @@ function describeIssueOrigin(source) {
   return '';
 }
 
+function normalizeToastMessage(input, type = 'info') {
+  const FALLBACKS = {
+    error: 'Something went wrong. Please try again.',
+    success: 'Action completed.',
+    warning: 'Check the details and try again.',
+    info: 'Notice.',
+  };
+  const fallback = FALLBACKS[type] || FALLBACKS.info;
+  if (input == null) {
+    return fallback;
+  }
+
+  let message = '';
+  if (typeof input === 'string') {
+    message = input.trim();
+  } else if (typeof input === 'object') {
+    if (typeof input.message === 'string') {
+      message = input.message.trim();
+    } else {
+      message = String(input).trim();
+    }
+  } else {
+    message = String(input).trim();
+  }
+
+  if (!message) {
+    return fallback;
+  }
+
+  const firstChar = message.charAt(0);
+  const lastChar = message.charAt(message.length - 1);
+  if (
+    (firstChar === '{' && lastChar === '}') ||
+    (firstChar === '[' && lastChar === ']')
+  ) {
+    try {
+      const parsed = JSON.parse(message);
+      if (parsed && typeof parsed === 'object' && typeof parsed.message === 'string') {
+        message = parsed.message.trim();
+      }
+    } catch (error) {
+      console.warn('Unable to parse toast message JSON', error);
+    }
+  }
+
+  if (/<[a-z!\/?][\s\S]*>/i.test(message)) {
+    message = message.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  if (!message) {
+    return fallback;
+  }
+
+  if (message.length > 320) {
+    message = `${message.slice(0, 317)}…`;
+  }
+
+  return message;
+}
+
 function showToast(message, type = 'info') {
-  toastEl.textContent = message;
+  toastEl.textContent = normalizeToastMessage(message, type);
   toastEl.classList.add('show');
   toastEl.style.background =
     type === 'error'
