@@ -1668,13 +1668,42 @@ async function loadStories(preserveSelection = true) {
     mindmapHasCentered = false;
     renderAll();
   } catch (error) {
-    console.error(error);
+    console.error('Failed to load stories', error);
+    state.stories = [];
+    storyIndex.clear();
+    parentById.clear();
     mindmapHasCentered = false;
     renderAll();
-    let message = error?.message;
-    if (error?.name === 'TypeError' && /failed to fetch/i.test(error.message || '')) {
+
+    let message = '';
+    const normalizedMessage = typeof error?.message === 'string' ? error.message.trim() : '';
+    const status = typeof error?.status === 'number' ? error.status : null;
+
+    if (
+      error?.name === 'TypeError' &&
+      /(failed to fetch|networkerror|load failed|request was rejected)/i.test(normalizedMessage)
+    ) {
       message = 'Cannot reach the AIPM server. Start the backend and try again.';
+    } else if (status === 404) {
+      message =
+        'Story service is unavailable (HTTP 404). Verify the backend deployment or rewrite rules for /api/stories.';
+    } else if (status === 401 || status === 403) {
+      message =
+        'Story service rejected the request. Confirm the backend allows access without extra authentication.';
+    } else if (status && status >= 500) {
+      if (normalizedMessage) {
+        message = `Story service failed (${status}). ${normalizedMessage}`;
+      } else {
+        message = `Story service failed (${status}). Check the backend logs for details.`;
+      }
+    } else if (status) {
+      message = normalizedMessage
+        ? `${normalizedMessage} (HTTP ${status})`
+        : `Story service responded with HTTP ${status}.`;
+    } else if (normalizedMessage) {
+      message = normalizedMessage;
     }
+
     showToast(message || 'Unable to load stories', 'error');
   }
 }
