@@ -13,6 +13,7 @@ const mindmapCanvas = document.getElementById('mindmap-canvas');
 const detailsPanel = document.getElementById('details-panel');
 const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
+const defaultDetailsPlaceholder = detailsPlaceholder ? detailsPlaceholder.innerHTML : '';
 const refreshBtn = document.getElementById('refresh-btn');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
@@ -1597,14 +1598,28 @@ async function recheckStoryHealth(storyId, options = {}) {
 }
 
 async function safeReadError(response) {
+  if (!response) {
+    return '';
+  }
+
   try {
-    const payload = await response.json();
+    const payload = await response.clone().json();
     if (payload && typeof payload.message === 'string') {
       return payload.message;
     }
   } catch (error) {
     console.error('Failed to parse error payload', error);
   }
+
+  try {
+    const text = await response.text();
+    if (typeof text === 'string' && text.trim().length > 0) {
+      return text.trim();
+    }
+  } catch (error) {
+    console.error('Failed to read error payload as text', error);
+  }
+
   return response.statusText;
 }
 
@@ -1631,7 +1646,10 @@ async function loadStories(preserveSelection = true) {
   try {
     const response = await fetch('/api/stories');
     if (!response.ok) {
-      throw new Error('Failed to fetch stories');
+      const message = await safeReadError(response);
+      const error = new Error(message || 'Failed to fetch stories');
+      error.status = response.status;
+      throw error;
     }
     const data = await response.json();
     state.stories = normalizeStoryCollection(Array.isArray(data) ? data : []);
@@ -1650,10 +1668,43 @@ async function loadStories(preserveSelection = true) {
     mindmapHasCentered = false;
     renderAll();
   } catch (error) {
-    console.error(error);
+    console.error('Failed to load stories', error);
+    state.stories = [];
+    storyIndex.clear();
+    parentById.clear();
     mindmapHasCentered = false;
     renderAll();
-    showToast(error.message || 'Unable to load stories', 'error');
+
+    let message = '';
+    const normalizedMessage = typeof error?.message === 'string' ? error.message.trim() : '';
+    const status = typeof error?.status === 'number' ? error.status : null;
+
+    if (
+      error?.name === 'TypeError' &&
+      /(failed to fetch|networkerror|load failed|request was rejected)/i.test(normalizedMessage)
+    ) {
+      message = 'Cannot reach the AIPM server. Start the backend and try again.';
+    } else if (status === 404) {
+      message =
+        'Story service is unavailable (HTTP 404). Verify the backend deployment or rewrite rules for /api/stories.';
+    } else if (status === 401 || status === 403) {
+      message =
+        'Story service rejected the request. Confirm the backend allows access without extra authentication.';
+    } else if (status && status >= 500) {
+      if (normalizedMessage) {
+        message = `Story service failed (${status}). ${normalizedMessage}`;
+      } else {
+        message = `Story service failed (${status}). Check the backend logs for details.`;
+      }
+    } else if (status) {
+      message = normalizedMessage
+        ? `${normalizedMessage} (HTTP ${status})`
+        : `Story service responded with HTTP ${status}.`;
+    } else if (normalizedMessage) {
+      message = normalizedMessage;
+    }
+
+    showToast(message || 'Unable to load stories', 'error');
   }
 }
 
@@ -1684,6 +1735,13 @@ function updateWorkspaceColumns() {
 
 function renderOutline() {
   outlineTreeEl.innerHTML = '';
+  if (state.stories.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-state';
+    empty.textContent = 'No user stories yet. Create the first story to get started.';
+    outlineTreeEl.appendChild(empty);
+    return;
+  }
   const list = document.createDocumentFragment();
 
   function renderNode(story, depth) {
@@ -2819,10 +2877,25 @@ function renderDetails() {
   const story = state.selectedStoryId != null ? storyIndex.get(state.selectedStoryId) : null;
   detailsContent.innerHTML = '';
   if (!story) {
+    if (state.stories.length === 0) {
+      detailsPlaceholder.innerHTML = `
+        <p class="empty-state">No user stories yet.</p>
+        <div class="empty-actions">
+          <button type="button" id="create-root-story-btn">Create First Story</button>
+        </div>
+        <p class="form-hint">Start with a top-level goal or let AI suggest the details.</p>
+      `;
+      detailsPlaceholder
+        .querySelector('#create-root-story-btn')
+        ?.addEventListener('click', () => openStoryCreationModal());
+    } else {
+      detailsPlaceholder.innerHTML = defaultDetailsPlaceholder;
+    }
     detailsPlaceholder.classList.remove('hidden');
     return;
   }
 
+  detailsPlaceholder.innerHTML = defaultDetailsPlaceholder;
   detailsPlaceholder.classList.add('hidden');
 
   const form = document.createElement('form');
@@ -3789,7 +3862,7 @@ function renderDetails() {
 
   childrenSection
     .querySelector('#add-child-btn')
-    .addEventListener('click', () => openChildStoryModal(story.id));
+    .addEventListener('click', () => openStoryCreationModal(story.id));
 
   childList.querySelectorAll('[data-action="select-story"]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -3895,8 +3968,83 @@ function describeIssueOrigin(source) {
   return '';
 }
 
+function normalizeToastMessage(input, type = 'info') {
+  const FALLBACKS = {
+    error: 'Something went wrong. Please try again.',
+    success: 'Action completed.',
+    warning: 'Check the details and try again.',
+    info: 'Notice.',
+  };
+  const fallback = FALLBACKS[type] || FALLBACKS.info;
+  const shouldDeferToFallback = () => {
+    if (type !== 'error') {
+      return false;
+    }
+    const wordCount = message.split(/\s+/).filter(Boolean).length;
+    if (wordCount > 40 || message.length > 200) {
+      return true;
+    }
+    return false;
+  };
+  if (input == null) {
+    return fallback;
+  }
+
+  let message = '';
+  if (typeof input === 'string') {
+    message = input.trim();
+  } else if (typeof input === 'object') {
+    if (typeof input.message === 'string') {
+      message = input.message.trim();
+    } else {
+      message = String(input).trim();
+    }
+  } else {
+    message = String(input).trim();
+  }
+
+  if (!message) {
+    return fallback;
+  }
+
+  const firstChar = message.charAt(0);
+  const lastChar = message.charAt(message.length - 1);
+  if (
+    (firstChar === '{' && lastChar === '}') ||
+    (firstChar === '[' && lastChar === ']')
+  ) {
+    try {
+      const parsed = JSON.parse(message);
+      if (parsed && typeof parsed === 'object' && typeof parsed.message === 'string') {
+        message = parsed.message.trim();
+      }
+    } catch (error) {
+      console.warn('Unable to parse toast message JSON', error);
+    }
+  }
+
+  if (/<[a-z!\/?][\s\S]*>/i.test(message)) {
+    message = message.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  if (!message) {
+    return fallback;
+  }
+
+  if (shouldDeferToFallback()) {
+    console.warn('Toast message replaced with fallback', message);
+    return fallback;
+  }
+
+  if (message.length > 320) {
+    message = `${message.slice(0, 317)}…`;
+  }
+
+  return message;
+}
+
 function showToast(message, type = 'info') {
-  toastEl.textContent = message;
+  toastEl.textContent = normalizeToastMessage(message, type);
   toastEl.classList.add('show');
   toastEl.style.background =
     type === 'error'
@@ -4671,15 +4819,22 @@ function openDocumentPanel() {
   openModal({ title: 'Generate Document', content: container, cancelLabel: 'Close' });
 }
 
-function openChildStoryModal(parentId) {
+function openStoryCreationModal(parentId = null) {
+  const isRootStory = parentId == null;
   const container = document.createElement('div');
   container.className = 'modal-form child-story-form';
+  const generatorHint = isRootStory
+    ? 'Need inspiration? Describe the outcome and let AI draft the story details automatically.'
+    : 'Use your idea to draft the story details automatically.';
+  const componentsHint = isRootStory
+    ? 'Pick the components this story will deliver.'
+    : 'Pick the components this child story will deliver.';
   container.innerHTML = `
     <div class="child-story-generator">
       <label>Idea<textarea id="child-idea" placeholder="Describe the user story idea"></textarea></label>
       <div class="child-story-generator-actions">
         <button type="button" class="secondary" id="child-generate-btn">Generate</button>
-        <p class="form-hint">Use your idea to draft the story details automatically.</p>
+        <p class="form-hint">${generatorHint}</p>
       </div>
     </div>
     <label>Title<input id="child-title" /></label>
@@ -4706,7 +4861,7 @@ function openChildStoryModal(parentId) {
             <p class="components-display" data-child-components-display>Not specified</p>
             <div class="components-actions">
               <button type="button" class="secondary components-edit-btn" id="child-components-btn">Choose components</button>
-              <p class="components-hint">Pick the components this child story will deliver.</p>
+              <p class="components-hint">${componentsHint}</p>
             </div>
           </td>
         </tr>
@@ -4714,7 +4869,7 @@ function openChildStoryModal(parentId) {
     </table>
   `;
 
-  let childComponents = [];
+  let selectedComponents = [];
   const childComponentsDisplay = container.querySelector('[data-child-components-display]');
   const childComponentsButton = container.querySelector('#child-components-btn');
   const ideaInput = container.querySelector('#child-idea');
@@ -4722,7 +4877,7 @@ function openChildStoryModal(parentId) {
 
   const refreshChildComponents = () => {
     if (!childComponentsDisplay) return;
-    const summary = formatComponentsSummary(childComponents);
+    const summary = formatComponentsSummary(selectedComponents);
     childComponentsDisplay.textContent = summary;
     childComponentsDisplay.classList.toggle('empty', summary === 'Not specified');
   };
@@ -4730,9 +4885,9 @@ function openChildStoryModal(parentId) {
   refreshChildComponents();
 
   childComponentsButton?.addEventListener('click', async () => {
-    const picked = await openComponentPicker(childComponents, { title: 'Select Components' });
+    const picked = await openComponentPicker(selectedComponents, { title: 'Select Components' });
     if (Array.isArray(picked)) {
-      childComponents = picked;
+      selectedComponents = picked;
       refreshChildComponents();
     }
   });
@@ -4749,9 +4904,10 @@ function openChildStoryModal(parentId) {
     generateBtn.textContent = 'Generating…';
     generateBtn.disabled = true;
     try {
+      const body = parentId == null ? { idea } : { idea, parentId };
       const draft = await sendJson('/api/stories/draft', {
         method: 'POST',
-        body: { idea, parentId },
+        body,
       });
       if (draft && typeof draft === 'object') {
         const titleInput = container.querySelector('#child-title');
@@ -4771,7 +4927,7 @@ function openChildStoryModal(parentId) {
         if (soThatInput) soThatInput.value = draft.soThat || '';
 
         if (Array.isArray(draft.components)) {
-          childComponents = normalizeComponentSelection(draft.components);
+          selectedComponents = normalizeComponentSelection(draft.components);
           refreshChildComponents();
         }
         showToast('Draft story generated', 'success');
@@ -4785,8 +4941,10 @@ function openChildStoryModal(parentId) {
     }
   });
 
+  const successMessage = isRootStory ? 'Story created' : 'Child story created';
+
   openModal({
-    title: 'Create Child Story',
+    title: isRootStory ? 'Create Root Story' : 'Create Child Story',
     content: container,
     actions: [
       {
@@ -4807,22 +4965,24 @@ function openChildStoryModal(parentId) {
           }
           const payload = {
             title,
-            parentId,
             storyPoint: storyPointResult.value,
             assigneeEmail: container.querySelector('#child-assignee').value.trim(),
             description: container.querySelector('#child-description').value.trim(),
             asA: container.querySelector('#child-asa').value.trim(),
             iWant: container.querySelector('#child-iwant').value.trim(),
             soThat: container.querySelector('#child-sothat').value.trim(),
-            components: childComponents,
+            components: selectedComponents,
           };
+          if (parentId != null) {
+            payload.parentId = parentId;
+          }
           try {
             const created = await createStory(payload);
             if (created === null) {
               return false;
             }
             await loadStories();
-            showToast('Child story created', 'success');
+            showToast(successMessage, 'success');
           } catch (error) {
             showToast(error.message || 'Failed to create story', 'error');
             return false;
