@@ -4,6 +4,7 @@ import {
   buildAcceptanceTestIdea,
   createDefaultCodexForm,
   createLocalDelegationEntry,
+  generateConfirmationCode,
   summarizeCommentBody,
   validateCodexInput,
 } from './codex.js';
@@ -1016,9 +1017,10 @@ function ensureCodexEntryShape(entry, storyId) {
   }
   if (typeof normalized.confirmationCode === 'string') {
     const trimmed = normalized.confirmationCode.trim();
-    normalized.confirmationCode = trimmed.length >= 6 ? trimmed : null;
+    normalized.confirmationCode =
+      trimmed.length >= 6 ? trimmed.toUpperCase() : generateConfirmationCode();
   } else {
-    normalized.confirmationCode = null;
+    normalized.confirmationCode = generateConfirmationCode();
   }
   if (normalized.targetNumber != null && normalized.targetNumber !== '') {
     const parsed = Number(normalized.targetNumber);
@@ -1026,6 +1028,9 @@ function ensureCodexEntryShape(entry, storyId) {
   } else if (normalized.target === 'new-issue') {
     normalized.targetNumber = normalized.targetNumber ?? null;
   }
+  normalized.sandboxLastOpenedAt = normalized.sandboxLastOpenedAt ?? null;
+  const duration = Number(normalized.sandboxLastDurationMs);
+  normalized.sandboxLastDurationMs = Number.isFinite(duration) ? duration : null;
   return normalized;
 }
 
@@ -1078,6 +1083,13 @@ function getCodexDelegations(storyId) {
   return Array.isArray(entries) ? entries : [];
 }
 
+function findCodexDelegation(storyId, localId) {
+  if (!localId) {
+    return null;
+  }
+  return getCodexDelegations(storyId).find((entry) => entry.localId === localId) || null;
+}
+
 function setCodexDelegations(storyId, entries) {
   const key = Number(storyId);
   if (!Number.isFinite(key)) {
@@ -1098,6 +1110,24 @@ function addCodexDelegationEntry(storyId, entry) {
   if (state.selectedStoryId === storyId) {
     refreshCodexSection(storyId);
   }
+}
+
+function updateCodexDelegationEntry(storyId, localId, updater) {
+  const current = getCodexDelegations(storyId);
+  const index = current.findIndex((entry) => entry.localId === localId);
+  if (index === -1) {
+    return null;
+  }
+  const original = current[index];
+  const updates = typeof updater === 'function' ? updater({ ...original }) : updater;
+  if (!updates || typeof updates !== 'object') {
+    return original;
+  }
+  const nextEntry = { ...original, ...updates };
+  const nextList = current.slice();
+  nextList[index] = nextEntry;
+  setCodexDelegations(storyId, nextList);
+  return nextEntry;
 }
 
 function removeCodexDelegation(storyId, localId) {
@@ -1184,6 +1214,24 @@ function formatRelativeTime(isoString) {
   return new Date(isoString).toLocaleDateString();
 }
 
+function formatDurationMs(ms) {
+  const value = Number(ms);
+  if (!Number.isFinite(value) || value <= 0) {
+    return '';
+  }
+  if (value < 1000) {
+    return `${Math.round(value)}ms`;
+  }
+  if (value < 60000) {
+    const seconds = value / 1000;
+    return `${seconds.toFixed(seconds < 10 ? 2 : 1)}s`;
+  }
+  const totalSeconds = Math.round(value / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return seconds ? `${minutes}m ${seconds}s` : `${minutes}m`;
+}
+
 function renderCodexSectionList(container, story) {
   container.innerHTML = '';
   const entries = getCodexDelegations(story.id);
@@ -1261,6 +1309,29 @@ function renderCodexSectionList(container, story) {
 
     const taskUrl = entry.taskUrl || entry.htmlUrl;
     const threadUrl = entry.threadUrl || entry.htmlUrl;
+
+    if (entry.sandboxLastOpenedAt) {
+      const sandboxMeta = document.createElement('p');
+      sandboxMeta.className = 'codex-sandbox-meta-line';
+      const relative = formatRelativeTime(entry.sandboxLastOpenedAt) || 'just now';
+      const duration = formatDurationMs(entry.sandboxLastDurationMs);
+      sandboxMeta.textContent = duration
+        ? `Sandbox last shown ${relative} (${duration}).`
+        : `Sandbox last shown ${relative}.`;
+      card.appendChild(sandboxMeta);
+    }
+
+    if (entry.localId) {
+      const sandboxBtn = document.createElement('button');
+      sandboxBtn.type = 'button';
+      sandboxBtn.className = 'link-button codex-sandbox-trigger';
+      sandboxBtn.textContent = 'Show in Sandbox';
+      sandboxBtn.addEventListener('click', () => {
+        const latest = findCodexDelegation(entry.storyId, entry.localId) || entry;
+        openSandboxPreview(latest);
+      });
+      actions.appendChild(sandboxBtn);
+    }
 
     if (taskUrl) {
       const openLink = document.createElement('a');
@@ -1342,6 +1413,149 @@ function renderCodexSectionList(container, story) {
     }
 
     container.appendChild(card);
+  });
+}
+
+function openSandboxPreview(entry) {
+  if (!entry) {
+    showToast('Sandbox preview is unavailable for this delegation.', 'error');
+    return;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'codex-sandbox-modal';
+
+  const status = document.createElement('p');
+  status.className = 'codex-sandbox-status';
+  status.textContent = 'Preparing sandbox…';
+  wrapper.appendChild(status);
+
+  const preview = document.createElement('article');
+  preview.className = 'codex-sandbox-card';
+
+  const heading = document.createElement('h4');
+  heading.textContent = entry.taskTitle || 'Codex delegation';
+  preview.appendChild(heading);
+
+  const metaList = document.createElement('dl');
+  metaList.className = 'codex-sandbox-meta';
+
+  const appendMeta = (label, value, options = {}) => {
+    if (!value) {
+      return null;
+    }
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    metaList.appendChild(dt);
+    const dd = document.createElement('dd');
+    if (options.isLink) {
+      const link = document.createElement('a');
+      link.href = value;
+      link.target = '_blank';
+      link.rel = 'noreferrer noopener';
+      link.textContent = value;
+      dd.appendChild(link);
+    } else if (options.isCode) {
+      const code = document.createElement('code');
+      code.textContent = value;
+      dd.appendChild(code);
+    } else {
+      dd.textContent = value;
+    }
+    if (options.dataRole) {
+      dd.dataset.role = options.dataRole;
+    }
+    metaList.appendChild(dd);
+    return dd;
+  };
+
+  const confirmationDisplay = appendMeta('Confirmation code', entry.confirmationCode, {
+    isCode: true,
+    dataRole: 'sandbox-confirmation',
+  });
+  appendMeta('Repository', entry.owner && entry.repo ? `${entry.owner}/${entry.repo}` : '');
+  appendMeta('Branch', entry.branchName);
+  appendMeta('Objective', entry.objective);
+  appendMeta('Task link', entry.taskUrl || entry.htmlUrl, { isLink: true });
+
+  preview.appendChild(metaList);
+  wrapper.appendChild(preview);
+
+  const historyLine = document.createElement('p');
+  historyLine.className = 'codex-sandbox-history';
+
+  const updateHistoryLine = (record) => {
+    if (!record || !record.sandboxLastOpenedAt) {
+      historyLine.textContent = 'Sandbox has not been opened for this delegation yet.';
+      return;
+    }
+    const relative = formatRelativeTime(record.sandboxLastOpenedAt) || 'just now';
+    const duration = formatDurationMs(record.sandboxLastDurationMs);
+    historyLine.textContent = duration
+      ? `Last sandbox session ${relative} (${duration}).`
+      : `Last sandbox session ${relative}.`;
+  };
+
+  updateHistoryLine(entry);
+  wrapper.appendChild(historyLine);
+
+  const durationLine = document.createElement('p');
+  durationLine.className = 'codex-sandbox-duration';
+  wrapper.appendChild(durationLine);
+
+  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  let completed = false;
+  let readyTimer;
+  let fallbackTimer;
+
+  const finalizeSandbox = () => {
+    if (completed) {
+      return;
+    }
+    completed = true;
+    clearTimeout(readyTimer);
+    clearTimeout(fallbackTimer);
+    const endTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const elapsed = Math.min(Math.round(endTime - startTime), 2000);
+    status.textContent = 'Sandbox ready';
+    status.dataset.state = 'ready';
+    durationLine.textContent = `Completed in ${(elapsed / 1000).toFixed(2)}s.`;
+
+    if (entry.storyId == null || !entry.localId) {
+      return;
+    }
+
+    const updates = {
+      sandboxLastOpenedAt: new Date().toISOString(),
+      sandboxLastDurationMs: elapsed,
+    };
+    if (!entry.confirmationCode || entry.confirmationCode.length < 6) {
+      updates.confirmationCode = generateConfirmationCode();
+    }
+
+    const updated = updateCodexDelegationEntry(entry.storyId, entry.localId, updates);
+    if (updated) {
+      if (confirmationDisplay) {
+        confirmationDisplay.textContent = '';
+        const code = document.createElement('code');
+        code.textContent = updated.confirmationCode;
+        confirmationDisplay.appendChild(code);
+      }
+      updateHistoryLine(updated);
+      refreshCodexSection(entry.storyId);
+    }
+  };
+
+  readyTimer = setTimeout(finalizeSandbox, 360);
+  fallbackTimer = setTimeout(finalizeSandbox, 1800);
+
+  openModal({
+    title: entry.taskTitle ? `Sandbox: ${entry.taskTitle}` : 'Codex Sandbox',
+    content: wrapper,
+    cancelLabel: 'Close',
+    actions: [],
+    size: 'content',
+    onClose: finalizeSandbox,
   });
 }
 

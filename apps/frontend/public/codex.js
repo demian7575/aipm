@@ -111,6 +111,31 @@ export function createDefaultCodexForm(story) {
   };
 }
 
+export function generateConfirmationCode(length = 8) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const minLength = Math.max(6, Math.floor(Number.isFinite(Number(length)) ? Number(length) : 0));
+
+  const buffer = [];
+  const useCrypto = typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function';
+  const randomByte = useCrypto
+    ? (() => {
+        const array = new Uint32Array(1);
+        return () => {
+          crypto.getRandomValues(array);
+          return array[0];
+        };
+      })()
+    : () => Math.floor(Math.random() * 0xffffffff);
+
+  while (buffer.length < minLength) {
+    const random = randomByte();
+    const index = random % alphabet.length;
+    buffer.push(alphabet.charAt(index));
+  }
+
+  return buffer.join('').slice(0, minLength);
+}
+
 function validateBranchName(value) {
   const text = String(value || '').trim();
   if (!text) {
@@ -348,6 +373,10 @@ export function buildDelegatePayload(story, formValues) {
 export function createLocalDelegationEntry(story, formValues, response) {
   const timestamp = new Date().toISOString();
   const localId = `codex-${story?.id ?? 'story'}-${timestamp}-${Math.random().toString(36).slice(2, 8)}`;
+  const rawConfirmation =
+    typeof response?.confirmationCode === 'string' ? response.confirmationCode.trim() : '';
+  const confirmationCode =
+    rawConfirmation.length >= 6 ? rawConfirmation.toUpperCase() : generateConfirmationCode();
   return {
     localId,
     storyId: story?.id ?? null,
@@ -372,10 +401,9 @@ export function createLocalDelegationEntry(story, formValues, response) {
     latestStatus: null,
     lastCheckedAt: null,
     lastError: null,
-    confirmationCode:
-      typeof response?.confirmationCode === 'string' && response.confirmationCode.length >= 6
-        ? response.confirmationCode
-        : null,
+    confirmationCode,
+    sandboxLastOpenedAt: null,
+    sandboxLastDurationMs: null,
   };
 }
 

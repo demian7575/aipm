@@ -1110,6 +1110,85 @@ body.is-mindmap-panning {
   color: #991b1b;
 }
 
+.codex-sandbox-meta-line {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.codex-sandbox-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 540px;
+}
+
+.codex-sandbox-status {
+  margin: 0;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.codex-sandbox-status[data-state='ready'] {
+  color: #047857;
+}
+
+.codex-sandbox-card {
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: #f1f5ff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.codex-sandbox-card h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.codex-sandbox-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+.codex-sandbox-meta dt {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.codex-sandbox-meta dd {
+  margin: 0;
+  color: #1f2937;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.codex-sandbox-meta code {
+  font-family: 'Source Code Pro', Consolas, 'Courier New', monospace;
+  font-size: 0.85rem;
+  background: #e0e7ff;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  color: #1e293b;
+}
+
+.codex-sandbox-history {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.codex-sandbox-duration {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #1f2937;
+}
+
 .record-list {
   display: flex;
   flex-direction: column;
