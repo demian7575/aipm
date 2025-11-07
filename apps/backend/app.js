@@ -4153,102 +4153,19 @@ async function ensureDatabase() {
     const insertStory = db.prepare(
       'INSERT INTO user_stories (title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
     );
-    const { lastInsertRowid: rootId } = insertStory.run(
-      'Enable secure login',
-      'As an existing customer I want to sign in quickly so I can reach my dashboard without friction.',
-      'Authenticated customer',
-      'sign in with email and password',
-      'access my personalized dashboard immediately',
+    insertStory.run(
+      'Root',
+      'Seeds the workspace with an AI Project Manager baseline story focused on AIPM component coverage.',
+      'AI project manager',
+      'coordinate autonomous planning across AIPM components',
+      'teams can deliver measurable outcomes with shared context',
       JSON.stringify(['WorkModel', 'Orchestration_Engagement']),
       5,
-      'pm@example.com',
+      'owner@example.com',
       'Ready',
       timestamp,
       timestamp
     );
-
-    const insertChild = db.prepare(
-      'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
-    );
-    const { lastInsertRowid: formStoryId } = insertChild.run(
-      rootId,
-      'Render login form',
-      'As a returning customer I want a familiar login form so that I can authenticate without confusion.',
-      'Returning customer',
-      'view the login form instantly',
-      'enter my credentials without delay',
-      JSON.stringify(['Document_Intelligence', 'Run_Verify']),
-      3,
-      'designer@example.com',
-      'Blocked',
-      timestamp,
-      timestamp
-    );
-
-    const blockerTimestamp = now();
-    const { lastInsertRowid: apiStoryId } = insertChild.run(
-      rootId,
-      'Finalize login API contract',
-      'As a platform engineer I want an agreed API contract so integrations remain stable.',
-      'Platform engineer',
-      'share the login API schema with dependent teams',
-      'prevent breaking changes from blocking dependent workstreams',
-      JSON.stringify(['WorkModel', 'Traceabilty_Insight']),
-      5,
-      'lead@example.com',
-      'In Progress',
-      blockerTimestamp,
-      blockerTimestamp
-    );
-
-    insertAcceptanceTest(db, {
-      storyId: Number(apiStoryId),
-      title: 'API contract published',
-      given: ['The platform team has drafted the login API schema'],
-      when: ['The schema is shared with downstream integrators'],
-      then: ['All dependent teams confirm compatibility within 3 business days'],
-      status: 'Draft',
-      timestamp: blockerTimestamp,
-    });
-
-    insertDependency(db, {
-      storyId: Number(formStoryId),
-      dependsOnStoryId: Number(apiStoryId),
-      relationship: 'blocks',
-    });
-
-    insertAcceptanceTest(db, {
-      storyId: rootId,
-      title: 'Happy path login',
-      given: ['A customer with valid credentials'],
-      when: ['They submit the login form'],
-      then: ['Dashboard loads within 2000 ms'],
-      status: 'Ready',
-      timestamp,
-    });
-
-    insertTask(db, {
-      storyId: rootId,
-      title: 'Review authentication logs',
-      description: 'Ensure login attempts are captured for auditing.',
-      status: 'In Progress',
-      assigneeEmail: 'designer@example.com',
-      timestamp,
-    });
-
-    insertTask(db, {
-      storyId: rootId,
-      title: 'Plan MFA rollout comms',
-      description: 'Draft announcement and customer education plan.',
-      status: 'Not Started',
-      assigneeEmail: 'designer@example.com',
-      timestamp,
-    });
-
-    const insertDoc = db.prepare(
-      'INSERT INTO reference_documents (story_id, name, url, created_at, updated_at) VALUES (?, ?, ?, ?, ?)' // prettier-ignore
-    );
-    insertDoc.run(rootId, 'Security checklist', 'https://example.com/security.pdf', timestamp, timestamp);
   }
 
   return db;
