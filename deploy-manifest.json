@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "computeResources": [
+    {
+      "name": "api",
+      "runtime": "nodejs20.x",
+      "entrypoint": "server.js"
+    }
+  ],
+  "routes": [
+    { "path": "/api/*", "target": { "kind": "Compute", "src": "api" } },
+    { "path": "/*.*", "target": { "kind": "Static", "cacheControl": "public, max-age=300" } },
+    { "path": "/*", "target": { "kind": "Static" } }
+  ]
+}
+

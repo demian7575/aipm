@@ -39,3 +39,11 @@ createApp()
     console.error('Failed to start server', error);
     process.exit(1);
   });
+
+
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`API listening on http://${HOST}:${PORT}`);
+});
+

@@ -1,0 +1,30 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - nvm install 18
+        - nvm use 18
+        - npm ci
+    build:
+      commands:
+        - npm run build
+    postBuild:
+      commands:
+        - |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const apiBase = process.env.AIPM_API_BASE_URL ?? '';
+          const escaped = apiBase.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          const configPath = path.join('dist', 'public', 'config.js');
+          fs.writeFileSync(configPath, `window.__AIPM_API_BASE__ = '${escaped}';\n`);
+          console.log(`Configured API base URL override written to ${configPath}`);
+          NODE
+  artifacts:
+    baseDirectory: dist/public
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*

@@ -1,0 +1,56 @@
+version: 1
+applications:
+  - appRoot: .
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - nvm use 20 || true
+            - node -v
+            - npm -v
+            - npm i -g pnpm || true
+        build:
+          commands:
+            # 산출물 루트
+            - rm -rf .amplify-hosting
+            - mkdir -p .amplify-hosting/static
+            - mkdir -p .amplify-hosting/compute/default
+
+            # 1) 프런트엔드 정적 파일 복사
+            - cp -R apps/frontend/public/* .amplify-hosting/static/
+
+            # 프런트가 같은 도메인의 /api를 치도록 base를 ''로 고정 (필요시 환경변수로 교체 가능)
+            - |
+              cat > .amplify-hosting/static/config.js <<'EOF'
+              // same-origin API base (Compute가 같은 도메인에서 /api 제공)
+              window.__AIPM_API_BASE__ = '';
+              EOF
+
+            # 2) 백엔드 코드 복사
+            - cp -R apps/backend/* .amplify-hosting/compute/default/
+
+            # 3) 백엔드 의존성 설치 (package-lock 또는 pnpm-lock 지원)
+            - |
+              cd .amplify-hosting/compute/default
+              if [ -f package-lock.json ]; then
+                npm ci --omit=dev
+              elif [ -f pnpm-lock.yaml ]; then
+                pnpm install --frozen-lockfile --prod
+              else
+                npm install --production
+              fi
+              cd -
+
+            # 4) 배포 매니페스트 복사
+            - cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
+
+      artifacts:
+        baseDirectory: .amplify-hosting
+        files:
+          - '**/*'
+
+      cache:
+        paths:
+          - node_modules/**/*
+          - apps/**/node_modules/**/*
+
