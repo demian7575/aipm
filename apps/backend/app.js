@@ -3982,7 +3982,25 @@ function ensureCanMarkStoryDone(db, storyId) {
 }
 
 function tableColumns(db, table) {
-  return db.prepare(`PRAGMA table_info(${table})`).all();
+  try {
+    return db.prepare(`PRAGMA table_info(${table})`).all();
+  } catch (error) {
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+function safeSelectAll(db, sql, ...params) {
+  try {
+    return db.prepare(sql).all(...params);
+  } catch (error) {
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 function ensureColumn(db, table, name, definition) {
@@ -4153,102 +4171,19 @@ async function ensureDatabase() {
     const insertStory = db.prepare(
       'INSERT INTO user_stories (title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
     );
-    const { lastInsertRowid: rootId } = insertStory.run(
-      'Enable secure login',
-      'As an existing customer I want to sign in quickly so I can reach my dashboard without friction.',
-      'Authenticated customer',
-      'sign in with email and password',
-      'access my personalized dashboard immediately',
+    insertStory.run(
+      'Root',
+      'Seeds the workspace with an AI Project Manager baseline story focused on AIPM component coverage.',
+      'AI project manager',
+      'coordinate autonomous planning across AIPM components',
+      'teams can deliver measurable outcomes with shared context',
       JSON.stringify(['WorkModel', 'Orchestration_Engagement']),
       5,
-      'pm@example.com',
+      'owner@example.com',
       'Ready',
       timestamp,
       timestamp
     );
-
-    const insertChild = db.prepare(
-      'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
-    );
-    const { lastInsertRowid: formStoryId } = insertChild.run(
-      rootId,
-      'Render login form',
-      'As a returning customer I want a familiar login form so that I can authenticate without confusion.',
-      'Returning customer',
-      'view the login form instantly',
-      'enter my credentials without delay',
-      JSON.stringify(['Document_Intelligence', 'Run_Verify']),
-      3,
-      'designer@example.com',
-      'Blocked',
-      timestamp,
-      timestamp
-    );
-
-    const blockerTimestamp = now();
-    const { lastInsertRowid: apiStoryId } = insertChild.run(
-      rootId,
-      'Finalize login API contract',
-      'As a platform engineer I want an agreed API contract so integrations remain stable.',
-      'Platform engineer',
-      'share the login API schema with dependent teams',
-      'prevent breaking changes from blocking dependent workstreams',
-      JSON.stringify(['WorkModel', 'Traceabilty_Insight']),
-      5,
-      'lead@example.com',
-      'In Progress',
-      blockerTimestamp,
-      blockerTimestamp
-    );
-
-    insertAcceptanceTest(db, {
-      storyId: Number(apiStoryId),
-      title: 'API contract published',
-      given: ['The platform team has drafted the login API schema'],
-      when: ['The schema is shared with downstream integrators'],
-      then: ['All dependent teams confirm compatibility within 3 business days'],
-      status: 'Draft',
-      timestamp: blockerTimestamp,
-    });
-
-    insertDependency(db, {
-      storyId: Number(formStoryId),
-      dependsOnStoryId: Number(apiStoryId),
-      relationship: 'blocks',
-    });
-
-    insertAcceptanceTest(db, {
-      storyId: rootId,
-      title: 'Happy path login',
-      given: ['A customer with valid credentials'],
-      when: ['They submit the login form'],
-      then: ['Dashboard loads within 2000 ms'],
-      status: 'Ready',
-      timestamp,
-    });
-
-    insertTask(db, {
-      storyId: rootId,
-      title: 'Review authentication logs',
-      description: 'Ensure login attempts are captured for auditing.',
-      status: 'In Progress',
-      assigneeEmail: 'designer@example.com',
-      timestamp,
-    });
-
-    insertTask(db, {
-      storyId: rootId,
-      title: 'Plan MFA rollout comms',
-      description: 'Draft announcement and customer education plan.',
-      status: 'Not Started',
-      assigneeEmail: 'designer@example.com',
-      timestamp,
-    });
-
-    const insertDoc = db.prepare(
-      'INSERT INTO reference_documents (story_id, name, url, created_at, updated_at) VALUES (?, ?, ?, ?, ?)' // prettier-ignore
-    );
-    insertDoc.run(rootId, 'Security checklist', 'https://example.com/security.pdf', timestamp, timestamp);
   }
 
   return db;
@@ -4323,12 +4258,13 @@ function loadDependencyRows(db) {
 
 async function loadStories(db, options = {}) {
   const { includeAiInvest = false } = options;
-  const storyRows = db
-    .prepare('SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id')
-    .all();
-  const testRows = db.prepare('SELECT * FROM acceptance_tests ORDER BY story_id, id').all();
-  const docRows = db.prepare('SELECT * FROM reference_documents ORDER BY story_id, id').all();
-  const taskRows = db.prepare('SELECT * FROM tasks ORDER BY story_id, id').all();
+  const storyRows = safeSelectAll(
+    db,
+    'SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id'
+  );
+  const testRows = safeSelectAll(db, 'SELECT * FROM acceptance_tests ORDER BY story_id, id');
+  const docRows = safeSelectAll(db, 'SELECT * FROM reference_documents ORDER BY story_id, id');
+  const taskRows = safeSelectAll(db, 'SELECT * FROM tasks ORDER BY story_id, id');
 
   const stories = storyRows.map((row) => {
     const components = normalizeComponentsInput(parseJsonArray(row.components));
@@ -4497,9 +4433,11 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     blocking: [],
   };
 
-  const testRows = db
-    .prepare('SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id')
-    .all(storyId);
+  const testRows = safeSelectAll(
+    db,
+    'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id',
+    storyId
+  );
   testRows.forEach((testRow) => {
     const given = parseJsonArray(testRow.given);
     const when = parseJsonArray(testRow.when_step);
@@ -4522,9 +4460,11 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     });
   });
 
-  const docRows = db
-    .prepare('SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id')
-    .all(storyId);
+  const docRows = safeSelectAll(
+    db,
+    'SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id',
+    storyId
+  );
   docRows.forEach((docRow) => {
     story.referenceDocuments.push({
       id: docRow.id,
@@ -4536,7 +4476,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     });
   });
 
-  const taskRows = db.prepare('SELECT * FROM tasks WHERE story_id = ? ORDER BY id').all(storyId);
+  const taskRows = safeSelectAll(db, 'SELECT * FROM tasks WHERE story_id = ? ORDER BY id', storyId);
   taskRows.forEach((taskRow) => {
     story.tasks.push(buildTaskFromRow(taskRow));
   });
