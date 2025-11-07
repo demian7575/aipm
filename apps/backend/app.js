@@ -3982,7 +3982,25 @@ function ensureCanMarkStoryDone(db, storyId) {
 }
 
 function tableColumns(db, table) {
-  return db.prepare(`PRAGMA table_info(${table})`).all();
+  try {
+    return db.prepare(`PRAGMA table_info(${table})`).all();
+  } catch (error) {
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+function safeSelectAll(db, sql, ...params) {
+  try {
+    return db.prepare(sql).all(...params);
+  } catch (error) {
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 function ensureColumn(db, table, name, definition) {
@@ -4240,12 +4258,13 @@ function loadDependencyRows(db) {
 
 async function loadStories(db, options = {}) {
   const { includeAiInvest = false } = options;
-  const storyRows = db
-    .prepare('SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id')
-    .all();
-  const testRows = db.prepare('SELECT * FROM acceptance_tests ORDER BY story_id, id').all();
-  const docRows = db.prepare('SELECT * FROM reference_documents ORDER BY story_id, id').all();
-  const taskRows = db.prepare('SELECT * FROM tasks ORDER BY story_id, id').all();
+  const storyRows = safeSelectAll(
+    db,
+    'SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id'
+  );
+  const testRows = safeSelectAll(db, 'SELECT * FROM acceptance_tests ORDER BY story_id, id');
+  const docRows = safeSelectAll(db, 'SELECT * FROM reference_documents ORDER BY story_id, id');
+  const taskRows = safeSelectAll(db, 'SELECT * FROM tasks ORDER BY story_id, id');
 
   const stories = storyRows.map((row) => {
     const components = normalizeComponentsInput(parseJsonArray(row.components));
@@ -4414,9 +4433,11 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     blocking: [],
   };
 
-  const testRows = db
-    .prepare('SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id')
-    .all(storyId);
+  const testRows = safeSelectAll(
+    db,
+    'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id',
+    storyId
+  );
   testRows.forEach((testRow) => {
     const given = parseJsonArray(testRow.given);
     const when = parseJsonArray(testRow.when_step);
@@ -4439,9 +4460,11 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     });
   });
 
-  const docRows = db
-    .prepare('SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id')
-    .all(storyId);
+  const docRows = safeSelectAll(
+    db,
+    'SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id',
+    storyId
+  );
   docRows.forEach((docRow) => {
     story.referenceDocuments.push({
       id: docRow.id,
@@ -4453,7 +4476,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     });
   });
 
-  const taskRows = db.prepare('SELECT * FROM tasks WHERE story_id = ? ORDER BY id').all(storyId);
+  const taskRows = safeSelectAll(db, 'SELECT * FROM tasks WHERE story_id = ? ORDER BY id', storyId);
   taskRows.forEach((taskRow) => {
     story.tasks.push(buildTaskFromRow(taskRow));
   });
