@@ -8,6 +8,7 @@ import {
   deriveAcceptanceCriteriaDefaults,
   validateCodexInput,
   createLocalDelegationEntry,
+  generateConfirmationCode,
 } from '../apps/frontend/public/codex.js';
 
 test('validateCodexInput flags missing required fields', () => {
@@ -178,4 +179,27 @@ test('createLocalDelegationEntry captures task and confirmation metadata', () =>
   assert.equal(entry.threadUrl, 'https://github.com/demian7575/aipm/issues/101#comment-12345');
   assert.equal(entry.confirmationCode, 'ABC1234');
   assert.equal(entry.htmlUrl, 'https://github.com/demian7575/aipm/issues/101#comment-12345');
+  assert.equal(entry.sandboxLastOpenedAt, null);
+  assert.equal(entry.sandboxLastDurationMs, null);
+});
+
+test('createLocalDelegationEntry generates a fallback confirmation code when missing', () => {
+  const story = { id: 7, title: 'Refine onboarding' };
+  const defaults = createDefaultCodexForm(story);
+  const response = { number: 15, confirmationCode: 'abc' };
+  const entry = createLocalDelegationEntry(story, defaults, response);
+
+  assert.ok(entry.confirmationCode);
+  assert.ok(entry.confirmationCode.length >= 6);
+  assert.equal(entry.confirmationCode, entry.confirmationCode.toUpperCase());
+});
+
+test('generateConfirmationCode produces uppercase alphanumeric codes', () => {
+  const code = generateConfirmationCode();
+  assert.ok(code.length >= 6);
+  assert.match(code, /^[A-Z0-9]+$/);
+
+  const longer = generateConfirmationCode(12);
+  assert.ok(longer.length >= 12);
+  assert.match(longer, /^[A-Z0-9]+$/);
 });
