@@ -24,8 +24,9 @@ function resolveApiUrl(path) {
     return normalizedPath;
   }
 
-  if (API_BASE_URL.endsWith('/api') && normalizedPath.startsWith('/api')) {
-    return `${API_BASE_URL}${normalizedPath.slice(4)}`;
+  if (normalizedPath.startsWith('/api') && /\/api(?:\/|$)/.test(API_BASE_URL)) {
+    const pathWithoutApiPrefix = normalizedPath.replace(/^\/api(?=\/|$)/, '');
+    return `${API_BASE_URL}${pathWithoutApiPrefix}`;
   }
 
   return `${API_BASE_URL}${normalizedPath}`;
