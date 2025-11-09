@@ -7,6 +7,12 @@ frontend:
     build:
       commands:
         - npm run build
+    postBuild:
+      commands:
+        - |
+          cat <<'EOF' > dist/public/config.js
+          window.__AIPM_API_BASE__ = '${AIPM_API_BASE_URL:-''}';
+          EOF
   artifacts:
     baseDirectory: dist/public
     files:
