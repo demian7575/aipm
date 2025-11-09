@@ -1,4 +1,4 @@
-import { rm, mkdir, cp } from 'node:fs/promises';
+import { rm, mkdir, cp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,6 +14,15 @@ async function build() {
   await mkdir(distDir, { recursive: true });
   await cp(frontendSrc, path.join(distDir, 'public'), { recursive: true });
   await cp(backendSrc, path.join(distDir, 'backend'), { recursive: true });
+
+  if (Object.prototype.hasOwnProperty.call(process.env, 'AIPM_API_BASE_URL')) {
+    const apiBase = process.env.AIPM_API_BASE_URL ?? '';
+    const escapedApiBase = apiBase.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    const configPath = path.join(distDir, 'public', 'config.js');
+    const configContent = `window.__AIPM_API_BASE__ = '${escapedApiBase}';\n`;
+    await writeFile(configPath, configContent);
+    console.log(`Configured API base URL override written to ${path.relative(projectRoot, configPath)}`);
+  }
   console.log(`Build complete. Artifacts available in ${path.relative(projectRoot, distDir)}`);
 }
 
