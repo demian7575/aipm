@@ -8,6 +8,30 @@ import {
   validateCodexInput,
 } from './codex.js';
 
+const API_BASE_URL = (window.__AIPM_API_BASE__ || '').replace(/\/$/, '');
+
+function resolveApiUrl(path) {
+  if (!path) {
+    return API_BASE_URL;
+  }
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  if (!API_BASE_URL) {
+    return normalizedPath;
+  }
+
+  if (normalizedPath.startsWith('/api') && /\/api(?:\/|$)/.test(API_BASE_URL)) {
+    const pathWithoutApiPrefix = normalizedPath.replace(/^\/api(?=\/|$)/, '');
+    return `${API_BASE_URL}${pathWithoutApiPrefix}`;
+  }
+
+  return `${API_BASE_URL}${normalizedPath}`;
+}
+
 const outlineTreeEl = document.getElementById('outline-tree');
 const mindmapCanvas = document.getElementById('mindmap-canvas');
 const detailsPanel = document.getElementById('details-panel');
@@ -38,6 +62,7 @@ const modalBody = document.getElementById('modal-body');
 const modalFooter = document.getElementById('modal-footer');
 const modalCloseBtn = document.getElementById('modal-close');
 const toastEl = document.getElementById('toast');
+const runtimeDataLink = document.getElementById('runtime-data-link');
 
 const STORAGE_KEYS = {
   expanded: 'aiPm.expanded',
@@ -1586,7 +1611,7 @@ async function recheckStoryHealth(storyId, options = {}) {
     requestInit.headers = { 'Content-Type': 'application/json' };
     requestInit.body = JSON.stringify({ includeAiInvest: true });
   }
-  const response = await fetch(`/api/stories/${storyId}/health-check`, requestInit);
+  const response = await fetch(resolveApiUrl(`/api/stories/${storyId}/health-check`), requestInit);
   if (!response.ok) {
     const message = await safeReadError(response);
     const error = new Error(message || 'Failed to refresh story health');
@@ -1629,7 +1654,7 @@ function collectTestsNeedingAttention(story) {
 async function loadStories(preserveSelection = true) {
   const previousSelection = preserveSelection ? state.selectedStoryId : null;
   try {
-    const response = await fetch('/api/stories');
+    const response = await fetch(resolveApiUrl('/api/stories'));
     if (!response.ok) {
       throw new Error('Failed to fetch stories');
     }
@@ -3598,7 +3623,7 @@ function renderDetails() {
       deleteButton.addEventListener('click', async () => {
         if (!window.confirm('Delete this acceptance test?')) return;
         try {
-          await sendJson(`/api/tests/${test.id}`, { method: 'DELETE' });
+          await sendJson(resolveApiUrl(`/api/tests/${test.id}`), { method: 'DELETE' });
           await loadStories();
           showToast('Acceptance test deleted', 'success');
         } catch (error) {
@@ -4241,7 +4266,7 @@ function openCodexDelegationModal(story) {
     let lastError = null;
     for (const attempt of attempts) {
       try {
-        await sendJson(`/api/stories/${story.id}/tests`, {
+        await sendJson(resolveApiUrl(`/api/stories/${story.id}/tests`), {
           method: 'POST',
           body: {
             title: attempt.title,
@@ -4577,7 +4602,7 @@ function openDocumentPanel() {
     resultOutput.textContent = '';
     copyBtn.disabled = true;
     try {
-      const response = await fetch('/api/documents/generate', {
+      const response = await fetch(resolveApiUrl('/api/documents/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: entry.type }),
@@ -4749,7 +4774,7 @@ function openChildStoryModal(parentId) {
     generateBtn.textContent = 'Generating…';
     generateBtn.disabled = true;
     try {
-      const draft = await sendJson('/api/stories/draft', {
+      const draft = await sendJson(resolveApiUrl('/api/stories/draft'), {
         method: 'POST',
         body: { idea, parentId },
       });
@@ -5181,7 +5206,7 @@ function openReferenceModal(storyId) {
         const docId = Number(button.getAttribute('data-doc-id'));
         if (!window.confirm('Delete this reference document?')) return;
         try {
-          await sendJson(`/api/reference-documents/${docId}`, { method: 'DELETE' });
+          await sendJson(resolveApiUrl(`/api/reference-documents/${docId}`), { method: 'DELETE' });
           await refreshModalContent();
           showToast('Reference document removed', 'success');
         } catch (error) {
@@ -5240,7 +5265,7 @@ function openReferenceModal(storyId) {
         return;
       }
       try {
-        await sendJson(`/api/stories/${storyId}/reference-documents`, {
+        await sendJson(resolveApiUrl(`/api/stories/${storyId}/reference-documents`), {
           method: 'POST',
           body: { name, url },
         });
@@ -5265,14 +5290,14 @@ function openReferenceModal(storyId) {
 
 async function createStory(payload) {
   try {
-    return await sendJson('/api/stories', { method: 'POST', body: payload });
+    return await sendJson(resolveApiUrl('/api/stories'), { method: 'POST', body: payload });
   } catch (error) {
     if (error && error.code === 'INVEST_WARNINGS') {
       const proceed = window.confirm(
         `${error.message}\n\n${formatInvestWarnings(error.warnings)}\n\nCreate anyway?`
       );
       if (proceed) {
-        return await sendJson('/api/stories', {
+        return await sendJson(resolveApiUrl('/api/stories'), {
           method: 'POST',
           body: { ...payload, acceptWarnings: true },
         });
@@ -5285,7 +5310,10 @@ async function createStory(payload) {
 
 async function updateStory(storyId, payload) {
   try {
-    return await sendJson(`/api/stories/${storyId}`, { method: 'PATCH', body: payload });
+    return await sendJson(resolveApiUrl(`/api/stories/${storyId}`), {
+      method: 'PATCH',
+      body: payload,
+    });
   } catch (error) {
     if (error && error.code === 'INVEST_WARNINGS') {
       throw error;
@@ -5299,12 +5327,12 @@ async function fetchAcceptanceTestDraft(storyId, options = {}) {
   if (options && typeof options === 'object' && options.idea) {
     requestOptions.body = { idea: options.idea };
   }
-  return await sendJson(`/api/stories/${storyId}/tests/draft`, requestOptions);
+  return await sendJson(resolveApiUrl(`/api/stories/${storyId}/tests/draft`), requestOptions);
 }
 
 async function createAcceptanceTest(storyId, payload) {
   try {
-    return await sendJson(`/api/stories/${storyId}/tests`, {
+    return await sendJson(resolveApiUrl(`/api/stories/${storyId}/tests`), {
       method: 'POST',
       body: payload,
     });
@@ -5314,7 +5342,7 @@ async function createAcceptanceTest(storyId, payload) {
         `${error.message}\n\n${formatMeasurabilityWarnings(error.warnings, error.suggestions)}\n\nCreate anyway?`
       );
       if (proceed) {
-        return await sendJson(`/api/stories/${storyId}/tests`, {
+        return await sendJson(resolveApiUrl(`/api/stories/${storyId}/tests`), {
           method: 'POST',
           body: { ...payload, acceptWarnings: true },
         });
@@ -5327,7 +5355,7 @@ async function createAcceptanceTest(storyId, payload) {
 
 async function updateAcceptanceTest(testId, payload) {
   try {
-    return await sendJson(`/api/tests/${testId}`, {
+    return await sendJson(resolveApiUrl(`/api/tests/${testId}`), {
       method: 'PATCH',
       body: payload,
     });
@@ -5337,7 +5365,7 @@ async function updateAcceptanceTest(testId, payload) {
         `${error.message}\n\n${formatMeasurabilityWarnings(error.warnings, error.suggestions)}\n\nUpdate anyway?`
       );
       if (proceed) {
-        return await sendJson(`/api/tests/${testId}`, {
+        return await sendJson(resolveApiUrl(`/api/tests/${testId}`), {
           method: 'PATCH',
           body: { ...payload, acceptWarnings: true },
         });
@@ -5349,33 +5377,36 @@ async function updateAcceptanceTest(testId, payload) {
 }
 
 async function createDependencyLink(storyId, dependsOnStoryId, relationship = 'depends') {
-  return await sendJson(`/api/stories/${storyId}/dependencies`, {
+  return await sendJson(resolveApiUrl(`/api/stories/${storyId}/dependencies`), {
     method: 'POST',
     body: { dependsOnStoryId, relationship },
   });
 }
 
 async function deleteDependencyLink(storyId, dependsOnStoryId) {
-  return await sendJson(`/api/stories/${storyId}/dependencies/${dependsOnStoryId}`, {
+  return await sendJson(resolveApiUrl(`/api/stories/${storyId}/dependencies/${dependsOnStoryId}`), {
     method: 'DELETE',
   });
 }
 
 async function createTask(storyId, payload) {
-  return await sendJson(`/api/stories/${storyId}/tasks`, { method: 'POST', body: payload });
+  return await sendJson(resolveApiUrl(`/api/stories/${storyId}/tasks`), {
+    method: 'POST',
+    body: payload,
+  });
 }
 
 async function updateTask(taskId, payload) {
-  return await sendJson(`/api/tasks/${taskId}`, { method: 'PATCH', body: payload });
+  return await sendJson(resolveApiUrl(`/api/tasks/${taskId}`), { method: 'PATCH', body: payload });
 }
 
 async function deleteTask(taskId) {
-  return await sendJson(`/api/tasks/${taskId}`, { method: 'DELETE' });
+  return await sendJson(resolveApiUrl(`/api/tasks/${taskId}`), { method: 'DELETE' });
 }
 
 async function uploadReferenceFile(file) {
   const params = new URLSearchParams({ filename: file.name || 'document' });
-  const response = await fetch(`/api/uploads?${params}`, {
+  const response = await fetch(resolveApiUrl(`/api/uploads?${params}`), {
     method: 'POST',
     headers: {
       'Content-Type': file.type || 'application/octet-stream',
@@ -5482,7 +5513,7 @@ async function confirmAndDeleteStory(storyId, options = {}) {
   }
 
   try {
-    await sendJson(`/api/stories/${storyId}`, { method: 'DELETE' });
+    await sendJson(resolveApiUrl(`/api/stories/${storyId}`), { method: 'DELETE' });
     subtree.forEach((id) => state.expanded.delete(id));
     persistExpanded();
 
@@ -5507,7 +5538,8 @@ async function confirmAndDeleteStory(storyId, options = {}) {
 
 async function sendJson(url, options = {}) {
   const { method = 'GET', body } = options;
-  const response = await fetch(url, {
+  const resolvedUrl = resolveApiUrl(url);
+  const response = await fetch(resolvedUrl, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
@@ -5578,6 +5610,10 @@ function initialize() {
     event.preventDefault();
     closeModal();
   });
+
+  if (runtimeDataLink) {
+    runtimeDataLink.href = resolveApiUrl('/api/runtime-data');
+  }
 
   loadStories();
 }
