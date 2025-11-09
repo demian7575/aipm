@@ -10,9 +10,15 @@ frontend:
     postBuild:
       commands:
         - |
-          cat <<'EOF' > dist/public/config.js
-          window.__AIPM_API_BASE__ = '${AIPM_API_BASE_URL:-''}';
-          EOF
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const apiBase = process.env.AIPM_API_BASE_URL ?? '';
+          const escaped = apiBase.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          const configPath = path.join('dist', 'public', 'config.js');
+          fs.writeFileSync(configPath, `window.__AIPM_API_BASE__ = '${escaped}';\n`);
+          console.log(`Configured API base URL override written to ${configPath}`);
+          NODE
   artifacts:
     baseDirectory: dist/public
     files:

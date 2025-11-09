@@ -17,7 +17,7 @@ async function build() {
 
   if (Object.prototype.hasOwnProperty.call(process.env, 'AIPM_API_BASE_URL')) {
     const apiBase = process.env.AIPM_API_BASE_URL ?? '';
-    const escapedApiBase = apiBase.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    const escapedApiBase = apiBase.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const configPath = path.join(distDir, 'public', 'config.js');
     const configContent = `window.__AIPM_API_BASE__ = '${escapedApiBase}';\n`;
     await writeFile(configPath, configContent);
