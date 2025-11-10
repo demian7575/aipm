@@ -32,6 +32,22 @@ createApp()
       server.listen(portToUse, '0.0.0.0');
     };
 
+
+
+    // 부팅 마커(로그에서 어떤 파일이 실행되는지 식별)
+    console.log('[BOOT] apps/backend/server.js is running');
+
+    // 서버가 실제로 떠 있는지 확인하는 초간단 헬스 엔드포인트
+    server.prependListener('request', (req, res) => {
+      if (req.method === 'GET' && (req.url === '/healthz' || req.url === '/api/healthz')) {
+        res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
+        return res.end('ok');
+      }
+    });
+	  
+
+
+
     listen(desiredPort, allowDynamicFallback);
   })
   .catch((error) => {
