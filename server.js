@@ -1,3 +1,50 @@
+// ---- server.js 상단에 추가 ----
+import path from 'node:path';
+import fs from 'node:fs';
+
+const DB_FILE = process.env.AIPM_DB_FILE || '/tmp/aipm.sqlite'; // <== 핵심: /tmp 사용
+
+function ensureWritableDir(p) {
+  try { fs.mkdirSync(path.dirname(p), { recursive: true }); } catch {}
+}
+ensureWritableDir(DB_FILE);
+
+// (node:sqlite 또는 여러분의 DB open 로직에서 위 DB_FILE을 사용하도록 연결하세요)
+// 예시 (참고용):
+// import { open } from 'node:sqlite';
+// import sqlite3 from 'sqlite3'; // 만약 3rd party라면 생략
+// const db = await open({ filename: DB_FILE, driver: sqlite3.Database });
+
+// ---- 공통 에러 핸들링(익스프레스 기준) ----
+process.on('unhandledRejection', (e) => {
+  console.error('UNHANDLED_REJECTION', e);
+});
+process.on('uncaughtException', (e) => {
+  console.error('UNCAUGHT_EXCEPTION', e);
+});
+
+// ---- /api/stories 핸들러에 try/catch 추가(핵심) ----
+// 기존:
+// app.get('/api/stories', async (req,res)=> { const rows = await db.all(...); res.json(rows); });
+//
+// 수정:
+app.get('/api/stories', async (req, res) => {
+  try {
+    const rows = await db.all('SELECT * FROM stories ORDER BY created_at DESC'); // 예시
+    res.status(200).json(rows ?? []);
+  } catch (e) {
+    console.error('GET /api/stories failed', e);
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: String(e?.message || e) });
+  }
+});
+
+// ---- 서버 포트/바인딩 확인(Compute에서 안전) ----
+const PORT = 3000; // Compute는 3000 고정이 가장 안전
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => console.log(`API listening on http://${HOST}:${PORT}`));
+
+
+
 import { createServer } from 'node:http';
 import { URL } from 'node:url';
 
