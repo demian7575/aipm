@@ -17,9 +17,16 @@ applications:
             - cp -R apps/frontend/public/* .amplify-hosting/static/
             - printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
 
-            # ✅ Compute: 'server.js'와 'app.js'를 루트로 복사 (중요!)
+
+              # 1) 백엔드 server.js 복사 + import 경로 수정(./app.js -> ./app-backend.js)
             - cp apps/backend/server.js .amplify-hosting/compute/default/server.js
-            - cp apps/backend/app.js    .amplify-hosting/compute/default/app.js
+            - sed -i 's#./app.js#./app-backend.js#g' .amplify-hosting/compute/default/server.js
+
+            # 2) 백엔드 app.js는 이름 바꿔서 복사(충돌 회피)
+            - cp apps/backend/app.js .amplify-hosting/compute/default/app-backend.js
+
+            # 3) 런타임 부트스트랩용 app.js(심플)
+            - printf "import './server.js';\n" > .amplify-hosting/compute/default/app.js
 
             # 매니페스트 복사
             - cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
