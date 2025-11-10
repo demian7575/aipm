@@ -7,7 +7,7 @@
     { "path": "/*",     "target": { "kind": "Static" } }
   ],
   "computeResources": [
-    { "name": "default", "runtime": "nodejs22.x", "entrypoint": "server.js" }
+    { "name": "default", "runtime": "nodejs22.x", "entrypoint": "server-backend.js" }
   ]
 }
 
