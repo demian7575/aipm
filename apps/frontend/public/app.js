@@ -1,3 +1,23 @@
+// Top of app.js (temporary)
+process.env.NODE_DEBUG = (process.env.NODE_DEBUG ? process.env.NODE_DEBUG + ',' : '') + 'module';
+process.env.NODE_OPTIONS = (process.env.NODE_OPTIONS ? process.env.NODE_OPTIONS + ' ' : '') + '--enable-source-maps';
+console.log('Booting app.js from', import.meta.url);
+
+// Log all static-like absolute import attempts (best effort for dynamic imports)
+const _import = globalThis.__originalImport || globalThis.import || ((s) => import(s));
+globalThis.__originalImport = _import;
+globalThis.import = (s) => { console.log('dynamic import specifier:', s); return _import(s); };
+
+
+
+
+
+
+
+
+
+
+
 import {
   DEFAULT_REPO_API_URL,
   buildAcceptanceTestFallback,
