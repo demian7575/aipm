@@ -20,11 +20,14 @@ applications:
               cp -R apps/frontend/public/* .amplify-hosting/static/
               printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
 
-              # 3) Compute 번들 (상대 import 유지 위해 폴더 단위 복사)
+              # 3) Compute 번들(폴더 단위 복사로 상대 import 유지)
               cp -R apps/backend .amplify-hosting/compute/default/apps/
               cp server.js .amplify-hosting/compute/default/server.js
 
-              # 4) 런타임 엔트리포인트 (포트 3000, /tmp 실행, /api/health 포함)
+              # 4) 런타임 엔트리포인트
+              #   - /tmp로 복사해 쓰기 경로 확보
+              #   - JSON DB 강제
+              #   - _writeSqliteMirror()를 no-op으로 패치(Amplify엔 python3 없음)
               cat > .amplify-hosting/compute/default/server-backend.js <<'JS'
               process.env.AI_PM_FORCE_JSON_DB = '1';
               process.env.AI_PM_DISABLE_OPENAI = '1';
@@ -36,14 +39,25 @@ applications:
               const TMP_BACKEND = path.join(TMP_ROOT, 'apps', 'backend');
               await mkdir(TMP_BACKEND, { recursive: true });
 
-              const appSrc = await readFile('./apps/backend/app.js', 'utf8');
+              // 원본 app.js 읽기
+              let appSrc = await readFile('./apps/backend/app.js', 'utf8');
+
+              // 🔧 sqlite 미러링 완전 비활성화 (python3 ENOENT 방지)
+              appSrc = appSrc.replace(
+                /_writeSqliteMirror\\(\\)\\s*\\{[\\s\\S]*?\\}/,
+                `_writeSqliteMirror() { /* disabled on Amplify */ return; }`
+              );
+
+              // /tmp에 기록(../../server.js 상대경로를 /tmp 기준으로 성립)
               const rootServerSrc = await readFile('./server.js', 'utf8');
               await writeFile(path.join(TMP_BACKEND, 'app.js'), appSrc, 'utf8');
               await writeFile(path.join(TMP_ROOT, 'server.js'), rootServerSrc, 'utf8');
 
+              // 백엔드 로드
               const { createApp } = await import('file:///tmp/aipm/apps/backend/app.js');
               const server = await createApp();
 
+              // 간단 헬스엔드포인트/요청로그(진단용)
               server.prependListener('request', (req, res) => {
                 try {
                   const url = new URL(req.url || '/', 'http://localhost');
@@ -59,15 +73,13 @@ applications:
               server.listen(3000, () => console.log('[BOOT] listening on 3000'));
               JS
 
-              # 5) 레포의 manifest 그대로 사용 (콜론 포함해도 문제 없음)
+              # 5) 레포에 있는 manifest 그대로 사용
               test -f deploy-manifest.json || (echo 'ERROR: deploy-manifest.json not found at repo root' && exit 3)
               cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
 
               # 6) 검증 로그
-              echo '== Compute bundle =='
-              ls -R .amplify-hosting/compute/default
-              echo '== Manifest preview =='
-              head -n 50 .amplify-hosting/deploy-manifest.json
+              echo '== Compute bundle =='; ls -R .amplify-hosting/compute/default
+              echo '== Manifest preview =='; head -n 40 .amplify-hosting/deploy-manifest.json
       artifacts:
         baseDirectory: .amplify-hosting/static
         files:
