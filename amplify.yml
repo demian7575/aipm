@@ -33,7 +33,7 @@ applications:
               process.env.AIPM_UPLOAD_DIR = '/tmp/aipm/uploads';
               process.env.AIPM_DISABLE_SQLITE_MIRROR = '1'; // python3 없음
               process.env.AI_PM_FORCE_JSON_DB = '1';        // (필요 시) JSON DB 강제
-              process.env.AI_PM_DISABLE_OPENAI = '1';       // 외부 호출 차단(원하면 해제)
+              process.env.AI_PM_DISABLE_OPENAI = '0';       // 외부 호출 차단(원하면 해제)
 
               import { mkdir } from 'node:fs/promises';
               import path from 'node:path';
