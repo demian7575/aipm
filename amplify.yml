@@ -11,7 +11,7 @@ applications:
             - |
               set -euxo pipefail
 
-              # 1) 스테이징 디렉토리
+              # 1) 스테이징 폴더
               rm -rf .amplify-hosting
               mkdir -p .amplify-hosting/static
               mkdir -p .amplify-hosting/compute/default/apps
@@ -20,60 +20,93 @@ applications:
               cp -R apps/frontend/public/* .amplify-hosting/static/
               printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
 
-              # 3) Compute 번들(폴더 단위 복사로 상대 import 유지)
+              # 3) Compute 번들(상대 import 유지 위해 폴더 단위 복사)
               cp -R apps/backend .amplify-hosting/compute/default/apps/
               cp server.js .amplify-hosting/compute/default/server.js
 
-              # 4) 런타임 엔트리포인트
-              #   - /tmp로 복사해 쓰기 경로 확보
-              #   - JSON DB 강제
-              #   - _writeSqliteMirror()를 no-op으로 패치(Amplify엔 python3 없음)
+              # 4) 런타임 엔트리포인트:
+              #    - /tmp로 복사해 쓰기 경로 확보
+              #    - JSON DB 강제 + OpenAI 비활성
+              #    - **sqlite 미러링 함수**를 **no-op**으로 패치
+              #    - createApp 실패해도 /api/health는 반드시 200으로 상태 리턴(안전 부팅 가드)
               cat > .amplify-hosting/compute/default/server-backend.js <<'JS'
               process.env.AI_PM_FORCE_JSON_DB = '1';
               process.env.AI_PM_DISABLE_OPENAI = '1';
+              process.env.TZ = 'Asia/Seoul';
 
               import { mkdir, readFile, writeFile } from 'node:fs/promises';
               import path from 'node:path';
+              import http from 'node:http';
 
               const TMP_ROOT = '/tmp/aipm';
               const TMP_BACKEND = path.join(TMP_ROOT, 'apps', 'backend');
               await mkdir(TMP_BACKEND, { recursive: true });
 
-              // 원본 app.js 읽기
-              let appSrc = await readFile('./apps/backend/app.js', 'utf8');
+              let startupError = null;
+              let appServer = null;
 
-              // 🔧 sqlite 미러링 완전 비활성화 (python3 ENOENT 방지)
-              appSrc = appSrc.replace(
-                /_writeSqliteMirror\\(\\)\\s*\\{[\\s\\S]*?\\}/,
-                `_writeSqliteMirror() { /* disabled on Amplify */ return; }`
-              );
+              async function boot() {
+                // 4-1) 원본 app.js 읽어 sqlite 미러링 제거
+                let appSrc = await readFile('./apps/backend/app.js', 'utf8');
+                appSrc = appSrc.replace(
+                  /_writeSqliteMirror\(\)\s*\{[\s\S]*?\}/,
+                  `_writeSqliteMirror() { /* disabled on Amplify */ return; }`
+                );
 
-              // /tmp에 기록(../../server.js 상대경로를 /tmp 기준으로 성립)
-              const rootServerSrc = await readFile('./server.js', 'utf8');
-              await writeFile(path.join(TMP_BACKEND, 'app.js'), appSrc, 'utf8');
-              await writeFile(path.join(TMP_ROOT, 'server.js'), rootServerSrc, 'utf8');
+                // 4-2) /tmp로 복사 (상대 import ../../server.js 유지)
+                const rootServerSrc = await readFile('./server.js', 'utf8');
+                await writeFile(path.join(TMP_BACKEND, 'app.js'), appSrc, 'utf8');
+                await writeFile(path.join(TMP_ROOT, 'server.js'), rootServerSrc, 'utf8');
 
-              // 백엔드 로드
-              const { createApp } = await import('file:///tmp/aipm/apps/backend/app.js');
-              const server = await createApp();
+                // 4-3) 백엔드 로드 & 서버 생성
+                const { createApp } = await import('file:///tmp/aipm/apps/backend/app.js');
+                appServer = await createApp();
+              }
 
-              // 간단 헬스엔드포인트/요청로그(진단용)
-              server.prependListener('request', (req, res) => {
-                try {
-                  const url = new URL(req.url || '/', 'http://localhost');
-                  console.log('[REQ]', new Date().toISOString(), req.method, url.pathname);
-                  if (url.pathname === '/api/health') {
-                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-                    res.end(JSON.stringify({ ok: true, now: new Date().toISOString() }));
-                    return;
-                  }
-                } catch {}
+              try {
+                await boot();
+                console.log('[BOOT] appServer created (port 3000)');
+              } catch (e) {
+                startupError = e;
+                console.error('[BOOT] createApp failed:', e);
+              }
+
+              // 4-4) 항상 포트 3000 리슨 + /api/health 보장
+              const PORT = 3000;
+              const guard = http.createServer((req, res) => {
+                const url = new URL(req.url || '/', 'http://localhost');
+
+                // 요청 로깅
+                console.log('[REQ]', new Date().toISOString(), req.method, url.pathname);
+
+                // 헬스 체크는 항상 200
+                if (url.pathname === '/api/health') {
+                  const body = JSON.stringify({
+                    ok: startupError ? false : true,
+                    now: new Date().toISOString(),
+                    error: startupError ? (startupError.message || String(startupError)) : null
+                  });
+                  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                  res.end(body);
+                  return;
+                }
+
+                // 앱이 살아있으면 요청을 앱으로 전달
+                if (appServer) {
+                  appServer.emit('request', req, res);
+                  return;
+                }
+
+                // 앱이 죽어있으면 503 + 에러 메시지
+                const msg = startupError ? (startupError.stack || startupError.message || String(startupError)) : 'app not started';
+                res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
+                res.end('Service Unavailable\n\n' + msg);
               });
 
-              server.listen(3000, () => console.log('[BOOT] listening on 3000'));
+              guard.listen(PORT, () => console.log('[BOOT] listening on', PORT));
               JS
 
-              # 5) 레포에 있는 manifest 그대로 사용
+              # 5) (중요) 레포의 manifest 그대로 사용
               test -f deploy-manifest.json || (echo 'ERROR: deploy-manifest.json not found at repo root' && exit 3)
               cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
 
