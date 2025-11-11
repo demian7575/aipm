@@ -10,48 +10,109 @@ applications:
           commands:
             - |
               set -euxo pipefail
+              echo "USING-REPO-AMPLIFY-YML ✅"
 
-              # 1) stage
+              # 1) Stage output folders for Amplify Gen2
               rm -rf .amplify-hosting
               mkdir -p .amplify-hosting/static
               mkdir -p .amplify-hosting/compute/default/apps
 
-              # 2) static (same-origin)
+              # 2) Static (same-origin)
               cp -R apps/frontend/public/* .amplify-hosting/static/
               printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
 
-              # 3) compute payload (그대로 복사)
+              # 3) Compute bundle: copy backend and root server.js (keep relative imports)
               cp -R apps/backend .amplify-hosting/compute/default/apps/
               cp server.js .amplify-hosting/compute/default/server.js
 
-              # 4) entrypoint: 포트 3000 + 환경변수만 셋업
+              # 4) Runtime entrypoint wrapper
+              #    - run from /tmp (writable FS)
+              #    - neutralize sqlite mirror calls (no python3 in Amplify)
+              #    - keep Codex/AI calls enabled (expects OPENAI_API_KEY etc.)
+              #    - always serve /api/health (even if boot fails)
               cat > .amplify-hosting/compute/default/server-backend.js <<'JS'
               process.env.TZ = 'Asia/Seoul';
+              process.env.AI_PM_FORCE_JSON_DB = '1';   // prefer JSON DB; no sqlite dependency
+              process.env.AI_PM_DISABLE_OPENAI = '0';  // allow Codex / external AI calls
 
-              // Amplify 제약에 맞춘 런타임 설정
-              process.env.AIPM_DATA_DIR = '/tmp/aipm/data';
-              process.env.AIPM_UPLOAD_DIR = '/tmp/aipm/uploads';
-              process.env.AIPM_DISABLE_SQLITE_MIRROR = '1'; // python3 없음
-              process.env.AI_PM_FORCE_JSON_DB = '1';        // (필요 시) JSON DB 강제
-              process.env.AI_PM_DISABLE_OPENAI = '0';       // 외부 호출 차단(원하면 해제)
-
-              import { mkdir } from 'node:fs/promises';
+              import { mkdir, readFile, writeFile } from 'node:fs/promises';
               import path from 'node:path';
+              import http from 'node:http';
 
-              await mkdir(process.env.AIPM_DATA_DIR, { recursive: true });
-              await mkdir(process.env.AIPM_UPLOAD_DIR, { recursive: true });
+              const TMP_ROOT = '/tmp/aipm';
+              const TMP_BACKEND = path.join(TMP_ROOT, 'apps', 'backend');
 
-              // 백엔드 구동 (상대 import 유지)
-              const { createApp } = await import('./apps/backend/app.js');
-              const server = await createApp();
-              server.listen(3000, () => console.log('[BOOT] listening on 3000'));
+              await mkdir(TMP_BACKEND, { recursive: true });
+
+              let startupError = null;
+              let appServer = null;
+
+              async function boot() {
+                // Copy sources to /tmp so __dirname inside app.js points to /tmp (writable)
+                let appSrc = await readFile('./apps/backend/app.js', 'utf8');
+                const rootServerSrc = await readFile('./server.js', 'utf8');
+
+                // Disable ONLY the calls to _writeSqliteMirror (safer than rewriting the function body)
+                appSrc = appSrc
+                  .replace(/await\s+this\._writeSqliteMirror\(\);\s*/g, '// disabled: sqlite mirror (await)\n')
+                  .replace(/this\._writeSqliteMirror\(\);\s*/g,           '// disabled: sqlite mirror\n');
+
+                await writeFile(path.join(TMP_BACKEND, 'app.js'), appSrc, 'utf8');
+                await writeFile(path.join(TMP_ROOT, 'server.js'), rootServerSrc, 'utf8');
+
+                // Load backend from /tmp
+                const { createApp } = await import('file:///tmp/aipm/apps/backend/app.js');
+                appServer = await createApp();
+              }
+
+              try {
+                await boot();
+                console.log('[BOOT] appServer created (port 3000)');
+              } catch (e) {
+                startupError = e;
+                console.error('[BOOT] createApp failed:', e);
+              }
+
+              // Guard server: always answers /api/health and proxies to app if up
+              const PORT = 3000;
+              const guard = http.createServer((req, res) => {
+                const url = new URL(req.url || '/', 'http://localhost');
+
+                // Health is always 200 (surface bootstrap errors here)
+                if (url.pathname === '/api/health') {
+                  const body = JSON.stringify({
+                    ok: !startupError,
+                    now: new Date().toISOString(),
+                    hasGithubToken: Boolean(process.env.GITHUB_TOKEN),
+                    error: startupError ? (startupError.message || String(startupError)) : null
+                  });
+                  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                  res.end(body);
+                  return;
+                }
+
+                // Proxy to app if running; otherwise return 503 with minimal message
+                if (appServer) {
+                  appServer.emit('request', req, res);
+                } else {
+                  res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
+                  res.end('Service Unavailable');
+                }
+              });
+
+              guard.listen(PORT, () => {
+                console.log('[BOOT] listening on', PORT);
+                console.log('[ENV] GITHUB_TOKEN present?', Boolean(process.env.GITHUB_TOKEN));
+              });
               JS
 
-              # 5) repo에 포함된 manifest 그대로 사용
+              # 5) Use the repo's deploy-manifest.json as-is (must match entrypoint: server-backend.js)
+              test -f deploy-manifest.json || (echo 'ERROR: deploy-manifest.json not found at repo root' && exit 3)
               cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
 
-              # 6) sanity
-              ls -R .amplify-hosting/compute/default
+              # 6) Sanity logs
+              echo '== Compute bundle =='; ls -R .amplify-hosting/compute/default
+              echo '== Manifest preview =='; head -n 50 .amplify-hosting/deploy-manifest.json
       artifacts:
         baseDirectory: .amplify-hosting/static
         files:
