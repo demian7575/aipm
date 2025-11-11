@@ -8,78 +8,48 @@ applications:
             - node -v
         build:
           commands:
-            # 1) Stage folders
+            # 스테이징 디렉토리
             - rm -rf .amplify-hosting
             - mkdir -p .amplify-hosting/static
             - mkdir -p .amplify-hosting/compute/default
 
-            # 2) Static (same-origin)
+            # 정적 (동일 오리진)
             - cp -R apps/frontend/public/* .amplify-hosting/static/
             - printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
 
-            # 3) Compute payload (ship originals; wrapper will move to /tmp)
-            - cp apps/backend/app.js  .amplify-hosting/compute/default/app.js
-            - cp server.js            .amplify-hosting/compute/default/server.js
+            # Compute 번들: 백엔드 전체 + 루트 server.js
+            - cp -R apps/backend .amplify-hosting/compute/default/apps/backend
+            - cp server.js .amplify-hosting/compute/default/server.js
 
-            # 4) Runtime wrapper: runs from /tmp, forces JSON DB + port 3000, preserves ../../server.js import
+            # 엔트리포인트(포트 3000에서 실행 + /tmp로 복사하여 쓰기경로 확보)
             - |
               cat > .amplify-hosting/compute/default/server-backend.js <<'JS'
-              import { mkdir, readFile, writeFile, cp as copy } from 'node:fs/promises';
+              import { mkdir, readFile, writeFile } from 'node:fs/promises';
               import path from 'node:path';
-              import { fileURLToPath } from 'node:url';
+              process.env.AI_PM_FORCE_JSON_DB = '1';   // sqlite 없이 JSON DB 사용
+              process.env.AI_PM_DISABLE_OPENAI = '1';  // 외부 호출 비활성 (원하면 제거)
 
-              // Keep things simple for Amplify:
-              process.env.AI_PM_FORCE_JSON_DB = '1';   // use JSON DB (no sqlite)
-              process.env.AI_PM_DISABLE_OPENAI = '1';  // disable outbound AI calls
-
-              const __filename = fileURLToPath(import.meta.url);
-              const __dirname = path.dirname(__filename);
-
-              // Prepare writable structure in /tmp
               const TMP_ROOT = '/tmp/aipm';
               const TMP_BACKEND = path.join(TMP_ROOT, 'apps', 'backend');
-              const TMP_FRONTEND = path.join(TMP_ROOT, 'apps', 'frontend', 'public');
               await mkdir(TMP_BACKEND, { recursive: true });
-              await mkdir(TMP_FRONTEND, { recursive: true });
 
-              // Copy sources we need to keep relative imports working:
-              // - app.js expects ../../server.js
-              const appSrc = await readFile(path.join(__dirname, 'app.js'), 'utf8');
-              const rootServerSrc = await readFile(path.join(__dirname, 'server.js'), 'utf8');
+              // 원본을 /tmp로 복사(../../server.js 상대경로를 /tmp 기준으로 성립시킴)
+              const appSrc = await readFile('./apps/backend/app.js', 'utf8');
+              const rootServerSrc = await readFile('./server.js', 'utf8');
               await writeFile(path.join(TMP_BACKEND, 'app.js'), appSrc, 'utf8');
               await writeFile(path.join(TMP_ROOT, 'server.js'), rootServerSrc, 'utf8');
 
-              // Optional: put a placeholder index to satisfy any static checks
-              await writeFile(path.join(TMP_FRONTEND, 'index.html'), '<!doctype html><title>aipm</title>', 'utf8');
-
-              // Now run backend from /tmp so __dirname points to /tmp/... and data/uploads land in /tmp
+              // /tmp에서 백엔드 실행 (데이터/업로드가 /tmp 하위에 생성됨)
               const { createApp } = await import('file:///tmp/aipm/apps/backend/app.js');
               const server = await createApp();
-              const port = 3000; // Amplify compute requirement
-              server.listen(port, () => {
-                console.log('[AIPM] server listening on', port);
-                console.log('[AIPM] cwd=', process.cwd(), ' __dirname=', __dirname);
-              });
+              server.listen(3000, () => console.log('[AIPM] listening on 3000'));
               JS
 
-            # 5) Manifest: route /api/* to compute; everything else static
-            - |
-              cat > .amplify-hosting/deploy-manifest.json <<'JSON'
-              {
-                "version": 1,
-                "routes": [
-                  { "path": "/api/*", "target": { "kind": "Compute", "src": "default" } },
-                  { "path": "/*",     "target": { "kind": "Static" } }
-                ],
-                "computeResources": [
-                  { "name": "default", "entrypoint": "server-backend.js", "runtime": "nodejs22.x" }
-                ],
-                "framework": { "name": "custom", "version": "1.0.0" }
-              }
-              JSON
+            # 레포의 manifest를 빌드 출력 위치로 복사 (스키마 검증 대상)
+            - cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
 
-            # Sanity: show what's in compute bundle
-            - ls -R .amplify-hosting/compute/default
+            # 디버그 출력
+            - ls -R .amplify-hosting
       artifacts:
         baseDirectory: .amplify-hosting/static
         files:
