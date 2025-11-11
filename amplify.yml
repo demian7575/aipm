@@ -10,104 +10,48 @@ applications:
           commands:
             - |
               set -euxo pipefail
-              echo 'USING-REPO-AMPLIFY-YML'
 
-              # 1) 스테이징 디렉토리
+              # 1) stage
               rm -rf .amplify-hosting
               mkdir -p .amplify-hosting/static
               mkdir -p .amplify-hosting/compute/default/apps
 
-              # 2) 정적(동일 오리진)
+              # 2) static (same-origin)
               cp -R apps/frontend/public/* .amplify-hosting/static/
               printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
 
-              # 3) Compute 번들(상대 import 유지 위해 폴더 단위 복사)
+              # 3) compute payload (그대로 복사)
               cp -R apps/backend .amplify-hosting/compute/default/apps/
               cp server.js .amplify-hosting/compute/default/server.js
 
-              # 4) 런타임 엔트리포인트
-              #    - /tmp로 복사해 쓰기 경로 확보
-              #    - JSON DB 강제 + OpenAI 비활성
-              #    - _writeSqliteMirror() "호출"만 주석 처리(Amplify엔 python3 없음)
-              #    - 부팅 실패해도 /api/health는 200으로 상태 리턴(가드)
+              # 4) entrypoint: 포트 3000 + 환경변수만 셋업
               cat > .amplify-hosting/compute/default/server-backend.js <<'JS'
-              process.env.AI_PM_FORCE_JSON_DB = '1';
-              process.env.AI_PM_DISABLE_OPENAI = '1';
               process.env.TZ = 'Asia/Seoul';
 
-              import { mkdir, readFile, writeFile } from 'node:fs/promises';
+              // Amplify 제약에 맞춘 런타임 설정
+              process.env.AIPM_DATA_DIR = '/tmp/aipm/data';
+              process.env.AIPM_UPLOAD_DIR = '/tmp/aipm/uploads';
+              process.env.AIPM_DISABLE_SQLITE_MIRROR = '1'; // python3 없음
+              process.env.AI_PM_FORCE_JSON_DB = '1';        // (필요 시) JSON DB 강제
+              process.env.AI_PM_DISABLE_OPENAI = '1';       // 외부 호출 차단(원하면 해제)
+
+              import { mkdir } from 'node:fs/promises';
               import path from 'node:path';
-              import http from 'node:http';
 
-              const TMP_ROOT = '/tmp/aipm';
-              const TMP_BACKEND = path.join(TMP_ROOT, 'apps', 'backend');
+              await mkdir(process.env.AIPM_DATA_DIR, { recursive: true });
+              await mkdir(process.env.AIPM_UPLOAD_DIR, { recursive: true });
 
-              let startupError = null;
-              let appServer = null;
-
-              async function boot() {
-                await mkdir(TMP_BACKEND, { recursive: true });
-
-                // 원본 app.js 로드 후 sqlite 미러 함수 호출만 무력화
-                let appSrc = await readFile('./apps/backend/app.js', 'utf8');
-                appSrc = appSrc
-                  .replace(/await\s+this\._writeSqliteMirror\(\);\s*/g, '// disabled: sqlite mirror (await)\n')
-                  .replace(/this\._writeSqliteMirror\(\);\s*/g,           '// disabled: sqlite mirror\n');
-
-                // /tmp로 복사(../../server.js 상대경로 유지)
-                const rootServerSrc = await readFile('./server.js', 'utf8');
-                await writeFile(path.join(TMP_BACKEND, 'app.js'), appSrc, 'utf8');
-                await writeFile(path.join(TMP_ROOT, 'server.js'), rootServerSrc, 'utf8');
-
-                // 백엔드 로드 & 앱 서버 생성
-                const { createApp } = await import('file:///tmp/aipm/apps/backend/app.js');
-                appServer = await createApp();
-              }
-
-              try {
-                await boot();
-                console.log('[BOOT] appServer ready');
-              } catch (e) {
-                startupError = e;
-                console.error('[BOOT] createApp failed', e);
-              }
-
-              // 부팅 가드: /api/health는 항상 200, 그 외는 앱/503로 위임
-              const PORT = 3000;
-              const guard = http.createServer((req, res) => {
-                const url = new URL(req.url || '/', 'http://localhost');
-                console.log('[REQ]', new Date().toISOString(), req.method, url.pathname);
-
-                if (url.pathname === '/api/health') {
-                  const body = JSON.stringify({
-                    ok: !startupError,
-                    now: new Date().toISOString(),
-                    error: startupError ? (startupError.message || String(startupError)) : null
-                  });
-                  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-                  res.end(body);
-                  return;
-                }
-
-                if (appServer) {
-                  appServer.emit('request', req, res);
-                } else {
-                  const msg = startupError ? (startupError.stack || startupError.message || String(startupError)) : 'app not started';
-                  res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
-                  res.end('Service Unavailable\n\n' + msg);
-                }
-              });
-
-              guard.listen(PORT, () => console.log('[BOOT] listening on', PORT));
+              // 백엔드 구동 (상대 import 유지)
+              const { createApp } = await import('./apps/backend/app.js');
+              const server = await createApp();
+              server.listen(3000, () => console.log('[BOOT] listening on 3000'));
               JS
 
-              # 5) 레포의 manifest 그대로 사용 (entrypoint: server-backend.js)
-              test -f deploy-manifest.json || (echo 'ERROR: deploy-manifest.json missing at repo root' && exit 3)
+              # 5) repo에 포함된 manifest 그대로 사용
               cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
 
-              # 6) 검증 로그
-              echo '== Compute bundle =='; ls -R .amplify-hosting/compute/default
-              echo '== Manifest preview =='; head -n 40 .amplify-hosting/deploy-manifest.json
+              # 6) sanity
+              ls -R .amplify-hosting/compute/default
       artifacts:
         baseDirectory: .amplify-hosting/static
         files:

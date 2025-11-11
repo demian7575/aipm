@@ -811,6 +811,8 @@ class JsonDatabase {
   }
 
   _writeSqliteMirror() {
+    if (DISABLE_SQLITE_MIRROR) return; // ← Amplify에 python3 없어도 안전
+
     const snapshot = this._snapshot();
     try {
       mkdirSync(path.dirname(this.sqlitePath), { recursive: true });
@@ -1438,8 +1440,9 @@ export function resetDatabaseFactory() {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const FRONTEND_DIR = path.join(__dirname, '..', 'frontend', 'public');
-const DATA_DIR = path.join(__dirname, 'data');
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
+const DATA_DIR   = process.env.AIPM_DATA_DIR   || path.join(__dirname, 'data');
+const UPLOAD_DIR = process.env.AIPM_UPLOAD_DIR || path.join(__dirname, 'uploads');
+const DISABLE_SQLITE_MIRROR = process.env.AIPM_DISABLE_SQLITE_MIRROR === '1';
 export const DATABASE_PATH = path.join(DATA_DIR, 'app.sqlite');
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
