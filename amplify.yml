@@ -5,28 +5,29 @@ applications:
       phases:
         preBuild:
           commands:
-            - set -euxo pipefail
             - node -v
         build:
           commands:
-            # 1) 스테이징 디렉토리 생성
-            - rm -rf .amplify-hosting
-            - mkdir -p .amplify-hosting/static
-            - mkdir -p .amplify-hosting/compute/default/apps
-
-            # 2) 정적 (동일 오리진)
-            - cp -R apps/frontend/public/* .amplify-hosting/static/
-            - printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
-
-            # 3) Compute 번들 (상대 import 유지 위해 폴더 단위 복사)
-            - cp -R apps/backend .amplify-hosting/compute/default/apps/
-            - cp server.js .amplify-hosting/compute/default/server.js
-
-            # 4) 런타임 엔트리포인트 (포트 3000 고정, /tmp 실행, /api/health 포함)
             - |
+              set -euxo pipefail
+
+              # 1) 스테이징 디렉토리
+              rm -rf .amplify-hosting
+              mkdir -p .amplify-hosting/static
+              mkdir -p .amplify-hosting/compute/default/apps
+
+              # 2) 정적(동일 오리진)
+              cp -R apps/frontend/public/* .amplify-hosting/static/
+              printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
+
+              # 3) Compute 번들 (상대 import 유지 위해 폴더 단위 복사)
+              cp -R apps/backend .amplify-hosting/compute/default/apps/
+              cp server.js .amplify-hosting/compute/default/server.js
+
+              # 4) 런타임 엔트리포인트 (포트 3000, /tmp 실행, /api/health 포함)
               cat > .amplify-hosting/compute/default/server-backend.js <<'JS'
-              process.env.AI_PM_FORCE_JSON_DB = '1';   // sqlite 대신 JSON DB
-              process.env.AI_PM_DISABLE_OPENAI = '1';  // 외부 호출 비활성(원하면 제거)
+              process.env.AI_PM_FORCE_JSON_DB = '1';
+              process.env.AI_PM_DISABLE_OPENAI = '1';
 
               import { mkdir, readFile, writeFile } from 'node:fs/promises';
               import path from 'node:path';
@@ -35,17 +36,14 @@ applications:
               const TMP_BACKEND = path.join(TMP_ROOT, 'apps', 'backend');
               await mkdir(TMP_BACKEND, { recursive: true });
 
-              // 원본을 /tmp로 복사(../../server.js 상대 경로 유지)
               const appSrc = await readFile('./apps/backend/app.js', 'utf8');
               const rootServerSrc = await readFile('./server.js', 'utf8');
               await writeFile(path.join(TMP_BACKEND, 'app.js'), appSrc, 'utf8');
               await writeFile(path.join(TMP_ROOT, 'server.js'), rootServerSrc, 'utf8');
 
-              // 백엔드 로드
               const { createApp } = await import('file:///tmp/aipm/apps/backend/app.js');
               const server = await createApp();
 
-              // 진단용 헬스엔드포인트 + 요청 로깅
               server.prependListener('request', (req, res) => {
                 try {
                   const url = new URL(req.url || '/', 'http://localhost');
@@ -61,13 +59,15 @@ applications:
               server.listen(3000, () => console.log('[BOOT] listening on 3000'));
               JS
 
-            # 5) (중요) 레포의 deploy-manifest.json을 그대로 사용
-            - test -f deploy-manifest.json || (echo "ERROR: deploy-manifest.json not found at repo root" && exit 3)
-            - cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
+              # 5) 레포의 manifest 그대로 사용 (콜론 포함해도 문제 없음)
+              test -f deploy-manifest.json || (echo 'ERROR: deploy-manifest.json not found at repo root' && exit 3)
+              cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
 
-            # 6) 검증 로그
-            - echo "== Compute bundle ==" && ls -R .amplify-hosting/compute/default
-            - echo "== Manifest preview ==" && head -n 50 .amplify-hosting/deploy-manifest.json
+              # 6) 검증 로그
+              echo '== Compute bundle =='
+              ls -R .amplify-hosting/compute/default
+              echo '== Manifest preview =='
+              head -n 50 .amplify-hosting/deploy-manifest.json
       artifacts:
         baseDirectory: .amplify-hosting/static
         files:
