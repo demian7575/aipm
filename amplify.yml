@@ -8,46 +8,39 @@ applications:
             - node -v
         build:
           commands:
-            - set -euxo pipefail
-            - echo "USING-REPO-AMPLIFY-YML ✅  (cwd=$(pwd))"
-              # prove the YAML ran + list build-time env keys (masked)
-            - echo "[BUILD] using repo amplify.yml ✅"
-            - echo "[BUILD] env keys:" && env | cut -d= -f1 | sort | head -n 200
+            - |
+              set -euxo pipefail
+              echo "[BUILD] using repo amplify.yml ✅  (cwd=$(pwd))"
 
-            # hard-fail early if compute bundle isn’t staged
-            - [ -d .amplify-hosting/compute/default/apps/backend ] || { echo "[BUILD] compute bundle missing" >&2; exit 20; }
-            - [ -f .amplify-hosting/deploy-manifest.json ] || { echo "[BUILD] manifest missing" >&2; exit 21; }
+              # 0) Staging
+              rm -rf .amplify-hosting
+              mkdir -p .amplify-hosting/static
+              mkdir -p .amplify-hosting/compute/default/apps
 
+              # 1) Static
+              cp -R apps/frontend/public/* .amplify-hosting/static/ || true
+              printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
 
-            # 0) Clean staging
-            - rm -rf .amplify-hosting
-            - mkdir -p .amplify-hosting/static
-            - mkdir -p .amplify-hosting/compute/default/apps
+              # 2) Compute bundle (must contain backend and entrypoint)
+              test -d apps/backend || { echo "[BUILD] apps/backend missing" >&2; exit 11; }
+              test -f apps/backend/app.js || { echo "[BUILD] apps/backend/app.js missing" >&2; exit 12; }
+              test -f apps/backend/server-backend.js || { echo "[BUILD] apps/backend/server-backend.js missing" >&2; exit 13; }
+              cp -R apps/backend .amplify-hosting/compute/default/apps/
 
-            # 1) Static (same origin)
-            - cp -R apps/frontend/public/* .amplify-hosting/static/ || true
-            - 'printf "window.__AIPM_API_BASE__ = '''';\n" > .amplify-hosting/static/config.js'
+              # Include root server.js for ../../server.js import at runtime
+              if [ -f server.js ]; then cp server.js .amplify-hosting/compute/default/server.js; fi
 
-            # 2) Compute bundle (must contain backend and entrypoint)
-            - '[ -d apps/backend ] || { echo "ERROR: apps/backend missing" >&2; exit 11; }'
-            - '[ -f apps/backend/app.js ] || { echo "ERROR: apps/backend/app.js missing" >&2; exit 12; }'
-            - '[ -f apps/backend/server-backend.js ] || { echo "ERROR: apps/backend/server-backend.js missing" >&2; exit 13; }'
-            - cp -R apps/backend .amplify-hosting/compute/default/apps/
+              # 3) Manifest
+              test -f deploy-manifest.json || { echo "[BUILD] deploy-manifest.json missing at repo root" >&2; exit 14; }
+              cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
 
-            # Include root server.js so ../../server.js resolves at runtime
-            - '[ -f server.js ] && cp server.js .amplify-hosting/compute/default/server.js || true'
+              # 4) Build-time diagnostics (build env only; not runtime)
+              echo "[BUILD] env keys:"; env | cut -d= -f1 | sort | head -n 200
 
-            # 3) Manifest (entrypoint must be apps/backend/server-backend.js)
-            - '[ -f deploy-manifest.json ] || { echo "ERROR: deploy-manifest.json missing at repo root" >&2; exit 14; }'
-            - cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
-
-            # 4) Sanity logs
-            - 'echo "== TREE .amplify-hosting =="'
-            - 'find .amplify-hosting -maxdepth 3 -type d -print'
-            - 'echo "== COMPUTE FILES =="'
-            - 'ls -la .amplify-hosting/compute/default || true'
-            - 'echo "== MANIFEST (first 40 lines) =="'
-            - 'head -n 40 .amplify-hosting/deploy-manifest.json'
+              # 5) Sanity logs
+              echo "== TREE .amplify-hosting =="; find .amplify-hosting -maxdepth 3 -type d -print
+              echo "== COMPUTE FILES =="; ls -la .amplify-hosting/compute/default || true
+              echo "== MANIFEST (first 40 lines) =="; head -n 40 .amplify-hosting/deploy-manifest.json
       artifacts:
         baseDirectory: .amplify-hosting/static
         files:
