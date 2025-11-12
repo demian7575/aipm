@@ -1,93 +1,114 @@
-// apps/backend/server-backend.js — Amplify Gen2 compute entrypoint (Node 22, ESM)
-process.env.TZ = 'Asia/Seoul';
-process.env.AI_PM_FORCE_JSON_DB = '1';                          // no sqlite at Amplify
-process.env.AI_PM_DISABLE_OPENAI = process.env.AI_PM_DISABLE_OPENAI ?? '0';
+// server-backend.js
+// Amplify Hosting (Gen2) compute entrypoint for AIPM
+// - Starts an HTTP server on port 3000 (required by Gen2)
+// - Runs backend from /tmp (writable FS)
+// - Disables SQLite mirror calls (Amplify runtime has no python3)
+// - Always exposes /api/health (even if app boot fails)
+// - Checks presence of process.env.GITHUB_TOKEN (for delegation flows)
 
-import { mkdir, readFile, writeFile, cp as fscp } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+process.env.TZ = process.env.TZ || 'Asia/Seoul';
+
+// Prefer JSON storage; avoid sqlite/python in Amplify
+process.env.AI_PM_FORCE_JSON_DB = process.env.AI_PM_FORCE_JSON_DB || '1';
+
+// Allow external AI calls (Codex etc.). Set to '1' to block.
+process.env.AI_PM_DISABLE_OPENAI = process.env.AI_PM_DISABLE_OPENAI || '0';
+
+// Optional writable locations (your app may or may not use these envs)
+process.env.AIPM_DATA_DIR = process.env.AIPM_DATA_DIR || '/tmp/aipm/data';
+process.env.AIPM_UPLOAD_DIR = process.env.AIPM_UPLOAD_DIR || '/tmp/aipm/uploads';
+
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
-
-const TMP_ROOT    = '/tmp/aipm';
+const TMP_ROOT = '/tmp/aipm';
 const TMP_BACKEND = path.join(TMP_ROOT, 'apps', 'backend');
 
 await mkdir(TMP_BACKEND, { recursive: true });
-
-// 1) Copy entire backend into /tmp (so all relative imports resolve under /tmp)
-await fscp(__dirname, TMP_BACKEND, { recursive: true });
-
-// 2) Copy repo-root server.js into /tmp so '../../server.js' resolves correctly from app.js
-try {
-  await fscp(path.resolve(__dirname, '../../server.js'), path.join(TMP_ROOT, 'server.js'));
-  console.log('[BOOT] copied root server.js to /tmp/aipm/server.js');
-} catch {
-  console.warn('[BOOT] root server.js not found; delegation endpoints may fail');
-}
-
-// 3) Patch /tmp app.js to disable sqlite mirroring (Amplify lacks python3)
-const appPath = path.join(TMP_BACKEND, 'app.js');
-let appSrc = await readFile(appPath, 'utf8');
-appSrc = appSrc
-  .replace(/await\s+this\._writeSqliteMirror\(\);\s*/g, '// disabled: sqlite mirror (await)\n')
-  .replace(/this\._writeSqliteMirror\(\);\s*/g,           '// disabled: sqlite mirror\n');
-await writeFile(appPath, appSrc, 'utf8');
+await mkdir(process.env.AIPM_DATA_DIR, { recursive: true }).catch(() => {});
+await mkdir(process.env.AIPM_UPLOAD_DIR, { recursive: true }).catch(() => {});
 
 let startupError = null;
 let appServer = null;
 
 async function boot() {
+  // 1) Load original sources from the bundle (read-only FS)
+  let appSrc = await readFile('./apps/backend/app.js', 'utf8');
+
+  // 2) Disable ONLY the calls to _writeSqliteMirror (safer than rewriting function body)
+  //    Amplify compute does not have python3; these calls would crash at runtime.
+  appSrc = appSrc
+    .replace(/await\s+this\._writeSqliteMirror\(\);\s*/g, '// disabled: sqlite mirror (await)\n')
+    .replace(/this\._writeSqliteMirror\(\);\s*/g,           '// disabled: sqlite mirror\n');
+
+  // 3) Copy backend app.js and root server.js to /tmp so relative imports keep working
+  //    (AIPM backend imports ../../server.js relative to apps/backend/app.js)
+  const rootServerSrc = await readFile('./server.js', 'utf8');
+
+  await writeFile(path.join(TMP_BACKEND, 'app.js'), appSrc, 'utf8');
+  await writeFile(path.join(TMP_ROOT, 'server.js'), rootServerSrc, 'utf8');
+  console.log('[BOOT] copied root server.js to /tmp/aipm/server.js');
+
+  // 4) Load backend from /tmp and create the HTTP handler (node:22 ESM import)
   const { createApp } = await import('file:///tmp/aipm/apps/backend/app.js');
   appServer = await createApp();
+
+  console.log('[BOOT] appServer created (port 3000)');
 }
 
 try {
   await boot();
-  console.log('[BOOT] appServer created (port 3000)');
 } catch (e) {
   startupError = e;
   console.error('[BOOT] createApp failed:', e);
 }
 
-// Guard server: /api/health always returns status; others proxy or 503
+// Guard server: always answers /api/health and proxies the rest to the app if up
 const PORT = 3000;
-const guard = http.createServer((req, res) => {
-  const url = new URL(req.url || '/', 'http://localhost');
+const server = http.createServer((req, res) => {
+  try {
+    const url = new URL(req.url || '/', 'http://localhost');
 
-  if (url.pathname === '/api/health') {
-    const body = JSON.stringify({
-      ok: !startupError,
-      now: new Date().toISOString(),
-      hasGithubToken: Boolean(process.env.GITHUB_TOKEN),
-      error: startupError ? (startupError.message || String(startupError)) : null
-    });
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(body);
-    return;
-  }
+    // Minimal request log (comment out if too verbose)
+    // console.log('[REQ]', new Date().toISOString(), req.method, url.pathname);
 
+    // Health check is ALWAYS 200
+    if (url.pathname === '/api/health') {
+      const body = JSON.stringify({
+        ok: !startupError,
+        now: new Date().toISOString(),
+        hasGithubToken: Boolean(process.env.GITHUB_TOKEN),
+        error: startupError ? (startupError.message || String(startupError)) : null
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(body);
+      return;
+    }
 
-  if (url.pathname === '/api/debug/env-keys') {
-    const keys = Object.keys(process.env).filter(k =>
-      k === 'GITHUB_TOKEN' || k === 'OPENAI_API_KEY' || k.startsWith('AIPM_') || k.startsWith('AI_PM_')
-    );
-    res.writeHead(200, {'Content-Type':'application/json; charset=utf-8'});
-    res.end(JSON.stringify({ keys }));
-    return;
-  }
+    // If app started, proxy to it
+    if (appServer) {
+      // Ensure API responses are not cached by edge/CDN
+      res.setHeader?.('Cache-Control', 'no-store');
+      appServer.emit('request', req, res);
+      return;
+    }
 
-
-  if (appServer) {
-    appServer.emit('request', req, res);
-  } else {
-    res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
+    // App failed to start: return 503 for non-health requests
+    res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end('Service Unavailable');
+  } catch (err) {
+    // Last-resort 500
+    try {
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+    } catch {}
+    res.end('Internal Server Error');
+    console.error('[REQ ERROR]', err);
   }
 });
 
-guard.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log('[BOOT] listening on', PORT);
   console.log('[ENV] GITHUB_TOKEN present?', Boolean(process.env.GITHUB_TOKEN));
 });
+
