@@ -15,18 +15,35 @@ applications:
               # 1) Stage output folders for Amplify Gen2
               rm -rf .amplify-hosting
               mkdir -p .amplify-hosting/static
+              mkdir -p .amplify-hosting/compute/default/apps
 
               # 2) Static (same-origin)
               cp -R apps/frontend/public/* .amplify-hosting/static/
               printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
+
+              # 3) Compute bundle
+              #    - apps/backend/** (includes apps/backend/server.js you kept)
+              #    - server-backend.js at repo root (Amplify entrypoint wrapper)
+              test -d apps/backend || (echo "ERROR: apps/backend missing" >&2; exit 11)
+              cp -R apps/backend .amplify-hosting/compute/default/apps/
+              test -f server-backend.js || (echo "ERROR: server-backend.js missing at repo root" >&2; exit 12)
+              cp server-backend.js .amplify-hosting/compute/default/server-backend.js
 
               # 5) Use the repo's deploy-manifest.json as-is (must match entrypoint: server-backend.js)
               test -f deploy-manifest.json || (echo 'ERROR: deploy-manifest.json not found at repo root' && exit 3)
               cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
 
               # 6) Sanity logs
-              echo '== Compute bundle =='; ls -R .amplify-hosting/compute/default
-              echo '== Manifest preview =='; head -n 50 .amplify-hosting/deploy-manifest.json
+              test -d .amplify-hosting/compute/default || (echo "ERROR: compute/default not created" >&2; exit 21)
+              test -f .amplify-hosting/compute/default/server-backend.js || (echo "ERROR: entrypoint not copied" >&2; exit 22)
+              test -f .amplify-hosting/deploy-manifest.json || (echo "ERROR: manifest not copied" >&2; exit 23)
+
+              echo "== TREE .amplify-hosting =="
+              find .amplify-hosting -maxdepth 3 -type d -print
+              echo "== COMPUTE FILES =="
+              ls -la .amplify-hosting/compute/default || true
+              echo "== MANIFEST (first 40 lines) =="
+              head -n 40 .amplify-hosting/deploy-manifest.json
       artifacts:
         baseDirectory: .amplify-hosting/static
         files:
