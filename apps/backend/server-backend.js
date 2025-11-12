@@ -151,6 +151,6 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log('[BOOT] listening on', PORT);
   console.log('[ENV] GITHUB_TOKEN present?', Boolean(process.env.GITHUB_TOKEN));
-  console.log('[ENV ALL KEYS]', Object.keys(process.env).sort());
+  console.log('[ENV] GITHUB_TOKEN_RUNTIME present?', Boolean(process.env.GITHUB_TOKEN_RUNTIME));
 });
 
