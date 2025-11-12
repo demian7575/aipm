@@ -10,8 +10,6 @@
 
 
 
-hasRuntimeTest: Boolean(process.env.RUNTIME_TEST)
-
 
 // server-backend.js (top)
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
@@ -121,6 +119,7 @@ const server = http.createServer((req, res) => {
         ok: !startupError,
         now: new Date().toISOString(),
         hasGithubToken: Boolean(process.env.GITHUB_TOKEN),
+        hasRuntimeTest: Boolean(process.env.RUNTIME_TEST),
         error: startupError ? (startupError.message || String(startupError)) : null
       });
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
