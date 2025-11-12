@@ -17,7 +17,7 @@ let appServer = null;
 
 async function boot() {
   // Copy backend to /tmp and neutralize sqlite mirror calls (no python on Amplify)
-  let appSrc = await readFile('./apps/backend/app.js', 'utf8');
+  let appSrc = await readFile('./app.js', 'utf8');
   appSrc = appSrc
     .replace(/await\s+this\._writeSqliteMirror\(\);\s*/g, '// disabled: sqlite mirror (await)\n')
     .replace(/this\._writeSqliteMirror\(\);\s*/g,           '// disabled: sqlite mirror\n');

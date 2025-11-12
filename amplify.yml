@@ -25,9 +25,8 @@ applications:
               #    - apps/backend/** (includes apps/backend/server.js you kept)
               #    - server-backend.js at repo root (Amplify entrypoint wrapper)
               test -d apps/backend || (echo "ERROR: apps/backend missing" >&2; exit 11)
+              test -f apps/backend/server-backend.js || (echo "ERROR: apps/backend/server-backend.js missing at repo root" >&2; exit 12)
               cp -R apps/backend .amplify-hosting/compute/default/apps/
-              test -f server-backend.js || (echo "ERROR: server-backend.js missing at repo root" >&2; exit 12)
-              cp server-backend.js .amplify-hosting/compute/default/server-backend.js
 
               # 5) Use the repo's deploy-manifest.json as-is (must match entrypoint: server-backend.js)
               test -f deploy-manifest.json || (echo 'ERROR: deploy-manifest.json not found at repo root' && exit 3)
