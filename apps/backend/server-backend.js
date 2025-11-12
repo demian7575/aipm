@@ -68,6 +68,17 @@ const guard = http.createServer((req, res) => {
     return;
   }
 
+
+  if (url.pathname === '/api/debug/env-keys') {
+    const keys = Object.keys(process.env).filter(k =>
+      k === 'GITHUB_TOKEN' || k === 'OPENAI_API_KEY' || k.startsWith('AIPM_') || k.startsWith('AI_PM_')
+    );
+    res.writeHead(200, {'Content-Type':'application/json; charset=utf-8'});
+    res.end(JSON.stringify({ keys }));
+    return;
+  }
+
+
   if (appServer) {
     appServer.emit('request', req, res);
   } else {
