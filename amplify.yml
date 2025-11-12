@@ -10,6 +10,14 @@ applications:
           commands:
             - set -euxo pipefail
             - echo "USING-REPO-AMPLIFY-YML ✅  (cwd=$(pwd))"
+              # prove the YAML ran + list build-time env keys (masked)
+            - echo "[BUILD] using repo amplify.yml ✅"
+            - echo "[BUILD] env keys:" && env | cut -d= -f1 | sort | head -n 200
+    
+            # hard-fail early if compute bundle isn’t staged
+            - [ -d .amplify-hosting/compute/default/apps/backend ] || { echo "[BUILD] compute bundle missing" >&2; exit 20; }
+            - [ -f .amplify-hosting/deploy-manifest.json ] || { echo "[BUILD] manifest missing" >&2; exit 21; }
+
 
             # 0) Clean staging
             - rm -rf .amplify-hosting
