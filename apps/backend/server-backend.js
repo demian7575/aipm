@@ -8,6 +8,11 @@
 
 
 
+
+
+hasRuntimeTest: Boolean(process.env.RUNTIME_TEST)
+
+
 // server-backend.js (top)
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 
