@@ -3,7 +3,7 @@ process.env.TZ = 'Asia/Seoul';
 process.env.AI_PM_FORCE_JSON_DB = '1';                          // no sqlite at Amplify
 process.env.AI_PM_DISABLE_OPENAI = process.env.AI_PM_DISABLE_OPENAI ?? '0';
 
-import { mkdir, readFile, writeFile, cp as fscp, access, constants, copyFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, cp as fscp } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import http from 'node:http';
@@ -16,28 +16,24 @@ const TMP_BACKEND = path.join(TMP_ROOT, 'apps', 'backend');
 
 await mkdir(TMP_BACKEND, { recursive: true });
 
-// 1) Copy entire backend into /tmp (so all relative imports resolve)
+// 1) Copy entire backend into /tmp (so all relative imports resolve under /tmp)
 await fscp(__dirname, TMP_BACKEND, { recursive: true });
 
-// 2) Patch /tmp app.js:
-//    - disable sqlite mirror calls
-//    - change '../../server.js' -> './server.js'
+// 2) Copy repo-root server.js into /tmp so '../../server.js' resolves correctly from app.js
+try {
+  await fscp(path.resolve(__dirname, '../../server.js'), path.join(TMP_ROOT, 'server.js'));
+  console.log('[BOOT] copied root server.js to /tmp/aipm/server.js');
+} catch {
+  console.warn('[BOOT] root server.js not found; delegation endpoints may fail');
+}
+
+// 3) Patch /tmp app.js to disable sqlite mirroring (Amplify lacks python3)
 const appPath = path.join(TMP_BACKEND, 'app.js');
 let appSrc = await readFile(appPath, 'utf8');
-
-const hadRootImport = appSrc.includes("../../server.js");
 appSrc = appSrc
   .replace(/await\s+this\._writeSqliteMirror\(\);\s*/g, '// disabled: sqlite mirror (await)\n')
-  .replace(/this\._writeSqliteMirror\(\);\s*/g,           '// disabled: sqlite mirror\n')
-  .replace(/from\s+['"]\.\.\/\.\.\/server\.js['"]/g, "from './server.js'");
-
+  .replace(/this\._writeSqliteMirror\(\);\s*/g,           '// disabled: sqlite mirror\n');
 await writeFile(appPath, appSrc, 'utf8');
-
-// 3) Safety: if code elsewhere still resolves root import, provide it
-try {
-  await access(path.join(TMP_BACKEND, 'server.js'), constants.R_OK);
-  await copyFile(path.join(TMP_BACKEND, 'server.js'), path.join(TMP_ROOT, 'server.js'));
-} catch { /* ignore if missing */ }
 
 let startupError = null;
 let appServer = null;
@@ -84,4 +80,3 @@ guard.listen(PORT, () => {
   console.log('[BOOT] listening on', PORT);
   console.log('[ENV] GITHUB_TOKEN present?', Boolean(process.env.GITHUB_TOKEN));
 });
-
