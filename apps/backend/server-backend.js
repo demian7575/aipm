@@ -6,6 +6,43 @@
 // - Always exposes /api/health (even if app boot fails)
 // - Checks presence of process.env.GITHUB_TOKEN (for delegation flows)
 
+
+
+// server-backend.js (top)
+import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+
+async function injectGithubTokenFromSSM() {
+  if (process.env.GITHUB_TOKEN) return; // already provided by env
+  const name = process.env.AMPLIFY_GITHUB_TOKEN_PARAM;
+  if (!name) return;
+
+  try {
+    const ssm = new SSMClient({});
+    const out = await ssm.send(new GetParameterCommand({ Name: name, WithDecryption: true }));
+    const val = out.Parameter?.Value;
+    if (val) {
+      process.env.GITHUB_TOKEN = val; // now your code sees it
+      console.log('[SSM] Loaded GITHUB_TOKEN from', name);
+    } else {
+      console.warn('[SSM] Parameter has no value:', name);
+    }
+  } catch (e) {
+    console.error('[SSM] Failed to read secret:', e);
+  }
+}
+
+await injectGithubTokenFromSSM();
+
+
+
+
+
+
+
+
+
+
+
 process.env.TZ = process.env.TZ || 'Asia/Seoul';
 
 // Prefer JSON storage; avoid sqlite/python in Amplify
