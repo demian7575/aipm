@@ -34,7 +34,7 @@ applications:
 
               # 6) Sanity logs
               test -d .amplify-hosting/compute/default || (echo "ERROR: compute/default not created" >&2; exit 21)
-              test -f .amplify-hosting/compute/default/apps/backend || (echo "ERROR: entrypoint not copied" >&2; exit 22)
+              test -d .amplify-hosting/compute/default/apps/backend || (echo "ERROR: entrypoint not copied" >&2; exit 22)
               test -f .amplify-hosting/deploy-manifest.json || (echo "ERROR: manifest not copied" >&2; exit 23)
 
               echo "== TREE .amplify-hosting =="
