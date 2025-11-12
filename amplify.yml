@@ -15,96 +15,10 @@ applications:
               # 1) Stage output folders for Amplify Gen2
               rm -rf .amplify-hosting
               mkdir -p .amplify-hosting/static
-              mkdir -p .amplify-hosting/compute/default/apps
 
               # 2) Static (same-origin)
               cp -R apps/frontend/public/* .amplify-hosting/static/
               printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
-
-              # 3) Compute bundle: copy backend and root server.js (keep relative imports)
-              cp -R apps/backend .amplify-hosting/compute/default/apps/
-              cp server.js .amplify-hosting/compute/default/server.js
-
-              # 4) Runtime entrypoint wrapper
-              #    - run from /tmp (writable FS)
-              #    - neutralize sqlite mirror calls (no python3 in Amplify)
-              #    - keep Codex/AI calls enabled (expects OPENAI_API_KEY etc.)
-              #    - always serve /api/health (even if boot fails)
-              cat > .amplify-hosting/compute/default/server-backend.js <<'JS'
-              process.env.TZ = 'Asia/Seoul';
-              process.env.AI_PM_FORCE_JSON_DB = '1';   // prefer JSON DB; no sqlite dependency
-              process.env.AI_PM_DISABLE_OPENAI = '0';  // allow Codex / external AI calls
-
-              import { mkdir, readFile, writeFile } from 'node:fs/promises';
-              import path from 'node:path';
-              import http from 'node:http';
-
-              const TMP_ROOT = '/tmp/aipm';
-              const TMP_BACKEND = path.join(TMP_ROOT, 'apps', 'backend');
-
-              await mkdir(TMP_BACKEND, { recursive: true });
-
-              let startupError = null;
-              let appServer = null;
-
-              async function boot() {
-                // Copy sources to /tmp so __dirname inside app.js points to /tmp (writable)
-                let appSrc = await readFile('./apps/backend/app.js', 'utf8');
-                const rootServerSrc = await readFile('./server.js', 'utf8');
-
-                // Disable ONLY the calls to _writeSqliteMirror (safer than rewriting the function body)
-                appSrc = appSrc
-                  .replace(/await\s+this\._writeSqliteMirror\(\);\s*/g, '// disabled: sqlite mirror (await)\n')
-                  .replace(/this\._writeSqliteMirror\(\);\s*/g,           '// disabled: sqlite mirror\n');
-
-                await writeFile(path.join(TMP_BACKEND, 'app.js'), appSrc, 'utf8');
-                await writeFile(path.join(TMP_ROOT, 'server.js'), rootServerSrc, 'utf8');
-
-                // Load backend from /tmp
-                const { createApp } = await import('file:///tmp/aipm/apps/backend/app.js');
-                appServer = await createApp();
-              }
-
-              try {
-                await boot();
-                console.log('[BOOT] appServer created (port 3000)');
-              } catch (e) {
-                startupError = e;
-                console.error('[BOOT] createApp failed:', e);
-              }
-
-              // Guard server: always answers /api/health and proxies to app if up
-              const PORT = 3000;
-              const guard = http.createServer((req, res) => {
-                const url = new URL(req.url || '/', 'http://localhost');
-
-                // Health is always 200 (surface bootstrap errors here)
-                if (url.pathname === '/api/health') {
-                  const body = JSON.stringify({
-                    ok: !startupError,
-                    now: new Date().toISOString(),
-                    hasGithubToken: Boolean(process.env.GITHUB_TOKEN),
-                    error: startupError ? (startupError.message || String(startupError)) : null
-                  });
-                  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-                  res.end(body);
-                  return;
-                }
-
-                // Proxy to app if running; otherwise return 503 with minimal message
-                if (appServer) {
-                  appServer.emit('request', req, res);
-                } else {
-                  res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
-                  res.end('Service Unavailable');
-                }
-              });
-
-              guard.listen(PORT, () => {
-                console.log('[BOOT] listening on', PORT);
-                console.log('[ENV] GITHUB_TOKEN present?', Boolean(process.env.GITHUB_TOKEN));
-              });
-              JS
 
               # 5) Use the repo's deploy-manifest.json as-is (must match entrypoint: server-backend.js)
               test -f deploy-manifest.json || (echo 'ERROR: deploy-manifest.json not found at repo root' && exit 3)
