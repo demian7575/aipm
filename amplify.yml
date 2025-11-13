@@ -25,6 +25,7 @@ applications:
               test -d apps/backend || { echo "[BUILD] apps/backend missing" >&2; exit 11; }
               test -f apps/backend/app.js || { echo "[BUILD] apps/backend/app.js missing" >&2; exit 12; }
               test -f apps/backend/server-backend.js || { echo "[BUILD] apps/backend/server-backend.js missing" >&2; exit 13; }
+
               cp -R apps/backend .amplify-hosting/compute/default/apps/
 
               # Include root server.js for ../../server.js import at runtime

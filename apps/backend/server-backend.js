@@ -8,35 +8,16 @@
 
 
 
-
-
-
 // server-backend.js (top)
-import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+// Amplify Hosting (Gen2) compute entrypoint for AIPM
+// - Starts an HTTP server on port 3000
+// - Serves /api/* by proxying to apps/backend/app.js
+// - Exposes /api/health with basic diagnostics
 
-async function injectGithubTokenFromSSM() {
-  if (process.env.GITHUB_TOKEN) return; // already provided by env
-  const name = process.env.AMPLIFY_GITHUB_TOKEN_PARAM;
-  if (!name) return;
-
-  try {
-    const ssm = new SSMClient({});
-    const out = await ssm.send(new GetParameterCommand({ Name: name, WithDecryption: true }));
-    const val = out.Parameter?.Value;
-    if (val) {
-      process.env.GITHUB_TOKEN = val; // now your code sees it
-      console.log('[SSM] Loaded GITHUB_TOKEN from', name);
-    } else {
-      console.warn('[SSM] Parameter has no value:', name);
-    }
-  } catch (e) {
-    console.error('[SSM] Failed to read secret:', e);
-  }
+// Optional: basic log so you can see if Amplify injected the token
+if (!process.env.GITHUB_TOKEN) {
+  console.warn('[ENV] GITHUB_TOKEN is not set. GitHub delegation features will fail until you configure it in Amplify.');
 }
-
-await injectGithubTokenFromSSM();
-
-
 
 
 
