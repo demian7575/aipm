@@ -1,27 +1,66 @@
 service: aipm-backend
 
+frameworkVersion: '3'
+
 provider:
   name: aws
   runtime: nodejs18.x
   region: us-east-1
+  stage: ${opt:stage, 'prod'}
+  memorySize: 512
+  timeout: 30
   environment:
+    NODE_ENV: production
+    STAGE: ${self:provider.stage}
     AIPM_DATA_DIR: /tmp/aipm/data
     AIPM_UPLOAD_DIR: /tmp/aipm/uploads
     AIPM_DISABLE_SQLITE_MIRROR: '1'
     AI_PM_FORCE_JSON_DB: '1'
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: '*'
 
 functions:
   api:
-    handler: lambda.handler
+    handler: handler.handler
     events:
       - http:
           path: /{proxy+}
           method: ANY
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
       - http:
           path: /
           method: ANY
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
 
 plugins:
   - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3001
+    host: 0.0.0.0

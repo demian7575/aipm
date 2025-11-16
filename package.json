@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "AI Project Manager Mindmap - Self-hosted mindmap workspace for managing user stories and acceptance tests",
   "scripts": {
     "dev": "node scripts/run-with-delegate.mjs",
     "start": "node scripts/run-with-delegate.mjs",
@@ -11,10 +12,37 @@
     "build": "node scripts/build.js",
     "test": "node --test",
     "lint": "echo 'No lint step configured'",
-    "generate:sample-db": "node scripts/generate-sample-dataset.mjs"
+    "generate:sample-db": "node scripts/generate-sample-dataset.mjs",
+    "deploy": "./deploy.sh",
+    "deploy:backend": "serverless deploy",
+    "deploy:frontend": "aws s3 sync dist/ s3://aipm-static-hosting-demo --delete",
+    "deploy:local": "serverless offline",
+    "package": "serverless package",
+    "logs": "serverless logs -f api",
+    "remove": "serverless remove"
   },
   "dependencies": {
     "@vendia/serverless-express": "^4.12.6",
     "serverless-offline": "^14.4.0"
-  }
+  },
+  "devDependencies": {
+    "serverless": "^3.38.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/demian7575/aipm.git"
+  },
+  "keywords": [
+    "mindmap",
+    "project-management",
+    "user-stories",
+    "aws",
+    "serverless",
+    "lambda"
+  ],
+  "author": "AIPM Team",
+  "license": "MIT"
 }
