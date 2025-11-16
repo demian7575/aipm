@@ -12,5 +12,9 @@
     "test": "node --test",
     "lint": "echo 'No lint step configured'",
     "generate:sample-db": "node scripts/generate-sample-dataset.mjs"
+  },
+  "dependencies": {
+    "@vendia/serverless-express": "^4.12.6",
+    "serverless-offline": "^14.4.0"
   }
 }

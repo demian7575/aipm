@@ -1,62 +1,16 @@
 version: 1
-applications:
-  - appRoot: .
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            - node -v
-        build:
-          commands:
-            - |
-              set -euxo pipefail
-
-              # 1) stage
-              rm -rf .amplify-hosting
-              mkdir -p .amplify-hosting/static
-              mkdir -p .amplify-hosting/compute/default/apps
-
-              # 2) static (same-origin)
-              cp -R apps/frontend/public/* .amplify-hosting/static/
-              printf "window.__AIPM_API_BASE__ = '';\n" > .amplify-hosting/static/config.js
-
-              # 3) compute payload (그대로 복사)
-              cp -R apps/backend .amplify-hosting/compute/default/apps/
-              cp server.js .amplify-hosting/compute/default/server.js
-
-              # 4) entrypoint: 포트 3000 + 환경변수만 셋업
-              cat > .amplify-hosting/compute/default/server-backend.js <<'JS'
-              process.env.TZ = 'Asia/Seoul';
-
-              // Amplify 제약에 맞춘 런타임 설정
-              process.env.AIPM_DATA_DIR = '/tmp/aipm/data';
-              process.env.AIPM_UPLOAD_DIR = '/tmp/aipm/uploads';
-              process.env.AIPM_DISABLE_SQLITE_MIRROR = '1'; // python3 없음
-              process.env.AI_PM_FORCE_JSON_DB = '1';        // (필요 시) JSON DB 강제
-              process.env.AI_PM_DISABLE_OPENAI = '1';       // 외부 호출 차단(원하면 해제)
-
-              import { mkdir } from 'node:fs/promises';
-              import path from 'node:path';
-
-              await mkdir(process.env.AIPM_DATA_DIR, { recursive: true });
-              await mkdir(process.env.AIPM_UPLOAD_DIR, { recursive: true });
-
-              // 백엔드 구동 (상대 import 유지)
-              const { createApp } = await import('./apps/backend/app.js');
-              const server = await createApp();
-              server.listen(3000, () => console.log('[BOOT] listening on 3000'));
-              JS
-
-              # 5) repo에 포함된 manifest 그대로 사용
-              cp deploy-manifest.json .amplify-hosting/deploy-manifest.json
-
-              # 6) sanity
-              ls -R .amplify-hosting/compute/default
-      artifacts:
-        baseDirectory: .amplify-hosting/static
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - node_modules/**/*
-
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm install
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: dist/public
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
