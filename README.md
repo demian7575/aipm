@@ -2,6 +2,18 @@
 
 This repository contains a self-hosted mindmap and outline workspace for managing merge-request user stories, acceptance tests, and reference documentation. A Node.js backend exposes a SQLite-backed REST API and serves a vanilla JavaScript frontend that renders a right-expanding mindmap, outline tree, and detail panel with modal-driven editing flows.
 
+## 🚀 Quick Deploy to AWS
+
+Deploy the complete AIPM web service with one command:
+
+```bash
+./deploy.sh
+```
+
+**Live Demo**: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+
 ## Requirements
 
 - Node.js 18 or newer
