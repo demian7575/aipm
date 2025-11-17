@@ -3785,15 +3785,24 @@ function safeSelectAll(db, sql, ...params) {
 }
 
 function ensureColumn(db, table, name, definition) {
-  const existing = tableColumns(db, table).some((column) => column.name === name);
-  if (!existing) {
-    if (db.exec) {
-      // CLI database
-      db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition};`);
-    } else {
-      // Native database
-      db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition};`);
+  try {
+    const existing = tableColumns(db, table).some((column) => column.name === name);
+    if (!existing) {
+      if (db.exec) {
+        // CLI database
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition};`);
+      } else {
+        // Native database
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition};`);
+      }
     }
+  } catch (error) {
+    // If we get a duplicate column error, the column already exists - ignore it
+    if (error.message && error.message.includes('duplicate column name')) {
+      console.warn(`[database] Column ${name} already exists in ${table}, skipping`);
+      return;
+    }
+    throw error;
   }
 }
 
