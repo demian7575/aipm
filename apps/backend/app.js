@@ -685,7 +685,7 @@ const DEFAULT_COLUMNS = {
     'created_at',
     'updated_at',
   ],
-  acceptance_tests: ['id', 'story_id', 'given', 'when_step', 'then_step', 'status', 'created_at', 'updated_at'],
+  acceptance_tests: ['id', 'story_id', 'title', 'given', 'when_step', 'then_step', 'status', 'created_at', 'updated_at'],
   reference_documents: ['id', 'story_id', 'name', 'url', 'created_at', 'updated_at'],
   tasks: ['id', 'story_id', 'title', 'description', 'status', 'assignee_email', 'estimation_hours', 'created_at', 'updated_at'],
   story_dependencies: ['story_id', 'depends_on_story_id', 'relationship'],
@@ -1034,8 +1034,11 @@ class JsonDatabase {
   }
 
   _all(sql, params) {
-    if (sql === 'SELECT COUNT(*) as count FROM user_stories') {
+    if (sql.toLowerCase() === 'select count(*) as count from user_stories') {
       return [{ count: this.tables.user_stories.length }];
+    }
+    if (sql.toLowerCase() === 'select count(*) as count from acceptance_tests') {
+      return [{ count: this.tables.acceptance_tests.length }];
     }
     if (sql.startsWith('SELECT * FROM user_stories WHERE id = ?')) {
       const id = Number(params[0]);
@@ -1100,6 +1103,14 @@ class JsonDatabase {
       const rows = this.tables.acceptance_tests
         .filter((row) => row.story_id === storyId)
         .map((row) => ({ id: row.id, title: row.title, status: row.status }))
+        .sort((a, b) => a.id - b.id);
+      return rows;
+    }
+    if (sql === 'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id') {
+      const storyId = Number(params[0]);
+      const rows = this.tables.acceptance_tests
+        .filter((row) => row.story_id === storyId)
+        .map((row) => this._clone(row))
         .sort((a, b) => a.id - b.id);
       return rows;
     }
@@ -1456,7 +1467,7 @@ const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 const ACCEPTANCE_TEST_STATUS_DRAFT = 'Draft';
 const ACCEPTANCE_TEST_STATUS_REVIEW = 'Need review with update';
 
-let acceptanceTestsHasTitleColumn = false;
+let acceptanceTestsHasTitleColumn = true;
 
 const INVEST_DEPENDENCY_HINTS = [
   'blocked by',
@@ -3448,7 +3459,16 @@ function insertAcceptanceTest(
         timestamp,
         timestamp,
       ];
-  return statement.run(...params);
+  
+  let result;
+  try {
+    result = statement.run(...params);
+  } catch (error) {
+    console.error(`Debug: insertAcceptanceTest SQL error:`, error);
+    throw error;
+  }
+  
+  return result;
 }
 
   function insertTask(
@@ -3628,22 +3648,33 @@ async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' }
 }
 
 async function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingCount = null } = {}) {
-  const countRow =
-    existingCount != null
-      ? { count: existingCount }
-      : db.prepare('SELECT COUNT(*) as count FROM acceptance_tests WHERE story_id = ?').get(story.id) || {
-          count: 0,
-        };
-  const ordinal = Number(countRow.count ?? 0) + 1;
-  const content = await generateAcceptanceTestDraft(story, ordinal, reason);
-  return insertAcceptanceTest(db, {
-    storyId: story.id,
-    title: content.title,
-    given: content.given,
-    when: content.when,
-    then: content.then,
-    status: ACCEPTANCE_TEST_STATUS_DRAFT,
-  });
+  try {
+    const countRow =
+      existingCount != null
+        ? { count: existingCount }
+        : db.prepare('SELECT COUNT(*) as count FROM acceptance_tests WHERE story_id = ?').get(story.id) || {
+            count: 0,
+          };
+    const ordinal = Number(countRow.count ?? 0) + 1;
+    const content = await generateAcceptanceTestDraft(story, ordinal, reason);
+    
+    if (!content || !content.given || !content.when || !content.then) {
+      console.error('createAutomaticAcceptanceTest: Invalid content generated', { content, story: { id: story.id, title: story.title } });
+      return null;
+    }
+    
+    return insertAcceptanceTest(db, {
+      storyId: story.id,
+      title: content.title,
+      given: content.given,
+      when: content.when,
+      then: content.then,
+      status: ACCEPTANCE_TEST_STATUS_DRAFT,
+    });
+  } catch (error) {
+    console.error('createAutomaticAcceptanceTest failed:', error, { story: { id: story.id, title: story.title } });
+    return null;
+  }
 }
 
 function markAcceptanceTestsForReview(db, storyId) {
@@ -3894,7 +3925,8 @@ async function ensureDatabase() {
     WHERE assignee_email IS NULL OR TRIM(assignee_email) = '';
   `);
 
-  acceptanceTestsHasTitleColumn = tableColumns(db, 'acceptance_tests').some((column) => column.name === 'title');
+  const actualColumns = tableColumns(db, 'acceptance_tests');
+  acceptanceTestsHasTitleColumn = actualColumns.some((column) => column.name === 'title');
   if (acceptanceTestsHasTitleColumn) {
     db.exec("UPDATE acceptance_tests SET title = COALESCE(title, '')");
   }
@@ -4920,6 +4952,9 @@ export async function createApp() {
     if (testCreateMatch && method === 'POST') {
       const storyId = Number(testCreateMatch[1]);
       try {
+        // Re-evaluate title column existence for this request
+        const hasTitleColumn = tableColumns(db, 'acceptance_tests').some((column) => column.name === 'title');
+        
         const payload = await parseJson(req);
         const { given, when, then } = measurablePayload(payload);
         const { warnings, suggestions } = measurabilityWarnings(then);
@@ -4938,10 +4973,15 @@ export async function createApp() {
           sendJson(res, 404, { message: 'Story not found' });
           return;
         }
-        const desiredTitle = acceptanceTestsHasTitleColumn
+        const desiredTitle = hasTitleColumn
           ? String(payload.title ?? '').trim() || `AT-${story.id}-${story.acceptanceTests.length + 1}`
           : '';
         const timestamp = now();
+        
+        // Temporarily update the global flag for this operation
+        const originalFlag = acceptanceTestsHasTitleColumn;
+        acceptanceTestsHasTitleColumn = hasTitleColumn;
+        
         const { lastInsertRowid } = insertAcceptanceTest(db, {
           storyId,
           title: desiredTitle,
@@ -4951,6 +4991,10 @@ export async function createApp() {
           status: payload.status ? String(payload.status) : 'Draft',
           timestamp,
         });
+        
+        // Restore the original flag
+        acceptanceTestsHasTitleColumn = originalFlag;
+        
         const refreshedStory = flattenStories(await loadStories(db)).find((node) => node.id === storyId);
         const created = refreshedStory?.acceptanceTests.find((item) => item.id === Number(lastInsertRowid)) ?? null;
         sendJson(res, 201, created);

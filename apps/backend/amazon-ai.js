@@ -3,7 +3,9 @@ import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedroc
 // Amazon AI Configuration
 function readAmazonAiConfig() {
   const region = process.env.AWS_REGION || process.env.AI_PM_AWS_REGION || 'us-east-1';
-  const enabled = process.env.AI_PM_DISABLE_AMAZON_AI !== '1' && process.env.AI_PM_DISABLE_AMAZON_AI !== 'true';
+  const enabled = process.env.AI_PM_DISABLE_AMAZON_AI !== '1' && 
+                  process.env.AI_PM_DISABLE_AMAZON_AI !== 'true' &&
+                  process.env.NODE_ENV !== 'test';
   
   return {
     enabled,
