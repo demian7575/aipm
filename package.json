@@ -10,7 +10,7 @@
     "serve:api": "node apps/backend/server.js",
     "serve:delegate": "node server.js",
     "build": "node scripts/build.js",
-    "test": "node --test",
+    "test": "NODE_ENV=test node --test",
     "lint": "echo 'No lint step configured'",
     "generate:sample-db": "node scripts/generate-sample-dataset.mjs",
     "deploy": "./deploy.sh",
@@ -22,6 +22,7 @@
     "remove": "serverless remove"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.932.0",
     "@vendia/serverless-express": "^4.12.6",
     "serverless-offline": "^14.4.0"
   },

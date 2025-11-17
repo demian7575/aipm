@@ -989,7 +989,7 @@ body.is-mindmap-panning {
   font-size: 1.05rem;
 }
 
-.codex-section {
+.codewhisperer-section {
   border: 1px solid #e5e9f5;
   border-radius: 14px;
   padding: 1rem;
@@ -999,13 +999,13 @@ body.is-mindmap-panning {
   gap: 0.85rem;
 }
 
-.codex-task-list {
+.codewhisperer-task-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.codex-task-card {
+.codewhisperer-task-card {
   border: 1px solid #dbe3ff;
   border-radius: 12px;
   padding: 0.85rem 1rem;
@@ -1015,31 +1015,31 @@ body.is-mindmap-panning {
   gap: 0.5rem;
 }
 
-.codex-task-card-header {
+.codewhisperer-task-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
 }
 
-.codex-task-card-header h4 {
+.codewhisperer-task-card-header h4 {
   margin: 0;
   font-size: 1rem;
   color: #0f172a;
 }
 
-.codex-confirmation {
+.codewhisperer-confirmation {
   margin: 0;
   font-size: 0.85rem;
   color: #1f2937;
 }
 
-.codex-confirmation span {
+.codewhisperer-confirmation span {
   font-weight: 600;
   margin-right: 0.35rem;
 }
 
-.codex-confirmation code {
+.codewhisperer-confirmation code {
   font-family: 'Source Code Pro', Consolas, 'Courier New', monospace;
   font-size: 0.85rem;
   background: #e0e7ff;
@@ -1048,7 +1048,7 @@ body.is-mindmap-panning {
   color: #1e293b;
 }
 
-.codex-target-badge {
+.codewhisperer-target-badge {
   background: #1d4ed8;
   color: #fff;
   border-radius: 999px;
@@ -1059,54 +1059,54 @@ body.is-mindmap-panning {
   letter-spacing: 0.04em;
 }
 
-.codex-branch {
+.codewhisperer-branch {
   margin: 0;
   font-size: 0.85rem;
   color: #1f2937;
 }
 
-.codex-branch span {
+.codewhisperer-branch span {
   font-weight: 600;
   margin-right: 0.35rem;
 }
 
-.codex-status-line {
+.codewhisperer-status-line {
   margin: 0;
   font-size: 0.9rem;
   color: #1f2937;
 }
 
-.codex-status-line.is-error {
+.codewhisperer-status-line.is-error {
   color: #b91c1c;
 }
 
-.codex-status-meta {
+.codewhisperer-status-meta {
   margin: 0;
   font-size: 0.8rem;
   color: #64748b;
 }
 
-.codex-task-actions {
+.codewhisperer-task-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
 }
 
-.codex-task-actions .button.secondary {
+.codewhisperer-task-actions .button.secondary {
   padding: 0.35rem 0.75rem;
 }
 
-.codex-task-actions .link-button {
+.codewhisperer-task-actions .link-button {
   font-size: 0.85rem;
 }
 
-.codex-task-actions .codex-remove {
+.codewhisperer-task-actions .codewhisperer-remove {
   color: #dc2626;
 }
 
-.codex-task-actions .codex-remove:hover,
-.codex-task-actions .codex-remove:focus {
+.codewhisperer-task-actions .codewhisperer-remove:hover,
+.codewhisperer-task-actions .codewhisperer-remove:focus {
   color: #991b1b;
 }
 
@@ -1655,35 +1655,35 @@ dialog[data-size='content'] .modal-shell {
   gap: 0.35rem;
 }
 
-.codex-form {
+.codewhisperer-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   width: min(48rem, 90vw);
 }
 
-.codex-form .field {
+.codewhisperer-form .field {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 
-.codex-form .field.full {
+.codewhisperer-form .field.full {
   grid-column: span 2;
 }
 
-.codex-form label {
+.codewhisperer-form label {
   font-weight: 600;
   font-size: 0.9rem;
   color: #0f172a;
 }
 
-.codex-form input,
-.codex-form textarea {
+.codewhisperer-form input,
+.codewhisperer-form textarea {
   width: 100%;
 }
 
-.codex-form fieldset {
+.codewhisperer-form fieldset {
   border: 1px solid #dbe3ff;
   border-radius: 10px;
   padding: 0.75rem;
@@ -1694,14 +1694,14 @@ dialog[data-size='content'] .modal-shell {
   background: #f8faff;
 }
 
-.codex-form fieldset legend {
+.codewhisperer-form fieldset legend {
   font-weight: 600;
   font-size: 0.85rem;
   color: #1f2937;
   margin-right: 1rem;
 }
 
-.codex-form fieldset label {
+.codewhisperer-form fieldset label {
   font-weight: 500;
   font-size: 0.85rem;
   color: #1d4ed8;
@@ -1710,18 +1710,18 @@ dialog[data-size='content'] .modal-shell {
   gap: 0.35rem;
 }
 
-.codex-form fieldset input[type='radio'] {
+.codewhisperer-form fieldset input[type='radio'] {
   width: auto;
 }
 
-.codex-form .field-error {
+.codewhisperer-form .field-error {
   margin: 0;
   font-size: 0.78rem;
   min-height: 1rem;
   color: #dc2626;
 }
 
-.codex-form .form-error-banner {
+.codewhisperer-form .form-error-banner {
   grid-column: span 2;
   background: #fee2e2;
   color: #991b1b;
@@ -1731,7 +1731,7 @@ dialog[data-size='content'] .modal-shell {
   font-weight: 600;
 }
 
-.codex-checkbox label {
+.codewhisperer-checkbox label {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -1739,7 +1739,7 @@ dialog[data-size='content'] .modal-shell {
   color: #0f172a;
 }
 
-.codex-checkbox input[type='checkbox'] {
+.codewhisperer-checkbox input[type='checkbox'] {
   width: auto;
 }
 
