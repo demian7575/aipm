@@ -4650,9 +4650,11 @@ function openCodeWhispererDelegationModal(story) {
 
   function evaluate({ forceErrors = false } = {}) {
     const values = readValues();
+    console.log('validateCodeWhispererInput function:', typeof validateCodeWhispererInput);
     const validation = validateCodeWhispererInput(values);
+    console.log('Validation result:', validation);
     latestValidation = validation;
-    applyErrors(validation.errors, { force: forceErrors });
+    applyErrors(validation?.errors || {}, { force: forceErrors });
     setSubmitButtonState(validation);
     return { values, validation };
   }
@@ -4778,7 +4780,7 @@ function openCodeWhispererDelegationModal(story) {
   const initialValues = readValues();
   updateTargetNumberVisibility(initialValues.target);
   latestValidation = validateCodeWhispererInput(initialValues);
-  applyErrors(latestValidation.errors, { force: false });
+  applyErrors(latestValidation?.errors || {}, { force: false });
   setSubmitButtonState(latestValidation);
 }
 
