@@ -3758,7 +3758,13 @@ function ensureCanMarkStoryDone(db, storyId) {
 
 function tableColumns(db, table) {
   try {
-    return db.prepare(`PRAGMA table_info(${table})`).all();
+    if (db.prepare) {
+      // Native database
+      return db.prepare(`PRAGMA table_info(${table})`).all();
+    } else {
+      // CLI database
+      return db._all(`PRAGMA table_info(${table})`);
+    }
   } catch (error) {
     if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
       return [];
@@ -3781,7 +3787,13 @@ function safeSelectAll(db, sql, ...params) {
 function ensureColumn(db, table, name, definition) {
   const existing = tableColumns(db, table).some((column) => column.name === name);
   if (!existing) {
-    db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition};`);
+    if (db.exec) {
+      // CLI database
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition};`);
+    } else {
+      // Native database
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition};`);
+    }
   }
 }
 
