@@ -26,6 +26,26 @@ provider:
             - logs:PutLogEvents
           Resource: '*'
 
+package:
+  exclude:
+    - apps/**
+    - dist/**
+    - docs/**
+    - tests/**
+    - scripts/**
+    - .git/**
+    - .github/**
+    - .serverless/**
+    - node_modules/**
+    - '*.md'
+    - '*.zip'
+    - '.gitignore'
+    - 'amplify.yml'
+    - 'template.yaml'
+  include:
+    - handler.js
+    - package.json
+
 functions:
   api:
     handler: handler.handler

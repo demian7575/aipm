@@ -2,11 +2,11 @@ import {
   DEFAULT_REPO_API_URL,
   buildAcceptanceTestFallback,
   buildAcceptanceTestIdea,
-  createDefaultCodexForm,
+  createDefaultCodeWhispererForm,
   createLocalDelegationEntry,
   summarizeCommentBody,
-  validateCodexInput,
-} from './codex.js';
+  validateCodeWhispererInput,
+} from './amazon-codewhisperer.js';
 
 const API_BASE_URL = (window.__AIPM_API_BASE__ || '').replace(/\/$/, '');
 
@@ -68,9 +68,15 @@ const STORAGE_KEYS = {
   expanded: 'aiPm.expanded',
   selection: 'aiPm.selection',
   layout: 'aiPm.layout',
+  mindmap: 'aiPm.mindmap',
   panels: 'aiPm.panels',
-  codexDelegations: 'aiPm.codexDelegations',
+  codewhispererDelegations: 'aiPm.codewhispererDelegations',
+  version: 'aiPm.version',
+  stories: 'aiPm.stories',
+  lastBackup: 'aiPm.lastBackup',
 };
+
+const AIPM_VERSION = '1.0.0'; // Update this when making breaking changes
 
 const NODE_WIDTH = 240;
 const NODE_MIN_HEIGHT = 120;
@@ -89,7 +95,7 @@ const MINDMAP_STAGE_MIN_HEIGHT = 1200;
 const MINDMAP_STAGE_PADDING_X = 480;
 const MINDMAP_STAGE_PADDING_Y = 360;
 const HTML_NS = 'http://www.w3.org/1999/xhtml';
-const CODEX_AUTHOR_PATTERN = /codex/i;
+const CODEWHISPERER_AUTHOR_PATTERN = /codewhisperer|amazon.*ai/i;
 
 const mindmapMeasureRoot = document.createElement('div');
 mindmapMeasureRoot.className = 'mindmap-measure-root';
@@ -346,7 +352,7 @@ const state = {
     mindmap: true,
     details: true,
   },
-  codexDelegations: new Map(),
+  codewhispererDelegations: new Map(),
 };
 
 const storyIndex = new Map();
@@ -937,7 +943,280 @@ function computeHealthSeverity(story) {
   return 'ok';
 }
 
+function exportCompleteData() {
+  const data = {
+    version: AIPM_VERSION,
+    timestamp: new Date().toISOString(),
+    stories: state.stories, // All user stories with acceptance tests and tasks
+    layout: {
+      autoLayout: state.autoLayout,
+      positions: state.manualPositions
+    },
+    mindmap: {
+      zoom: state.mindmapZoom,
+      showDependencies: state.showDependencies,
+      centerPosition: state.mindmapCenterPosition
+    },
+    ui: {
+      expanded: Array.from(state.expanded.values()),
+      selectedStoryId: state.selectedStoryId,
+      panelVisibility: state.panelVisibility
+    },
+    codewhispererDelegations: Object.fromEntries(state.codewhispererDelegations)
+  };
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `aipm-complete-backup-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importCompleteData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        
+        // Validate data structure
+        if (!data.stories || !Array.isArray(data.stories)) {
+          throw new Error('Invalid backup file: missing stories data');
+        }
+        
+        // Restore stories data
+        state.stories = data.stories;
+        rebuildStoryIndex();
+        
+        // Restore layout data
+        if (data.layout) {
+          state.autoLayout = data.layout.autoLayout ?? true;
+          state.manualPositions = data.layout.positions ?? {};
+        }
+        
+        // Restore mindmap data
+        if (data.mindmap) {
+          state.mindmapZoom = data.mindmap.zoom ?? 1;
+          state.showDependencies = data.mindmap.showDependencies ?? false;
+          if (data.mindmap.centerPosition) {
+            state.mindmapCenterPosition = data.mindmap.centerPosition;
+          }
+        }
+        
+        // Restore UI state
+        if (data.ui) {
+          if (Array.isArray(data.ui.expanded)) {
+            state.expanded = new Set(data.ui.expanded.map(Number));
+          }
+          if (data.ui.selectedStoryId != null) {
+            state.selectedStoryId = Number(data.ui.selectedStoryId);
+          }
+          if (data.ui.panelVisibility) {
+            state.panelVisibility = { ...state.panelVisibility, ...data.ui.panelVisibility };
+          }
+        }
+        
+        // Restore CodeWhisperer delegations
+        if (data.codewhispererDelegations) {
+          state.codewhispererDelegations = new Map(Object.entries(data.codewhispererDelegations));
+        }
+        
+        // Persist all restored data
+        persistAllData();
+        
+        // Re-render everything
+        renderAll();
+        updateWorkspaceColumns();
+        
+        resolve(data);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
+  });
+}
+
+function persistAllData() {
+  // Persist stories data locally
+  try {
+    localStorage.setItem(STORAGE_KEYS.stories, JSON.stringify(state.stories));
+    localStorage.setItem(STORAGE_KEYS.lastBackup, new Date().toISOString());
+  } catch (error) {
+    console.error('Failed to persist stories data', error);
+  }
+  
+  // Persist other data
+  persistLayout();
+  persistMindmap();
+  persistExpanded();
+  persistSelection();
+  persistPanels();
+  persistCodeWhispererDelegations();
+}
+
+function loadStoriesFromLocal() {
+  try {
+    const storiesData = localStorage.getItem(STORAGE_KEYS.stories);
+    console.log('Local storage stories data:', storiesData ? 'found' : 'not found');
+    if (storiesData) {
+      const stories = JSON.parse(storiesData);
+      if (Array.isArray(stories) && stories.length > 0) {
+        console.log('Loading', stories.length, 'stories from local storage');
+        state.stories = stories;
+        rebuildStoryIndex();
+        return true;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load stories from local storage', error);
+  }
+  console.log('No valid local stories data found');
+  return false;
+}
+
+function autoBackupData() {
+  try {
+    const lastBackup = localStorage.getItem(STORAGE_KEYS.lastBackup);
+    const now = new Date();
+    const shouldBackup = !lastBackup || 
+      (now - new Date(lastBackup)) > (24 * 60 * 60 * 1000); // 24 hours
+    
+    if (shouldBackup && state.stories.length > 0) {
+      persistAllData();
+      console.log('Auto-backup completed');
+    }
+  } catch (error) {
+    console.error('Auto-backup failed', error);
+  }
+}
+
+function exportMindmapData() {
+  const data = {
+    version: AIPM_VERSION,
+    timestamp: new Date().toISOString(),
+    layout: {
+      autoLayout: state.autoLayout,
+      positions: state.manualPositions
+    },
+    mindmap: {
+      zoom: state.mindmapZoom,
+      showDependencies: state.showDependencies,
+      centerPosition: state.mindmapCenterPosition
+    },
+    expanded: Array.from(state.expanded.values()),
+    selectedStoryId: state.selectedStoryId
+  };
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `aipm-mindmap-backup-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importMindmapData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        
+        // Validate data structure
+        if (!data.layout || !data.mindmap) {
+          throw new Error('Invalid mindmap backup file');
+        }
+        
+        // Restore layout data
+        state.autoLayout = data.layout.autoLayout ?? true;
+        state.manualPositions = data.layout.positions ?? {};
+        
+        // Restore mindmap data
+        state.mindmapZoom = data.mindmap.zoom ?? 1;
+        state.showDependencies = data.mindmap.showDependencies ?? false;
+        if (data.mindmap.centerPosition) {
+          state.mindmapCenterPosition = data.mindmap.centerPosition;
+        }
+        
+        // Restore expanded state
+        if (Array.isArray(data.expanded)) {
+          state.expanded = new Set(data.expanded.map(Number));
+        }
+        
+        // Restore selection
+        if (data.selectedStoryId != null) {
+          state.selectedStoryId = Number(data.selectedStoryId);
+        }
+        
+        // Persist the restored data
+        persistLayout();
+        persistMindmap();
+        persistExpanded();
+        persistSelection();
+        
+        // Re-render
+        renderAll();
+        
+        resolve(data);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
+  });
+}
+
+function migrateMindmapData(fromVersion) {
+  try {
+    // Preserve existing mindmap positions and settings across upgrades
+    const layoutData = localStorage.getItem(STORAGE_KEYS.layout);
+    const mindmapData = localStorage.getItem(STORAGE_KEYS.mindmap);
+    
+    if (layoutData || mindmapData) {
+      console.log('Preserving mindmap data across version upgrade');
+      
+      // Create backup of current data
+      const backup = {
+        layout: layoutData,
+        mindmap: mindmapData,
+        timestamp: new Date().toISOString(),
+        fromVersion: fromVersion || 'unknown'
+      };
+      
+      localStorage.setItem('aiPm.mindmap.backup', JSON.stringify(backup));
+      
+      // Data is already in the correct format, no migration needed
+      // Just ensure it's preserved
+    }
+  } catch (error) {
+    console.error('Failed to migrate mindmap data', error);
+  }
+}
+
 function loadPreferences() {
+  // Check version and migrate if needed
+  try {
+    const storedVersion = localStorage.getItem(STORAGE_KEYS.version);
+    if (storedVersion !== AIPM_VERSION) {
+      console.log(`AIPM version updated from ${storedVersion || 'unknown'} to ${AIPM_VERSION}`);
+      // Preserve mindmap data across versions
+      migrateMindmapData(storedVersion);
+      localStorage.setItem(STORAGE_KEYS.version, AIPM_VERSION);
+    }
+  } catch (error) {
+    console.error('Failed to check version', error);
+  }
+
   try {
     const expandedRaw = localStorage.getItem(STORAGE_KEYS.expanded);
     if (expandedRaw) {
@@ -957,6 +1236,21 @@ function loadPreferences() {
     }
   } catch (error) {
     console.error('Failed to load layout preferences', error);
+  }
+
+  try {
+    const mindmapRaw = localStorage.getItem(STORAGE_KEYS.mindmap);
+    if (mindmapRaw) {
+      const data = JSON.parse(mindmapRaw);
+      state.mindmapZoom = data.zoom ?? 1;
+      state.showDependencies = data.showDependencies ?? false;
+      // Preserve any other mindmap-specific settings
+      if (data.centerPosition) {
+        state.mindmapCenterPosition = data.centerPosition;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load mindmap preferences', error);
   }
 
   try {
@@ -1007,18 +1301,32 @@ function persistLayout() {
   );
 }
 
+function persistMindmap() {
+  const mindmapData = {
+    zoom: state.mindmapZoom,
+    showDependencies: state.showDependencies,
+  };
+  
+  // Save center position if available
+  if (state.mindmapCenterPosition) {
+    mindmapData.centerPosition = state.mindmapCenterPosition;
+  }
+  
+  localStorage.setItem(STORAGE_KEYS.mindmap, JSON.stringify(mindmapData));
+}
+
 function persistPanels() {
   localStorage.setItem(STORAGE_KEYS.panels, JSON.stringify(state.panelVisibility));
 }
 
-function ensureCodexEntryShape(entry, storyId) {
+function codewhispererEntryShape(entry, storyId) {
   if (!entry || typeof entry !== 'object') {
     return null;
   }
   const normalized = { ...entry };
   normalized.storyId = normalized.storyId ?? storyId;
   if (!normalized.localId) {
-    normalized.localId = `codex-${normalized.storyId}-${Date.now()}-${Math.random()
+    normalized.localId = `codewhisperer-${normalized.storyId}-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
   }
@@ -1054,10 +1362,10 @@ function ensureCodexEntryShape(entry, storyId) {
   return normalized;
 }
 
-function loadCodexDelegationsFromStorage() {
-  state.codexDelegations = new Map();
+function loadCodeWhispererDelegationsFromStorage() {
+  state.codewhispererDelegations = new Map();
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.codexDelegations);
+    const raw = localStorage.getItem(STORAGE_KEYS.codewhispererDelegations);
     if (!raw) {
       return;
     }
@@ -1071,62 +1379,62 @@ function loadCodexDelegationsFromStorage() {
         return;
       }
       const entries = list
-        .map((entry) => ensureCodexEntryShape(entry, storyId))
+        .map((entry) => ensureCodeWhispererEntryShape(entry, storyId))
         .filter((entry) => entry != null);
       if (entries.length > 0) {
-        state.codexDelegations.set(storyId, entries);
+        state.codewhispererDelegations.set(storyId, entries);
       }
     });
   } catch (error) {
-    console.error('Failed to load Codex delegations', error);
+    console.error('Failed to load CodeWhisperer delegations', error);
   }
 }
 
-function persistCodexDelegations() {
+function persistCodeWhispererDelegations() {
   try {
     const plain = {};
-    state.codexDelegations.forEach((entries, storyId) => {
+    state.codewhispererDelegations.forEach((entries, storyId) => {
       plain[storyId] = entries.map((entry) => ({ ...entry }));
     });
-    localStorage.setItem(STORAGE_KEYS.codexDelegations, JSON.stringify(plain));
+    localStorage.setItem(STORAGE_KEYS.codewhispererDelegations, JSON.stringify(plain));
   } catch (error) {
-    console.error('Failed to persist Codex delegations', error);
+    console.error('Failed to persist CodeWhisperer delegations', error);
   }
 }
 
-function getCodexDelegations(storyId) {
+function getCodeWhispererDelegations(storyId) {
   const key = Number(storyId);
   if (!Number.isFinite(key)) {
     return [];
   }
-  const entries = state.codexDelegations.get(key);
+  const entries = state.codewhispererDelegations.get(key);
   return Array.isArray(entries) ? entries : [];
 }
 
-function setCodexDelegations(storyId, entries) {
+function setCodeWhispererDelegations(storyId, entries) {
   const key = Number(storyId);
   if (!Number.isFinite(key)) {
     return;
   }
   if (!Array.isArray(entries) || entries.length === 0) {
-    state.codexDelegations.delete(key);
+    state.codewhispererDelegations.delete(key);
   } else {
-    state.codexDelegations.set(key, entries);
+    state.codewhispererDelegations.set(key, entries);
   }
-  persistCodexDelegations();
+  persistCodeWhispererDelegations();
 }
 
-function addCodexDelegationEntry(storyId, entry) {
-  const current = getCodexDelegations(storyId);
+function addCodeWhispererDelegationEntry(storyId, entry) {
+  const current = getCodeWhispererDelegations(storyId);
   const next = current.concat(entry);
-  setCodexDelegations(storyId, next);
+  setCodeWhispererDelegations(storyId, next);
   if (state.selectedStoryId === storyId) {
-    refreshCodexSection(storyId);
+    refreshCodeWhispererSection(storyId);
   }
 }
 
-function removeCodexDelegation(storyId, localId) {
-  const current = getCodexDelegations(storyId);
+function removeCodeWhispererDelegation(storyId, localId) {
+  const current = getCodeWhispererDelegations(storyId);
   if (!current.length) {
     return;
   }
@@ -1134,29 +1442,29 @@ function removeCodexDelegation(storyId, localId) {
   if (next.length === current.length) {
     return;
   }
-  setCodexDelegations(storyId, next);
+  setCodeWhispererDelegations(storyId, next);
   if (state.selectedStoryId === storyId) {
-    refreshCodexSection(storyId);
+    refreshCodeWhispererSection(storyId);
   }
-  showToast('Codex tracking removed', 'info');
+  showToast('CodeWhisperer tracking removed', 'info');
 }
 
-function refreshCodexSection(storyId) {
+function refreshCodeWhispererSection(storyId) {
   const section = detailsContent.querySelector(
-    `.codex-section[data-story-id="${storyId}"]`
+    `.codewhisperer-section[data-story-id="${storyId}"]`
   );
   if (!section) {
     return;
   }
-  const list = section.querySelector('.codex-task-list');
+  const list = section.querySelector('.codewhisperer-task-list');
   const story = storyIndex.get(storyId);
   if (!list || !story) {
     return;
   }
-  renderCodexSectionList(list, story);
+  renderCodeWhispererSectionList(list, story);
 }
 
-function formatCodexTargetLabel(entry) {
+function formatCodeWhispererTargetLabel(entry) {
   if (!entry) {
     return '';
   }
@@ -1209,39 +1517,39 @@ function formatRelativeTime(isoString) {
   return new Date(isoString).toLocaleDateString();
 }
 
-function renderCodexSectionList(container, story) {
+function renderCodeWhispererSectionList(container, story) {
   container.innerHTML = '';
-  const entries = getCodexDelegations(story.id);
+  const entries = getCodeWhispererDelegations(story.id);
   if (!entries.length) {
     const empty = document.createElement('p');
     empty.className = 'empty-state';
-    empty.textContent = 'No Codex tasks yet.';
+    empty.textContent = 'No CodeWhisperer tasks yet.';
     container.appendChild(empty);
     return;
   }
 
   entries.forEach((entry) => {
     const card = document.createElement('article');
-    card.className = 'codex-task-card';
+    card.className = 'codewhisperer-task-card';
     card.dataset.localId = entry.localId;
 
     const header = document.createElement('header');
-    header.className = 'codex-task-card-header';
+    header.className = 'codewhisperer-task-card-header';
 
     const title = document.createElement('h4');
-    title.textContent = entry.taskTitle || 'Codex task';
+    title.textContent = entry.taskTitle || 'CodeWhisperer task';
     header.appendChild(title);
 
     const badge = document.createElement('span');
-    badge.className = 'codex-target-badge';
-    badge.textContent = formatCodexTargetLabel(entry);
+    badge.className = 'codewhisperer-target-badge';
+    badge.textContent = formatCodeWhispererTargetLabel(entry);
     header.appendChild(badge);
 
     card.appendChild(header);
 
     if (entry.confirmationCode) {
       const confirmation = document.createElement('p');
-      confirmation.className = 'codex-confirmation';
+      confirmation.className = 'codewhisperer-confirmation';
       confirmation.innerHTML = `<span>Confirmation:</span> <code>${escapeHtml(
         entry.confirmationCode
       )}</code>`;
@@ -1250,16 +1558,16 @@ function renderCodexSectionList(container, story) {
 
     if (entry.branchName) {
       const branch = document.createElement('p');
-      branch.className = 'codex-branch';
+      branch.className = 'codewhisperer-branch';
       branch.innerHTML = `<span>Branch:</span> ${escapeHtml(entry.branchName)}`;
       card.appendChild(branch);
     }
 
     const status = document.createElement('p');
-    status.className = 'codex-status-line';
+    status.className = 'codewhisperer-status-line';
 
     if (entry.latestStatus) {
-      const actor = entry.latestStatus.author || 'Codex';
+      const actor = entry.latestStatus.author || 'CodeWhisperer';
       const when = formatRelativeTime(entry.latestStatus.createdAt);
       const snippet = entry.latestStatus.snippet || summarizeCommentBody(entry.latestStatus.body);
       status.innerHTML = `<strong>${escapeHtml(actor)}</strong>${
@@ -1269,20 +1577,20 @@ function renderCodexSectionList(container, story) {
       status.classList.add('is-error');
       status.textContent = entry.lastError;
     } else {
-      status.textContent = 'Waiting for Codex to respond…';
+      status.textContent = 'Waiting for CodeWhisperer to respond…';
     }
     card.appendChild(status);
 
     if (entry.lastCheckedAt) {
       const meta = document.createElement('p');
-      meta.className = 'codex-status-meta';
+      meta.className = 'codewhisperer-status-meta';
       const label = entry.lastError ? 'Last attempted' : 'Last checked';
       meta.textContent = `${label} ${formatRelativeTime(entry.lastCheckedAt)}`;
       card.appendChild(meta);
     }
 
     const actions = document.createElement('div');
-    actions.className = 'codex-task-actions';
+    actions.className = 'codewhisperer-task-actions';
 
     const taskUrl = entry.taskUrl || entry.htmlUrl;
     const threadUrl = entry.threadUrl || entry.htmlUrl;
@@ -1293,7 +1601,7 @@ function renderCodexSectionList(container, story) {
       openLink.className = 'button secondary';
       openLink.target = '_blank';
       openLink.rel = 'noreferrer noopener';
-      openLink.textContent = 'Open Codex task';
+      openLink.textContent = 'Open CodeWhisperer task';
       actions.appendChild(openLink);
     }
 
@@ -1328,7 +1636,7 @@ function renderCodexSectionList(container, story) {
     if (entry.createTrackingCard !== false) {
       const checkBtn = document.createElement('button');
       checkBtn.type = 'button';
-      checkBtn.className = 'link-button codex-refresh';
+      checkBtn.className = 'link-button codewhisperer-refresh';
       checkBtn.textContent = 'Check status';
       checkBtn.addEventListener('click', async () => {
         if (checkBtn.disabled) {
@@ -1337,9 +1645,9 @@ function renderCodexSectionList(container, story) {
         const original = checkBtn.textContent;
         checkBtn.disabled = true;
         checkBtn.textContent = 'Checking…';
-        const success = await requestCodexStatus(entry);
+        const success = await requestCodeWhispererStatus(entry);
         if (!success) {
-          const message = entry.lastError || 'Unable to update Codex status.';
+          const message = entry.lastError || 'Unable to update CodeWhisperer status.';
           showToast(message, 'error');
         }
         if (!success) {
@@ -1347,17 +1655,17 @@ function renderCodexSectionList(container, story) {
           checkBtn.textContent = original;
         }
         if (state.selectedStoryId === entry.storyId) {
-          refreshCodexSection(entry.storyId);
+          refreshCodeWhispererSection(entry.storyId);
         }
       });
       actions.appendChild(checkBtn);
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
-      removeBtn.className = 'link-button codex-remove';
+      removeBtn.className = 'link-button codewhisperer-remove';
       removeBtn.textContent = 'Stop tracking';
       removeBtn.addEventListener('click', () => {
-        removeCodexDelegation(entry.storyId, entry.localId);
+        removeCodeWhispererDelegation(entry.storyId, entry.localId);
       });
       actions.appendChild(removeBtn);
     }
@@ -1370,49 +1678,49 @@ function renderCodexSectionList(container, story) {
   });
 }
 
-function buildCodexSection(story) {
+function buildCodeWhispererSection(story) {
   const section = document.createElement('section');
-  section.className = 'codex-section';
-  section.dataset.role = 'codex-section';
+  section.className = 'codewhisperer-section';
+  section.dataset.role = 'codewhisperer-section';
   section.dataset.storyId = story?.id != null ? String(story.id) : '';
 
   const heading = document.createElement('div');
   heading.className = 'section-heading';
   const title = document.createElement('h3');
-  title.textContent = 'Codex Delegations';
+  title.textContent = 'CodeWhisperer Delegations';
   heading.appendChild(title);
 
   const actionBtn = document.createElement('button');
   actionBtn.type = 'button';
   actionBtn.className = 'secondary';
-  actionBtn.textContent = 'Develop with Codex';
-  actionBtn.addEventListener('click', () => openCodexDelegationModal(story));
+  actionBtn.textContent = 'Develop with Amazon CodeWhisperer';
+  actionBtn.addEventListener('click', () => openCodeWhispererDelegationModal(story));
   heading.appendChild(actionBtn);
 
   section.appendChild(heading);
 
   const list = document.createElement('div');
-  list.className = 'codex-task-list';
+  list.className = 'codewhisperer-task-list';
   section.appendChild(list);
-  renderCodexSectionList(list, story);
+  renderCodeWhispererSectionList(list, story);
   return section;
 }
 
-async function requestCodexStatus(entry) {
+async function codewhispererStatus(entry) {
   if (!entry || entry.createTrackingCard === false) {
     return false;
   }
   if (!entry.owner || !entry.repo) {
-    entry.lastError = 'Owner and repository are required to check Codex status.';
+    entry.lastError = 'Owner and repository are required to check CodeWhisperer status.';
     entry.lastCheckedAt = new Date().toISOString();
-    persistCodexDelegations();
+    persistCodeWhispererDelegations();
     return false;
   }
   const number = Number(entry.targetNumber);
   if (!Number.isFinite(number) || number <= 0) {
-    entry.lastError = 'A valid issue or pull request number is required to check Codex status.';
+    entry.lastError = 'A valid issue or pull request number is required to check CodeWhisperer status.';
     entry.lastCheckedAt = new Date().toISOString();
-    persistCodexDelegations();
+    persistCodeWhispererDelegations();
     return false;
   }
 
@@ -1450,23 +1758,23 @@ async function requestCodexStatus(entry) {
       entry.latestStatus = null;
     }
 
-    persistCodexDelegations();
+    persistCodeWhispererDelegations();
     return true;
   } catch (error) {
-    console.error('Codex status request failed', error);
+    console.error('CodeWhisperer status request failed', error);
     const message =
       (typeof error?.message === 'string' && error.message) ||
       (typeof error?.error === 'string' && error.error) ||
-      'Unable to update Codex status.';
+      'Unable to update CodeWhisperer status.';
     entry.lastError = message;
     entry.lastCheckedAt = new Date().toISOString();
-    persistCodexDelegations();
+    persistCodeWhispererDelegations();
     return false;
   }
 }
 
-function initializeCodexDelegations() {
-  loadCodexDelegationsFromStorage();
+function initializeCodeWhispererDelegations() {
+  loadCodeWhispererDelegationsFromStorage();
 }
 
 function rebuildStoryIndex() {
@@ -1652,34 +1960,71 @@ function collectTestsNeedingAttention(story) {
 }
 
 async function loadStories(preserveSelection = true) {
+  console.log('loadStories called, preserveSelection:', preserveSelection);
   const previousSelection = preserveSelection ? state.selectedStoryId : null;
+  
+  // Try to load from local storage first
+  const loadedFromLocal = loadStoriesFromLocal();
+  console.log('Loaded from local:', loadedFromLocal);
+  
+  // Always try to load from API to get latest data
   try {
-    const response = await fetch(resolveApiUrl('/api/stories'));
+    const url = resolveApiUrl('/api/stories');
+    console.log('Fetching from API:', url);
+    const response = await fetch(url);
+    console.log('API response status:', response.status);
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch stories');
+      throw new Error(`Failed to fetch stories: ${response.status} ${response.statusText}`);
     }
     const data = await response.json();
-    state.stories = normalizeStoryCollection(Array.isArray(data) ? data : []);
-    rebuildStoryIndex();
-    if (state.stories.length && state.expanded.size === 0) {
-      ensureRootExpansion();
+    console.log('API response data:', data);
+    
+    const apiStories = normalizeStoryCollection(Array.isArray(data) ? data : []);
+    console.log('Normalized stories:', apiStories);
+    
+    // Use API data if we have it, or fall back to local data
+    if (apiStories.length > 0) {
+      state.stories = apiStories;
+      rebuildStoryIndex();
+      console.log('Stories loaded from API, count:', apiStories.length);
+      // Auto-backup after successful API load
+      autoBackupData();
+    } else if (!loadedFromLocal) {
+      // No API data and no local data
+      console.log('No stories found in API or local storage');
+      state.stories = [];
+      rebuildStoryIndex();
     }
-    if (previousSelection && storyIndex.has(previousSelection)) {
-      state.selectedStoryId = previousSelection;
-    } else if (!storyIndex.has(state.selectedStoryId)) {
-      state.selectedStoryId = state.stories[0]?.id ?? null;
-    }
-    if (state.selectedStoryId != null) {
-      expandAncestors(state.selectedStoryId);
-    }
-    mindmapHasCentered = false;
-    renderAll();
   } catch (error) {
-    console.error(error);
-    mindmapHasCentered = false;
-    renderAll();
-    showToast(error.message || 'Unable to load stories', 'error');
+    console.error('API load failed:', error);
+    if (!loadedFromLocal) {
+      // If both local and API fail, show error
+      showToast('Failed to load stories. Check your connection.', 'error');
+      state.stories = [];
+      rebuildStoryIndex();
+    } else {
+      // We have local data, just show a warning
+      showToast('Using offline data. Check your connection.', 'warning');
+    }
   }
+  
+  console.log('Final stories count:', state.stories.length);
+  
+  if (state.stories.length && state.expanded.size === 0) {
+    ensureRootExpansion();
+  }
+  if (previousSelection && storyIndex.has(previousSelection)) {
+    state.selectedStoryId = previousSelection;
+  } else if (!storyIndex.has(state.selectedStoryId)) {
+    state.selectedStoryId = state.stories[0]?.id ?? null;
+  }
+  if (state.selectedStoryId != null) {
+    expandAncestors(state.selectedStoryId);
+  }
+  mindmapHasCentered = false;
+  console.log('Calling renderAll...');
+  renderAll();
 }
 
 function renderAll() {
@@ -2344,6 +2689,7 @@ function setupNodeInteraction(group, node) {
       handleStorySelection(node.story);
     } else {
       persistLayout();
+      persistMindmap();
     }
   }
 
@@ -3382,8 +3728,8 @@ function renderDetails() {
     }
   });
 
-  const codexSection = buildCodexSection(story);
-  detailsContent.appendChild(codexSection);
+  const codewhispererSection = buildCodeWhispererSection(story);
+  detailsContent.appendChild(codewhispererSection);
 
   const dependencySection = document.createElement('section');
   dependencySection.className = 'dependencies-section';
@@ -4014,70 +4360,70 @@ function openModal({
   modal.showModal();
 }
 
-function openCodexDelegationModal(story) {
-  const defaults = createDefaultCodexForm(story);
+function openCodeWhispererDelegationModal(story) {
+  const defaults = createDefaultCodeWhispererForm(story);
   const form = document.createElement('form');
-  form.className = 'modal-form codex-form';
+  form.className = 'modal-form codewhisperer-form';
   form.noValidate = true;
   form.innerHTML = `
-    <div class="form-error-banner" data-role="codex-error" hidden></div>
+    <div class="form-error-banner" data-role="codewhisperer-error" hidden></div>
     <div class="field">
-      <label for="codex-repo-url">Repository API URL</label>
-      <input id="codex-repo-url" name="repositoryApiUrl" type="url" placeholder="${escapeHtml(
+      <label for="codewhisperer-repo-url">Repository API URL</label>
+      <input id="codewhisperer-repo-url" name="repositoryApiUrl" type="url" placeholder="${escapeHtml(
         DEFAULT_REPO_API_URL
       )}" required />
       <p class="field-error" data-error-for="repositoryApiUrl" hidden></p>
     </div>
     <div class="field">
-      <label for="codex-owner">Owner</label>
-      <input id="codex-owner" name="owner" required />
+      <label for="codewhisperer-owner">Owner</label>
+      <input id="codewhisperer-owner" name="owner" required />
       <p class="field-error" data-error-for="owner" hidden></p>
     </div>
     <div class="field">
-      <label for="codex-repo">Repository</label>
-      <input id="codex-repo" name="repo" required />
+      <label for="codewhisperer-repo">Repository</label>
+      <input id="codewhisperer-repo" name="repo" required />
       <p class="field-error" data-error-for="repo" hidden></p>
     </div>
-    <fieldset class="field full codex-target-fieldset">
+    <fieldset class="field full codewhisperer-target-fieldset">
       <legend>Target</legend>
       <label><input type="radio" name="target" value="new-issue" /> New issue</label>
       <label><input type="radio" name="target" value="issue" /> Existing issue</label>
       <label><input type="radio" name="target" value="pr" /> Pull request</label>
     </fieldset>
     <div class="field" data-role="target-number">
-      <label for="codex-target-number">Issue / PR number</label>
-      <input id="codex-target-number" name="targetNumber" inputmode="numeric" pattern="\\d*" />
+      <label for="codewhisperer-target-number">Issue / PR number</label>
+      <input id="codewhisperer-target-number" name="targetNumber" inputmode="numeric" pattern="\\d*" />
       <p class="field-error" data-error-for="targetNumber" hidden></p>
     </div>
     <div class="field">
-      <label for="codex-branch">Branch name</label>
-      <input id="codex-branch" name="branchName" required />
+      <label for="codewhisperer-branch">Branch name</label>
+      <input id="codewhisperer-branch" name="branchName" required />
       <p class="field-error" data-error-for="branchName" hidden></p>
     </div>
     <div class="field">
-      <label for="codex-task-title">Task title</label>
-      <input id="codex-task-title" name="taskTitle" required />
+      <label for="codewhisperer-task-title">Task title</label>
+      <input id="codewhisperer-task-title" name="taskTitle" required />
       <p class="field-error" data-error-for="taskTitle" hidden></p>
     </div>
     <div class="field full">
-      <label for="codex-objective">Objective</label>
-      <input id="codex-objective" name="objective" required />
+      <label for="codewhisperer-objective">Objective</label>
+      <input id="codewhisperer-objective" name="objective" required />
       <p class="field-error" data-error-for="objective" hidden></p>
     </div>
     <div class="field">
-      <label for="codex-pr-title">PR title</label>
-      <input id="codex-pr-title" name="prTitle" required />
+      <label for="codewhisperer-pr-title">PR title</label>
+      <input id="codewhisperer-pr-title" name="prTitle" required />
       <p class="field-error" data-error-for="prTitle" hidden></p>
     </div>
     <div class="field">
-      <label for="codex-constraints">Constraints</label>
-      <textarea id="codex-constraints" name="constraints" rows="3" required></textarea>
+      <label for="codewhisperer-constraints">Constraints</label>
+      <textarea id="codewhisperer-constraints" name="constraints" rows="3" required></textarea>
       <p class="field-error" data-error-for="constraints" hidden></p>
     </div>
     <div class="field full">
-      <label for="codex-acceptance">Acceptance criteria</label>
+      <label for="codewhisperer-acceptance">Acceptance criteria</label>
       <textarea
-        id="codex-acceptance"
+        id="codewhisperer-acceptance"
         name="acceptanceCriteria"
         rows="4"
         placeholder="List each criterion on a new line"
@@ -4085,7 +4431,7 @@ function openCodexDelegationModal(story) {
       ></textarea>
       <p class="field-error" data-error-for="acceptanceCriteria" hidden></p>
     </div>
-    <div class="field full codex-checkbox">
+    <div class="field full codewhisperer-checkbox">
       <label>
         <input type="checkbox" name="createTrackingCard" checked />
         <span>Create tracking card</span>
@@ -4093,7 +4439,7 @@ function openCodexDelegationModal(story) {
     </div>
   `;
 
-  const errorBanner = form.querySelector('[data-role="codex-error"]');
+  const errorBanner = form.querySelector('[data-role="codewhisperer-error"]');
   const targetNumberGroup = form.querySelector('[data-role="target-number"]');
   const fieldErrors = new Map(
     Array.from(form.querySelectorAll('[data-error-for]')).map((el) => [el.dataset.errorFor, el])
@@ -4208,7 +4554,7 @@ function openCodexDelegationModal(story) {
     try {
       draft = await fetchAcceptanceTestDraft(story.id, idea ? { idea } : undefined);
     } catch (error) {
-      console.error('Codex delegation acceptance test draft failed', error);
+      console.error('CodeWhisperer delegation acceptance test draft failed', error);
     }
 
     if (draft) {
@@ -4281,12 +4627,12 @@ function openCodexDelegationModal(story) {
         return true;
       } catch (error) {
         lastError = error;
-        console.error('Codex delegation acceptance test creation attempt failed', error);
+        console.error('CodeWhisperer delegation acceptance test creation attempt failed', error);
       }
     }
 
     if (lastError) {
-      console.error('Codex delegation acceptance test generation failed', lastError);
+      console.error('CodeWhisperer delegation acceptance test generation failed', lastError);
     }
     return false;
   }
@@ -4302,7 +4648,7 @@ function openCodexDelegationModal(story) {
 
   function evaluate({ forceErrors = false } = {}) {
     const values = readValues();
-    const validation = validateCodexInput(values);
+    const validation = validateCodeWhispererInput(values);
     latestValidation = validation;
     applyErrors(validation.errors, { force: forceErrors });
     setSubmitButtonState(validation);
@@ -4375,7 +4721,7 @@ function openCodexDelegationModal(story) {
       if (values.createTrackingCard) {
         const entry = createLocalDelegationEntry(story, values, result);
         if (entry) {
-          addCodexDelegationEntry(story.id, entry);
+          addCodeWhispererDelegationEntry(story.id, entry);
         }
       }
 
@@ -4385,8 +4731,8 @@ function openCodexDelegationModal(story) {
           : null;
 
       const toastBase = acceptanceTestCreated
-        ? 'Codex task created and acceptance test drafted.'
-        : 'Codex task created';
+        ? 'CodeWhisperer task created and acceptance test drafted.'
+        : 'CodeWhisperer task created';
 
       const toastMessage = confirmationCode
         ? `${toastBase} Confirmation: ${confirmationCode}.`
@@ -4394,9 +4740,9 @@ function openCodexDelegationModal(story) {
       showToast(toastMessage, 'success');
       return true;
     } catch (error) {
-      console.error('Codex task creation failed', error);
+      console.error('CodeWhisperer task creation failed', error);
       const message =
-        (error && error.message) || 'Failed to create Codex task. Please try again.';
+        (error && error.message) || 'Failed to create CodeWhisperer task. Please try again.';
       showBanner(message);
       return false;
     } finally {
@@ -4406,7 +4752,7 @@ function openCodexDelegationModal(story) {
   };
 
   openModal({
-    title: 'Delegate to Codex',
+    title: 'Delegate to Amazon CodeWhisperer',
     content: form,
     cancelLabel: 'Cancel',
     size: 'content',
@@ -4424,7 +4770,7 @@ function openCodexDelegationModal(story) {
 
   const initialValues = readValues();
   updateTargetNumberVisibility(initialValues.target);
-  latestValidation = validateCodexInput(initialValues);
+  latestValidation = validateCodeWhispererInput(initialValues);
   applyErrors(latestValidation.errors, { force: false });
   setSubmitButtonState(latestValidation);
 }
@@ -5290,7 +5636,10 @@ function openReferenceModal(storyId) {
 
 async function createStory(payload) {
   try {
-    return await sendJson(resolveApiUrl('/api/stories'), { method: 'POST', body: payload });
+    const result = await sendJson(resolveApiUrl('/api/stories'), { method: 'POST', body: payload });
+    // Auto-backup after successful story creation
+    setTimeout(() => autoBackupData(), 1000);
+    return result;
   } catch (error) {
     if (error && error.code === 'INVEST_WARNINGS') {
       const proceed = window.confirm(
@@ -5310,10 +5659,13 @@ async function createStory(payload) {
 
 async function updateStory(storyId, payload) {
   try {
-    return await sendJson(resolveApiUrl(`/api/stories/${storyId}`), {
+    const result = await sendJson(resolveApiUrl(`/api/stories/${storyId}`), {
       method: 'PATCH',
       body: payload,
     });
+    // Auto-backup after successful story update
+    setTimeout(() => autoBackupData(), 1000);
+    return result;
   } catch (error) {
     if (error && error.code === 'INVEST_WARNINGS') {
       throw error;
@@ -5569,14 +5921,20 @@ function splitLines(value) {
 }
 
 function initialize() {
+  console.log('AIPM initializing...');
+  console.log('API Base URL:', window.__AIPM_API_BASE__);
+  
   loadPreferences();
-  initializeCodexDelegations();
+  initializeCodeWhispererDelegations();
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();
   renderDetails();
 
-  refreshBtn.addEventListener('click', () => loadStories());
+  refreshBtn.addEventListener('click', () => {
+    console.log('Refresh button clicked');
+    loadStories();
+  });
   generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
@@ -5602,6 +5960,7 @@ function initialize() {
       state.manualPositions = {};
     }
     persistLayout();
+    persistMindmap();
     renderMindmap();
   });
 
@@ -5615,7 +5974,84 @@ function initialize() {
     runtimeDataLink.href = resolveApiUrl('/api/runtime-data');
   }
 
+  // Complete data backup functionality
+  const exportCompleteBtn = document.getElementById('export-complete-btn');
+  const importCompleteBtn = document.getElementById('import-complete-btn');
+  const importCompleteFile = document.getElementById('import-complete-file');
+
+  exportCompleteBtn?.addEventListener('click', () => {
+    try {
+      exportCompleteData();
+      showToast('Complete data exported successfully', 'success');
+    } catch (error) {
+      console.error('Failed to export complete data', error);
+      showToast('Failed to export complete data', 'error');
+    }
+  });
+
+  importCompleteBtn?.addEventListener('click', () => {
+    importCompleteFile?.click();
+  });
+
+  importCompleteFile?.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      await importCompleteData(file);
+      showToast('Complete data imported successfully', 'success');
+    } catch (error) {
+      console.error('Failed to import complete data', error);
+      showToast('Failed to import complete data: ' + error.message, 'error');
+    } finally {
+      // Clear the file input
+      event.target.value = '';
+    }
+  });
+
+  // Mindmap backup functionality
+  const exportMindmapBtn = document.getElementById('export-mindmap-btn');
+  const importMindmapBtn = document.getElementById('import-mindmap-btn');
+  const importMindmapFile = document.getElementById('import-mindmap-file');
+
+  exportMindmapBtn?.addEventListener('click', () => {
+    try {
+      exportMindmapData();
+      showToast('Mindmap data exported successfully', 'success');
+    } catch (error) {
+      console.error('Failed to export mindmap data', error);
+      showToast('Failed to export mindmap data', 'error');
+    }
+  });
+
+  importMindmapBtn?.addEventListener('click', () => {
+    importMindmapFile?.click();
+  });
+
+  importMindmapFile?.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      await importMindmapData(file);
+      showToast('Mindmap data imported successfully', 'success');
+    } catch (error) {
+      console.error('Failed to import mindmap data', error);
+      showToast('Failed to import mindmap data: ' + error.message, 'error');
+    } finally {
+      // Clear the file input
+      event.target.value = '';
+    }
+  });
+
   loadStories();
+  
+  // Set up periodic auto-backup (every 5 minutes)
+  setInterval(() => {
+    if (state.stories.length > 0) {
+      autoBackupData();
+    }
+  }, 5 * 60 * 1000);
 }
 
 initialize();

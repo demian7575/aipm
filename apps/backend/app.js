@@ -1,3 +1,9 @@
+import {
+  readAmazonAiConfig,
+  requestInvestAnalysisFromAmazonAi,
+  requestDocumentFromAmazonAi,
+  requestAcceptanceTestDraftFromAmazonAi
+} from './amazon-ai.js';
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
@@ -1764,18 +1770,8 @@ function baselineInvestWarnings(story, options = {}) {
   return warnings;
 }
 
-function readOpenAiConfig() {
-  const key =
-    process.env.AI_PM_OPENAI_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENAI_APIKEY || '';
-  const trimmedKey = key.trim();
-  const enabled =
-    trimmedKey && process.env.AI_PM_DISABLE_OPENAI !== '1' && process.env.AI_PM_DISABLE_OPENAI !== 'true';
-  return {
-    enabled,
-    apiKey: trimmedKey,
-    endpoint: process.env.AI_PM_OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions',
-    model: process.env.AI_PM_OPENAI_MODEL || 'gpt-4o-mini',
-  };
+function readAiConfig() {
+  return readAmazonAiConfig();
 }
 
 function extractJsonObject(content) {
@@ -1864,7 +1860,9 @@ function logCodexUsageMetrics(payload, config) {
   console.log(`[${new Date().toISOString()}] [codex] Usage`, logPayload);
 }
 
-async function requestInvestAnalysisFromOpenAi(story, options, config) {
+async function requestInvestAnalysisFromAi(story, options, config) {
+  return await requestInvestAnalysisFromAmazonAi(story, options, config);
+}
   if (!config.enabled) {
     return null;
   }
@@ -1955,7 +1953,7 @@ async function requestInvestAnalysisFromOpenAi(story, options, config) {
 
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
-  const config = readOpenAiConfig();
+  const config = readAiConfig();
   if (!config.enabled) {
     return {
       warnings: baseline,
@@ -1968,7 +1966,7 @@ async function analyzeInvest(story, options = {}) {
   }
 
   try {
-    const aiResult = await requestInvestAnalysisFromOpenAi(story, options, config);
+    const aiResult = await requestInvestAnalysisFromAi(story, options, config);
     if (!aiResult) {
       return {
         warnings: baseline,
@@ -1982,7 +1980,7 @@ async function analyzeInvest(story, options = {}) {
     const aiWarnings = aiResult.warnings.map((warning) => normalizeAiWarning(warning)).filter(Boolean);
     return {
       warnings: aiWarnings,
-      source: 'openai',
+      source: 'amazon-ai',
       summary: aiResult.summary || '',
       ai: {
         warnings: aiWarnings,
@@ -1994,7 +1992,7 @@ async function analyzeInvest(story, options = {}) {
       usedFallback: false,
     };
   } catch (error) {
-    console.error('OpenAI INVEST analysis failed', error);
+    console.error('Amazon AI INVEST analysis failed', error);
     return {
       warnings: baseline,
       source: 'fallback',
@@ -2505,10 +2503,10 @@ function collectChildSummaries(story, depth = 0, lines = []) {
 
 function summarizeInvestWarnings(warnings, analysis) {
   if (!Array.isArray(warnings) || warnings.length === 0) {
-    if (analysis && analysis.source === 'openai' && analysis.summary) {
-      return [`- ChatGPT summary: ${analysis.summary}`];
+    if (analysis && analysis.source === 'amazon-ai' && analysis.summary) {
+      return [`- Amazon Bedrock summary: ${analysis.summary}`];
     }
-    return ['- ChatGPT confirmed the story currently meets INVEST criteria.'];
+    return ['- Amazon Bedrock confirmed the story currently meets INVEST criteria.'];
   }
   return warnings.map((warning) => {
     const criterion = warning.criterion ? String(warning.criterion).toUpperCase() : '';
@@ -2907,7 +2905,7 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
     'The solution follows a layered architecture. The conceptual block diagram includes:');
   lines.push('- **Presentation Layer:** Browser SPA rendering mindmaps, outlines, and document workflows.');
   lines.push('- **Application Services:** Node.js backend exposing REST APIs for stories, health checks, and document export.');
-  lines.push('- **Intelligence Services:** Optional OpenAI integrations performing INVEST and document synthesis.');
+  lines.push('- **Intelligence Services:** Amazon Bedrock integrations performing INVEST and document synthesis.');
   lines.push('- **Data Layer:** SQLite persistence with traceable relationships between stories, tests, and references.');
   lines.push('- **Integrations:** Webhooks and document download endpoints for downstream tooling.');
   lines.push('');
@@ -2932,7 +2930,7 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
   lines.push('2. Clone the AIPM repository and run `npm install`.');
   lines.push('3. Seed sample data with `npm run seed` or `node scripts/generate-sample-dataset.mjs`.');
   lines.push('4. Launch the backend via `npm run backend` and the static front-end host.');
-  lines.push('5. Configure optional OpenAI credentials for enhanced analysis.');
+  lines.push('5. Configure AWS credentials for Amazon Bedrock enhanced analysis.');
   lines.push('6. Verify document generation through the Generate Document modal.');
   lines.push('');
 
@@ -2951,7 +2949,7 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
     lines.push('');
     lines.push('- Product vision deck');
     lines.push('- QA strategy playbook');
-    lines.push('- OpenAI API documentation');
+    lines.push('- Amazon Bedrock API documentation');
     lines.push('');
     lines.push('## 9. Glossary & Acronyms');
     lines.push('');
@@ -3278,7 +3276,9 @@ function buildComponentSummary(flatStories) {
   });
 }
 
-async function requestDocumentFromOpenAi(type, context, config) {
+async function requestDocumentFromAi(type, context, config) {
+  return await requestDocumentFromAmazonAi(type, context, config);
+}
   if (!config?.enabled) {
     return null;
   }
@@ -3356,15 +3356,15 @@ async function requestDocumentFromOpenAi(type, context, config) {
 }
 
 async function generateDocumentFile(type, context = {}) {
-  const config = readOpenAiConfig();
+  const config = readAiConfig();
   if (config.enabled) {
     try {
-      const aiDocument = await requestDocumentFromOpenAi(type, context, config);
+      const aiDocument = await requestDocumentFromAi(type, context, config);
       if (aiDocument && aiDocument.content) {
-        return { ...aiDocument, source: 'openai' };
+        return { ...aiDocument, source: 'amazon-ai' };
       }
     } catch (error) {
-      console.error('OpenAI document generation failed', error);
+      console.error('Amazon AI document generation failed', error);
     }
   }
 
@@ -3767,7 +3767,9 @@ function normalizeGeneratedSteps(value) {
     .filter((entry) => entry && entry.length > 0);
 }
 
-async function requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, config, { idea = '' } = {}) {
+async function requestAcceptanceTestDraftFromAi(story, ordinal, reason, config, { idea = '' } = {}) {
+  return await requestAcceptanceTestDraftFromAmazonAi(story, ordinal, reason, config, { idea });
+}
   if (!config.enabled) {
     return null;
   }
@@ -3876,18 +3878,18 @@ async function requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, conf
 }
 
 async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' } = {}) {
-  const config = readOpenAiConfig();
+  const config = readAiConfig();
   if (!config.enabled) {
     return defaultAcceptanceTestDraft(story, ordinal, reason, idea);
   }
 
   try {
-    const aiDraft = await requestAcceptanceTestDraftFromOpenAi(story, ordinal, reason, config, { idea });
+    const aiDraft = await requestAcceptanceTestDraftFromAi(story, ordinal, reason, config, { idea });
     if (aiDraft) {
       return aiDraft;
     }
   } catch (error) {
-    console.error('OpenAI acceptance test draft generation failed', error);
+    console.error('Amazon AI acceptance test draft generation failed', error);
   }
 
   return defaultAcceptanceTestDraft(story, ordinal, reason, idea);
