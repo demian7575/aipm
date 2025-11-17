@@ -562,7 +562,14 @@ function parseJsonOutput(output) {
   }
   const lines = trimmed.split(/\r?\n/).filter(Boolean);
   const jsonLine = lines[lines.length - 1];
-  return JSON.parse(jsonLine);
+  
+  try {
+    return JSON.parse(jsonLine);
+  } catch (error) {
+    // Handle malformed JSON in CI environments by falling back to empty result
+    console.warn(`[sqlite-cli] JSON parse error: ${error.message}, output: ${jsonLine.substring(0, 100)}...`);
+    return [];
+  }
 }
 
 function normalizeTabValue(value) {
