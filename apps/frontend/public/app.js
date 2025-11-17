@@ -4500,9 +4500,9 @@ function openCodeWhispererDelegationModal(story) {
     }
   }
 
-  function applyErrors(errors, { force = false } = {}) {
+  function applyErrors(errors = {}, { force = false } = {}) {
     fieldErrors.forEach((el, name) => {
-      const message = errors[name] || '';
+      const message = (errors && errors[name]) || '';
       if (force || touchedFields.has(name)) {
         if (message) {
           el.textContent = message;
