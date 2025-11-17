@@ -11,8 +11,11 @@ Deploy the complete AIPM web service with one command:
 ```
 
 **Live Demo**: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
+**API Endpoint**: https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+> **Note**: If you encounter dependency conflicts, use `npm install --legacy-peer-deps` before deployment.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions and troubleshooting.
 
 ## Requirements
 
