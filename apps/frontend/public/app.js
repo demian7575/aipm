@@ -4337,7 +4337,9 @@ function openModal({
         button.classList.add(action.variant);
       }
       button.addEventListener('click', async () => {
+        console.log('Modal button clicked:', action.label);
         const result = await action.onClick();
+        console.log('onClick result:', result);
         if (result !== false) {
           closeModal();
         }
