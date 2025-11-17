@@ -4672,12 +4672,17 @@ function openCodeWhispererDelegationModal(story) {
   });
 
   const handleSubmit = async () => {
+    console.log('CodeWhisperer handleSubmit called');
     if (submitting) {
+      console.log('Already submitting, returning');
       return false;
     }
     const { values, validation } = evaluate({ forceErrors: true });
+    console.log('Form values:', values);
+    console.log('Validation result:', validation);
     updateTargetNumberVisibility(values.target);
     if (!validation.valid) {
+      console.log('Validation failed, showing banner');
       showBanner('Please resolve the highlighted fields.');
       return false;
     }
