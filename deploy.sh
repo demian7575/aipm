@@ -61,8 +61,9 @@ deploy_backend() {
     API_ENDPOINT=$(serverless info --verbose | grep -o 'https://[^[:space:]]*' | head -1)
     echo "✅ Backend deployed to: $API_ENDPOINT"
     
-    # Save endpoint for frontend
-    echo "export const API_BASE_URL = '$API_ENDPOINT';" > src/config.js
+    # Update frontend config with API endpoint
+    echo "window.__AIPM_API_BASE__ = '$API_ENDPOINT';" > apps/frontend/public/config.js
+    echo "Updated frontend config with API endpoint: $API_ENDPOINT"
 }
 
 # Deploy frontend to S3
