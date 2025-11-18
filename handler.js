@@ -3,6 +3,7 @@ import path from 'path';
 
 // Simple in-memory database for Lambda
 let stories = [];
+let acceptanceTests = [];
 let initialized = false;
 
 // Initialize with seed data
@@ -122,7 +123,13 @@ export const handler = async (event, context) => {
     }
     
     if (requestPath === '/api/stories' && httpMethod === 'GET') {
-      const { roots } = attachChildren([...stories]);
+      // Attach acceptance tests to stories
+      const storiesWithTests = stories.map(story => ({
+        ...story,
+        acceptanceTests: acceptanceTests.filter(test => test.storyId === story.id)
+      }));
+      
+      const { roots } = attachChildren([...storiesWithTests]);
       return {
         statusCode: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -212,6 +219,258 @@ export const handler = async (event, context) => {
           story: newStory,
           timestamp: new Date().toISOString()
         })
+      };
+    }
+    
+    // Handle acceptance test update
+    const testUpdateMatch = requestPath.match(/^\/api\/tests\/(\d+)$/);
+    if (testUpdateMatch && httpMethod === 'PATCH') {
+      const testId = parseInt(testUpdateMatch[1]);
+      const body = JSON.parse(event.body || '{}');
+      const timestamp = new Date().toISOString();
+      
+      // Find and update the test
+      const testIndex = acceptanceTests.findIndex(test => test.id === testId);
+      if (testIndex === -1) {
+        return {
+          statusCode: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            error: 'Test not found',
+            message: `Acceptance test with id ${testId} not found`
+          })
+        };
+      }
+      
+      // Update the test
+      const updatedTest = {
+        ...acceptanceTests[testIndex],
+        title: body.title || acceptanceTests[testIndex].title,
+        given: body.given || acceptanceTests[testIndex].given,
+        when: body.when || acceptanceTests[testIndex].when,
+        then: body.then || acceptanceTests[testIndex].then,
+        status: body.status || acceptanceTests[testIndex].status,
+        updatedAt: timestamp
+      };
+      
+      acceptanceTests[testIndex] = updatedTest;
+      
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTest)
+      };
+    }
+    
+    // Handle acceptance test creation
+    const testCreateMatch = requestPath.match(/^\/api\/stories\/(\d+)\/tests$/);
+    if (testCreateMatch && httpMethod === 'POST') {
+      const storyId = parseInt(testCreateMatch[1]);
+      const body = JSON.parse(event.body || '{}');
+      const timestamp = new Date().toISOString();
+      
+      // Create acceptance test
+      const newTest = {
+        id: Math.floor(Math.random() * 1000),
+        storyId: storyId,
+        title: body.title || 'Acceptance Test',
+        given: body.given || ['Given the system is ready'],
+        when: body.when || ['When the user performs the action'],
+        then: body.then || ['Then the expected outcome occurs'],
+        status: body.status || 'Draft',
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      
+      // Store the test
+      acceptanceTests.push(newTest);
+      
+      return {
+        statusCode: 201,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTest)
+      };
+    }
+    
+    // Handle acceptance test draft generation
+    const testDraftMatch = requestPath.match(/^\/api\/stories\/(\d+)\/tests\/draft$/);
+    if (testDraftMatch && httpMethod === 'POST') {
+      const storyId = parseInt(testDraftMatch[1]);
+      const body = JSON.parse(event.body || '{}');
+      
+      // Generate a simple acceptance test draft
+      const draft = {
+        title: body.title || 'Acceptance Test',
+        given: body.given || ['Given the system is ready'],
+        when: body.when || ['When the user performs the action'],
+        then: body.then || ['Then the expected outcome occurs'],
+        status: 'Draft'
+      };
+      
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(draft)
+      };
+    }
+    
+    // Handle CodeWhisperer delegation
+    if (requestPath === '/personal-delegate' && httpMethod === 'POST') {
+      const body = JSON.parse(event.body || '{}');
+      
+      try {
+        // Try to create real GitHub PR
+        const prResponse = await createGitHubPR(body);
+        
+        const response = {
+          type: 'pull_request',
+          id: prResponse.id,
+          html_url: prResponse.html_url,
+          number: prResponse.number,
+          taskHtmlUrl: prResponse.html_url,
+          confirmationCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+          prUrl: prResponse.html_url,
+          branch: body.branchName,
+          status: prResponse.state || 'open'
+        };
+        
+        return {
+          statusCode: 201,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify(response)
+        };
+      } catch (error) {
+        console.error('Failed to create GitHub PR:', error);
+        
+        // Return error details for debugging
+        return {
+          statusCode: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            error: 'PR Creation Failed',
+            message: error.message,
+            details: 'Check GitHub token and repository permissions',
+            timestamp: new Date().toISOString()
+          })
+        };
+      }
+    }
+
+// GitHub PR creation function
+async function createGitHubPR(payload) {
+  const { owner, repo, branchName, taskTitle, objective, constraints, acceptanceCriteria } = payload;
+  
+  if (!process.env.GITHUB_TOKEN) {
+    throw new Error('GITHUB_TOKEN environment variable is required');
+  }
+  
+  const headers = {
+    'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'AIPM-CodeWhisperer-Bot'
+  };
+  
+  try {
+    // First, get the default branch and latest commit
+    const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers: { ...headers, 'Content-Type': undefined }
+    });
+    
+    if (!repoResponse.ok) {
+      throw new Error(`Failed to get repository info: ${repoResponse.status} ${repoResponse.statusText}`);
+    }
+    
+    const repoData = await repoResponse.json();
+    const defaultBranch = repoData.default_branch;
+    
+    // Get the latest commit SHA from default branch
+    const branchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${defaultBranch}`, {
+      headers: { ...headers, 'Content-Type': undefined }
+    });
+    
+    if (!branchResponse.ok) {
+      throw new Error(`Failed to get branch info: ${branchResponse.status} ${branchResponse.statusText}`);
+    }
+    
+    const branchData = await branchResponse.json();
+    const latestSha = branchData.object.sha;
+    
+    // Create new branch
+    const createBranchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ref: `refs/heads/${branchName}`,
+        sha: latestSha
+      })
+    });
+    
+    if (!createBranchResponse.ok && createBranchResponse.status !== 422) { // 422 = branch already exists
+      throw new Error(`Failed to create branch: ${createBranchResponse.status} ${createBranchResponse.statusText}`);
+    }
+    
+    // Create PR body with task details
+    const prBody = `
+## CodeWhisperer Task: ${taskTitle}
+
+**Objective:** ${objective}
+
+**Constraints:** ${constraints}
+
+**Acceptance Criteria:**
+${acceptanceCriteria.map(criteria => `- ${criteria}`).join('\n')}
+
+---
+*This PR was automatically created by AIPM CodeWhisperer delegation.*
+    `.trim();
+
+    // Create PR
+    const prResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        title: taskTitle,
+        head: branchName,
+        base: defaultBranch,
+        body: prBody,
+        draft: true
+      })
+    });
+
+    if (!prResponse.ok) {
+      const errorText = await prResponse.text();
+      throw new Error(`GitHub API error: ${prResponse.status} ${prResponse.statusText} - ${errorText}`);
+    }
+
+    return await prResponse.json();
+    
+  } catch (error) {
+    console.error('GitHub PR creation error:', error);
+    throw error;
+  }
+}
+    
+    // Handle CodeWhisperer status
+    if (requestPath === '/personal-delegate/status' && httpMethod === 'GET') {
+      const mockStatus = {
+        fetchedAt: new Date().toISOString(),
+        totalComments: 1,
+        latestComment: {
+          id: 400,
+          body: 'Task completed successfully',
+          html_url: 'https://github.com/comment/400',
+          created_at: new Date().toISOString(),
+          author: 'amazon-codewhisperer',
+          links: [],
+          snippet: 'Task completed successfully'
+        }
+      };
+      
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(mockStatus)
       };
     }
     

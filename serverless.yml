@@ -16,6 +16,7 @@ provider:
     AIPM_UPLOAD_DIR: /tmp/aipm/uploads
     AIPM_DISABLE_SQLITE_MIRROR: '1'
     AI_PM_FORCE_JSON_DB: '1'
+    GITHUB_TOKEN: ${env:GITHUB_TOKEN, ''}
   iam:
     role:
       statements:
