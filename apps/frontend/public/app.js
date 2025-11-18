@@ -4,6 +4,7 @@ import {
   buildAcceptanceTestIdea,
   createDefaultCodeWhispererForm,
   createLocalDelegationEntry,
+  ensureCodeWhispererEntryShape,
   summarizeCommentBody,
   validateCodeWhispererInput,
 } from './amazon-codewhisperer.js';
@@ -1362,6 +1363,28 @@ function codewhispererEntryShape(entry, storyId) {
   return normalized;
 }
 
+// Add this function to clear old CodeWhisperer data
+function clearOldCodeWhispererData() {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.codewhispererDelegations);
+    state.codewhispererDelegations = new Map();
+    console.log('Cleared old CodeWhisperer delegation data');
+    
+    // Refresh all CodeWhisperer sections
+    document.querySelectorAll('[data-role="codewhisperer-section"]').forEach(section => {
+      const storyId = Number(section.dataset.storyId);
+      if (Number.isFinite(storyId)) {
+        refreshCodeWhispererSection(storyId);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to clear CodeWhisperer data:', error);
+  }
+}
+
+// Expose function globally for debugging
+window.clearOldCodeWhispererData = clearOldCodeWhispererData;
+
 function loadCodeWhispererDelegationsFromStorage() {
   state.codewhispererDelegations = new Map();
   try {
@@ -1373,20 +1396,40 @@ function loadCodeWhispererDelegationsFromStorage() {
     if (!parsed || typeof parsed !== 'object') {
       return;
     }
+    
+    let hasChanges = false;
     Object.entries(parsed).forEach(([key, list]) => {
       const storyId = Number(key);
       if (!Number.isFinite(storyId) || !Array.isArray(list)) {
         return;
       }
-      const entries = list
+      
+      // Clean up invalid entries
+      const validEntries = list
         .map((entry) => ensureCodeWhispererEntryShape(entry, storyId))
-        .filter((entry) => entry != null);
-      if (entries.length > 0) {
-        state.codewhispererDelegations.set(storyId, entries);
+        .filter((entry) => {
+          if (!entry || !entry.taskTitle || entry.taskTitle === 'Unknown Task') {
+            hasChanges = true;
+            return false;
+          }
+          return true;
+        });
+        
+      if (validEntries.length > 0) {
+        state.codewhispererDelegations.set(storyId, validEntries);
+      } else if (list.length > 0) {
+        hasChanges = true; // Removed invalid entries
       }
     });
+    
+    // Save cleaned data if we removed invalid entries
+    if (hasChanges) {
+      persistCodeWhispererDelegations();
+    }
   } catch (error) {
     console.error('Failed to load CodeWhisperer delegations', error);
+    // Clear corrupted data
+    localStorage.removeItem(STORAGE_KEYS.codewhispererDelegations);
   }
 }
 
@@ -1468,6 +1511,13 @@ function formatCodeWhispererTargetLabel(entry) {
   if (!entry) {
     return '';
   }
+  
+  // Handle PR responses from delegation
+  if (entry.type === 'pull_request' || entry.prUrl) {
+    const number = entry.number || Number(entry.targetNumber);
+    return Number.isFinite(number) ? `PR #${number}` : 'PR';
+  }
+  
   const number = Number(entry.targetNumber);
   const hasNumber = Number.isFinite(number);
   if (entry.target === 'pr') {
@@ -1554,6 +1604,16 @@ function renderCodeWhispererSectionList(container, story) {
         entry.confirmationCode
       )}</code>`;
       card.appendChild(confirmation);
+    }
+
+    // Show PR link if available
+    if (entry.prUrl || (entry.type === 'pull_request' && entry.html_url)) {
+      const prLink = document.createElement('p');
+      prLink.className = 'codewhisperer-pr-link';
+      const url = entry.prUrl || entry.html_url;
+      const prNumber = entry.number ? `#${entry.number}` : '';
+      prLink.innerHTML = `<span>Pull Request:</span> <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">PR ${prNumber}</a>`;
+      card.appendChild(prLink);
     }
 
     if (entry.branchName) {
@@ -1690,12 +1750,29 @@ function buildCodeWhispererSection(story) {
   title.textContent = 'CodeWhisperer Delegations';
   heading.appendChild(title);
 
-  const actionBtn = document.createElement('button');
-  actionBtn.type = 'button';
-  actionBtn.className = 'secondary';
-  actionBtn.textContent = 'Develop with Amazon CodeWhisperer';
-  actionBtn.addEventListener('click', () => openCodeWhispererDelegationModal(story));
-  heading.appendChild(actionBtn);
+  // Check if story is ready for CodeWhisperer delegation
+  const canDelegate = canDelegateToCodeWhisperer(story);
+  
+  if (canDelegate.allowed) {
+    const actionBtn = document.createElement('button');
+    actionBtn.type = 'button';
+    actionBtn.className = 'secondary';
+    actionBtn.textContent = 'Develop with Amazon CodeWhisperer';
+    actionBtn.addEventListener('click', () => openCodeWhispererDelegationModal(story));
+    heading.appendChild(actionBtn);
+  } else {
+    // Show why delegation is not available
+    const warningDiv = document.createElement('div');
+    warningDiv.className = 'delegation-warning';
+    warningDiv.innerHTML = `
+      <p><strong>CodeWhisperer delegation not available:</strong></p>
+      <ul>
+        ${canDelegate.reasons.map(reason => `<li>${reason}</li>`).join('')}
+      </ul>
+      <p><em>Complete the requirements above to enable CodeWhisperer delegation.</em></p>
+    `;
+    heading.appendChild(warningDiv);
+  }
 
   section.appendChild(heading);
 
@@ -1704,6 +1781,57 @@ function buildCodeWhispererSection(story) {
   section.appendChild(list);
   renderCodeWhispererSectionList(list, story);
   return section;
+}
+
+function canDelegateToCodeWhisperer(story) {
+  const reasons = [];
+  
+  if (!story) {
+    return { allowed: false, reasons: ['No story selected'] };
+  }
+  
+  // Check INVEST validation
+  const investIssues = story.investIssues || [];
+  if (investIssues.length > 0) {
+    reasons.push(`INVEST issues: ${investIssues.join(', ')}`);
+  }
+  
+  // Check acceptance tests
+  const acceptanceTests = story.acceptanceTests || [];
+  if (acceptanceTests.length === 0) {
+    reasons.push('No acceptance tests defined');
+  } else {
+    const draftTests = acceptanceTests.filter(test => test.status === 'Draft');
+    const incompleteTests = acceptanceTests.filter(test => 
+      !test.given?.length || !test.when?.length || !test.then?.length
+    );
+    
+    if (draftTests.length > 0) {
+      reasons.push(`${draftTests.length} acceptance test(s) still in Draft status`);
+    }
+    
+    if (incompleteTests.length > 0) {
+      reasons.push(`${incompleteTests.length} acceptance test(s) missing Given/When/Then steps`);
+    }
+  }
+  
+  // Check story completeness
+  if (!story.title?.trim()) {
+    reasons.push('Story title is required');
+  }
+  
+  if (!story.description?.trim()) {
+    reasons.push('Story description is required');
+  }
+  
+  if (!story.asA?.trim() || !story.iWant?.trim() || !story.soThat?.trim()) {
+    reasons.push('Complete user story format required (As a... I want... So that...)');
+  }
+  
+  return {
+    allowed: reasons.length === 0,
+    reasons: reasons
+  };
 }
 
 async function codewhispererStatus(entry) {
@@ -4651,7 +4779,16 @@ function openCodeWhispererDelegationModal(story) {
   function evaluate({ forceErrors = false } = {}) {
     const values = readValues();
     console.log('validateCodeWhispererInput function:', typeof validateCodeWhispererInput);
-    const validation = validateCodeWhispererInput(values);
+    
+    // Fallback validation if import failed
+    let validation;
+    if (typeof validateCodeWhispererInput === 'function') {
+      validation = validateCodeWhispererInput(values);
+    } else {
+      console.warn('validateCodeWhispererInput not available, using fallback');
+      validation = { valid: true, errors: {} };
+    }
+    
     console.log('Validation result:', validation);
     latestValidation = validation;
     applyErrors(validation?.errors || {}, { force: forceErrors });
@@ -4779,7 +4916,13 @@ function openCodeWhispererDelegationModal(story) {
 
   const initialValues = readValues();
   updateTargetNumberVisibility(initialValues.target);
-  latestValidation = validateCodeWhispererInput(initialValues);
+  
+  if (typeof validateCodeWhispererInput === 'function') {
+    latestValidation = validateCodeWhispererInput(initialValues);
+  } else {
+    latestValidation = { valid: true, errors: {} };
+  }
+  
   applyErrors(latestValidation?.errors || {}, { force: false });
   setSubmitButtonState(latestValidation);
 }
@@ -5898,13 +6041,24 @@ async function confirmAndDeleteStory(storyId, options = {}) {
 }
 
 async function sendJson(url, options = {}) {
-  const { method = 'GET', body } = options;
+  const { method = 'GET', body, timeout = 30000 } = options;
   const resolvedUrl = resolveApiUrl(url);
-  const response = await fetch(resolvedUrl, {
+  
+  // Create timeout promise
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Request timeout')), timeout);
+  });
+  
+  // Create fetch promise
+  const fetchPromise = fetch(resolvedUrl, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
+  
+  // Race between fetch and timeout
+  const response = await Promise.race([fetchPromise, timeoutPromise]);
+  
   const text = await response.text();
   let data = null;
   if (text) {

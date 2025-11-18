@@ -1840,3 +1840,50 @@ dialog[data-size='content'] .modal-shell {
     min-height: 300px;
   }
 }
+/* CodeWhisperer delegation warning */
+.delegation-warning {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+  font-size: 0.9em;
+}
+
+.delegation-warning p {
+  margin: 0 0 8px 0;
+}
+
+.delegation-warning ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.delegation-warning li {
+  margin-bottom: 4px;
+  color: #856404;
+}
+
+.delegation-warning em {
+  color: #6c757d;
+  font-style: italic;
+}
+.codewhisperer-pr-link {
+  margin: 8px 0;
+  font-size: 0.9em;
+}
+
+.codewhisperer-pr-link span {
+  font-weight: 500;
+  color: #666;
+}
+
+.codewhisperer-pr-link a {
+  color: #0366d6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.codewhisperer-pr-link a:hover {
+  text-decoration: underline;
+}

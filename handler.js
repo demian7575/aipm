@@ -1,41 +1,115 @@
 import fs from 'fs';
 import path from 'path';
 
-// Simple in-memory database for Lambda
+// S3-based persistent storage
+const S3_BUCKET = `${process.env.AWS_LAMBDA_FUNCTION_NAME || 'aipm'}-data`;
+const S3_REGION = process.env.AWS_REGION || 'us-east-1';
+
+// Simple S3 operations using fetch
+async function s3Get(key) {
+  try {
+    const response = await fetch(`https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`);
+    if (response.ok) {
+      return await response.json();
+    }
+    return null;
+  } catch (error) {
+    console.warn(`S3 GET ${key} failed:`, error.message);
+    return null;
+  }
+}
+
+async function s3Put(key, data) {
+  try {
+    const response = await fetch(`https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    return response.ok;
+  } catch (error) {
+    console.warn(`S3 PUT ${key} failed:`, error.message);
+    return false;
+  }
+}
+
+// Persistent data storage
 let stories = [];
 let acceptanceTests = [];
-let initialized = false;
+let dataLoaded = false;
 
-// Initialize with seed data
-function initializeData() {
-  if (initialized) return;
+// Load data from S3
+async function loadData() {
+  if (dataLoaded) return;
   
-  const timestamp = new Date().toISOString();
-  
-  // Seed data matching the original app
-  stories = [
-    {
-      id: 1,
-      parentId: null,
-      title: 'Root',
-      description: 'Seeds the workspace with an AI Project Manager baseline story focused on AIPM component coverage.',
-      asA: 'AI project manager',
-      iWant: 'coordinate autonomous planning across AIPM components',
-      soThat: 'teams can deliver measurable outcomes with shared context',
-      components: ['WorkModel', 'Orchestration_Engagement'],
-      storyPoint: 5,
-      assigneeEmail: 'owner@example.com',
-      status: 'Ready',
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      children: []
+  try {
+    // Load stories
+    const storiesData = await s3Get('stories.json');
+    if (storiesData && Array.isArray(storiesData)) {
+      stories = storiesData;
+    } else {
+      // Initialize with seed data
+      const timestamp = new Date().toISOString();
+      stories = [
+        {
+          id: 1,
+          parentId: null,
+          title: 'Root',
+          description: 'Seeds the workspace with an AI Project Manager baseline story focused on AIPM component coverage.',
+          asA: 'AI project manager',
+          iWant: 'coordinate autonomous planning across AIPM components',
+          soThat: 'teams can deliver measurable outcomes with shared context',
+          components: ['WorkModel', 'Orchestration_Engagement'],
+          storyPoint: 5,
+          assigneeEmail: 'owner@example.com',
+          status: 'Ready',
+          createdAt: timestamp,
+          updatedAt: timestamp
+        }
+      ];
+      await saveStories();
     }
-  ];
-  
-  initialized = true;
+    
+    // Load acceptance tests
+    const testsData = await s3Get('acceptance-tests.json');
+    if (testsData && Array.isArray(testsData)) {
+      acceptanceTests = testsData;
+    } else {
+      acceptanceTests = [];
+      await saveAcceptanceTests();
+    }
+    
+    dataLoaded = true;
+    console.log(`Loaded ${stories.length} stories and ${acceptanceTests.length} acceptance tests`);
+  } catch (error) {
+    console.error('Failed to load data from S3:', error);
+    // Continue with empty data
+    dataLoaded = true;
+  }
+}
+
+// Save stories to S3
+async function saveStories() {
+  try {
+    await s3Put('stories.json', stories);
+  } catch (error) {
+    console.error('Failed to save stories:', error);
+  }
+}
+
+// Save acceptance tests to S3
+async function saveAcceptanceTests() {
+  try {
+    await s3Put('acceptance-tests.json', acceptanceTests);
+  } catch (error) {
+    console.error('Failed to save acceptance tests:', error);
+  }
 }
 
 // Helper function to attach children to stories
+function attachChildren(storiesArray) {
 function attachChildren(storiesArray) {
   const byId = new Map();
   storiesArray.forEach((story) => {
@@ -356,7 +430,7 @@ export const handler = async (event, context) => {
       }
     }
 
-// GitHub PR creation function
+// GitHub PR creation function with timeout
 async function createGitHubPR(payload) {
   const { owner, repo, branchName, taskTitle, objective, constraints, acceptanceCriteria } = payload;
   
@@ -371,48 +445,162 @@ async function createGitHubPR(payload) {
     'User-Agent': 'AIPM-CodeWhisperer-Bot'
   };
   
+  // Helper function to make API calls with timeout
+  const fetchWithTimeout = async (url, options, timeoutMs = 10000) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('GitHub API request timed out');
+      }
+      throw error;
+    }
+  };
+  
   try {
-    // First, get the default branch and latest commit
-    const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+    console.log(`Creating PR for ${owner}/${repo} on branch ${branchName}`);
+    
+    // Get repository info with timeout
+    const repoResponse = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}`, {
       headers: { ...headers, 'Content-Type': undefined }
-    });
+    }, 5000);
     
     if (!repoResponse.ok) {
-      throw new Error(`Failed to get repository info: ${repoResponse.status} ${repoResponse.statusText}`);
+      throw new Error(`Repository not found or access denied: ${repoResponse.status}`);
     }
     
     const repoData = await repoResponse.json();
-    const defaultBranch = repoData.default_branch;
+    const defaultBranch = repoData.default_branch || 'main';
     
-    // Get the latest commit SHA from default branch
-    const branchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${defaultBranch}`, {
+    console.log(`Default branch: ${defaultBranch}`);
+    
+    // Get latest commit SHA
+    const branchResponse = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${defaultBranch}`, {
       headers: { ...headers, 'Content-Type': undefined }
-    });
+    }, 5000);
     
     if (!branchResponse.ok) {
-      throw new Error(`Failed to get branch info: ${branchResponse.status} ${branchResponse.statusText}`);
+      throw new Error(`Failed to get branch info: ${branchResponse.status}`);
     }
     
     const branchData = await branchResponse.json();
     const latestSha = branchData.object.sha;
     
+    console.log(`Latest SHA: ${latestSha}`);
+    
     // Create new branch
-    const createBranchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+    const createBranchResponse = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         ref: `refs/heads/${branchName}`,
         sha: latestSha
       })
-    });
+    }, 5000);
     
-    if (!createBranchResponse.ok && createBranchResponse.status !== 422) { // 422 = branch already exists
-      throw new Error(`Failed to create branch: ${createBranchResponse.status} ${createBranchResponse.statusText}`);
+    if (!createBranchResponse.ok && createBranchResponse.status !== 422) {
+      console.warn(`Branch creation failed: ${createBranchResponse.status}`);
+    } else {
+      console.log(`Branch ${branchName} created or already exists`);
     }
     
-    // Create PR body with task details
-    const prBody = `
-## CodeWhisperer Task: ${taskTitle}
+    // Create an initial commit on the branch to enable PR creation
+    try {
+      const readmeContent = `# ${taskTitle}
+
+This branch was created for CodeWhisperer task delegation.
+
+## Task Details
+- **Objective:** ${objective}
+- **Constraints:** ${constraints}
+
+## Acceptance Criteria
+${acceptanceCriteria.map(criteria => `- ${criteria}`).join('\n')}
+
+## Next Steps
+1. Implement the required changes
+2. Test the implementation
+3. Update this README with progress
+4. Mark PR as ready for review
+
+---
+*Generated by AIPM CodeWhisperer delegation*
+`;
+
+      // Create blob for README
+      const blobResponse = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          content: Buffer.from(readmeContent).toString('base64'),
+          encoding: 'base64'
+        })
+      }, 5000);
+      
+      if (blobResponse.ok) {
+        const blobData = await blobResponse.json();
+        
+        // Create tree with the README
+        const treeResponse = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            base_tree: latestSha,
+            tree: [{
+              path: 'TASK_README.md',
+              mode: '100644',
+              type: 'blob',
+              sha: blobData.sha
+            }]
+          })
+        }, 5000);
+        
+        if (treeResponse.ok) {
+          const treeData = await treeResponse.json();
+          
+          // Create commit
+          const commitResponse = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              message: `Initial commit for CodeWhisperer task: ${taskTitle}`,
+              tree: treeData.sha,
+              parents: [latestSha]
+            })
+          }, 5000);
+          
+          if (commitResponse.ok) {
+            const commitData = await commitResponse.json();
+            
+            // Update branch reference to point to new commit
+            await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branchName}`, {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify({
+                sha: commitData.sha
+              })
+            }, 5000);
+            
+            console.log(`Initial commit created on branch ${branchName}`);
+          }
+        }
+      }
+    } catch (commitError) {
+      console.warn('Failed to create initial commit:', commitError.message);
+      // Continue anyway - PR creation might still work
+    }
+    
+    // Create PR body
+    const prBody = `## CodeWhisperer Task: ${taskTitle}
 
 **Objective:** ${objective}
 
@@ -422,11 +610,10 @@ async function createGitHubPR(payload) {
 ${acceptanceCriteria.map(criteria => `- ${criteria}`).join('\n')}
 
 ---
-*This PR was automatically created by AIPM CodeWhisperer delegation.*
-    `.trim();
+*This PR was automatically created by AIPM CodeWhisperer delegation.*`;
 
     // Create PR
-    const prResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+    const prResponse = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -436,17 +623,20 @@ ${acceptanceCriteria.map(criteria => `- ${criteria}`).join('\n')}
         body: prBody,
         draft: true
       })
-    });
+    }, 10000);
 
     if (!prResponse.ok) {
       const errorText = await prResponse.text();
-      throw new Error(`GitHub API error: ${prResponse.status} ${prResponse.statusText} - ${errorText}`);
+      throw new Error(`PR creation failed: ${prResponse.status} - ${errorText}`);
     }
 
-    return await prResponse.json();
+    const prData = await prResponse.json();
+    console.log(`PR created: ${prData.html_url}`);
+    
+    return prData;
     
   } catch (error) {
-    console.error('GitHub PR creation error:', error);
+    console.error('GitHub PR creation error:', error.message);
     throw error;
   }
 }

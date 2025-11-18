@@ -155,6 +155,25 @@ function validateTargetNumber(value, target) {
   return '';
 }
 
+export function ensureCodeWhispererEntryShape(entry, storyId) {
+  if (!entry || typeof entry !== 'object') {
+    return null;
+  }
+  
+  // Ensure the entry has the required shape
+  return {
+    localId: entry.localId || Math.random().toString(36).substring(2),
+    storyId: storyId,
+    taskTitle: entry.taskTitle || 'Unknown Task',
+    objective: entry.objective || '',
+    taskHtmlUrl: entry.taskHtmlUrl || '',
+    threadHtmlUrl: entry.threadHtmlUrl || '',
+    confirmationCode: entry.confirmationCode || '',
+    createdAt: entry.createdAt || new Date().toISOString(),
+    createTrackingCard: entry.createTrackingCard !== false
+  };
+}
+
 export function validateCodeWhispererInput(values) {
   const errors = {};
   const repoUrl = String(values.repositoryApiUrl || '').trim();
@@ -193,7 +212,16 @@ export function validateCodeWhispererInput(values) {
     errors.prTitle = 'PR title is required.';
   }
 
-  return errors;
+  if (!String(values.constraints || '').trim()) {
+    errors.constraints = 'Constraints are required.';
+  }
+
+  if (!String(values.acceptanceCriteria || '').trim()) {
+    errors.acceptanceCriteria = 'Acceptance criteria are required.';
+  }
+
+  const valid = Object.keys(errors).length === 0;
+  return { valid, errors };
 }
 
 export function buildDelegationPayload(story, formValues) {
@@ -230,11 +258,21 @@ export function createLocalDelegationEntry(story, formValues, response) {
     acceptanceCriteria: formValues.acceptanceCriteria,
     target: formValues.target,
     targetNumber: formValues.targetNumber,
+    // Store PR/issue information from response
+    type: response?.type || 'task',
+    html_url: response?.html_url || response?.taskHtmlUrl,
+    prUrl: response?.prUrl || response?.html_url,
+    taskHtmlUrl: response?.taskHtmlUrl,
+    threadHtmlUrl: response?.threadHtmlUrl,
+    number: response?.number,
+    confirmationCode: response?.confirmationCode,
     issueUrl: response?.issueUrl ?? null,
     commentUrl: response?.commentUrl ?? null,
     createdAt: timestamp,
     lastPolledAt: null,
     latestReply: null,
+    latestStatus: null,
     isActive: true,
+    createTrackingCard: formValues.createTrackingCard !== false,
   };
 }

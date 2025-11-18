@@ -17,6 +17,8 @@ provider:
     AIPM_DISABLE_SQLITE_MIRROR: '1'
     AI_PM_FORCE_JSON_DB: '1'
     GITHUB_TOKEN: ${env:GITHUB_TOKEN, ''}
+    STORIES_TABLE: ${self:service}-${self:provider.stage}-stories
+    ACCEPTANCE_TESTS_TABLE: ${self:service}-${self:provider.stage}-acceptance-tests
   iam:
     role:
       statements:
@@ -26,6 +28,17 @@ provider:
             - logs:CreateLogStream
             - logs:PutLogEvents
           Resource: '*'
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [StoriesTable, Arn]
+            - Fn::GetAtt: [AcceptanceTestsTable, Arn]
 
 package:
   exclude:
@@ -85,3 +98,38 @@ custom:
   serverless-offline:
     httpPort: 3001
     host: 0.0.0.0
+
+resources:
+  Resources:
+    StoriesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-stories
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        
+    AcceptanceTestsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-acceptance-tests
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: N
+          - AttributeName: storyId
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: storyId-index
+            KeySchema:
+              - AttributeName: storyId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
