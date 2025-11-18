@@ -1363,6 +1363,93 @@ function codewhispererEntryShape(entry, storyId) {
   return normalized;
 }
 
+// Add function to clear dangling CodeWhisperer delegations
+function clearDanglingCodeWhispererDelegations() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.codewhispererDelegations);
+    if (!stored) {
+      console.log('No CodeWhisperer delegations found');
+      showToast('No CodeWhisperer delegations to clean', 'info');
+      return;
+    }
+    
+    const parsed = JSON.parse(stored);
+    let removedCount = 0;
+    let totalCount = 0;
+    
+    // Get current story IDs safely
+    const currentStoryIds = new Set();
+    if (state.stories && state.stories.size > 0) {
+      state.stories.forEach(story => {
+        if (story && story.id) {
+          currentStoryIds.add(story.id);
+        }
+      });
+    }
+    
+    // Clean up delegations for non-existent stories
+    const cleanedData = {};
+    Object.keys(parsed).forEach(storyIdStr => {
+      const storyId = Number(storyIdStr);
+      const delegations = parsed[storyIdStr];
+      
+      if (Array.isArray(delegations)) {
+        totalCount += delegations.length;
+        
+        if (currentStoryIds.has(storyId)) {
+          // Keep delegations for existing stories
+          cleanedData[storyIdStr] = delegations;
+        } else {
+          // Count removed delegations
+          removedCount += delegations.length;
+        }
+      }
+    });
+    
+    // Save cleaned data
+    localStorage.setItem(STORAGE_KEYS.codewhispererDelegations, JSON.stringify(cleanedData));
+    
+    // Reload delegations
+    state.codewhispererDelegations = new Map();
+    loadCodeWhispererDelegationsFromStorage();
+    
+    // Refresh all CodeWhisperer sections safely
+    try {
+      document.querySelectorAll('[data-role="codewhisperer-section"]').forEach(section => {
+        const storyId = Number(section.dataset.storyId);
+        if (Number.isFinite(storyId)) {
+          refreshCodeWhispererSection(storyId);
+        }
+      });
+    } catch (refreshError) {
+      console.warn('Some sections could not be refreshed:', refreshError);
+    }
+    
+    console.log(`Cleaned up ${removedCount} dangling delegations out of ${totalCount} total`);
+    
+    if (removedCount > 0) {
+      showToast(`Removed ${removedCount} dangling CodeWhisperer delegations`, 'success');
+    } else {
+      showToast('No dangling delegations found to remove', 'info');
+    }
+    
+  } catch (error) {
+    console.error('Failed to clear dangling delegations:', error);
+    // Clear all if corrupted
+    try {
+      localStorage.removeItem(STORAGE_KEYS.codewhispererDelegations);
+      state.codewhispererDelegations = new Map();
+      showToast('Cleared all CodeWhisperer delegations due to data corruption', 'warning');
+    } catch (clearError) {
+      console.error('Failed to clear corrupted data:', clearError);
+      showToast('Error clearing delegations - please refresh the page', 'error');
+    }
+  }
+}
+
+// Expose function globally for easy access
+window.clearDanglingCodeWhispererDelegations = clearDanglingCodeWhispererDelegations;
+
 // Add this function to clear old CodeWhisperer data
 function clearOldCodeWhispererData() {
   try {
