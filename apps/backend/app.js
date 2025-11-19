@@ -12,10 +12,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
-import {
-  handlePersonalDelegateRequest,
-  handlePersonalDelegateStatusRequest,
-} from '../../server.js';
+// Removed delegation imports - now using direct PR creation
 
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
 
@@ -1875,7 +1872,203 @@ function logCodexUsageMetrics(payload, config) {
     return;
   }
 
-  console.log(`[${new Date().toISOString()}] [codex] Usage`, logPayload);
+async function handleCreatePRRequest(req, res) {
+  try {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body);
+        const { storyId, branchName, prTitle, prBody, story } = payload;
+        
+        // GitHub API configuration
+        const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+        const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
+        const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+        
+        if (!GITHUB_TOKEN) {
+          res.writeHead(400, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({ 
+            success: false, 
+            error: 'GitHub token not configured. Set GITHUB_TOKEN environment variable.' 
+          }));
+          return;
+        }
+
+        // Create branch and PR using GitHub API
+        const result = await createGitHubPR({
+          token: GITHUB_TOKEN,
+          owner: REPO_OWNER,
+          repo: REPO_NAME,
+          branchName,
+          prTitle,
+          prBody,
+          storyId
+        });
+        
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify(result));
+      } catch (error) {
+        console.error('PR creation error:', error);
+        res.writeHead(400, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: error.message || 'Invalid request' 
+        }));
+      }
+    });
+  } catch (error) {
+    console.error('PR creation handler error:', error);
+    res.writeHead(500, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.end(JSON.stringify({ 
+      success: false, 
+      error: 'Internal server error' 
+    }));
+  }
+}
+
+async function createGitHubPR({ token, owner, repo, branchName, prTitle, prBody, storyId }) {
+  const baseUrl = 'https://api.github.com';
+  
+  try {
+    // Get the default branch (usually main or master)
+    const repoResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}`, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    
+    if (!repoResponse.ok) {
+      throw new Error(`Failed to get repository info: ${repoResponse.statusText}`);
+    }
+    
+    const repoData = await repoResponse.json();
+    const defaultBranch = repoData.default_branch;
+    
+    // Get the latest commit SHA from the default branch
+    const branchResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/git/refs/heads/${defaultBranch}`, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    
+    if (!branchResponse.ok) {
+      throw new Error(`Failed to get branch info: ${branchResponse.statusText}`);
+    }
+    
+    const branchData = await branchResponse.json();
+    const baseSha = branchData.object.sha;
+    
+    // Create new branch
+    const createBranchResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/git/refs`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ref: `refs/heads/${branchName}`,
+        sha: baseSha
+      })
+    });
+    
+    if (!createBranchResponse.ok) {
+      const errorText = await createBranchResponse.text();
+      throw new Error(`Failed to create branch: ${createBranchResponse.statusText} - ${errorText}`);
+    }
+    
+    // Create a placeholder file to make the branch have content
+    const placeholderContent = `# Story ${storyId} Implementation
+
+This branch was created automatically for implementing story ${storyId}.
+
+## Next Steps
+1. Implement the required functionality
+2. Add tests
+3. Update documentation
+4. Request review
+
+## Story Details
+${prBody}
+`;
+    
+    const createFileResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/contents/story-${storyId}-implementation.md`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `Add implementation placeholder for story ${storyId}`,
+        content: Buffer.from(placeholderContent).toString('base64'),
+        branch: branchName
+      })
+    });
+    
+    if (!createFileResponse.ok) {
+      const errorText = await createFileResponse.text();
+      console.warn(`Failed to create placeholder file: ${createFileResponse.statusText} - ${errorText}`);
+      // Continue anyway, as this is not critical
+    }
+    
+    // Create pull request
+    const createPRResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/pulls`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: prTitle,
+        body: prBody,
+        head: branchName,
+        base: defaultBranch
+      })
+    });
+    
+    if (!createPRResponse.ok) {
+      const errorText = await createPRResponse.text();
+      throw new Error(`Failed to create PR: ${createPRResponse.statusText} - ${errorText}`);
+    }
+    
+    const prData = await createPRResponse.json();
+    
+    return {
+      success: true,
+      prNumber: prData.number,
+      prUrl: prData.html_url,
+      branchName: branchName,
+      message: `PR #${prData.number} created successfully`
+    };
+    
+  } catch (error) {
+    console.error('GitHub API error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
 }
 
 async function requestInvestAnalysisFromAi(story, options, config) {
@@ -4539,13 +4732,8 @@ export async function createApp() {
       return;
     }
 
-    if (pathname === '/personal-delegate' && method === 'POST') {
-      await handlePersonalDelegateRequest(req, res, url);
-      return;
-    }
-
-    if (pathname === '/personal-delegate/status' && method === 'GET') {
-      await handlePersonalDelegateStatusRequest(req, res, url);
+    if (pathname === '/api/create-pr' && method === 'POST') {
+      await handleCreatePRRequest(req, res);
       return;
     }
 

@@ -1,13 +1,4 @@
-import {
-  DEFAULT_REPO_API_URL,
-  buildAcceptanceTestFallback,
-  buildAcceptanceTestIdea,
-  createDefaultCodeWhispererForm,
-  createLocalDelegationEntry,
-  ensureCodeWhispererEntryShape,
-  summarizeCommentBody,
-  validateCodeWhispererInput,
-} from './amazon-codewhisperer.js';
+// Removed Codex/CodeWhisperer imports - now using automatic PR creation
 
 const API_BASE_URL = (window.__AIPM_API_BASE__ || '').replace(/\/$/, '');
 
@@ -1660,7 +1651,7 @@ function renderCodeWhispererSectionList(container, story) {
   if (!entries.length) {
     const empty = document.createElement('p');
     empty.className = 'empty-state';
-    empty.textContent = 'No CodeWhisperer tasks yet.';
+    empty.textContent = 'No PRs created yet.';
     container.appendChild(empty);
     return;
   }
@@ -1674,7 +1665,7 @@ function renderCodeWhispererSectionList(container, story) {
     header.className = 'codewhisperer-task-card-header';
 
     const title = document.createElement('h4');
-    title.textContent = entry.taskTitle || 'CodeWhisperer task';
+    title.textContent = entry.taskTitle || 'Development task';
     header.appendChild(title);
 
     const badge = document.createElement('span');
@@ -1724,7 +1715,7 @@ function renderCodeWhispererSectionList(container, story) {
       status.classList.add('is-error');
       status.textContent = entry.lastError;
     } else {
-      status.textContent = 'Waiting for CodeWhisperer to respond…';
+      status.textContent = 'PR created and ready for development…';
     }
     card.appendChild(status);
 
@@ -1748,7 +1739,7 @@ function renderCodeWhispererSectionList(container, story) {
       openLink.className = 'button secondary';
       openLink.target = '_blank';
       openLink.rel = 'noreferrer noopener';
-      openLink.textContent = 'Open CodeWhisperer task';
+      openLink.textContent = 'Open PR';
       actions.appendChild(openLink);
     }
 
@@ -1834,32 +1825,16 @@ function buildCodeWhispererSection(story) {
   const heading = document.createElement('div');
   heading.className = 'section-heading';
   const title = document.createElement('h3');
-  title.textContent = 'CodeWhisperer Delegations';
+  title.textContent = 'Development Tasks';
   heading.appendChild(title);
 
-  // Check if story is ready for CodeWhisperer delegation
-  const canDelegate = canDelegateToCodeWhisperer(story);
-  
-  if (canDelegate.allowed) {
-    const actionBtn = document.createElement('button');
-    actionBtn.type = 'button';
-    actionBtn.className = 'secondary';
-    actionBtn.textContent = 'Develop with Amazon CodeWhisperer';
-    actionBtn.addEventListener('click', () => openCodeWhispererDelegationModal(story));
-    heading.appendChild(actionBtn);
-  } else {
-    // Show why delegation is not available
-    const warningDiv = document.createElement('div');
-    warningDiv.className = 'delegation-warning';
-    warningDiv.innerHTML = `
-      <p><strong>CodeWhisperer delegation not available:</strong></p>
-      <ul>
-        ${canDelegate.reasons.map(reason => `<li>${reason}</li>`).join('')}
-      </ul>
-      <p><em>Complete the requirements above to enable CodeWhisperer delegation.</em></p>
-    `;
-    heading.appendChild(warningDiv);
-  }
+  // Auto PR creation button
+  const actionBtn = document.createElement('button');
+  actionBtn.type = 'button';
+  actionBtn.className = 'secondary';
+  actionBtn.textContent = 'Create PR';
+  actionBtn.addEventListener('click', () => openCodeWhispererDelegationModal(story));
+  heading.appendChild(actionBtn);
 
   section.appendChild(heading);
 
@@ -4577,7 +4552,72 @@ function openModal({
   modal.showModal();
 }
 
-function openCodeWhispererDelegationModal(story) {
+// Automatic PR creation function
+async function createAutomaticPR(story) {
+  if (!story) return;
+  
+  const branchName = `feature/story-${story.id}-${kebabCase(story.title || 'implementation')}`;
+  const prTitle = `Implement: ${story.title || `Story ${story.id}`}`;
+  
+  const prBody = `
+## Story Implementation
+
+**Story ID:** ${story.id}
+**Title:** ${story.title || 'Untitled'}
+
+### User Story
+- **As a:** ${story.asA || 'user'}
+- **I want:** ${story.iWant || 'to implement this feature'}
+- **So that:** ${story.soThat || 'I can achieve my goal'}
+
+### Acceptance Criteria
+${story.acceptanceTests?.map(test => 
+  `- **${test.title}**\n  - Given: ${test.given?.join(', ') || 'N/A'}\n  - When: ${test.when?.join(', ') || 'N/A'}\n  - Then: ${test.then?.join(', ') || 'N/A'}`
+).join('\n') || 'No acceptance tests defined'}
+
+### Components
+${story.components ? JSON.parse(story.components).join(', ') : 'None specified'}
+
+---
+*Auto-generated from AIPM Story #${story.id}*
+`;
+
+  try {
+    showToast('Creating PR...', 'info');
+    
+    const response = await sendJson('/api/create-pr', {
+      method: 'POST',
+      body: {
+        storyId: story.id,
+        branchName,
+        prTitle,
+        prBody: prBody.trim(),
+        story
+      }
+    });
+    
+    if (response.success) {
+      showToast(`PR created successfully: #${response.prNumber}`, 'success');
+      if (response.prUrl) {
+        window.open(response.prUrl, '_blank');
+      }
+    } else {
+      showToast(`Failed to create PR: ${response.error}`, 'error');
+    }
+  } catch (error) {
+    console.error('Error creating PR:', error);
+    showToast('Failed to create PR', 'error');
+  }
+}
+
+function kebabCase(text) {
+  if (!text) return '';
+  return String(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+}
   const defaults = createDefaultCodeWhispererForm(story);
   const form = document.createElement('form');
   form.className = 'modal-form codewhisperer-form';
@@ -4985,7 +5025,7 @@ function openCodeWhispererDelegationModal(story) {
   };
 
   openModal({
-    title: 'Delegate to Amazon CodeWhisperer',
+    title: 'Create Pull Request',
     content: form,
     cancelLabel: 'Cancel',
     size: 'content',
