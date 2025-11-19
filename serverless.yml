@@ -17,6 +17,8 @@ provider:
     AIPM_DISABLE_SQLITE_MIRROR: '1'
     AI_PM_FORCE_JSON_DB: '1'
     GITHUB_TOKEN: ${env:GITHUB_TOKEN, ''}
+    GITHUB_OWNER: ${env:GITHUB_OWNER, 'demian7575'}
+    GITHUB_REPO: ${env:GITHUB_REPO, 'aipm'}
     STORIES_TABLE: ${self:service}-${self:provider.stage}-stories
     ACCEPTANCE_TESTS_TABLE: ${self:service}-${self:provider.stage}-acceptance-tests
   iam:
