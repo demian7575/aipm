@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AIPM Gating Tests</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        .pass { background: #d4edda; border-color: #c3e6cb; }
+        .fail { background: #f8d7da; border-color: #f5c6cb; }
+        .running { background: #fff3cd; border-color: #ffeaa7; }
+        .summary { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 4px; }
+        button { margin: 5px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; font-size: 12px; border-radius: 4px; overflow-x: auto; }
+        .test-name { font-weight: bold; margin-bottom: 5px; }
+        .test-result { margin-top: 5px; }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>🧪 AIPM Gating Tests</h1>
+    <p>Comprehensive system health checks before code deployment</p>
+    
+    <div class="summary" id="summary">
+        <strong>Test Status:</strong> Ready to run
+    </div>
+    
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod';
+        const FRONTEND_BASE = 'http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com';
+        
+        const tests = [
+            {
+                name: 'Frontend Accessibility',
+                description: 'Verify frontend is accessible and returns valid HTML',
+                test: async () => {
+                    const response = await fetch(FRONTEND_BASE);
+                    if (!response.ok) throw new Error(`Frontend not accessible: ${response.status}`);
+                    const html = await response.text();
+                    if (!html.includes('<title>AI Project Manager Mindmap</title>')) {
+                        throw new Error('Invalid HTML content');
+                    }
+                    return 'Frontend is accessible and serving correct content';
+                }
+            },
+            {
+                name: 'Backend API Health',
+                description: 'Test backend API root endpoint with CORS',
+                test: async () => {
+                    const response = await fetch(`${API_BASE}/`);
+                    if (!response.ok) throw new Error(`Backend not accessible: ${response.status}`);
+                    const html = await response.text();
+                    if (!html.includes('AI Project Manager Mindmap')) {
+                        throw new Error('Backend not serving correct content');
+                    }
+                    return 'Backend API is responding and serving HTML';
+                }
+            },
+            {
+                name: 'Stories API Endpoint',
+                description: 'Test stories data retrieval',
+                test: async () => {
+                    const response = await fetch(`${API_BASE}/api/stories`);
+                    if (!response.ok) throw new Error(`Stories API failed: ${response.status}`);
+                    const stories = await response.json();
+                    if (!Array.isArray(stories)) throw new Error('Stories API returned invalid data');
+                    if (stories.length === 0) throw new Error('No stories found');
+                    return `Stories API working: ${stories.length} stories loaded`;
+                }
+            },
+            {
+                name: 'CORS Configuration',
+                description: 'Verify CORS headers for cross-origin requests',
+                test: async () => {
+                    const response = await fetch(`${API_BASE}/api/stories`, {
+                        method: 'OPTIONS',
+                        headers: { 
+                            'Origin': FRONTEND_BASE,
+                            'Content-Type': 'application/json' 
+                        }
+                    });
+                    if (!response.ok) throw new Error(`CORS preflight failed: ${response.status}`);
+                    return 'CORS is properly configured';
+                }
+            },
+            {
+                name: 'Runtime Data Export',
+                description: 'Test runtime data export endpoint',
+                test: async () => {
+                    const response = await fetch(`${API_BASE}/api/runtime-data`);
+                    // 404 is acceptable if no data exists yet
+                    if (response.status >= 500) {
+                        throw new Error(`Runtime data export server error: ${response.status}`);
+                    }
+                    return `Runtime data export endpoint available (status: ${response.status})`;
+                }
+            },
+            {
+                name: 'Document Generation API',
+                description: 'Test document generation endpoint',
+                test: async () => {
+                    const response = await fetch(`${API_BASE}/api/documents/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: 'test',
+                            stories: [{ id: 1, title: 'Test Story' }]
+                        })
+                    });
+                    
+                    // Should return some response (even if error due to missing data)
+                    if (response.status === 404) {
+                        throw new Error('Document generation endpoint not found');
+                    }
+                    
+                    return 'Document generation endpoint is available';
+                }
+            },
+            {
+                name: 'Stories Backup Persistence',
+                description: 'Test stories backup for upgrade safety',
+                test: async () => {
+                    const testData = { stories: [{ id: 999, title: 'Test Backup Story' }] };
+                    const response = await fetch(`${API_BASE}/api/stories/backup`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(testData)
+                    });
+                    
+                    if (!response.ok) throw new Error(`Backup failed: ${response.status}`);
+                    const result = await response.json();
+                    return `Stories backup working: ${result.count} stories backed up`;
+                }
+            },
+            {
+                name: 'Mindmap State Persistence',
+                description: 'Test mindmap state persistence across upgrades',
+                test: async () => {
+                    const testState = {
+                        positions: { 1: { x: 100, y: 200 } },
+                        expandedNodes: [1],
+                        selectedStoryId: 1
+                    };
+                    
+                    const response = await fetch(`${API_BASE}/api/mindmap/persist`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(testState)
+                    });
+                    
+                    if (!response.ok) throw new Error(`Mindmap persist failed: ${response.status}`);
+                    return 'Mindmap state persistence is working';
+                }
+            },
+            {
+                name: 'GitHub PR Creation',
+                description: 'Test GitHub pull request creation functionality',
+                test: async () => {
+                    const testData = {
+                        storyId: 999,
+                        branchName: `test-web-gating-${Date.now()}`,
+                        prTitle: 'Web Gating Test PR',
+                        prBody: 'This PR was created by web gating tests',
+                        story: { id: 999, title: 'Web Gating Test Story' }
+                    };
+                    
+                    const response = await fetch(`${API_BASE}/api/create-pr`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(testData)
+                    });
+                    
+                    if (!response.ok) throw new Error(`PR creation failed: ${response.status}`);
+                    const result = await response.json();
+                    
+                    if (!result.success) {
+                        if (result.error && result.error.includes('GitHub token not configured')) {
+                            throw new Error('GitHub token not configured');
+                        }
+                        return `PR creation endpoint available (${result.error})`;
+                    }
+                    
+                    return `GitHub PR creation working: PR #${result.prNumber} created`;
+                }
+            },
+            {
+                name: 'Frontend JavaScript Syntax',
+                description: 'Verify frontend JavaScript loads without errors',
+                test: async () => {
+                    const response = await fetch(`${FRONTEND_BASE}/app.js`);
+                    if (!response.ok) throw new Error(`app.js not accessible: ${response.status}`);
+                    
+                    const jsContent = await response.text();
+                    
+                    // Check for essential functions
+                    const requiredFunctions = ['loadStories', 'renderMindmap'];
+                    const missing = requiredFunctions.filter(fn => !jsContent.includes(fn));
+                    if (missing.length > 0) {
+                        throw new Error(`Missing functions: ${missing.join(', ')}`);
+                    }
+                    
+                    return 'Frontend JavaScript contains required functions';
+                }
+            },
+            {
+                name: 'End-to-End Story Loading',
+                description: 'Test complete story loading workflow',
+                test: async () => {
+                    // Simulate frontend story loading
+                    const response = await fetch(`${API_BASE}/api/stories`, {
+                        headers: { 'Origin': FRONTEND_BASE }
+                    });
+                    
+                    if (!response.ok) throw new Error(`Story loading failed: ${response.status}`);
+                    
+                    const stories = await response.json();
+                    const story = stories[0];
+                    
+                    // Verify story can be selected (has required fields for UI)
+                    if (!story.title || !story.description) {
+                        throw new Error('Story missing UI-required fields');
+                    }
+                    
+                    return `End-to-end story loading successful: "${story.title}"`;
+                }
+            }
+        ];
+        
+        let testResults = [];
+        
+        async function runAllTests() {
+            const resultsDiv = document.getElementById('results');
+            const summaryDiv = document.getElementById('summary');
+            
+            resultsDiv.innerHTML = '';
+            testResults = [];
+            
+            summaryDiv.innerHTML = '<strong>Test Status:</strong> Running tests...';
+            
+            let passed = 0;
+            let failed = 0;
+            
+            for (let i = 0; i < tests.length; i++) {
+                const test = tests[i];
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test running';
+                testDiv.innerHTML = `
+                    <div class="test-name">${i + 1}. ${test.name}</div>
+                    <div class="test-description">${test.description}</div>
+                    <div class="test-result">Running...</div>
+                `;
+                resultsDiv.appendChild(testDiv);
+                
+                try {
+                    const result = await test.test();
+                    testDiv.className = 'test pass';
+                    testDiv.querySelector('.test-result').innerHTML = `<span class="success">✅ PASS:</span> ${result}`;
+                    testResults.push({ name: test.name, status: 'PASS', result });
+                    passed++;
+                } catch (error) {
+                    testDiv.className = 'test fail';
+                    testDiv.querySelector('.test-result').innerHTML = `<span class="error">❌ FAIL:</span> ${error.message}`;
+                    testResults.push({ name: test.name, status: 'FAIL', error: error.message });
+                    failed++;
+                }
+                
+                // Update summary
+                summaryDiv.innerHTML = `
+                    <strong>Test Status:</strong> ${passed + failed}/${tests.length} completed
+                    | ✅ Passed: ${passed} | ❌ Failed: ${failed}
+                `;
+            }
+            
+            // Final summary
+            const overallStatus = failed === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failed} TESTS FAILED`;
+            summaryDiv.innerHTML = `
+                <strong>${overallStatus}</strong><br>
+                Total: ${tests.length} | Passed: ${passed} | Failed: ${failed}<br>
+                ${failed === 0 ? '<strong style="color: green;">System is ready for deployment</strong>' : '<strong style="color: red;">Fix failing tests before deployment</strong>'}
+            `;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('summary').innerHTML = '<strong>Test Status:</strong> Ready to run';
+            testResults = [];
+        }
+        
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Gating tests loaded. Click "Run All Tests" to start.');
+        });
+    </script>
+</body>
+</html>

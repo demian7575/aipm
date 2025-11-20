@@ -11,6 +11,7 @@
     "serve:delegate": "node server.js",
     "build": "node scripts/build.js",
     "test": "NODE_ENV=test node --test",
+    "test:gating": "node run-gating-tests.cjs",
     "lint": "echo 'No lint step configured'",
     "generate:sample-db": "node scripts/generate-sample-dataset.mjs",
     "deploy": "./deploy.sh",

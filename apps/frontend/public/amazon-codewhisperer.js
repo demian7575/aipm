@@ -129,7 +129,7 @@ export function createDefaultCodeWhispererForm(story) {
     repositoryApiUrl: DEFAULT_REPO_API_URL,
     owner: 'demian7575',
     repo: 'aipm',
-    target: 'new-issue',
+    target: 'pr',
     targetNumber: '',
     branchName: computeBranchName(story),
     taskTitle: computeTaskTitle(story),

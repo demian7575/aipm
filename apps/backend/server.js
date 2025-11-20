@@ -8,25 +8,153 @@ export async function handlePersonalDelegateRequest(req, res, url) {
       body += chunk.toString();
     });
     
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
         
-        // Mock response simulating successful task creation
-        const mockResponse = {
-          type: 'issue',
-          id: Math.floor(Math.random() * 1000),
-          html_url: `https://github.com/${payload.owner}/${payload.repo}/issues/123`,
-          number: 123,
-          taskHtmlUrl: `https://github.com/${payload.owner}/${payload.repo}/issues/123`,
-          confirmationCode: Math.random().toString(36).substring(2, 8).toUpperCase()
-        };
-        
-        res.writeHead(201, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+        console.log('Delegation payload received:', {
+          target: payload.target,
+          owner: payload.owner,
+          repo: payload.repo,
+          branchName: payload.branchName,
+          prTitle: payload.prTitle
         });
-        res.end(JSON.stringify(mockResponse));
+        
+        const githubToken = process.env.GITHUB_TOKEN;
+        if (!githubToken) {
+          res.writeHead(400, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({ error: 'GitHub token not configured' }));
+          return;
+        }
+        
+        const owner = payload.owner || 'demian7575';
+        const repo = payload.repo || 'aipm';
+        const branchName = payload.branchName || `codewhisperer-${Date.now()}`;
+        const prTitle = payload.prTitle || payload.taskTitle || 'CodeWhisperer Task';
+        
+        // Create PR body from delegation details
+        const prBody = `# CodeWhisperer Delegation
+
+**Task**: ${payload.taskTitle || 'Development Task'}
+**Objective**: ${payload.objective || 'Not specified'}
+
+## Constraints
+${payload.constraints || 'None specified'}
+
+## Acceptance Criteria
+${payload.acceptanceCriteria || 'To be defined'}
+
+---
+*This PR was created via CodeWhisperer delegation*`;
+
+        try {
+          // Create branch from main
+          const mainResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/main`, {
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'AIPM-Bot'
+            }
+          });
+          
+          if (!mainResponse.ok) {
+            throw new Error(`Failed to get main branch: ${mainResponse.statusText}`);
+          }
+          
+          const mainBranch = await mainResponse.json();
+          
+          // Create new branch
+          const createBranchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'AIPM-Bot',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              ref: `refs/heads/${branchName}`,
+              sha: mainBranch.object.sha
+            })
+          });
+          
+          if (!createBranchResponse.ok) {
+            const error = await createBranchResponse.text();
+            throw new Error(`Failed to create branch: ${error}`);
+          }
+          
+          // Create placeholder file
+          const fileName = `codewhisperer-task-${Date.now()}.md`;
+          const fileContent = `# ${prTitle}
+
+${prBody}
+`;
+          
+          await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'AIPM-Bot',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              message: `Add CodeWhisperer task: ${prTitle}`,
+              content: Buffer.from(fileContent).toString('base64'),
+              branch: branchName
+            })
+          });
+          
+          // Create PR
+          const prResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'AIPM-Bot',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              title: prTitle,
+              body: prBody,
+              head: branchName,
+              base: 'main'
+            })
+          });
+          
+          if (!prResponse.ok) {
+            const errorData = await prResponse.json();
+            throw new Error(`Failed to create PR: ${errorData.message}`);
+          }
+          
+          const pr = await prResponse.json();
+          
+          res.writeHead(201, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({
+            type: 'pull_request',
+            id: pr.id,
+            number: pr.number,
+            html_url: pr.html_url,
+            taskHtmlUrl: pr.html_url,
+            branchName: branchName,
+            confirmationCode: `PR${pr.number}`
+          }));
+          
+        } catch (githubError) {
+          console.error('GitHub API error:', githubError);
+          res.writeHead(500, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({ error: `GitHub API error: ${githubError.message}` }));
+        }
+        
       } catch (error) {
         res.writeHead(400, {
           'Content-Type': 'application/json',

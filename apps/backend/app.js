@@ -4424,15 +4424,26 @@ async function serveStatic(req, res) {
         ? 'application/javascript; charset=utf-8'
         : 'application/octet-stream';
     const body = await readFile(filePath);
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, { 
+      'Content-Type': contentType,
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
     res.end(body);
   } catch (error) {
     if (error.code === 'ENOENT') {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.writeHead(404, { 
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Access-Control-Allow-Origin': '*'
+      });
       res.end('Not found');
       return;
     }
-    res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.writeHead(500, { 
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Access-Control-Allow-Origin': '*'
+    });
     res.end('Internal server error');
   }
 }
@@ -4523,6 +4534,30 @@ async function handleFileUpload(req, res, url) {
 
 export async function createApp() {
   const db = await ensureDatabase();
+  
+  // Initialize backup tables for persistence
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS stories_backup (
+        id TEXT PRIMARY KEY,
+        data TEXT,
+        timestamp TEXT,
+        count INTEGER
+      )
+    `);
+    
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS mindmap_state (
+        id TEXT PRIMARY KEY,
+        positions TEXT,
+        expanded_nodes TEXT,
+        selected_story_id INTEGER,
+        timestamp TEXT
+      )
+    `);
+  } catch (error) {
+    console.warn('Failed to initialize backup tables:', error);
+  }
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
@@ -5255,11 +5290,320 @@ export async function createApp() {
         res.setHeader('X-Document-Title', encodeURIComponent(title));
         res.setHeader('X-Document-Source', document.source || 'unknown');
         res.setHeader('X-Generated-At', now());
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         res.end(buffer);
       } catch (error) {
         console.error('Failed to generate document', error);
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to generate document' });
+      }
+      return;
+    }
+
+    // GitHub PR creation endpoint
+    if (pathname === '/api/create-pr' && method === 'POST') {
+      try {
+        const payload = await parseJson(req);
+        const { storyId, branchName, prTitle, prBody, story } = payload;
+        
+        console.log('PR creation payload:', { storyId, branchName: branchName?.substring(0, 50), prTitle: prTitle?.substring(0, 50) });
+        
+        // Validate required parameters
+        if (!branchName || typeof branchName !== 'string' || branchName.trim() === '') {
+          console.error('Invalid branch name:', { branchName, type: typeof branchName });
+          sendJson(res, 200, { 
+            success: false, 
+            error: 'Branch name is required and must be a non-empty string' 
+          });
+          return;
+        }
+        
+        if (!prTitle || typeof prTitle !== 'string') {
+          sendJson(res, 200, { 
+            success: false, 
+            error: 'PR title is required and must be a string' 
+          });
+          return;
+        }
+        
+        console.log('Creating PR with branch:', branchName, 'title:', prTitle);
+        
+        const githubToken = process.env.GITHUB_TOKEN;
+        if (!githubToken) {
+          sendJson(res, 200, { 
+            success: false, 
+            error: 'GitHub token not configured. Set GITHUB_TOKEN environment variable.' 
+          });
+          return;
+        }
+        
+        const owner = process.env.GITHUB_OWNER || 'demian7575';
+        const repo = process.env.GITHUB_REPO || 'aipm';
+        
+        try {
+          // First, create or get the branch
+          let branchSha;
+          
+          // Check if branch exists
+          const checkBranchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branchName}`, {
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'AIPM-Bot'
+            }
+          });
+          
+          if (checkBranchResponse.ok) {
+            // Branch exists
+            const existingBranch = await checkBranchResponse.json();
+            branchSha = existingBranch.object.sha;
+            console.log(`Branch ${branchName} already exists`);
+          } else {
+            // Create new branch from main
+            const mainResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/main`, {
+              headers: {
+                'Authorization': `token ${githubToken}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'AIPM-Bot'
+              }
+            });
+            
+            if (!mainResponse.ok) {
+              throw new Error(`Failed to get main branch: ${mainResponse.statusText}`);
+            }
+            
+            const mainBranch = await mainResponse.json();
+            branchSha = mainBranch.object.sha;
+            
+            // Create new branch
+            const createBranchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `token ${githubToken}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'AIPM-Bot',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                ref: `refs/heads/${branchName}`,
+                sha: branchSha
+              })
+            });
+            
+            if (!createBranchResponse.ok) {
+              const error = await createBranchResponse.text();
+              throw new Error(`Failed to create branch: ${error}`);
+            }
+            
+            console.log(`Created branch ${branchName}`);
+          }
+          
+          // Create a simple file to ensure the branch has commits
+          const fileName = `story-${storyId}-implementation.md`;
+          const fileContent = `# ${prTitle}
+
+## Story Details
+- **ID**: ${storyId}
+- **Title**: ${story?.title || 'Untitled'}
+- **Description**: ${story?.description || 'No description'}
+
+## Implementation Notes
+This file was created automatically for story implementation tracking.
+
+## Acceptance Criteria
+${story?.acceptanceTests?.map(test => `- ${test.title || 'Acceptance test'}`).join('\n') || '- To be defined'}
+`;
+          
+          // Check if file already exists
+          const checkFileResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}?ref=${branchName}`, {
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'AIPM-Bot'
+            }
+          });
+          
+          if (!checkFileResponse.ok) {
+            // File doesn't exist, create it
+            const createFileResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `token ${githubToken}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'AIPM-Bot',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                message: `Add implementation file for story ${storyId}`,
+                content: Buffer.from(fileContent).toString('base64'),
+                branch: branchName
+              })
+            });
+            
+            if (!createFileResponse.ok) {
+              const error = await createFileResponse.text();
+              console.warn(`Failed to create file: ${error}`);
+            }
+          }
+          
+          // Now create the pull request
+          const prRequestBody = {
+            title: prTitle,
+            body: prBody,
+            head: branchName,
+            base: 'main'
+          };
+          
+          console.log('Creating PR with request body:', JSON.stringify(prRequestBody, null, 2));
+          
+          const prResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'AIPM-Bot',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(prRequestBody)
+          });
+          
+          if (!prResponse.ok) {
+            const errorData = await prResponse.json();
+            throw new Error(`Failed to create PR: ${errorData.message}. Details: ${JSON.stringify(errorData)}`);
+          }
+          
+          const pr = await prResponse.json();
+          
+          sendJson(res, 200, {
+            success: true,
+            prNumber: pr.number,
+            prUrl: pr.html_url,
+            branchName: branchName,
+            storyId: storyId
+          });
+          
+        } catch (githubError) {
+          console.error('GitHub API error:', githubError);
+          sendJson(res, 200, { 
+            success: false, 
+            error: `GitHub API error: ${githubError.message}` 
+          });
+        }
+        
+      } catch (error) {
+        console.error('Failed to create PR:', error);
+        sendJson(res, 200, { 
+          success: false, 
+          error: 'Failed to create PR: ' + error.message 
+        });
+      }
+      return;
+    }
+
+    // Persistent storage endpoints for upgrade safety
+    if (pathname === '/api/stories/backup' && method === 'POST') {
+      try {
+        const payload = await parseJson(req);
+        const stories = payload.stories || [];
+        
+        // Store in SQLite for persistence across deployments
+        const timestamp = now();
+        
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO stories_backup (id, data, timestamp, count)
+          VALUES (?, ?, ?, ?)
+        `);
+        stmt.run('latest', JSON.stringify(stories), timestamp, stories.length);
+        
+        sendJson(res, 200, { 
+          success: true, 
+          count: stories.length,
+          timestamp 
+        });
+      } catch (error) {
+        console.error('Backup failed:', error);
+        sendJson(res, 500, { message: 'Failed to backup stories' });
+      }
+      return;
+    }
+
+    if (pathname === '/api/stories/restore' && method === 'GET') {
+      try {
+        // Restore from backup table
+        const row = db.prepare('SELECT * FROM stories_backup WHERE id = ?').get('latest');
+        
+        if (!row) {
+          sendJson(res, 200, { 
+            stories: [],
+            count: 0,
+            message: 'No backup found'
+          });
+          return;
+        }
+        
+        const stories = JSON.parse(row.data);
+        sendJson(res, 200, { 
+          stories,
+          count: stories.length,
+          timestamp: row.timestamp
+        });
+      } catch (error) {
+        console.error('Restore failed:', error);
+        sendJson(res, 500, { message: 'Failed to restore stories backup' });
+      }
+      return;
+    }
+
+    if (pathname === '/api/mindmap/persist' && method === 'POST') {
+      try {
+        const payload = await parseJson(req);
+        const timestamp = now();
+        
+        const stmt = db.prepare(`
+          INSERT OR REPLACE INTO mindmap_state (id, positions, expanded_nodes, selected_story_id, timestamp)
+          VALUES (?, ?, ?, ?, ?)
+        `);
+        
+        stmt.run(
+          'current',
+          JSON.stringify(payload.positions || {}),
+          JSON.stringify(payload.expandedNodes || []),
+          payload.selectedStoryId || null,
+          timestamp
+        );
+        
+        sendJson(res, 200, { success: true, timestamp });
+      } catch (error) {
+        console.error('Mindmap persist failed:', error);
+        sendJson(res, 500, { message: 'Failed to persist mindmap state' });
+      }
+      return;
+    }
+
+    if (pathname === '/api/mindmap/restore' && method === 'GET') {
+      try {
+        const row = db.prepare('SELECT * FROM mindmap_state WHERE id = ?').get('current');
+        
+        if (!row) {
+          sendJson(res, 200, { 
+            positions: {},
+            expandedNodes: [],
+            selectedStoryId: null
+          });
+          return;
+        }
+        
+        sendJson(res, 200, {
+          positions: JSON.parse(row.positions || '{}'),
+          expandedNodes: JSON.parse(row.expanded_nodes || '[]'),
+          selectedStoryId: row.selected_story_id,
+          timestamp: row.timestamp
+        });
+      } catch (error) {
+        console.error('Mindmap restore failed:', error);
+        sendJson(res, 500, { message: 'Failed to restore mindmap state' });
       }
       return;
     }

@@ -1363,93 +1363,6 @@ function codewhispererEntryShape(entry, storyId) {
   return normalized;
 }
 
-// Add function to clear dangling CodeWhisperer delegations
-function clearDanglingCodeWhispererDelegations() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEYS.codewhispererDelegations);
-    if (!stored) {
-      console.log('No CodeWhisperer delegations found');
-      showToast('No CodeWhisperer delegations to clean', 'info');
-      return;
-    }
-    
-    const parsed = JSON.parse(stored);
-    let removedCount = 0;
-    let totalCount = 0;
-    
-    // Get current story IDs safely
-    const currentStoryIds = new Set();
-    if (state.stories && state.stories.size > 0) {
-      state.stories.forEach(story => {
-        if (story && story.id) {
-          currentStoryIds.add(story.id);
-        }
-      });
-    }
-    
-    // Clean up delegations for non-existent stories
-    const cleanedData = {};
-    Object.keys(parsed).forEach(storyIdStr => {
-      const storyId = Number(storyIdStr);
-      const delegations = parsed[storyIdStr];
-      
-      if (Array.isArray(delegations)) {
-        totalCount += delegations.length;
-        
-        if (currentStoryIds.has(storyId)) {
-          // Keep delegations for existing stories
-          cleanedData[storyIdStr] = delegations;
-        } else {
-          // Count removed delegations
-          removedCount += delegations.length;
-        }
-      }
-    });
-    
-    // Save cleaned data
-    localStorage.setItem(STORAGE_KEYS.codewhispererDelegations, JSON.stringify(cleanedData));
-    
-    // Reload delegations
-    state.codewhispererDelegations = new Map();
-    loadCodeWhispererDelegationsFromStorage();
-    
-    // Refresh all CodeWhisperer sections safely
-    try {
-      document.querySelectorAll('[data-role="codewhisperer-section"]').forEach(section => {
-        const storyId = Number(section.dataset.storyId);
-        if (Number.isFinite(storyId)) {
-          refreshCodeWhispererSection(storyId);
-        }
-      });
-    } catch (refreshError) {
-      console.warn('Some sections could not be refreshed:', refreshError);
-    }
-    
-    console.log(`Cleaned up ${removedCount} dangling delegations out of ${totalCount} total`);
-    
-    if (removedCount > 0) {
-      showToast(`Removed ${removedCount} dangling CodeWhisperer delegations`, 'success');
-    } else {
-      showToast('No dangling delegations found to remove', 'info');
-    }
-    
-  } catch (error) {
-    console.error('Failed to clear dangling delegations:', error);
-    // Clear all if corrupted
-    try {
-      localStorage.removeItem(STORAGE_KEYS.codewhispererDelegations);
-      state.codewhispererDelegations = new Map();
-      showToast('Cleared all CodeWhisperer delegations due to data corruption', 'warning');
-    } catch (clearError) {
-      console.error('Failed to clear corrupted data:', clearError);
-      showToast('Error clearing delegations - please refresh the page', 'error');
-    }
-  }
-}
-
-// Expose function globally for easy access
-window.clearDanglingCodeWhispererDelegations = clearDanglingCodeWhispererDelegations;
-
 // Add this function to clear old CodeWhisperer data
 function clearOldCodeWhispererData() {
   try {
@@ -1599,8 +1512,8 @@ function formatCodeWhispererTargetLabel(entry) {
     return '';
   }
   
-  // Handle PR responses from delegation
-  if (entry.type === 'pull_request' || entry.prUrl) {
+  // Handle PR responses from delegation - check multiple indicators
+  if (entry.type === 'pull_request' || entry.prUrl || entry.html_url?.includes('/pull/')) {
     const number = entry.number || Number(entry.targetNumber);
     return Number.isFinite(number) ? `PR #${number}` : 'PR';
   }
@@ -1840,14 +1753,7 @@ function buildCodeWhispererSection(story) {
   // Check if story is ready for CodeWhisperer delegation
   const canDelegate = canDelegateToCodeWhisperer(story);
   
-  if (canDelegate.allowed) {
-    const actionBtn = document.createElement('button');
-    actionBtn.type = 'button';
-    actionBtn.className = 'secondary';
-    actionBtn.textContent = 'Develop with Amazon CodeWhisperer';
-    actionBtn.addEventListener('click', () => openCodeWhispererDelegationModal(story));
-    heading.appendChild(actionBtn);
-  } else {
+  if (!canDelegate.allowed) {
     // Show why delegation is not available
     const warningDiv = document.createElement('div');
     warningDiv.className = 'delegation-warning';
@@ -3475,6 +3381,7 @@ function renderDetails() {
     </div>
     <div class="full form-actions">
       <button type="submit">Save Story</button>
+      <button type="button" id="codewhisperer-btn" class="secondary">Develop with Amazon CodeWhisperer</button>
     </div>
   `;
 
@@ -3941,6 +3848,12 @@ function renderDetails() {
     if (email) {
       window.open(`mailto:${email}`);
     }
+  });
+
+  const codewhispererBtn = form.querySelector('#codewhisperer-btn');
+  codewhispererBtn?.addEventListener('click', (event) => {
+    event.preventDefault();
+    openCodeWhispererDelegationModal(story);
   });
 
   const codewhispererSection = buildCodeWhispererSection(story);
@@ -4605,7 +4518,7 @@ function openCodeWhispererDelegationModal(story) {
       <legend>Target</legend>
       <label><input type="radio" name="target" value="new-issue" /> New issue</label>
       <label><input type="radio" name="target" value="issue" /> Existing issue</label>
-      <label><input type="radio" name="target" value="pr" /> Pull request</label>
+      <label><input type="radio" name="target" value="pr" checked /> Pull request</label>
     </fieldset>
     <div class="field" data-role="target-number">
       <label for="codewhisperer-target-number">Issue / PR number</label>
@@ -4734,7 +4647,7 @@ function openCodeWhispererDelegationModal(story) {
   }
 
   function readValues() {
-    const target = targetInputs.find((input) => input.checked)?.value || 'new-issue';
+    const target = targetInputs.find((input) => input.checked)?.value || 'pr';
     return {
       repositoryApiUrl: repoInput.value.trim() || DEFAULT_REPO_API_URL,
       owner: ownerInput.value.trim(),
@@ -4967,9 +4880,14 @@ function openCodeWhispererDelegationModal(story) {
         ? 'CodeWhisperer task created and acceptance test drafted.'
         : 'CodeWhisperer task created';
 
-      const toastMessage = confirmationCode
-        ? `${toastBase} Confirmation: ${confirmationCode}.`
-        : toastBase;
+      let toastMessage = toastBase;
+      if (result.html_url) {
+        toastMessage += ` <a href="${result.html_url}" target="_blank">View PR #${result.number}</a>`;
+      }
+      if (confirmationCode) {
+        toastMessage += ` Confirmation: ${confirmationCode}.`;
+      }
+      
       showToast(toastMessage, 'success');
       return true;
     } catch (error) {
