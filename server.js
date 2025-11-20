@@ -389,28 +389,80 @@ export async function performDelegation(payload) {
   const repoPath = `/repos/${normalized.owner}/${normalized.repo}`;
   const confirmationCode = generateConfirmationCode();
 
-  if (normalized.target === 'new-issue') {
-    const issue = await githubRequest(`${repoPath}/issues`, {
-      method: 'POST',
-      body: JSON.stringify({
-        title: normalized.taskTitle,
-        body,
-      }),
-    });
-    const comment = await githubRequest(`${repoPath}/issues/${issue.number}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ body }),
-    });
-    return {
-      type: 'issue',
-      id: issue.id,
-      html_url: comment?.html_url || issue.html_url,
-      number: issue.number,
-      commentId: comment?.id ?? null,
-      taskHtmlUrl: issue.html_url,
-      threadHtmlUrl: comment?.html_url || issue.html_url,
-      confirmationCode,
-    };
+  if (normalized.target === 'new-issue' || normalized.target === 'pr') {
+    // Create PR instead of issue
+    const timestamp = Date.now();
+    const branchName = normalized.branchName ? 
+      `${normalized.branchName}-${timestamp}` : 
+      `codewhisperer-${timestamp}`;
+    
+    try {
+      // Get main branch SHA
+      const mainBranch = await githubRequest(`${repoPath}/git/refs/heads/main`);
+      
+      // Create new branch
+      await githubRequest(`${repoPath}/git/refs`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ref: `refs/heads/${branchName}`,
+          sha: mainBranch.object.sha
+        })
+      });
+      
+      // Create placeholder file
+      const fileName = `codewhisperer-task-${timestamp}.md`;
+      const fileContent = `# ${normalized.taskTitle}\n\n${body}`;
+      
+      await githubRequest(`${repoPath}/contents/${fileName}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          message: `Add CodeWhisperer task: ${normalized.taskTitle}`,
+          content: Buffer.from(fileContent).toString('base64'),
+          branch: branchName
+        })
+      });
+      
+      // Create PR
+      const pr = await githubRequest(`${repoPath}/pulls`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: normalized.prTitle || normalized.taskTitle,
+          body,
+          head: branchName,
+          base: 'main'
+        })
+      });
+      
+      return {
+        type: 'pull_request',
+        id: pr.id,
+        html_url: pr.html_url,
+        number: pr.number,
+        branchName: branchName,
+        taskHtmlUrl: pr.html_url,
+        threadHtmlUrl: pr.html_url,
+        confirmationCode: `PR${pr.number}`,
+      };
+    } catch (error) {
+      console.error('Failed to create PR:', error);
+      // Fallback to issue creation
+      const issue = await githubRequest(`${repoPath}/issues`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: normalized.taskTitle,
+          body,
+        }),
+      });
+      return {
+        type: 'issue',
+        id: issue.id,
+        html_url: issue.html_url,
+        number: issue.number,
+        taskHtmlUrl: issue.html_url,
+        threadHtmlUrl: issue.html_url,
+        confirmationCode,
+      };
+    }
   }
 
   const number = normalized.targetNumber;
