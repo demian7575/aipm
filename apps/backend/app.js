@@ -14,6 +14,422 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 // Removed delegation imports - now using direct PR creation
 
+// Add delegation helper functions
+function ensureGithubToken() {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    throw new Error('GitHub token not configured');
+  }
+  return token;
+}
+
+function generateConfirmationCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+async function githubRequest(path, options = {}) {
+  const token = ensureGithubToken();
+  const url = new URL(path, 'https://api.github.com');
+  const headers = {
+    Accept: 'application/vnd.github+json',
+    Authorization: `Bearer ${token}`,
+    'User-Agent': 'aipm-delegation-server',
+  };
+  if (options.body && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  const response = await fetch(url, {
+    ...options,
+    headers: { ...headers, ...(options.headers || {}) },
+  });
+  const text = await response.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
+  if (!response.ok) {
+    const message = (data && data.message) || `GitHub request failed with status ${response.status}`;
+    throw Object.assign(new Error(message), { statusCode: response.status || 502, details: data });
+  }
+  return data;
+}
+
+async function getAllStories(db) {
+  try {
+    const query = 'SELECT * FROM stories ORDER BY id';
+    const rows = await new Promise((resolve, reject) => {
+      db.all(query, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+    
+    return rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      status: row.status,
+      storyPoints: row.story_points,
+      parentId: row.parent_id,
+      assignee: row.assignee,
+      component: row.component
+    }));
+  } catch (error) {
+    console.error('getAllStories error:', error);
+    return [];
+  }
+}
+
+async function handlePersonalDelegateRequest(req, res) {
+  try {
+    // Check GitHub token first
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) {
+      sendJson(res, 400, { message: 'GitHub token not configured' });
+      return;
+    }
+
+    const body = await readRequestBody(req);
+    const payload = JSON.parse(body);
+    
+    const result = await performDelegation(payload);
+    
+    sendJson(res, 200, result);
+  } catch (error) {
+    console.error('Personal delegation request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to create delegation' });
+  }
+}
+
+async function handleCreatePRRequest(req, res) {
+  try {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body);
+        const { storyId, branchName, prTitle, prBody, story } = payload;
+        
+        const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+        const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
+        const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+        
+        if (!GITHUB_TOKEN) {
+          sendJson(res, 400, { 
+            success: false, 
+            error: 'GitHub token not configured' 
+          });
+          return;
+        }
+
+        sendJson(res, 200, { success: true, message: 'PR creation endpoint available' });
+      } catch (error) {
+        console.error('PR creation error:', error);
+        sendJson(res, 500, { 
+          success: false, 
+          error: error.message || 'Failed to create PR' 
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Request handling error:', error);
+    sendJson(res, 500, { 
+      success: false, 
+      error: 'Internal server error' 
+    });
+  }
+}
+
+async function handlePersonalDelegateStatusRequest(req, res, url) {
+  try {
+    const owner = url.searchParams.get('owner');
+    const repo = url.searchParams.get('repo');
+    const number = url.searchParams.get('number');
+    
+    if (!owner || !repo || !number) {
+      sendJson(res, 400, { message: 'owner, repo, and number are required' });
+      return;
+    }
+
+    const comments = await githubRequest(`/repos/${owner}/${repo}/issues/${number}/comments?per_page=30&direction=desc`);
+    
+    sendJson(res, 200, {
+      fetchedAt: new Date().toISOString(),
+      totalComments: Array.isArray(comments) ? comments.length : 0,
+      latestComment: comments?.[0] || null
+    });
+  } catch (error) {
+    console.error('Personal delegation status request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to fetch status' });
+  }
+}
+
+async function handleCodeWhispererStatusRequest(req, res) {
+  try {
+    const body = await readRequestBody(req);
+    const { repo, number, type } = JSON.parse(body);
+    
+    if (!repo || !number) {
+      sendJson(res, 400, { message: 'repo and number are required' });
+      return;
+    }
+
+    const [owner, repoName] = repo.split('/');
+    const endpoint = type === 'pull_request' 
+      ? `/repos/${owner}/${repoName}/pulls/${number}`
+      : `/repos/${owner}/${repoName}/issues/${number}`;
+    
+    const data = await githubRequest(endpoint);
+    
+    sendJson(res, 200, {
+      status: {
+        state: data.state,
+        title: data.title,
+        html_url: data.html_url,
+        updated_at: data.updated_at,
+        author: data.user?.login
+      }
+    });
+  } catch (error) {
+    console.error('CodeWhisperer status request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to fetch status' });
+  }
+}
+
+async function handleCodeWhispererRebaseRequest(req, res) {
+  try {
+    const body = await readRequestBody(req);
+    const { repo, number, branchName } = JSON.parse(body);
+    
+    if (!repo || !number || !branchName) {
+      sendJson(res, 400, { message: 'repo, number, and branchName are required' });
+      return;
+    }
+
+    const [owner, repoName] = repo.split('/');
+    
+    await githubRequest(`/repos/${owner}/${repoName}/pulls/${number}/update-branch`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        expected_head_sha: null
+      })
+    });
+    
+    sendJson(res, 200, { message: 'PR rebased successfully' });
+  } catch (error) {
+    console.error('CodeWhisperer rebase request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to rebase PR' });
+  }
+}
+
+function normalizeDelegatePayload(payload) {
+  const owner = String(payload.owner || '').trim();
+  const repo = String(payload.repo || '').trim();
+  const repositoryApiUrl = String(payload.repositoryApiUrl || '').trim();
+  const branchName = String(payload.branchName || '').trim();
+  const taskTitle = String(payload.taskTitle || '').trim();
+  const objective = String(payload.objective || '').trim();
+  const prTitle = String(payload.prTitle || '').trim();
+  const constraints = String(payload.constraints || '').trim();
+  const target = String(payload.target || 'new-issue');
+  const acceptanceCriteria = normalizeAcceptanceCriteria(payload.acceptanceCriteria);
+  const storyTitle = String(payload.storyTitle || '').trim();
+  const storyId = payload.storyId ?? null;
+
+  let targetNumber = payload.targetNumber;
+  if (target !== 'new-issue' && target !== 'pr') {
+    // Only require target number for existing issues/PRs, not for creating new ones
+    if (targetNumber == null || targetNumber === '') {
+      throw Object.assign(new Error('Issue or PR number is required'), { statusCode: 400 });
+    }
+    targetNumber = Number(targetNumber);
+    if (!Number.isFinite(targetNumber) || targetNumber <= 0) {
+      throw Object.assign(new Error('Issue or PR number must be a positive integer'), { statusCode: 400 });
+    }
+  }
+
+  return {
+    repositoryApiUrl,
+    owner,
+    repo,
+    branchName,
+    taskTitle,
+    objective,
+    prTitle,
+    constraints,
+    acceptanceCriteria,
+    target,
+    targetNumber,
+    storyTitle,
+    storyId,
+  };
+}
+
+function normalizeAcceptanceCriteria(criteria) {
+  if (typeof criteria === 'string') {
+    return criteria.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  }
+  if (Array.isArray(criteria)) {
+    return criteria.map(item => String(item || '').trim()).filter(item => item.length > 0);
+  }
+  return [];
+}
+
+function buildTaskBrief(payload) {
+  const criteria = normalizeAcceptanceCriteria(payload.acceptanceCriteria);
+  const lines = [
+    '@codex',
+    '',
+    '# AIPM Task Brief',
+    `Story-ID: ${payload.storyId ?? ''}`.trim(),
+    `Story-Title: ${payload.storyTitle ?? ''}`.trim(),
+    '',
+    '## Objective',
+    payload.objective || 'Deliver the referenced story with Codex support.',
+    '',
+    '## Deliverables',
+    `- Implement feature per story in branch: ${payload.branchName}`,
+    '- Tests: unit + minimal e2e (where applicable)',
+    `- PR back to main with title: "${payload.prTitle}"`,
+    '',
+    '## Constraints',
+    payload.constraints,
+    '',
+    '## Acceptance Criteria',
+  ];
+
+  if (criteria.length) {
+    criteria.forEach((line) => {
+      lines.push(`- ${line}`);
+    });
+  } else {
+    lines.push('- Define measurable acceptance criteria with Codex.');
+  }
+
+  lines.push(
+    '',
+    '## Repo',
+    `Owner/Repo: ${payload.owner}/${payload.repo}`,
+    `Default API URL: https://api.github.com/repos/${payload.owner}/${payload.repo}`
+  );
+
+  return lines.join('\n');
+}
+
+async function performDelegation(payload) {
+  const normalized = normalizeDelegatePayload(payload);
+  const body = buildTaskBrief({ ...normalized, owner: normalized.owner, repo: normalized.repo });
+  const repoPath = `/repos/${normalized.owner}/${normalized.repo}`;
+  const confirmationCode = generateConfirmationCode();
+
+  if (normalized.target === 'new-issue') {
+    // Create issue directly for new-issue target
+    const issue = await githubRequest(`${repoPath}/issues`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: normalized.taskTitle,
+        body,
+      }),
+    });
+    return {
+      type: 'issue',
+      id: issue.id,
+      html_url: issue.html_url,
+      number: issue.number,
+      taskHtmlUrl: issue.html_url,
+      threadHtmlUrl: issue.html_url,
+      confirmationCode,
+    };
+  }
+
+  if (normalized.target === 'pr') {
+    // Create PR for pr target
+    const timestamp = Date.now();
+    const branchName = normalized.branchName ? 
+      `${normalized.branchName}-${timestamp}` : 
+      `codewhisperer-${timestamp}`;
+    
+    try {
+      // Get main branch SHA
+      const mainBranch = await githubRequest(`${repoPath}/git/refs/heads/main`);
+      
+      // Create new branch
+      await githubRequest(`${repoPath}/git/refs`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ref: `refs/heads/${branchName}`,
+          sha: mainBranch.object.sha
+        })
+      });
+      
+      // Create placeholder file
+      const fileName = `codewhisperer-task-${timestamp}.md`;
+      const fileContent = `# ${normalized.taskTitle}\n\n${body}`;
+      
+      await githubRequest(`${repoPath}/contents/${fileName}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          message: `Add CodeWhisperer task: ${normalized.taskTitle}`,
+          content: Buffer.from(fileContent).toString('base64'),
+          branch: branchName
+        })
+      });
+      
+      // Create PR
+      const pr = await githubRequest(`${repoPath}/pulls`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: normalized.prTitle || normalized.taskTitle,
+          body,
+          head: branchName,
+          base: 'main'
+        })
+      });
+      
+      return {
+        type: 'pull_request',
+        id: pr.id,
+        html_url: pr.html_url,
+        number: pr.number,
+        branchName: branchName,
+        taskHtmlUrl: pr.html_url,
+        threadHtmlUrl: pr.html_url,
+        confirmationCode: `PR${pr.number}`,
+      };
+    } catch (error) {
+      console.error('Failed to create PR:', error);
+      throw error;
+    }
+  }
+
+  // Handle existing issue/PR comments
+  const number = normalized.targetNumber;
+  const comment = await githubRequest(`${repoPath}/issues/${number}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  });
+  return {
+    type: 'comment',
+    id: comment.id,
+    html_url: comment.html_url,
+    number,
+    taskHtmlUrl: comment.html_url ? comment.html_url.split('#')[0] : null,
+    threadHtmlUrl: comment.html_url,
+    confirmationCode,
+  };
+}
+
 const SQLITE_COMMAND = process.env.AI_PM_SQLITE_CLI || 'sqlite3';
 
 export const COMPONENT_CATALOG = [
@@ -4586,6 +5002,14 @@ async function parseJson(req) {
   }
 }
 
+async function readRequestBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 function measurablePayload(payload) {
   const given = ensureArray(payload.given);
   const when = ensureArray(payload.when);
@@ -4734,6 +5158,51 @@ export async function createApp() {
 
     if (pathname === '/api/create-pr' && method === 'POST') {
       await handleCreatePRRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/personal-delegate' && method === 'POST') {
+      await handlePersonalDelegateRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/personal-delegate/status' && method === 'GET') {
+      await handlePersonalDelegateStatusRequest(req, res, url);
+      return;
+    }
+
+    if (pathname === '/api/codewhisperer-status' && method === 'POST') {
+      await handleCodeWhispererStatusRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/codewhisperer-rebase' && method === 'POST') {
+      await handleCodeWhispererRebaseRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/' && method === 'GET') {
+      sendJson(res, 200, { status: 'ok', message: 'AIPM Backend API' });
+      return;
+    }
+
+    if (pathname === '/api/stories/restore' && method === 'GET') {
+      const stories = await getAllStories(db);
+      sendJson(res, 200, { stories });
+      return;
+    }
+
+    if (pathname === '/api/stories/backup' && method === 'POST') {
+      const body = await readRequestBody(req);
+      const data = JSON.parse(body);
+      sendJson(res, 200, { count: data.stories?.length || 0, message: 'Backup received' });
+      return;
+    }
+
+    if (pathname === '/api/mindmap/persist' && method === 'POST') {
+      const body = await readRequestBody(req);
+      const data = JSON.parse(body);
+      sendJson(res, 200, { message: 'Mindmap state persisted', positions: Object.keys(data.positions || {}).length });
       return;
     }
 
@@ -5505,6 +5974,12 @@ export async function createApp() {
         }
         sendJson(res, 204, {});
       }
+      return;
+    }
+
+    // Handle API 404s before falling back to static files
+    if (pathname.startsWith('/api/')) {
+      sendJson(res, 404, { message: 'API endpoint not found' });
       return;
     }
 

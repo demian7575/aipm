@@ -1,6 +1,7 @@
 // Removed Codex/CodeWhisperer imports - now using automatic PR creation
 
 const API_BASE_URL = (window.__AIPM_API_BASE__ || '').replace(/\/$/, '');
+const DEFAULT_REPO_API_URL = 'https://api.github.com';
 
 function resolveApiUrl(path) {
   if (!path) {
@@ -1463,6 +1464,33 @@ function clearOldCodeWhispererData() {
 // Expose function globally for debugging
 window.clearOldCodeWhispererData = clearOldCodeWhispererData;
 
+function ensureCodeWhispererEntryShape(entry, storyId) {
+  if (!entry || typeof entry !== 'object') {
+    return null;
+  }
+  
+  return {
+    localId: entry.localId || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    storyId: storyId || entry.storyId,
+    taskTitle: entry.taskTitle || 'Unknown Task',
+    repo: entry.repo || '',
+    branchName: entry.branchName || '',
+    target: entry.target || 'new-issue',
+    targetNumber: entry.targetNumber,
+    number: entry.number,
+    type: entry.type,
+    prUrl: entry.prUrl,
+    htmlUrl: entry.htmlUrl,
+    taskUrl: entry.taskUrl,
+    threadUrl: entry.threadUrl,
+    confirmationCode: entry.confirmationCode,
+    createTrackingCard: entry.createTrackingCard !== false,
+    latestStatus: entry.latestStatus,
+    lastCheckedAt: entry.lastCheckedAt,
+    lastError: entry.lastError
+  };
+}
+
 function loadCodeWhispererDelegationsFromStorage() {
   state.codewhispererDelegations = new Map();
   try {
@@ -1583,6 +1611,67 @@ function refreshCodeWhispererSection(storyId) {
     return;
   }
   renderCodeWhispererSectionList(list, story);
+}
+
+async function requestCodeWhispererStatus(entry) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/codewhisperer-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        repo: entry.repo,
+        number: entry.number,
+        type: entry.type
+      })
+    });
+    
+    if (!response.ok) {
+      entry.lastError = `Status check failed: ${response.status}`;
+      return false;
+    }
+    
+    const data = await response.json();
+    entry.latestStatus = data.status;
+    entry.lastCheckedAt = new Date().toISOString();
+    entry.lastError = null;
+    persistCodeWhispererDelegations();
+    return true;
+  } catch (error) {
+    entry.lastError = `Status check error: ${error.message}`;
+    entry.lastCheckedAt = new Date().toISOString();
+    persistCodeWhispererDelegations();
+    return false;
+  }
+}
+
+async function rebaseCodeWhispererPR(entry) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/codewhisperer-rebase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        repo: entry.repo,
+        number: entry.number,
+        branchName: entry.branchName
+      })
+    });
+    
+    if (!response.ok) {
+      entry.lastError = `Rebase failed: ${response.status}`;
+      return false;
+    }
+    
+    const data = await response.json();
+    entry.lastError = null;
+    entry.lastCheckedAt = new Date().toISOString();
+    persistCodeWhispererDelegations();
+    return true;
+  } catch (error) {
+    entry.lastError = `Rebase error: ${error.message}`;
+    entry.lastCheckedAt = new Date().toISOString();
+    persistCodeWhispererDelegations();
+    return false;
+  }
 }
 
 function formatCodeWhispererTargetLabel(entry) {
@@ -1798,6 +1887,26 @@ function renderCodeWhispererSectionList(container, story) {
       });
       actions.appendChild(checkBtn);
 
+      const rebaseBtn = document.createElement('button');
+      rebaseBtn.type = 'button';
+      rebaseBtn.className = 'link-button codewhisperer-rebase';
+      rebaseBtn.textContent = 'Rebase';
+      rebaseBtn.addEventListener('click', async () => {
+        if (rebaseBtn.disabled) return;
+        const original = rebaseBtn.textContent;
+        rebaseBtn.disabled = true;
+        rebaseBtn.textContent = 'Rebasing…';
+        const success = await rebaseCodeWhispererPR(entry);
+        if (!success) {
+          showToast(entry.lastError || 'Failed to rebase PR', 'error');
+        } else {
+          showToast('PR rebased successfully', 'success');
+        }
+        rebaseBtn.disabled = false;
+        rebaseBtn.textContent = original;
+      });
+      actions.appendChild(rebaseBtn);
+
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'link-button codewhisperer-remove';
@@ -1922,7 +2031,7 @@ async function codewhispererStatus(entry) {
   });
 
   try {
-    const data = await sendJson(`/personal-delegate/status?${params.toString()}`);
+    const data = await sendJson(`/api/personal-delegate/status?${params.toString()}`);
     entry.lastCheckedAt = data?.fetchedAt ?? new Date().toISOString();
     entry.lastError = null;
 
@@ -4618,6 +4727,23 @@ function kebabCase(text) {
     .replace(/^-+|-+$/g, '')
     .replace(/-{2,}/g, '-');
 }
+
+function createDefaultCodeWhispererForm(story) {
+  return {
+    repositoryApiUrl: 'https://api.github.com',
+    owner: 'demian7575',
+    repo: 'aipm',
+    branchName: story?.title ? story.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : '',
+    taskTitle: story?.title || '',
+    objective: story?.description || '',
+    prTitle: story?.title || '',
+    constraints: '',
+    acceptanceCriteria: '',
+    createTrackingCard: true
+  };
+}
+
+function openCodeWhispererDelegationModal(story) {
   const defaults = createDefaultCodeWhispererForm(story);
   const form = document.createElement('form');
   form.className = 'modal-form codewhisperer-form';
@@ -4640,17 +4766,6 @@ function kebabCase(text) {
       <label for="codewhisperer-repo">Repository</label>
       <input id="codewhisperer-repo" name="repo" required />
       <p class="field-error" data-error-for="repo" hidden></p>
-    </div>
-    <fieldset class="field full codewhisperer-target-fieldset">
-      <legend>Target</legend>
-      <label><input type="radio" name="target" value="new-issue" /> New issue</label>
-      <label><input type="radio" name="target" value="issue" /> Existing issue</label>
-      <label><input type="radio" name="target" value="pr" /> Pull request</label>
-    </fieldset>
-    <div class="field" data-role="target-number">
-      <label for="codewhisperer-target-number">Issue / PR number</label>
-      <input id="codewhisperer-target-number" name="targetNumber" inputmode="numeric" pattern="\\d*" />
-      <p class="field-error" data-error-for="targetNumber" hidden></p>
     </div>
     <div class="field">
       <label for="codewhisperer-branch">Branch name</label>
@@ -4697,7 +4812,6 @@ function kebabCase(text) {
   `;
 
   const errorBanner = form.querySelector('[data-role="codewhisperer-error"]');
-  const targetNumberGroup = form.querySelector('[data-role="target-number"]');
   const fieldErrors = new Map(
     Array.from(form.querySelectorAll('[data-error-for]')).map((el) => [el.dataset.errorFor, el])
   );
@@ -4713,8 +4827,6 @@ function kebabCase(text) {
   const constraintsInput = form.elements.constraints;
   const acceptanceInput = form.elements.acceptanceCriteria;
   const createCardInput = form.elements.createTrackingCard;
-  const targetInputs = Array.from(form.querySelectorAll('input[name="target"]'));
-  const targetNumberInput = form.elements.targetNumber;
 
   const acceptancePrefill = defaults.acceptanceCriteria?.trim()
     ? defaults.acceptanceCriteria
@@ -4735,10 +4847,6 @@ function kebabCase(text) {
   constraintsInput.value = defaults.constraints || '';
   acceptanceInput.value = acceptancePrefill;
   createCardInput.checked = defaults.createTrackingCard !== false;
-  targetInputs.forEach((input) => {
-    input.checked = input.value === defaults.target;
-  });
-  targetNumberInput.value = defaults.targetNumber || '';
 
   let submitButton = null;
   let submitting = false;
@@ -4774,7 +4882,6 @@ function kebabCase(text) {
   }
 
   function readValues() {
-    const target = targetInputs.find((input) => input.checked)?.value || 'new-issue';
     return {
       repositoryApiUrl: repoInput.value.trim() || DEFAULT_REPO_API_URL,
       owner: ownerInput.value.trim(),
@@ -4785,22 +4892,76 @@ function kebabCase(text) {
       prTitle: prTitleInput.value.trim(),
       constraints: constraintsInput.value.trim(),
       acceptanceCriteria: acceptanceInput.value,
-      target,
-      targetNumber: targetNumberInput.value.trim(),
+      target: 'pr',
+      targetNumber: '',
       createTrackingCard: Boolean(createCardInput.checked),
     };
   }
 
   function updateTargetNumberVisibility(target) {
-    if (!targetNumberGroup) return;
-    if (target === 'new-issue') {
-      targetNumberGroup.setAttribute('hidden', 'hidden');
-    } else {
-      targetNumberGroup.removeAttribute('hidden');
-    }
+    // Function removed - no longer needed since target is always 'pr'
   }
 
-  async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
+  function createLocalDelegationEntry(story, values, result) {
+  if (!result) {
+    return null;
+  }
+  
+  return {
+    localId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    storyId: story?.id || null,
+    taskTitle: values.taskTitle || 'Unknown Task',
+    repo: `${values.owner}/${values.repo}`,
+    branchName: values.branchName,
+    target: values.target,
+    targetNumber: values.targetNumber,
+    number: result.number,
+    type: result.type,
+    prUrl: result.html_url,
+    htmlUrl: result.html_url,
+    taskUrl: result.taskHtmlUrl || result.html_url,
+    threadUrl: result.threadHtmlUrl || result.html_url,
+    confirmationCode: result.confirmationCode,
+    createTrackingCard: values.createTrackingCard !== false,
+    createdAt: new Date().toISOString()
+  };
+}
+
+function buildAcceptanceTestFallback(story, acceptanceCriteriaText) {
+  if (!story) {
+    return null;
+  }
+  
+  const criteria = acceptanceCriteriaText ? 
+    acceptanceCriteriaText.split('\n').map(line => line.trim()).filter(line => line.length > 0) :
+    [];
+  
+  return {
+    title: `Acceptance Test for ${story.title || 'Story'}`,
+    status: 'Draft',
+    given: ['User has access to the system'],
+    when: ['User performs the required action'],
+    then: criteria.length > 0 ? criteria : ['System behaves as expected']
+  };
+}
+
+function buildAcceptanceTestIdea(acceptanceCriteriaText) {
+  if (!acceptanceCriteriaText || typeof acceptanceCriteriaText !== 'string') {
+    return '';
+  }
+  
+  const lines = acceptanceCriteriaText.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+  
+  if (lines.length === 0) {
+    return '';
+  }
+  
+  return `Generate acceptance test based on criteria: ${lines.join(', ')}`;
+}
+
+async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
     if (!story || story.id == null) {
       return false;
     }
@@ -4928,7 +5089,6 @@ function kebabCase(text) {
       touchedFields.add(event.target.name);
     }
     const { values } = evaluate();
-    updateTargetNumberVisibility(values.target);
     showBanner('');
   };
 
@@ -4948,7 +5108,6 @@ function kebabCase(text) {
     const { values, validation } = evaluate({ forceErrors: true });
     console.log('Form values:', values);
     console.log('Validation result:', validation);
-    updateTargetNumberVisibility(values.target);
     if (!validation.valid) {
       console.log('Validation failed, showing banner');
       showBanner('Please resolve the highlighted fields.');
@@ -4969,10 +5128,6 @@ function kebabCase(text) {
         owner: values.owner,
         repo: values.repo,
         target: values.target,
-        targetNumber:
-          values.target === 'new-issue' || values.targetNumber === ''
-            ? undefined
-            : Number(values.targetNumber),
         branchName: values.branchName,
         taskTitle: values.taskTitle,
         objective: values.objective,
@@ -4981,7 +5136,7 @@ function kebabCase(text) {
         acceptanceCriteria: acceptanceCriteriaList,
       };
 
-      const result = await sendJson('/personal-delegate', {
+      const result = await sendJson('/api/personal-delegate', {
         method: 'POST',
         body: payload,
       });
@@ -5042,7 +5197,6 @@ function kebabCase(text) {
   );
 
   const initialValues = readValues();
-  updateTargetNumberVisibility(initialValues.target);
   
   if (typeof validateCodeWhispererInput === 'function') {
     latestValidation = validateCodeWhispererInput(initialValues);

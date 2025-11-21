@@ -618,6 +618,67 @@ export async function handlePersonalDelegateStatusRequest(
   }
 }
 
+async function handleCodeWhispererStatusRequest(req, res) {
+  try {
+    const body = await readRequestBody(req);
+    const { repo, number, type } = JSON.parse(body);
+    
+    if (!repo || !number) {
+      sendJson(res, 400, { message: 'repo and number are required' });
+      return;
+    }
+
+    const [owner, repoName] = repo.split('/');
+    const endpoint = type === 'pull_request' 
+      ? `/repos/${owner}/${repoName}/pulls/${number}`
+      : `/repos/${owner}/${repoName}/issues/${number}`;
+    
+    const data = await githubRequest(endpoint);
+    
+    sendJson(res, 200, {
+      status: {
+        state: data.state,
+        title: data.title,
+        html_url: data.html_url,
+        updated_at: data.updated_at,
+        author: data.user?.login
+      }
+    });
+  } catch (error) {
+    console.error('CodeWhisperer status request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to fetch status' });
+  }
+}
+
+async function handleCodeWhispererRebaseRequest(req, res) {
+  try {
+    const body = await readRequestBody(req);
+    const { repo, number, branchName } = JSON.parse(body);
+    
+    if (!repo || !number || !branchName) {
+      sendJson(res, 400, { message: 'repo, number, and branchName are required' });
+      return;
+    }
+
+    const [owner, repoName] = repo.split('/');
+    
+    // Update the PR branch to rebase on main
+    await githubRequest(`/repos/${owner}/${repoName}/pulls/${number}/update-branch`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        expected_head_sha: null // Let GitHub handle the rebase
+      })
+    });
+    
+    sendJson(res, 200, { message: 'PR rebased successfully' });
+  } catch (error) {
+    console.error('CodeWhisperer rebase request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to rebase PR' });
+  }
+}
+
 export function createDelegationServer(options = {}) {
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
@@ -646,6 +707,16 @@ export function createDelegationServer(options = {}) {
 
     if (url.pathname === '/personal-delegate/status' && method === 'GET') {
       void handlePersonalDelegateStatusRequest(req, res, url);
+      return;
+    }
+
+    if (url.pathname === '/codewhisperer-status' && method === 'POST') {
+      void handleCodeWhispererStatusRequest(req, res);
+      return;
+    }
+
+    if (url.pathname === '/codewhisperer-rebase' && method === 'POST') {
+      void handleCodeWhispererRebaseRequest(req, res);
       return;
     }
 
