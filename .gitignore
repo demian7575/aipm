@@ -14,6 +14,13 @@ docs/examples/*.json
 dist/
 .DS_Store
 
+# Serverless directories
+.serverless/
+
+# Deployment artifacts
+*.zip
+!node_modules.zip
+
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
 amplify/.config/local-*
