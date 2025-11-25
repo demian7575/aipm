@@ -51,6 +51,7 @@ package:
     - .git/**
     - .github/**
     - .serverless/**
+    - venv/**
     - '*.md'
     - '*.zip'
     - '.gitignore'
