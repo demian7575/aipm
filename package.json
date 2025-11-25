@@ -21,6 +21,7 @@
     "deploy:dev": "serverless deploy --stage dev",
     "deploy:prod": "serverless deploy --stage prod",
     "deploy:dev-to-prod": "./scripts/deploy-to-prod.sh",
+    "deploy:prod-auto": "./scripts/auto-deploy-prod.sh",
     "config:dev": "node scripts/update-environment-config.js dev",
     "config:prod": "node scripts/update-environment-config.js prod",
     "promote": "./scripts/deploy-to-prod.sh",
