@@ -32,7 +32,7 @@ check_prerequisites() {
 # Install dependencies
 install_dependencies() {
     echo "📦 Installing dependencies..."
-    npm install
+    npm install --legacy-peer-deps
     
     # Install serverless globally if not present
     if ! command -v serverless &> /dev/null; then
@@ -58,7 +58,7 @@ deploy_backend() {
     serverless deploy --verbose
     
     # Get the API endpoint
-    API_ENDPOINT=$(serverless info --verbose | grep -o 'https://[^[:space:]]*' | head -1)
+    API_ENDPOINT=$(serverless info --verbose | grep -o 'https://[^[:space:]]*' | head -1 | sed 's/{proxy+}//')
     echo "✅ Backend deployed to: $API_ENDPOINT"
     
     # Update frontend config with API endpoint

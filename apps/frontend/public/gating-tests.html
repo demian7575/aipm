@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIPM Gating Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        .status {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .pass { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+        .pending { background-color: #fff3cd; color: #856404; }
+        .summary {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AIPM Gating Tests</h1>
+        <p>Production Environment Health Check</p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="runConnectivityTests()">Connectivity Tests</button>
+        <button onclick="runAPITests()">API Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results">
+        <div class="test-section">
+            <h2>Connectivity Tests</h2>
+            <div id="connectivity-tests">
+                <div class="test-item">
+                    <span>Frontend Static Website</span>
+                    <span class="status pending" id="frontend-status">PENDING</span>
+                </div>
+                <div class="test-item">
+                    <span>API Gateway Endpoint</span>
+                    <span class="status pending" id="api-gateway-status">PENDING</span>
+                </div>
+                <div class="test-item">
+                    <span>Configuration File</span>
+                    <span class="status pending" id="config-status">PENDING</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>API Functionality Tests</h2>
+            <div id="api-tests">
+                <div class="test-item">
+                    <span>GET /api/stories</span>
+                    <span class="status pending" id="stories-api-status">PENDING</span>
+                </div>
+                <div class="test-item">
+                    <span>CORS Configuration</span>
+                    <span class="status pending" id="cors-status">PENDING</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary" id="summary">
+            <h3>Test Summary</h3>
+            <p id="summary-text">Click "Run All Tests" to begin testing.</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.__AIPM_API_BASE__ || 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod';
+        
+        async function testURL(url, expectedStatus = 200) {
+            try {
+                const response = await fetch(url, { method: 'GET' });
+                return response.status === expectedStatus;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        async function testCORS() {
+            try {
+                const response = await fetch(`${API_BASE}/api/stories`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                return response.status === 200;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        function updateStatus(elementId, passed) {
+            const element = document.getElementById(elementId);
+            element.textContent = passed ? 'PASS' : 'FAIL';
+            element.className = `status ${passed ? 'pass' : 'fail'}`;
+        }
+
+        async function runConnectivityTests() {
+            // Test frontend
+            const frontendPassed = await testURL(window.location.origin);
+            updateStatus('frontend-status', frontendPassed);
+
+            // Test API Gateway
+            const apiPassed = await testURL(`${API_BASE}/api/stories`);
+            updateStatus('api-gateway-status', apiPassed);
+
+            // Test config file
+            const configPassed = await testURL(`${window.location.origin}/config.js`);
+            updateStatus('config-status', configPassed);
+
+            return { frontendPassed, apiPassed, configPassed };
+        }
+
+        async function runAPITests() {
+            // Test stories API
+            const storiesResponse = await testURL(`${API_BASE}/api/stories`);
+            updateStatus('stories-api-status', storiesResponse);
+
+            // Test CORS
+            const corsResponse = await testCORS();
+            updateStatus('cors-status', corsResponse);
+
+            return { storiesResponse, corsResponse };
+        }
+
+        async function runAllTests() {
+            document.getElementById('summary-text').textContent = 'Running tests...';
+            
+            const connectivityResults = await runConnectivityTests();
+            const apiResults = await runAPITests();
+
+            const totalTests = 5;
+            const passedTests = Object.values({...connectivityResults, ...apiResults}).filter(Boolean).length;
+
+            const summaryText = `Tests completed: ${passedTests}/${totalTests} passed`;
+            document.getElementById('summary-text').textContent = summaryText;
+
+            if (passedTests === totalTests) {
+                document.getElementById('summary').style.backgroundColor = '#d4edda';
+                document.getElementById('summary').style.color = '#155724';
+            } else {
+                document.getElementById('summary').style.backgroundColor = '#f8d7da';
+                document.getElementById('summary').style.color = '#721c24';
+            }
+        }
+
+        function clearResults() {
+            const statusElements = document.querySelectorAll('.status');
+            statusElements.forEach(element => {
+                element.textContent = 'PENDING';
+                element.className = 'status pending';
+            });
+            document.getElementById('summary-text').textContent = 'Click "Run All Tests" to begin testing.';
+            document.getElementById('summary').style.backgroundColor = '#e9ecef';
+            document.getElementById('summary').style.color = 'inherit';
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>
