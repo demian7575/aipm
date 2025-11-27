@@ -3265,24 +3265,39 @@ function buildRunInStagingModalContent(prEntry = null) {
     log.textContent = `Starting staging workflow for PR ${prId}...\n`;
     
     try {
-      // Step 1: CodeWhisperer implementation
+      // Step 1: CodeWhisperer implementation (simulated)
       log.textContent += `Step 1: CodeWhisperer implementing PR requirements...\n`;
       log.textContent += `  - Analyzing PR: "${prEntry?.taskTitle || 'Development task'}"\n`;
       await simulateCodeWhispererImplementation(prEntry);
       log.textContent += `✅ Implementation completed\n`;
       
-      // Step 2: Push to develop branch
-      log.textContent += `Step 2: Pushing changes to develop branch...\n`;
-      await simulateGitCommand(`git checkout develop`);
-      await simulateGitCommand(`git add .`);
-      await simulateGitCommand(`git commit -m "Implement ${prEntry?.taskTitle || 'PR requirements'}"`);
-      await simulateGitCommand(`git push origin develop`);
-      log.textContent += `✅ Changes pushed to origin/develop\n`;
+      // Step 2 & 3: Push to develop and deploy (real backend call)
+      log.textContent += `Step 2: Executing staging workflow...\n`;
       
-      // Step 3: Deploy development environment
-      log.textContent += `Step 3: Deploying development environment...\n`;
-      await simulateDeployment('develop');
-      log.textContent += `✅ Development environment deployed\n`;
+      try {
+        const response = await fetch(`${config.API_BASE_URL}/api/run-staging`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            taskTitle: prEntry?.taskTitle || 'Run in Staging workflow'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          log.textContent += `✅ Changes pushed to origin/develop\n`;
+          log.textContent += `✅ Development environment deployed\n`;
+          log.textContent += `🌐 Live at: ${result.deploymentUrl}\n`;
+        } else {
+          throw new Error(result.message || 'Staging workflow failed');
+        }
+      } catch (error) {
+        log.textContent += `❌ Staging workflow failed: ${error.message}\n`;
+        throw error;
+      }
       
       log.textContent += `\n🎉 Staging workflow completed!\n`;
       log.textContent += `Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;

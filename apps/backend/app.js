@@ -5672,6 +5672,58 @@ export async function createApp() {
       return;
     }
 
+    // Run in Staging workflow endpoint
+    if (pathname === '/api/run-staging' && method === 'POST') {
+      try {
+        const payload = await parseJson(req);
+        const { taskTitle } = payload;
+        
+        // Trigger GitHub Actions workflow for staging deployment
+        const token = process.env.GITHUB_TOKEN;
+        if (!token) {
+          throw new Error('GitHub token not configured');
+        }
+        
+        // Create a workflow dispatch event to trigger staging deployment
+        const workflowResponse = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy.yml/dispatches', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${token}`,
+            'User-Agent': 'aipm-staging-workflow'
+          },
+          body: JSON.stringify({
+            ref: 'develop',
+            inputs: {
+              environment: 'development',
+              task_title: taskTitle || 'Run in Staging workflow'
+            }
+          })
+        });
+        
+        if (!workflowResponse.ok) {
+          const errorText = await workflowResponse.text();
+          throw new Error(`GitHub workflow dispatch failed: ${workflowResponse.status} ${errorText}`);
+        }
+        
+        sendJson(res, 200, {
+          success: true,
+          message: 'Staging workflow triggered successfully',
+          deploymentUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
+          workflowUrl: 'https://github.com/demian7575/aipm/actions'
+        });
+        
+      } catch (error) {
+        console.error('Staging workflow error:', error);
+        sendJson(res, 500, {
+          success: false,
+          message: error.message || 'Staging workflow failed',
+          error: error.toString()
+        });
+      }
+      return;
+    }
+
     if (storyIdMatch && method === 'DELETE') {
       const storyId = Number(storyIdMatch[1]);
       const statement = db.prepare('DELETE FROM user_stories WHERE id = ?');

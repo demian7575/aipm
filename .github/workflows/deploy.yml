@@ -8,10 +8,24 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - production
+      task_title:
+        description: 'Task title for deployment'
+        required: false
+        default: 'Manual deployment'
 
 jobs:
   deploy-dev:
-    if: github.ref == 'refs/heads/development' || github.event_name == 'pull_request'
+    if: github.ref == 'refs/heads/development' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
     runs-on: ubuntu-latest
     environment: development
     
@@ -41,7 +55,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy-prod:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     runs-on: ubuntu-latest
     environment: production
     
