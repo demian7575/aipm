@@ -3217,13 +3217,6 @@ function buildRunInStagingModalContent(prEntry = null) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
   
-  // Use actual PR branch name or create from PR info
-  const branchName = prEntry?.branchName || 
-                    (prEntry?.taskTitle ? prEntry.taskTitle.toLowerCase()
-                      .replace(/[^a-z0-9]+/g, '-')
-                      .replace(/^-+|-+$/g, '')
-                      .substring(0, 50) : 'staging-branch');
-  
   const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
   
   const prInfo = prEntry ? `
@@ -3232,7 +3225,7 @@ function buildRunInStagingModalContent(prEntry = null) {
       <p><strong>PR ID:</strong> ${prId}</p>
       <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
       ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
-      <p><strong>Branch:</strong> ${branchName}</p>
+      <p><strong>Target Branch:</strong> develop</p>
     </div>
   ` : '';
   
@@ -3240,17 +3233,16 @@ function buildRunInStagingModalContent(prEntry = null) {
     ${prInfo}
     <div class="staging-options">
       <h3>Run in Staging Workflow</h3>
-      <p>This will create a complete development workflow:</p>
+      <p>This will implement the PR and deploy to development environment:</p>
       
       <div class="workflow-steps">
-        <div class="step">1. Create local branch: <code>${branchName}</code></div>
-        <div class="step">2. Implement requirements using CodeWhisperer</div>
-        <div class="step">3. Push to GitHub remote branch</div>
-        <div class="step">4. Deploy to development environment</div>
+        <div class="step">1. CodeWhisperer implements/updates the PR requirements</div>
+        <div class="step">2. Push changes to <code>develop</code> branch on GitHub</div>
+        <div class="step">3. Deploy development environment from GitHub develop branch</div>
       </div>
       
       <div class="staging-actions">
-        <button id="run-staging-workflow" class="primary">Run Staging Workflow</button>
+        <button id="run-staging-workflow" class="primary">Run in Staging</button>
         <button id="check-staging-status" class="secondary">Check Status</button>
       </div>
       
@@ -3268,49 +3260,49 @@ function buildRunInStagingModalContent(prEntry = null) {
   
   runWorkflowBtn.addEventListener('click', async () => {
     runWorkflowBtn.disabled = true;
-    runWorkflowBtn.textContent = 'Running Workflow...';
+    runWorkflowBtn.textContent = 'Running...';
     output.style.display = 'block';
     log.textContent = `Starting staging workflow for PR ${prId}...\n`;
     
     try {
-      // Step 1: Create local branch with PR name
-      log.textContent += `Step 1: Creating local branch '${branchName}'...\n`;
-      await simulateGitCommand(`git checkout -b ${branchName}`);
-      log.textContent += `✅ Local branch '${branchName}' created\n`;
-      
-      // Step 2: Implement with CodeWhisperer
-      log.textContent += `Step 2: Implementing requirements with CodeWhisperer...\n`;
+      // Step 1: CodeWhisperer implementation
+      log.textContent += `Step 1: CodeWhisperer implementing PR requirements...\n`;
+      log.textContent += `  - Analyzing PR: "${prEntry?.taskTitle || 'Development task'}"\n`;
       await simulateCodeWhispererImplementation(prEntry);
-      log.textContent += `✅ Requirements implemented\n`;
+      log.textContent += `✅ Implementation completed\n`;
       
-      // Step 3: Push to GitHub with PR name
-      log.textContent += `Step 3: Pushing to GitHub remote branch...\n`;
-      await simulateGitCommand(`git push origin ${branchName}`);
-      log.textContent += `✅ Pushed to origin/${branchName}\n`;
+      // Step 2: Push to develop branch
+      log.textContent += `Step 2: Pushing changes to develop branch...\n`;
+      await simulateGitCommand(`git checkout develop`);
+      await simulateGitCommand(`git add .`);
+      await simulateGitCommand(`git commit -m "Implement ${prEntry?.taskTitle || 'PR requirements'}"`);
+      await simulateGitCommand(`git push origin develop`);
+      log.textContent += `✅ Changes pushed to origin/develop\n`;
       
-      // Step 4: Deploy to development
-      log.textContent += `Step 4: Deploying to development environment...\n`;
-      await simulateDeployment(branchName);
-      log.textContent += `✅ Deployed to development environment\n`;
+      // Step 3: Deploy development environment
+      log.textContent += `Step 3: Deploying development environment...\n`;
+      await simulateDeployment('develop');
+      log.textContent += `✅ Development environment deployed\n`;
       
-      log.textContent += `\n🎉 Staging workflow completed successfully!\n`;
+      log.textContent += `\n🎉 Staging workflow completed!\n`;
       log.textContent += `Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
-      log.textContent += `GitHub Branch: https://github.com/demian7575/aipm/tree/${branchName}\n`;
+      log.textContent += `GitHub Branch: https://github.com/demian7575/aipm/tree/develop\n`;
+      log.textContent += `PR ${prId} is now live in development environment!\n`;
       
-      runWorkflowBtn.textContent = 'Run Staging Workflow';
+      runWorkflowBtn.textContent = 'Run in Staging';
       runWorkflowBtn.disabled = false;
     } catch (error) {
       log.textContent += `❌ Workflow failed: ${error.message}\n`;
-      runWorkflowBtn.textContent = 'Run Staging Workflow';
+      runWorkflowBtn.textContent = 'Run in Staging';
       runWorkflowBtn.disabled = false;
     }
   });
   
   statusBtn.addEventListener('click', () => {
     output.style.display = 'block';
-    log.textContent = `Checking staging workflow status for PR ${prId}...\n`;
-    log.textContent += `Local branch: ${branchName}\n`;
-    log.textContent += `Remote branch: origin/${branchName}\n`;
+    log.textContent = `Checking staging status for PR ${prId}...\n`;
+    log.textContent += `Target branch: develop\n`;
+    log.textContent += `GitHub: https://github.com/demian7575/aipm/tree/develop\n`;
     log.textContent += `Development environment: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
     log.textContent += `Status: Ready for testing\n`;
   });
