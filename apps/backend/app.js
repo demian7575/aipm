@@ -5804,6 +5804,30 @@ export async function createApp() {
           console.log('No specific implementation required for task:', taskTitle);
         }
 
+        // Step 2: Trigger development deployment via GitHub repository dispatch
+        console.log('Triggering development deployment...');
+        const deployResponse = await fetch('https://api.github.com/repos/demian7575/aipm/dispatches', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            event_type: 'deploy-development',
+            client_payload: {
+              task: taskTitle,
+              branch: 'develop'
+            }
+            
+            implementationResult = { success: updateResponse.ok };
+          } else {
+            const errorText = await fileResponse.text();
+            console.log('File fetch error:', errorText);
+          }
+        } else {
+          console.log('No specific implementation required for task:', taskTitle);
+        }
+
         // Step 2: Deploy development environment from develop branch
         console.log('Deploying development environment...');
         const { spawn } = await import('child_process');
@@ -5812,41 +5836,16 @@ export async function createApp() {
           cwd: process.cwd(),
           stdio: 'pipe'
         });
-        
-        let deployOutput = '';
-        let deployError = '';
-        
-        deployProcess.stdout.on('data', (data) => {
-          const output = data.toString();
-          console.log('Deploy stdout:', output);
-          deployOutput += output;
-        });
-        
-        deployProcess.stderr.on('data', (data) => {
-          const error = data.toString();
-          console.log('Deploy stderr:', error);
-          deployError += error;
-        });
-        
-        const deployResult = await new Promise((resolve, reject) => {
-          deployProcess.on('close', (code) => {
-            console.log('Deploy process exit code:', code);
-            if (code === 0) {
-              resolve({ success: true, output: deployOutput });
-            } else {
-              reject(new Error(`Deploy failed with code ${code}: ${deployError}`));
-            }
-          });
-        });
 
+        console.log('Deploy dispatch response status:', deployResponse.status);
         console.log('=== RUN-STAGING WORKFLOW COMPLETE ===');
         
         sendJson(res, 200, {
           success: true,
-          message: 'Code implementation completed and development environment deployed',
+          message: 'Code implementation completed and development deployment triggered',
           deploymentUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
           implementationApplied: !!implementationResult?.success,
-          deployOutput: deployResult.output,
+          deploymentTriggered: deployResponse.ok,
           workflowCompleted: true
         });
         

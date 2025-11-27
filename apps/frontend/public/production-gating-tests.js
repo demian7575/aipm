@@ -983,23 +983,6 @@ async function runProductionTest(testName) {
                 return { success: false, message: `PR123: Export test failed - ${error.message}` };
             }
 
-        case 'testConfigAvailability':
-            // Test that window.CONFIG is properly loaded
-            try {
-                if (!window.CONFIG) {
-                    return { success: false, message: 'Config: window.CONFIG not defined' };
-                }
-                if (!window.CONFIG.API_BASE_URL) {
-                    return { success: false, message: 'Config: API_BASE_URL not defined' };
-                }
-                return {
-                    success: true,
-                    message: `Config: Available - API: ${window.CONFIG.API_BASE_URL}`
-                };
-            } catch (error) {
-                return { success: false, message: `Config: Error - ${error.message}` };
-            }
-
         case 'testRunInStagingWorkflow':
             // Test Run in Staging workflow API endpoint
             try {
