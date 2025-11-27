@@ -96,12 +96,14 @@
     </div>
 
     <script>
-      // Inline production configuration to ensure it loads first
-      window.__AIPM_API_BASE__ = 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod';
-      window.CONFIG = {
-          api: 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod',
-          environment: 'production'
+      // Load external config first
+      const script = document.createElement('script');
+      script.src = 'config.js';
+      script.onload = function() {
+        // Config loaded, continue with app initialization
+        console.log('Config loaded:', window.CONFIG);
       };
+      document.head.appendChild(script);
     </script>
     <script src="production-gating-tests.js"></script>
     <script type="module" src="app.js?v=1.2.0"></script>
