@@ -1,6 +1,6 @@
-// Production environment configuration - Auto-detect environment
+// Production environment configuration - Force production API for both environments
 const PROD_CONFIG = {
-    api: window.CONFIG?.API_BASE_URL || window.CONFIG?.api || 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod',
+    api: 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod',
     frontend: window.location.origin,
     environment: window.location.hostname.includes('aipm-static-hosting-demo') ? 'production' : 'development',
     s3Bucket: window.location.hostname.includes('aipm-static-hosting-demo') ? 'aipm-static-hosting-demo' : 'aipm-dev-frontend-hosting',
@@ -310,11 +310,18 @@ async function runProductionTest(testName) {
                 const response = await fetch(`${PROD_CONFIG.frontend}/index.html`);
                 const html = await response.text();
                 
+                // Check app.js for PR Cards capability
+                const appJsResponse = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const appJsContent = await appJsResponse.text();
+                
                 const features = {
                     exportBtn: html.includes('export-stories-btn'),
                     heatmapBtn: html.includes('open-heatmap-btn'),
-                    // PR123: Run in Staging moved to PR cards, not in header
-                    prCardSupport: html.includes('Development Tasks') || html.includes('codewhisperer')
+                    // PR123: Check for PR Cards capability in app.js (dynamic content)
+                    prCardSupport: appJsContent.includes('Development Tasks') || 
+                                  appJsContent.includes('codewhisperer') ||
+                                  appJsContent.includes('run-in-staging-btn') ||
+                                  appJsContent.includes('renderCodeWhispererSectionList')
                 };
                 
                 const working = Object.values(features).filter(Boolean).length;

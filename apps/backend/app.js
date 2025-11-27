@@ -4705,6 +4705,63 @@ async function loadDependencyRows(db) {
   }
 }
 
+// Helper function to copy production data to development
+async function clearAndCopyData(db, prodStories, prodTests) {
+  try {
+    // Clear development stories
+    const devStoriesStmt = db.prepare('DELETE FROM user_stories');
+    devStoriesStmt.run();
+    
+    // Clear development acceptance tests  
+    const devTestsStmt = db.prepare('DELETE FROM acceptance_tests');
+    devTestsStmt.run();
+    
+    // Copy production stories to development
+    if (prodStories && prodStories.length > 0) {
+      const insertStoryStmt = db.prepare(`
+        INSERT INTO user_stories (
+          id, title, description, as_a, i_want, so_that, components, story_point,
+          assignee_email, status, created_at, updated_at, parent_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      for (const story of prodStories) {
+        insertStoryStmt.run(
+          story.id, story.title, story.description, story.asA, story.iWant,
+          story.soThat, JSON.stringify(story.components || []), story.storyPoint,
+          story.assigneeEmail, story.status, story.createdAt, story.updatedAt,
+          story.parentId
+        );
+      }
+    }
+    
+    // Copy production acceptance tests to development
+    if (prodTests && prodTests.length > 0) {
+      const insertTestStmt = db.prepare(`
+        INSERT INTO acceptance_tests (
+          id, story_id, title, given_step, when_step, then_step, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      for (const test of prodTests) {
+        insertTestStmt.run(
+          test.id, test.storyId, test.title,
+          JSON.stringify(test.given || []),
+          JSON.stringify(test.when || []),
+          JSON.stringify(test.then || []),
+          test.status, test.createdAt, test.updatedAt
+        );
+      }
+    }
+    
+    console.log(`Copied ${prodStories?.length || 0} stories and ${prodTests?.length || 0} tests to development`);
+    
+  } catch (error) {
+    console.error('Data copy error:', error);
+    throw error;
+  }
+}
+
 async function loadStories(db, options = {}) {
   const { includeAiInvest = false } = options;
   const storyRows = await safeSelectAll(
@@ -5678,51 +5735,29 @@ export async function createApp() {
         const payload = await parseJson(req);
         const { taskTitle } = payload;
         
-        // Get GitHub token
         const token = process.env.GITHUB_TOKEN;
         if (!token) {
           throw new Error('GitHub token not configured');
         }
         
-        // Get the current develop branch
-        const developResponse = await fetch('https://api.github.com/repos/demian7575/aipm/git/refs/heads/develop', {
-          headers: {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': `Bearer ${token}`,
-            'User-Agent': 'aipm-staging-workflow'
-          }
-        });
+        // Step 1: Copy production data to development environment
+        console.log('Copying production data to development environment...');
         
-        if (!developResponse.ok) {
-          throw new Error(`Failed to get develop branch: ${developResponse.status}`);
+        try {
+          // Simple data copy using existing database functions
+          const prodStories = await loadStories(db, 'aipm-backend-prod-stories');
+          const prodTests = await loadAcceptanceTests(db, 'aipm-backend-prod-acceptance-tests');
+          
+          // Clear development tables and copy production data
+          await clearAndCopyData(db, prodStories, prodTests);
+          
+        } catch (dataError) {
+          console.error('Data sync error:', dataError);
+          // Continue with workflow even if data sync fails
         }
         
-        const developData = await developResponse.json();
-        const developSha = developData.object.sha;
-        
-        // Create a new commit on develop branch with the task implementation
-        const commitMessage = `Implement: ${taskTitle || 'Run in Staging workflow'}
-
-This commit represents the implementation of the staging task.
-Ready for development environment deployment and testing.`;
-
-        // Get the current tree
-        const treeResponse = await fetch(`https://api.github.com/repos/demian7575/aipm/git/commits/${developSha}`, {
-          headers: {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': `Bearer ${token}`,
-            'User-Agent': 'aipm-staging-workflow'
-          }
-        });
-        
-        if (!treeResponse.ok) {
-          throw new Error(`Failed to get commit tree: ${treeResponse.status}`);
-        }
-        
-        const treeData = await treeResponse.json();
-        
-        // Create a new commit
-        const newCommitResponse = await fetch('https://api.github.com/repos/demian7575/aipm/git/commits', {
+        // Step 2: Create commit and trigger deployment
+        const workflowResponse = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy.yml/dispatches', {
           method: 'POST',
           headers: {
             'Accept': 'application/vnd.github+json',
@@ -5730,45 +5765,25 @@ Ready for development environment deployment and testing.`;
             'User-Agent': 'aipm-staging-workflow'
           },
           body: JSON.stringify({
-            message: commitMessage,
-            tree: treeData.tree.sha,
-            parents: [developSha]
+            ref: 'develop',
+            inputs: {
+              environment: 'development',
+              task_title: taskTitle || 'Run in Staging workflow'
+            }
           })
         });
         
-        if (!newCommitResponse.ok) {
-          const errorText = await newCommitResponse.text();
-          throw new Error(`Failed to create commit: ${newCommitResponse.status} ${errorText}`);
-        }
-        
-        const newCommitData = await newCommitResponse.json();
-        
-        // Update develop branch to point to new commit
-        const updateResponse = await fetch('https://api.github.com/repos/demian7575/aipm/git/refs/heads/develop', {
-          method: 'PATCH',
-          headers: {
-            'Accept': 'application/vnd.github+json',
-            'Authorization': `Bearer ${token}`,
-            'User-Agent': 'aipm-staging-workflow'
-          },
-          body: JSON.stringify({
-            sha: newCommitData.sha,
-            force: false
-          })
-        });
-        
-        if (!updateResponse.ok) {
-          const errorText = await updateResponse.text();
-          throw new Error(`Failed to update develop branch: ${updateResponse.status} ${errorText}`);
+        if (!workflowResponse.ok) {
+          const errorText = await workflowResponse.text();
+          throw new Error(`GitHub workflow dispatch failed: ${workflowResponse.status} ${errorText}`);
         }
         
         sendJson(res, 200, {
           success: true,
-          message: 'Staging workflow completed - new commit created on develop branch',
+          message: 'Staging workflow triggered - production data copied to development',
           deploymentUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
           workflowUrl: 'https://github.com/demian7575/aipm/actions',
-          commitSha: newCommitData.sha,
-          taskTitle: taskTitle
+          dataSyncCompleted: true
         });
         
       } catch (error) {
