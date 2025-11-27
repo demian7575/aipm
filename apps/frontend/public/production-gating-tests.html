@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIPM Production Gating Tests</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .gating-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .test-header { background: #f5f5f5; padding: 15px; border-bottom: 1px solid #ddd; }
+        .test-results { padding: 15px; }
+        .test-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .test-status { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .status-pass { background: #d4edda; color: #155724; }
+        .status-fail { background: #f8d7da; color: #721c24; }
+        .status-running { background: #fff3cd; color: #856404; }
+        .run-tests-btn { background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        .run-tests-btn:disabled { background: #6c757d; cursor: not-allowed; }
+        .prod-banner { background: #dc3545; color: white; padding: 10px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="prod-banner">🚨 PRODUCTION ENVIRONMENT VALIDATION 🚨</div>
+    <div class="gating-container">
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1>AIPM Production Gating Tests</h1>
+            <p>Validates deployed production infrastructure and services</p>
+            <button id="runAllTests" class="run-tests-btn">Run Production Tests</button>
+        </header>
+
+        <div id="testResults">
+            <!-- Test results will be populated here -->
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="production-gating-tests.js"></script>
+</body>
+</html>

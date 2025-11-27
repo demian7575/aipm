@@ -4,16 +4,36 @@ This repository contains a self-hosted mindmap and outline workspace for managin
 
 ## 🚀 Quick Deploy to AWS
 
-Deploy the complete AIPM web service with one command:
+Deploy the complete AIPM web service with comprehensive testing:
 
 ```bash
 ./deploy.sh
 ```
 
+This single command handles:
+- ✅ Backend infrastructure (Lambda + API Gateway + DynamoDB)
+- ✅ Frontend deployment (S3 static hosting)
+- ✅ Configuration updates
+- ✅ Health checks
+- ✅ Production gating tests
+- ✅ Deployment verification
+
 **Live Demo**: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
 **API Endpoint**: https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod
 
-> **Note**: If you encounter dependency conflicts, use `npm install --legacy-peer-deps` before deployment.
+### Configuration
+
+Customize deployment settings in `deploy-config.yaml`:
+
+```yaml
+deployment:
+  stage: "prod"
+  region: "us-east-1"
+frontend:
+  s3Bucket: "your-bucket-name"
+```
+
+> **Note**: If you encounter dependency conflicts, the script automatically handles `npm install --legacy-peer-deps`.
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions and troubleshooting.
 

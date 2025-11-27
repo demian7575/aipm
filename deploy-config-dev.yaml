@@ -1,0 +1,41 @@
+# AIPM Development Environment Configuration
+
+deployment:
+  name: "aipm"
+  stage: "dev"
+  region: "us-east-1"
+
+backend:
+  stackName: "aipm-backend"
+  runtime: "nodejs18.x"
+  timeout: 30
+  memorySize: 512
+  
+frontend:
+  s3Bucket: "aipm-dev-frontend-hosting"
+  indexDocument: "index.html"
+  errorDocument: "error.html"
+
+database:
+  storiesTable: "aipm-backend-dev-stories"
+  acceptanceTestsTable: "aipm-backend-dev-acceptance-tests"
+
+api:
+  cors:
+    origin: "*"
+    headers: "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+    methods: "GET,POST,PUT,DELETE,OPTIONS"
+
+monitoring:
+  healthCheck:
+    enabled: true
+    timeout: 5000
+  gatingTests:
+    enabled: true
+    timeout: 30000
+
+features:
+  openai:
+    enabled: false
+  codex:
+    enabled: false

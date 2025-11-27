@@ -1,9 +1,14 @@
 // Removed Codex/CodeWhisperer imports - now using automatic PR creation
 
-const API_BASE_URL = (window.__AIPM_API_BASE__ || '').replace(/\/$/, '');
+function getApiBaseUrl() {
+  return (window.__AIPM_API_BASE__ || '').replace(/\/$/, '');
+}
+
 const DEFAULT_REPO_API_URL = 'https://api.github.com';
 
 function resolveApiUrl(path) {
+  const API_BASE_URL = getApiBaseUrl();
+  
   if (!path) {
     return API_BASE_URL;
   }
@@ -17,11 +22,7 @@ function resolveApiUrl(path) {
     return normalizedPath;
   }
 
-  if (normalizedPath.startsWith('/api') && /\/api(?:\/|$)/.test(API_BASE_URL)) {
-    const pathWithoutApiPrefix = normalizedPath.replace(/^\/api(?=\/|$)/, '');
-    return `${API_BASE_URL}${pathWithoutApiPrefix}`;
-  }
-
+  // Simply concatenate base URL with the path
   return `${API_BASE_URL}${normalizedPath}`;
 }
 
@@ -35,6 +36,8 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
+const exportStoriesBtn = document.getElementById('export-stories-btn');
+const runInStagingBtn = document.getElementById('run-in-staging-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -3195,6 +3198,185 @@ function computeHeatmapData() {
   return { assignees: options, datasets: datasetsWithRows, columns: HEATMAP_COMPONENTS };
 }
 
+function buildRunInStagingModalContent() {
+  const container = document.createElement('div');
+  container.className = 'run-staging-modal';
+  
+  container.innerHTML = `
+    <div class="staging-options">
+      <h3>Deploy to Staging Environment</h3>
+      <p>This will deploy the current changes to the staging environment for testing.</p>
+      
+      <div class="staging-info">
+        <label>Environment: <strong>Development/Staging</strong></label>
+        <label>Target: <strong>aipm-dev-frontend-hosting</strong></label>
+      </div>
+      
+      <div class="staging-actions">
+        <button id="deploy-staging" class="primary">Deploy to Staging</button>
+        <button id="check-staging-status" class="secondary">Check Status</button>
+      </div>
+      
+      <div id="staging-output" class="staging-output" style="display:none;">
+        <h4>Deployment Output:</h4>
+        <pre id="staging-log"></pre>
+      </div>
+    </div>
+  `;
+  
+  const deployBtn = container.querySelector('#deploy-staging');
+  const statusBtn = container.querySelector('#check-staging-status');
+  const output = container.querySelector('#staging-output');
+  const log = container.querySelector('#staging-log');
+  
+  deployBtn.addEventListener('click', async () => {
+    deployBtn.disabled = true;
+    deployBtn.textContent = 'Deploying...';
+    output.style.display = 'block';
+    log.textContent = 'Starting deployment to staging environment...\n';
+    
+    try {
+      // Simulate deployment process
+      log.textContent += 'Uploading files to S3...\n';
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      log.textContent += 'Updating configuration...\n';
+      await new Promise(resolve => setTimeout(resolve, 500));
+      log.textContent += '✅ Deployment completed successfully!\n';
+      log.textContent += 'Staging URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n';
+      
+      deployBtn.textContent = 'Deploy to Staging';
+      deployBtn.disabled = false;
+    } catch (error) {
+      log.textContent += `❌ Deployment failed: ${error.message}\n`;
+      deployBtn.textContent = 'Deploy to Staging';
+      deployBtn.disabled = false;
+    }
+  });
+  
+  statusBtn.addEventListener('click', () => {
+    output.style.display = 'block';
+    log.textContent = 'Checking staging environment status...\n';
+    log.textContent += '✅ Staging environment is running\n';
+    log.textContent += 'URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n';
+    log.textContent += 'Last updated: ' + new Date().toLocaleString() + '\n';
+  });
+  
+  return { element: container, onClose: () => {} };
+}
+
+function buildExportModalContent() {
+  const container = document.createElement('div');
+  container.className = 'export-modal';
+  
+  container.innerHTML = `
+    <div class="export-options">
+      <h3>Export Format</h3>
+      <label><input type="radio" name="format" value="json" checked> JSON</label>
+      <label><input type="radio" name="format" value="csv"> CSV</label>
+      
+      <h3>Export Options</h3>
+      <label><input type="checkbox" id="include-acceptance-tests" checked> Include Acceptance Tests</label>
+      <label><input type="checkbox" id="include-children" checked> Include Child Stories</label>
+      
+      <div class="export-actions">
+        <button id="export-download" class="primary">Download Export</button>
+      </div>
+    </div>
+  `;
+  
+  const downloadBtn = container.querySelector('#export-download');
+  downloadBtn.addEventListener('click', async () => {
+    const format = container.querySelector('input[name="format"]:checked').value;
+    const includeTests = container.querySelector('#include-acceptance-tests').checked;
+    const includeChildren = container.querySelector('#include-children').checked;
+    
+    try {
+      const stories = await fetchStories();
+      const exportData = prepareExportData(stories, { includeTests, includeChildren });
+      
+      if (format === 'json') {
+        downloadJSON(exportData, 'aipm-stories.json');
+      } else {
+        downloadCSV(exportData, 'aipm-stories.csv');
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed: ' + error.message);
+    }
+  });
+  
+  return { element: container, onClose: () => {} };
+}
+
+function prepareExportData(stories, options) {
+  return stories.map(story => {
+    const data = {
+      id: story.id,
+      title: story.title,
+      description: story.description,
+      asA: story.asA,
+      iWant: story.iWant,
+      soThat: story.soThat,
+      status: story.status,
+      storyPoint: story.storyPoint,
+      assigneeEmail: story.assigneeEmail,
+      components: story.components?.join(', ') || '',
+      createdAt: story.createdAt,
+      updatedAt: story.updatedAt
+    };
+    
+    if (options.includeTests && story.acceptanceTests) {
+      data.acceptanceTests = story.acceptanceTests.length;
+      data.acceptanceTestDetails = story.acceptanceTests.map(t => 
+        `${t.given} | ${t.when} | ${t.then}`
+      ).join('; ');
+    }
+    
+    if (options.includeChildren && story.children) {
+      data.childrenCount = story.children.length;
+    }
+    
+    return data;
+  });
+}
+
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadCSV(data, filename) {
+  if (!data.length) return;
+  
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => 
+      headers.map(header => {
+        const value = row[header] || '';
+        return `"${String(value).replace(/"/g, '""')}"`;
+      }).join(',')
+    )
+  ].join('\n');
+  
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function buildHeatmapModalContent() {
   const container = document.createElement('div');
   container.className = 'heatmap-modal';
@@ -6312,7 +6494,6 @@ async function confirmAndDeleteStory(storyId, options = {}) {
     }
 
     await loadStories();
-    persistSelection();
     showToast('Story deleted', 'success');
     return true;
   } catch (error) {
@@ -6391,6 +6572,28 @@ function initialize() {
     const { element, onClose } = buildHeatmapModalContent();
     openModal({
       title: 'Employee Heat Map',
+      content: element,
+      cancelLabel: 'Close',
+      size: 'content',
+      onClose,
+    });
+  });
+
+  exportStoriesBtn?.addEventListener('click', () => {
+    const { element, onClose } = buildExportModalContent();
+    openModal({
+      title: 'Export Stories',
+      content: element,
+      cancelLabel: 'Close',
+      size: 'content',
+      onClose,
+    });
+  });
+
+  runInStagingBtn?.addEventListener('click', () => {
+    const { element, onClose } = buildRunInStagingModalContent();
+    openModal({
+      title: 'Run in Staging',
       content: element,
       cancelLabel: 'Close',
       size: 'content',

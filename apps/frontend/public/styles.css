@@ -1887,3 +1887,39 @@ dialog[data-size='content'] .modal-shell {
 .codewhisperer-pr-link a:hover {
   text-decoration: underline;
 }
+/* Gating Tests Styles */
+#testResults {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: white;
+  border-left: 2px solid #ccc;
+  padding: 1rem;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+}
+
+.test-suite {
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.test-item {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.test-item:last-child {
+  border-bottom: none;
+}
+
+.test-status-pass { color: #28a745; }
+.test-status-fail { color: #dc3545; }
+.test-status-running { color: #ffc107; }
+.test-status-pending { color: #6c757d; }

@@ -3,6 +3,11 @@
 .env.local
 .env.production
 
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
 node_modules/
 data/
 apps/backend/data/

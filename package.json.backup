@@ -13,7 +13,6 @@
     "test": "NODE_ENV=test node --test",
     "lint": "echo 'No lint step configured'",
     "generate:sample-db": "node scripts/generate-sample-dataset.mjs",
-    "gating:dev": "node run-dev-gating-tests.cjs",
     "deploy": "./deploy.sh",
     "deploy:backend": "serverless deploy",
     "deploy:frontend": "aws s3 sync dist/ s3://aipm-static-hosting-demo --delete",

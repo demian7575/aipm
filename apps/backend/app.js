@@ -4,6 +4,7 @@ import {
   requestDocumentFromAmazonAi,
   requestAcceptanceTestDraftFromAmazonAi
 } from './amazon-ai.js';
+import { DynamoDBDataLayer } from './dynamodb.js';
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
@@ -2981,7 +2982,7 @@ function generateStoryDraftFromIdea(idea, context = {}) {
     description: deriveDescriptionFromIdea(normalized, segments, { parent, components: parentComponents }, wantFragment),
     asA: persona || sentenceFragment(parent?.asA) || 'User',
     iWant: wantFragment ? sentenceFragment(wantFragment) : sentenceFragment(normalized),
-    soThat: benefit ? sentenceFragment(benefit) : sentenceFragment(parent?.soThat || ''),
+    soThat: benefit ? sentenceFragment(benefit) : sentenceFragment(parent?.soThat || '') || 'I can accomplish my goals more effectively',
     components: parentComponents,
     storyPoint: suggestedStoryPoint,
     assigneeEmail: parent?.assigneeEmail ? String(parent.assigneeEmail).trim() : '',
@@ -4367,7 +4368,24 @@ function ensureCanMarkStoryDone(db, storyId) {
 
 function tableColumns(db, table) {
   try {
-    if (db.prepare) {
+    // Check for DynamoDB adapter first
+    if (db.safeSelectAll && typeof db.safeSelectAll === 'function') {
+      // DynamoDB adapter - return hardcoded schema
+      if (table === 'acceptance_tests') {
+        return [
+          { name: 'id' },
+          { name: 'story_id' },
+          { name: 'title' },
+          { name: 'given' },
+          { name: 'when_step' },
+          { name: 'then_step' },
+          { name: 'status' },
+          { name: 'created_at' },
+          { name: 'updated_at' }
+        ];
+      }
+      return [];
+    } else if (db.prepare) {
       // Native database
       return db.prepare(`PRAGMA table_info(${table})`).all();
     } else {
@@ -4382,8 +4400,14 @@ function tableColumns(db, table) {
   }
 }
 
-function safeSelectAll(db, sql, ...params) {
+async function safeSelectAll(db, sql, ...params) {
   try {
+    // Check if this is DynamoDB adapter
+    if (db.safeSelectAll && typeof db.safeSelectAll === 'function') {
+      return await db.safeSelectAll(sql, ...params);
+    }
+    
+    // SQLite path
     return db.prepare(sql).all(...params);
   } catch (error) {
     if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
@@ -4446,6 +4470,19 @@ async function removeUploadIfLocal(urlPath) {
 }
 
 async function ensureDatabase() {
+  // Use DynamoDB in production (Lambda environment)
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
+    console.log('🔧 Using DynamoDB for production environment');
+    console.log('Environment check:', {
+      AWS_LAMBDA_FUNCTION_NAME: !!process.env.AWS_LAMBDA_FUNCTION_NAME,
+      NODE_ENV: process.env.NODE_ENV,
+      STORIES_TABLE: process.env.STORIES_TABLE
+    });
+    return new DynamoDBDataLayer();
+  }
+  
+  // Use SQLite for local development
+  console.log('🔧 Using SQLite for local development');
   await Promise.all([mkdir(DATA_DIR, { recursive: true }), mkdir(UPLOAD_DIR, { recursive: true })]);
   const db = await openDatabase(DATABASE_PATH);
   db.exec(`
@@ -4649,8 +4686,14 @@ function flattenStories(nodes) {
   return result;
 }
 
-function loadDependencyRows(db) {
+async function loadDependencyRows(db) {
   try {
+    // Check if this is DynamoDB adapter
+    if (db.safeSelectAll && typeof db.safeSelectAll === 'function') {
+      return await db.safeSelectAll('SELECT story_id, depends_on_story_id, relationship FROM story_dependencies ORDER BY story_id, depends_on_story_id');
+    }
+    
+    // SQLite path
     return db
       .prepare('SELECT story_id, depends_on_story_id, relationship FROM story_dependencies ORDER BY story_id, depends_on_story_id')
       .all();
@@ -4664,31 +4707,31 @@ function loadDependencyRows(db) {
 
 async function loadStories(db, options = {}) {
   const { includeAiInvest = false } = options;
-  const storyRows = safeSelectAll(
+  const storyRows = await safeSelectAll(
     db,
     'SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id'
   );
-  const testRows = safeSelectAll(db, 'SELECT * FROM acceptance_tests ORDER BY story_id, id');
-  const docRows = safeSelectAll(db, 'SELECT * FROM reference_documents ORDER BY story_id, id');
-  const taskRows = safeSelectAll(db, 'SELECT * FROM tasks ORDER BY story_id, id');
+  const testRows = await safeSelectAll(db, 'SELECT * FROM acceptance_tests ORDER BY story_id, id');
+  const docRows = await safeSelectAll(db, 'SELECT * FROM reference_documents ORDER BY story_id, id');
+  const taskRows = await safeSelectAll(db, 'SELECT * FROM tasks ORDER BY story_id, id');
 
   const stories = storyRows.map((row) => {
     const components = normalizeComponentsInput(parseJsonArray(row.components));
     const story = {
       id: row.id,
       mrId: row.mr_id,
-      parentId: row.parent_id,
+      parentId: row.parent_id || row.parentId,
       title: row.title,
       description: row.description ?? '',
-      asA: row.as_a ?? '',
-      iWant: row.i_want ?? '',
-      soThat: row.so_that ?? '',
+      asA: row.as_a ?? row.asA ?? '',
+      iWant: row.i_want ?? row.iWant ?? '',
+      soThat: row.so_that ?? row.soThat ?? '',
       components,
-      storyPoint: row.story_point,
-      assigneeEmail: row.assignee_email ?? '',
+      storyPoint: row.story_point ?? row.storyPoint ?? 0,
+      assigneeEmail: row.assignee_email ?? row.assigneeEmail ?? '',
       status: safeNormalizeStoryStatus(row.status),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      createdAt: row.created_at ?? row.createdAt,
+      updatedAt: row.updated_at ?? row.updatedAt,
       acceptanceTests: [],
       referenceDocuments: [],
       tasks: [],
@@ -4704,7 +4747,7 @@ async function loadStories(db, options = {}) {
 
   propagateParentProgressStatus(roots);
 
-  const dependencyRows = loadDependencyRows(db);
+  const dependencyRows = await loadDependencyRows(db);
   dependencyRows.forEach((row) => {
     const dependent = byId.get(row.story_id);
     const dependency = byId.get(row.depends_on_story_id);
@@ -4817,18 +4860,18 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   const story = {
     id: row.id,
     mrId: row.mr_id,
-    parentId: row.parent_id,
+    parentId: row.parent_id || row.parentId,
     title: row.title,
     description: row.description ?? '',
-    asA: row.as_a ?? '',
-    iWant: row.i_want ?? '',
-    soThat: row.so_that ?? '',
+    asA: row.as_a ?? row.asA ?? '',
+    iWant: row.i_want ?? row.iWant ?? '',
+    soThat: row.so_that ?? row.soThat ?? '',
     components: normalizeComponentsInput(parseJsonArray(row.components)),
-    storyPoint: row.story_point,
-    assigneeEmail: row.assignee_email ?? '',
+    storyPoint: row.story_point ?? row.storyPoint ?? 0,
+    assigneeEmail: row.assignee_email ?? row.assigneeEmail ?? '',
     status: safeNormalizeStoryStatus(row.status),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: row.created_at ?? row.createdAt,
+    updatedAt: row.updated_at ?? row.updatedAt,
     acceptanceTests: [],
     referenceDocuments: [],
     tasks: [],
@@ -5293,7 +5336,7 @@ export async function createApp() {
         const statement = db.prepare(
           'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
         );
-        const { lastInsertRowid } = statement.run(
+        const { lastInsertRowid } = await statement.run(
           parentId,
           title,
           description,
@@ -5308,19 +5351,53 @@ export async function createApp() {
           timestamp
         );
         const newStoryId = Number(lastInsertRowid);
-        await createAutomaticAcceptanceTest(db, {
-          id: newStoryId,
-          title,
-          asA,
-          iWant,
-          soThat,
-          components,
-        });
+        
+        // Try to create automatic acceptance test, but don't fail story creation if it fails
+        try {
+          await createAutomaticAcceptanceTest(db, {
+            id: newStoryId,
+            title,
+            asA,
+            iWant,
+            soThat,
+            components,
+          });
+        } catch (error) {
+          console.error('Failed to create automatic acceptance test, but story creation continues:', error);
+        }
+        
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
         if (created) {
           applyInvestAnalysisToStory(created, analysis);
+          sendJson(res, 201, created);
+        } else {
+          console.error(`Story created with ID ${newStoryId} but not found in loadStories result`);
+          // Fallback: return minimal story object
+          const fallbackStory = {
+            id: newStoryId,
+            title,
+            description,
+            asA,
+            iWant,
+            soThat,
+            components: JSON.parse(components || '[]'),
+            assigneeEmail,
+            status: 'Draft',
+            acceptanceTests: [],
+            referenceDocuments: [],
+            tasks: [],
+            dependencies: [],
+            dependents: [],
+            blockedBy: [],
+            blocking: [],
+            children: [],
+            investWarnings: analysis?.warnings || [],
+            investSatisfied: false,
+            investHealth: { satisfied: false, issues: analysis?.warnings || [] },
+            investAnalysis: analysis || {}
+          };
+          sendJson(res, 201, fallbackStory);
         }
-        sendJson(res, 201, created ?? null);
       } catch (error) {
         const status = error.statusCode ?? 500;
         const body = { message: error.message || 'Failed to create story' };

@@ -12,15 +12,11 @@ provider:
   environment:
     NODE_ENV: production
     STAGE: ${self:provider.stage}
-    AIPM_DATA_DIR: /tmp/aipm/data
-    AIPM_UPLOAD_DIR: /tmp/aipm/uploads
-    AIPM_DISABLE_SQLITE_MIRROR: '1'
-    AI_PM_FORCE_JSON_DB: '1'
+    STORIES_TABLE: ${self:service}-${self:provider.stage}-stories
+    ACCEPTANCE_TESTS_TABLE: ${self:service}-${self:provider.stage}-acceptance-tests
     GITHUB_TOKEN: ${env:GITHUB_TOKEN, ''}
     GITHUB_OWNER: ${env:GITHUB_OWNER, 'demian7575'}
     GITHUB_REPO: ${env:GITHUB_REPO, 'aipm'}
-    STORIES_TABLE: ${self:service}-${self:provider.stage}-stories
-    ACCEPTANCE_TESTS_TABLE: ${self:service}-${self:provider.stage}-acceptance-tests
   iam:
     role:
       statements:
@@ -41,6 +37,10 @@ provider:
           Resource:
             - Fn::GetAtt: [StoriesTable, Arn]
             - Fn::GetAtt: [AcceptanceTestsTable, Arn]
+            - Fn::Join:
+              - '/'
+              - - Fn::GetAtt: [AcceptanceTestsTable, Arn]
+                - 'index/*'
 
 package:
   exclude:
@@ -52,19 +52,36 @@ package:
     - .github/**
     - .serverless/**
     - venv/**
+    - apps/frontend/**
+    - hooks/**
     - '*.md'
     - '*.zip'
     - '.gitignore'
     - 'amplify.yml'
     - 'template.yaml'
+    - 'deploy*.sh'
+    - 'update-gating-tests.js'
+    - 'GATING-TESTS.md'
+    # Exclude large unnecessary packages
+    - 'node_modules/aws-sdk/**'
+    - 'node_modules/serverless*/**'
+    - 'node_modules/@serverless/**'
+    - 'node_modules/@types/**'
+    - 'node_modules/typescript/**'
+    - 'node_modules/.bin/**'
+    - 'node_modules/**/test/**'
+    - 'node_modules/**/tests/**'
+    - 'node_modules/**/docs/**'
+    - 'node_modules/**/*.md'
+    - 'node_modules/**/*.map'
+    - 'node_modules/**/LICENSE*'
+    - 'node_modules/**/CHANGELOG*'
+    - 'node_modules/**/README*'
   include:
     - handler.js
     - lambda-app.js
     - apps/backend/**
     - package.json
-    - node_modules/@vendia/**
-    - node_modules/@aws-sdk/**
-    - node_modules/express/**
 
 functions:
   api:
@@ -139,3 +156,30 @@ resources:
             Projection:
               ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
+
+  Outputs:
+    ApiGatewayRestApiId:
+      Value:
+        Ref: ApiGatewayRestApi
+      Export:
+        Name: ${self:service}-${self:provider.stage}-restApiId
+
+    ApiGatewayRestApiRootResourceId:
+      Value:
+        Fn::GetAtt:
+          - ApiGatewayRestApi
+          - RootResourceId
+      Export:
+        Name: ${self:service}-${self:provider.stage}-rootResourceId
+
+    StoriesTableName:
+      Value:
+        Ref: StoriesTable
+      Export:
+        Name: ${self:service}-${self:provider.stage}-StoriesTableName
+
+    AcceptanceTestsTableName:
+      Value:
+        Ref: AcceptanceTestsTable
+      Export:
+        Name: ${self:service}-${self:provider.stage}-AcceptanceTestsTableName

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Gating Test</title>
+</head>
+<body>
+    <h1>Minimal Gating Test</h1>
+    <button id="test-btn">Run Minimal Test</button>
+    <div id="results"></div>
+
+    <script>
+        // Load config
+        const script1 = document.createElement('script');
+        script1.src = 'config.js';
+        document.head.appendChild(script1);
+
+        script1.onload = function() {
+            console.log('Config loaded:', window.CONFIG);
+            
+            // Test basic functionality
+            document.getElementById('test-btn').onclick = async function() {
+                const results = document.getElementById('results');
+                results.innerHTML = '<h2>Testing...</h2>';
+                
+                const tests = [];
+                
+                // Test 1: API Stories
+                try {
+                    const response = await fetch(window.CONFIG.API_BASE_URL + '/api/stories');
+                    tests.push(`API Stories: ${response.status === 200 ? 'PASS' : 'FAIL'} (${response.status})`);
+                } catch (e) {
+                    tests.push(`API Stories: FAIL (${e.message})`);
+                }
+                
+                // Test 2: API Draft
+                try {
+                    const response = await fetch(window.CONFIG.API_BASE_URL + '/api/stories/draft', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idea: 'test', parentId: null })
+                    });
+                    tests.push(`API Draft: ${response.status === 200 ? 'PASS' : 'FAIL'} (${response.status})`);
+                } catch (e) {
+                    tests.push(`API Draft: FAIL (${e.message})`);
+                }
+                
+                // Test 3: DOM Elements
+                const exportBtn = document.getElementById('export-stories-btn');
+                tests.push(`Export Button: ${exportBtn ? 'PASS' : 'FAIL'}`);
+                
+                const stagingBtn = document.getElementById('run-in-staging-btn');
+                tests.push(`Staging Button: ${stagingBtn ? 'PASS' : 'FAIL'}`);
+                
+                results.innerHTML = '<h2>Results:</h2><ul>' + 
+                    tests.map(t => `<li>${t}</li>`).join('') + '</ul>';
+            };
+        };
+    </script>
+</body>
+</html>
