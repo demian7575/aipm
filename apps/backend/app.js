@@ -5678,39 +5678,53 @@ export async function createApp() {
         const payload = await parseJson(req);
         const { taskTitle } = payload;
         
-        // Trigger GitHub Actions workflow for staging deployment
+        // Get GitHub token
         const token = process.env.GITHUB_TOKEN;
         if (!token) {
           throw new Error('GitHub token not configured');
         }
         
-        // Create a workflow dispatch event to trigger staging deployment
-        const workflowResponse = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy.yml/dispatches', {
-          method: 'POST',
+        // Get the current main branch SHA
+        const mainResponse = await fetch('https://api.github.com/repos/demian7575/aipm/git/refs/heads/main', {
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${token}`,
+            'User-Agent': 'aipm-staging-workflow'
+          }
+        });
+        
+        if (!mainResponse.ok) {
+          throw new Error(`Failed to get main branch: ${mainResponse.status}`);
+        }
+        
+        const mainData = await mainResponse.json();
+        const mainSha = mainData.object.sha;
+        
+        // Update develop branch to point to main (fast-forward)
+        const updateResponse = await fetch('https://api.github.com/repos/demian7575/aipm/git/refs/heads/develop', {
+          method: 'PATCH',
           headers: {
             'Accept': 'application/vnd.github+json',
             'Authorization': `Bearer ${token}`,
             'User-Agent': 'aipm-staging-workflow'
           },
           body: JSON.stringify({
-            ref: 'develop',
-            inputs: {
-              environment: 'development',
-              task_title: taskTitle || 'Run in Staging workflow'
-            }
+            sha: mainSha,
+            force: false
           })
         });
         
-        if (!workflowResponse.ok) {
-          const errorText = await workflowResponse.text();
-          throw new Error(`GitHub workflow dispatch failed: ${workflowResponse.status} ${errorText}`);
+        if (!updateResponse.ok) {
+          const errorText = await updateResponse.text();
+          throw new Error(`Failed to update develop branch: ${updateResponse.status} ${errorText}`);
         }
         
         sendJson(res, 200, {
           success: true,
-          message: 'Staging workflow triggered successfully',
+          message: 'Staging workflow triggered - develop branch updated',
           deploymentUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
-          workflowUrl: 'https://github.com/demian7575/aipm/actions'
+          workflowUrl: 'https://github.com/demian7575/aipm/actions',
+          taskTitle: taskTitle
         });
         
       } catch (error) {
