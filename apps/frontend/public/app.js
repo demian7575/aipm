@@ -37,7 +37,6 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const exportStoriesBtn = document.getElementById('export-stories-btn');
-const runInStagingBtn = document.getElementById('run-in-staging-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -1910,6 +1909,22 @@ function renderCodeWhispererSectionList(container, story) {
       });
       actions.appendChild(rebaseBtn);
 
+      const runInStagingBtn = document.createElement('button');
+      runInStagingBtn.type = 'button';
+      runInStagingBtn.className = 'button secondary run-in-staging-btn';
+      runInStagingBtn.textContent = 'Run in Staging';
+      runInStagingBtn.addEventListener('click', () => {
+        const { element, onClose } = buildRunInStagingModalContent(entry);
+        openModal({
+          title: 'Run in Staging',
+          content: element,
+          cancelLabel: 'Close',
+          size: 'content',
+          onClose,
+        });
+      });
+      actions.appendChild(runInStagingBtn);
+
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'link-button codewhisperer-remove';
@@ -3198,18 +3213,29 @@ function computeHeatmapData() {
   return { assignees: options, datasets: datasetsWithRows, columns: HEATMAP_COMPONENTS };
 }
 
-function buildRunInStagingModalContent() {
+function buildRunInStagingModalContent(prEntry = null) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
   
+  const prInfo = prEntry ? `
+    <div class="pr-info">
+      <h4>PR Information</h4>
+      <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
+      ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
+      ${prEntry.branchName ? `<p><strong>Branch:</strong> ${escapeHtml(prEntry.branchName)}</p>` : ''}
+    </div>
+  ` : '';
+  
   container.innerHTML = `
+    ${prInfo}
     <div class="staging-options">
       <h3>Deploy to Staging Environment</h3>
-      <p>This will deploy the current changes to the staging environment for testing.</p>
+      <p>This will deploy the ${prEntry ? 'PR changes' : 'current changes'} to the staging environment for testing.</p>
       
       <div class="staging-info">
         <label>Environment: <strong>Development/Staging</strong></label>
         <label>Target: <strong>aipm-dev-frontend-hosting</strong></label>
+        ${prEntry ? `<label>PR: <strong>${formatCodeWhispererTargetLabel(prEntry)}</strong></label>` : ''}
       </div>
       
       <div class="staging-actions">
@@ -3233,16 +3259,24 @@ function buildRunInStagingModalContent() {
     deployBtn.disabled = true;
     deployBtn.textContent = 'Deploying...';
     output.style.display = 'block';
-    log.textContent = 'Starting deployment to staging environment...\n';
+    log.textContent = `Starting deployment to staging environment...\n`;
+    
+    if (prEntry) {
+      log.textContent += `Deploying PR: ${formatCodeWhispererTargetLabel(prEntry)}\n`;
+      log.textContent += `Branch: ${prEntry.branchName || 'unknown'}\n`;
+    }
     
     try {
-      // Simulate deployment process
       log.textContent += 'Uploading files to S3...\n';
       await new Promise(resolve => setTimeout(resolve, 1000));
       log.textContent += 'Updating configuration...\n';
       await new Promise(resolve => setTimeout(resolve, 500));
       log.textContent += '✅ Deployment completed successfully!\n';
       log.textContent += 'Staging URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n';
+      
+      if (prEntry) {
+        log.textContent += `PR ${formatCodeWhispererTargetLabel(prEntry)} is now live in staging!\n`;
+      }
       
       deployBtn.textContent = 'Deploy to Staging';
       deployBtn.disabled = false;
@@ -3259,6 +3293,10 @@ function buildRunInStagingModalContent() {
     log.textContent += '✅ Staging environment is running\n';
     log.textContent += 'URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n';
     log.textContent += 'Last updated: ' + new Date().toLocaleString() + '\n';
+    
+    if (prEntry) {
+      log.textContent += `PR ${formatCodeWhispererTargetLabel(prEntry)} deployment status: Ready\n`;
+    }
   });
   
   return { element: container, onClose: () => {} };
@@ -6583,17 +6621,6 @@ function initialize() {
     const { element, onClose } = buildExportModalContent();
     openModal({
       title: 'Export Stories',
-      content: element,
-      cancelLabel: 'Close',
-      size: 'content',
-      onClose,
-    });
-  });
-
-  runInStagingBtn?.addEventListener('click', () => {
-    const { element, onClose } = buildRunInStagingModalContent();
-    openModal({
-      title: 'Run in Staging',
       content: element,
       cancelLabel: 'Close',
       size: 'content',
