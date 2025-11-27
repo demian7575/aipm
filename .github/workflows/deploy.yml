@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - development
+      - develop
   pull_request:
     branches:
       - main
@@ -25,7 +25,7 @@ on:
 
 jobs:
   deploy-dev:
-    if: github.ref == 'refs/heads/development' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
     runs-on: ubuntu-latest
     environment: development
     
@@ -50,7 +50,7 @@ jobs:
           aws-region: us-east-1
           
       - name: Deploy to development
-        run: ./deploy-multi-stage.sh dev development
+        run: ./deploy-develop.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -80,6 +80,6 @@ jobs:
           aws-region: us-east-1
           
       - name: Deploy to production
-        run: ./deploy-multi-stage.sh prod main
+        run: ./deploy.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
