@@ -1923,3 +1923,72 @@ dialog[data-size='content'] .modal-shell {
 .test-status-fail { color: #dc3545; }
 .test-status-running { color: #ffc107; }
 .test-status-pending { color: #6c757d; }
+/* Run in Staging Workflow Styles */
+.workflow-steps {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.workflow-steps .step {
+  margin: 8px 0;
+  padding: 5px 0;
+  font-size: 14px;
+  color: #495057;
+}
+
+.workflow-steps .step code {
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+}
+
+.pr-info {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #e3f2fd;
+  border-radius: 6px;
+  border-left: 4px solid #2196f3;
+}
+
+.pr-info h4 {
+  margin: 0 0 10px 0;
+  color: #1976d2;
+}
+
+.pr-info p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.staging-output {
+  margin-top: 20px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+.staging-output h4 {
+  margin: 0;
+  padding: 10px 15px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  font-size: 14px;
+  color: #495057;
+}
+
+.staging-output pre {
+  margin: 0;
+  padding: 15px;
+  background: #000;
+  color: #00ff00;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}

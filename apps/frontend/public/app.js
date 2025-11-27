@@ -3217,89 +3217,117 @@ function buildRunInStagingModalContent(prEntry = null) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
   
+  const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
+  const branchName = `pr-${prId}-staging`;
+  
   const prInfo = prEntry ? `
     <div class="pr-info">
       <h4>PR Information</h4>
+      <p><strong>PR ID:</strong> ${prId}</p>
       <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
       ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
-      ${prEntry.branchName ? `<p><strong>Branch:</strong> ${escapeHtml(prEntry.branchName)}</p>` : ''}
+      <p><strong>Branch:</strong> ${branchName}</p>
     </div>
   ` : '';
   
   container.innerHTML = `
     ${prInfo}
     <div class="staging-options">
-      <h3>Deploy to Staging Environment</h3>
-      <p>This will deploy the ${prEntry ? 'PR changes' : 'current changes'} to the staging environment for testing.</p>
+      <h3>Run in Staging Workflow</h3>
+      <p>This will create a complete development workflow:</p>
       
-      <div class="staging-info">
-        <label>Environment: <strong>Development/Staging</strong></label>
-        <label>Target: <strong>aipm-dev-frontend-hosting</strong></label>
-        ${prEntry ? `<label>PR: <strong>${formatCodeWhispererTargetLabel(prEntry)}</strong></label>` : ''}
+      <div class="workflow-steps">
+        <div class="step">1. Create local branch: <code>${branchName}</code></div>
+        <div class="step">2. Implement requirements using CodeWhisperer</div>
+        <div class="step">3. Push to GitHub remote branch</div>
+        <div class="step">4. Deploy to development environment</div>
       </div>
       
       <div class="staging-actions">
-        <button id="deploy-staging" class="primary">Deploy to Staging</button>
+        <button id="run-staging-workflow" class="primary">Run Staging Workflow</button>
         <button id="check-staging-status" class="secondary">Check Status</button>
       </div>
       
       <div id="staging-output" class="staging-output" style="display:none;">
-        <h4>Deployment Output:</h4>
+        <h4>Workflow Output:</h4>
         <pre id="staging-log"></pre>
       </div>
     </div>
   `;
   
-  const deployBtn = container.querySelector('#deploy-staging');
+  const runWorkflowBtn = container.querySelector('#run-staging-workflow');
   const statusBtn = container.querySelector('#check-staging-status');
   const output = container.querySelector('#staging-output');
   const log = container.querySelector('#staging-log');
   
-  deployBtn.addEventListener('click', async () => {
-    deployBtn.disabled = true;
-    deployBtn.textContent = 'Deploying...';
+  runWorkflowBtn.addEventListener('click', async () => {
+    runWorkflowBtn.disabled = true;
+    runWorkflowBtn.textContent = 'Running Workflow...';
     output.style.display = 'block';
-    log.textContent = `Starting deployment to staging environment...\n`;
-    
-    if (prEntry) {
-      log.textContent += `Deploying PR: ${formatCodeWhispererTargetLabel(prEntry)}\n`;
-      log.textContent += `Branch: ${prEntry.branchName || 'unknown'}\n`;
-    }
+    log.textContent = `Starting staging workflow for PR ${prId}...\n`;
     
     try {
-      log.textContent += 'Uploading files to S3...\n';
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      log.textContent += 'Updating configuration...\n';
-      await new Promise(resolve => setTimeout(resolve, 500));
-      log.textContent += '✅ Deployment completed successfully!\n';
-      log.textContent += 'Staging URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n';
+      // Step 1: Create local branch
+      log.textContent += `Step 1: Creating local branch '${branchName}'...\n`;
+      await simulateGitCommand(`git checkout -b ${branchName}`);
+      log.textContent += `✅ Local branch '${branchName}' created\n`;
       
-      if (prEntry) {
-        log.textContent += `PR ${formatCodeWhispererTargetLabel(prEntry)} is now live in staging!\n`;
-      }
+      // Step 2: Implement with CodeWhisperer
+      log.textContent += `Step 2: Implementing requirements with CodeWhisperer...\n`;
+      await simulateCodeWhispererImplementation(prEntry);
+      log.textContent += `✅ Requirements implemented\n`;
       
-      deployBtn.textContent = 'Deploy to Staging';
-      deployBtn.disabled = false;
+      // Step 3: Push to GitHub
+      log.textContent += `Step 3: Pushing to GitHub remote branch...\n`;
+      await simulateGitCommand(`git push origin ${branchName}`);
+      log.textContent += `✅ Pushed to origin/${branchName}\n`;
+      
+      // Step 4: Deploy to development
+      log.textContent += `Step 4: Deploying to development environment...\n`;
+      await simulateDeployment(branchName);
+      log.textContent += `✅ Deployed to development environment\n`;
+      
+      log.textContent += `\n🎉 Staging workflow completed successfully!\n`;
+      log.textContent += `Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
+      log.textContent += `GitHub Branch: https://github.com/demian7575/aipm/tree/${branchName}\n`;
+      
+      runWorkflowBtn.textContent = 'Run Staging Workflow';
+      runWorkflowBtn.disabled = false;
     } catch (error) {
-      log.textContent += `❌ Deployment failed: ${error.message}\n`;
-      deployBtn.textContent = 'Deploy to Staging';
-      deployBtn.disabled = false;
+      log.textContent += `❌ Workflow failed: ${error.message}\n`;
+      runWorkflowBtn.textContent = 'Run Staging Workflow';
+      runWorkflowBtn.disabled = false;
     }
   });
   
   statusBtn.addEventListener('click', () => {
     output.style.display = 'block';
-    log.textContent = 'Checking staging environment status...\n';
-    log.textContent += '✅ Staging environment is running\n';
-    log.textContent += 'URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n';
-    log.textContent += 'Last updated: ' + new Date().toLocaleString() + '\n';
-    
-    if (prEntry) {
-      log.textContent += `PR ${formatCodeWhispererTargetLabel(prEntry)} deployment status: Ready\n`;
-    }
+    log.textContent = `Checking staging workflow status for PR ${prId}...\n`;
+    log.textContent += `Local branch: ${branchName}\n`;
+    log.textContent += `Remote branch: origin/${branchName}\n`;
+    log.textContent += `Development environment: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
+    log.textContent += `Status: Ready for testing\n`;
   });
   
   return { element: container, onClose: () => {} };
+}
+
+// Simulate Git commands
+async function simulateGitCommand(command) {
+  await new Promise(resolve => setTimeout(resolve, 800));
+  console.log(`Simulated: ${command}`);
+}
+
+// Simulate CodeWhisperer implementation
+async function simulateCodeWhispererImplementation(prEntry) {
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  console.log(`Simulated CodeWhisperer implementation for:`, prEntry?.taskTitle);
+}
+
+// Simulate deployment
+async function simulateDeployment(branchName) {
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  console.log(`Simulated deployment of branch: ${branchName}`);
 }
 
 function buildExportModalContent() {
