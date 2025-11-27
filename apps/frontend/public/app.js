@@ -3275,6 +3275,11 @@ function buildRunInStagingModalContent(prEntry = null) {
       log.textContent += `Step 2: Executing staging workflow...\n`;
       
       try {
+        // Validate config before making request
+        if (!window.CONFIG || !window.CONFIG.API_BASE_URL) {
+          throw new Error('Configuration not loaded. Please refresh the page.');
+        }
+        
         const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/run-staging`, {
           method: 'POST',
           headers: {
