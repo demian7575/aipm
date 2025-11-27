@@ -312,8 +312,9 @@ async function runProductionTest(testName) {
                 
                 const features = {
                     exportBtn: html.includes('export-stories-btn'),
-                    stagingBtn: html.includes('run-in-staging-btn'),
-                    heatmapBtn: html.includes('open-heatmap-btn')
+                    heatmapBtn: html.includes('open-heatmap-btn'),
+                    // PR123: Run in Staging moved to PR cards, not in header
+                    prCardSupport: html.includes('Development Tasks') || html.includes('codewhisperer')
                 };
                 
                 const working = Object.values(features).filter(Boolean).length;
@@ -321,7 +322,7 @@ async function runProductionTest(testName) {
                 
                 return {
                     success: working === total,
-                    message: `Features: ${working}/${total} found - Export:${features.exportBtn?'✓':'✗'} Staging:${features.stagingBtn?'✓':'✗'} Heatmap:${features.heatmapBtn?'✓':'✗'}`
+                    message: `Features: ${working}/${total} found - Export:${features.exportBtn?'✓':'✗'} Heatmap:${features.heatmapBtn?'✓':'✗'} PRCards:${features.prCardSupport?'✓':'✗'}`
                 };
             } catch (error) {
                 return { success: false, message: `Features: Error - ${error.message}` };
@@ -974,35 +975,26 @@ async function runProductionTest(testName) {
             }
 
         case 'testRunInStagingButton':
-            // Test Run in Staging button by checking deployment
+            // Test Run in Staging button - PR123 moved it to PR cards
             try {
-                const response = await fetch(`${PROD_CONFIG.frontend}/index.html`);
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
                 if (!response.ok) {
-                    return { success: false, message: 'Staging: Cannot access main page' };
+                    return { success: false, message: 'Staging: Cannot access app.js' };
                 }
                 
-                const html = await response.text();
-                const hasStagingBtn = html.includes('run-in-staging-btn');
+                const js = await response.text();
                 
-                if (!hasStagingBtn) {
-                    return { success: false, message: 'Run in Staging button not found in HTML' };
-                }
+                // Check for PR card staging functionality (PR123 change)
+                const hasStagingFunction = js.includes('buildRunInStagingModalContent');
+                const hasPRCardIntegration = js.includes('run-in-staging-btn') && js.includes('codewhisperer-task-card');
                 
-                // Check if app.js has the staging function
-                const jsResponse = await fetch(`${PROD_CONFIG.frontend}/app.js`);
-                if (jsResponse.ok) {
-                    const js = await jsResponse.text();
-                    const hasStagingFunction = js.includes('buildRunInStagingModalContent');
-                    
-                    return {
-                        success: hasStagingFunction,
-                        message: `Staging: Button ${hasStagingBtn ? 'found' : 'missing'}, function ${hasStagingFunction ? 'found' : 'missing'}`
-                    };
+                if (!hasStagingFunction) {
+                    return { success: false, message: 'Run in Staging function not found' };
                 }
                 
                 return {
                     success: true,
-                    message: 'Run in Staging button found in HTML'
+                    message: `Staging: Function ${hasStagingFunction ? 'found' : 'missing'}, PR card integration ${hasPRCardIntegration ? 'found' : 'missing'} (PR123 moved to PR cards)`
                 };
                 
             } catch (error) {
