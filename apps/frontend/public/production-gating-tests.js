@@ -47,7 +47,8 @@ const PROD_TEST_SUITES = {
             { name: 'Story API Operations', test: 'testStoryOperations' },
             { name: 'Story Draft Generation', test: 'testStoryDraftGeneration' },
             { name: 'PR123 Export Feature', test: 'testPR123ExportFunctionality' },
-            { name: 'Run in Staging Feature', test: 'testRunInStagingButton' }
+            { name: 'Run in Staging Feature', test: 'testRunInStagingButton' },
+            { name: 'Run in Staging Workflow', test: 'testRunInStagingWorkflow' }
         ]
     },
     userExperience: {
@@ -979,6 +980,31 @@ async function runProductionTest(testName) {
                 
             } catch (error) {
                 return { success: false, message: `PR123: Export test failed - ${error.message}` };
+            }
+
+        case 'testRunInStagingWorkflow':
+            // Test Run in Staging workflow API endpoint
+            try {
+                const response = await fetch(`${PROD_CONFIG.api}/api/run-staging`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ taskTitle: 'Gating test workflow' })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    return {
+                        success: result.success === true,
+                        message: `Run in Staging: ${result.success ? 'Working' : 'Failed'} - ${result.message}`
+                    };
+                } else {
+                    return {
+                        success: false,
+                        message: `Run in Staging: HTTP ${response.status}`
+                    };
+                }
+            } catch (error) {
+                return { success: false, message: `Run in Staging: Error - ${error.message}` };
             }
 
         case 'testRunInStagingButton':

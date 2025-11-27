@@ -3275,7 +3275,7 @@ function buildRunInStagingModalContent(prEntry = null) {
       log.textContent += `Step 2: Executing staging workflow...\n`;
       
       try {
-        const response = await fetch(`${config.API_BASE_URL}/api/run-staging`, {
+        const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/run-staging`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
