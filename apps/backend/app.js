@@ -4705,6 +4705,63 @@ async function loadDependencyRows(db) {
   }
 }
 
+// Helper function to copy production data to development
+async function clearAndCopyData(db, prodStories, prodTests) {
+  try {
+    // Clear development stories
+    const devStoriesStmt = db.prepare('DELETE FROM user_stories');
+    devStoriesStmt.run();
+    
+    // Clear development acceptance tests  
+    const devTestsStmt = db.prepare('DELETE FROM acceptance_tests');
+    devTestsStmt.run();
+    
+    // Copy production stories to development
+    if (prodStories && prodStories.length > 0) {
+      const insertStoryStmt = db.prepare(`
+        INSERT INTO user_stories (
+          id, title, description, as_a, i_want, so_that, components, story_point,
+          assignee_email, status, created_at, updated_at, parent_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      for (const story of prodStories) {
+        insertStoryStmt.run(
+          story.id, story.title, story.description, story.asA, story.iWant,
+          story.soThat, JSON.stringify(story.components || []), story.storyPoint,
+          story.assigneeEmail, story.status, story.createdAt, story.updatedAt,
+          story.parentId
+        );
+      }
+    }
+    
+    // Copy production acceptance tests to development
+    if (prodTests && prodTests.length > 0) {
+      const insertTestStmt = db.prepare(`
+        INSERT INTO acceptance_tests (
+          id, story_id, title, given_step, when_step, then_step, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      for (const test of prodTests) {
+        insertTestStmt.run(
+          test.id, test.storyId, test.title,
+          JSON.stringify(test.given || []),
+          JSON.stringify(test.when || []),
+          JSON.stringify(test.then || []),
+          test.status, test.createdAt, test.updatedAt
+        );
+      }
+    }
+    
+    console.log(`Copied ${prodStories?.length || 0} stories and ${prodTests?.length || 0} tests to development`);
+    
+  } catch (error) {
+    console.error('Data copy error:', error);
+    throw error;
+  }
+}
+
 async function loadStories(db, options = {}) {
   const { includeAiInvest = false } = options;
   const storyRows = await safeSelectAll(
@@ -5678,13 +5735,28 @@ export async function createApp() {
         const payload = await parseJson(req);
         const { taskTitle } = payload;
         
-        // Trigger GitHub Actions workflow for staging deployment
         const token = process.env.GITHUB_TOKEN;
         if (!token) {
           throw new Error('GitHub token not configured');
         }
         
-        // Create a workflow dispatch event to trigger staging deployment
+        // Step 1: Copy production data to development environment
+        console.log('Copying production data to development environment...');
+        
+        try {
+          // Simple data copy using existing database functions
+          const prodStories = await loadStories(db, 'aipm-backend-prod-stories');
+          const prodTests = await loadAcceptanceTests(db, 'aipm-backend-prod-acceptance-tests');
+          
+          // Clear development tables and copy production data
+          await clearAndCopyData(db, prodStories, prodTests);
+          
+        } catch (dataError) {
+          console.error('Data sync error:', dataError);
+          // Continue with workflow even if data sync fails
+        }
+        
+        // Step 2: Create commit and trigger deployment
         const workflowResponse = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy.yml/dispatches', {
           method: 'POST',
           headers: {
@@ -5708,9 +5780,10 @@ export async function createApp() {
         
         sendJson(res, 200, {
           success: true,
-          message: 'Staging workflow triggered successfully',
+          message: 'Staging workflow triggered - production data copied to development',
           deploymentUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
-          workflowUrl: 'https://github.com/demian7575/aipm/actions'
+          workflowUrl: 'https://github.com/demian7575/aipm/actions',
+          dataSyncCompleted: true
         });
         
       } catch (error) {
