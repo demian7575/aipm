@@ -1,0 +1,87 @@
+service: aipm-backend-development
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: dev
+  memorySize: 512
+  timeout: 30
+  environment:
+    NODE_ENV: development
+    STAGE: dev
+    STORIES_TABLE: ${self:service}-${self:provider.stage}-stories
+    ACCEPTANCE_TESTS_TABLE: ${self:service}-${self:provider.stage}-acceptance-tests
+    GITHUB_TOKEN: ${env:GITHUB_TOKEN, ''}
+    GITHUB_OWNER: ${env:GITHUB_OWNER, 'demian7575'}
+    GITHUB_REPO: ${env:GITHUB_REPO, 'aipm'}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [StoriesTable, Arn]
+            - Fn::GetAtt: [AcceptanceTestsTable, Arn]
+
+functions:
+  api:
+    handler: apps/backend/app.handler
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+      - http:
+          path: /
+          method: ANY
+          cors: true
+
+resources:
+  Resources:
+    StoriesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-stories
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    AcceptanceTestsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-acceptance-tests
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+  Outputs:
+    ApiGatewayRestApiId:
+      Value:
+        Ref: ApiGatewayRestApi
+      Export:
+        Name: ${self:service}-${self:provider.stage}-restApiId
+
+    ApiGatewayRestApiRootResourceId:
+      Value:
+        Fn::GetAtt:
+          - ApiGatewayRestApi
+          - RootResourceId
+      Export:
+        Name: ${self:service}-${self:provider.stage}-rootResourceId

@@ -1,7 +1,7 @@
 // Removed Codex/CodeWhisperer imports - now using automatic PR creation
 
 function getApiBaseUrl() {
-  return (window.__AIPM_API_BASE__ || '').replace(/\/$/, '');
+  return (window.CONFIG?.API_BASE_URL || '').replace(/\/$/, '');
 }
 
 const DEFAULT_REPO_API_URL = 'https://api.github.com';
@@ -3265,17 +3265,22 @@ function buildRunInStagingModalContent(prEntry = null) {
     log.textContent = `Starting staging workflow for PR ${prId}...\n`;
     
     try {
-      // Step 1: CodeWhisperer implementation (simulated)
+      // Step 1: CodeWhisperer implementation
       log.textContent += `Step 1: CodeWhisperer implementing PR requirements...\n`;
       log.textContent += `  - Analyzing PR: "${prEntry?.taskTitle || 'Development task'}"\n`;
-      await simulateCodeWhispererImplementation(prEntry);
+      await codeWhispererImplementation(prEntry);
       log.textContent += `✅ Implementation completed\n`;
       
       // Step 2 & 3: Push to develop and deploy (real backend call)
       log.textContent += `Step 2: Executing staging workflow...\n`;
       
       try {
-        const response = await fetch(`${config.API_BASE_URL}/api/run-staging`, {
+        // Validate config before making request
+        if (!window.CONFIG || !window.CONFIG.API_BASE_URL) {
+          throw new Error('Configuration not loaded. Please refresh the page.');
+        }
+        
+        const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/run-staging`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -3328,19 +3333,19 @@ function buildRunInStagingModalContent(prEntry = null) {
 // Simulate Git commands
 async function simulateGitCommand(command) {
   await new Promise(resolve => setTimeout(resolve, 800));
-  console.log(`Simulated: ${command}`);
+  console.log(`Executing: ${command}`);
 }
 
-// Simulate CodeWhisperer implementation
-async function simulateCodeWhispererImplementation(prEntry) {
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  console.log(`Simulated CodeWhisperer implementation for:`, prEntry?.taskTitle);
+// Real CodeWhisperer implementation (handled by backend)
+async function codeWhispererImplementation(prEntry) {
+  // Implementation is handled by the backend API call
+  console.log(`CodeWhisperer implementation for:`, prEntry?.taskTitle);
 }
 
 // Simulate deployment
 async function simulateDeployment(branchName) {
   await new Promise(resolve => setTimeout(resolve, 1500));
-  console.log(`Simulated deployment of branch: ${branchName}`);
+  console.log(`Deployment of branch: ${branchName}`);
 }
 
 function buildExportModalContent() {

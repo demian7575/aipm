@@ -2,6 +2,12 @@
 
 This repository contains a self-hosted mindmap and outline workspace for managing merge-request user stories, acceptance tests, and reference documentation. A Node.js backend exposes a SQLite-backed REST API and serves a vanilla JavaScript frontend that renders a right-expanding mindmap, outline tree, and detail panel with modal-driven editing flows.
 
+## 📚 Development Documentation
+
+- **[Development Principles & Workflow](DEVELOPMENT_PRINCIPLES.md)** - Core principles, environment separation, git flow
+- **[Quick Reference Guide](WORKFLOW_QUICK_REFERENCE.md)** - Daily development workflow commands
+- **[Development Regulations](DEVELOPMENT_REGULATIONS.md)** - Mandatory compliance and incident response
+
 ## 🚀 Quick Deploy to AWS
 
 Deploy the complete AIPM web service with comprehensive testing:
