@@ -5684,8 +5684,8 @@ export async function createApp() {
           throw new Error('GitHub token not configured');
         }
         
-        // Get the current main branch SHA
-        const mainResponse = await fetch('https://api.github.com/repos/demian7575/aipm/git/refs/heads/main', {
+        // Get the current develop branch
+        const developResponse = await fetch('https://api.github.com/repos/demian7575/aipm/git/refs/heads/develop', {
           headers: {
             'Accept': 'application/vnd.github+json',
             'Authorization': `Bearer ${token}`,
@@ -5693,14 +5693,57 @@ export async function createApp() {
           }
         });
         
-        if (!mainResponse.ok) {
-          throw new Error(`Failed to get main branch: ${mainResponse.status}`);
+        if (!developResponse.ok) {
+          throw new Error(`Failed to get develop branch: ${developResponse.status}`);
         }
         
-        const mainData = await mainResponse.json();
-        const mainSha = mainData.object.sha;
+        const developData = await developResponse.json();
+        const developSha = developData.object.sha;
         
-        // Update develop branch to point to main (fast-forward)
+        // Create a new commit on develop branch with the task implementation
+        const commitMessage = `Implement: ${taskTitle || 'Run in Staging workflow'}
+
+This commit represents the implementation of the staging task.
+Ready for development environment deployment and testing.`;
+
+        // Get the current tree
+        const treeResponse = await fetch(`https://api.github.com/repos/demian7575/aipm/git/commits/${developSha}`, {
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${token}`,
+            'User-Agent': 'aipm-staging-workflow'
+          }
+        });
+        
+        if (!treeResponse.ok) {
+          throw new Error(`Failed to get commit tree: ${treeResponse.status}`);
+        }
+        
+        const treeData = await treeResponse.json();
+        
+        // Create a new commit
+        const newCommitResponse = await fetch('https://api.github.com/repos/demian7575/aipm/git/commits', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${token}`,
+            'User-Agent': 'aipm-staging-workflow'
+          },
+          body: JSON.stringify({
+            message: commitMessage,
+            tree: treeData.tree.sha,
+            parents: [developSha]
+          })
+        });
+        
+        if (!newCommitResponse.ok) {
+          const errorText = await newCommitResponse.text();
+          throw new Error(`Failed to create commit: ${newCommitResponse.status} ${errorText}`);
+        }
+        
+        const newCommitData = await newCommitResponse.json();
+        
+        // Update develop branch to point to new commit
         const updateResponse = await fetch('https://api.github.com/repos/demian7575/aipm/git/refs/heads/develop', {
           method: 'PATCH',
           headers: {
@@ -5709,7 +5752,7 @@ export async function createApp() {
             'User-Agent': 'aipm-staging-workflow'
           },
           body: JSON.stringify({
-            sha: mainSha,
+            sha: newCommitData.sha,
             force: false
           })
         });
@@ -5721,9 +5764,10 @@ export async function createApp() {
         
         sendJson(res, 200, {
           success: true,
-          message: 'Staging workflow triggered - develop branch updated',
+          message: 'Staging workflow completed - new commit created on develop branch',
           deploymentUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
           workflowUrl: 'https://github.com/demian7575/aipm/actions',
+          commitSha: newCommitData.sha,
           taskTitle: taskTitle
         });
         
