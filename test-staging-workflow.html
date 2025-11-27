@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test Staging Workflow</title></head>
+<body>
+    <h1>Test Run in Staging Workflow</h1>
+    <button onclick="testWorkflow()">Test Workflow Functions</button>
+    <div id="results"></div>
+    
+    <script>
+        function testWorkflow() {
+            const results = [];
+            
+            // Test if functions exist
+            const functions = [
+                'buildRunInStagingModalContent',
+                'simulateGitCommand', 
+                'simulateCodeWhispererImplementation',
+                'simulateDeployment'
+            ];
+            
+            functions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    results.push(`✅ ${funcName}: EXISTS`);
+                } else {
+                    results.push(`❌ ${funcName}: MISSING`);
+                }
+            });
+            
+            // Test modal creation
+            try {
+                const mockPR = { number: 123, taskTitle: 'Test PR' };
+                const modal = buildRunInStagingModalContent(mockPR);
+                if (modal && modal.element) {
+                    results.push('✅ Modal creation: WORKING');
+                } else {
+                    results.push('❌ Modal creation: FAILED');
+                }
+            } catch (e) {
+                results.push(`❌ Modal creation: ERROR - ${e.message}`);
+            }
+            
+            document.getElementById('results').innerHTML = 
+                '<h2>Test Results:</h2>' + results.map(r => `<div>${r}</div>`).join('');
+        }
+    </script>
+    
+    <!-- Load the actual app.js to test functions -->
+    <script src="app.js"></script>
+</body>
+</html>

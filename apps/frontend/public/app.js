@@ -3217,8 +3217,14 @@ function buildRunInStagingModalContent(prEntry = null) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
   
+  // Use actual PR branch name or create from PR info
+  const branchName = prEntry?.branchName || 
+                    (prEntry?.taskTitle ? prEntry.taskTitle.toLowerCase()
+                      .replace(/[^a-z0-9]+/g, '-')
+                      .replace(/^-+|-+$/g, '')
+                      .substring(0, 50) : 'staging-branch');
+  
   const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
-  const branchName = `pr-${prId}-staging`;
   
   const prInfo = prEntry ? `
     <div class="pr-info">
@@ -3267,7 +3273,7 @@ function buildRunInStagingModalContent(prEntry = null) {
     log.textContent = `Starting staging workflow for PR ${prId}...\n`;
     
     try {
-      // Step 1: Create local branch
+      // Step 1: Create local branch with PR name
       log.textContent += `Step 1: Creating local branch '${branchName}'...\n`;
       await simulateGitCommand(`git checkout -b ${branchName}`);
       log.textContent += `✅ Local branch '${branchName}' created\n`;
@@ -3277,7 +3283,7 @@ function buildRunInStagingModalContent(prEntry = null) {
       await simulateCodeWhispererImplementation(prEntry);
       log.textContent += `✅ Requirements implemented\n`;
       
-      // Step 3: Push to GitHub
+      // Step 3: Push to GitHub with PR name
       log.textContent += `Step 3: Pushing to GitHub remote branch...\n`;
       await simulateGitCommand(`git push origin ${branchName}`);
       log.textContent += `✅ Pushed to origin/${branchName}\n`;
