@@ -140,13 +140,26 @@ function createApp() {
       const { BedrockRuntimeClient, InvokeModelCommand } = require("@aws-sdk/client-bedrock-runtime");
       const client = new BedrockRuntimeClient({ region: "us-east-1" });
       
-      const prompt = `Generate code for: ${taskDescription}
+      const prompt = `Generate code for this task: ${taskDescription}
 
-Return ONLY a JSON object with this structure:
+CRITICAL: Return ONLY valid JSON. No markdown, no backticks, no explanation.
+
+Required JSON format:
 {
-  "files": [{"path": "file.js", "content": "code here"}],
-  "summary": "what changed"
-}`;
+  "files": [
+    {
+      "path": "filename.js",
+      "content": "// code content here"
+    }
+  ],
+  "summary": "Brief description of changes"
+}
+
+Rules:
+- Use double quotes for all strings
+- Escape special characters in content
+- No backticks in JSON
+- Return ONLY the JSON object`;
       
       const command = new InvokeModelCommand({
         modelId: "anthropic.claude-3-haiku-20240307-v1:0",
@@ -161,12 +174,37 @@ Return ONLY a JSON object with this structure:
       const result = JSON.parse(new TextDecoder().decode(response.body));
       const text = result.content[0].text;
       
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      // Remove markdown code blocks if present
+      let cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
+      // Find JSON object
+      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        return res.json({ success: false, message: "Failed to parse AI response", details: text });
+        return res.json({ 
+          success: false, 
+          message: "AI did not return valid JSON", 
+          details: text.substring(0, 200) 
+        });
       }
       
-      const codeData = JSON.parse(jsonMatch[0]);
+      let codeData;
+      try {
+        codeData = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        return res.json({ 
+          success: false, 
+          message: "Failed to parse AI response: " + parseError.message,
+          details: jsonMatch[0].substring(0, 200)
+        });
+      }
+      
+      if (!codeData.files || !Array.isArray(codeData.files)) {
+        return res.json({ 
+          success: false, 
+          message: "AI response missing 'files' array",
+          details: JSON.stringify(codeData)
+        });
+      }
       const https = require('https');
       const branchName = `amazonq/${Date.now()}`;
       
