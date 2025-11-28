@@ -291,13 +291,32 @@ Rules:
         let prBody = '';
         prResp.on('data', c => prBody += c);
         prResp.on('end', () => {
-          const pr = JSON.parse(prBody);
-          res.json({
-            success: true,
-            message: "Code generated and PR created",
-            prUrl: pr.html_url,
-            prNumber: pr.number
-          });
+          console.log('PR Response Status:', prResp.statusCode);
+          console.log('PR Response Body:', prBody);
+          
+          try {
+            const pr = JSON.parse(prBody);
+            if (pr.html_url) {
+              res.json({
+                success: true,
+                message: "Code generated and PR created",
+                prUrl: pr.html_url,
+                prNumber: pr.number
+              });
+            } else {
+              res.json({
+                success: false,
+                message: "PR creation failed: " + (pr.message || "Unknown error"),
+                details: prBody.substring(0, 200)
+              });
+            }
+          } catch (e) {
+            res.json({
+              success: false,
+              message: "Failed to parse PR response: " + e.message,
+              details: prBody.substring(0, 200)
+            });
+          }
         });
       });
       
