@@ -149,7 +149,7 @@ Return ONLY a JSON object with this structure:
 }`;
       
       const command = new InvokeModelCommand({
-        modelId: "anthropic.claude-3-haiku-20240307-v1:0",
+        modelId: "anthropic.claude-3-7-sonnet-20250219-v1:0",
         body: JSON.stringify({
           anthropic_version: "bedrock-2023-05-31",
           max_tokens: 4096,
