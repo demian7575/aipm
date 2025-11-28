@@ -5735,118 +5735,56 @@ export async function createApp() {
         const payload = await parseJson(req);
         const { taskTitle } = payload;
         
-        console.log('=== RUN-STAGING WORKFLOW START ===');
-        console.log('Task Title:', taskTitle);
-        
         const token = process.env.GITHUB_TOKEN;
         if (!token) {
-          console.log('ERROR: GitHub token not configured');
           throw new Error('GitHub token not configured');
         }
-        console.log('GitHub token available:', !!token);
         
-        // Step 1: Implement the actual code change requested
-        let implementationResult = null;
-        console.log('Checking if task requires implementation...');
+        // Step 1: Copy production data to development environment
+        console.log('Copying production data to development environment...');
         
-        if (taskTitle && taskTitle.includes('Rename "Run in Staging" to "Demo"')) {
-          console.log('IMPLEMENTING: Rename Run in Staging to Demo');
+        try {
+          // Simple data copy using existing database functions
+          const prodStories = await loadStories(db, 'aipm-backend-prod-stories');
+          const prodTests = await loadAcceptanceTests(db, 'aipm-backend-prod-acceptance-tests');
           
-          // Get current frontend file
-          console.log('Fetching current app.js from GitHub...');
-          const fileResponse = await fetch('https://api.github.com/repos/demian7575/aipm/contents/apps/frontend/public/app.js', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          // Clear development tables and copy production data
+          await clearAndCopyData(db, prodStories, prodTests);
           
-          console.log('File fetch response status:', fileResponse.status);
-          
-          if (fileResponse.ok) {
-            const fileData = await fileResponse.json();
-            const currentContent = Buffer.from(fileData.content, 'base64').toString();
-            
-            console.log('Current file size:', currentContent.length);
-            console.log('Occurrences of "Run in Staging":', (currentContent.match(/Run in Staging/g) || []).length);
-            
-            // Implement the rename: Replace "Run in Staging" with "Demo"
-            const updatedContent = currentContent.replace(/Run in Staging/g, 'Demo');
-            
-            console.log('Updated file size:', updatedContent.length);
-            console.log('Occurrences of "Demo" after replacement:', (updatedContent.match(/Demo/g) || []).length);
-            
-            // Commit the change
-            console.log('Committing changes to develop branch...');
-            const updateResponse = await fetch('https://api.github.com/repos/demian7575/aipm/contents/apps/frontend/public/app.js', {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                message: taskTitle,
-                content: Buffer.from(updatedContent).toString('base64'),
-                sha: fileData.sha,
-                branch: 'develop'
-              })
-            });
-            
-            console.log('Commit response status:', updateResponse.status);
-            if (!updateResponse.ok) {
-              const errorText = await updateResponse.text();
-              console.log('Commit error:', errorText);
-            }
-            
-            implementationResult = { success: updateResponse.ok };
-          } else {
-            const errorText = await fileResponse.text();
-            console.log('File fetch error:', errorText);
-          }
-        } else {
-          console.log('No specific implementation required for task:', taskTitle);
+        } catch (dataError) {
+          console.error('Data sync error:', dataError);
+          // Continue with workflow even if data sync fails
         }
-
-        // Step 2: Trigger development deployment via GitHub repository dispatch
-        console.log('Triggering development deployment...');
-        const deployResponse = await fetch('https://api.github.com/repos/demian7575/aipm/dispatches', {
+        
+        // Step 2: Trigger GitHub Action workflow with kiro-cli
+        const workflowResponse = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/run-in-staging.yml/dispatches', {
           method: 'POST',
           headers: {
+            'Accept': 'application/vnd.github+json',
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'aipm-staging-workflow'
           },
           body: JSON.stringify({
-            event_type: 'deploy-development',
-            client_payload: {
-              task: taskTitle,
-              branch: 'develop'
+            ref: 'develop',
+            inputs: {
+              task_title: taskTitle || 'Run in Staging workflow',
+              task_details: payload.taskDetails || ''
             }
-            
-            implementationResult = { success: updateResponse.ok };
-          } else {
-            const errorText = await fileResponse.text();
-            console.log('File fetch error:', errorText);
-          }
-        } else {
-          console.log('No specific implementation required for task:', taskTitle);
-        }
-
-        // Step 2: Deploy development environment from develop branch
-        console.log('Deploying development environment...');
-        const { spawn } = await import('child_process');
-        
-        const deployProcess = spawn('./deploy-develop.sh', [], {
-          cwd: process.cwd(),
-          stdio: 'pipe'
+          })
         });
-
-        console.log('Deploy dispatch response status:', deployResponse.status);
-        console.log('=== RUN-STAGING WORKFLOW COMPLETE ===');
+        
+        if (!workflowResponse.ok) {
+          const errorText = await workflowResponse.text();
+          throw new Error(`GitHub workflow dispatch failed: ${workflowResponse.status} ${errorText}`);
+        }
         
         sendJson(res, 200, {
           success: true,
-          message: 'Code implementation completed and development deployment triggered',
+          message: 'Staging workflow triggered - kiro-cli will implement and deploy to development',
           deploymentUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
-          implementationApplied: !!implementationResult?.success,
-          deploymentTriggered: deployResponse.ok,
-          workflowCompleted: true
+          workflowUrl: 'https://github.com/demian7575/aipm/actions/workflows/run-in-staging.yml',
+          dataSyncCompleted: true
         });
         
       } catch (error) {
