@@ -54,6 +54,18 @@ function createApp() {
     next();
   });
   
+  // Health check endpoint
+  expressApp.get(['/api/health', '/prod/api/health', '/dev/api/health'], (req, res) => {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      environment: {
+        GITHUB_TOKEN: process.env.GITHUB_TOKEN ? 'configured' : 'missing',
+        STORIES_TABLE: process.env.STORIES_TABLE || 'not set'
+      }
+    });
+  });
+  
   // Get all stories from DynamoDB with proper hierarchy
   expressApp.get(['/api/stories', '/prod/api/stories', '/dev/api/stories'], async (req, res) => {
     try {
@@ -331,7 +343,8 @@ Rules:
           success: true,
           message: "Code generated and PR created",
           prUrl: pr.html_url,
-          prNumber: pr.number
+          prNumber: pr.number,
+          branchName: branchName
         });
       } catch (prError) {
         console.error('PR creation error:', prError.message);
@@ -348,7 +361,7 @@ Rules:
   });
 
   expressApp.post(['/api/run-staging', '/prod/api/run-staging', '/dev/api/run-staging'], async (req, res) => {
-    const { taskTitle } = req.body;
+    const { taskTitle, branchName } = req.body;
     
     // Trigger GitHub Actions workflow
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -361,19 +374,21 @@ Rules:
         success: true,
         message: "Staging endpoint ready (set GITHUB_TOKEN env var to enable auto-deployment)",
         deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
-        branch: "develop",
-        githubUrl: `https://github.com/${REPO_FULL}/tree/develop`
+        branch: branchName || "develop",
+        githubUrl: `https://github.com/${REPO_FULL}/tree/${branchName || 'develop'}`
       });
     }
     
     try {
       const https = require('https');
-      const data = JSON.stringify({
+      const payload = {
         ref: 'main',
         inputs: { 
-          task_title: taskTitle || 'API triggered deployment'
+          task_title: String(taskTitle || 'API triggered deployment'),
+          branch_name: String(branchName || 'develop')
         }
-      });
+      };
+      const data = JSON.stringify(payload);
       
       const options = {
         hostname: 'api.github.com',
@@ -383,7 +398,7 @@ Rules:
           'Authorization': `token ${GITHUB_TOKEN}`,
           'User-Agent': 'AIPM-Backend',
           'Content-Type': 'application/json',
-          'Content-Length': data.length
+          'Content-Length': Buffer.byteLength(data)
         }
       };
       
@@ -408,7 +423,7 @@ Rules:
               success: true,
               message: "Staging deployment triggered via GitHub Actions",
               deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
-              branch: "develop",
+              branch: branchName || "develop",
               githubUrl: `https://github.com/${REPO_FULL}/actions`
             });
           } else {

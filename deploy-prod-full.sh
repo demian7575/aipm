@@ -11,10 +11,7 @@ git pull origin main
 
 # 2. Deploy Backend (Lambda + API Gateway + DynamoDB)
 echo "📦 Step 2: Deploying Backend (Lambda + API Gateway + DynamoDB)..."
-cp package.json package.json.orig
-cp package.lambda.json package.json
 npx serverless deploy --stage prod
-mv package.json.orig package.json
 
 # Get API endpoint
 API_ENDPOINT=$(aws cloudformation describe-stacks \
@@ -27,11 +24,16 @@ if [ -z "$API_ENDPOINT" ]; then
   API_ENDPOINT=$(npx serverless info --stage prod | grep "endpoint:" | awk '{print $2}')
 fi
 
+if [ -z "$API_ENDPOINT" ]; then
+  echo "⚠️  Using known prod API endpoint..."
+  API_ENDPOINT="https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod"
+fi
+
 echo "✅ Backend deployed: $API_ENDPOINT"
 
-# 3. Update Frontend Config
-echo "📝 Step 3: Updating frontend config for production..."
-cat > apps/frontend/public/config.js << EOF
+# 3. Create Frontend Config (don't overwrite in git)
+echo "📝 Step 3: Creating frontend config for production..."
+cat > apps/frontend/public/config-prod.js << EOF
 // Production Environment Configuration
 window.CONFIG = {
     API_BASE_URL: '${API_ENDPOINT}',
@@ -45,6 +47,9 @@ window.CONFIG = {
     DEBUG: false
 };
 EOF
+
+# Copy to config.js for deployment
+cp apps/frontend/public/config-prod.js apps/frontend/public/config.js
 
 # 4. Deploy Frontend to S3
 echo "📦 Step 4: Deploying Frontend to S3..."

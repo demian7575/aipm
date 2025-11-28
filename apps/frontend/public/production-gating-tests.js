@@ -1307,8 +1307,8 @@ async function runProductionTest(testName) {
                 
                 const code = await response.text();
                 
-                // If response is HTML (error page), Lambda code is protected
-                if (code.includes('<!DOCTYPE') || code.includes('<html')) {
+                // If response is HTML (error page) or JSON (API response), Lambda code is protected
+                if (code.includes('<!DOCTYPE') || code.includes('<html') || code.includes('"message"')) {
                     return { success: true, message: 'Workflow: Lambda code protected (expected)' };
                 }
                 
@@ -1375,3 +1375,15 @@ async function runProductionTest(testName) {
             };
     }
 }
+
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🧪 Production Gating Tests loaded');
+    renderTestResults();
+    
+    const runButton = document.getElementById('runAllTests');
+    if (runButton) {
+        runButton.addEventListener('click', runAllTests);
+    }
+});

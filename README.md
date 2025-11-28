@@ -4,9 +4,13 @@ This repository contains a self-hosted mindmap and outline workspace for managin
 
 ## 📚 Development Documentation
 
-- **[Development Principles & Workflow](DEVELOPMENT_PRINCIPLES.md)** - Core principles, environment separation, git flow
-- **[Quick Reference Guide](WORKFLOW_QUICK_REFERENCE.md)** - Daily development workflow commands
-- **[Development Regulations](DEVELOPMENT_REGULATIONS.md)** - Mandatory compliance and incident response
+**[📖 Complete Development Guide](DevelopmentBackground.md)** - Comprehensive documentation including:
+- Critical development principles (MUST READ before any changes)
+- Core principles and regulations
+- Complete code structure and AWS architecture
+- API reference and workflow instructions
+- Testing, troubleshooting, and lessons learned
+- AI assistant integration guide
 
 ## 🚀 Quick Deploy to AWS
 
@@ -41,7 +45,7 @@ frontend:
 
 > **Note**: If you encounter dependency conflicts, the script automatically handles `npm install --legacy-peer-deps`.
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions and troubleshooting.
+For detailed deployment instructions and troubleshooting, see the [Development Guide](DevelopmentBackground.md).
 
 ## Requirements
 
