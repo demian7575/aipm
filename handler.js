@@ -276,7 +276,7 @@ Rules:
       const prPayload = {
         title: prTitle,
         body: prBody,
-        head: branchName,
+        head: `${GITHUB_OWNER}:${branchName}`,
         base: 'develop'
       };
       
