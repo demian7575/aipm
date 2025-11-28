@@ -212,7 +212,9 @@ function createApp() {
       const https = require('https');
       const data = JSON.stringify({
         ref: 'main',
-        inputs: { taskTitle: taskTitle || 'API triggered deployment' }
+        inputs: { 
+          task_title: taskTitle || 'API triggered deployment'
+        }
       });
       
       const options = {

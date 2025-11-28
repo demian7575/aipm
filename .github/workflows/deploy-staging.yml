@@ -3,9 +3,10 @@ name: Deploy to Staging
 on:
   workflow_dispatch:
     inputs:
-      taskTitle:
+      task_title:
         description: 'Task title for deployment'
         required: false
+        type: string
         default: 'Manual staging deployment'
 
 jobs:
@@ -34,5 +35,5 @@ jobs:
       
       - name: Output deployment URL
         run: |
-          echo "✅ Deployment complete"
+          echo "✅ Deployment complete: ${{ github.event.inputs.task_title }}"
           echo "🌐 URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/"
