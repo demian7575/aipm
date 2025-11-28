@@ -6,7 +6,6 @@ on:
       task_title:
         description: 'Task title for deployment'
         required: false
-        type: string
         default: 'Manual staging deployment'
 
 jobs:
