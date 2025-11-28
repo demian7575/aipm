@@ -270,12 +270,18 @@ Rules:
       }
       
       // Create PR
-      const prData = JSON.stringify({
-        title: `🤖 Amazon Q: ${taskDescription}`,
-        body: `## Amazon Q Generated Code\n\n**Task:** ${taskDescription}\n\n**Summary:** ${codeData.summary}\n\n### ⚠️ Review Required\n- [ ] Test changes\n- [ ] Update if needed`,
+      const prTitle = `🤖 Amazon Q: ${taskDescription}`;
+      const prBody = `## Amazon Q Generated Code\n\n**Task:** ${taskDescription}\n\n**Summary:** ${codeData.summary || 'Code generated'}\n\n### ⚠️ Review Required\n- [ ] Test changes\n- [ ] Update if needed`;
+      
+      const prPayload = {
+        title: prTitle,
+        body: prBody,
         head: branchName,
         base: 'develop'
-      });
+      };
+      
+      const prData = JSON.stringify(prPayload);
+      console.log('Creating PR with payload:', prPayload);
       
       const prReq = https.request({
         hostname: 'api.github.com',
