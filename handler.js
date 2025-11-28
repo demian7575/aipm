@@ -269,69 +269,63 @@ Rules:
         });
       }
       
-      // Create PR
+      // Create PR using async/await
       const prTitle = `🤖 Amazon Q: ${taskDescription}`;
       const prBody = `## Amazon Q Generated Code\n\n**Task:** ${taskDescription}\n\n**Summary:** ${codeData.summary || 'Code generated'}\n\n### ⚠️ Review Required\n- [ ] Test changes\n- [ ] Update if needed`;
       
-      const prPayload = {
-        title: prTitle,
-        body: prBody,
-        head: `${GITHUB_OWNER}:${branchName}`,
-        base: 'develop'
-      };
-      
-      const prData = JSON.stringify(prPayload);
-      console.log('Creating PR with payload:', prPayload);
-      
-      const prReq = https.request({
-        hostname: 'api.github.com',
-        path: `/repos/${REPO_FULL}/pulls`,
-        method: 'POST',
-        headers: {
-          'Authorization': `token ${GITHUB_TOKEN}`,
-          'User-Agent': 'AIPM',
-          'Content-Type': 'application/json',
-          'Content-Length': prData.length
-        }
-      }, (prResp) => {
-        let prBody = '';
-        prResp.on('data', c => prBody += c);
-        prResp.on('end', () => {
-          console.log('PR Response Status:', prResp.statusCode);
-          console.log('PR Response Body:', prBody);
-          
-          try {
-            const pr = JSON.parse(prBody);
-            if (pr.html_url) {
-              res.json({
-                success: true,
-                message: "Code generated and PR created",
-                prUrl: pr.html_url,
-                prNumber: pr.number
-              });
-            } else {
-              res.json({
-                success: false,
-                message: "PR creation failed: " + (pr.message || "Unknown error"),
-                details: prBody.substring(0, 200)
-              });
-            }
-          } catch (e) {
-            res.json({
-              success: false,
-              message: "Failed to parse PR response: " + e.message,
-              details: prBody.substring(0, 200)
-            });
-          }
+      const createPR = () => new Promise((resolve, reject) => {
+        const prPayload = JSON.stringify({
+          title: prTitle,
+          body: prBody,
+          head: `${GITHUB_OWNER}:${branchName}`,
+          base: 'develop'
         });
+        
+        const options = {
+          hostname: 'api.github.com',
+          path: `/repos/${REPO_FULL}/pulls`,
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GITHUB_TOKEN}`,
+            'User-Agent': 'AIPM-Backend',
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(prPayload),
+            'Accept': 'application/vnd.github+json'
+          }
+        };
+        
+        const req = https.request(options, (prResp) => {
+          let data = '';
+          prResp.on('data', chunk => data += chunk);
+          prResp.on('end', () => {
+            if (prResp.statusCode === 201) {
+              resolve(JSON.parse(data));
+            } else {
+              reject(new Error(data));
+            }
+          });
+        });
+        
+        req.on('error', reject);
+        req.write(prPayload);
+        req.end();
       });
       
-      prReq.on('error', (error) => {
-        res.json({ success: false, message: `PR failed: ${error.message}` });
-      });
-      
-      prReq.write(prData);
-      prReq.end();
+      try {
+        const pr = await createPR();
+        res.json({
+          success: true,
+          message: "Code generated and PR created",
+          prUrl: pr.html_url,
+          prNumber: pr.number
+        });
+      } catch (prError) {
+        console.error('PR creation error:', prError.message);
+        res.json({
+          success: false,
+          message: "PR creation failed: " + prError.message.substring(0, 200)
+        });
+      }
       
     } catch (error) {
       console.error('Generation error:', error);
