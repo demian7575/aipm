@@ -3335,8 +3335,31 @@ function buildRunInStagingModalContent(prEntry = null) {
 }
 
 async function codeWhispererImplementation(prEntry) {
-  // Placeholder - actual implementation happens via backend workflow
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // Call backend to generate code with Amazon Q
+  try {
+    const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/generate-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        taskDescription: prEntry?.taskTitle || 'Implement feature'
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success && result.prUrl) {
+      console.log('Code generated, PR created:', result.prUrl);
+      return result;
+    } else {
+      console.log('Code generation not available:', result.message);
+      // Continue with deployment even if code generation fails
+      return null;
+    }
+  } catch (error) {
+    console.error('Code generation error:', error);
+    // Continue with deployment even if code generation fails
+    return null;
+  }
 }
 
 function buildExportModalContent() {
