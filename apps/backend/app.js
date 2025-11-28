@@ -5756,19 +5756,20 @@ export async function createApp() {
           // Continue with workflow even if data sync fails
         }
         
-        // Step 2: Create commit and trigger deployment
-        const workflowResponse = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy.yml/dispatches', {
+        // Step 2: Trigger GitHub Action workflow with kiro-cli
+        const workflowResponse = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/run-in-staging.yml/dispatches', {
           method: 'POST',
           headers: {
             'Accept': 'application/vnd.github+json',
             'Authorization': `Bearer ${token}`,
+            'X-GitHub-Api-Version': '2022-11-28',
             'User-Agent': 'aipm-staging-workflow'
           },
           body: JSON.stringify({
             ref: 'develop',
             inputs: {
-              environment: 'development',
-              task_title: taskTitle || 'Run in Staging workflow'
+              task_title: taskTitle || 'Run in Staging workflow',
+              task_details: payload.taskDetails || ''
             }
           })
         });
@@ -5780,9 +5781,9 @@ export async function createApp() {
         
         sendJson(res, 200, {
           success: true,
-          message: 'Staging workflow triggered - production data copied to development',
+          message: 'Staging workflow triggered - kiro-cli will implement and deploy to development',
           deploymentUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
-          workflowUrl: 'https://github.com/demian7575/aipm/actions',
+          workflowUrl: 'https://github.com/demian7575/aipm/actions/workflows/run-in-staging.yml',
           dataSyncCompleted: true
         });
         
