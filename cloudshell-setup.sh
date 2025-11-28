@@ -50,7 +50,7 @@ echo "✅ Dependencies installed"
 # Step 4: Install Global Tools
 echo ""
 echo "🔧 Step 4/5: Installing global tools..."
-npm install -g serverless @aws/kiro-cli
+npm install -g serverless kiro-cli
 echo "✅ Global tools installed"
 
 # Step 5: Configure Git
