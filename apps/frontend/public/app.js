@@ -3335,31 +3335,21 @@ function buildRunInStagingModalContent(prEntry = null) {
 }
 
 async function codeWhispererImplementation(prEntry) {
-  // Call backend to generate code with Amazon Q
-  try {
-    const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/generate-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        taskDescription: prEntry?.taskTitle || 'Implement feature'
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success && result.prUrl) {
-      console.log('Code generated, PR created:', result.prUrl);
-      return result;
-    } else {
-      console.log('Code generation not available:', result.message);
-      // Continue with deployment even if code generation fails
-      return null;
-    }
-  } catch (error) {
-    console.error('Code generation error:', error);
-    // Continue with deployment even if code generation fails
-    return null;
-  }
+  // Amazon Q local workflow - user generates code manually
+  // This is a placeholder that shows the user what to do
+  // Actual code generation happens via: ./q-generate-and-pr.sh
+  
+  console.log('Amazon Q Implementation Guide:');
+  console.log('1. Open terminal: cd /repo/ebaejun/tools/aws/aipm');
+  console.log('2. Run: ./q-generate-and-pr.sh "' + (prEntry?.taskTitle || 'Implement feature') + '"');
+  console.log('3. Use Amazon Q (kiro-cli) to generate code when prompted');
+  console.log('4. Script will create PR automatically');
+  
+  // Small delay to show the message
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Return null - no automatic code generation
+  return null;
 }
 
 function buildExportModalContent() {
