@@ -115,10 +115,8 @@ functions:
             allowCredentials: false
 
 plugins:
-  - serverless-offline
 
 custom:
-  serverless-offline:
     httpPort: 3001
     host: 0.0.0.0
 

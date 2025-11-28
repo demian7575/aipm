@@ -137,25 +137,19 @@ function createApp() {
     }
     
     try {
-      // Generate code using Bedrock
       const { BedrockRuntimeClient, InvokeModelCommand } = require("@aws-sdk/client-bedrock-runtime");
       const client = new BedrockRuntimeClient({ region: "us-east-1" });
       
-      const prompt = `Generate code for this task: ${taskDescription}
+      const prompt = `Generate code for: ${taskDescription}
 
-Return ONLY valid JSON in this exact format:
+Return ONLY a JSON object with this structure:
 {
-  "files": [
-    {
-      "path": "path/to/file.js",
-      "content": "file content here"
-    }
-  ],
-  "summary": "Brief description of changes"
+  "files": [{"path": "file.js", "content": "code here"}],
+  "summary": "what changed"
 }`;
       
       const command = new InvokeModelCommand({
-        modelId: "anthropic.claude-3-sonnet-20240229-v1:0",
+        modelId: "anthropic.claude-3-haiku-20240307-v1:0",
         body: JSON.stringify({
           anthropic_version: "bedrock-2023-05-31",
           max_tokens: 4096,
@@ -165,43 +159,33 @@ Return ONLY valid JSON in this exact format:
       
       const response = await client.send(command);
       const result = JSON.parse(new TextDecoder().decode(response.body));
-      const generatedText = result.content[0].text;
+      const text = result.content[0].text;
       
-      // Parse JSON from response
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        return res.json({
-          success: false,
-          message: "Failed to parse generated code",
-          details: generatedText
-        });
+        return res.json({ success: false, message: "Failed to parse AI response", details: text });
       }
       
       const codeData = JSON.parse(jsonMatch[0]);
-      
-      // Create branch and PR via GitHub API
       const https = require('https');
       const branchName = `amazonq/${Date.now()}`;
       
-      // Get base branch SHA
+      // Get develop branch SHA
       const getRef = () => new Promise((resolve, reject) => {
         https.get({
           hostname: 'api.github.com',
           path: `/repos/${REPO_FULL}/git/ref/heads/develop`,
-          headers: {
-            'Authorization': `token ${GITHUB_TOKEN}`,
-            'User-Agent': 'AIPM-Backend'
-          }
-        }, (resp) => {
-          let data = '';
-          resp.on('data', chunk => data += chunk);
-          resp.on('end', () => resolve(JSON.parse(data)));
+          headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'AIPM' }
+        }, (r) => {
+          let d = '';
+          r.on('data', c => d += c);
+          r.on('end', () => resolve(JSON.parse(d)));
         }).on('error', reject);
       });
       
       const baseSha = (await getRef()).object.sha;
       
-      // Create new branch
+      // Create branch
       await new Promise((resolve, reject) => {
         const data = JSON.stringify({ ref: `refs/heads/${branchName}`, sha: baseSha });
         const req = https.request({
@@ -210,7 +194,7 @@ Return ONLY valid JSON in this exact format:
           method: 'POST',
           headers: {
             'Authorization': `token ${GITHUB_TOKEN}`,
-            'User-Agent': 'AIPM-Backend',
+            'User-Agent': 'AIPM',
             'Content-Type': 'application/json',
             'Content-Length': data.length
           }
@@ -220,12 +204,12 @@ Return ONLY valid JSON in this exact format:
         req.end();
       });
       
-      // Create/update files
+      // Create files
       for (const file of codeData.files) {
         const content = Buffer.from(file.content).toString('base64');
         const data = JSON.stringify({
           message: `Amazon Q: ${taskDescription}`,
-          content: content,
+          content,
           branch: branchName
         });
         
@@ -236,7 +220,7 @@ Return ONLY valid JSON in this exact format:
             method: 'PUT',
             headers: {
               'Authorization': `token ${GITHUB_TOKEN}`,
-              'User-Agent': 'AIPM-Backend',
+              'User-Agent': 'AIPM',
               'Content-Type': 'application/json',
               'Content-Length': data.length
             }
@@ -250,7 +234,7 @@ Return ONLY valid JSON in this exact format:
       // Create PR
       const prData = JSON.stringify({
         title: `🤖 Amazon Q: ${taskDescription}`,
-        body: `## Amazon Q Generated Code\n\n**Task:** ${taskDescription}\n\n**Summary:** ${codeData.summary}\n\n### ⚠️ Human Review Required\n- [ ] Code quality check\n- [ ] Test the changes\n- [ ] Update if needed`,
+        body: `## Amazon Q Generated Code\n\n**Task:** ${taskDescription}\n\n**Summary:** ${codeData.summary}\n\n### ⚠️ Review Required\n- [ ] Test changes\n- [ ] Update if needed`,
         head: branchName,
         base: 'develop'
       });
@@ -261,13 +245,13 @@ Return ONLY valid JSON in this exact format:
         method: 'POST',
         headers: {
           'Authorization': `token ${GITHUB_TOKEN}`,
-          'User-Agent': 'AIPM-Backend',
+          'User-Agent': 'AIPM',
           'Content-Type': 'application/json',
           'Content-Length': prData.length
         }
       }, (prResp) => {
         let prBody = '';
-        prResp.on('data', chunk => prBody += chunk);
+        prResp.on('data', c => prBody += c);
         prResp.on('end', () => {
           const pr = JSON.parse(prBody);
           res.json({
@@ -280,21 +264,15 @@ Return ONLY valid JSON in this exact format:
       });
       
       prReq.on('error', (error) => {
-        res.json({
-          success: false,
-          message: `PR creation failed: ${error.message}`
-        });
+        res.json({ success: false, message: `PR failed: ${error.message}` });
       });
       
       prReq.write(prData);
       prReq.end();
       
     } catch (error) {
-      console.error('Code generation error:', error);
-      res.json({
-        success: false,
-        message: `Failed: ${error.message}`
-      });
+      console.error('Generation error:', error);
+      res.json({ success: false, message: error.message });
     }
   });
 
