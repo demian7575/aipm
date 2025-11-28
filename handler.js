@@ -123,7 +123,7 @@ function createApp() {
   
   // Amazon Q / CodeWhisperer code generation endpoint
   expressApp.post(['/api/generate-code', '/prod/api/generate-code', '/dev/api/generate-code'], async (req, res) => {
-    const { taskDescription, targetBranch } = req.body;
+    const { taskDescription } = req.body;
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
     const GITHUB_REPO = process.env.GITHUB_REPO || 'demian7575/aipm';
     
@@ -139,8 +139,7 @@ function createApp() {
       const data = JSON.stringify({
         ref: 'main',
         inputs: { 
-          taskDescription: taskDescription || 'Generate code',
-          targetBranch: targetBranch || 'develop'
+          taskDescription: taskDescription || 'Generate code'
         }
       });
       
