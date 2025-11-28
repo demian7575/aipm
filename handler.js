@@ -137,51 +137,160 @@ function createApp() {
     }
     
     try {
-      const https = require('https');
-      const data = JSON.stringify({
-        ref: 'main',
-        inputs: { 
-          taskDescription: taskDescription || 'Generate code'
-        }
+      // Generate code using Bedrock
+      const { BedrockRuntimeClient, InvokeModelCommand } = require("@aws-sdk/client-bedrock-runtime");
+      const client = new BedrockRuntimeClient({ region: "us-east-1" });
+      
+      const prompt = `Generate code for this task: ${taskDescription}
+
+Return ONLY valid JSON in this exact format:
+{
+  "files": [
+    {
+      "path": "path/to/file.js",
+      "content": "file content here"
+    }
+  ],
+  "summary": "Brief description of changes"
+}`;
+      
+      const command = new InvokeModelCommand({
+        modelId: "anthropic.claude-3-sonnet-20240229-v1:0",
+        body: JSON.stringify({
+          anthropic_version: "bedrock-2023-05-31",
+          max_tokens: 4096,
+          messages: [{ role: "user", content: prompt }]
+        })
       });
       
-      const options = {
+      const response = await client.send(command);
+      const result = JSON.parse(new TextDecoder().decode(response.body));
+      const generatedText = result.content[0].text;
+      
+      // Parse JSON from response
+      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return res.json({
+          success: false,
+          message: "Failed to parse generated code",
+          details: generatedText
+        });
+      }
+      
+      const codeData = JSON.parse(jsonMatch[0]);
+      
+      // Create branch and PR via GitHub API
+      const https = require('https');
+      const branchName = `amazonq/${Date.now()}`;
+      
+      // Get base branch SHA
+      const getRef = () => new Promise((resolve, reject) => {
+        https.get({
+          hostname: 'api.github.com',
+          path: `/repos/${REPO_FULL}/git/ref/heads/develop`,
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'User-Agent': 'AIPM-Backend'
+          }
+        }, (resp) => {
+          let data = '';
+          resp.on('data', chunk => data += chunk);
+          resp.on('end', () => resolve(JSON.parse(data)));
+        }).on('error', reject);
+      });
+      
+      const baseSha = (await getRef()).object.sha;
+      
+      // Create new branch
+      await new Promise((resolve, reject) => {
+        const data = JSON.stringify({ ref: `refs/heads/${branchName}`, sha: baseSha });
+        const req = https.request({
+          hostname: 'api.github.com',
+          path: `/repos/${REPO_FULL}/git/refs`,
+          method: 'POST',
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'User-Agent': 'AIPM-Backend',
+            'Content-Type': 'application/json',
+            'Content-Length': data.length
+          }
+        }, resolve);
+        req.on('error', reject);
+        req.write(data);
+        req.end();
+      });
+      
+      // Create/update files
+      for (const file of codeData.files) {
+        const content = Buffer.from(file.content).toString('base64');
+        const data = JSON.stringify({
+          message: `Amazon Q: ${taskDescription}`,
+          content: content,
+          branch: branchName
+        });
+        
+        await new Promise((resolve, reject) => {
+          const req = https.request({
+            hostname: 'api.github.com',
+            path: `/repos/${REPO_FULL}/contents/${file.path}`,
+            method: 'PUT',
+            headers: {
+              'Authorization': `token ${GITHUB_TOKEN}`,
+              'User-Agent': 'AIPM-Backend',
+              'Content-Type': 'application/json',
+              'Content-Length': data.length
+            }
+          }, resolve);
+          req.on('error', reject);
+          req.write(data);
+          req.end();
+        });
+      }
+      
+      // Create PR
+      const prData = JSON.stringify({
+        title: `🤖 Amazon Q: ${taskDescription}`,
+        body: `## Amazon Q Generated Code\n\n**Task:** ${taskDescription}\n\n**Summary:** ${codeData.summary}\n\n### ⚠️ Human Review Required\n- [ ] Code quality check\n- [ ] Test the changes\n- [ ] Update if needed`,
+        head: branchName,
+        base: 'develop'
+      });
+      
+      const prReq = https.request({
         hostname: 'api.github.com',
-        path: `/repos/${REPO_FULL}/actions/workflows/q-code-generation.yml/dispatches`,
+        path: `/repos/${REPO_FULL}/pulls`,
         method: 'POST',
         headers: {
           'Authorization': `token ${GITHUB_TOKEN}`,
           'User-Agent': 'AIPM-Backend',
           'Content-Type': 'application/json',
-          'Content-Length': data.length
+          'Content-Length': prData.length
         }
-      };
-      
-      const request = https.request(options, (response) => {
-        if (response.statusCode === 204) {
+      }, (prResp) => {
+        let prBody = '';
+        prResp.on('data', chunk => prBody += chunk);
+        prResp.on('end', () => {
+          const pr = JSON.parse(prBody);
           res.json({
             success: true,
-            message: "Code generation triggered via Amazon Q",
-            workflowUrl: `https://github.com/${REPO_FULL}/actions/workflows/q-code-generation.yml`
+            message: "Code generated and PR created",
+            prUrl: pr.html_url,
+            prNumber: pr.number
           });
-        } else {
-          res.json({
-            success: false,
-            message: `Workflow trigger failed: ${response.statusCode}`
-          });
-        }
-      });
-      
-      request.on('error', (error) => {
-        res.json({
-          success: false,
-          message: `Error: ${error.message}`
         });
       });
       
-      request.write(data);
-      request.end();
+      prReq.on('error', (error) => {
+        res.json({
+          success: false,
+          message: `PR creation failed: ${error.message}`
+        });
+      });
+      
+      prReq.write(prData);
+      prReq.end();
+      
     } catch (error) {
+      console.error('Code generation error:', error);
       res.json({
         success: false,
         message: `Failed: ${error.message}`
