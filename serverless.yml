@@ -62,6 +62,7 @@ package:
     - 'deploy*.sh'
     - 'update-gating-tests.js'
     - 'GATING-TESTS.md'
+    - 'package.json'
     # Exclude large unnecessary packages
     - 'node_modules/aws-sdk/**'
     - 'node_modules/serverless*/**'
@@ -78,10 +79,9 @@ package:
     - 'node_modules/**/CHANGELOG*'
     - 'node_modules/**/README*'
   include:
-    - handler.js
-    - lambda-app.js
+    - handler.cjs
     - apps/backend/**
-    - package.json
+    - package.lambda.json
 
 functions:
   api:

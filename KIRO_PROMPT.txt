@@ -1,0 +1,187 @@
+cd /repo/ebaejun/tools/aws/aipm
+
+I'm working on AIPM (AI Project Manager). Please read and understand:
+
+1. START_HERE.md - Complete development guide
+2. DEPLOYMENT_STRATEGY.md - Environment isolation details
+3. DEVELOPMENT_PRINCIPLES.md - Core principles
+4. LESSONS_LEARNED.md - Key insights
+
+=== CODE STRUCTURE ===
+
+apps/
+├── backend/
+│   ├── app.js              # Main Express app with REST API routes
+│   ├── server.js           # HTTP server wrapper
+│   ├── dynamodb.js         # DynamoDB data layer (SQLite compatibility)
+│   └── amazon-ai.js        # AWS Bedrock integration for AI features
+├── frontend/public/
+│   ├── index.html          # Main UI
+│   ├── app.js              # Frontend logic (227KB - mindmap, stories, tests)
+│   ├── config.js           # Environment config (auto-generated)
+│   ├── styles.css          # UI styles
+│   ├── production-gating-tests.html  # Browser-based tests
+│   └── production-gating-tests.js    # Test implementation
+
+Root:
+├── handler.js              # Lambda entry point (simple CORS handler)
+├── lambda-app.js           # Express app wrapper for Lambda
+├── serverless.yml          # AWS infrastructure definition
+├── deploy-dev-full.sh      # Complete dev deployment
+├── deploy-prod-full.sh     # Complete prod deployment
+└── package.json            # Dependencies
+
+=== AWS ARCHITECTURE ===
+
+Per Environment (dev/prod):
+
+1. API Gateway
+   - REST API with /{proxy+} routing
+   - CORS enabled (origin: *)
+   - Methods: GET, POST, PUT, DELETE, OPTIONS
+   - Stage: /dev or /prod
+
+2. Lambda Function
+   - Name: aipm-backend-{stage}-api
+   - Runtime: Node.js 18.x
+   - Memory: 512MB
+   - Timeout: 30s
+   - Handler: handler.handler
+   - Environment Variables:
+     * STAGE: dev/prod
+     * STORIES_TABLE: aipm-backend-{stage}-stories
+     * ACCEPTANCE_TESTS_TABLE: aipm-backend-{stage}-acceptance-tests
+     * GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO
+
+3. DynamoDB Tables
+   a) Stories Table: aipm-backend-{stage}-stories
+      - Primary Key: id (Number)
+      - Billing: PAY_PER_REQUEST
+      - Stores: user stories with parent-child relationships
+   
+   b) Acceptance Tests Table: aipm-backend-{stage}-acceptance-tests
+      - Primary Key: id (Number)
+      - GSI: storyId-index (for querying tests by story)
+      - Billing: PAY_PER_REQUEST
+      - Stores: acceptance tests linked to stories
+
+4. S3 Static Hosting
+   - Dev: aipm-dev-frontend-hosting
+   - Prod: aipm-static-hosting-demo
+   - Website hosting enabled
+   - Public read access
+   - Files: HTML, JS, CSS
+
+5. IAM Permissions
+   - CloudWatch Logs: CreateLogGroup, CreateLogStream, PutLogEvents
+   - DynamoDB: Query, Scan, GetItem, PutItem, UpdateItem, DeleteItem
+   - Scoped to specific tables per environment
+
+=== DATA FLOW ===
+
+Browser → S3 (Frontend) → API Gateway → Lambda → DynamoDB
+                                              ↓
+                                         AWS Bedrock (AI features)
+
+Frontend (app.js):
+- Fetches stories/tests from API
+- Renders mindmap visualization
+- Handles CRUD operations
+- Manages parent-child story relationships
+
+Backend (app.js):
+- Express REST API
+- Routes: /api/stories, /api/acceptance-tests, /api/run-staging
+- DynamoDB operations via dynamodb.js
+- AI integration via amazon-ai.js
+
+=== DEPLOYMENT ARCHITECTURE ===
+
+Development Environment:
+- Branch: develop
+- Lambda: aipm-backend-dev-api
+- API: https://{api-id}.execute-api.us-east-1.amazonaws.com/dev
+- Tables: aipm-backend-dev-stories, aipm-backend-dev-acceptance-tests
+- S3: aipm-dev-frontend-hosting
+- URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
+
+Production Environment:
+- Branch: main
+- Lambda: aipm-backend-prod-api
+- API: https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod
+- Tables: aipm-backend-prod-stories, aipm-backend-prod-acceptance-tests
+- S3: aipm-static-hosting-demo
+- URL: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
+
+=== KEY PRINCIPLES ===
+
+1. Complete Environment Isolation
+   - Each environment has separate: Lambda, API Gateway, DynamoDB, S3
+   - No shared resources between dev/prod
+   - Independent scaling and configuration
+
+2. Development First, Production After
+   - Always test in dev: ./deploy-dev-full.sh
+   - Deploy to prod after verification: ./deploy-prod-full.sh
+   - Manual browser testing is mandatory
+
+3. Trust User Experience Over Automation
+   - Automated tests can pass while browser fails (CORS, DOM, timing)
+   - Always verify in actual browser
+   - User reports are ground truth
+
+4. Minimal Code Approach
+   - Write only absolute minimal code needed
+   - Avoid verbose implementations
+   - Focus on direct solutions
+
+=== WORKFLOW ===
+
+1. develop branch → ./deploy-dev-full.sh → test
+2. main branch → ./deploy-prod-full.sh → verify
+
+Deploy script does:
+1. Switch to correct branch (develop/main)
+2. Deploy backend: npx serverless deploy --stage {dev|prod}
+3. Auto-generate config.js with API endpoint
+4. Deploy frontend: aws s3 sync apps/frontend/public/ s3://{bucket}/ --delete
+5. Verify deployment
+
+=== CRITICAL RULES ===
+
+❌ Never:
+- Deploy to prod without dev testing
+- Skip gating tests
+- Trust automation alone
+- Share resources between environments
+- Ignore user-reported issues
+
+✅ Always:
+- Test in browser
+- Deploy complete environment (not partial)
+- Follow workflow cycle
+- Verify after deployment
+- Check CloudWatch logs for errors
+
+=== TECH STACK ===
+
+Frontend:
+- Vanilla JavaScript (no frameworks)
+- HTML5, CSS3
+- Mindmap visualization
+- REST API client
+
+Backend:
+- Node.js 18.x
+- Express 5.x
+- AWS SDK v3 (DynamoDB, Bedrock)
+- Serverless Framework 3.x
+
+Infrastructure:
+- AWS Lambda (serverless compute)
+- API Gateway (REST API)
+- DynamoDB (NoSQL database)
+- S3 (static hosting)
+- CloudWatch (logs)
+
+Ready to help with AIPM development.
