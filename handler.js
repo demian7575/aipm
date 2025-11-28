@@ -125,7 +125,9 @@ function createApp() {
   expressApp.post(['/api/generate-code', '/prod/api/generate-code', '/dev/api/generate-code'], async (req, res) => {
     const { taskDescription } = req.body;
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-    const GITHUB_REPO = process.env.GITHUB_REPO || 'demian7575/aipm';
+    const GITHUB_OWNER = process.env.GITHUB_OWNER || 'demian7575';
+    const GITHUB_REPO = process.env.GITHUB_REPO || 'aipm';
+    const REPO_FULL = `${GITHUB_OWNER}/${GITHUB_REPO}`;
     
     if (!GITHUB_TOKEN) {
       return res.json({
@@ -145,7 +147,7 @@ function createApp() {
       
       const options = {
         hostname: 'api.github.com',
-        path: `/repos/${GITHUB_REPO}/actions/workflows/q-code-generation.yml/dispatches`,
+        path: `/repos/${REPO_FULL}/actions/workflows/q-code-generation.yml/dispatches`,
         method: 'POST',
         headers: {
           'Authorization': `token ${GITHUB_TOKEN}`,
@@ -160,7 +162,7 @@ function createApp() {
           res.json({
             success: true,
             message: "Code generation triggered via Amazon Q",
-            workflowUrl: `https://github.com/${GITHUB_REPO}/actions/workflows/q-code-generation.yml`
+            workflowUrl: `https://github.com/${REPO_FULL}/actions/workflows/q-code-generation.yml`
           });
         } else {
           res.json({
@@ -192,7 +194,9 @@ function createApp() {
     
     // Trigger GitHub Actions workflow
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-    const GITHUB_REPO = process.env.GITHUB_REPO || 'demian7575/aipm';
+    const GITHUB_OWNER = process.env.GITHUB_OWNER || 'demian7575';
+    const GITHUB_REPO = process.env.GITHUB_REPO || 'aipm';
+    const REPO_FULL = `${GITHUB_OWNER}/${GITHUB_REPO}`;
     
     if (!GITHUB_TOKEN) {
       return res.json({
@@ -200,7 +204,7 @@ function createApp() {
         message: "Staging endpoint ready (set GITHUB_TOKEN env var to enable auto-deployment)",
         deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
         branch: "develop",
-        githubUrl: `https://github.com/${GITHUB_REPO}/tree/develop`
+        githubUrl: `https://github.com/${REPO_FULL}/tree/develop`
       });
     }
     
@@ -213,7 +217,7 @@ function createApp() {
       
       const options = {
         hostname: 'api.github.com',
-        path: `/repos/${GITHUB_REPO}/actions/workflows/deploy-staging.yml/dispatches`,
+        path: `/repos/${REPO_FULL}/actions/workflows/deploy-staging.yml/dispatches`,
         method: 'POST',
         headers: {
           'Authorization': `token ${GITHUB_TOKEN}`,
@@ -230,7 +234,7 @@ function createApp() {
             message: "Staging deployment triggered via GitHub Actions",
             deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
             branch: "develop",
-            githubUrl: `https://github.com/${GITHUB_REPO}/actions`
+            githubUrl: `https://github.com/${REPO_FULL}/actions`
           });
         } else {
           res.json({
