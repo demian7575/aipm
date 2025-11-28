@@ -11,7 +11,10 @@ git pull origin main
 
 # 2. Deploy Backend (Lambda + API Gateway + DynamoDB)
 echo "📦 Step 2: Deploying Backend (Lambda + API Gateway + DynamoDB)..."
+cp package.json package.json.orig
+cp package.lambda.json package.json
 npx serverless deploy --stage prod
+mv package.json.orig package.json
 
 # Get API endpoint
 API_ENDPOINT=$(aws cloudformation describe-stacks \

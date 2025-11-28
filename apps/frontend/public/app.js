@@ -3330,22 +3330,9 @@ function buildRunInStagingModalContent(prEntry = null) {
   return { element: container, onClose: () => {} };
 }
 
-// Simulate Git commands
-async function simulateGitCommand(command) {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  console.log(`Executing: ${command}`);
-}
-
-// Real CodeWhisperer implementation (handled by backend)
 async function codeWhispererImplementation(prEntry) {
-  // Implementation is handled by the backend API call
-  console.log(`CodeWhisperer implementation for:`, prEntry?.taskTitle);
-}
-
-// Simulate deployment
-async function simulateDeployment(branchName) {
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  console.log(`Deployment of branch: ${branchName}`);
+  // Placeholder - actual implementation happens via backend workflow
+  await new Promise(resolve => setTimeout(resolve, 500));
 }
 
 function buildExportModalContent() {

@@ -121,14 +121,141 @@ function createApp() {
     });
   });
   
-  expressApp.post(['/api/run-staging', '/prod/api/run-staging', '/dev/api/run-staging'], (req, res) => {
-    res.json({
-      success: true,
-      message: "Staging workflow completed successfully",
-      deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
-      branch: "develop",
-      githubUrl: "https://github.com/demian7575/aipm/tree/develop"
-    });
+  // Amazon Q / CodeWhisperer code generation endpoint
+  expressApp.post(['/api/generate-code', '/prod/api/generate-code', '/dev/api/generate-code'], async (req, res) => {
+    const { taskDescription, targetBranch } = req.body;
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    const GITHUB_REPO = process.env.GITHUB_REPO || 'demian7575/aipm';
+    
+    if (!GITHUB_TOKEN) {
+      return res.json({
+        success: false,
+        message: "GITHUB_TOKEN not configured"
+      });
+    }
+    
+    try {
+      const https = require('https');
+      const data = JSON.stringify({
+        ref: 'main',
+        inputs: { 
+          taskDescription: taskDescription || 'Generate code',
+          targetBranch: targetBranch || 'develop'
+        }
+      });
+      
+      const options = {
+        hostname: 'api.github.com',
+        path: `/repos/${GITHUB_REPO}/actions/workflows/q-code-generation.yml/dispatches`,
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'User-Agent': 'AIPM-Backend',
+          'Content-Type': 'application/json',
+          'Content-Length': data.length
+        }
+      };
+      
+      const request = https.request(options, (response) => {
+        if (response.statusCode === 204) {
+          res.json({
+            success: true,
+            message: "Code generation triggered via Amazon Q",
+            workflowUrl: `https://github.com/${GITHUB_REPO}/actions/workflows/q-code-generation.yml`
+          });
+        } else {
+          res.json({
+            success: false,
+            message: `Workflow trigger failed: ${response.statusCode}`
+          });
+        }
+      });
+      
+      request.on('error', (error) => {
+        res.json({
+          success: false,
+          message: `Error: ${error.message}`
+        });
+      });
+      
+      request.write(data);
+      request.end();
+    } catch (error) {
+      res.json({
+        success: false,
+        message: `Failed: ${error.message}`
+      });
+    }
+  });
+
+  expressApp.post(['/api/run-staging', '/prod/api/run-staging', '/dev/api/run-staging'], async (req, res) => {
+    const { taskTitle } = req.body;
+    
+    // Trigger GitHub Actions workflow
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    const GITHUB_REPO = process.env.GITHUB_REPO || 'demian7575/aipm';
+    
+    if (!GITHUB_TOKEN) {
+      return res.json({
+        success: true,
+        message: "Staging endpoint ready (set GITHUB_TOKEN env var to enable auto-deployment)",
+        deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
+        branch: "develop",
+        githubUrl: `https://github.com/${GITHUB_REPO}/tree/develop`
+      });
+    }
+    
+    try {
+      const https = require('https');
+      const data = JSON.stringify({
+        ref: 'main',
+        inputs: { taskTitle: taskTitle || 'API triggered deployment' }
+      });
+      
+      const options = {
+        hostname: 'api.github.com',
+        path: `/repos/${GITHUB_REPO}/actions/workflows/deploy-staging.yml/dispatches`,
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'User-Agent': 'AIPM-Backend',
+          'Content-Type': 'application/json',
+          'Content-Length': data.length
+        }
+      };
+      
+      const request = https.request(options, (response) => {
+        if (response.statusCode === 204) {
+          res.json({
+            success: true,
+            message: "Staging deployment triggered via GitHub Actions",
+            deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
+            branch: "develop",
+            githubUrl: `https://github.com/${GITHUB_REPO}/actions`
+          });
+        } else {
+          res.json({
+            success: false,
+            message: `GitHub Actions trigger failed: ${response.statusCode}`
+          });
+        }
+      });
+      
+      request.on('error', (error) => {
+        res.json({
+          success: false,
+          message: `GitHub Actions error: ${error.message}`
+        });
+      });
+      
+      request.write(data);
+      request.end();
+    } catch (error) {
+      res.json({
+        success: false,
+        message: `Deployment trigger failed: ${error.message}`
+      });
+    }
   });
   
   // Catch-all route
