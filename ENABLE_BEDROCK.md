@@ -6,49 +6,86 @@
 ✅ SDK installed
 ❌ **Bedrock model access NOT enabled** (blocking code generation)
 
-## What AIPM Will Do Once Enabled
+## The Problem
 
-When you click "Run in Staging":
-1. **AIPM calls Bedrock** with task description
-2. **Bedrock generates code** using Claude AI
-3. **AIPM creates branch** in GitHub
-4. **AIPM commits code** to branch
-5. **AIPM creates PR** for review
-6. **AIPM deploys** to staging environment
+AWS Bedrock requires model access approval, but the process has changed in 2025.
+The old "Model access" page may not exist or look different.
 
-**Fully automated - no local PC needed.**
+## Current Error
+```
+Model use case details have not been submitted for this account.
+Fill out the Anthropic use case details form before using the model.
+```
 
-## How to Enable Bedrock Model Access
+## Solution Options
 
-### Step 1: Go to Model Access Page
-**Direct Link:** https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess
+### Option 1: AWS Console (Recommended)
 
-### Step 2: Request Model Access
-1. Click **"Manage model access"** button (top right)
-2. Scroll down to find **"Anthropic"** section
-3. Check the box next to **"Claude 3 Haiku"**
-   - Model ID: `anthropic.claude-3-haiku-20240307-v1:0`
-   - This is the fastest and cheapest model
-4. Optionally also enable:
-   - Claude 3.5 Sonnet (better quality, more expensive)
-   - Claude 3 Opus (best quality, most expensive)
+**Try these URLs in order:**
 
-### Step 3: Review and Submit
-1. Scroll to bottom
-2. Click **"Request model access"** or **"Save changes"**
-3. You may need to fill out a use case form:
-   - **Use case:** Development workflow automation
-   - **Description:** AI-powered code generation for project management
-   - **Industry:** Software Development
+1. **Main Bedrock Console:**
+   https://console.aws.amazon.com/bedrock/home?region=us-east-1
 
-### Step 4: Wait for Approval
-- **Time:** Usually 5-15 minutes (can be instant)
-- **Status:** Check the "Access status" column
-  - "In progress" → Wait
-  - "Access granted" → Ready to use
-- **Email:** You'll receive confirmation email
+2. **Model Access (if available):**
+   https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess
 
-### Step 5: Verify Access
+3. **Foundation Models:**
+   https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/foundation-models
+
+**What to look for:**
+- "Get started" button
+- "Enable models" or "Request access"
+- "Foundation models" section
+- Any mention of "Anthropic" or "Claude"
+- Settings or configuration menu
+
+**If you find model access:**
+1. Enable "Claude 3 Haiku" (model ID: anthropic.claude-3-haiku-20240307-v1:0)
+2. Fill out any use case form
+3. Wait for approval
+
+### Option 2: AWS CLI
+
+Try requesting access via CLI:
+
+```bash
+# Create use case form data
+cat > /tmp/bedrock-usecase.json << 'EOF'
+{
+  "useCaseDescription": "AI-powered code generation for AIPM project management system",
+  "industry": "Software Development",
+  "intendedUse": "Development workflow automation"
+}
+EOF
+
+# Submit use case
+aws bedrock put-use-case-for-model-access \
+  --form-data file:///tmp/bedrock-usecase.json \
+  --region us-east-1
+```
+
+### Option 3: AWS Support
+
+If console UI is unclear:
+
+1. Go to AWS Support Center
+2. Create a case: "Enable Bedrock model access"
+3. Request: "Please enable Claude 3 Haiku model access for account"
+4. Include: Account ID and region (us-east-1)
+
+### Option 4: Use Alternative (Works Now)
+
+While waiting for Bedrock approval, use local script:
+
+```bash
+cd /repo/ebaejun/tools/aws/aipm
+./q-generate-and-pr.sh "Your task description"
+```
+
+This works immediately without Bedrock.
+
+## How to Test if Bedrock is Enabled
+
 ```bash
 # Test Bedrock access
 aws bedrock-runtime invoke-model \
@@ -56,94 +93,68 @@ aws bedrock-runtime invoke-model \
   --body '{"anthropic_version":"bedrock-2023-05-31","max_tokens":10,"messages":[{"role":"user","content":"hi"}]}' \
   --region us-east-1 \
   --cli-binary-format raw-in-base64-out \
-  /tmp/test.json
+  /tmp/test.json 2>&1
 
-# Should return success (not "Model use case details have not been submitted")
+# If enabled: Returns success
+# If not enabled: "Model use case details have not been submitted"
 ```
 
-### Step 6: Test AIPM Code Generation
+## Test AIPM Code Generation
+
+Once Bedrock is enabled:
+
 ```bash
 curl -X POST https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/generate-code \
   -H "Content-Type: application/json" \
-  -d '{"taskDescription":"Create a hello world function in hello.js"}'
+  -d '{"taskDescription":"Create a hello world function"}'
 ```
 
-**Expected response after approval:**
+**Expected response:**
 ```json
 {
   "success": true,
   "message": "Code generated and PR created",
-  "prUrl": "https://github.com/demian7575/aipm/pull/XXX",
-  "prNumber": XXX
+  "prUrl": "https://github.com/demian7575/aipm/pull/XXX"
 }
 ```
 
+## What AIPM Will Do Once Enabled
+
+1. Click "Run in Staging" button
+2. AIPM calls Bedrock Claude AI
+3. AI generates code based on task description
+4. AIPM creates new branch
+5. AIPM commits generated code
+6. AIPM creates PR for review
+7. AIPM deploys to staging
+8. **Fully automated - no local PC needed**
+
 ## Cost Estimate
 
-**Claude 3 Haiku pricing (cheapest):**
-- Input: $0.00025 per 1K tokens
-- Output: $0.00125 per 1K tokens
-- **Average per code generation:** ~$0.01
+**Claude 3 Haiku (recommended):**
+- ~$0.01 per code generation
+- 100 generations/month = ~$1
 
-**Monthly estimate:**
-- 10 generations: ~$0.10
-- 100 generations: ~$1.00
-- 1000 generations: ~$10.00
+## Current Workaround
 
-**Claude 3.5 Sonnet (better quality):**
-- ~5x more expensive (~$0.05 per generation)
+Until Bedrock is enabled, use:
 
-## Troubleshooting
-
-### "Model use case details have not been submitted"
-**Solution:** Go to model access page and request access
-**URL:** https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess
-
-### "Access denied" or "Not authorized"
-**Solution:** IAM permissions issue
-**Status:** Already fixed in AIPM (Lambda has bedrock:InvokeModel permission)
-
-### "Model not found"
-**Solution:** Wrong region
-**Fix:** Must use us-east-1 region
-
-### "Request still pending"
-**Solution:** Wait 5-15 minutes
-**Check:** Refresh model access page to see status
-
-### Model access page shows "Access granted" but still getting error
-**Solution:** Wait a few more minutes for propagation
-**Try:** Test again after 5 minutes
-
-## Alternative While Waiting for Approval
-
-Use local script (works immediately):
 ```bash
-cd /repo/ebaejun/tools/aws/aipm
-./q-generate-and-pr.sh "Your task description"
+./q-generate-and-pr.sh "Your task"
 ```
 
-This requires:
-- Amazon Q CLI (kiro-cli) installed
-- GitHub CLI (gh) installed
-- Manual code generation with Q
+This uses Amazon Q locally and creates PR automatically.
 
 ## Summary
 
-**AIPM is 100% ready to generate code automatically.**
+**AIPM is ready for automated code generation.**
 
-**Only missing:** Bedrock model access approval
+**Blocking issue:** Bedrock model access approval
 
-**To enable:**
-1. Visit: https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess
-2. Click "Manage model access"
-3. Enable "Claude 3 Haiku"
-4. Wait 5-15 minutes
-5. Test with "Run in Staging" button
+**Next steps:**
+1. Try AWS Console URLs above
+2. Or use AWS CLI command
+3. Or contact AWS Support
+4. Or use local script workaround
 
-**Once enabled, AIPM will:**
-- ✅ Generate code with AI
-- ✅ Create PRs automatically
-- ✅ Deploy to staging
-- ✅ No local PC needed
-- ✅ Fully automated workflow
+**Once enabled:** Click "Run in Staging" and AIPM generates code automatically.
