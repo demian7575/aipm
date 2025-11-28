@@ -3297,6 +3297,10 @@ function buildRunInStagingModalContent(prEntry = null) {
           log.textContent += `✅ Development environment deployed\n`;
           log.textContent += `🌐 Live at: ${result.deploymentUrl}\n`;
         } else {
+          log.textContent += `❌ Error: ${result.message}\n`;
+          if (result.details) log.textContent += `Details: ${result.details}\n`;
+          if (result.repo) log.textContent += `Repo: ${result.repo}\n`;
+          if (result.workflow) log.textContent += `Workflow: ${result.workflow}\n`;
           throw new Error(result.message || 'Staging workflow failed');
         }
       } catch (error) {

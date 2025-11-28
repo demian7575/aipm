@@ -228,23 +228,43 @@ function createApp() {
       };
       
       const request = https.request(options, (response) => {
-        if (response.statusCode === 204) {
-          res.json({
-            success: true,
-            message: "Staging deployment triggered via GitHub Actions",
-            deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
-            branch: "develop",
-            githubUrl: `https://github.com/${REPO_FULL}/actions`
+        let responseBody = '';
+        
+        response.on('data', (chunk) => {
+          responseBody += chunk;
+        });
+        
+        response.on('end', () => {
+          console.log('GitHub API Response:', {
+            statusCode: response.statusCode,
+            headers: response.headers,
+            body: responseBody,
+            requestData: data,
+            requestPath: options.path
           });
-        } else {
-          res.json({
-            success: false,
-            message: `GitHub Actions trigger failed: ${response.statusCode}`
-          });
-        }
+          
+          if (response.statusCode === 204) {
+            res.json({
+              success: true,
+              message: "Staging deployment triggered via GitHub Actions",
+              deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
+              branch: "develop",
+              githubUrl: `https://github.com/${REPO_FULL}/actions`
+            });
+          } else {
+            res.json({
+              success: false,
+              message: `GitHub Actions trigger failed: ${response.statusCode}`,
+              details: responseBody,
+              repo: REPO_FULL,
+              workflow: 'deploy-staging.yml'
+            });
+          }
+        });
       });
       
       request.on('error', (error) => {
+        console.error('GitHub API Error:', error);
         res.json({
           success: false,
           message: `GitHub Actions error: ${error.message}`
@@ -254,6 +274,7 @@ function createApp() {
       request.write(data);
       request.end();
     } catch (error) {
+      console.error('Deployment trigger error:', error);
       res.json({
         success: false,
         message: `Deployment trigger failed: ${error.message}`
