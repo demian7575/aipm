@@ -243,7 +243,9 @@ Rules:
       });
       
       // Create files
+      console.log('Creating files:', codeData.files.length, 'files');
       for (const file of codeData.files) {
+        console.log('Creating file:', file.path);
         const content = Buffer.from(file.content).toString('base64');
         const data = JSON.stringify({
           message: `Amazon Q: ${taskDescription}`,
@@ -251,7 +253,7 @@ Rules:
           branch: branchName
         });
         
-        await new Promise((resolve, reject) => {
+        const fileResp = await new Promise((resolve, reject) => {
           const req = https.request({
             hostname: 'api.github.com',
             path: `/repos/${REPO_FULL}/contents/${file.path}`,
@@ -262,11 +264,22 @@ Rules:
               'Content-Type': 'application/json',
               'Content-Length': data.length
             }
-          }, resolve);
+          }, (resp) => {
+            let body = '';
+            resp.on('data', chunk => body += chunk);
+            resp.on('end', () => {
+              console.log('File creation response:', resp.statusCode, body.substring(0, 100));
+              resolve({status: resp.statusCode, body});
+            });
+          });
           req.on('error', reject);
           req.write(data);
           req.end();
         });
+        
+        if (fileResp.status !== 201) {
+          console.error('File creation failed:', fileResp.body);
+        }
       }
       
       // Create PR using async/await
