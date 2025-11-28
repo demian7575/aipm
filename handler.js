@@ -247,9 +247,9 @@ Rules:
       for (const file of codeData.files) {
         console.log('Creating file:', file.path);
         const content = Buffer.from(file.content).toString('base64');
-        const data = JSON.stringify({
+        const payload = JSON.stringify({
           message: `Amazon Q: ${taskDescription}`,
-          content,
+          content: content,
           branch: branchName
         });
         
@@ -262,7 +262,8 @@ Rules:
               'Authorization': `token ${GITHUB_TOKEN}`,
               'User-Agent': 'AIPM',
               'Content-Type': 'application/json',
-              'Content-Length': data.length
+              'Content-Length': Buffer.byteLength(payload),
+              'Accept': 'application/vnd.github+json'
             }
           }, (resp) => {
             let body = '';
@@ -273,7 +274,7 @@ Rules:
             });
           });
           req.on('error', reject);
-          req.write(data);
+          req.write(payload);
           req.end();
         });
         
