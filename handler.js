@@ -124,7 +124,10 @@ function createApp() {
   expressApp.post(['/api/run-staging', '/prod/api/run-staging', '/dev/api/run-staging'], (req, res) => {
     res.json({
       success: true,
-      message: "Staging workflow completed successfully"
+      message: "Staging workflow completed successfully",
+      deploymentUrl: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/",
+      branch: "develop",
+      githubUrl: "https://github.com/demian7575/aipm/tree/develop"
     });
   });
   
