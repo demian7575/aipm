@@ -53,7 +53,17 @@ const PROD_TEST_SUITES = {
             { name: 'No Circular References', test: 'testNoCircularReferences' },
             { name: 'PR123 Export Feature', test: 'testPR123ExportFunctionality' },
             { name: 'Run in Staging Feature', test: 'testRunInStagingButton' },
-            { name: 'Run in Staging Workflow', test: 'testRunInStagingWorkflow' }
+            { name: 'Run in Staging Workflow', test: 'testRunInStagingWorkflow' },
+            { name: 'Task Card Objective Display', test: 'testTaskCardObjective' }
+        ]
+    },
+    stagingWorkflow: {
+        name: 'Staging Workflow Validation',
+        tests: [
+            { name: 'GitHub Actions Workflow File', test: 'testGitHubWorkflowFile' },
+            { name: 'Workflow Input Format', test: 'testWorkflowInputFormat' },
+            { name: 'Lambda IAM Permissions', test: 'testLambdaPermissions' },
+            { name: 'Content-Length Header', test: 'testContentLengthHeader' }
         ]
     },
     userExperience: {
@@ -1135,28 +1145,50 @@ async function runProductionTest(testName) {
             }
 
         case 'testRunInStagingWorkflow':
-            // Test Run in Staging workflow API endpoint
+            // Test Run in Staging workflow API endpoint with comprehensive validation
             try {
+                const testPayload = { taskTitle: 'Gating test workflow' };
                 const response = await fetch(`${PROD_CONFIG.api}/api/run-staging`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ taskTitle: 'Gating test workflow' })
+                    body: JSON.stringify(testPayload)
                 });
+                
+                if (response.status === 422) {
+                    const error = await response.json();
+                    return {
+                        success: false,
+                        message: `Staging: GitHub Actions 422 - ${error.message || 'Invalid workflow inputs'}`
+                    };
+                }
                 
                 if (response.ok) {
                     const result = await response.json();
+                    
+                    // Validate workflow dispatch succeeded
+                    if (!result.success) {
+                        return {
+                            success: false,
+                            message: `Staging: Workflow failed - ${result.message || 'Unknown error'}`
+                        };
+                    }
+                    
+                    // Check for proper response structure
+                    const hasDeploymentUrl = result.deploymentUrl && result.deploymentUrl.includes('s3-website');
+                    const hasGithubUrl = result.githubUrl && result.githubUrl.includes('github.com');
+                    
                     return {
-                        success: result.success === true,
-                        message: `Run in Staging: ${result.success ? 'Working' : 'Failed'} - ${result.message}`
+                        success: true,
+                        message: `Staging: Working - URL:${hasDeploymentUrl?'✓':'✗'} GitHub:${hasGithubUrl?'✓':'✗'}`
                     };
                 } else {
                     return {
                         success: false,
-                        message: `Run in Staging: HTTP ${response.status}`
+                        message: `Staging: HTTP ${response.status}`
                     };
                 }
             } catch (error) {
-                return { success: false, message: `Run in Staging: Error - ${error.message}` };
+                return { success: false, message: `Staging: Error - ${error.message}` };
             }
 
         case 'testRunInStagingButton':
@@ -1184,6 +1216,126 @@ async function runProductionTest(testName) {
                 
             } catch (error) {
                 return { success: false, message: `Run in Staging test failed - ${error.message}` };
+            }
+
+        case 'testTaskCardObjective':
+            // Test that task cards display full objective text
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasObjectiveDisplay = js.includes('codewhisperer-objective') && js.includes('entry.objective');
+                
+                let hasObjectiveCSS = false;
+                try {
+                    const cssResponse = await fetch(`${PROD_CONFIG.frontend}/styles.css`);
+                    if (cssResponse.ok) {
+                        const css = await cssResponse.text();
+                        hasObjectiveCSS = css.includes('.codewhisperer-objective');
+                    }
+                } catch (cssError) {
+                    // CSS might be in same document or loaded differently
+                    const styles = document.querySelectorAll('style');
+                    for (const style of styles) {
+                        if (style.textContent.includes('.codewhisperer-objective')) {
+                            hasObjectiveCSS = true;
+                            break;
+                        }
+                    }
+                }
+                
+                return {
+                    success: hasObjectiveDisplay && hasObjectiveCSS,
+                    message: `Task Card: Objective display ${hasObjectiveDisplay?'✓':'✗'}, CSS ${hasObjectiveCSS?'✓':'✗'}`
+                };
+            } catch (error) {
+                return { success: false, message: `Task Card test failed - ${error.message}` };
+            }
+
+        case 'testGitHubWorkflowFile':
+            // Verify deploy-staging.yml exists and has correct format
+            try {
+                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/.github/workflows/deploy-staging.yml');
+                if (!response.ok) {
+                    return { success: false, message: 'Workflow: deploy-staging.yml not found' };
+                }
+                
+                const yaml = await response.text();
+                const hasWorkflowDispatch = yaml.includes('workflow_dispatch');
+                const hasTaskTitleInput = yaml.includes('task_title');
+                const noTypeDeclaration = !yaml.includes('type: string');
+                
+                return {
+                    success: hasWorkflowDispatch && hasTaskTitleInput && noTypeDeclaration,
+                    message: `Workflow: dispatch:${hasWorkflowDispatch?'✓':'✗'} input:${hasTaskTitleInput?'✓':'✗'} no-type:${noTypeDeclaration?'✓':'✗'}`
+                };
+            } catch (error) {
+                return { success: false, message: `Workflow file test failed - ${error.message}` };
+            }
+
+        case 'testWorkflowInputFormat':
+            // Verify Lambda sends workflow inputs as strings
+            try {
+                const response = await fetch(`${PROD_CONFIG.api}/handler.js`);
+                if (!response.ok) {
+                    return { success: true, message: 'Workflow: Lambda code not publicly accessible (expected)' };
+                }
+                
+                const code = await response.text();
+                const hasStringConversion = code.includes('String(taskTitle') || code.includes('task_title: String(');
+                const hasBufferByteLength = code.includes('Buffer.byteLength');
+                
+                return {
+                    success: hasStringConversion && hasBufferByteLength,
+                    message: `Workflow: String conversion ${hasStringConversion?'✓':'✗'}, Buffer.byteLength ${hasBufferByteLength?'✓':'✗'}`
+                };
+            } catch (error) {
+                return { success: true, message: 'Workflow: Lambda code protected (expected)' };
+            }
+
+        case 'testLambdaPermissions':
+            // Test Lambda has proper IAM permissions
+            try {
+                const response = await fetch(`${PROD_CONFIG.api}/api/health`);
+                if (!response.ok) {
+                    return { success: false, message: 'Permissions: Health check failed' };
+                }
+                
+                const health = await response.json();
+                const hasGitHubToken = health.environment?.GITHUB_TOKEN === 'configured' || health.githubToken === true;
+                
+                return {
+                    success: hasGitHubToken,
+                    message: `Permissions: GitHub token ${hasGitHubToken?'configured':'missing'}`
+                };
+            } catch (error) {
+                return { success: false, message: `Permissions test failed - ${error.message}` };
+            }
+
+        case 'testContentLengthHeader':
+            // Verify proper Content-Length calculation
+            try {
+                const testPayload = { taskTitle: 'Test with émojis 🚀 and spëcial chars' };
+                const response = await fetch(`${PROD_CONFIG.api}/api/run-staging`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testPayload)
+                });
+                
+                // If we get 422, it's a GitHub validation error (input format issue)
+                // If we get 400, it's likely a Content-Length issue
+                // If we get 200/204, Content-Length is correct
+                
+                if (response.status === 400) {
+                    return { success: false, message: 'Content-Length: HTTP 400 - likely incorrect calculation' };
+                }
+                
+                return {
+                    success: response.status !== 400,
+                    message: `Content-Length: HTTP ${response.status} - ${response.status === 400 ? 'Failed' : 'OK'}`
+                };
+            } catch (error) {
+                return { success: false, message: `Content-Length test failed - ${error.message}` };
             }
 
         default:

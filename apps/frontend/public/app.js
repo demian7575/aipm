@@ -1766,6 +1766,13 @@ function renderCodeWhispererSectionList(container, story) {
 
     card.appendChild(header);
 
+    if (entry.objective) {
+      const objective = document.createElement('p');
+      objective.className = 'codewhisperer-objective';
+      objective.textContent = entry.objective;
+      card.appendChild(objective);
+    }
+
     if (entry.confirmationCode) {
       const confirmation = document.createElement('p');
       confirmation.className = 'codewhisperer-confirmation';
@@ -3236,9 +3243,8 @@ function buildRunInStagingModalContent(prEntry = null) {
       <p>This will implement the PR and deploy to development environment:</p>
       
       <div class="workflow-steps">
-        <div class="step">1. CodeWhisperer implements/updates the PR requirements</div>
-        <div class="step">2. Push changes to <code>develop</code> branch on GitHub</div>
-        <div class="step">3. Deploy development environment from GitHub develop branch</div>
+        <div class="step">1. Bedrock implements/updates the PR requirements on GitHub</div>
+        <div class="step">2. Deploy development environment</div>
       </div>
       
       <div class="staging-actions">
@@ -3265,14 +3271,22 @@ function buildRunInStagingModalContent(prEntry = null) {
     log.textContent = `Starting staging workflow for PR ${prId}...\n`;
     
     try {
-      // Step 1: CodeWhisperer implementation
-      log.textContent += `Step 1: CodeWhisperer implementing PR requirements...\n`;
+      // Step 1: Bedrock implements PR
+      log.textContent += `Step 1: Bedrock implementing PR requirements...\n`;
       log.textContent += `  - Analyzing PR: "${prEntry?.taskTitle || 'Development task'}"\n`;
-      await codeWhispererImplementation(prEntry);
-      log.textContent += `✅ Implementation completed\n`;
+      log.textContent += `  - Objective: ${prEntry?.objective || 'No objective specified'}\n`;
       
-      // Step 2 & 3: Push to develop and deploy (real backend call)
-      log.textContent += `Step 2: Executing staging workflow...\n`;
+      const bedrockResult = await bedrockImplementation(prEntry);
+      
+      if (!bedrockResult || !bedrockResult.success) {
+        throw new Error(bedrockResult?.message || 'Bedrock implementation failed');
+      }
+      
+      log.textContent += `✅ PR created: ${bedrockResult.prUrl}\n`;
+      log.textContent += `🌿 Branch: ${bedrockResult.branchName}\n`;
+      
+      // Step 2: Deploy the PR branch to development
+      log.textContent += `\nStep 2: Deploying PR branch to development...\n`;
       
       try {
         // Validate config before making request
@@ -3286,16 +3300,18 @@ function buildRunInStagingModalContent(prEntry = null) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            taskTitle: prEntry?.taskTitle || 'Run in Staging workflow'
+            taskTitle: prEntry?.taskTitle || 'Run in Staging workflow',
+            branchName: bedrockResult.branchName,
+            prNumber: bedrockResult.prNumber || prId
           })
         });
         
         const result = await response.json();
         
         if (result.success) {
-          log.textContent += `✅ Changes pushed to origin/develop\n`;
-          log.textContent += `✅ Development environment deployed\n`;
-          log.textContent += `🌐 Live at: ${result.deploymentUrl}\n`;
+          log.textContent += `✅ GitHub Actions triggered\n`;
+          log.textContent += `✅ Deploying from branch: ${result.branch}\n`;
+          log.textContent += `🌐 Dev URL: ${result.deploymentUrl}\n`;
         } else {
           log.textContent += `❌ Error: ${result.message}\n`;
           if (result.details) log.textContent += `Details: ${result.details}\n`;
@@ -3304,14 +3320,14 @@ function buildRunInStagingModalContent(prEntry = null) {
           throw new Error(result.message || 'Staging workflow failed');
         }
       } catch (error) {
-        log.textContent += `❌ Staging workflow failed: ${error.message}\n`;
+        log.textContent += `❌ Deployment failed: ${error.message}\n`;
         throw error;
       }
       
-      log.textContent += `\n🎉 Staging workflow completed!\n`;
-      log.textContent += `Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
-      log.textContent += `GitHub Branch: https://github.com/demian7575/aipm/tree/develop\n`;
-      log.textContent += `PR ${prId} is now live in development environment!\n`;
+      log.textContent += `\n✅ Workflow completed!\n`;
+      log.textContent += `🌐 PR deployed to: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
+      log.textContent += `🔗 Review PR: ${bedrockResult.prUrl}\n`;
+      log.textContent += `📋 Next: Test the changes, then merge PR to develop\n`;
       
       runWorkflowBtn.textContent = 'Run in Staging';
       runWorkflowBtn.disabled = false;
@@ -3334,29 +3350,31 @@ function buildRunInStagingModalContent(prEntry = null) {
   return { element: container, onClose: () => {} };
 }
 
-async function codeWhispererImplementation(prEntry) {
-  // Call AIPM backend to generate code with Amazon Bedrock
+async function bedrockImplementation(prEntry) {
+  // Call AIPM backend to generate code with Amazon Bedrock and create PR
   try {
     const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/generate-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        taskDescription: prEntry?.taskTitle || 'Implement feature'
+        taskDescription: prEntry?.objective || prEntry?.taskTitle || 'Implement feature',
+        taskTitle: prEntry?.taskTitle || 'Development task',
+        prNumber: prEntry?.number
       })
     });
     
     const result = await response.json();
     
     if (result.success && result.prUrl) {
-      console.log('✅ Code generated by AIPM, PR created:', result.prUrl);
+      console.log('✅ Bedrock generated code, PR created:', result.prUrl);
       return result;
     } else {
-      console.log('⚠️ AIPM code generation:', result.message);
-      return null;
+      console.log('⚠️ Bedrock code generation:', result.message);
+      return result;
     }
   } catch (error) {
-    console.error('❌ AIPM code generation error:', error);
-    return null;
+    console.error('❌ Bedrock code generation error:', error);
+    return { success: false, message: error.message };
   }
 }
 

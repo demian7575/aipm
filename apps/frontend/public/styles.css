@@ -1034,6 +1034,13 @@ body.is-mindmap-panning {
   color: #1f2937;
 }
 
+.codewhisperer-objective {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  color: #374151;
+  line-height: 1.5;
+}
+
 .codewhisperer-confirmation span {
   font-weight: 600;
   margin-right: 0.35rem;
