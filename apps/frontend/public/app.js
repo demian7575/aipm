@@ -3351,22 +3351,21 @@ function buildRunInStagingModalContent(prEntry = null) {
 }
 
 async function bedrockImplementation(prEntry) {
-  // Call AIPM backend to generate code with Amazon Bedrock and create PR
+  // Call AIPM backend to trigger GitHub Action with kiro-cli
   try {
-    const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/generate-code`, {
+    const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/run-staging`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        taskDescription: prEntry?.objective || prEntry?.taskTitle || 'Implement feature',
         taskTitle: prEntry?.taskTitle || 'Development task',
-        prNumber: prEntry?.number
+        taskDetails: prEntry?.objective || prEntry?.description || ''
       })
     });
     
     const result = await response.json();
     
-    if (result.success && result.prUrl) {
-      console.log('✅ Bedrock generated code, PR created:', result.prUrl);
+    if (result.success && result.workflowUrl) {
+      console.log('✅ GitHub Action triggered:', result.workflowUrl);
       return result;
     } else {
       console.log('⚠️ Bedrock code generation:', result.message);
