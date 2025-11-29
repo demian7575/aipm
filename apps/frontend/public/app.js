@@ -2312,6 +2312,7 @@ async function loadStories(preserveSelection = true) {
       state.stories = apiStories;
       rebuildStoryIndex();
       console.log('Stories loaded from API, count:', apiStories.length);
+      console.log('Stories loaded successfully');
       // Auto-backup after successful API load
       autoBackupData();
     } else if (!loadedFromLocal) {
