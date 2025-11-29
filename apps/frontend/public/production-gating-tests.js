@@ -52,8 +52,8 @@ const PROD_TEST_SUITES = {
             { name: 'Story Data Structure', test: 'testStoryDataStructure' },
             { name: 'No Circular References', test: 'testNoCircularReferences' },
             { name: 'PR123 Export Feature', test: 'testPR123ExportFunctionality' },
-            { name: 'Run in Staging Feature', test: 'testRunInStagingButton' },
-            { name: 'Run in Staging Workflow', test: 'testRunInStagingWorkflow' },
+            { name: 'Create PR Feature', test: 'testRunInStagingButton' },
+            { name: 'ECS PR Creation Workflow', test: 'testRunInStagingWorkflow' },
             { name: 'Task Card Objective Display', test: 'testTaskCardObjective' },
             { name: 'Create PR Endpoint', test: 'testCreatePREndpoint' }
         ]
@@ -1146,77 +1146,70 @@ async function runProductionTest(testName) {
             }
 
         case 'testRunInStagingWorkflow':
-            // Test Run in Staging workflow API endpoint with comprehensive validation
+            // Test ECS-based PR creation endpoint (replaced Run in Staging)
             try {
-                const testPayload = { taskTitle: 'Gating test workflow' };
-                const response = await fetch(`${PROD_CONFIG.api}/api/run-staging`, {
+                const testPayload = { 
+                    taskTitle: 'Gating test',
+                    objective: 'Test ECS worker',
+                    constraints: 'None',
+                    acceptanceCriteria: 'Works',
+                    target: 'pr',
+                    owner: 'demian7575',
+                    repo: 'aipm'
+                };
+                const response = await fetch(`${PROD_CONFIG.api}/api/personal-delegate`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(testPayload)
                 });
                 
-                if (response.status === 422) {
-                    const error = await response.json();
-                    return {
-                        success: false,
-                        message: `Staging: GitHub Actions 422 - ${error.message || 'Invalid workflow inputs'}`
-                    };
-                }
-                
                 if (response.ok) {
                     const result = await response.json();
                     
-                    // Validate workflow dispatch succeeded
-                    if (!result.success) {
-                        return {
-                            success: false,
-                            message: `Staging: Workflow failed - ${result.message || 'Unknown error'}`
-                        };
-                    }
-                    
-                    // Check for proper response structure
-                    const hasDeploymentUrl = result.deploymentUrl && result.deploymentUrl.includes('s3-website');
-                    const hasGithubUrl = result.githubUrl && result.githubUrl.includes('github.com');
+                    // Check for ECS task response
+                    const hasTaskArn = result.taskArn && result.taskArn.includes('ecs');
+                    const hasTaskId = result.taskId && result.taskId.startsWith('task-');
+                    const isECS = result.type === 'ecs_task_started';
                     
                     return {
                         success: true,
-                        message: `Staging: Working - URL:${hasDeploymentUrl?'✓':'✗'} GitHub:${hasGithubUrl?'✓':'✗'}`
+                        message: `ECS PR Creation: Working - TaskARN:${hasTaskArn?'✓':'✗'} TaskID:${hasTaskId?'✓':'✗'} Type:${isECS?'✓':'✗'}`
                     };
                 } else {
                     return {
                         success: false,
-                        message: `Staging: HTTP ${response.status}`
+                        message: `ECS PR Creation: HTTP ${response.status}`
                     };
                 }
             } catch (error) {
-                return { success: false, message: `Staging: Error - ${error.message}` };
+                return { success: false, message: `ECS PR Creation: Error - ${error.message}` };
             }
 
         case 'testRunInStagingButton':
-            // Test Run in Staging button - PR123 moved it to PR cards
+            // Test Create PR button in PR cards (ECS-based)
             try {
                 const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
                 if (!response.ok) {
-                    return { success: false, message: 'Staging: Cannot access app.js' };
+                    return { success: false, message: 'Create PR: Cannot access app.js' };
                 }
                 
                 const js = await response.text();
                 
-                // Check for PR card staging functionality (PR123 change)
-                const hasStagingFunction = js.includes('buildRunInStagingModalContent');
-                const hasPRCardIntegration = js.includes('run-in-staging-btn') && js.includes('codewhisperer-task-card');
+                // Check for PR creation functionality
+                const hasCreatePRFunction = js.includes('personal-delegate') || js.includes('createPRButton');
+                const hasPRCardIntegration = js.includes('codewhisperer-task-card');
                 
-                if (!hasStagingFunction) {
-                    return { success: false, message: 'Run in Staging function not found' };
+                if (!hasCreatePRFunction) {
+                    return { success: false, message: 'Create PR function not found' };
                 }
                 
                 return {
                     success: true,
-                    message: `Staging: Function ${hasStagingFunction ? 'found' : 'missing'}, PR card integration ${hasPRCardIntegration ? 'found' : 'missing'} (PR123 moved to PR cards)`
+                    message: `Create PR: Function ${hasCreatePRFunction ? 'found' : 'missing'}, PR card integration ${hasPRCardIntegration ? 'found' : 'missing'} (ECS-based)`
                 };
                 
             } catch (error) {
-                return { success: false, message: `Run in Staging test failed - ${error.message}` };
+                return { success: false, message: `Create PR test failed - ${error.message}` };
             }
 
         case 'testTaskCardObjective':
