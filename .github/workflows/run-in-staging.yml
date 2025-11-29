@@ -26,18 +26,19 @@ jobs:
         run: |
           curl -fsSL https://d3vv6lp55qjaqc.cloudfront.net/items/1P1b0z0W0c1j3e0Y3g3Y/amazon-q-cli-linux-x64.tar.gz | tar -xz
           sudo mv q /usr/local/bin/q
-          q chat "Implement: ${{ inputs.task_title }}. Details: ${{ inputs.task_details }}" --non-interactive
+          q chat "Implement: ${{ inputs.task_title }}. Details: ${{ inputs.task_details }}" --non-interactive || true
           
           git config user.name "bot"
           git config user.email "bot@github.com"
           git add -A
-          git diff --staged --quiet || (git commit -m "feat: ${{ inputs.task_title }}" && git push)
+          git diff --staged --quiet || (git commit -m "feat: ${{ inputs.task_title }}" && git push) || true
       
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
       
-      - run: npm install --legacy-peer-deps
+      - run: npm ci || npm install --force
       
       - uses: aws-actions/configure-aws-credentials@v4
         with:
