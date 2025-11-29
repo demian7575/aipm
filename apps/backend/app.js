@@ -400,7 +400,7 @@ async function performDelegation(payload) {
         },
         overrides: {
           containerOverrides: [{
-            name: 'aipm-q-worker',
+            name: 'amazon-q-worker',
             environment: [
               { name: 'TASK_ID', value: taskId },
               { name: 'TASK_TITLE', value: normalized.taskTitle },
