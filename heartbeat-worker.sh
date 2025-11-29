@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set AWS profile if not already set
+export AWS_PROFILE=${AWS_PROFILE:-myaws}
+
 echo "💓 AIPM Heartbeat Worker Started"
 echo "================================"
 echo "Checking queue every 1 second..."

@@ -31,6 +31,7 @@ if ! AWS_PROFILE=myaws aws sts get-caller-identity &> /dev/null; then
     exit 1
 fi
 echo "✅ AWS credentials configured"
+export AWS_PROFILE=myaws
 
 # Check GitHub token
 if [ -z "$GITHUB_TOKEN" ]; then
