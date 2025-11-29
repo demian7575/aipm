@@ -32,12 +32,17 @@ cd repo
 # Create branch
 git checkout -b "$BRANCH_NAME"
 
-# Try Amazon Q with IAM auth
-echo "🤖 Attempting Amazon Q code generation..."
+# Configure AWS credentials for Amazon Q Pro (IAM auth)
+export AWS_REGION=us-east-1
+export AWS_DEFAULT_REGION=us-east-1
+
+# Try Amazon Q with IAM auth (uses ECS task role automatically)
+echo "🤖 Attempting Amazon Q code generation with IAM auth..."
 if kiro-cli chat --non-interactive --trust-all-tools <<EOF
 $TASK_DETAILS
 
-Please implement this feature following the existing code patterns. Commit your changes when done.
+Please implement this feature following the existing code patterns in this repository.
+Commit your changes when done.
 EOF
 then
   echo "✅ Amazon Q generated code successfully"
