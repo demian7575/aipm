@@ -1352,22 +1352,6 @@ async function runProductionTest(testName) {
             } catch (error) {
                 return { success: false, message: `ECS worker test failed - ${error.message}` };
             }
-                
-                // If response is HTML (error page) or JSON (API response), Lambda code is protected
-                if (code.includes('<!DOCTYPE') || code.includes('<html') || code.includes('"message"')) {
-                    return { success: true, message: 'Workflow: Lambda code protected (expected)' };
-                }
-                
-                const hasStringConversion = code.includes('String(taskTitle') || code.includes('task_title: String(');
-                const hasBufferByteLength = code.includes('Buffer.byteLength');
-                
-                return {
-                    success: hasStringConversion && hasBufferByteLength,
-                    message: `Workflow: String conversion ${hasStringConversion?'✓':'✗'}, Buffer.byteLength ${hasBufferByteLength?'✓':'✗'}`
-                };
-            } catch (error) {
-                return { success: true, message: 'Workflow: Lambda code protected (expected)' };
-            }
 
         case 'testLambdaPermissions':
             // Test Lambda has proper IAM permissions
