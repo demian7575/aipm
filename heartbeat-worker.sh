@@ -24,12 +24,12 @@ fi
 CURRENT_TASK=""
 
 while true; do
-    # Check for pending tasks (processing or failed)
+    # Check for pending tasks (pending, processing, or failed)
     TASKS=$(AWS_PROFILE=myaws aws dynamodb scan \
         --table-name aipm-amazon-q-queue \
-        --filter-expression "#s = :status1 OR #s = :status2" \
+        --filter-expression "#s = :status1 OR #s = :status2 OR #s = :status3" \
         --expression-attribute-names '{"#s":"status"}' \
-        --expression-attribute-values '{":status1":{"S":"processing"},":status2":{"S":"failed"}}' \
+        --expression-attribute-values '{":status1":{"S":"pending"},":status2":{"S":"processing"},":status3":{"S":"failed"}}' \
         --region us-east-1 \
         --query 'Items[0]' \
         --output json 2>/dev/null)
@@ -61,7 +61,35 @@ while true; do
         # Checkout branch
         echo "🔄 Checking out branch..."
         git fetch origin 2>/dev/null
-        git checkout "$BRANCH_NAME" 2>/dev/null || git checkout -b "$BRANCH_NAME" origin/"$BRANCH_NAME" 2>/dev/null
+        
+        if git checkout "$BRANCH_NAME" 2>/dev/null; then
+            echo "✅ Branch exists, checked out"
+        elif git checkout -b "$BRANCH_NAME" origin/"$BRANCH_NAME" 2>/dev/null; then
+            echo "✅ Branch exists on remote, checked out"
+        else
+            echo "📝 Creating new branch from main..."
+            git checkout main 2>/dev/null
+            git pull origin main 2>/dev/null
+            git checkout -b "$BRANCH_NAME"
+            
+            # Create placeholder file
+            cat > "TASK_${TASK_ID}.md" <<EOF
+# Task: $TASK_TITLE
+
+## Details
+$TASK_DETAILS
+
+## Status
+Processing by heartbeat worker...
+EOF
+            git add "TASK_${TASK_ID}.md"
+            git commit -m "feat: $TASK_TITLE
+
+Task queued for Amazon Q code generation.
+Task ID: $TASK_ID"
+            git push origin "$BRANCH_NAME" 2>/dev/null
+            echo "✅ Branch created and pushed"
+        fi
         
         # Run Amazon Q
         echo "🤖 Running Amazon Q (this may take 2-5 minutes)..."
