@@ -28,7 +28,7 @@ git checkout -b "$BRANCH_NAME" || git checkout "$BRANCH_NAME"
 
 # Generate code with Amazon Q (has full repo context)
 echo "💡 Amazon Q is analyzing the repository..."
-q chat "Implement this feature: $TASK_TITLE. Requirements: $TASK_DETAILS. Follow existing code patterns in this repository." --non-interactive || true
+q chat "Implement this feature: $TASK_TITLE. Requirements: $TASK_DETAILS. Follow existing code patterns in this repository." --trust-all-tools
 
 # Commit changes
 git add -A
