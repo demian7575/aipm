@@ -399,10 +399,50 @@ async function performDelegation(payload) {
       `feature/${normalized.taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}`;
     
     try {
-      // Get main branch SHA
+      // Trigger CloudShell script to generate code with Amazon Q
+      const taskDetails = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
+      
+      // Execute CloudShell script via AWS Systems Manager (SSM)
+      // This runs Amazon Q with full repository context
+      const { SSMClient, SendCommandCommand } = await import('@aws-sdk/client-ssm');
+      const ssmClient = new SSMClient({ region: 'us-east-1' });
+      
+      const command = new SendCommandCommand({
+        DocumentName: 'AWS-RunShellScript',
+        InstanceIds: [process.env.CLOUDSHELL_INSTANCE_ID || 'mi-0123456789abcdef0'],
+        Parameters: {
+          commands: [
+            `cd /home/cloudshell-user/aipm`,
+            `./generate-code-with-q.sh "${normalized.taskTitle}" "${taskDetails}" "${branchName}"`
+          ]
+        }
+      });
+      
+      let commandId = null;
+      try {
+        const result = await ssmClient.send(command);
+        commandId = result.Command.CommandId;
+      } catch (ssmError) {
+        console.error('SSM command failed, falling back to Bedrock:', ssmError);
+        // Fallback to Bedrock if CloudShell not available
+      }
+      
+      if (commandId) {
+        // Amazon Q is generating code in CloudShell
+        return {
+          type: 'cloudshell_generation',
+          message: 'Amazon Q generating code with full repository context',
+          taskTitle: normalized.taskTitle,
+          branchName: branchName,
+          commandId: commandId,
+          statusUrl: `https://console.aws.amazon.com/systems-manager/run-command/${commandId}`,
+          confirmationCode: `CQ${timestamp}`,
+        };
+      }
+      
+      // Fallback: Create PR with Bedrock-generated code
       const mainBranch = await githubRequest(`${repoPath}/git/refs/heads/main`);
       
-      // Create new branch
       await githubRequest(`${repoPath}/git/refs`, {
         method: 'POST',
         body: JSON.stringify({
