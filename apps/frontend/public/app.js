@@ -1919,11 +1919,11 @@ function renderCodeWhispererSectionList(container, story) {
       const runInStagingBtn = document.createElement('button');
       runInStagingBtn.type = 'button';
       runInStagingBtn.className = 'button secondary run-in-staging-btn';
-      runInStagingBtn.textContent = 'Run in Staging';
+      runInStagingBtn.textContent = 'Test in Dev';
       runInStagingBtn.addEventListener('click', () => {
         const { element, onClose } = buildRunInStagingModalContent(entry);
         openModal({
-          title: 'Run in Staging',
+          title: 'Test in Dev',
           content: element,
           cancelLabel: 'Close',
           size: 'content',
@@ -1966,7 +1966,7 @@ function buildCodeWhispererSection(story) {
   const actionBtn = document.createElement('button');
   actionBtn.type = 'button';
   actionBtn.className = 'secondary';
-  actionBtn.textContent = 'Create PR';
+  actionBtn.textContent = 'Generate Code & PR';
   actionBtn.addEventListener('click', () => openCodeWhispererDelegationModal(story));
   heading.appendChild(actionBtn);
 
@@ -3239,7 +3239,7 @@ function buildRunInStagingModalContent(prEntry = null) {
   container.innerHTML = `
     ${prInfo}
     <div class="staging-options">
-      <h3>Run in Staging Workflow</h3>
+      <h3>Test in Dev Workflow</h3>
       <p>This will deploy the PR to development environment for testing:</p>
       
       <div class="workflow-steps">
@@ -3250,7 +3250,7 @@ function buildRunInStagingModalContent(prEntry = null) {
       </div>
       
       <div class="staging-actions">
-        <button id="run-staging-workflow" class="primary">Deploy to Staging</button>
+        <button id="run-staging-workflow" class="primary">Deploy to Dev</button>
         <button id="check-staging-status" class="secondary">Check Status</button>
       </div>
       
@@ -3294,11 +3294,11 @@ function buildRunInStagingModalContent(prEntry = null) {
       log.textContent += `✨ Check GitHub Actions link above for live progress\n`;
       log.textContent += `🧪 Test your changes at the staging URL\n`;
       
-      runWorkflowBtn.textContent = 'Deploy to Staging';
+      runWorkflowBtn.textContent = 'Deploy to Dev';
       runWorkflowBtn.disabled = false;
     } catch (error) {
       log.textContent += `\n❌ Error: ${error.message}\n`;
-      runWorkflowBtn.textContent = 'Deploy to Staging';
+      runWorkflowBtn.textContent = 'Deploy to Dev';
       runWorkflowBtn.disabled = false;
     }
   });
@@ -5406,9 +5406,19 @@ async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
         acceptanceCriteria: acceptanceCriteriaList,
       };
 
-      const result = await sendJson('/api/personal-delegate', {
+      // Create PR directly (no queue)
+      const branchName = `feature/${kebabCase(values.taskTitle)}-${Date.now()}`;
+      const prPayload = {
+        storyId: story?.id,
+        branchName: branchName,
+        prTitle: values.prTitle || values.taskTitle,
+        prBody: `## ${values.taskTitle}\n\n${values.objective}\n\n### Constraints\n${values.constraints}\n\n### Acceptance Criteria\n${acceptanceCriteriaList.join('\n')}`,
+        story: story
+      };
+
+      const result = await sendJson('/api/create-pr', {
         method: 'POST',
-        body: payload,
+        body: prPayload,
       });
 
       let acceptanceTestCreated = false;
@@ -5416,17 +5426,24 @@ async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
         acceptanceTestCreated = await generateAcceptanceTestForDelegation(acceptanceCriteriaText);
       }
 
-      if (values.createTrackingCard) {
-        const entry = createLocalDelegationEntry(story, values, result);
-        if (entry) {
-          addCodeWhispererDelegationEntry(story.id, entry);
-        }
+      if (values.createTrackingCard && result.success) {
+        const entry = {
+          localId: `pr-${Date.now()}`,
+          storyId: story?.id,
+          taskTitle: values.taskTitle,
+          objective: values.objective,
+          branchName: branchName,
+          prUrl: result.prUrl,
+          number: result.prNumber,
+          type: 'pull_request',
+          html_url: result.prUrl,
+          createTrackingCard: true,
+          createdAt: new Date().toISOString()
+        };
+        addCodeWhispererDelegationEntry(story.id, entry);
       }
 
-      const confirmationCode =
-        typeof result?.confirmationCode === 'string' && result.confirmationCode.length >= 6
-          ? result.confirmationCode
-          : null;
+      const confirmationCode = `PR#${result.prNumber || 'created'}`;
 
       const toastBase = acceptanceTestCreated
         ? 'CodeWhisperer task created and acceptance test drafted.'
