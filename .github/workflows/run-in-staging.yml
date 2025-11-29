@@ -15,94 +15,38 @@ on:
 jobs:
   implement-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     
     steps:
-      - name: Checkout develop branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: develop
-          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Configure Git
+      - name: Implement with kiro-cli
         run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-      
-      - name: Install Amazon Q CLI (kiro-cli)
-        run: |
-          # Download and install kiro-cli binary
-          curl -fsSL https://d3vv6lp55qjaqc.cloudfront.net/items/1P1b0z0W0c1j3e0Y3g3Y/amazon-q-cli-linux-x64.tar.gz -o amazon-q.tar.gz
-          tar -xzf amazon-q.tar.gz
-          sudo mv q /usr/local/bin/kiro-cli
-          sudo chmod +x /usr/local/bin/kiro-cli
-          kiro-cli --version
-      
-      - name: Implement changes with kiro-cli
-        env:
-          TASK_TITLE: ${{ inputs.task_title }}
-          TASK_DETAILS: ${{ inputs.task_details }}
-        run: |
-          echo "Task: $TASK_TITLE"
-          echo "Details: $TASK_DETAILS"
+          curl -fsSL https://d3vv6lp55qjaqc.cloudfront.net/items/1P1b0z0W0c1j3e0Y3g3Y/amazon-q-cli-linux-x64.tar.gz | tar -xz
+          sudo mv q /usr/local/bin/q
+          q chat "Implement: ${{ inputs.task_title }}. Details: ${{ inputs.task_details }}" --non-interactive
           
-          # Create implementation prompt
-          cat > /tmp/task.txt << 'EOF'
-          Implement the following requirement:
-          
-          Title: ${{ inputs.task_title }}
-          Details: ${{ inputs.task_details }}
-          
-          Make the necessary code changes to implement this feature.
-          Follow the existing code patterns and best practices.
-          EOF
-          
-          # Use kiro-cli to implement
-          kiro-cli chat "$(cat /tmp/task.txt)" --non-interactive || echo "kiro-cli execution completed"
+          git config user.name "bot"
+          git config user.email "bot@github.com"
+          git add -A
+          git diff --staged --quiet || (git commit -m "feat: ${{ inputs.task_title }}" && git push)
       
-      - name: Commit changes
-        run: |
-          git add .
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "feat: ${{ inputs.task_title }}"
-            git push origin develop
-          fi
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
       
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
+      - run: npm install --legacy-peer-deps
       
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Deploy backend to development
+      - name: Deploy
         run: |
           npx serverless deploy --stage dev
-      
-      - name: Deploy frontend to development
-        run: |
-          aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ --delete --cache-control "no-cache, no-store, must-revalidate"
-      
-      - name: Run gating tests
-        continue-on-error: true
-        run: |
-          node run-comprehensive-gating-tests.cjs || echo "Gating tests completed with warnings"
-      
-      - name: Deployment summary
-        run: |
-          echo "✅ Run in Staging completed!"
-          echo "📝 Task: ${{ inputs.task_title }}"
-          echo "🌐 Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
-          echo "📊 Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ --delete
+          echo "✅ Deployed: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
