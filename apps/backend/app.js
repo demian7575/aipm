@@ -355,11 +355,11 @@ async function performDelegation(payload) {
   }
 
   if (normalized.target === 'pr') {
-    // Trigger GitHub Actions workflow to implement with Amazon Q and create PR
+    // Trigger GitHub Actions workflow to create PR
     try {
       const taskDetails = `${normalized.objective}\n\nConstraints:\n${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join('\n- ')}`;
       
-      const workflowDispatch = await githubRequest(`${repoPath}/actions/workflows/run-in-staging.yml/dispatches`, {
+      const workflowDispatch = await githubRequest(`${repoPath}/actions/workflows/211256033/dispatches`, {
         method: 'POST',
         body: JSON.stringify({
           ref: 'main',
@@ -372,7 +372,7 @@ async function performDelegation(payload) {
       
       return {
         type: 'workflow_dispatch',
-        message: 'Amazon Q workflow triggered',
+        message: 'PR creation workflow triggered',
         taskTitle: normalized.taskTitle,
         workflowUrl: `https://github.com/${normalized.owner}/${normalized.repo}/actions/workflows/run-in-staging.yml`,
         confirmationCode: `WF${Date.now()}`,
