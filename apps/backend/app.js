@@ -108,48 +108,6 @@ async function handlePersonalDelegateRequest(req, res) {
   }
 }
 
-async function handleCreatePRRequest(req, res) {
-  try {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const { storyId, branchName, prTitle, prBody, story } = payload;
-        
-        const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-        const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
-        const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
-        
-        if (!GITHUB_TOKEN) {
-          sendJson(res, 400, { 
-            success: false, 
-            error: 'GitHub token not configured' 
-          });
-          return;
-        }
-
-        sendJson(res, 200, { success: true, message: 'PR creation endpoint available' });
-      } catch (error) {
-        console.error('PR creation error:', error);
-        sendJson(res, 500, { 
-          success: false, 
-          error: error.message || 'Failed to create PR' 
-        });
-      }
-    });
-  } catch (error) {
-    console.error('Request handling error:', error);
-    sendJson(res, 500, { 
-      success: false, 
-      error: 'Internal server error' 
-    });
-  }
-}
-
 async function handlePersonalDelegateStatusRequest(req, res, url) {
   try {
     const owner = url.searchParams.get('owner');
