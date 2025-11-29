@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AIPM</title>
+</head>
+<body>
+  <header>
+    <h1>AIPM</h1>
+    <p>Last updated: <span id="timestamp"><%= lastUpdated.toLocaleString() %></span></p>
+  </header>
+
+  <main>
+    <!-- Your app content goes here -->
+  </main>
+
+  <script>
+    function updateTimestamp() {
+      const timestamp = document.getElementById('timestamp');
+      const lastUpdated = new Date('<%= lastUpdated.toISOString() %>');
+      const now = new Date();
+      const diffInSeconds = Math.floor((now - lastUpdated) / 1000);
+
+      let relativeTime;
+      if (diffInSeconds < 60) {
+        relativeTime = `${diffInSeconds} seconds ago`;
+      } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        relativeTime = `${minutes} minutes ago`;
+      } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        relativeTime = `${hours} hours ago`;
+      } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        relativeTime = `${days} days ago`;
+      }
+
+      timestamp.textContent = relativeTime;
+    }
+
+    updateTimestamp();
+  </script>
+</body>
+</html>
