@@ -41,6 +41,7 @@ provider:
               - '/'
               - - Fn::GetAtt: [AcceptanceTestsTable, Arn]
                 - 'index/*'
+            - arn:aws:dynamodb:${self:provider.region}:*:table/aipm-amazon-q-queue
 
 package:
   exclude:
