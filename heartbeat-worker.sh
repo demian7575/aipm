@@ -17,12 +17,12 @@ fi
 CURRENT_TASK=""
 
 while true; do
-    # Check for pending tasks
+    # Check for pending tasks (processing or failed)
     TASKS=$(AWS_PROFILE=myaws aws dynamodb scan \
         --table-name aipm-amazon-q-queue \
-        --filter-expression "#s = :status" \
+        --filter-expression "#s = :status1 OR #s = :status2" \
         --expression-attribute-names '{"#s":"status"}' \
-        --expression-attribute-values '{":status":{"S":"processing"}}' \
+        --expression-attribute-values '{":status1":{"S":"processing"},":status2":{"S":"failed"}}' \
         --region us-east-1 \
         --query 'Items[0]' \
         --output json 2>/dev/null)
