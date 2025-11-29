@@ -1,10 +1,9 @@
 #!/bin/bash
-# Amazon Q Heartbeat - Checks queue every 5 seconds and generates code
+# Amazon Q Heartbeat - Checks DynamoDB queue every 5 seconds
 
-QUEUE_FILE="/home/cloudshell-user/aipm/.queue/tasks.json"
 LOCK_FILE="/home/cloudshell-user/aipm/.queue/heartbeat.lock"
+TABLE_NAME="aipm-amazon-q-queue"
 
-# Create queue directory
 mkdir -p /home/cloudshell-user/aipm/.queue
 
 # Check if already running
@@ -16,52 +15,75 @@ if [ -f "$LOCK_FILE" ]; then
   fi
 fi
 
-# Create lock file
 echo $$ > "$LOCK_FILE"
 
 echo "🫀 Amazon Q Heartbeat started (PID: $$)"
-echo "📋 Checking queue every 5 seconds..."
+echo "📋 Checking DynamoDB queue every 5 seconds..."
 echo "🛑 Press Ctrl+C to stop"
 echo ""
 
-# Cleanup on exit
 trap "rm -f $LOCK_FILE; echo 'Heartbeat stopped'; exit" INT TERM EXIT
 
 cd /home/cloudshell-user/aipm
 
 while true; do
-  # Check if queue file exists and has tasks
-  if [ -f "$QUEUE_FILE" ]; then
-    # Get first pending task
-    TASK=$(jq -r '.tasks[] | select(.status == "pending") | @json' "$QUEUE_FILE" 2>/dev/null | head -1)
+  # Get pending tasks from DynamoDB
+  TASKS=$(aws dynamodb scan \
+    --table-name "$TABLE_NAME" \
+    --filter-expression "#status = :pending" \
+    --expression-attribute-names '{"#status":"status"}' \
+    --expression-attribute-values '{":pending":{"S":"pending"}}' \
+    --region us-east-1 \
+    --output json 2>/dev/null)
+  
+  if [ $? -eq 0 ]; then
+    TASK_COUNT=$(echo "$TASKS" | jq '.Items | length')
     
-    if [ -n "$TASK" ] && [ "$TASK" != "null" ]; then
-      TASK_ID=$(echo "$TASK" | jq -r '.id')
-      TASK_TITLE=$(echo "$TASK" | jq -r '.title')
-      TASK_DETAILS=$(echo "$TASK" | jq -r '.details')
-      BRANCH_NAME=$(echo "$TASK" | jq -r '.branch')
+    if [ "$TASK_COUNT" -gt 0 ]; then
+      # Get first task
+      TASK_ID=$(echo "$TASKS" | jq -r '.Items[0].id.S')
+      TASK_TITLE=$(echo "$TASKS" | jq -r '.Items[0].title.S')
+      TASK_DETAILS=$(echo "$TASKS" | jq -r '.Items[0].details.S')
+      BRANCH_NAME=$(echo "$TASKS" | jq -r '.Items[0].branch.S')
       
-      echo "⚡ Task found: $TASK_TITLE"
+      echo "⚡ Task found: $TASK_TITLE (ID: $TASK_ID)"
       echo "🤖 Amazon Q generating code..."
       
       # Mark as processing
-      jq --arg id "$TASK_ID" '(.tasks[] | select(.id == $id) | .status) = "processing"' "$QUEUE_FILE" > "$QUEUE_FILE.tmp" && mv "$QUEUE_FILE.tmp" "$QUEUE_FILE"
+      aws dynamodb update-item \
+        --table-name "$TABLE_NAME" \
+        --key "{\"id\":{\"S\":\"$TASK_ID\"}}" \
+        --update-expression "SET #status = :processing" \
+        --expression-attribute-names '{"#status":"status"}' \
+        --expression-attribute-values '{":processing":{"S":"processing"}}' \
+        --region us-east-1 > /dev/null 2>&1
       
       # Run Amazon Q
       if ./generate-code-with-q.sh "$TASK_TITLE" "$TASK_DETAILS" "$BRANCH_NAME"; then
         echo "✅ PR created successfully"
         # Mark as complete
-        jq --arg id "$TASK_ID" '(.tasks[] | select(.id == $id) | .status) = "complete"' "$QUEUE_FILE" > "$QUEUE_FILE.tmp" && mv "$QUEUE_FILE.tmp" "$QUEUE_FILE"
+        aws dynamodb update-item \
+          --table-name "$TABLE_NAME" \
+          --key "{\"id\":{\"S\":\"$TASK_ID\"}}" \
+          --update-expression "SET #status = :complete, completedAt = :time" \
+          --expression-attribute-names '{"#status":"status"}' \
+          --expression-attribute-values "{\":complete\":{\"S\":\"complete\"},\":time\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}}" \
+          --region us-east-1 > /dev/null 2>&1
       else
         echo "❌ Generation failed"
         # Mark as failed
-        jq --arg id "$TASK_ID" '(.tasks[] | select(.id == $id) | .status) = "failed"' "$QUEUE_FILE" > "$QUEUE_FILE.tmp" && mv "$QUEUE_FILE.tmp" "$QUEUE_FILE"
+        aws dynamodb update-item \
+          --table-name "$TABLE_NAME" \
+          --key "{\"id\":{\"S\":\"$TASK_ID\"}}" \
+          --update-expression "SET #status = :failed, failedAt = :time" \
+          --expression-attribute-names '{"#status":"status"}' \
+          --expression-attribute-values "{\":failed\":{\"S\":\"failed\"},\":time\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}}" \
+          --region us-east-1 > /dev/null 2>&1
       fi
       
       echo ""
     fi
   fi
   
-  # Wait 5 seconds
   sleep 5
 done

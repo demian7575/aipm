@@ -401,51 +401,39 @@ async function performDelegation(payload) {
     try {
       const taskDetails = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
       
-      // Add task to queue for heartbeat system
-      const queueFile = '/home/cloudshell-user/aipm/.queue/tasks.json';
-      const { readFileSync, writeFileSync, existsSync, mkdirSync } = await import('fs');
-      const { dirname } = await import('path');
+      // Add task to DynamoDB queue
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
       
-      try {
-        // Ensure queue directory exists
-        const queueDir = dirname(queueFile);
-        if (!existsSync(queueDir)) {
-          mkdirSync(queueDir, { recursive: true });
-        }
-        
-        // Read existing queue
-        let queue = { tasks: [] };
-        if (existsSync(queueFile)) {
-          queue = JSON.parse(readFileSync(queueFile, 'utf8'));
-        }
-        
-        // Add new task
-        queue.tasks.push({
-          id: `task-${timestamp}`,
-          title: normalized.taskTitle,
-          details: taskDetails,
-          branch: branchName,
-          owner: normalized.owner,
-          repo: normalized.repo,
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        });
-        
-        // Write queue
-        writeFileSync(queueFile, JSON.stringify(queue, null, 2));
-        
-        return {
-          type: 'queued_for_amazon_q',
-          message: 'Task queued for Amazon Q code generation (heartbeat will process)',
-          taskTitle: normalized.taskTitle,
-          branchName: branchName,
-          queuePosition: queue.tasks.filter(t => t.status === 'pending').length,
-          confirmationCode: `Q${timestamp}`,
-        };
-      } catch (queueError) {
-        console.error('Queue error, falling back:', queueError);
-      }
+      const client = new DynamoDBClient({ region: 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(client);
       
+      const task = {
+        id: `task-${timestamp}`,
+        title: normalized.taskTitle,
+        details: taskDetails,
+        branch: branchName,
+        owner: normalized.owner,
+        repo: normalized.repo,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      
+      await docClient.send(new PutCommand({
+        TableName: 'aipm-amazon-q-queue',
+        Item: task
+      }));
+      
+      return {
+        type: 'queued_for_amazon_q',
+        message: 'Task queued for Amazon Q (heartbeat will process in ~5 seconds)',
+        taskTitle: normalized.taskTitle,
+        branchName: branchName,
+        taskId: task.id,
+        confirmationCode: `Q${timestamp}`,
+      };
+    } catch (error) {
+      console.error('Queue error:', error);
       // Fallback: Create empty PR
       const mainBranch = await githubRequest(`${repoPath}/git/refs/heads/main`);
       
