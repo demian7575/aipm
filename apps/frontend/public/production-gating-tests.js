@@ -607,7 +607,8 @@ async function runProductionTest(testName) {
                     return { success: false, message: 'No stories to validate' };
                 }
                 
-                const requiredFields = ['id', 'title', 'description', 'status', 'children'];
+                // Check for actual story fields (AIPM uses asA/iWant/soThat format, not title)
+                const requiredFields = ['id', 'description', 'status', 'children'];
                 const firstStory = stories[0];
                 const missingFields = requiredFields.filter(field => !(field in firstStory));
                 
