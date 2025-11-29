@@ -359,7 +359,7 @@ async function performDelegation(payload) {
     try {
       const taskDetails = `${normalized.objective}\n\nConstraints:\n${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join('\n- ')}`;
       
-      const workflowDispatch = await githubRequest(`${repoPath}/actions/workflows/211256033/dispatches`, {
+      const workflowDispatch = await githubRequest(`${repoPath}/actions/workflows/211368519/dispatches`, {
         method: 'POST',
         body: JSON.stringify({
           ref: 'main',
@@ -374,7 +374,7 @@ async function performDelegation(payload) {
         type: 'workflow_dispatch',
         message: 'PR creation workflow triggered',
         taskTitle: normalized.taskTitle,
-        workflowUrl: `https://github.com/${normalized.owner}/${normalized.repo}/actions/workflows/run-in-staging.yml`,
+        workflowUrl: `https://github.com/${normalized.owner}/${normalized.repo}/actions`,
         confirmationCode: `WF${Date.now()}`,
       };
     } catch (error) {
