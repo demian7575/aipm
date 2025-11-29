@@ -59,11 +59,11 @@ const PROD_TEST_SUITES = {
         ]
     },
     stagingWorkflow: {
-        name: 'Staging Workflow Validation',
+        name: 'ECS Infrastructure Validation',
         tests: [
-            { name: 'GitHub Actions Workflow File', test: 'testGitHubWorkflowFile' },
-            { name: 'Workflow Input Format', test: 'testWorkflowInputFormat' },
-            { name: 'Lambda IAM Permissions', test: 'testLambdaPermissions' },
+            { name: 'ECS Cluster Status', test: 'testGitHubWorkflowFile' },
+            { name: 'ECS Task Definition', test: 'testWorkflowInputFormat' },
+            { name: 'Lambda ECS Permissions', test: 'testLambdaPermissions' },
             { name: 'Content-Length Header', test: 'testContentLengthHeader' }
         ]
     },
@@ -1311,35 +1311,46 @@ async function runProductionTest(testName) {
             }
 
         case 'testGitHubWorkflowFile':
-            // Verify deploy-staging.yml exists and has correct format
+            // Verify ECS infrastructure documentation exists
             try {
-                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/.github/workflows/deploy-staging.yml');
+                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/ECS_DEPLOYMENT.md');
                 if (!response.ok) {
-                    return { success: false, message: 'Workflow: deploy-staging.yml not found' };
+                    return { success: false, message: 'ECS: Documentation not found' };
                 }
                 
-                const yaml = await response.text();
-                const hasWorkflowDispatch = yaml.includes('workflow_dispatch');
-                const hasTaskTitleInput = yaml.includes('task_title');
-                const noTypeDeclaration = !yaml.includes('type: string');
+                const doc = await response.text();
+                const hasECSCluster = doc.includes('aipm-cluster');
+                const hasTaskDefinition = doc.includes('aipm-amazon-q-worker');
+                const hasDockerfile = doc.includes('Dockerfile.q-worker');
                 
                 return {
-                    success: hasWorkflowDispatch && hasTaskTitleInput && noTypeDeclaration,
-                    message: `Workflow: dispatch:${hasWorkflowDispatch?'✓':'✗'} input:${hasTaskTitleInput?'✓':'✗'} no-type:${noTypeDeclaration?'✓':'✗'}`
+                    success: hasECSCluster && hasTaskDefinition && hasDockerfile,
+                    message: `ECS Docs: cluster:${hasECSCluster?'✓':'✗'} task:${hasTaskDefinition?'✓':'✗'} docker:${hasDockerfile?'✓':'✗'}`
                 };
             } catch (error) {
-                return { success: false, message: `Workflow file test failed - ${error.message}` };
+                return { success: false, message: `ECS docs test failed - ${error.message}` };
             }
 
         case 'testWorkflowInputFormat':
-            // Verify Lambda sends workflow inputs as strings
+            // Verify ECS worker script exists
             try {
-                const response = await fetch(`${PROD_CONFIG.api}/handler.js`);
-                if (!response.ok || response.status === 404) {
-                    return { success: true, message: 'Workflow: Lambda code protected (expected)' };
+                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/q-worker.sh');
+                if (!response.ok) {
+                    return { success: false, message: 'ECS: Worker script not found' };
                 }
                 
-                const code = await response.text();
+                const script = await response.text();
+                const hasAmazonQ = script.includes('kiro-cli');
+                const hasGitOps = script.includes('git clone') && script.includes('git push');
+                const hasPRCreation = script.includes('github.com') && script.includes('/pulls');
+                
+                return {
+                    success: hasAmazonQ && hasGitOps && hasPRCreation,
+                    message: `ECS Worker: Q:${hasAmazonQ?'✓':'✗'} Git:${hasGitOps?'✓':'✗'} PR:${hasPRCreation?'✓':'✗'}`
+                };
+            } catch (error) {
+                return { success: false, message: `ECS worker test failed - ${error.message}` };
+            }
                 
                 // If response is HTML (error page) or JSON (API response), Lambda code is protected
                 if (code.includes('<!DOCTYPE') || code.includes('<html') || code.includes('"message"')) {
