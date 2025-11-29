@@ -2533,7 +2533,6 @@ ${prBody}
     };
   }
 }
-}
 
 async function requestInvestAnalysisFromAi(story, options, config) {
   return await requestInvestAnalysisFromAmazonAi(story, options, config);
