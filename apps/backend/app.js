@@ -358,22 +358,23 @@ async function performDelegation(payload) {
     
     try {
       const taskDetails = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
+      const taskId = `task-${timestamp}`;
       
-      // Add task to DynamoDB queue
+      // Write task to DynamoDB with processing status
       const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
       const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
       
-      const client = new DynamoDBClient({ region: 'us-east-1' });
-      const docClient = DynamoDBDocumentClient.from(client);
+      const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(dynamoClient);
       
       const task = {
-        id: `task-${timestamp}`,
+        id: taskId,
         title: normalized.taskTitle,
         details: taskDetails,
         branch: branchName,
         owner: normalized.owner,
         repo: normalized.repo,
-        status: 'pending',
+        status: 'processing',
         createdAt: new Date().toISOString()
       };
       
@@ -382,19 +383,58 @@ async function performDelegation(payload) {
         Item: task
       }));
       
+      // Trigger ECS Fargate task
+      const { ECSClient, RunTaskCommand } = await import('@aws-sdk/client-ecs');
+      const ecsClient = new ECSClient({ region: 'us-east-1' });
+      
+      const runTaskParams = {
+        cluster: 'aipm-cluster',
+        taskDefinition: 'aipm-amazon-q-worker',
+        launchType: 'FARGATE',
+        networkConfiguration: {
+          awsvpcConfiguration: {
+            subnets: (process.env.ECS_SUBNETS || 'subnet-021cb68f18ae60508,subnet-03525df27c75e12b5').split(','),
+            securityGroups: [(process.env.ECS_SECURITY_GROUP || 'sg-0ad4bc9d85549a7c7')],
+            assignPublicIp: 'ENABLED'
+          }
+        },
+        overrides: {
+          containerOverrides: [{
+            name: 'aipm-q-worker',
+            environment: [
+              { name: 'TASK_ID', value: taskId },
+              { name: 'TASK_TITLE', value: normalized.taskTitle },
+              { name: 'TASK_DETAILS', value: taskDetails },
+              { name: 'BRANCH_NAME', value: branchName },
+              { name: 'GITHUB_OWNER', value: normalized.owner },
+              { name: 'GITHUB_REPO', value: normalized.repo },
+              { name: 'DYNAMODB_TABLE', value: 'aipm-amazon-q-queue' },
+              { name: 'AWS_REGION', value: 'us-east-1' }
+            ]
+          }]
+        }
+      };
+      
+      const ecsResponse = await ecsClient.send(new RunTaskCommand(runTaskParams));
+      
+      if (!ecsResponse.tasks || ecsResponse.tasks.length === 0) {
+        throw new Error('ECS task failed to start');
+      }
+      
       return {
-        type: 'queued_for_amazon_q',
-        message: 'Task queued for Amazon Q (heartbeat will process in ~5 seconds)',
+        type: 'ecs_task_started',
+        message: 'Amazon Q worker started - code generation in progress',
         taskTitle: normalized.taskTitle,
         branchName: branchName,
-        taskId: task.id,
+        taskId: taskId,
+        ecsTaskArn: ecsResponse.tasks[0].taskArn,
         confirmationCode: `Q${timestamp}`,
       };
     } catch (error) {
-      console.error('Queue error:', error);
+      console.error('ECS trigger error:', error);
       return {
         type: 'error',
-        message: 'Failed to queue task',
+        message: 'Failed to start code generation',
         error: error.message
       };
     }

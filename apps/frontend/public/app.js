@@ -5399,19 +5399,9 @@ async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
         acceptanceCriteria: acceptanceCriteriaList,
       };
 
-      // Create PR directly (no queue)
-      const branchName = `feature/${kebabCase(values.taskTitle)}-${Date.now()}`;
-      const prPayload = {
-        storyId: story?.id,
-        branchName: branchName,
-        prTitle: values.prTitle || values.taskTitle,
-        prBody: `## ${values.taskTitle}\n\n${values.objective}\n\n### Constraints\n${values.constraints}\n\n### Acceptance Criteria\n${acceptanceCriteriaList.join('\n')}`,
-        story: story
-      };
-
-      const result = await sendJson('/api/create-pr', {
+      const result = await sendJson('/api/personal-delegate', {
         method: 'POST',
-        body: prPayload,
+        body: payload,
       });
 
       let acceptanceTestCreated = false;
@@ -5419,24 +5409,17 @@ async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
         acceptanceTestCreated = await generateAcceptanceTestForDelegation(acceptanceCriteriaText);
       }
 
-      if (values.createTrackingCard && result.success) {
-        const entry = {
-          localId: `pr-${Date.now()}`,
-          storyId: story?.id,
-          taskTitle: values.taskTitle,
-          objective: values.objective,
-          branchName: branchName,
-          prUrl: result.prUrl,
-          number: result.prNumber,
-          type: 'pull_request',
-          html_url: result.prUrl,
-          createTrackingCard: true,
-          createdAt: new Date().toISOString()
-        };
-        addCodeWhispererDelegationEntry(story.id, entry);
+      if (values.createTrackingCard) {
+        const entry = createLocalDelegationEntry(story, values, result);
+        if (entry) {
+          addCodeWhispererDelegationEntry(story.id, entry);
+        }
       }
 
-      const confirmationCode = `PR#${result.prNumber || 'created'}`;
+      const confirmationCode =
+        typeof result?.confirmationCode === 'string' && result.confirmationCode.length >= 6
+          ? result.confirmationCode
+          : null;
 
       const toastBase = acceptanceTestCreated
         ? 'CodeWhisperer task created and acceptance test drafted.'
