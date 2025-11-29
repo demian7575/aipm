@@ -332,30 +332,28 @@ function buildTaskBrief(payload) {
 async function generateCodeWithBedrock(taskTitle, objective, constraints, acceptanceCriteria) {
   const bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
   
+  const criteriaText = acceptanceCriteria.map(c => `- ${c}`).join('\n');
   const prompt = `Generate code for this task:
 
 Title: ${taskTitle}
 Objective: ${objective}
 Constraints: ${constraints}
 Acceptance Criteria:
-${acceptanceCriteria.map(c => `- ${c}`).join('\n')}
+${criteriaText}
 
 Project context: AIPM is a vanilla JavaScript project with Express backend.
 Generate minimal, working code. Return ONLY valid JSON with this structure:
-{
-  "files": [
-    {"path": "filename.js", "content": "code here"}
-  ],
-  "summary": "Brief description"
-}`;
+{"files":[{"path":"filename.js","content":"code here"}],"summary":"Brief description"}`;
+
+  const requestBody = {
+    anthropic_version: 'bedrock-2023-05-31',
+    max_tokens: 4096,
+    messages: [{ role: 'user', content: prompt }]
+  };
 
   const command = new InvokeModelCommand({
     modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
-    body: JSON.stringify({
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }]
-    })
+    body: JSON.stringify(requestBody)
   });
 
   const response = await bedrockClient.send(command);
