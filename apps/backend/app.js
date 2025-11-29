@@ -355,30 +355,108 @@ async function performDelegation(payload) {
   }
 
   if (normalized.target === 'pr') {
-    // Trigger GitHub Actions workflow to create PR
+    // Create PR directly without workflow
+    const timestamp = Date.now();
+    const branchName = normalized.branchName ? 
+      `${normalized.branchName}-${timestamp}` : 
+      `feature/${normalized.taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}`;
+    
     try {
-      const taskDetails = `${normalized.objective}\n\nConstraints:\n${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join('\n- ')}`;
+      // Get main branch SHA
+      const mainBranch = await githubRequest(`${repoPath}/git/refs/heads/main`);
       
-      const workflowDispatch = await githubRequest(`${repoPath}/actions/workflows/211368519/dispatches`, {
+      // Create new branch
+      await githubRequest(`${repoPath}/git/refs`, {
         method: 'POST',
         body: JSON.stringify({
-          ref: 'main',
-          inputs: {
-            task_title: normalized.taskTitle,
-            task_details: taskDetails
-          }
+          ref: `refs/heads/${branchName}`,
+          sha: mainBranch.object.sha
+        })
+      });
+      
+      // Create TASK.md file
+      const taskContent = `# ${normalized.taskTitle}
+
+## Requirements
+${normalized.objective}
+
+## Constraints
+${normalized.constraints}
+
+## Acceptance Criteria
+${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}
+
+## Implementation Notes
+**⚠️ This PR requires manual implementation or use Amazon Q locally:**
+
+\`\`\`bash
+# In your local environment:
+git checkout ${branchName}
+q chat "Implement: ${normalized.taskTitle}. ${normalized.objective}"
+git add -A
+git commit -m "feat: implement ${normalized.taskTitle}"
+git push
+\`\`\`
+
+Then review and merge this PR.
+`;
+      
+      await githubRequest(`${repoPath}/contents/TASK.md`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          message: `feat: ${normalized.taskTitle}`,
+          content: Buffer.from(taskContent).toString('base64'),
+          branch: branchName
+        })
+      });
+      
+      // Create PR
+      const prBody = `## 🎯 Task
+${normalized.taskTitle}
+
+## 📋 Requirements
+${normalized.objective}
+
+## 🔧 Constraints
+${normalized.constraints}
+
+## ✅ Acceptance Criteria
+${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}
+
+## 💡 Implementation Guide
+Use Amazon Q locally to implement:
+\`\`\`bash
+git checkout ${branchName}
+q chat "Implement: ${normalized.taskTitle}. ${normalized.objective}"
+\`\`\`
+
+## 🚀 Testing
+- Development: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com
+- Production: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com
+`;
+      
+      const pr = await githubRequest(`${repoPath}/pulls`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: normalized.prTitle || normalized.taskTitle,
+          body: prBody,
+          head: branchName,
+          base: 'main'
         })
       });
       
       return {
-        type: 'workflow_dispatch',
-        message: 'PR creation workflow triggered',
-        taskTitle: normalized.taskTitle,
-        workflowUrl: `https://github.com/${normalized.owner}/${normalized.repo}/actions`,
-        confirmationCode: `WF${Date.now()}`,
+        type: 'pull_request',
+        id: pr.id,
+        html_url: pr.html_url,
+        number: pr.number,
+        branchName: branchName,
+        taskHtmlUrl: pr.html_url,
+        threadHtmlUrl: pr.html_url,
+        confirmationCode: `PR${pr.number}`,
       };
     } catch (error) {
-      console.error('Failed to trigger workflow:', error);
+      console.error('Failed to create PR:', error);
       throw error;
     }
   }
