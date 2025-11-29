@@ -107,9 +107,10 @@ PR_RESPONSE=$(curl -s -X POST \
     \"base\":\"main\"
   }")
 
-PR_NUMBER=$(echo "$PR_RESPONSE" | jq -r '.number')
+# Extract PR number without jq (using grep and sed)
+PR_NUMBER=$(echo "$PR_RESPONSE" | grep -o '"number":[0-9]*' | head -1 | sed 's/"number"://')
 
-if [ "$PR_NUMBER" != "null" ] && [ -n "$PR_NUMBER" ]; then
+if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" -gt 0 ] 2>/dev/null; then
   echo "✅ PR #$PR_NUMBER created"
   
   # Update task status to complete
@@ -122,7 +123,7 @@ if [ "$PR_NUMBER" != "null" ] && [ -n "$PR_NUMBER" ]; then
     --region "$AWS_REGION"
 else
   echo "❌ PR creation failed"
-  echo "$PR_RESPONSE" | jq '.'
+  echo "$PR_RESPONSE"
   
   # Update task status to failed
   aws dynamodb update-item \

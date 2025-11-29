@@ -2,7 +2,7 @@ FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
 # Install dependencies
 RUN yum update -y && \
-    yum install -y git nodejs npm unzip jq && \
+    yum install -y git nodejs npm unzip && \
     yum clean all
 
 # Install Amazon Q CLI
