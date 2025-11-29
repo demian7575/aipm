@@ -28,20 +28,26 @@ jobs:
           git checkout -b "$BRANCH_NAME"
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
       
-      - name: Implement with kiro-cli
+      - name: Create task file
         run: |
-          curl -fsSL https://d3vv6lp55qjaqc.cloudfront.net/items/1P1b0z0W0c1j3e0Y3g3Y/amazon-q-cli-linux-x64.tar.gz | tar -xz
-          sudo mv q /usr/local/bin/q
-          q chat "Implement: ${{ inputs.task_title }}. Details: ${{ inputs.task_details }}" --non-interactive || true
+          cat > TASK.md << 'EOF'
+          # ${{ inputs.task_title }}
+          
+          ## Details
+          ${{ inputs.task_details }}
+          
+          ## Implementation Notes
+          This PR was created automatically. Please implement the feature according to the task details above.
+          EOF
           
           git config user.name "aipm-bot"
           git config user.email "aipm-bot@github.com"
-          git add -A
-          git diff --staged --quiet || git commit -m "feat: ${{ inputs.task_title }}" || true
+          git add TASK.md
+          git commit -m "feat: ${{ inputs.task_title }}"
       
       - name: Push feature branch
         run: |
-          git push -u origin "$BRANCH_NAME" || echo "No changes to push"
+          git push -u origin "$BRANCH_NAME"
       
       - name: Create Pull Request
         env:
