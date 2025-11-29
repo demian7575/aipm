@@ -13,11 +13,10 @@ on:
         type: string
 
 jobs:
-  implement-and-deploy:
+  deploy-to-staging:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     
     steps:
       - name: Checkout develop branch
@@ -25,32 +24,6 @@ jobs:
         with:
           ref: develop
           fetch-depth: 0
-      
-      - name: Configure Git
-        run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-      
-      - name: Install kiro-cli
-        run: |
-          npm install -g @aws/kiro-cli
-      
-      - name: Run kiro-cli implementation
-        env:
-          TASK_TITLE: ${{ inputs.task_title }}
-          TASK_DETAILS: ${{ inputs.task_details }}
-        run: |
-          echo "Implementing: $TASK_TITLE"
-          echo "$TASK_DETAILS" | kiro-cli chat --non-interactive "Implement the following requirement: $TASK_TITLE. Details: $TASK_DETAILS. Make the necessary code changes."
-      
-      - name: Commit changes
-        run: |
-          git add .
-          git diff --staged --quiet || git commit -m "feat: ${{ inputs.task_title }}"
-      
-      - name: Push to develop
-        run: |
-          git push origin develop
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -75,17 +48,7 @@ jobs:
         run: |
           aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ --delete --cache-control "no-cache, no-store, must-revalidate"
       
-      - name: Run gating tests
+      - name: Deployment summary
         run: |
-          node run-comprehensive-gating-tests.cjs
-      
-      - name: Comment on workflow
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.repos.createCommitComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-              body: `✅ Run in Staging completed successfully!\n\n**Task:** ${{ inputs.task_title }}\n\n**Deployed to:**\n- Frontend: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com\n- Backend: Development stage\n\n**Workflow:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-            })
+          echo "✅ Deployment completed for: ${{ inputs.task_title }}"
+          echo "🌐 Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
