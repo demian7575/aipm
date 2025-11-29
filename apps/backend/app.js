@@ -355,61 +355,30 @@ async function performDelegation(payload) {
   }
 
   if (normalized.target === 'pr') {
-    // Create PR for pr target
-    const timestamp = Date.now();
-    const branchName = normalized.branchName ? 
-      `${normalized.branchName}-${timestamp}` : 
-      `codewhisperer-${timestamp}`;
-    
+    // Trigger GitHub Actions workflow to implement with Amazon Q and create PR
     try {
-      // Get main branch SHA
-      const mainBranch = await githubRequest(`${repoPath}/git/refs/heads/main`);
+      const taskDetails = `${normalized.objective}\n\nConstraints:\n${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join('\n- ')}`;
       
-      // Create new branch
-      await githubRequest(`${repoPath}/git/refs`, {
+      const workflowDispatch = await githubRequest(`${repoPath}/actions/workflows/run-in-staging.yml/dispatches`, {
         method: 'POST',
         body: JSON.stringify({
-          ref: `refs/heads/${branchName}`,
-          sha: mainBranch.object.sha
-        })
-      });
-      
-      // Create placeholder file
-      const fileName = `codewhisperer-task-${timestamp}.md`;
-      const fileContent = `# ${normalized.taskTitle}\n\n${body}`;
-      
-      await githubRequest(`${repoPath}/contents/${fileName}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          message: `Add CodeWhisperer task: ${normalized.taskTitle}`,
-          content: Buffer.from(fileContent).toString('base64'),
-          branch: branchName
-        })
-      });
-      
-      // Create PR
-      const pr = await githubRequest(`${repoPath}/pulls`, {
-        method: 'POST',
-        body: JSON.stringify({
-          title: normalized.prTitle || normalized.taskTitle,
-          body,
-          head: branchName,
-          base: 'main'
+          ref: 'main',
+          inputs: {
+            task_title: normalized.taskTitle,
+            task_details: taskDetails
+          }
         })
       });
       
       return {
-        type: 'pull_request',
-        id: pr.id,
-        html_url: pr.html_url,
-        number: pr.number,
-        branchName: branchName,
-        taskHtmlUrl: pr.html_url,
-        threadHtmlUrl: pr.html_url,
-        confirmationCode: `PR${pr.number}`,
+        type: 'workflow_dispatch',
+        message: 'Amazon Q workflow triggered',
+        taskTitle: normalized.taskTitle,
+        workflowUrl: `https://github.com/${normalized.owner}/${normalized.repo}/actions/workflows/run-in-staging.yml`,
+        confirmationCode: `WF${Date.now()}`,
       };
     } catch (error) {
-      console.error('Failed to create PR:', error);
+      console.error('Failed to trigger workflow:', error);
       throw error;
     }
   }
