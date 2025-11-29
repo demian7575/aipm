@@ -3243,8 +3243,10 @@ function buildRunInStagingModalContent(prEntry = null) {
       <p>This will implement the PR and deploy to development environment:</p>
       
       <div class="workflow-steps">
-        <div class="step">1. Bedrock implements/updates the PR requirements on GitHub</div>
-        <div class="step">2. Deploy development environment</div>
+        <div class="step">1. Amazon Q (kiro-cli) creates feature branch and implements changes</div>
+        <div class="step">2. Create PR to main branch</div>
+        <div class="step">3. Deploy to development environment for testing</div>
+        <div class="step">4. After review, squash merge to main</div>
       </div>
       
       <div class="staging-actions">
@@ -3267,72 +3269,82 @@ function buildRunInStagingModalContent(prEntry = null) {
   runWorkflowBtn.addEventListener('click', async () => {
     runWorkflowBtn.disabled = true;
     runWorkflowBtn.textContent = 'Running...';
+    // Show modal to collect detailed requirements
+    const modalResult = await new Promise((resolve, reject) => {
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <form id="staging-details-form">
+          <label>Task Title
+            <input type="text" name="taskTitle" value="${escapeHtml(prEntry?.taskTitle || '')}" required />
+          </label>
+          <label>Detailed Requirements
+            <textarea name="taskDetails" rows="10" placeholder="Enter detailed requirements, acceptance criteria, technical specifications...">${escapeHtml(prEntry?.objective || '')}</textarea>
+          </label>
+          <div class="modal-actions">
+            <button type="submit" class="primary">Start Workflow</button>
+            <button type="button" class="cancel">Cancel</button>
+          </div>
+        </form>
+      `;
+      
+      openModal({
+        title: 'Run in Staging - Task Details',
+        content: container,
+        onClose: () => reject(new Error('Cancelled'))
+      });
+      
+      const form = document.querySelector('#staging-details-form');
+      const cancelBtn = form.querySelector('.cancel');
+      
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const data = {
+          taskTitle: form.taskTitle.value,
+          taskDetails: form.taskDetails.value
+        };
+        resolve(data);
+        closeModal();
+      };
+      
+      cancelBtn.onclick = () => {
+        reject(new Error('Cancelled'));
+        closeModal();
+      };
+    });
+    
+    // Update prEntry with user input
+    prEntry = { ...prEntry, taskTitle: modalResult.taskTitle, objective: modalResult.taskDetails };
+    
     output.style.display = 'block';
-    log.textContent = `Starting staging workflow for PR ${prId}...\n`;
+    log.textContent = `🚀 Starting Run in Staging workflow...\n`;
+    log.textContent += `📝 Task: ${prEntry?.taskTitle || 'Development task'}\n\n`;
     
     try {
-      // Step 1: Bedrock implements PR
-      log.textContent += `Step 1: Bedrock implementing PR requirements...\n`;
-      log.textContent += `  - Analyzing PR: "${prEntry?.taskTitle || 'Development task'}"\n`;
-      log.textContent += `  - Objective: ${prEntry?.objective || 'No objective specified'}\n`;
+      // Trigger GitHub Action workflow
+      log.textContent += `⚙️  Triggering GitHub Action workflow...\n`;
       
-      const bedrockResult = await bedrockImplementation(prEntry);
+      const result = await bedrockImplementation(prEntry);
       
-      if (!bedrockResult || !bedrockResult.success) {
-        throw new Error(bedrockResult?.message || 'Bedrock implementation failed');
+      if (!result || !result.success) {
+        throw new Error(result?.message || 'Workflow trigger failed');
       }
       
-      log.textContent += `✅ PR created: ${bedrockResult.prUrl}\n`;
-      log.textContent += `🌿 Branch: ${bedrockResult.branchName}\n`;
-      
-      // Step 2: Deploy the PR branch to development
-      log.textContent += `\nStep 2: Deploying PR branch to development...\n`;
-      
-      try {
-        // Validate config before making request
-        if (!window.CONFIG || !window.CONFIG.API_BASE_URL) {
-          throw new Error('Configuration not loaded. Please refresh the page.');
-        }
-        
-        const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/run-staging`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            taskTitle: prEntry?.taskTitle || 'Run in Staging workflow',
-            branchName: bedrockResult.branchName,
-            prNumber: bedrockResult.prNumber || prId
-          })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          log.textContent += `✅ GitHub Actions triggered\n`;
-          log.textContent += `✅ Deploying from branch: ${result.branch}\n`;
-          log.textContent += `🌐 Dev URL: ${result.deploymentUrl}\n`;
-        } else {
-          log.textContent += `❌ Error: ${result.message}\n`;
-          if (result.details) log.textContent += `Details: ${result.details}\n`;
-          if (result.repo) log.textContent += `Repo: ${result.repo}\n`;
-          if (result.workflow) log.textContent += `Workflow: ${result.workflow}\n`;
-          throw new Error(result.message || 'Staging workflow failed');
-        }
-      } catch (error) {
-        log.textContent += `❌ Deployment failed: ${error.message}\n`;
-        throw error;
-      }
-      
-      log.textContent += `\n✅ Workflow completed!\n`;
-      log.textContent += `🌐 PR deployed to: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
-      log.textContent += `🔗 Review PR: ${bedrockResult.prUrl}\n`;
-      log.textContent += `📋 Next: Test the changes, then merge PR to develop\n`;
+      log.textContent += `✅ Workflow triggered successfully!\n\n`;
+      log.textContent += `📊 GitHub Actions: ${result.workflowUrl || 'https://github.com/demian7575/aipm/actions'}\n`;
+      log.textContent += `🌐 Development URL: ${result.deploymentUrl || 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'}\n\n`;
+      log.textContent += `⏳ Workflow steps:\n`;
+      log.textContent += `   1. ✓ Create feature branch from main\n`;
+      log.textContent += `   2. ⏳ Install kiro-cli (Amazon Q)\n`;
+      log.textContent += `   3. ⏳ Implement code changes\n`;
+      log.textContent += `   4. ⏳ Create PR to main\n`;
+      log.textContent += `   5. ⏳ Deploy to development\n\n`;
+      log.textContent += `✨ Check GitHub Actions link above for live progress\n`;
+      log.textContent += `📋 PR will be created for review before merging to main\n`;
       
       runWorkflowBtn.textContent = 'Run in Staging';
       runWorkflowBtn.disabled = false;
     } catch (error) {
-      log.textContent += `❌ Workflow failed: ${error.message}\n`;
+      log.textContent += `\n❌ Error: ${error.message}\n`;
       runWorkflowBtn.textContent = 'Run in Staging';
       runWorkflowBtn.disabled = false;
     }
@@ -3353,26 +3365,31 @@ function buildRunInStagingModalContent(prEntry = null) {
 async function bedrockImplementation(prEntry) {
   // Call AIPM backend to trigger GitHub Action with kiro-cli
   try {
+    const payload = {
+      taskTitle: prEntry?.taskTitle || 'Development task',
+      taskDetails: prEntry?.objective || prEntry?.description || ''
+    };
+    
+    console.log('📤 Sending to /api/run-staging:', payload);
+    
     const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/run-staging`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        taskTitle: prEntry?.taskTitle || 'Development task',
-        taskDetails: prEntry?.objective || prEntry?.description || ''
-      })
+      body: JSON.stringify(payload)
     });
     
     const result = await response.json();
+    console.log('📥 Response from /api/run-staging:', result);
     
     if (result.success && result.workflowUrl) {
       console.log('✅ GitHub Action triggered:', result.workflowUrl);
       return result;
     } else {
-      console.log('⚠️ Bedrock code generation:', result.message);
+      console.log('⚠️ Amazon Q code generation:', result.message);
       return result;
     }
   } catch (error) {
-    console.error('❌ Bedrock code generation error:', error);
+    console.error('❌ Amazon Q code generation error:', error);
     return { success: false, message: error.message };
   }
 }
