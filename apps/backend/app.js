@@ -434,8 +434,13 @@ async function performDelegation(payload) {
       };
     } catch (error) {
       console.error('Queue error:', error);
-      // Fallback: Create empty PR
-      const mainBranch = await githubRequest(`${repoPath}/git/refs/heads/main`);
+      return {
+        type: 'error',
+        message: 'Failed to queue task',
+        error: error.message
+      };
+    }
+  }
       
       await githubRequest(`${repoPath}/git/refs`, {
         method: 'POST',
