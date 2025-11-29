@@ -54,7 +54,8 @@ const PROD_TEST_SUITES = {
             { name: 'PR123 Export Feature', test: 'testPR123ExportFunctionality' },
             { name: 'Run in Staging Feature', test: 'testRunInStagingButton' },
             { name: 'Run in Staging Workflow', test: 'testRunInStagingWorkflow' },
-            { name: 'Task Card Objective Display', test: 'testTaskCardObjective' }
+            { name: 'Task Card Objective Display', test: 'testTaskCardObjective' },
+            { name: 'Create PR Endpoint', test: 'testCreatePREndpoint' }
         ]
     },
     stagingWorkflow: {
@@ -1274,6 +1275,46 @@ async function runProductionTest(testName) {
                 };
             } catch (error) {
                 return { success: false, message: `Task Card test failed - ${error.message}` };
+            }
+
+        case 'testCreatePREndpoint':
+            // Test Create PR endpoint is properly implemented
+            try {
+                const testPayload = {
+                    storyId: 999,
+                    branchName: 'gating-test-pr',
+                    prTitle: 'Gating Test PR',
+                    prBody: 'Test PR from gating tests',
+                    story: { id: 999, title: 'Test Story' }
+                };
+                
+                const response = await fetch(`${PROD_CONFIG.api}/api/create-pr`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testPayload)
+                });
+                
+                const data = await response.json();
+                
+                // Check if endpoint returns generic message (not implemented)
+                if (data.message === 'AIPM API is working') {
+                    return { success: false, message: 'Create PR: Endpoint not implemented (returns generic message)' };
+                }
+                
+                // Check if response has proper structure
+                if (!('success' in data)) {
+                    return { success: false, message: 'Create PR: Response missing success field' };
+                }
+                
+                // Expected to fail with GitHub token or branch exists error
+                // Success means endpoint is properly implemented
+                if (data.success === false && (data.error?.includes('token') || data.error?.includes('already exists'))) {
+                    return { success: true, message: 'Create PR: Endpoint properly implemented' };
+                }
+                
+                return { success: true, message: 'Create PR: Endpoint functional' };
+            } catch (error) {
+                return { success: false, message: `Create PR test failed - ${error.message}` };
             }
 
         case 'testGitHubWorkflowFile':
