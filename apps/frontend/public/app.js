@@ -3232,7 +3232,7 @@ function buildRunInStagingModalContent(prEntry = null) {
       <p><strong>PR ID:</strong> ${prId}</p>
       <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
       ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
-      <p><strong>Target Branch:</strong> develop</p>
+      <p><strong>Target Branch:</strong> main</p>
     </div>
   ` : '';
   
@@ -3240,22 +3240,22 @@ function buildRunInStagingModalContent(prEntry = null) {
     ${prInfo}
     <div class="staging-options">
       <h3>Run in Staging Workflow</h3>
-      <p>This will implement the PR and deploy to development environment:</p>
+      <p>This will deploy the PR to development environment for testing:</p>
       
       <div class="workflow-steps">
-        <div class="step">1. Amazon Q (kiro-cli) creates feature branch and implements changes</div>
-        <div class="step">2. Create PR to main branch</div>
-        <div class="step">3. Deploy to development environment for testing</div>
-        <div class="step">4. After review, squash merge to main</div>
+        <div class="step">1. Deploy PR branch to development environment</div>
+        <div class="step">2. Test changes in staging</div>
+        <div class="step">3. After approval, merge PR to main</div>
+        <div class="step">4. Deploy to production</div>
       </div>
       
       <div class="staging-actions">
-        <button id="run-staging-workflow" class="primary">Run in Staging</button>
+        <button id="run-staging-workflow" class="primary">Deploy to Staging</button>
         <button id="check-staging-status" class="secondary">Check Status</button>
       </div>
       
       <div id="staging-output" class="staging-output" style="display:none;">
-        <h4>Workflow Output:</h4>
+        <h4>Deployment Output:</h4>
         <pre id="staging-log"></pre>
       </div>
     </div>
@@ -3268,84 +3268,37 @@ function buildRunInStagingModalContent(prEntry = null) {
   
   runWorkflowBtn.addEventListener('click', async () => {
     runWorkflowBtn.disabled = true;
-    runWorkflowBtn.textContent = 'Running...';
-    // Show modal to collect detailed requirements
-    const modalResult = await new Promise((resolve, reject) => {
-      const container = document.createElement('div');
-      container.innerHTML = `
-        <form id="staging-details-form">
-          <label>Task Title
-            <input type="text" name="taskTitle" value="${escapeHtml(prEntry?.taskTitle || '')}" required />
-          </label>
-          <label>Detailed Requirements
-            <textarea name="taskDetails" rows="10" placeholder="Enter detailed requirements, acceptance criteria, technical specifications...">${escapeHtml(prEntry?.objective || '')}</textarea>
-          </label>
-          <div class="modal-actions">
-            <button type="submit" class="primary">Start Workflow</button>
-            <button type="button" class="cancel">Cancel</button>
-          </div>
-        </form>
-      `;
-      
-      openModal({
-        title: 'Run in Staging - Task Details',
-        content: container,
-        onClose: () => reject(new Error('Cancelled'))
-      });
-      
-      const form = document.querySelector('#staging-details-form');
-      const cancelBtn = form.querySelector('.cancel');
-      
-      form.onsubmit = (e) => {
-        e.preventDefault();
-        const data = {
-          taskTitle: form.taskTitle.value,
-          taskDetails: form.taskDetails.value
-        };
-        resolve(data);
-        closeModal();
-      };
-      
-      cancelBtn.onclick = () => {
-        reject(new Error('Cancelled'));
-        closeModal();
-      };
-    });
-    
-    // Update prEntry with user input
-    prEntry = { ...prEntry, taskTitle: modalResult.taskTitle, objective: modalResult.taskDetails };
+    runWorkflowBtn.textContent = 'Deploying...';
     
     output.style.display = 'block';
-    log.textContent = `🚀 Starting Run in Staging workflow...\n`;
-    log.textContent += `📝 Task: ${prEntry?.taskTitle || 'Development task'}\n\n`;
+    log.textContent = `🚀 Deploying PR to staging environment...\n`;
+    log.textContent += `📝 PR: ${prEntry?.taskTitle || 'Development task'}\n\n`;
     
     try {
-      // Trigger GitHub Action workflow
-      log.textContent += `⚙️  Triggering GitHub Action workflow...\n`;
+      log.textContent += `⚙️  Triggering deployment workflow...\n`;
       
       const result = await bedrockImplementation(prEntry);
       
       if (!result || !result.success) {
-        throw new Error(result?.message || 'Workflow trigger failed');
+        throw new Error(result?.message || 'Deployment failed');
       }
       
-      log.textContent += `✅ Workflow triggered successfully!\n\n`;
+      log.textContent += `✅ Deployment triggered successfully!\n\n`;
       log.textContent += `📊 GitHub Actions: ${result.workflowUrl || 'https://github.com/demian7575/aipm/actions'}\n`;
-      log.textContent += `🌐 Development URL: ${result.deploymentUrl || 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'}\n\n`;
-      log.textContent += `⏳ Workflow steps:\n`;
-      log.textContent += `   1. ✓ Create feature branch from main\n`;
-      log.textContent += `   2. ⏳ Install kiro-cli (Amazon Q)\n`;
-      log.textContent += `   3. ⏳ Implement code changes\n`;
-      log.textContent += `   4. ⏳ Create PR to main\n`;
-      log.textContent += `   5. ⏳ Deploy to development\n\n`;
+      log.textContent += `🌐 Staging URL: ${result.deploymentUrl || 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'}\n\n`;
+      log.textContent += `⏳ Deployment steps:\n`;
+      log.textContent += `   1. ✓ Checkout PR branch\n`;
+      log.textContent += `   2. ⏳ Deploy backend to dev\n`;
+      log.textContent += `   3. ⏳ Deploy frontend to S3\n`;
+      log.textContent += `   4. ⏳ Update configuration\n\n`;
       log.textContent += `✨ Check GitHub Actions link above for live progress\n`;
-      log.textContent += `📋 PR will be created for review before merging to main\n`;
+      log.textContent += `🧪 Test your changes at the staging URL\n`;
       
-      runWorkflowBtn.textContent = 'Run in Staging';
+      runWorkflowBtn.textContent = 'Deploy to Staging';
       runWorkflowBtn.disabled = false;
     } catch (error) {
       log.textContent += `\n❌ Error: ${error.message}\n`;
-      runWorkflowBtn.textContent = 'Run in Staging';
+      runWorkflowBtn.textContent = 'Deploy to Staging';
       runWorkflowBtn.disabled = false;
     }
   });
@@ -3363,33 +3316,38 @@ function buildRunInStagingModalContent(prEntry = null) {
 }
 
 async function bedrockImplementation(prEntry) {
-  // Call AIPM backend to trigger GitHub Action with kiro-cli
+  // Call AIPM backend to trigger GitHub Action deployment
   try {
     const payload = {
-      taskTitle: prEntry?.taskTitle || 'Development task',
-      taskDetails: prEntry?.objective || prEntry?.description || ''
+      prNumber: prEntry?.number || prEntry?.targetNumber,
+      branchName: prEntry?.branchName
     };
     
-    console.log('📤 Sending to /api/run-staging:', payload);
+    console.log('📤 Deploying PR to staging:', payload);
     
-    const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/run-staging`, {
+    const response = await fetch(`${window.__AIPM_API_BASE__ || ''}/api/deploy-pr`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     
     const result = await response.json();
-    console.log('📥 Response from /api/run-staging:', result);
+    console.log('📥 Response from /api/deploy-pr:', result);
     
-    if (result.success && result.workflowUrl) {
-      console.log('✅ GitHub Action triggered:', result.workflowUrl);
-      return result;
+    if (result.success) {
+      console.log('✅ Deployment triggered:', result.stagingUrl);
+      return {
+        success: true,
+        workflowUrl: result.workflowUrl,
+        deploymentUrl: result.stagingUrl,
+        message: result.message
+      };
     } else {
-      console.log('⚠️ Amazon Q code generation:', result.message);
-      return result;
+      console.log('⚠️ Deployment failed:', result.error);
+      return { success: false, message: result.error };
     }
   } catch (error) {
-    console.error('❌ Amazon Q code generation error:', error);
+    console.error('❌ Deployment error:', error);
     return { success: false, message: error.message };
   }
 }

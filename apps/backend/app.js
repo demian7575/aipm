@@ -2316,6 +2316,67 @@ function logCodexUsageMetrics(payload, config) {
   if (Object.keys(logPayload).length === 0) {
     return;
   }
+}
+
+async function handleDeployPRRequest(req, res) {
+  try {
+    const payload = await parseJson(req);
+    const { prNumber, branchName } = payload;
+    
+    if (!prNumber && !branchName) {
+      sendJson(res, 400, { success: false, error: 'PR number or branch name required' });
+      return;
+    }
+
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
+    const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+    
+    if (!GITHUB_TOKEN) {
+      sendJson(res, 400, { success: false, error: 'GitHub token not configured' });
+      return;
+    }
+
+    // Trigger GitHub Actions workflow to deploy PR to dev
+    const workflowResponse = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/deploy-pr-to-dev.yml/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ref: branchName || `refs/pull/${prNumber}/head`,
+          inputs: {
+            pr_number: String(prNumber || ''),
+            branch_name: branchName || ''
+          }
+        })
+      }
+    );
+
+    if (!workflowResponse.ok) {
+      const errorText = await workflowResponse.text();
+      sendJson(res, 500, { 
+        success: false, 
+        error: `Failed to trigger deployment: ${errorText}` 
+      });
+      return;
+    }
+
+    sendJson(res, 200, {
+      success: true,
+      message: 'Deployment to staging triggered',
+      stagingUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
+      workflowUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions`
+    });
+  } catch (error) {
+    console.error('Deploy PR error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
 
 async function handleCreatePRRequest(req, res) {
   try {
@@ -5286,6 +5347,11 @@ export async function createApp() {
 
     if (pathname === '/api/create-pr' && method === 'POST') {
       await handleCreatePRRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/deploy-pr' && method === 'POST') {
+      await handleDeployPRRequest(req, res);
       return;
     }
 
