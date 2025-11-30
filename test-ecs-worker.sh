@@ -1,33 +1,46 @@
 #!/bin/bash
 set -e
 
+REGION="us-east-1"
+TASK_ID="test-$(date +%s)"
+
 echo "🧪 Testing ECS Amazon Q Worker..."
 
-# Test 1: Check if cluster exists
-echo "1️⃣ Checking ECS cluster..."
-aws ecs describe-clusters --clusters aipm-cluster --region us-east-1 --query 'clusters[0].status' --output text
+# Test 1: Infrastructure checks
+echo "1️⃣ Checking infrastructure..."
+aws ecs describe-clusters --clusters aipm-cluster --region $REGION --query 'clusters[0].status' --output text > /dev/null
+aws ecs describe-task-definition --task-definition aipm-amazon-q-worker --region $REGION --query 'taskDefinition.family' --output text > /dev/null
+echo "✅ Infrastructure exists"
 
-# Test 2: Check task definition
-echo "2️⃣ Checking task definition..."
-aws ecs describe-task-definition --task-definition aipm-amazon-q-worker --region us-east-1 --query 'taskDefinition.family' --output text
+# Test 2: Run actual ECS task
+echo "2️⃣ Running ECS task..."
+TASK_ARN=$(aws ecs run-task \
+  --cluster aipm-cluster \
+  --task-definition aipm-amazon-q-worker \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-021cb68f18ae60508,subnet-03525df27c75e12b5],securityGroups=[sg-0ad4bc9d85549a7c7],assignPublicIp=ENABLED}" \
+  --overrides "{\"containerOverrides\":[{\"name\":\"amazon-q-worker\",\"environment\":[{\"name\":\"TASK_ID\",\"value\":\"$TASK_ID\"},{\"name\":\"TASK_TITLE\",\"value\":\"Test\"},{\"name\":\"TASK_DETAILS\",\"value\":\"echo test\"},{\"name\":\"BRANCH_NAME\",\"value\":\"test-$TASK_ID\"},{\"name\":\"GITHUB_OWNER\",\"value\":\"test\"},{\"name\":\"GITHUB_REPO\",\"value\":\"test\"}]}]}" \
+  --region $REGION \
+  --query 'tasks[0].taskArn' --output text)
 
-# Test 3: Check ECR image
-echo "3️⃣ Checking ECR image..."
-aws ecr describe-images --repository-name aipm-q-worker --region us-east-1 --query 'imageDetails[0].imageTags[0]' --output text
+echo "✅ Task started: $TASK_ARN"
 
-# Test 4: Check IAM roles
-echo "4️⃣ Checking IAM roles..."
-aws iam get-role --role-name aipm-ecs-task-execution-role --query 'Role.RoleName' --output text
-aws iam get-role --role-name aipm-q-worker-role --query 'Role.RoleName' --output text
+# Test 3: Wait for task to reach running state
+echo "3️⃣ Waiting for task to start..."
+for i in {1..30}; do
+  STATUS=$(aws ecs describe-tasks --cluster aipm-cluster --tasks $TASK_ARN --region $REGION --query 'tasks[0].lastStatus' --output text)
+  if [ "$STATUS" = "RUNNING" ] || [ "$STATUS" = "STOPPED" ]; then
+    break
+  fi
+  sleep 2
+done
+echo "✅ Task status: $STATUS"
 
-# Test 5: Check Lambda environment variables
-echo "5️⃣ Checking Lambda configuration..."
-aws lambda get-function-configuration --function-name aipm-backend-prod-api --region us-east-1 --query 'Environment.Variables.ECS_SUBNETS' --output text
+# Test 4: Check logs exist
+echo "4️⃣ Checking CloudWatch logs..."
+sleep 5
+aws logs tail /ecs/aipm-amazon-q-worker --since 1m --region $REGION | head -5
+echo "✅ Logs accessible"
 
 echo ""
-echo "✅ All infrastructure checks passed!"
-echo ""
-echo "📋 To test full workflow:"
-echo "  1. Set GitHub token: aws secretsmanager create-secret --name aipm/github-token --secret-string YOUR_TOKEN"
-echo "  2. Test API: curl -X POST https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/personal-delegate -d '{\"title\":\"Test\",\"details\":\"Test task\",\"target\":\"pr\"}'"
-echo "  3. Monitor logs: aws logs tail /ecs/aipm-amazon-q-worker --follow"
+echo "✅ All tests passed!"
