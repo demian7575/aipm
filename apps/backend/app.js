@@ -393,6 +393,21 @@ async function performDelegation(payload) {
       })
     });
     
+    // Trigger Kiro code generation workflow
+    const taskDescription = `${normalized.taskTitle}\n\n${normalized.objective}\n\nConstraints: ${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}`;
+    
+    await githubRequest(`${repoPath}/actions/workflows/kiro-generate-code.yml/dispatches`, {
+      method: 'POST',
+      body: JSON.stringify({
+        ref: baseBranch,
+        inputs: {
+          pr_number: String(pr.number),
+          branch_name: branchName,
+          task_description: taskDescription
+        }
+      })
+    });
+    
     return {
       type: 'pull_request',
       id: pr.id,
