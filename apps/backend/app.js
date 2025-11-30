@@ -356,88 +356,52 @@ async function performDelegation(payload) {
       `${normalized.branchName}-${timestamp}` : 
       `feature/${normalized.taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}`;
     
-    try {
-      const taskDetails = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
-      const taskId = `task-${timestamp}`;
-      
-      // Write task to DynamoDB with processing status
-      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-      const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
-      
-      const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
-      const docClient = DynamoDBDocumentClient.from(dynamoClient);
-      
-      const task = {
-        id: taskId,
-        title: normalized.taskTitle,
-        details: taskDetails,
-        branch: normalized.targetBranch || 'develop',
-        owner: normalized.owner,
-        repo: normalized.repo,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      };
-      
-      await docClient.send(new PutCommand({
-        TableName: 'aipm-amazon-q-queue',
-        Item: task
-      }));
-      
-      // Trigger ECS Fargate task
-      const { ECSClient, RunTaskCommand } = await import('@aws-sdk/client-ecs');
-      const ecsClient = new ECSClient({ region: 'us-east-1' });
-      
-      const runTaskParams = {
-        cluster: 'aipm-cluster',
-        taskDefinition: 'aipm-amazon-q-worker',
-        launchType: 'FARGATE',
-        networkConfiguration: {
-          awsvpcConfiguration: {
-            subnets: (process.env.ECS_SUBNETS || 'subnet-021cb68f18ae60508,subnet-03525df27c75e12b5').split(','),
-            securityGroups: [(process.env.ECS_SECURITY_GROUP || 'sg-0ad4bc9d85549a7c7')],
-            assignPublicIp: 'ENABLED'
-          }
-        },
-        overrides: {
-          containerOverrides: [{
-            name: 'amazon-q-worker',
-            environment: [
-              { name: 'TASK_ID', value: taskId },
-              { name: 'TASK_TITLE', value: normalized.taskTitle },
-              { name: 'TASK_DETAILS', value: taskDetails },
-              { name: 'BRANCH_NAME', value: branchName },
-              { name: 'GITHUB_OWNER', value: normalized.owner },
-              { name: 'GITHUB_REPO', value: normalized.repo },
-              { name: 'DYNAMODB_TABLE', value: 'aipm-amazon-q-queue' },
-              { name: 'AWS_REGION', value: 'us-east-1' }
-            ]
-          }]
-        }
-      };
-      
-      const ecsResponse = await ecsClient.send(new RunTaskCommand(runTaskParams));
-      
-      if (!ecsResponse.tasks || ecsResponse.tasks.length === 0) {
-        throw new Error('ECS task failed to start');
-      }
-      
-      return {
-        type: 'ecs_task_started',
-        message: 'Amazon Q worker started - code generation in progress',
-        taskTitle: normalized.taskTitle,
-        branchName: branchName,
-        taskId: taskId,
-        ecsTaskArn: ecsResponse.tasks[0].taskArn,
-        confirmationCode: `Q${timestamp}`,
-      };
-    } catch (error) {
-      console.error('ECS trigger error:', error);
-      return {
-        type: 'error',
-        message: 'Failed to start code generation',
-        error: error.message
-      };
-    }
+    // Get default branch
+    const repoInfo = await githubRequest(`${repoPath}`);
+    const baseBranch = repoInfo.default_branch || 'main';
+    const baseRef = await githubRequest(`${repoPath}/git/ref/heads/${baseBranch}`);
+    
+    // Create new branch
+    await githubRequest(`${repoPath}/git/refs`, {
+      method: 'POST',
+      body: JSON.stringify({
+        ref: `refs/heads/${branchName}`,
+        sha: baseRef.object.sha
+      })
+    });
+    
+    // Create placeholder file
+    const content = Buffer.from(`# ${normalized.taskTitle}\n\n${normalized.objective}\n\nConstraints: ${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}`).toString('base64');
+    
+    await githubRequest(`${repoPath}/contents/TASK_${timestamp}.md`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        message: `feat: ${normalized.taskTitle}`,
+        content,
+        branch: branchName
+      })
+    });
+    
+    // Create PR
+    const pr = await githubRequest(`${repoPath}/pulls`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: normalized.prTitle || normalized.taskTitle,
+        head: branchName,
+        base: baseBranch,
+        body: `## ${normalized.taskTitle}\n\n${normalized.objective}\n\n### Constraints\n${normalized.constraints}\n\n### Acceptance Criteria\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}`
+      })
+    });
+    
+    return {
+      type: 'pull_request',
+      id: pr.id,
+      html_url: pr.html_url,
+      number: pr.number,
+      taskHtmlUrl: pr.html_url,
+      threadHtmlUrl: pr.html_url,
+      confirmationCode: `PR${timestamp}`,
+    };
   }
 
   // Handle existing issue/PR comments
