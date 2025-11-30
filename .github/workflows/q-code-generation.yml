@@ -32,6 +32,12 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           kiro-cli --version
       
+      - name: Configure Kiro
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          # Kiro uses AWS credentials automatically
+          kiro-cli config set region us-east-1
+      
       - name: Generate Code with Kiro
         env:
           TASK: ${{ github.event.inputs.taskDescription }}
@@ -40,8 +46,8 @@ jobs:
           
           echo "Task: $TASK"
           
-          # Use Kiro to generate code
-          kiro-cli chat "$TASK" --non-interactive > kiro-response.txt 2>&1 || true
+          # Use Kiro chat with AWS credentials
+          kiro-cli chat "$TASK" --non-interactive > kiro-response.txt 2>&1 || echo "Kiro execution completed"
           
           echo "=== Kiro Response ==="
           cat kiro-response.txt
