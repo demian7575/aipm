@@ -19,11 +19,6 @@ jobs:
         with:
           ref: develop
       
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -33,13 +28,16 @@ jobs:
       
       - name: Install Kiro CLI
         run: |
-          pip install kiro-cli
+          curl -fsSL https://cli.kiro.dev/install | bash
+          export PATH="$HOME/.local/bin:$PATH"
           kiro-cli --version
       
       - name: Generate Code with Kiro
         env:
           TASK: ${{ github.event.inputs.taskDescription }}
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          
           echo "Task: $TASK"
           
           # Use Kiro to generate code
