@@ -452,6 +452,23 @@ async function performDelegation(payload) {
       }
     }));
     
+    // Trigger Kiro workflow to generate code
+    try {
+      await githubRequest(`${repoPath}/actions/workflows/kiro-generate-code.yml/dispatches`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ref: 'main',
+          inputs: {
+            pr_number: String(pr.number),
+            branch_name: branchName,
+            task_description: taskDetails
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Failed to trigger Kiro workflow:', error);
+    }
+    
     return {
       type: 'pull_request',
       id: pr.id,
