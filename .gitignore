@@ -3,6 +3,11 @@
 .env.local
 .env.production
 
+# Kiro conversation logs
+Conversation_*.md
+kiro-worker.log
+worker.log
+
 # Python virtual environment
 venv/
 __pycache__/
