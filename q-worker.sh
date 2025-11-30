@@ -108,7 +108,7 @@ PR_RESPONSE=$(curl -s -X POST \
   }")
 
 # Extract PR number without jq (using grep and sed)
-PR_NUMBER=$(echo "$PR_RESPONSE" | grep -o '"number":[0-9]*' | head -1 | sed 's/"number"://')
+PR_NUMBER=$(echo "$PR_RESPONSE" | grep -o '"number":[[:space:]]*[0-9]*' | head -1 | sed 's/"number":[[:space:]]*//')
 
 if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" -gt 0 ] 2>/dev/null; then
   echo "✅ PR #$PR_NUMBER created"
