@@ -163,3 +163,20 @@ The changes are:[0m[0m
 (To exit the CLI, press Ctrl+C or Ctrl+D again or type [38;5;141m/quit[0m)
 
 [1G[0m[0m[?25h✅ Kiro generated changes
+📝 Auto-saved conversation: Conversation_AIPM_20251130_221654.md
+[kiro/task-1764502199856 216a7fc3] feat: I Want To Change Name Of Button "run In Staging" To "test In Dev"
+ 2 files changed, 185 insertions(+)
+ create mode 100644 Conversation_AIPM_20251130_221435.md
+ create mode 100644 kiro-worker.log
+remote: 
+remote: Create a pull request for 'kiro/task-1764502199856' on GitHub by visiting:        
+remote:      https://github.com/demian7575/aipm/pull/new/kiro/task-1764502199856        
+remote: 
+To https://github.com/demian7575/aipm.git
+ * [new branch]        kiro/task-1764502199856 -> kiro/task-1764502199856
+Warning: 2 uncommitted changes
+✅ PR created: https://github.com/demian7575/aipm/pull/186
+error: Your local changes to the following files would be overwritten by checkout:
+	kiro-worker.log
+Please commit your changes or stash them before you switch branches.
+Aborting
