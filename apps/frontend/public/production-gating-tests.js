@@ -1147,7 +1147,7 @@ async function runProductionTest(testName) {
             }
 
         case 'testRunInStagingWorkflow':
-            // Test ECS-based PR creation endpoint (replaced Run in Staging)
+            // Test ECS-based PR creation endpoint (replaced Test in Dev)
             try {
                 const testPayload = { 
                     taskTitle: 'Gating test',

@@ -5822,7 +5822,7 @@ export async function createApp() {
       return;
     }
 
-    // Run in Staging workflow endpoint
+    // Test in Dev workflow endpoint
     if (pathname === '/api/run-staging' && method === 'POST') {
       try {
         const payload = await parseJson(req);
@@ -5861,7 +5861,7 @@ export async function createApp() {
           body: JSON.stringify({
             ref: 'develop',
             inputs: {
-              task_title: taskTitle || 'Run in Staging workflow',
+              task_title: taskTitle || 'Test in Dev workflow',
               task_details: payload.taskDetails || ''
             }
           })
