@@ -371,10 +371,10 @@ async function performDelegation(payload) {
         id: taskId,
         title: normalized.taskTitle,
         details: taskDetails,
-        branch: branchName,
+        branch: normalized.targetBranch || 'develop',
         owner: normalized.owner,
         repo: normalized.repo,
-        status: 'processing',
+        status: 'pending',
         createdAt: new Date().toISOString()
       };
       
