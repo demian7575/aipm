@@ -44,13 +44,24 @@ jobs:
           
           async function generateCode() {
             const client = new BedrockRuntimeClient({ region: "us-east-1" });
-            const prompt = `Generate code for: ${process.env.TASK}
-            
-            Provide file path and complete code. Format:
-            FILE: path/to/file.js
-            \`\`\`javascript
-            code content
-            \`\`\``;
+            const prompt = `You are a code generator. Generate code for this task: ${process.env.TASK}
+
+IMPORTANT: Provide REAL file paths relative to the project root, not placeholder paths.
+Use actual filenames based on the task (e.g., "test.txt", "apps/frontend/public/newfile.js").
+
+Format your response EXACTLY like this:
+FILE: actual/path/to/file.ext
+\`\`\`language
+actual code content here
+\`\`\`
+
+Example:
+FILE: test.txt
+\`\`\`
+Hello World
+\`\`\`
+
+Now generate the code:`;
             
             const command = new InvokeModelCommand({
               modelId: "anthropic.claude-3-sonnet-20240229-v1:0",
