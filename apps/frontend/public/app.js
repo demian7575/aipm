@@ -5022,8 +5022,7 @@ function validateCodeWhispererInput(values) {
   if (!values.taskTitle?.trim()) errors.taskTitle = 'Task title is required';
   if (!values.objective?.trim()) errors.objective = 'Objective is required';
   if (!values.prTitle?.trim()) errors.prTitle = 'PR title is required';
-  if (!values.constraints?.trim()) errors.constraints = 'Constraints are required';
-  if (!values.acceptanceCriteria?.trim()) errors.acceptanceCriteria = 'Acceptance criteria are required';
+  // constraints and acceptanceCriteria are optional
   
   return {
     valid: Object.keys(errors).length === 0,
