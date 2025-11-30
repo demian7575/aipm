@@ -4,8 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       taskDescription:
-        description: 'Task description for Amazon Q'
+        description: 'Task description'
         required: true
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   generate-and-pr:
@@ -15,118 +19,34 @@ jobs:
         with:
           ref: develop
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-      
-      - name: Generate Code with Amazon Bedrock
+      - name: Create Task File
         env:
           TASK: ${{ github.event.inputs.taskDescription }}
         run: |
-          npm install @aws-sdk/client-bedrock-runtime
-          
-          cat > generate.js << 'SCRIPT'
-          const { BedrockRuntimeClient, InvokeModelCommand } = require("@aws-sdk/client-bedrock-runtime");
-          const fs = require('fs');
-          const path = require('path');
-          
-          async function generateCode() {
-            const client = new BedrockRuntimeClient({ region: "us-east-1" });
-            const prompt = `Generate code for: ${process.env.TASK}
-            
-            Provide file path and complete code. Format:
-            FILE: path/to/file.js
-            \`\`\`javascript
-            code content
-            \`\`\``;
-            
-            const command = new InvokeModelCommand({
-              modelId: "anthropic.claude-3-sonnet-20240229-v1:0",
-              contentType: "application/json",
-              accept: "application/json",
-              body: JSON.stringify({
-                anthropic_version: "bedrock-2023-05-31",
-                max_tokens: 4096,
-                messages: [{ role: "user", content: prompt }]
-              })
-            });
-            
-            const response = await client.send(command);
-            const result = JSON.parse(new TextDecoder().decode(response.body));
-            
-            if (!result.content || !result.content[0]) {
-              throw new Error("No content in Bedrock response");
-            }
-            
-            const content = result.content[0].text;
-            console.log("Bedrock response:", content);
-            
-            // Parse and write files
-            const fileRegex = /FILE:\s*(.+?)\n```[\w]*\n([\s\S]+?)```/g;
-            let match;
-            let filesCreated = 0;
-            
-            while ((match = fileRegex.exec(content)) !== null) {
-              const [, filePath, code] = match;
-              const cleanPath = filePath.trim();
-              const dir = path.dirname(cleanPath);
-              
-              if (dir !== '.') {
-                fs.mkdirSync(dir, { recursive: true });
-              }
-              
-              fs.writeFileSync(cleanPath, code.trim() + '\n');
-              console.log(`✅ Created: ${cleanPath}`);
-              filesCreated++;
-            }
-            
-            if (filesCreated === 0) {
-              throw new Error("No files generated from Bedrock response");
-            }
-            
-            console.log(`\n✅ Generated ${filesCreated} file(s)`);
-          }
-          
-          generateCode().catch(err => {
-            console.error("❌ Error:", err.message);
-            process.exit(1);
-          });
-          SCRIPT
-          
-          node generate.js
+          echo "# Task" > TASK.md
+          echo "" >> TASK.md
+          echo "$TASK" >> TASK.md
+          echo "" >> TASK.md
+          echo "**Status:** Awaiting manual implementation" >> TASK.md
+          echo "" >> TASK.md
+          echo "This PR was created automatically. Please implement the task manually." >> TASK.md
       
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "feat: ${{ github.event.inputs.taskDescription }}"
-          branch: "amazonq/${{ github.run_number }}"
+          commit-message: "task: ${{ github.event.inputs.taskDescription }}"
+          branch: "task/${{ github.run_number }}"
           base: develop
-          title: "🤖 Amazon Q: ${{ github.event.inputs.taskDescription }}"
+          title: "📋 Task: ${{ github.event.inputs.taskDescription }}"
           body: |
-            ## Amazon Q Generated Code
+            ## Task Description
             
-            **Task:** ${{ github.event.inputs.taskDescription }}
+            ${{ github.event.inputs.taskDescription }}
             
-            ### ⚠️ Human Review Required
-            - [ ] Code quality check
+            ### Action Required
+            - [ ] Implement the task
             - [ ] Test the changes
-            - [ ] Security review
-            - [ ] Update if needed
+            - [ ] Update this PR with implementation
             
-            ### Generated by
-            Amazon Q via Bedrock Claude 3 Sonnet
-            
-            ### Next Steps
-            1. Review the code changes
-            2. Test locally if needed
-            3. Update code if Amazon Q made mistakes
-            4. Approve and merge when ready
+            This PR was created automatically as a task tracker.
