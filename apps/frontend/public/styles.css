@@ -235,6 +235,8 @@ textarea {
 .outline-item .title {
   flex: 1;
   font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .outline-item.status-draft {
