@@ -87,7 +87,7 @@ $DETAILS"
       fi
       
       # Return to main branch
-      git checkout develop 2>/dev/null || git checkout main 2>/dev/null || true
+      git checkout main 2>/dev/null || true
     done
   fi
   
