@@ -36,77 +36,96 @@ jobs:
         env:
           TASK: ${{ github.event.inputs.taskDescription }}
         run: |
-          # Create generation script
-          cat > generate.sh << 'SCRIPT'
-          #!/bin/bash
-          set -e
+          # Create Node.js generation script
+          cat > generate.mjs << 'SCRIPT'
+          import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+          import fs from 'fs';
+          import path from 'path';
           
-          echo "Task: $TASK"
-          echo "Repository structure:"
-          find apps -type f -name "*.js" | head -20
-          
-          # Call Amazon Q API via AWS CLI
-          PROMPT="You are Amazon Q Developer working on the AIPM project.
-
-          Repository structure:
-          - apps/frontend/public/app.js (main UI, vanilla JavaScript)
-          - apps/backend/app.js (Express API server)
-          - No React/Vue frameworks, pure vanilla JS
-          
-          Task: $TASK
-          
-          Generate code changes. Output format:
-          FILE: relative/path/to/file.ext
-          \`\`\`language
-          complete file content or changes
-          \`\`\`"
-          
-          # Use Bedrock with Q-style context
-          aws bedrock-runtime invoke-model \
-            --model-id anthropic.claude-3-sonnet-20240229-v1:0 \
-            --body "{\"anthropic_version\":\"bedrock-2023-05-31\",\"max_tokens\":4096,\"messages\":[{\"role\":\"user\",\"content\":\"$PROMPT\"}]}" \
-            --region us-east-1 \
-            response.json
-          
-          # Parse response
-          cat response.json | jq -r '.content[0].text' > generated.txt
-          cat generated.txt
-          
-          # Extract and create files
-          node << 'EOF'
-          const fs = require('fs');
-          const path = require('path');
-          
-          const content = fs.readFileSync('generated.txt', 'utf8');
-          const fileRegex = /FILE:\s*(.+?)\n```[\w]*\n([\s\S]+?)```/g;
-          let match;
-          let count = 0;
-          
-          while ((match = fileRegex.exec(content)) !== null) {
-            const [, filePath, code] = match;
-            const cleanPath = filePath.trim();
-            const dir = path.dirname(cleanPath);
+          async function generateCode() {
+            const client = new BedrockRuntimeClient({ region: "us-east-1" });
             
-            if (dir !== '.' && !fs.existsSync(dir)) {
-              fs.mkdirSync(dir, { recursive: true });
+            const prompt = `You are Amazon Q Developer working on the AIPM project.
+
+Repository structure:
+- apps/frontend/public/app.js (main UI, vanilla JavaScript, 229KB)
+- apps/backend/app.js (Express API server, 213KB)
+- No React/Vue frameworks, uses vanilla JS and DOM manipulation
+- DynamoDB for data storage
+- AWS Lambda + API Gateway deployment
+
+Task: ${process.env.TASK}
+
+Generate REAL code changes with ACTUAL file paths.
+Output format:
+FILE: actual/path/to/file.ext
+\`\`\`language
+complete code content
+\`\`\`
+
+Example:
+FILE: hello.txt
+\`\`\`
+Hello World
+\`\`\``;
+            
+            const command = new InvokeModelCommand({
+              modelId: "anthropic.claude-3-sonnet-20240229-v1:0",
+              contentType: "application/json",
+              accept: "application/json",
+              body: JSON.stringify({
+                anthropic_version: "bedrock-2023-05-31",
+                max_tokens: 4096,
+                messages: [{ role: "user", content: prompt }]
+              })
+            });
+            
+            const response = await client.send(command);
+            const result = JSON.parse(new TextDecoder().decode(response.body));
+            
+            if (!result.content || !result.content[0]) {
+              throw new Error("No content in response");
             }
             
-            fs.writeFileSync(cleanPath, code.trim() + '\n');
-            console.log(`✅ Created: ${cleanPath}`);
-            count++;
+            const content = result.content[0].text;
+            console.log("Generated content:");
+            console.log(content);
+            
+            // Parse and create files
+            const fileRegex = /FILE:\s*(.+?)\n```[\w]*\n([\s\S]+?)```/g;
+            let match;
+            let count = 0;
+            
+            while ((match = fileRegex.exec(content)) !== null) {
+              const [, filePath, code] = match;
+              const cleanPath = filePath.trim();
+              const dir = path.dirname(cleanPath);
+              
+              if (dir !== '.' && !fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+              }
+              
+              fs.writeFileSync(cleanPath, code.trim() + '\n');
+              console.log(`✅ Created: ${cleanPath}`);
+              count++;
+            }
+            
+            if (count === 0) {
+              console.log('⚠️ No files generated, creating task description');
+              fs.writeFileSync('TASK.md', `# Task\n\n${process.env.TASK}\n\nAmazon Q response:\n${content}\n`);
+            } else {
+              console.log(`\n✅ Generated ${count} file(s)`);
+            }
           }
           
-          if (count === 0) {
-            console.log('⚠️ No files generated');
-            fs.writeFileSync('TASK.md', `# Task\n\n${process.env.TASK}\n\nNo code generated.\n`);
-          } else {
-            console.log(`\n✅ Generated ${count} file(s)`);
-          }
-          EOF
+          generateCode().catch(err => {
+            console.error("❌ Error:", err.message);
+            process.exit(1);
+          });
           SCRIPT
           
-          chmod +x generate.sh
-          bash generate.sh
+          npm install @aws-sdk/client-bedrock-runtime
+          node generate.mjs
       
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
@@ -124,12 +143,6 @@ jobs:
             ### ⚠️ Human Review Required
             - [ ] Code quality check
             - [ ] Test the changes
-            - [ ] Security review
             
             ### Generated by
             Amazon Q via Bedrock with repository context
-            
-            ### Next Steps
-            1. Review code changes
-            2. Test locally
-            3. Merge when ready
