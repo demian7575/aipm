@@ -1747,6 +1747,26 @@ function renderCodeWhispererSectionList(container, story) {
     return;
   }
 
+  // Fetch PR URLs for tasks that don't have them yet
+  entries.forEach(async (entry) => {
+    if (entry.taskId && !entry.prUrl) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/queue-status?taskId=${entry.taskId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.task && data.task.prUrl) {
+            entry.prUrl = data.task.prUrl;
+            entry.status = data.task.status;
+            persistCodeWhispererDelegations();
+            renderCodeWhispererSectionList(container, story);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch PR URL:', error);
+      }
+    }
+  });
+
   entries.forEach((entry) => {
     const card = document.createElement('article');
     card.className = 'codewhisperer-task-card';
