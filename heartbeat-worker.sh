@@ -5,6 +5,10 @@ export AWS_PROFILE=${AWS_PROFILE:-myaws}
 
 echo "💓 AIPM Heartbeat Worker Started"
 echo "================================"
+echo "Version: 2.0 (2025-11-30)"
+echo "AWS Profile: $AWS_PROFILE"
+echo "GitHub Token: ${GITHUB_TOKEN:0:10}..."
+echo "Working Directory: $(pwd)"
 echo "Checking queue every 1 second..."
 echo "Press Ctrl+C to stop"
 echo ""
@@ -25,8 +29,16 @@ fi
 
 # Track currently processing task to avoid duplicates
 CURRENT_TASK=""
+LOOP_COUNT=0
 
 while true; do
+    LOOP_COUNT=$((LOOP_COUNT + 1))
+    
+    # Log every 10 seconds
+    if [ $((LOOP_COUNT % 10)) -eq 0 ]; then
+        echo "[$(date '+%H:%M:%S')] Loop $LOOP_COUNT - Checking queue..."
+    fi
+    
     # Check for pending tasks (pending, processing, or failed)
     TASKS=$(AWS_PROFILE=myaws aws dynamodb scan \
         --table-name aipm-amazon-q-queue \
@@ -41,8 +53,11 @@ while true; do
         # Extract task ID
         TASK_ID=$(echo "$TASKS" | grep -o '"id":{"S":"[^"]*"' | sed 's/"id":{"S":"//' | sed 's/"//')
         
+        echo "[$(date '+%H:%M:%S')] Found task: $TASK_ID"
+        
         # Skip if already processing this task
         if [ "$TASK_ID" == "$CURRENT_TASK" ]; then
+            echo "[$(date '+%H:%M:%S')] Already processing $TASK_ID, skipping..."
             sleep 1
             continue
         fi
