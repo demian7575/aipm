@@ -53,7 +53,7 @@ while true; do
 $DETAILS"
       
       echo "💬 Asking Kiro: $TASK_DESC"
-      kiro-cli chat "$TASK_DESC" --non-interactive || true
+      kiro-cli chat "$TASK_DESC" --non-interactive --trust-all-tools || true
       
       # Check if Kiro made changes
       if [ -n "$(git status --porcelain)" ]; then
