@@ -2,6 +2,7 @@
   "name": "aipm-backend-lambda",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.932.0",
     "@aws-sdk/client-dynamodb": "^3.0.0",

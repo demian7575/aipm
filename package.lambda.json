@@ -1,0 +1,7 @@
+{
+  "name": "aipm-backend-lambda",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "handler.mjs",
+  "dependencies": {}
+}

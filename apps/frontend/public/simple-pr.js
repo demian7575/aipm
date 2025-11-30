@@ -90,3 +90,53 @@ export function createPRButton(story, onSuccess, onError) {
   
   return button;
 }
+
+export async function deployPRToStaging(prNumber, branchName, apiBaseUrl = '') {
+  const response = await fetch(`${apiBaseUrl}/api/deploy-pr`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ prNumber, branchName })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  
+  return await response.json();
+}
+
+export function createDeployToStagingButton(prNumber, branchName, onSuccess, onError) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'secondary';
+  button.textContent = 'Run in Staging';
+  button.title = 'Deploy this PR to development environment for testing';
+  
+  button.addEventListener('click', async () => {
+    try {
+      button.disabled = true;
+      button.textContent = 'Deploying...';
+      
+      const result = await deployPRToStaging(prNumber, branchName);
+      
+      if (result.success) {
+        onSuccess?.(result);
+        if (result.stagingUrl) {
+          window.open(result.stagingUrl, '_blank');
+        }
+      } else {
+        onError?.(result.error || 'Failed to deploy to staging');
+      }
+    } catch (error) {
+      console.error('Error deploying to staging:', error);
+      onError?.(error.message || 'Failed to deploy to staging');
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Run in Staging';
+    }
+  });
+  
+  return button;
+}

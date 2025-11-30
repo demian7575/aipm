@@ -8,6 +8,7 @@ import { DynamoDBDataLayer } from './dynamodb.js';
 import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -104,48 +105,6 @@ async function handlePersonalDelegateRequest(req, res) {
     console.error('Personal delegation request failed', error);
     const status = error.statusCode || 500;
     sendJson(res, status, { message: error.message || 'Failed to create delegation' });
-  }
-}
-
-async function handleCreatePRRequest(req, res) {
-  try {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const { storyId, branchName, prTitle, prBody, story } = payload;
-        
-        const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-        const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
-        const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
-        
-        if (!GITHUB_TOKEN) {
-          sendJson(res, 400, { 
-            success: false, 
-            error: 'GitHub token not configured' 
-          });
-          return;
-        }
-
-        sendJson(res, 200, { success: true, message: 'PR creation endpoint available' });
-      } catch (error) {
-        console.error('PR creation error:', error);
-        sendJson(res, 500, { 
-          success: false, 
-          error: error.message || 'Failed to create PR' 
-        });
-      }
-    });
-  } catch (error) {
-    console.error('Request handling error:', error);
-    sendJson(res, 500, { 
-      success: false, 
-      error: 'Internal server error' 
-    });
   }
 }
 
@@ -328,6 +287,43 @@ function buildTaskBrief(payload) {
   return lines.join('\n');
 }
 
+async function generateCodeWithBedrock(taskTitle, objective, constraints, acceptanceCriteria) {
+  const bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
+  
+  const criteriaText = acceptanceCriteria.map(c => `- ${c}`).join('\n');
+  const prompt = `Generate code for this task:
+
+Title: ${taskTitle}
+Objective: ${objective}
+Constraints: ${constraints}
+Acceptance Criteria:
+${criteriaText}
+
+Project context: AIPM is a vanilla JavaScript project with Express backend.
+Generate minimal, working code. Return ONLY valid JSON with this structure:
+{"files":[{"path":"filename.js","content":"code here"}],"summary":"Brief description"}`;
+
+  const requestBody = {
+    anthropic_version: 'bedrock-2023-05-31',
+    max_tokens: 4096,
+    messages: [{ role: 'user', content: prompt }]
+  };
+
+  const command = new InvokeModelCommand({
+    modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
+    body: JSON.stringify(requestBody)
+  });
+
+  const response = await bedrockClient.send(command);
+  const result = JSON.parse(new TextDecoder().decode(response.body));
+  const text = result.content[0].text;
+  
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('No JSON in response');
+  
+  return JSON.parse(jsonMatch[0]);
+}
+
 async function performDelegation(payload) {
   const normalized = normalizeDelegatePayload(payload);
   const body = buildTaskBrief({ ...normalized, owner: normalized.owner, repo: normalized.repo });
@@ -355,62 +351,92 @@ async function performDelegation(payload) {
   }
 
   if (normalized.target === 'pr') {
-    // Create PR for pr target
     const timestamp = Date.now();
     const branchName = normalized.branchName ? 
       `${normalized.branchName}-${timestamp}` : 
-      `codewhisperer-${timestamp}`;
+      `feature/${normalized.taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}`;
     
     try {
-      // Get main branch SHA
-      const mainBranch = await githubRequest(`${repoPath}/git/refs/heads/main`);
+      const taskDetails = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
+      const taskId = `task-${timestamp}`;
       
-      // Create new branch
-      await githubRequest(`${repoPath}/git/refs`, {
-        method: 'POST',
-        body: JSON.stringify({
-          ref: `refs/heads/${branchName}`,
-          sha: mainBranch.object.sha
-        })
-      });
+      // Write task to DynamoDB with processing status
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
       
-      // Create placeholder file
-      const fileName = `codewhisperer-task-${timestamp}.md`;
-      const fileContent = `# ${normalized.taskTitle}\n\n${body}`;
+      const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(dynamoClient);
       
-      await githubRequest(`${repoPath}/contents/${fileName}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          message: `Add CodeWhisperer task: ${normalized.taskTitle}`,
-          content: Buffer.from(fileContent).toString('base64'),
-          branch: branchName
-        })
-      });
+      const task = {
+        id: taskId,
+        title: normalized.taskTitle,
+        details: taskDetails,
+        branch: branchName,
+        owner: normalized.owner,
+        repo: normalized.repo,
+        status: 'processing',
+        createdAt: new Date().toISOString()
+      };
       
-      // Create PR
-      const pr = await githubRequest(`${repoPath}/pulls`, {
-        method: 'POST',
-        body: JSON.stringify({
-          title: normalized.prTitle || normalized.taskTitle,
-          body,
-          head: branchName,
-          base: 'main'
-        })
-      });
+      await docClient.send(new PutCommand({
+        TableName: 'aipm-amazon-q-queue',
+        Item: task
+      }));
+      
+      // Trigger ECS Fargate task
+      const { ECSClient, RunTaskCommand } = await import('@aws-sdk/client-ecs');
+      const ecsClient = new ECSClient({ region: 'us-east-1' });
+      
+      const runTaskParams = {
+        cluster: 'aipm-cluster',
+        taskDefinition: 'aipm-amazon-q-worker',
+        launchType: 'FARGATE',
+        networkConfiguration: {
+          awsvpcConfiguration: {
+            subnets: (process.env.ECS_SUBNETS || 'subnet-021cb68f18ae60508,subnet-03525df27c75e12b5').split(','),
+            securityGroups: [(process.env.ECS_SECURITY_GROUP || 'sg-0ad4bc9d85549a7c7')],
+            assignPublicIp: 'ENABLED'
+          }
+        },
+        overrides: {
+          containerOverrides: [{
+            name: 'amazon-q-worker',
+            environment: [
+              { name: 'TASK_ID', value: taskId },
+              { name: 'TASK_TITLE', value: normalized.taskTitle },
+              { name: 'TASK_DETAILS', value: taskDetails },
+              { name: 'BRANCH_NAME', value: branchName },
+              { name: 'GITHUB_OWNER', value: normalized.owner },
+              { name: 'GITHUB_REPO', value: normalized.repo },
+              { name: 'DYNAMODB_TABLE', value: 'aipm-amazon-q-queue' },
+              { name: 'AWS_REGION', value: 'us-east-1' }
+            ]
+          }]
+        }
+      };
+      
+      const ecsResponse = await ecsClient.send(new RunTaskCommand(runTaskParams));
+      
+      if (!ecsResponse.tasks || ecsResponse.tasks.length === 0) {
+        throw new Error('ECS task failed to start');
+      }
       
       return {
-        type: 'pull_request',
-        id: pr.id,
-        html_url: pr.html_url,
-        number: pr.number,
+        type: 'ecs_task_started',
+        message: 'Amazon Q worker started - code generation in progress',
+        taskTitle: normalized.taskTitle,
         branchName: branchName,
-        taskHtmlUrl: pr.html_url,
-        threadHtmlUrl: pr.html_url,
-        confirmationCode: `PR${pr.number}`,
+        taskId: taskId,
+        ecsTaskArn: ecsResponse.tasks[0].taskArn,
+        confirmationCode: `Q${timestamp}`,
       };
     } catch (error) {
-      console.error('Failed to create PR:', error);
-      throw error;
+      console.error('ECS trigger error:', error);
+      return {
+        type: 'error',
+        message: 'Failed to start code generation',
+        error: error.message
+      };
     }
   }
 
@@ -2288,6 +2314,67 @@ function logCodexUsageMetrics(payload, config) {
   if (Object.keys(logPayload).length === 0) {
     return;
   }
+}
+
+async function handleDeployPRRequest(req, res) {
+  try {
+    const payload = await parseJson(req);
+    const { prNumber, branchName } = payload;
+    
+    if (!prNumber && !branchName) {
+      sendJson(res, 400, { success: false, error: 'PR number or branch name required' });
+      return;
+    }
+
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
+    const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+    
+    if (!GITHUB_TOKEN) {
+      sendJson(res, 400, { success: false, error: 'GitHub token not configured' });
+      return;
+    }
+
+    // Trigger GitHub Actions workflow to deploy PR to dev
+    const workflowResponse = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/deploy-pr-to-dev.yml/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ref: branchName || `refs/pull/${prNumber}/head`,
+          inputs: {
+            pr_number: String(prNumber || ''),
+            branch_name: branchName || ''
+          }
+        })
+      }
+    );
+
+    if (!workflowResponse.ok) {
+      const errorText = await workflowResponse.text();
+      sendJson(res, 500, { 
+        success: false, 
+        error: `Failed to trigger deployment: ${errorText}` 
+      });
+      return;
+    }
+
+    sendJson(res, 200, {
+      success: true,
+      message: 'Deployment to staging triggered',
+      stagingUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
+      workflowUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions`
+    });
+  } catch (error) {
+    console.error('Deploy PR error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
 
 async function handleCreatePRRequest(req, res) {
   try {
@@ -2485,7 +2572,6 @@ ${prBody}
       error: error.message
     };
   }
-}
 }
 
 async function requestInvestAnalysisFromAi(story, options, config) {
@@ -5258,6 +5344,11 @@ export async function createApp() {
 
     if (pathname === '/api/create-pr' && method === 'POST') {
       await handleCreatePRRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/deploy-pr' && method === 'POST') {
+      await handleDeployPRRequest(req, res);
       return;
     }
 

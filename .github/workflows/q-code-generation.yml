@@ -33,9 +33,10 @@ jobs:
         run: |
           npm install @aws-sdk/client-bedrock-runtime
           
-          node << 'EOF'
+          cat > generate.js << 'SCRIPT'
           const { BedrockRuntimeClient, InvokeModelCommand } = require("@aws-sdk/client-bedrock-runtime");
           const fs = require('fs');
+          const path = require('path');
           
           async function generateCode() {
             const client = new BedrockRuntimeClient({ region: "us-east-1" });
@@ -43,12 +44,14 @@ jobs:
             
             Provide file path and complete code. Format:
             FILE: path/to/file.js
-            \`\`\`
+            \`\`\`javascript
             code content
             \`\`\``;
             
             const command = new InvokeModelCommand({
               modelId: "anthropic.claude-3-sonnet-20240229-v1:0",
+              contentType: "application/json",
+              accept: "application/json",
               body: JSON.stringify({
                 anthropic_version: "bedrock-2023-05-31",
                 max_tokens: 4096,
@@ -58,20 +61,47 @@ jobs:
             
             const response = await client.send(command);
             const result = JSON.parse(new TextDecoder().decode(response.body));
+            
+            if (!result.content || !result.content[0]) {
+              throw new Error("No content in Bedrock response");
+            }
+            
             const content = result.content[0].text;
+            console.log("Bedrock response:", content);
             
             // Parse and write files
             const fileRegex = /FILE:\s*(.+?)\n```[\w]*\n([\s\S]+?)```/g;
             let match;
+            let filesCreated = 0;
+            
             while ((match = fileRegex.exec(content)) !== null) {
               const [, filePath, code] = match;
-              fs.writeFileSync(filePath.trim(), code.trim());
-              console.log(`Created: ${filePath.trim()}`);
+              const cleanPath = filePath.trim();
+              const dir = path.dirname(cleanPath);
+              
+              if (dir !== '.') {
+                fs.mkdirSync(dir, { recursive: true });
+              }
+              
+              fs.writeFileSync(cleanPath, code.trim() + '\n');
+              console.log(`✅ Created: ${cleanPath}`);
+              filesCreated++;
             }
+            
+            if (filesCreated === 0) {
+              throw new Error("No files generated from Bedrock response");
+            }
+            
+            console.log(`\n✅ Generated ${filesCreated} file(s)`);
           }
           
-          generateCode().catch(console.error);
-          EOF
+          generateCode().catch(err => {
+            console.error("❌ Error:", err.message);
+            process.exit(1);
+          });
+          SCRIPT
+          
+          node generate.js
       
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
