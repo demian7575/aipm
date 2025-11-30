@@ -1,0 +1,64 @@
+service: aipm-q-worker
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'prod'}
+  environment:
+    QUEUE_TABLE: aipm-amazon-q-queue
+    GITHUB_TOKEN: ${env:GITHUB_TOKEN}
+    AWS_REGION: us-east-1
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:UpdateItem
+            - dynamodb:GetItem
+          Resource: arn:aws:dynamodb:${self:provider.region}:*:table/aipm-amazon-q-queue
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: arn:aws:logs:${self:provider.region}:*:*
+
+functions:
+  qWorker:
+    handler: q-worker-lambda.handler
+    timeout: 300
+    memorySize: 1024
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt:
+              - QueueTable
+              - StreamArn
+          batchSize: 1
+          startingPosition: LATEST
+          enabled: true
+
+resources:
+  Resources:
+    QueueTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: aipm-amazon-q-queue
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+package:
+  patterns:
+    - '!.git/**'
+    - '!node_modules/**'
+    - '!tests/**'
+    - 'q-worker-lambda.js'
