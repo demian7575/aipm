@@ -50,8 +50,9 @@ while true; do
         --output json 2>/dev/null)
 
     if [ "$TASKS" != "null" ] && [ -n "$TASKS" ]; then
-        # Extract task ID
-        TASK_ID=$(echo "$TASKS" | grep -o '"id":{"S":"[^"]*"' | sed 's/"id":{"S":"//' | sed 's/"//')
+        # Extract task details (handle multi-line JSON)
+        TASK_JSON=$(echo "$TASKS" | tr -d '\n' | tr -d ' ')
+        TASK_ID=$(echo "$TASK_JSON" | grep -o '"id":{"S":"[^"]*"' | sed 's/"id":{"S":"//' | sed 's/"//')
         
         echo "[$(date '+%H:%M:%S')] Found task: $TASK_ID"
         
@@ -65,9 +66,9 @@ while true; do
         # New task found!
         CURRENT_TASK="$TASK_ID"
         
-        TASK_TITLE=$(echo "$TASKS" | grep -o '"title":{"S":"[^"]*"' | sed 's/"title":{"S":"//' | sed 's/"//')
-        TASK_DETAILS=$(echo "$TASKS" | grep -o '"details":{"S":"[^"]*"' | sed 's/"details":{"S":"//' | sed 's/"//')
-        BRANCH_NAME=$(echo "$TASKS" | grep -o '"branch":{"S":"[^"]*"' | sed 's/"branch":{"S":"//' | sed 's/"//')
+        TASK_TITLE=$(echo "$TASK_JSON" | grep -o '"title":{"S":"[^"]*"' | sed 's/"title":{"S":"//' | sed 's/"//')
+        TASK_DETAILS=$(echo "$TASK_JSON" | grep -o '"details":{"S":"[^"]*"' | sed 's/"details":{"S":"//' | sed 's/"//')
+        BRANCH_NAME=$(echo "$TASK_JSON" | grep -o '"branch":{"S":"[^"]*"' | sed 's/"branch":{"S":"//' | sed 's/"//')
         
         echo ""
         echo "🔔 New task detected!"
