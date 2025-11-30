@@ -6,6 +6,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const STORIES_TABLE = process.env.STORIES_TABLE;
 const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE;
+const MINDMAP_SETTINGS_TABLE = process.env.MINDMAP_SETTINGS_TABLE || 'aipm-mindmap-settings';
 
 export class DynamoDBDataLayer {
   // SQLite compatibility methods
@@ -299,6 +300,37 @@ export class DynamoDBDataLayer {
       return true;
     } catch (error) {
       console.error('Error deleting acceptance test:', error);
+      return false;
+    }
+  }
+
+  // Mindmap settings operations
+  async getMindmapSettings(userId = 'default') {
+    try {
+      const result = await docClient.send(new GetCommand({
+        TableName: MINDMAP_SETTINGS_TABLE,
+        Key: { userId }
+      }));
+      return result.Item || null;
+    } catch (error) {
+      console.error('Error getting mindmap settings:', error);
+      return null;
+    }
+  }
+
+  async saveMindmapSettings(userId = 'default', settings) {
+    try {
+      await docClient.send(new PutCommand({
+        TableName: MINDMAP_SETTINGS_TABLE,
+        Item: {
+          userId,
+          ...settings,
+          updatedAt: new Date().toISOString()
+        }
+      }));
+      return true;
+    } catch (error) {
+      console.error('Error saving mindmap settings:', error);
       return false;
     }
   }

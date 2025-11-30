@@ -5330,7 +5330,17 @@ export async function createApp() {
     if (pathname === '/api/mindmap/persist' && method === 'POST') {
       const body = await readRequestBody(req);
       const data = JSON.parse(body);
-      sendJson(res, 200, { message: 'Mindmap state persisted', positions: Object.keys(data.positions || {}).length });
+      const success = await db.saveMindmapSettings('default', data);
+      sendJson(res, success ? 200 : 500, { 
+        message: success ? 'Mindmap state persisted to DynamoDB' : 'Failed to persist mindmap state',
+        positions: Object.keys(data.positions || {}).length 
+      });
+      return;
+    }
+
+    if (pathname === '/api/mindmap/restore' && method === 'GET') {
+      const settings = await db.getMindmapSettings('default');
+      sendJson(res, 200, settings || {});
       return;
     }
 

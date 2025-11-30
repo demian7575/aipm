@@ -1244,6 +1244,23 @@ function loadPreferences() {
         state.mindmapCenterPosition = data.centerPosition;
       }
     }
+    
+    // Restore from backend (overrides localStorage if available)
+    fetch(`${state.apiUrl}/api/mindmap/restore`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && Object.keys(data).length > 0) {
+          console.log('Restoring mindmap settings from backend');
+          if (data.zoom !== undefined) state.mindmapZoom = data.zoom;
+          if (data.showDependencies !== undefined) state.showDependencies = data.showDependencies;
+          if (data.positions) state.manualPositions = data.positions;
+          if (data.autoLayout !== undefined) state.autoLayout = data.autoLayout;
+          if (data.expanded) state.expanded = new Set(data.expanded.map(Number));
+          if (data.centerPosition) state.mindmapCenterPosition = data.centerPosition;
+          renderAll();
+        }
+      })
+      .catch(err => console.error('Failed to restore mindmap from backend:', err));
   } catch (error) {
     console.error('Failed to load mindmap preferences', error);
   }
@@ -1300,14 +1317,23 @@ function persistMindmap() {
   const mindmapData = {
     zoom: state.mindmapZoom,
     showDependencies: state.showDependencies,
+    positions: state.manualPositions,
+    autoLayout: state.autoLayout,
+    expanded: Array.from(state.expanded)
   };
   
-  // Save center position if available
   if (state.mindmapCenterPosition) {
     mindmapData.centerPosition = state.mindmapCenterPosition;
   }
   
   localStorage.setItem(STORAGE_KEYS.mindmap, JSON.stringify(mindmapData));
+  
+  // Persist to backend
+  fetch(`${state.apiUrl}/api/mindmap/persist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(mindmapData)
+  }).catch(err => console.error('Failed to persist mindmap to backend:', err));
 }
 
 function persistPanels() {
