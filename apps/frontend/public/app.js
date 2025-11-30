@@ -5013,6 +5013,24 @@ function createDefaultCodeWhispererForm(story) {
   };
 }
 
+function validateCodeWhispererInput(values) {
+  const errors = {};
+  
+  if (!values.owner?.trim()) errors.owner = 'Owner is required';
+  if (!values.repo?.trim()) errors.repo = 'Repository is required';
+  if (!values.branchName?.trim()) errors.branchName = 'Branch name is required';
+  if (!values.taskTitle?.trim()) errors.taskTitle = 'Task title is required';
+  if (!values.objective?.trim()) errors.objective = 'Objective is required';
+  if (!values.prTitle?.trim()) errors.prTitle = 'PR title is required';
+  if (!values.constraints?.trim()) errors.constraints = 'Constraints are required';
+  if (!values.acceptanceCriteria?.trim()) errors.acceptanceCriteria = 'Acceptance criteria are required';
+  
+  return {
+    valid: Object.keys(errors).length === 0,
+    errors
+  };
+}
+
 function openCodeWhispererDelegationModal(story) {
   const defaults = createDefaultCodeWhispererForm(story);
   const form = document.createElement('form');
