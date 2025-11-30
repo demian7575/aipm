@@ -76,7 +76,7 @@ $DETAILS"
         git push origin "$NEW_BRANCH"
         
         # Create PR
-        gh pr create \
+        PR_URL=$(gh pr create \
           --base "$BRANCH" \
           --head "$NEW_BRANCH" \
           --title "🤖 Kiro: $TITLE" \
@@ -91,18 +91,18 @@ $DETAILS
 ### Review Required
 - [ ] Code quality check
 - [ ] Test the changes
-- [ ] Merge when ready"
+- [ ] Merge when ready")
         
-        # Update status to complete
+        # Update status to complete with PR URL
         aws dynamodb update-item \
           --table-name "$QUEUE_TABLE" \
           --key "{\"id\":{\"S\":\"$TASK_ID\"}}" \
-          --update-expression "SET #status = :complete" \
+          --update-expression "SET #status = :complete, prUrl = :prUrl" \
           --expression-attribute-names '{"#status":"status"}' \
-          --expression-attribute-values '{":complete":{"S":"complete"}}' \
+          --expression-attribute-values "{\":complete\":{\"S\":\"complete\"},\":prUrl\":{\"S\":\"$PR_URL\"}}" \
           --region "$REGION"
         
-        echo "✅ PR created for $TASK_ID"
+        echo "✅ PR created: $PR_URL"
       else
         echo "⚠️ No changes generated"
         

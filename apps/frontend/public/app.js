@@ -5210,9 +5210,36 @@ function openCodeWhispererDelegationModal(story) {
     taskUrl: result.taskHtmlUrl || result.html_url,
     threadUrl: result.threadHtmlUrl || result.html_url,
     confirmationCode: result.confirmationCode,
+    taskId: result.taskId, // Store taskId for polling
     createTrackingCard: values.createTrackingCard !== false,
     createdAt: new Date().toISOString()
   };
+}
+
+// Poll queue status for PR URL
+async function pollQueueStatus(entry) {
+  if (!entry.taskId || entry.prUrl) {
+    return; // Already have PR URL or no taskId
+  }
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/queue-status?taskId=${entry.taskId}`);
+    if (!response.ok) return;
+    
+    const data = await response.json();
+    if (data.success && data.task && data.task.prUrl) {
+      entry.prUrl = data.task.prUrl;
+      entry.status = data.task.status;
+      persistCodeWhispererDelegations();
+      
+      // Refresh the UI
+      if (state.selectedStoryId) {
+        refreshCodeWhispererSection(state.selectedStoryId);
+      }
+    }
+  } catch (error) {
+    console.error('Queue status poll error:', error);
+  }
 }
 
 function buildAcceptanceTestFallback(story, acceptanceCriteriaText) {
@@ -6787,6 +6814,25 @@ function initialize() {
       autoBackupData();
     }
   }, 5 * 60 * 1000);
+  
+  // Poll queue status for PR URLs (every 30 seconds)
+  setInterval(() => {
+    const allDelegations = getAllCodeWhispererDelegations();
+    allDelegations.forEach(entry => {
+      if (entry.taskId && !entry.prUrl) {
+        pollQueueStatus(entry);
+      }
+    });
+  }, 30 * 1000);
+}
+
+function getAllCodeWhispererDelegations() {
+  const all = [];
+  state.stories.forEach(story => {
+    const entries = getCodeWhispererDelegations(story.id);
+    all.push(...entries);
+  });
+  return all;
 }
 
 initialize();

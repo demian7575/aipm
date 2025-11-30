@@ -2337,6 +2337,42 @@ async function handleDeployPRRequest(req, res) {
   }
 }
 
+async function handleQueueStatusRequest(req, res) {
+  try {
+    const url = new URL(req.url, 'http://localhost');
+    const taskId = url.searchParams.get('taskId');
+    
+    if (!taskId) {
+      sendJson(res, 400, { success: false, error: 'taskId required' });
+      return;
+    }
+
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(dynamoClient);
+    
+    const result = await docClient.send(new GetCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Key: { id: taskId }
+    }));
+    
+    if (!result.Item) {
+      sendJson(res, 404, { success: false, error: 'Task not found' });
+      return;
+    }
+    
+    sendJson(res, 200, {
+      success: true,
+      task: result.Item
+    });
+  } catch (error) {
+    console.error('Queue status error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
 async function handleCreatePRRequest(req, res) {
   try {
     let body = '';
@@ -5310,6 +5346,11 @@ export async function createApp() {
 
     if (pathname === '/api/deploy-pr' && method === 'POST') {
       await handleDeployPRRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/queue-status' && method === 'GET') {
+      await handleQueueStatusRequest(req, res);
       return;
     }
 
