@@ -42,10 +42,10 @@ while true; do
         --expression-attribute-values '{":processing":{"S":"processing"}}' \
         --region "$REGION"
       
-      # Checkout branch
+      # Ensure we're on develop
       git fetch origin
-      git checkout "$BRANCH"
-      git pull origin "$BRANCH"
+      git checkout develop
+      git pull origin develop
       
       # Use Kiro to generate code
       TASK_DESC="$TITLE
@@ -116,8 +116,8 @@ $DETAILS
           --region "$REGION"
       fi
       
-      # Return to original branch
-      git checkout "$BRANCH"
+      # Return to develop
+      git checkout develop
     done
   else
     echo "💤 No pending tasks"
