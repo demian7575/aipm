@@ -5215,6 +5215,7 @@ function openCodeWhispererDelegationModal(story) {
     targetNumber: values.targetNumber,
     number: result.number,
     type: result.type,
+    taskId: result.taskId,
     prUrl: result.html_url,
     htmlUrl: result.html_url,
     taskUrl: result.taskHtmlUrl || result.html_url,

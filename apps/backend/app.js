@@ -133,6 +133,39 @@ async function handlePersonalDelegateStatusRequest(req, res, url) {
   }
 }
 
+async function handleQueueStatusRequest(req, res, url) {
+  try {
+    const taskId = url.searchParams.get('taskId');
+    
+    if (!taskId) {
+      sendJson(res, 400, { message: 'taskId is required' });
+      return;
+    }
+
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(dynamoClient);
+    
+    const result = await docClient.send(new GetCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Key: { id: taskId }
+    }));
+    
+    if (!result.Item) {
+      sendJson(res, 404, { message: 'Task not found' });
+      return;
+    }
+    
+    sendJson(res, 200, result.Item);
+  } catch (error) {
+    console.error('Queue status request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to fetch queue status' });
+  }
+}
+
 async function handleCodeWhispererStatusRequest(req, res) {
   try {
     const body = await readRequestBody(req);
@@ -356,66 +389,38 @@ async function performDelegation(payload) {
       `${normalized.branchName}-${timestamp}` : 
       `feature/${normalized.taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}`;
     
-    // Get default branch
-    const repoInfo = await githubRequest(`${repoPath}`);
-    const baseBranch = repoInfo.default_branch || 'main';
-    const baseRef = await githubRequest(`${repoPath}/git/ref/heads/${baseBranch}`);
+    const taskDetails = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
+    const taskId = `task-${timestamp}`;
     
-    // Create new branch
-    await githubRequest(`${repoPath}/git/refs`, {
-      method: 'POST',
-      body: JSON.stringify({
-        ref: `refs/heads/${branchName}`,
-        sha: baseRef.object.sha
-      })
-    });
+    // Write task to DynamoDB queue
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
     
-    // Create placeholder file
-    const content = Buffer.from(`# ${normalized.taskTitle}\n\n${normalized.objective}\n\nConstraints: ${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}`).toString('base64');
+    const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(dynamoClient);
     
-    await githubRequest(`${repoPath}/contents/TASK_${timestamp}.md`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        message: `feat: ${normalized.taskTitle}`,
-        content,
-        branch: branchName
-      })
-    });
+    const task = {
+      id: taskId,
+      title: normalized.taskTitle,
+      details: taskDetails,
+      branch: 'develop',
+      owner: normalized.owner,
+      repo: normalized.repo,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
     
-    // Create PR
-    const pr = await githubRequest(`${repoPath}/pulls`, {
-      method: 'POST',
-      body: JSON.stringify({
-        title: normalized.prTitle || normalized.taskTitle,
-        head: branchName,
-        base: baseBranch,
-        body: `## ${normalized.taskTitle}\n\n${normalized.objective}\n\n### Constraints\n${normalized.constraints}\n\n### Acceptance Criteria\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}`
-      })
-    });
-    
-    // Trigger Kiro code generation workflow
-    const taskDescription = `${normalized.taskTitle}\n\n${normalized.objective}\n\nConstraints: ${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}`;
-    
-    await githubRequest(`${repoPath}/actions/workflows/kiro-generate-code.yml/dispatches`, {
-      method: 'POST',
-      body: JSON.stringify({
-        ref: baseBranch,
-        inputs: {
-          pr_number: String(pr.number),
-          branch_name: branchName,
-          task_description: taskDescription
-        }
-      })
-    });
+    await docClient.send(new PutCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Item: task
+    }));
     
     return {
-      type: 'pull_request',
-      id: pr.id,
-      html_url: pr.html_url,
-      number: pr.number,
-      taskHtmlUrl: pr.html_url,
-      threadHtmlUrl: pr.html_url,
-      confirmationCode: `PR${timestamp}`,
+      type: 'queued',
+      message: 'Task queued for Kiro worker',
+      taskId: taskId,
+      taskTitle: normalized.taskTitle,
+      confirmationCode: `Q${timestamp}`,
     };
   }
 
@@ -5338,6 +5343,11 @@ export async function createApp() {
 
     if (pathname === '/api/personal-delegate/status' && method === 'GET') {
       await handlePersonalDelegateStatusRequest(req, res, url);
+      return;
+    }
+
+    if (pathname === '/api/queue-status' && method === 'GET') {
+      await handleQueueStatusRequest(req, res, url);
       return;
     }
 
