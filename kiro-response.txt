@@ -1,0 +1,3 @@
+[?25l▰▱▱▱▱▱▱ Opening browser... | Press (^) + C to cancel▰▰▱▱▱▱▱ Opening browser... | Press (^) + C to cancel[?25hFailed to open browser for authentication.
+Please try again with: kiro-cli login --use-device-flow
+error: Failed to open URL
