@@ -31,19 +31,31 @@ export const handler = async (event) => {
       }));
       
       // Trigger GitHub Actions workflow
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/q-code-generation.yml/dispatches`, {
+      const workflowUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/q-code-generation.yml/dispatches`;
+      const payload = {
+        ref: 'develop',
+        inputs: { 
+          taskDescription: `${title}\n\n${details}`
+        }
+      };
+      
+      console.log(`Triggering workflow: ${workflowUrl}`);
+      console.log(`Payload:`, JSON.stringify(payload, null, 2));
+      
+      const response = await fetch(workflowUrl, {
         method: 'POST',
         headers: {
           'Authorization': `token ${process.env.GITHUB_TOKEN}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
         },
-        body: JSON.stringify({
-          ref: 'main',
-          inputs: { task_title: title, task_details: details, branch_name: branch }
-        })
+        body: JSON.stringify(payload)
       });
       
-      if (!response.ok) throw new Error(`GitHub API: ${response.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`GitHub API ${response.status}: ${errorText}`);
+      }
       
       await docClient.send(new UpdateCommand({
         TableName: process.env.QUEUE_TABLE,
