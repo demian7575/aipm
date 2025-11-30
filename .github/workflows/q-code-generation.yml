@@ -19,10 +19,10 @@ jobs:
         with:
           ref: develop
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '18'
+          python-version: '3.11'
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -33,23 +33,26 @@ jobs:
       
       - name: Install Kiro CLI
         run: |
-          npm install -g @aws/kiro-cli
-          kiro --version
+          pip install kiro-cli
+          kiro-cli --version
       
       - name: Generate Code with Kiro
         env:
           TASK: ${{ github.event.inputs.taskDescription }}
         run: |
-          # Use Kiro to generate code
-          kiro chat "$TASK" --non-interactive > kiro-response.txt || true
+          echo "Task: $TASK"
           
-          # Show response
+          # Use Kiro to generate code
+          kiro-cli chat "$TASK" --non-interactive > kiro-response.txt 2>&1 || true
+          
+          echo "=== Kiro Response ==="
           cat kiro-response.txt
           
-          # If Kiro made changes, they're already in the working directory
-          # Just check what changed
+          echo "=== Git Status ==="
           git status
-          git diff
+          
+          echo "=== Changes ==="
+          git diff || true
       
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
