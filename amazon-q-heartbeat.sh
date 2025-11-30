@@ -1,10 +1,11 @@
 #!/bin/bash
 # Amazon Q Heartbeat - Checks DynamoDB queue every 5 seconds
 
-LOCK_FILE="/home/cloudshell-user/aipm/.queue/heartbeat.lock"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCK_FILE="$SCRIPT_DIR/.queue/heartbeat.lock"
 TABLE_NAME="aipm-amazon-q-queue"
 
-mkdir -p /home/cloudshell-user/aipm/.queue
+mkdir -p "$SCRIPT_DIR/.queue"
 
 # Check if already running
 if [ -f "$LOCK_FILE" ]; then
@@ -24,7 +25,7 @@ echo ""
 
 trap "rm -f $LOCK_FILE; echo 'Heartbeat stopped'; exit" INT TERM EXIT
 
-cd /home/cloudshell-user/aipm
+cd "$SCRIPT_DIR"
 
 while true; do
   # Get pending tasks from DynamoDB

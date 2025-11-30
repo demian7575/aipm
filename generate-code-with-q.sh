@@ -18,7 +18,8 @@ echo "Branch: $BRANCH_NAME"
 echo ""
 
 # Ensure we're in the repo
-cd /home/cloudshell-user/aipm
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # Create and checkout branch
 git fetch origin main
