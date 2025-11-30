@@ -2360,10 +2360,10 @@ function logCodexUsageMetrics(payload, config) {
 async function handleDeployPRRequest(req, res) {
   try {
     const payload = await parseJson(req);
-    const { prNumber, branchName } = payload;
+    const { prNumber } = payload;
     
-    if (!prNumber && !branchName) {
-      sendJson(res, 400, { success: false, error: 'PR number or branch name required' });
+    if (!prNumber) {
+      sendJson(res, 400, { success: false, error: 'PR number required' });
       return;
     }
 
@@ -2376,6 +2376,25 @@ async function handleDeployPRRequest(req, res) {
       return;
     }
 
+    // Fetch PR details to get branch name
+    const prResponse = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${prNumber}`,
+      {
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    if (!prResponse.ok) {
+      sendJson(res, 404, { success: false, error: 'PR not found' });
+      return;
+    }
+
+    const prData = await prResponse.json();
+    const branchName = prData.head.ref;
+
     // Trigger GitHub Actions workflow to deploy PR to dev
     const workflowResponse = await fetch(
       `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/deploy-pr-to-dev.yml/dispatches`,
@@ -2387,10 +2406,10 @@ async function handleDeployPRRequest(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          ref: branchName || `refs/pull/${prNumber}/head`,
+          ref: branchName,
           inputs: {
-            pr_number: String(prNumber || ''),
-            branch_name: branchName || ''
+            pr_number: String(prNumber),
+            branch_name: branchName
           }
         })
       }

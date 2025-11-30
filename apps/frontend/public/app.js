@@ -3349,13 +3349,13 @@ async function bedrockImplementation(prEntry) {
   // Call AIPM backend to trigger GitHub Action deployment
   try {
     const payload = {
-      prNumber: prEntry?.number || prEntry?.targetNumber,
-      branchName: prEntry?.branchName
+      prNumber: prEntry?.number || prEntry?.targetNumber
     };
     
     console.log('📤 Deploying PR to staging:', payload);
     
-    const response = await fetch(`${window.__AIPM_API_BASE__ || ''}/api/deploy-pr`, {
+    const apiBase = window.CONFIG?.apiEndpoint || window.__AIPM_API_BASE__ || '';
+    const response = await fetch(`${apiBase}/api/deploy-pr`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
