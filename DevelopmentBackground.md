@@ -946,68 +946,114 @@ node run-comprehensive-gating-tests.cjs
 
 ### AI-Enhanced Development Workflow
 
-**Purpose**: Leverage Amazon Bedrock for automated code generation and PR creation.
+**Purpose**: Leverage Kiro CLI for automated code generation and PR creation.
 
-#### Option 1: Via API
+#### How It Works
+
+1. **User creates PR** via AIPM UI ("Generate Code & PR" button)
+2. **Backend creates PR** from main branch with TASK.md placeholder
+3. **Task added to DynamoDB queue** (`aipm-amazon-q-queue`)
+4. **Local Kiro worker** polls queue and generates code
+5. **Code pushed to PR branch** automatically
+6. **Developer reviews and merges** PR
+
+#### Starting the Kiro Worker
+
+**Required**: The Kiro worker must be running locally to process code generation tasks.
+
 ```bash
-curl -X POST https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/generate-code \
-  -H "Content-Type: application/json" \
-  -d '{
-    "taskDescription": "Add a new feature to export stories as PDF",
-    "targetBranch": "develop"
-  }'
+cd /repo/ebaejun/tools/aws/aipm
+
+# Start the worker (runs continuously)
+./kiro-worker.sh
 ```
 
-#### Option 2: Via GitHub Actions UI
-1. Go to: https://github.com/demian7575/aipm/actions/workflows/q-code-generation.yml
-2. Click "Run workflow"
-3. Enter task description
-4. Select target branch (develop)
-5. Click "Run workflow"
+**What the worker does**:
+- Polls DynamoDB queue every 1 second
+- Finds pending tasks
+- Checks out PR branch
+- Runs `kiro-cli chat` with task description
+- Commits and pushes generated code
+- Updates task status (complete/failed)
 
-#### Option 3: Via AIPM UI (Run in Staging)
-1. Click "Run in Staging" button in PR card
-2. Enter task description
-3. Bedrock generates code
-4. PR automatically created on GitHub
-5. Review generated code
-6. Merge PR to develop when approved
+**Why local worker?**
+- Kiro CLI requires browser authentication
+- Cannot run in GitHub Actions headless environment
+- Local execution provides full Kiro capabilities
 
-#### Complete AI Workflow
+#### Monitoring the Queue
+
+```bash
+# Check queue status
+aws dynamodb scan --table-name aipm-amazon-q-queue --region us-east-1 \
+  | jq -r '.Items[] | "\(.id.S) | \(.status.S) | \(.title.S)"'
+
+# Count by status
+aws dynamodb scan --table-name aipm-amazon-q-queue --region us-east-1 \
+  | jq -r '.Items[].status.S' | sort | uniq -c
 ```
-1. Generate Code → Amazon Q creates code → PR created
-2. Review & Merge → Team reviews PR
-3. Run in Staging → Deploy to dev environment
-4. Test → Verify in staging
-5. Deploy to Prod → Merge to main
+
+#### Complete Workflow
+```
+User (AIPM UI)
+    ↓
+POST /api/personal-delegate
+    ↓
+Backend creates PR from main
+    ↓
+Task added to DynamoDB queue
+    ↓
+Kiro worker (local) polls queue
+    ↓
+kiro-cli chat generates code
+    ↓
+Code pushed to PR branch
+    ↓
+Developer reviews PR
+    ↓
+Merge to main → Production
 ```
 
-#### Cost Considerations
-- **Bedrock Claude 3 Sonnet**: ~$0.003 per 1K input tokens, ~$0.015 per 1K output tokens
-- **Typical code generation**: $0.05 - $0.20 per request
-- **GitHub Actions**: Free for public repos, included minutes for private
+#### Troubleshooting
+
+**Worker not processing tasks?**
+```bash
+# Check if worker is running
+ps aux | grep kiro-worker
+
+# Check worker logs
+tail -f kiro-worker.log
+
+# Restart worker
+pkill -f kiro-worker
+./kiro-worker.sh
+```
+
+**Tasks stuck in "processing"?**
+```bash
+# Reset stuck tasks to pending
+aws dynamodb update-item \
+  --table-name aipm-amazon-q-queue \
+  --key '{"id":{"S":"task-XXXXX"}}' \
+  --update-expression "SET #status = :pending" \
+  --expression-attribute-names '{"#status":"status"}' \
+  --expression-attribute-values '{":pending":{"S":"pending"}}' \
+  --region us-east-1
+```
+
+#### Alternative: Manual Code Generation
+If worker is unavailable:
+1. PR created with TASK.md
+2. Developer manually implements feature
+3. Push to PR branch
+4. Review and merge
 
 #### Security Best Practices
 - ✅ Code review required before merge
 - ✅ Generated code in separate branch
-- ✅ IAM permissions scoped to Bedrock only
+- ✅ Worker runs with your AWS credentials
 - ✅ GitHub token with minimal scopes
 - ❌ Never auto-merge generated code
-
-#### Limitations
-- Bedrock model must be enabled in your AWS account
-- Generated code requires human review
-- Complex tasks may need multiple iterations
-- Token limits apply (4K output tokens)
-
-#### Alternative: Local Amazon Q Development
-For development without AWS Bedrock:
-1. Install Amazon Q extension (VS Code, JetBrains)
-2. Use `/dev` command for code generation
-3. Review and commit manually
-4. Push to GitHub
-
-This approach gives you more control but requires manual steps.
 
 ---
 

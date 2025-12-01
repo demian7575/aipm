@@ -2345,10 +2345,9 @@ async function loadStories(preserveSelection = true) {
       // Auto-backup after successful API load
       autoBackupData();
     } else if (!loadedFromLocal) {
-      // No API data and no local data
-      console.log('No stories found in API or local storage');
-      state.stories = [];
-      rebuildStoryIndex();
+      // No API data and no local data - create root story
+      console.log('No stories found in API or local storage - creating root story');
+      await createRootStory();
     }
   } catch (error) {
     console.error('API load failed:', error);
@@ -3355,7 +3354,7 @@ async function bedrockImplementation(prEntry) {
     
     console.log('📤 Deploying PR to staging:', payload);
     
-    const response = await fetch(`${window.__AIPM_API_BASE__ || ''}/api/deploy-pr`, {
+    const response = await fetch(resolveApiUrl('/api/deploy-pr'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -6403,6 +6402,33 @@ function openReferenceModal(storyId) {
   }
 
   openModal({ title: 'Reference Document List', content: container });
+}
+
+async function createRootStory() {
+  const rootStory = {
+    title: 'Project Root',
+    description: 'Welcome to AIPM! This is your root story. Create child stories to build your project hierarchy.',
+    status: 'Ready',
+    storyPoints: 0,
+    parentId: null,
+    assignee: '',
+    component: 'System'
+  };
+  
+  try {
+    const created = await sendJson(resolveApiUrl('/api/stories'), { 
+      method: 'POST', 
+      body: { ...rootStory, acceptWarnings: true }
+    });
+    state.stories = [created];
+    rebuildStoryIndex();
+    renderAll();
+    showToast('Root story created', 'success');
+  } catch (error) {
+    console.error('Failed to create root story:', error);
+    state.stories = [];
+    rebuildStoryIndex();
+  }
 }
 
 async function createStory(payload) {
