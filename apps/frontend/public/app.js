@@ -3268,80 +3268,110 @@ function buildRunInStagingModalContent(prEntry = null) {
   container.innerHTML = `
     ${prInfo}
     <div class="staging-options">
-      <h3>Test in Dev Workflow</h3>
-      <p>This will deploy the PR to development environment for testing:</p>
-      
-      <div class="workflow-steps">
-        <div class="step">1. Deploy PR branch to development environment</div>
-        <div class="step">2. Test changes in staging</div>
-        <div class="step">3. After approval, merge PR to main</div>
-        <div class="step">4. Deploy to production</div>
+      <h3>Kiro CLI Terminal</h3>
+      <div class="terminal-info">
+        <p><strong>Branch:</strong> <span id="terminal-branch">Loading...</span></p>
+        <p>Interact with Kiro CLI to implement this PR. Branch will auto-checkout on start and return to main on close.</p>
       </div>
       
-      <div class="staging-actions">
-        <button id="run-staging-workflow" class="primary">Deploy to Dev</button>
-        <button id="check-staging-status" class="secondary">Check Status</button>
-      </div>
+      <div id="terminal-container" style="height: 500px; background: #000; padding: 10px;"></div>
       
-      <div id="staging-output" class="staging-output" style="display:none;">
-        <h4>Deployment Output:</h4>
-        <pre id="staging-log"></pre>
+      <div class="terminal-actions" style="margin-top: 10px;">
+        <button id="start-terminal" class="primary">Start Terminal</button>
+        <button id="stop-terminal" class="secondary" style="display:none;">Stop Terminal</button>
       </div>
     </div>
   `;
   
-  const runWorkflowBtn = container.querySelector('#run-staging-workflow');
-  const statusBtn = container.querySelector('#check-staging-status');
-  const output = container.querySelector('#staging-output');
-  const log = container.querySelector('#staging-log');
+  const terminalContainer = container.querySelector('#terminal-container');
+  const branchDisplay = container.querySelector('#terminal-branch');
+  const startBtn = container.querySelector('#start-terminal');
+  const stopBtn = container.querySelector('#stop-terminal');
   
-  runWorkflowBtn.addEventListener('click', async () => {
-    runWorkflowBtn.disabled = true;
-    runWorkflowBtn.textContent = 'Deploying...';
-    
-    output.style.display = 'block';
-    log.textContent = `🚀 Deploying PR to staging environment...\n`;
-    log.textContent += `📝 PR: ${prEntry?.taskTitle || 'Development task'}\n\n`;
-    
-    try {
-      log.textContent += `⚙️  Triggering deployment workflow...\n`;
-      
-      const result = await bedrockImplementation(prEntry);
-      
-      if (!result || !result.success) {
-        throw new Error(result?.message || 'Deployment failed');
-      }
-      
-      log.textContent += `✅ Deployment triggered successfully!\n\n`;
-      log.textContent += `📊 GitHub Actions: ${result.workflowUrl || 'https://github.com/demian7575/aipm/actions'}\n`;
-      log.textContent += `🌐 Staging URL: ${result.deploymentUrl || 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'}\n\n`;
-      log.textContent += `⏳ Deployment steps:\n`;
-      log.textContent += `   1. ✓ Checkout PR branch\n`;
-      log.textContent += `   2. ⏳ Deploy backend to dev\n`;
-      log.textContent += `   3. ⏳ Deploy frontend to S3\n`;
-      log.textContent += `   4. ⏳ Update configuration\n\n`;
-      log.textContent += `✨ Check GitHub Actions link above for live progress\n`;
-      log.textContent += `🧪 Test your changes at the staging URL\n`;
-      
-      runWorkflowBtn.textContent = 'Deploy to Dev';
-      runWorkflowBtn.disabled = false;
-    } catch (error) {
-      log.textContent += `\n❌ Error: ${error.message}\n`;
-      runWorkflowBtn.textContent = 'Deploy to Dev';
-      runWorkflowBtn.disabled = false;
+  let terminal = null;
+  let socket = null;
+  
+  startBtn.addEventListener('click', () => {
+    if (!window.Terminal) {
+      alert('Terminal library not loaded. Please refresh the page.');
+      return;
     }
+    
+    // Create xterm terminal
+    terminal = new window.Terminal({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      theme: {
+        background: '#000000',
+        foreground: '#ffffff'
+      }
+    });
+    
+    terminal.open(terminalContainer);
+    
+    // Connect WebSocket
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'unknown')}`;
+    
+    socket = new WebSocket(wsUrl);
+    
+    socket.onopen = () => {
+      terminal.writeln('🔌 Connected to Kiro CLI terminal');
+      terminal.writeln('');
+      startBtn.style.display = 'none';
+      stopBtn.style.display = 'inline-block';
+    };
+    
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'branch') {
+        branchDisplay.textContent = data.branch;
+      } else if (data.type === 'output') {
+        terminal.write(data.data);
+      }
+    };
+    
+    socket.onerror = (error) => {
+      terminal.writeln('\r\n❌ WebSocket error');
+      console.error('WebSocket error:', error);
+    };
+    
+    socket.onclose = () => {
+      terminal.writeln('\r\n🔌 Disconnected');
+      startBtn.style.display = 'inline-block';
+      stopBtn.style.display = 'none';
+    };
+    
+    // Send terminal input to backend
+    terminal.onData((data) => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'input', data }));
+      }
+    });
   });
   
-  statusBtn.addEventListener('click', () => {
-    output.style.display = 'block';
-    log.textContent = `Checking staging status for PR ${prId}...\n`;
-    log.textContent += `Target branch: develop\n`;
-    log.textContent += `GitHub: https://github.com/demian7575/aipm/tree/develop\n`;
-    log.textContent += `Development environment: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
-    log.textContent += `Status: Ready for testing\n`;
+  stopBtn.addEventListener('click', () => {
+    if (socket) {
+      socket.close();
+    }
+    if (terminal) {
+      terminal.dispose();
+      terminal = null;
+    }
+    terminalContainer.innerHTML = '';
+    startBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'none';
   });
   
-  return { element: container, onClose: () => {} };
+  return { 
+    element: container, 
+    onClose: () => {
+      if (socket) socket.close();
+      if (terminal) terminal.dispose();
+    } 
+  };
 }
 
 async function bedrockImplementation(prEntry) {
