@@ -902,6 +902,15 @@ body.is-mindmap-panning {
   min-height: 3.25rem;
 }
 
+.story-text {
+  padding: 0.45rem 0;
+  font-size: 0.95rem;
+  color: #1f2937;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.5;
+}
+
 .components-display {
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;

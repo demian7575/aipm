@@ -3822,22 +3822,22 @@ function renderDetails() {
     </div>
     <div class="full">
       <label>Description</label>
-      <textarea name="description">${escapeHtml(story.description || '')}</textarea>
+      <div class="story-text">${escapeHtml(story.description || '')}</div>
     </div>
     <div class="full">
       <table class="story-brief">
         <tbody>
           <tr>
             <th scope="row">As a</th>
-            <td><textarea name="asA">${escapeHtml(story.asA || '')}</textarea></td>
+            <td class="story-text">${escapeHtml(story.asA || '')}</td>
           </tr>
           <tr>
             <th scope="row">I want</th>
-            <td><textarea name="iWant">${escapeHtml(story.iWant || '')}</textarea></td>
+            <td class="story-text">${escapeHtml(story.iWant || '')}</td>
           </tr>
           <tr>
             <th scope="row">So that</th>
-            <td><textarea name="soThat">${escapeHtml(story.soThat || '')}</textarea></td>
+            <td class="story-text">${escapeHtml(story.soThat || '')}</td>
           </tr>
           <tr>
             <th scope="row">Components</th>
@@ -5831,15 +5831,15 @@ function openChildStoryModal(parentId) {
       <tbody>
         <tr>
           <th scope="row">As a</th>
-          <td><textarea id="child-asa"></textarea></td>
+          <td class="story-text" id="child-asa-display"></td>
         </tr>
         <tr>
           <th scope="row">I want</th>
-          <td><textarea id="child-iwant"></textarea></td>
+          <td class="story-text" id="child-iwant-display"></td>
         </tr>
         <tr>
           <th scope="row">So that</th>
-          <td><textarea id="child-sothat"></textarea></td>
+          <td class="story-text" id="child-sothat-display"></td>
         </tr>
         <tr>
           <th scope="row">Components</th>
@@ -5899,17 +5899,17 @@ function openChildStoryModal(parentId) {
         const pointInput = container.querySelector('#child-point');
         const assigneeInput = container.querySelector('#child-assignee');
         const descriptionInput = container.querySelector('#child-description');
-        const asAInput = container.querySelector('#child-asa');
-        const iWantInput = container.querySelector('#child-iwant');
-        const soThatInput = container.querySelector('#child-sothat');
+        const asADisplay = container.querySelector('#child-asa-display');
+        const iWantDisplay = container.querySelector('#child-iwant-display');
+        const soThatDisplay = container.querySelector('#child-sothat-display');
 
         if (titleInput) titleInput.value = draft.title || '';
         if (pointInput) pointInput.value = draft.storyPoint != null ? draft.storyPoint : '';
         if (assigneeInput) assigneeInput.value = draft.assigneeEmail || '';
         if (descriptionInput) descriptionInput.value = draft.description || '';
-        if (asAInput) asAInput.value = draft.asA || '';
-        if (iWantInput) iWantInput.value = draft.iWant || '';
-        if (soThatInput) soThatInput.value = draft.soThat || '';
+        if (asADisplay) asADisplay.textContent = draft.asA || '';
+        if (iWantDisplay) iWantDisplay.textContent = draft.iWant || '';
+        if (soThatDisplay) soThatDisplay.textContent = draft.soThat || '';
 
         if (Array.isArray(draft.components)) {
           childComponents = normalizeComponentSelection(draft.components);
@@ -5952,9 +5952,9 @@ function openChildStoryModal(parentId) {
             storyPoint: storyPointResult.value,
             assigneeEmail: container.querySelector('#child-assignee').value.trim(),
             description: container.querySelector('#child-description').value.trim(),
-            asA: container.querySelector('#child-asa').value.trim(),
-            iWant: container.querySelector('#child-iwant').value.trim(),
-            soThat: container.querySelector('#child-sothat').value.trim(),
+            asA: container.querySelector('#child-asa-display').textContent.trim(),
+            iWant: container.querySelector('#child-iwant-display').textContent.trim(),
+            soThat: container.querySelector('#child-sothat-display').textContent.trim(),
             components: childComponents,
           };
           try {
