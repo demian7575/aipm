@@ -3289,11 +3289,9 @@ function buildRunInStagingModalContent(prEntry = null) {
   const stopBtn = container.querySelector('#stop-terminal');
   
   let terminal = null;
-  let sessionId = null;
-  let pollInterval = null;
-  let lastOutputIndex = 0;
+  let socket = null;
   
-  startBtn.addEventListener('click', async () => {
+  startBtn.addEventListener('click', () => {
     if (!window.Terminal) {
       alert('Terminal library not loaded. Please refresh the page.');
       return;
@@ -3311,109 +3309,60 @@ function buildRunInStagingModalContent(prEntry = null) {
     });
     
     terminal.open(terminalContainer);
-    terminal.writeln('🔌 Starting Kiro CLI terminal...');
+    terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
     terminal.writeln('');
     
-    // Start terminal session
-    try {
-      const response = await fetch(resolveApiUrl('/api/terminal/start'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branch: prEntry?.branch || 'unknown' })
-      });
-      
-      const result = await response.json();
-      
-      if (!result.success) {
-        terminal.writeln(`❌ Failed to start: ${result.error}`);
-        return;
-      }
-      
-      sessionId = result.sessionId;
-      terminal.writeln(`✓ Session started: ${sessionId}`);
-      terminal.writeln('⏳ Waiting for Kiro worker to pick up session...');
+    // Connect to EC2 WebSocket server
+    const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://localhost:8080';
+    const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
+    
+    socket = new WebSocket(wsUrl);
+    
+    socket.onopen = () => {
+      terminal.writeln('✓ Connected to terminal server');
       terminal.writeln('');
-      
       startBtn.style.display = 'none';
       stopBtn.style.display = 'inline-block';
-      
-      // Start polling for output
-      pollInterval = setInterval(async () => {
-        try {
-          const outputResponse = await fetch(
-            resolveApiUrl(`/api/terminal/output?sessionId=${sessionId}&lastIndex=${lastOutputIndex}`)
-          );
-          const outputResult = await outputResponse.json();
-          
-          if (outputResult.success && outputResult.output.length > 0) {
-            if (outputResult.branch) {
-              branchDisplay.textContent = outputResult.branch;
-            }
-            
-            outputResult.output.forEach(item => {
-              terminal.write(item.data);
-            });
-            
-            lastOutputIndex = outputResult.nextIndex;
-          }
-          
-          if (outputResult.status === 'complete' || outputResult.status === 'stopped') {
-            clearInterval(pollInterval);
-            terminal.writeln('\r\n✓ Session ended');
-            stopBtn.style.display = 'none';
-            startBtn.style.display = 'inline-block';
-          }
-        } catch (error) {
-          console.error('Poll error:', error);
-        }
-      }, 500);
-      
-    } catch (error) {
-      terminal.writeln(`❌ Error: ${error.message}`);
-    }
+    };
     
-    // Send terminal input to backend
-    terminal.onData(async (data) => {
-      if (!sessionId) return;
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
       
-      try {
-        await fetch(resolveApiUrl('/api/terminal/input'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, data })
-        });
-      } catch (error) {
-        console.error('Input error:', error);
+      if (data.type === 'branch') {
+        branchDisplay.textContent = data.branch;
+      } else if (data.type === 'output') {
+        terminal.write(data.data);
+      }
+    };
+    
+    socket.onerror = (error) => {
+      terminal.writeln('\r\n❌ Connection error');
+      console.error('WebSocket error:', error);
+    };
+    
+    socket.onclose = () => {
+      terminal.writeln('\r\n🔌 Disconnected');
+      startBtn.style.display = 'inline-block';
+      stopBtn.style.display = 'none';
+    };
+    
+    // Send terminal input to EC2
+    terminal.onData((data) => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'input', data }));
       }
     });
   });
   
-  stopBtn.addEventListener('click', async () => {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      pollInterval = null;
+  stopBtn.addEventListener('click', () => {
+    if (socket) {
+      socket.close();
     }
-    
-    if (sessionId) {
-      try {
-        await fetch(resolveApiUrl('/api/terminal/stop'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId })
-        });
-      } catch (error) {
-        console.error('Stop error:', error);
-      }
-      sessionId = null;
-    }
-    
     if (terminal) {
       terminal.dispose();
       terminal = null;
     }
-    
     terminalContainer.innerHTML = '';
-    lastOutputIndex = 0;
     startBtn.style.display = 'inline-block';
     stopBtn.style.display = 'none';
   });
@@ -3421,14 +3370,7 @@ function buildRunInStagingModalContent(prEntry = null) {
   return { 
     element: container, 
     onClose: () => {
-      if (pollInterval) clearInterval(pollInterval);
-      if (sessionId) {
-        fetch(resolveApiUrl('/api/terminal/stop'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId })
-        }).catch(() => {});
-      }
+      if (socket) socket.close();
       if (terminal) terminal.dispose();
     } 
   };
