@@ -90,7 +90,7 @@ fi
 echo ""
 echo "🤖 AI Context Ready:"
 echo "   Project: AIPM (AI Project Manager)"
-echo "   Location: /repo/ebaejun/tools/aws/aipm"
+echo "   Location: $(pwd)"
 echo "   Branch: $CURRENT_BRANCH"
 echo "   Docs: docs/INDEX.md"
 echo ""
