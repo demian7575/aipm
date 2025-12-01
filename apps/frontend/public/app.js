@@ -1950,17 +1950,41 @@ function renderCodeWhispererSectionList(container, story) {
       runInStagingBtn.type = 'button';
       runInStagingBtn.className = 'button secondary run-in-staging-btn';
       runInStagingBtn.textContent = 'Test in Dev';
-      runInStagingBtn.addEventListener('click', () => {
-        const { element, onClose } = buildRunInStagingModalContent(entry);
+      runInStagingBtn.addEventListener('click', async () => {
+        runInStagingBtn.disabled = true;
+        runInStagingBtn.textContent = 'Deploying...';
+        
+        try {
+          const result = await bedrockImplementation(entry);
+          if (result && result.success) {
+            showToast('Deployed to dev environment', 'success');
+          } else {
+            showToast('Deployment failed: ' + (result?.message || 'Unknown error'), 'error');
+          }
+        } catch (error) {
+          showToast('Deployment error: ' + error.message, 'error');
+        }
+        
+        runInStagingBtn.disabled = false;
+        runInStagingBtn.textContent = 'Test in Dev';
+      });
+      actions.appendChild(runInStagingBtn);
+
+      const kiroBtn = document.createElement('button');
+      kiroBtn.type = 'button';
+      kiroBtn.className = 'button secondary kiro-terminal-btn';
+      kiroBtn.textContent = 'Refine with Kiro';
+      kiroBtn.addEventListener('click', () => {
+        const { element, onClose } = buildKiroTerminalModalContent(entry);
         openModal({
-          title: 'Test in Dev',
+          title: 'Kiro CLI Terminal',
           content: element,
           cancelLabel: 'Close',
-          size: 'content',
+          size: 'xlarge',
           onClose,
         });
       });
-      actions.appendChild(runInStagingBtn);
+      actions.appendChild(kiroBtn);
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -3249,9 +3273,9 @@ function computeHeatmapData() {
   return { assignees: options, datasets: datasetsWithRows, columns: HEATMAP_COMPONENTS };
 }
 
-function buildRunInStagingModalContent(prEntry = null) {
+function buildDeployToDevModalContent(prEntry = null) {
   const container = document.createElement('div');
-  container.className = 'run-staging-modal';
+  container.className = 'deploy-dev-modal';
   
   const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
   
@@ -3267,45 +3291,46 @@ function buildRunInStagingModalContent(prEntry = null) {
   
   container.innerHTML = `
     ${prInfo}
-    <div class="staging-options">
-      <h3>Test in Dev Workflow</h3>
-      <p>This will deploy the PR to development environment for testing:</p>
+    <div class="deploy-options">
+      <h3>Deploy to Development Environment</h3>
+      <p>This will deploy the PR branch to the development environment for testing.</p>
       
       <div class="workflow-steps">
         <div class="step">1. Deploy PR branch to development environment</div>
-        <div class="step">2. Test changes in staging</div>
+        <div class="step">2. Test changes in dev</div>
         <div class="step">3. After approval, merge PR to main</div>
         <div class="step">4. Deploy to production</div>
       </div>
       
-      <div class="staging-actions">
-        <button id="run-staging-workflow" class="primary">Deploy to Dev</button>
-        <button id="check-staging-status" class="secondary">Check Status</button>
+      <div class="deploy-actions">
+        <button id="deploy-to-dev-btn" class="primary">Deploy Now</button>
+        <button id="check-deploy-status" class="secondary">Check Status</button>
       </div>
       
-      <div id="staging-output" class="staging-output" style="display:none;">
+      <div id="deploy-output" class="deploy-output" style="display:none;">
         <h4>Deployment Output:</h4>
-        <pre id="staging-log"></pre>
+        <pre id="deploy-log"></pre>
       </div>
     </div>
   `;
   
-  const runWorkflowBtn = container.querySelector('#run-staging-workflow');
-  const statusBtn = container.querySelector('#check-staging-status');
-  const output = container.querySelector('#staging-output');
-  const log = container.querySelector('#staging-log');
+  const deployBtn = container.querySelector('#deploy-to-dev-btn');
+  const statusBtn = container.querySelector('#check-deploy-status');
+  const output = container.querySelector('#deploy-output');
+  const log = container.querySelector('#deploy-log');
   
-  runWorkflowBtn.addEventListener('click', async () => {
-    runWorkflowBtn.disabled = true;
-    runWorkflowBtn.textContent = 'Deploying...';
+  deployBtn.addEventListener('click', async () => {
+    deployBtn.disabled = true;
+    deployBtn.textContent = 'Deploying...';
     
     output.style.display = 'block';
-    log.textContent = `🚀 Deploying PR to staging environment...\n`;
+    log.textContent = `🚀 Deploying PR to development environment...\n`;
     log.textContent += `📝 PR: ${prEntry?.taskTitle || 'Development task'}\n\n`;
     
     try {
-      log.textContent += `⚙️  Triggering deployment workflow...\n`;
+      log.textContent += `⚙️  Triggering deployment...\n`;
       
+      // Call deployment API
       const result = await bedrockImplementation(prEntry);
       
       if (!result || !result.success) {
@@ -3313,35 +3338,154 @@ function buildRunInStagingModalContent(prEntry = null) {
       }
       
       log.textContent += `✅ Deployment triggered successfully!\n\n`;
-      log.textContent += `📊 GitHub Actions: ${result.workflowUrl || 'https://github.com/demian7575/aipm/actions'}\n`;
-      log.textContent += `🌐 Staging URL: ${result.deploymentUrl || 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'}\n\n`;
-      log.textContent += `⏳ Deployment steps:\n`;
-      log.textContent += `   1. ✓ Checkout PR branch\n`;
-      log.textContent += `   2. ⏳ Deploy backend to dev\n`;
-      log.textContent += `   3. ⏳ Deploy frontend to S3\n`;
-      log.textContent += `   4. ⏳ Update configuration\n\n`;
-      log.textContent += `✨ Check GitHub Actions link above for live progress\n`;
-      log.textContent += `🧪 Test your changes at the staging URL\n`;
+      log.textContent += `🌐 Dev URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com\n`;
       
-      runWorkflowBtn.textContent = 'Deploy to Dev';
-      runWorkflowBtn.disabled = false;
+      deployBtn.textContent = 'Deploy Now';
+      deployBtn.disabled = false;
     } catch (error) {
       log.textContent += `\n❌ Error: ${error.message}\n`;
-      runWorkflowBtn.textContent = 'Deploy to Dev';
-      runWorkflowBtn.disabled = false;
+      deployBtn.textContent = 'Deploy Now';
+      deployBtn.disabled = false;
     }
   });
   
   statusBtn.addEventListener('click', () => {
     output.style.display = 'block';
-    log.textContent = `Checking staging status for PR ${prId}...\n`;
-    log.textContent += `Target branch: develop\n`;
-    log.textContent += `GitHub: https://github.com/demian7575/aipm/tree/develop\n`;
+    log.textContent = `Checking deployment status for PR ${prId}...\n`;
     log.textContent += `Development environment: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
     log.textContent += `Status: Ready for testing\n`;
   });
   
   return { element: container, onClose: () => {} };
+}
+
+function buildKiroTerminalModalContent(prEntry = null) {
+  const container = document.createElement('div');
+  container.className = 'run-staging-modal';
+  
+  console.log('🔍 PR Entry:', prEntry);
+  
+  const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
+  const branchName = prEntry?.branchName || 'main';
+  
+  const prInfo = prEntry ? `
+    <div class="pr-info">
+      <h4>PR Information</h4>
+      <p><strong>PR ID:</strong> ${prId}</p>
+      <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
+      ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
+      <p><strong>Branch:</strong> ${escapeHtml(branchName)}</p>
+    </div>
+  ` : '';
+  
+  container.innerHTML = `
+    ${prInfo}
+    <div class="staging-options">
+      <h3>Refine PR with Kiro</h3>
+      <div id="terminal-container" style="height: 500px; background: #000; padding: 10px;"></div>
+    </div>
+  `;
+  
+  const terminalContainer = container.querySelector('#terminal-container');
+  
+  let terminal = null;
+  let socket = null;
+  
+  // Auto-start terminal immediately
+  if (!window.Terminal) {
+    terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
+    return { element: container, onClose: () => {} };
+  }
+  
+  // Create xterm terminal
+  terminal = new window.Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+    theme: {
+      background: '#000000',
+      foreground: '#ffffff'
+    }
+  });
+  
+  terminal.open(terminalContainer);
+  terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
+  terminal.writeln('');
+  
+  // Connect to EC2 WebSocket server
+  const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://localhost:8080';
+  const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
+  
+  socket = new WebSocket(wsUrl);
+  
+  socket.onopen = () => {
+    terminal.writeln('✓ Connected to terminal server');
+    terminal.writeln('');
+    
+    // Auto-execute git operations and PR context loading
+    if (prEntry?.branchName) {
+      setTimeout(() => {
+        const commands = [
+          'cd /repo/ebaejun/tools/aws/aipm',
+          'git fetch origin',
+          `git checkout ${prEntry.branchName}`,
+          'git log -1 --oneline',
+          'git diff main...HEAD --stat',
+          `echo "\\n📋 PR: ${(prEntry.taskTitle || '').replace(/"/g, '\\"')}"`,
+          'echo "Ready for refinement with Kiro CLI"',
+          ''
+        ];
+        commands.forEach((cmd, i) => {
+          setTimeout(() => {
+            socket.send(JSON.stringify({ type: 'input', data: cmd + '\r' }));
+          }, i * 800);
+        });
+      }, 500);
+    } else {
+      setTimeout(() => {
+        socket.send(JSON.stringify({ type: 'input', data: '\r' }));
+      }, 500);
+    }
+  };
+  
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'branch') {
+        branchDisplay.textContent = data.branch;
+      } else if (data.type === 'output') {
+        terminal.write(data.data);
+      }
+    };
+    
+    socket.onerror = (error) => {
+      terminal.writeln('\r\n❌ Connection error');
+      console.error('WebSocket error:', error);
+    };
+    
+    socket.onclose = () => {
+      terminal.writeln('\r\n🔌 Disconnected');
+    };
+    
+    // Send terminal input to EC2
+    terminal.onData((data) => {
+      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        console.log('Sending to WebSocket:', { type: 'input', data });
+        socket.send(JSON.stringify({ type: 'input', data }));
+      } else {
+        console.warn('Socket not ready, state:', socket?.readyState);
+      }
+    });
+  
+  
+  return { 
+    element: container, 
+    onClose: () => {
+      if (socket) socket.close();
+      if (terminal) terminal.dispose();
+    } 
+  };
 }
 
 async function bedrockImplementation(prEntry) {
@@ -4233,17 +4377,128 @@ function renderDetails() {
 
   setEditing(false);
 
-  editButton?.addEventListener('click', () => {
-    const currentlyEditing = editButton.textContent === 'Cancel Edit';
-    if (currentlyEditing) {
-      setEditing(false);
-    } else {
-      setEditing(true);
-      const titleField = form.elements.title;
-      if (titleField) {
-        titleField.focus();
+  editButton?.addEventListener('click', async () => {
+    // Open edit modal
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 800px;">
+        <h2>Edit Story</h2>
+        <form id="edit-story-form">
+          <div class="form-group">
+            <label>Title:</label>
+            <input type="text" name="title" value="${escapeHtml(story.title || '')}" required>
+          </div>
+          <div class="form-group">
+            <label>As a:</label>
+            <input type="text" name="asA" value="${escapeHtml(story.asA || '')}">
+          </div>
+          <div class="form-group">
+            <label>I want:</label>
+            <textarea name="iWant" rows="2">${escapeHtml(story.iWant || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label>So that:</label>
+            <textarea name="soThat" rows="2">${escapeHtml(story.soThat || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Description:</label>
+            <textarea name="description" rows="4">${escapeHtml(story.description || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Story Points:</label>
+            <input type="number" name="storyPoints" value="${story.storyPoints || 0}" min="0">
+          </div>
+          <div class="form-group">
+            <label>Assignee Email:</label>
+            <input type="email" name="assigneeEmail" value="${escapeHtml(story.assigneeEmail || '')}">
+          </div>
+          <div class="form-group">
+            <label>Status:</label>
+            <select name="status">
+              ${STORY_STATUS_GUIDE.map(s => `<option value="${s.value}" ${story.status === s.value ? 'selected' : ''}>${s.value}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Components:</label>
+            <div id="modal-components-display" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 40px; cursor: pointer; background: #f8f9fa;">
+              ${story.components && story.components.length > 0 ? story.components.join(', ') : 'Click to select'}
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <button type="button" class="btn-secondary" id="cancel-edit">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    let modalComponents = Array.isArray(story.components) ? [...story.components] : [];
+    const componentsDisplay = modal.querySelector('#modal-components-display');
+    
+    const updateComponentsDisplay = () => {
+      componentsDisplay.textContent = modalComponents.length > 0 ? modalComponents.join(', ') : 'Click to select';
+    };
+    
+    componentsDisplay.addEventListener('click', async () => {
+      const picked = await openComponentPicker(modalComponents, { title: 'Select Components' });
+      if (Array.isArray(picked)) {
+        modalComponents = picked;
+        updateComponentsDisplay();
       }
-    }
+    });
+    
+    const form = modal.querySelector('#edit-story-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const updates = {
+        title: formData.get('title'),
+        asA: formData.get('asA'),
+        iWant: formData.get('iWant'),
+        soThat: formData.get('soThat'),
+        description: formData.get('description'),
+        storyPoints: parseInt(formData.get('storyPoints')) || 0,
+        assigneeEmail: formData.get('assigneeEmail'),
+        status: formData.get('status'),
+        components: modalComponents
+      };
+      
+      try {
+        const url = `${getApiBaseUrl()}/api/stories/${story.id}`;
+        console.log('Updating story:', story.id, 'URL:', url);
+        
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        
+        if (response.ok) {
+          modal.remove();
+          await loadStories();
+        } else {
+          const errorText = await response.text();
+          console.error('Update failed:', response.status, errorText);
+          alert(`Failed to update story: ${response.status} - ${errorText}`);
+        }
+      } catch (error) {
+        console.error('Error updating story:', error);
+        alert(`Error updating story: ${error.message}`);
+      }
+    });
+    
+    modal.querySelector('#cancel-edit').addEventListener('click', () => {
+      modal.remove();
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
   });
 
   deleteButton?.addEventListener('click', (event) => {
@@ -5161,7 +5416,7 @@ function openCodeWhispererDelegationModal(story) {
     storyId: story?.id || null,
     taskTitle: values.taskTitle || 'Unknown Task',
     repo: `${values.owner}/${values.repo}`,
-    branchName: values.branchName,
+    branchName: result.branchName || values.branchName,
     target: values.target,
     targetNumber: values.targetNumber,
     number: result.number,
@@ -5764,24 +6019,22 @@ function openChildStoryModal(parentId) {
       <tbody>
         <tr>
           <th scope="row">As a</th>
-          <td class="story-text" id="child-asa-display"></td>
+          <td><textarea id="child-asa-display" rows="1" style="resize: vertical; min-height: 2em;"></textarea></td>
         </tr>
         <tr>
           <th scope="row">I want</th>
-          <td class="story-text" id="child-iwant-display"></td>
+          <td><textarea id="child-iwant-display" rows="2" style="resize: vertical; min-height: 3em;"></textarea></td>
         </tr>
         <tr>
           <th scope="row">So that</th>
-          <td class="story-text" id="child-sothat-display"></td>
+          <td><textarea id="child-sothat-display" rows="2" style="resize: vertical; min-height: 3em;"></textarea></td>
         </tr>
         <tr>
           <th scope="row">Components</th>
           <td>
-            <p class="components-display" data-child-components-display>Not specified</p>
-            <div class="components-actions">
-              <button type="button" class="secondary components-edit-btn" id="child-components-btn">Choose components</button>
-              <p class="components-hint">Pick the components this child story will deliver.</p>
-            </div>
+            <textarea id="child-components-display" rows="1" style="resize: vertical; min-height: 2em;" placeholder="Enter components (comma-separated)"></textarea>
+            <p class="components-hint">Enter component names separated by commas, or use the button below.</p>
+            <button type="button" class="secondary components-edit-btn" id="child-components-btn">Choose from list</button>
           </td>
         </tr>
       </tbody>
@@ -5789,19 +6042,25 @@ function openChildStoryModal(parentId) {
   `;
 
   let childComponents = [];
-  const childComponentsDisplay = container.querySelector('[data-child-components-display]');
+  const childComponentsDisplay = container.querySelector('#child-components-display');
   const childComponentsButton = container.querySelector('#child-components-btn');
   const ideaInput = container.querySelector('#child-idea');
   const generateBtn = container.querySelector('#child-generate-btn');
 
   const refreshChildComponents = () => {
     if (!childComponentsDisplay) return;
-    const summary = formatComponentsSummary(childComponents);
-    childComponentsDisplay.textContent = summary;
-    childComponentsDisplay.classList.toggle('empty', summary === 'Not specified');
+    childComponentsDisplay.value = childComponents.join(', ');
+    childComponentsDisplay.style.height = 'auto';
+    childComponentsDisplay.style.height = childComponentsDisplay.scrollHeight + 'px';
   };
 
   refreshChildComponents();
+
+  // Sync textarea changes back to array
+  childComponentsDisplay?.addEventListener('input', () => {
+    const text = childComponentsDisplay.value.trim();
+    childComponents = text ? text.split(',').map(c => c.trim()).filter(Boolean) : [];
+  });
 
   childComponentsButton?.addEventListener('click', async () => {
     const picked = await openComponentPicker(childComponents, { title: 'Select Components' });
@@ -5840,9 +6099,21 @@ function openChildStoryModal(parentId) {
         if (pointInput) pointInput.value = draft.storyPoint != null ? draft.storyPoint : '';
         if (assigneeInput) assigneeInput.value = draft.assigneeEmail || '';
         if (descriptionInput) descriptionInput.value = draft.description || '';
-        if (asADisplay) asADisplay.textContent = draft.asA || '';
-        if (iWantDisplay) iWantDisplay.textContent = draft.iWant || '';
-        if (soThatDisplay) soThatDisplay.textContent = draft.soThat || '';
+        if (asADisplay) {
+          asADisplay.value = draft.asA || '';
+          asADisplay.style.height = 'auto';
+          asADisplay.style.height = asADisplay.scrollHeight + 'px';
+        }
+        if (iWantDisplay) {
+          iWantDisplay.value = draft.iWant || '';
+          iWantDisplay.style.height = 'auto';
+          iWantDisplay.style.height = iWantDisplay.scrollHeight + 'px';
+        }
+        if (soThatDisplay) {
+          soThatDisplay.value = draft.soThat || '';
+          soThatDisplay.style.height = 'auto';
+          soThatDisplay.style.height = soThatDisplay.scrollHeight + 'px';
+        }
 
         if (Array.isArray(draft.components)) {
           childComponents = normalizeComponentSelection(draft.components);
@@ -5885,9 +6156,9 @@ function openChildStoryModal(parentId) {
             storyPoint: storyPointResult.value,
             assigneeEmail: container.querySelector('#child-assignee').value.trim(),
             description: container.querySelector('#child-description').value.trim(),
-            asA: container.querySelector('#child-asa-display').textContent.trim(),
-            iWant: container.querySelector('#child-iwant-display').textContent.trim(),
-            soThat: container.querySelector('#child-sothat-display').textContent.trim(),
+            asA: container.querySelector('#child-asa-display').value.trim(),
+            iWant: container.querySelector('#child-iwant-display').value.trim(),
+            soThat: container.querySelector('#child-sothat-display').value.trim(),
             components: childComponents,
           };
           try {

@@ -5,8 +5,9 @@ import {
   requestAcceptanceTestDraftFromAmazonAi
 } from './amazon-ai.js';
 import { DynamoDBDataLayer } from './dynamodb.js';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn } from 'node:child_process';
 import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
@@ -474,6 +475,7 @@ async function performDelegation(payload) {
       id: pr.id,
       html_url: pr.html_url,
       number: pr.number,
+      branchName: branchName,
       taskId: taskId,
       taskHtmlUrl: pr.html_url,
       threadHtmlUrl: pr.html_url,
@@ -2413,6 +2415,141 @@ async function handleDeployPRRequest(req, res) {
     });
   } catch (error) {
     console.error('Deploy PR error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
+// Terminal session handlers
+async function handleTerminalStart(req, res) {
+  try {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    await new Promise(resolve => req.on('end', resolve));
+    
+    const { branch } = JSON.parse(body);
+    const sessionId = randomUUID();
+    
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    await docClient.send(new PutCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Item: {
+        id: sessionId,
+        type: 'terminal',
+        branch,
+        status: 'pending',
+        output: [],
+        input: [],
+        createdAt: new Date().toISOString(),
+        ttl: Math.floor(Date.now() / 1000) + 3600 // 1 hour TTL
+      }
+    }));
+    
+    sendJson(res, 200, { success: true, sessionId });
+  } catch (error) {
+    console.error('Terminal start error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
+async function handleTerminalInput(req, res) {
+  try {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    await new Promise(resolve => req.on('end', resolve));
+    
+    const { sessionId, data } = JSON.parse(body);
+    
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    await docClient.send(new UpdateCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Key: { id: sessionId },
+      UpdateExpression: 'SET #input = list_append(if_not_exists(#input, :empty), :data)',
+      ExpressionAttributeNames: { '#input': 'input' },
+      ExpressionAttributeValues: {
+        ':data': [{ data, timestamp: new Date().toISOString() }],
+        ':empty': []
+      }
+    }));
+    
+    sendJson(res, 200, { success: true });
+  } catch (error) {
+    console.error('Terminal input error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
+async function handleTerminalOutput(req, res, url) {
+  try {
+    const sessionId = url.searchParams.get('sessionId');
+    const lastIndex = parseInt(url.searchParams.get('lastIndex') || '0');
+    
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    const result = await docClient.send(new GetCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Key: { id: sessionId }
+    }));
+    
+    if (!result.Item) {
+      sendJson(res, 404, { success: false, error: 'Session not found' });
+      return;
+    }
+    
+    const output = result.Item.output || [];
+    const newOutput = output.slice(lastIndex);
+    
+    sendJson(res, 200, {
+      success: true,
+      output: newOutput,
+      nextIndex: output.length,
+      status: result.Item.status,
+      branch: result.Item.branch
+    });
+  } catch (error) {
+    console.error('Terminal output error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
+async function handleTerminalStop(req, res) {
+  try {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    await new Promise(resolve => req.on('end', resolve));
+    
+    const { sessionId } = JSON.parse(body);
+    
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    await docClient.send(new UpdateCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Key: { id: sessionId },
+      UpdateExpression: 'SET #status = :stopped',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: { ':stopped': 'stopped' }
+    }));
+    
+    sendJson(res, 200, { success: true });
+  } catch (error) {
+    console.error('Terminal stop error:', error);
     sendJson(res, 500, { success: false, error: error.message });
   }
 }
@@ -5403,6 +5540,26 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/terminal/start' && method === 'POST') {
+      await handleTerminalStart(req, res);
+      return;
+    }
+
+    if (pathname === '/api/terminal/input' && method === 'POST') {
+      await handleTerminalInput(req, res);
+      return;
+    }
+
+    if (pathname === '/api/terminal/output' && method === 'GET') {
+      await handleTerminalOutput(req, res, url);
+      return;
+    }
+
+    if (pathname === '/api/terminal/stop' && method === 'POST') {
+      await handleTerminalStop(req, res);
+      return;
+    }
+
     if (pathname === '/api/queue-status' && method === 'GET') {
       await handleQueueStatusRequest(req, res, url);
       return;
@@ -5598,6 +5755,108 @@ export async function createApp() {
         if (error.code) body.code = error.code;
         if (error.details) body.details = error.details;
         sendJson(res, status, body);
+      }
+      return;
+    }
+
+    // Update story
+    const updateMatch = pathname.match(/^\/api\/stories\/(\d+)$/);
+    if (updateMatch && method === 'PUT') {
+      try {
+        const storyId = Number(updateMatch[1]);
+        const payload = await parseJson(req);
+        
+        // Check if using DynamoDB or SQLite
+        if (db.constructor.name === 'DynamoDBDataLayer') {
+          // DynamoDB update
+          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+          
+          const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          if (!tableName) {
+            throw new Error('STORIES_TABLE environment variable not set');
+          }
+          
+          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const docClient = DynamoDBDocumentClient.from(client);
+          
+          // Get existing story
+          const getResult = await docClient.send(new GetCommand({
+            TableName: tableName,
+            Key: { id: storyId }
+          }));
+          
+          if (!getResult.Item) {
+            sendJson(res, 404, { message: 'Story not found' });
+            return;
+          }
+          
+          // Update story
+          await docClient.send(new UpdateCommand({
+            TableName: tableName,
+            Key: { id: storyId },
+            UpdateExpression: 'SET title = :title, asA = :asA, iWant = :iWant, soThat = :soThat, description = :description, storyPoints = :storyPoints, assigneeEmail = :assigneeEmail, #status = :status, components = :components',
+            ExpressionAttributeNames: {
+              '#status': 'status'
+            },
+            ExpressionAttributeValues: {
+              ':title': payload.title ?? getResult.Item.title,
+              ':asA': payload.asA ?? getResult.Item.asA,
+              ':iWant': payload.iWant ?? getResult.Item.iWant,
+              ':soThat': payload.soThat ?? getResult.Item.soThat,
+              ':description': payload.description ?? getResult.Item.description,
+              ':storyPoints': payload.storyPoints ?? getResult.Item.storyPoints,
+              ':assigneeEmail': payload.assigneeEmail ?? getResult.Item.assigneeEmail,
+              ':status': payload.status ?? getResult.Item.status,
+              ':components': payload.components ?? getResult.Item.components
+            }
+          }));
+        } else {
+          // SQLite update
+          const existing = await new Promise((resolve, reject) => {
+            db.get('SELECT * FROM user_stories WHERE id = ?', [storyId], (err, row) => {
+              if (err) reject(err);
+              else resolve(row);
+            });
+          });
+          
+          if (!existing) {
+            sendJson(res, 404, { message: 'Story not found' });
+            return;
+          }
+          
+          const updates = {
+            title: payload.title ?? existing.title,
+            asA: payload.asA ?? existing.asA,
+            iWant: payload.iWant ?? existing.iWant,
+            soThat: payload.soThat ?? existing.soThat,
+            description: payload.description ?? existing.description,
+            storyPoints: payload.storyPoints ?? existing.storyPoints,
+            assigneeEmail: payload.assigneeEmail ?? existing.assigneeEmail,
+            status: payload.status ?? existing.status,
+            components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]'))
+          };
+          
+          await new Promise((resolve, reject) => {
+            db.run(
+              `UPDATE user_stories SET 
+                title = ?, asA = ?, iWant = ?, soThat = ?, description = ?,
+                storyPoints = ?, assigneeEmail = ?, status = ?, components = ?
+              WHERE id = ?`,
+              [updates.title, updates.asA, updates.iWant, updates.soThat, updates.description,
+               updates.storyPoints, updates.assigneeEmail, updates.status, updates.components, storyId],
+              (err) => {
+                if (err) reject(err);
+                else resolve();
+              }
+            );
+          });
+        }
+        
+        sendJson(res, 200, { success: true, message: 'Story updated' });
+      } catch (err) {
+        console.error('Update story error:', err);
+        sendJson(res, err.statusCode || 500, { message: err.message });
       }
       return;
     }
