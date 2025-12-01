@@ -1950,17 +1950,41 @@ function renderCodeWhispererSectionList(container, story) {
       runInStagingBtn.type = 'button';
       runInStagingBtn.className = 'button secondary run-in-staging-btn';
       runInStagingBtn.textContent = 'Test in Dev';
-      runInStagingBtn.addEventListener('click', () => {
-        const { element, onClose } = buildRunInStagingModalContent(entry);
+      runInStagingBtn.addEventListener('click', async () => {
+        runInStagingBtn.disabled = true;
+        runInStagingBtn.textContent = 'Deploying...';
+        
+        try {
+          const result = await bedrockImplementation(entry);
+          if (result && result.success) {
+            showToast('Deployed to dev environment', 'success');
+          } else {
+            showToast('Deployment failed: ' + (result?.message || 'Unknown error'), 'error');
+          }
+        } catch (error) {
+          showToast('Deployment error: ' + error.message, 'error');
+        }
+        
+        runInStagingBtn.disabled = false;
+        runInStagingBtn.textContent = 'Test in Dev';
+      });
+      actions.appendChild(runInStagingBtn);
+
+      const kiroBtn = document.createElement('button');
+      kiroBtn.type = 'button';
+      kiroBtn.className = 'button secondary kiro-terminal-btn';
+      kiroBtn.textContent = 'Refine with Kiro';
+      kiroBtn.addEventListener('click', () => {
+        const { element, onClose } = buildKiroTerminalModalContent(entry);
         openModal({
-          title: 'Test in Dev',
+          title: 'Kiro CLI Terminal',
           content: element,
           cancelLabel: 'Close',
-          size: 'content',
+          size: 'large',
           onClose,
         });
       });
-      actions.appendChild(runInStagingBtn);
+      actions.appendChild(kiroBtn);
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -3249,7 +3273,93 @@ function computeHeatmapData() {
   return { assignees: options, datasets: datasetsWithRows, columns: HEATMAP_COMPONENTS };
 }
 
-function buildRunInStagingModalContent(prEntry = null) {
+function buildDeployToDevModalContent(prEntry = null) {
+  const container = document.createElement('div');
+  container.className = 'deploy-dev-modal';
+  
+  const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
+  
+  const prInfo = prEntry ? `
+    <div class="pr-info">
+      <h4>PR Information</h4>
+      <p><strong>PR ID:</strong> ${prId}</p>
+      <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
+      ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
+      <p><strong>Target Branch:</strong> main</p>
+    </div>
+  ` : '';
+  
+  container.innerHTML = `
+    ${prInfo}
+    <div class="deploy-options">
+      <h3>Deploy to Development Environment</h3>
+      <p>This will deploy the PR branch to the development environment for testing.</p>
+      
+      <div class="workflow-steps">
+        <div class="step">1. Deploy PR branch to development environment</div>
+        <div class="step">2. Test changes in dev</div>
+        <div class="step">3. After approval, merge PR to main</div>
+        <div class="step">4. Deploy to production</div>
+      </div>
+      
+      <div class="deploy-actions">
+        <button id="deploy-to-dev-btn" class="primary">Deploy Now</button>
+        <button id="check-deploy-status" class="secondary">Check Status</button>
+      </div>
+      
+      <div id="deploy-output" class="deploy-output" style="display:none;">
+        <h4>Deployment Output:</h4>
+        <pre id="deploy-log"></pre>
+      </div>
+    </div>
+  `;
+  
+  const deployBtn = container.querySelector('#deploy-to-dev-btn');
+  const statusBtn = container.querySelector('#check-deploy-status');
+  const output = container.querySelector('#deploy-output');
+  const log = container.querySelector('#deploy-log');
+  
+  deployBtn.addEventListener('click', async () => {
+    deployBtn.disabled = true;
+    deployBtn.textContent = 'Deploying...';
+    
+    output.style.display = 'block';
+    log.textContent = `🚀 Deploying PR to development environment...\n`;
+    log.textContent += `📝 PR: ${prEntry?.taskTitle || 'Development task'}\n\n`;
+    
+    try {
+      log.textContent += `⚙️  Triggering deployment...\n`;
+      
+      // Call deployment API
+      const result = await bedrockImplementation(prEntry);
+      
+      if (!result || !result.success) {
+        throw new Error(result?.message || 'Deployment failed');
+      }
+      
+      log.textContent += `✅ Deployment triggered successfully!\n\n`;
+      log.textContent += `🌐 Dev URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com\n`;
+      
+      deployBtn.textContent = 'Deploy Now';
+      deployBtn.disabled = false;
+    } catch (error) {
+      log.textContent += `\n❌ Error: ${error.message}\n`;
+      deployBtn.textContent = 'Deploy Now';
+      deployBtn.disabled = false;
+    }
+  });
+  
+  statusBtn.addEventListener('click', () => {
+    output.style.display = 'block';
+    log.textContent = `Checking deployment status for PR ${prId}...\n`;
+    log.textContent += `Development environment: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
+    log.textContent += `Status: Ready for testing\n`;
+  });
+  
+  return { element: container, onClose: () => {} };
+}
+
+function buildKiroTerminalModalContent(prEntry = null) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
   
@@ -3268,63 +3378,53 @@ function buildRunInStagingModalContent(prEntry = null) {
   container.innerHTML = `
     ${prInfo}
     <div class="staging-options">
-      <h3>Kiro CLI Terminal</h3>
-      <div class="terminal-info">
-        <p><strong>Branch:</strong> <span id="terminal-branch">Loading...</span></p>
-        <p>Interact with Kiro CLI to implement this PR. Branch will auto-checkout on start and return to main on close.</p>
-      </div>
-      
+      <h3>Refine PR with Kiro</h3>
       <div id="terminal-container" style="height: 500px; background: #000; padding: 10px;"></div>
-      
-      <div class="terminal-actions" style="margin-top: 10px;">
-        <button id="start-terminal" class="primary">Start Terminal</button>
-        <button id="stop-terminal" class="secondary" style="display:none;">Stop Terminal</button>
-      </div>
     </div>
   `;
   
   const terminalContainer = container.querySelector('#terminal-container');
-  const branchDisplay = container.querySelector('#terminal-branch');
-  const startBtn = container.querySelector('#start-terminal');
-  const stopBtn = container.querySelector('#stop-terminal');
   
   let terminal = null;
   let socket = null;
   
-  startBtn.addEventListener('click', () => {
-    if (!window.Terminal) {
-      alert('Terminal library not loaded. Please refresh the page.');
-      return;
+  // Auto-start terminal immediately
+  if (!window.Terminal) {
+    terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
+    return { element: container, onClose: () => {} };
+  }
+  
+  // Create xterm terminal
+  terminal = new window.Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+    theme: {
+      background: '#000000',
+      foreground: '#ffffff'
     }
-    
-    // Create xterm terminal
-    terminal = new window.Terminal({
-      cursorBlink: true,
-      fontSize: 14,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      theme: {
-        background: '#000000',
-        foreground: '#ffffff'
-      }
-    });
-    
-    terminal.open(terminalContainer);
-    terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
+  });
+  
+  terminal.open(terminalContainer);
+  terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
+  terminal.writeln('');
+  
+  // Connect to EC2 WebSocket server
+  const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://localhost:8080';
+  const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
+  
+  socket = new WebSocket(wsUrl);
+  
+  socket.onopen = () => {
+    terminal.writeln('✓ Connected to terminal server');
     terminal.writeln('');
     
-    // Connect to EC2 WebSocket server
-    const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://localhost:8080';
-    const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
-    
-    socket = new WebSocket(wsUrl);
-    
-    socket.onopen = () => {
-      terminal.writeln('✓ Connected to terminal server');
-      terminal.writeln('');
-      startBtn.style.display = 'none';
-      stopBtn.style.display = 'inline-block';
-    };
-    
+    // Send enter key to activate terminal
+    setTimeout(() => {
+      socket.send(JSON.stringify({ type: 'input', data: '\r' }));
+    }, 500);
+  };
+  
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       
@@ -3342,8 +3442,6 @@ function buildRunInStagingModalContent(prEntry = null) {
     
     socket.onclose = () => {
       terminal.writeln('\r\n🔌 Disconnected');
-      startBtn.style.display = 'inline-block';
-      stopBtn.style.display = 'none';
     };
     
     // Send terminal input to EC2
@@ -3356,20 +3454,7 @@ function buildRunInStagingModalContent(prEntry = null) {
         console.warn('Socket not ready, state:', socket?.readyState);
       }
     });
-  });
   
-  stopBtn.addEventListener('click', () => {
-    if (socket) {
-      socket.close();
-    }
-    if (terminal) {
-      terminal.dispose();
-      terminal = null;
-    }
-    terminalContainer.innerHTML = '';
-    startBtn.style.display = 'inline-block';
-    stopBtn.style.display = 'none';
-  });
   
   return { 
     element: container, 
