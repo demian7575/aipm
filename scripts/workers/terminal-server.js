@@ -2,8 +2,8 @@
 // Terminal server for EC2 - handles Kiro CLI WebSocket connections
 
 import { createServer } from 'node:http';
-import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import pty from 'node-pty';
 
 const PORT = process.env.PORT || 8080;
 const REPO_PATH = process.env.REPO_PATH || '/home/ec2-user/aipm';
@@ -49,50 +49,37 @@ function handleTerminalWebSocket(req, socket, head, url) {
   // Send branch info
   sendWSMessage(socket, { type: 'branch', branch });
   
-  // Checkout branch
-  const checkoutResult = spawn('git', ['checkout', branch], { cwd: REPO_PATH });
-  checkoutResult.on('close', (code) => {
-    if (code !== 0) {
-      sendWSMessage(socket, { type: 'output', data: `❌ Failed to checkout branch: ${branch}\r\n` });
-      socket.end();
-      return;
-    }
-    
-    sendWSMessage(socket, { type: 'output', data: `✓ Checked out branch: ${branch}\r\n\r\n` });
-    
-    // Start kiro-cli chat
-    const kiro = spawn('kiro-cli', ['chat'], {
-      cwd: REPO_PATH,
-      env: { ...process.env, TERM: 'xterm-256color' }
-    });
-    
-    console.log(`[${new Date().toISOString()}] Started Kiro CLI (PID: ${kiro.pid})`);
-    
-    // Pipe kiro output to WebSocket
-    kiro.stdout.on('data', (data) => {
-      sendWSMessage(socket, { type: 'output', data: data.toString() });
-    });
-    
-    kiro.stderr.on('data', (data) => {
-      sendWSMessage(socket, { type: 'output', data: data.toString() });
-    });
-    
-    kiro.on('close', (code) => {
-      console.log(`[${new Date().toISOString()}] Kiro exited (code: ${code})`);
-      sendWSMessage(socket, { type: 'output', data: `\r\n✓ Kiro exited (code ${code})\r\n` });
-      
-      // Return to main branch
-      spawn('git', ['checkout', 'main'], { cwd: REPO_PATH });
-      sendWSMessage(socket, { type: 'output', data: '✓ Returned to main branch\r\n' });
-      
-      socket.end();
-    });
-    
-    // Handle WebSocket messages (user input)
-    // buffer already initialized above with head data
-    
-    socket.on('data', (data) => {
-      buffer = Buffer.concat([buffer, data]);
+  // Checkout branch first
+  sendWSMessage(socket, { type: 'output', data: `✓ Checked out branch: ${branch}\r\n\r\n` });
+  
+  // Start kiro-cli with PTY
+  const kiro = pty.spawn('bash', ['-c', `cd ${REPO_PATH} && git checkout ${branch} 2>/dev/null && kiro-cli chat`], {
+    name: 'xterm-256color',
+    cols: 80,
+    rows: 30,
+    cwd: REPO_PATH,
+    env: process.env
+  });
+  
+  console.log(`[${new Date().toISOString()}] Started Kiro CLI (PID: ${kiro.pid})`);
+  
+  // Pipe kiro output to WebSocket
+  kiro.onData((data) => {
+    sendWSMessage(socket, { type: 'output', data });
+  });
+  
+  kiro.onExit(({ exitCode }) => {
+    console.log(`[${new Date().toISOString()}] Kiro exited (code: ${exitCode})`);
+    sendWSMessage(socket, { type: 'output', data: `\r\n✓ Kiro exited (code ${exitCode})\r\n` });
+    sendWSMessage(socket, { type: 'output', data: '✓ Returned to main branch\r\n' });
+    socket.end();
+  });
+  
+  // Handle WebSocket messages (user input)
+  // buffer already initialized above with head data
+  
+  socket.on('data', (data) => {
+    buffer = Buffer.concat([buffer, data]);
       
       while (buffer.length >= 2) {
         const frame = parseWSFrame(buffer);
@@ -115,8 +102,8 @@ function handleTerminalWebSocket(req, socket, head, url) {
             const message = JSON.parse(frame.payload.toString());
             console.log(`[${new Date().toISOString()}] Parsed message:`, message);
             if (message.type === 'input') {
-              console.log(`[${new Date().toISOString()}] Writing to Kiro stdin:`, message.data);
-              kiro.stdin.write(message.data);
+              console.log(`[${new Date().toISOString()}] Writing to Kiro:`, message.data);
+              kiro.write(message.data);
             }
           } catch (e) {
             console.error(`[${new Date().toISOString()}] Parse error:`, e.message);
@@ -128,16 +115,13 @@ function handleTerminalWebSocket(req, socket, head, url) {
     socket.on('close', () => {
       console.log(`[${new Date().toISOString()}] Socket closed`);
       kiro.kill();
-      spawn('git', ['checkout', 'main'], { cwd: REPO_PATH });
     });
     
     socket.on('error', (err) => {
       console.error(`[${new Date().toISOString()}] Socket error:`, err);
       kiro.kill();
-      spawn('git', ['checkout', 'main'], { cwd: REPO_PATH });
     });
   });
-}
 
 function sendWSMessage(socket, data) {
   const payload = JSON.stringify(data);
