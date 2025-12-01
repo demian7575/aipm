@@ -80,8 +80,18 @@ const server = createServer(async (req, res) => {
         console.log(`🌿 Branch: ${branch}`);
         console.log(`📋 Task: ${taskDescription}`);
         
+        // Capture Kiro output
+        let kiroOutput = '';
+        const outputHandler = (data) => {
+          kiroOutput += data;
+          process.stdout.write(data); // Also log to console
+        };
+        
+        kiro.onData(outputHandler);
+        
         // Checkout branch
-        execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${branch}`, { stdio: 'pipe' });
+        const gitCheckout = execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${branch}`, { encoding: 'utf8' });
+        console.log(gitCheckout);
         
         // Send task to Kiro
         const command = `${taskDescription}\n`;
@@ -90,16 +100,22 @@ const server = createServer(async (req, res) => {
         // Wait for Kiro to finish (30 seconds)
         await new Promise(resolve => setTimeout(resolve, 30000));
         
+        // Remove output handler
+        kiro.removeListener('data', outputHandler);
+        
         // Commit and push
+        let gitOutput = '';
         try {
-          execSync(`cd ${REPO_PATH} && git add . && git commit -m "feat: ${taskDescription.substring(0, 50)}" && git push origin ${branch}`, { stdio: 'pipe' });
+          gitOutput = execSync(`cd ${REPO_PATH} && git add . && git commit -m "feat: ${taskDescription.substring(0, 50)}" && git push origin ${branch}`, { encoding: 'utf8' });
           
           console.log(`✅ Code generated and pushed to ${branch}`);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ 
             success: true, 
             message: 'Code generated successfully',
-            branch 
+            branch,
+            kiroOutput: kiroOutput.substring(kiroOutput.length - 2000), // Last 2000 chars
+            gitOutput
           }));
         } catch (gitError) {
           if (gitError.message.includes('nothing to commit')) {
@@ -108,7 +124,9 @@ const server = createServer(async (req, res) => {
             res.end(JSON.stringify({ 
               success: true, 
               message: 'No changes needed',
-              branch 
+              branch,
+              kiroOutput: kiroOutput.substring(kiroOutput.length - 2000),
+              gitOutput: 'No changes to commit'
             }));
           } else {
             throw gitError;

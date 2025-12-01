@@ -432,6 +432,7 @@ async function performDelegation(payload) {
     const ec2Url = process.env.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
     
     try {
+      console.log(`📤 Calling EC2 to generate code for PR #${pr.number}...`);
       const response = await fetch(`${ec2Url}/generate-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -443,9 +444,15 @@ async function performDelegation(payload) {
       });
       
       const result = await response.json();
-      console.log('EC2 code generation result:', result);
+      console.log('✅ EC2 response:', result.success ? 'Success' : 'Failed');
+      if (result.kiroOutput) {
+        console.log('🤖 Kiro output (last 500 chars):', result.kiroOutput.substring(result.kiroOutput.length - 500));
+      }
+      if (result.gitOutput) {
+        console.log('📦 Git output:', result.gitOutput);
+      }
     } catch (error) {
-      console.error('Failed to trigger code generation on EC2:', error);
+      console.error('❌ Failed to trigger code generation on EC2:', error.message);
       // Don't fail the PR creation if code generation fails
     }
     
