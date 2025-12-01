@@ -244,45 +244,50 @@ async function runProductionTests() {
     button.disabled = true;
     button.textContent = 'Running Tests...';
     
-    let totalTests = 0;
+    // Collect all tests to run in parallel
+    const allTests = [];
+    for (const [suiteKey, suite] of Object.entries(PROD_TEST_SUITES)) {
+        for (const test of suite.tests) {
+            allTests.push({ suiteKey, suite, test });
+        }
+    }
+    
+    const totalTests = allTests.length;
     let passedTests = 0;
     let failedTests = [];
     
-    for (const [suiteKey, suite] of Object.entries(PROD_TEST_SUITES)) {
-        console.log(`Running suite: ${suite.name}`);
-        for (const test of suite.tests) {
-            totalTests++;
-            console.log(`Running test: ${test.name}`);
-            testResults[suiteKey][test.name].status = 'running';
-            renderTestResults();
+    // Mark all as running
+    allTests.forEach(({ suiteKey, test }) => {
+        testResults[suiteKey][test.name].status = 'running';
+    });
+    renderTestResults();
+    
+    // Run all tests in parallel
+    await Promise.all(allTests.map(async ({ suiteKey, suite, test }) => {
+        const start = Date.now();
+        try {
+            const result = await runProductionTest(test.test);
+            testResults[suiteKey][test.name] = {
+                status: result.success ? 'pass' : 'fail',
+                message: result.message,
+                duration: Date.now() - start
+            };
             
-            const start = Date.now();
-            try {
-                const result = await runProductionTest(test.test);
-                console.log(`Test ${test.name} result:`, result);
-                testResults[suiteKey][test.name] = {
-                    status: result.success ? 'pass' : 'fail',
-                    message: result.message,
-                    duration: Date.now() - start
-                };
-                
-                if (result.success) {
-                    passedTests++;
-                } else {
-                    failedTests.push(`${suite.name}: ${test.name} - ${result.message}`);
-                }
-            } catch (error) {
-                console.error(`Test ${test.name} error:`, error);
-                testResults[suiteKey][test.name] = {
-                    status: 'fail',
-                    message: error.message,
-                    duration: Date.now() - start
-                };
-                failedTests.push(`${suite.name}: ${test.name} - ${error.message}`);
+            if (result.success) {
+                passedTests++;
+            } else {
+                failedTests.push(`${suite.name}: ${test.name} - ${result.message}`);
             }
-            renderTestResults();
+        } catch (error) {
+            testResults[suiteKey][test.name] = {
+                status: 'fail',
+                message: error.message,
+                duration: Date.now() - start
+            };
+            failedTests.push(`${suite.name}: ${test.name} - ${error.message}`);
         }
-    }
+        renderTestResults();
+    }));
     
     // Show summary
     const summary = document.createElement('div');
