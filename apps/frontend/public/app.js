@@ -3354,7 +3354,7 @@ async function bedrockImplementation(prEntry) {
     
     console.log('📤 Deploying PR to staging:', payload);
     
-    const response = await fetch(`${window.__AIPM_API_BASE__ || ''}/api/deploy-pr`, {
+    const response = await fetch(resolveApiUrl('/api/deploy-pr'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
