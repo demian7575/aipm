@@ -17,7 +17,9 @@ This repository contains a self-hosted mindmap and outline workspace for managin
 Deploy the complete AIPM web service with comprehensive testing:
 
 ```bash
-./deploy.sh
+./bin/deploy-prod
+# or
+./scripts/deploymen./bin/deploy-prod
 ```
 
 This single command handles:
@@ -90,7 +92,7 @@ The workspace includes a local worker that polls DynamoDB for code generation ta
 
 ```bash
 # Start the Kiro worker (runs continuously)
-./kiro-worker.sh
+./scripts/workers/kiro-worker.sh
 ```
 
 The worker:

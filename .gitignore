@@ -3,8 +3,12 @@
 .env.local
 .env.production
 
+# Temporary files
+temp/
+
 # Kiro conversation logs
 Conversation_*.md
+conversations/
 kiro-worker.log
 worker.log
 

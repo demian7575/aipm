@@ -58,7 +58,6 @@ package:
     - '*.md'
     - '*.zip'
     - '.gitignore'
-    - 'amplify.yml'
     - 'template.yaml'
     - 'deploy*.sh'
     - 'update-gating-tests.js'

@@ -49,12 +49,12 @@ aipm/
 
 ### Deploy to Development
 ```bash
-./deploy-dev-full.sh
+./bin/deploy-dev
 ```
 
 ### Deploy to Production
 ```bash
-./deploy-prod-full.sh
+./bin/deploy-prod
 ```
 
 ---

@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Auto-save conversation script
+mkdir -p conversations
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-CONVERSATION_FILE="Conversation_AIPM_${TIMESTAMP}.md"
+CONVERSATION_FILE="conversations/Conversation_AIPM_${TIMESTAMP}.md"
 
 # Function to save conversation
 save_conversation() {

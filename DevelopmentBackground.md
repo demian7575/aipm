@@ -141,10 +141,10 @@ Before modifying ANY file:
 cd /repo/ebaejun/tools/aws/aipm
 
 # Deploy to development
-./deploy-dev-full.sh
+./bin/deploy-dev
 
 # Deploy to production (after testing)
-./deploy-prod-full.sh
+./bin/deploy-prod
 ```
 
 **🚨 BEFORE MAKING ANY CHANGES: Read [Critical Development Principles](#critical-development-principles) section below!**
@@ -828,7 +828,7 @@ git push origin develop
 #### Phase 2: Deploy to Development
 ```bash
 # Deploy COMPLETE development environment
-./deploy-dev-full.sh
+./bin/deploy-dev
 ```
 
 **This script deploys:**
@@ -845,7 +845,7 @@ git push origin develop
 #### Phase 3: Testing & Verification
 ```bash
 # Run comprehensive gating tests
-node run-comprehensive-gating-tests.cjs
+node scripts/testing/run-comprehensive-gating-tests.cjs
 
 # Manual testing at:
 # http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com
@@ -870,7 +870,7 @@ git merge develop --no-ff -m "Verified: feature description"
 git push origin main
 
 # Deploy COMPLETE production environment
-./deploy-prod-full.sh
+./bin/deploy-prod
 ```
 
 **This script deploys:**
@@ -939,7 +939,7 @@ npx serverless deploy --stage prod
 aws s3 sync apps/frontend/public/ s3://aipm-static-hosting-demo --delete
 
 # Verify rollback successful
-node run-comprehensive-gating-tests.cjs
+node scripts/testing/run-comprehensive-gating-tests.cjs
 ```
 
 **Response Time**: < 5 minutes for P0 incidents
@@ -965,7 +965,7 @@ node run-comprehensive-gating-tests.cjs
 cd /repo/ebaejun/tools/aws/aipm
 
 # Start the worker (runs continuously)
-./kiro-worker.sh
+./scripts/workers/kiro-worker.sh
 ```
 
 **What the worker does**:
@@ -1026,7 +1026,7 @@ tail -f kiro-worker.log
 
 # Restart worker
 pkill -f kiro-worker
-./kiro-worker.sh
+./scripts/workers/kiro-worker.sh
 ```
 
 **Tasks stuck in "processing"?**
@@ -1085,13 +1085,13 @@ aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests
 git checkout develop
 git reset --hard <commit-hash>
 git push origin develop --force
-./deploy-dev-full.sh
+./bin/deploy-dev
 
 # Production
 git checkout main
 git reset --hard <commit-hash>
 git push origin main --force
-./deploy-prod-full.sh
+./bin/deploy-prod
 ```
 
 ### Remove Environment (Cleanup)
@@ -1164,7 +1164,7 @@ npx serverless remove --stage prod
 npm test
 
 # Run comprehensive gating tests
-node run-comprehensive-gating-tests.cjs
+node scripts/testing/run-comprehensive-gating-tests.cjs
 ```
 
 #### Manual Testing Checklist
@@ -1489,8 +1489,8 @@ I'm working on AIPM at /repo/ebaejun/tools/aws/aipm
 
 Key principles:
 - Complete environment isolation (dev/prod)
-- Always test in dev first: ./deploy-dev-full.sh
-- Deploy to prod only after verification: ./deploy-prod-full.sh
+- Always test in dev first: ./bin/deploy-dev
+- Deploy to prod only after verification: ./bin/deploy-prod
 - Manual browser testing is mandatory
 - Write minimal code only
 
@@ -1506,11 +1506,11 @@ Tech Stack:
 ### Essential Commands
 ```bash
 # Development
-./deploy-dev-full.sh                    # Deploy complete dev environment
-node run-comprehensive-gating-tests.cjs # Run all tests
+./bin/deploy-dev                    # Deploy complete dev environment
+node scripts/testing/run-comprehensive-gating-tests.cjs # Run all tests
 
 # Production
-./deploy-prod-full.sh                   # Deploy complete prod environment
+./bin/deploy-prod                   # Deploy complete prod environment
 
 # Logs
 npx serverless logs -f api --stage dev --tail
