@@ -1,21 +1,13 @@
 #!/usr/bin/env node
-// Terminal server for EC2 - handles Kiro CLI WebSocket connections + queue processing
+// Terminal server for EC2 - handles Kiro CLI WebSocket connections + HTTP API
 
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import pty from 'node-pty';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { execSync } from 'node:child_process';
 
 const PORT = process.env.PORT || 8080;
 const REPO_PATH = process.env.REPO_PATH || '/home/ec2-user/aipm';
-const QUEUE_TABLE = 'aipm-amazon-q-queue';
-const POLL_INTERVAL = 5000; // 5 seconds
-
-// DynamoDB client
-const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
-const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 // Start single persistent Kiro session
 console.log('🚀 Starting persistent Kiro session...');
@@ -49,9 +41,94 @@ kiro.onExit(({ exitCode }) => {
   process.exit(1);
 });
 
-const server = createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Kiro Terminal Server Running\n');
+const server = createServer(async (req, res) => {
+  const url = new URL(req.url, 'http://localhost');
+  
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+  
+  // Health check
+  if (url.pathname === '/' || url.pathname === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Kiro Terminal Server Running\n');
+    return;
+  }
+  
+  // Code generation endpoint
+  if (url.pathname === '/generate-code' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { branch, taskDescription, prNumber } = JSON.parse(body);
+        
+        if (!branch || !taskDescription) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'branch and taskDescription required' }));
+          return;
+        }
+        
+        console.log(`\n🔨 Generating code for PR #${prNumber}`);
+        console.log(`🌿 Branch: ${branch}`);
+        console.log(`📋 Task: ${taskDescription}`);
+        
+        // Checkout branch
+        execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${branch}`, { stdio: 'pipe' });
+        
+        // Send task to Kiro
+        const command = `${taskDescription}\n`;
+        kiro.write(command);
+        
+        // Wait for Kiro to finish (30 seconds)
+        await new Promise(resolve => setTimeout(resolve, 30000));
+        
+        // Commit and push
+        try {
+          execSync(`cd ${REPO_PATH} && git add . && git commit -m "feat: ${taskDescription.substring(0, 50)}" && git push origin ${branch}`, { stdio: 'pipe' });
+          
+          console.log(`✅ Code generated and pushed to ${branch}`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: true, 
+            message: 'Code generated successfully',
+            branch 
+          }));
+        } catch (gitError) {
+          if (gitError.message.includes('nothing to commit')) {
+            console.log(`⚠️  No changes generated`);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              success: true, 
+              message: 'No changes needed',
+              branch 
+            }));
+          } else {
+            throw gitError;
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Code generation failed:`, error.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: error.message 
+        }));
+      }
+    });
+    return;
+  }
+  
+  // 404 for other routes
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not Found\n');
 });
 
 server.on('upgrade', (req, socket, head) => {
@@ -200,100 +277,9 @@ function parseWSFrame(buffer) {
   }
 }
 
-// Queue processing functions
-async function getPendingTasks() {
-  try {
-    const result = await docClient.send(new ScanCommand({
-      TableName: QUEUE_TABLE,
-      FilterExpression: '#status = :pending',
-      ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':pending': 'pending' }
-    }));
-    return result.Items || [];
-  } catch (error) {
-    console.error('❌ Failed to scan queue:', error.message);
-    return [];
-  }
-}
-
-async function updateTaskStatus(taskId, status, error = null) {
-  try {
-    await docClient.send(new UpdateCommand({
-      TableName: QUEUE_TABLE,
-      Key: { id: taskId },
-      UpdateExpression: 'SET #status = :status, updatedAt = :now' + (error ? ', #error = :error' : ''),
-      ExpressionAttributeNames: { 
-        '#status': 'status',
-        ...(error ? { '#error': 'error' } : {})
-      },
-      ExpressionAttributeValues: { 
-        ':status': status,
-        ':now': new Date().toISOString(),
-        ...(error ? { ':error': error } : {})
-      }
-    }));
-  } catch (err) {
-    console.error(`❌ Failed to update task ${taskId}:`, err.message);
-  }
-}
-
-async function processTask(task) {
-  console.log(`\n🔨 Processing task: ${task.id}`);
-  console.log(`📋 Title: ${task.title}`);
-  console.log(`🌿 Branch: ${task.branch}`);
-  
-  await updateTaskStatus(task.id, 'processing');
-  
-  try {
-    // Checkout branch
-    console.log(`📥 Checking out branch...`);
-    execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${task.branch}`, { stdio: 'inherit' });
-    
-    // Send task to Kiro via the persistent session
-    console.log(`🤖 Sending to Kiro CLI...`);
-    const command = `Implement this task: ${task.details}\n`;
-    kiro.write(command);
-    
-    // Wait for Kiro to finish (simple timeout approach)
-    await new Promise(resolve => setTimeout(resolve, 30000)); // 30 seconds
-    
-    // Commit and push
-    console.log(`💾 Committing changes...`);
-    try {
-      execSync(`cd ${REPO_PATH} && git add . && git commit -m "feat: ${task.title}" && git push origin ${task.branch}`, { stdio: 'inherit' });
-      console.log(`✅ Task completed: ${task.id}`);
-      await updateTaskStatus(task.id, 'complete');
-    } catch (gitError) {
-      if (gitError.message.includes('nothing to commit')) {
-        console.log(`⚠️  No changes generated`);
-        await updateTaskStatus(task.id, 'complete', 'No changes generated');
-      } else {
-        throw gitError;
-      }
-    }
-  } catch (error) {
-    console.error(`❌ Task failed: ${error.message}`);
-    await updateTaskStatus(task.id, 'failed', error.message);
-  }
-}
-
-async function pollQueue() {
-  const tasks = await getPendingTasks();
-  if (tasks.length > 0) {
-    console.log(`\n📬 Found ${tasks.length} pending task(s)`);
-    for (const task of tasks) {
-      await processTask(task);
-    }
-  }
-}
-
-// Start queue polling
-console.log(`🔄 Starting queue polling (every ${POLL_INTERVAL}ms)...`);
-setInterval(pollQueue, POLL_INTERVAL);
-
 server.listen(PORT, () => {
   console.log(`🚀 Kiro Terminal Server listening on port ${PORT}`);
   console.log(`📁 Repository path: ${REPO_PATH}`);
   console.log(`🔗 WebSocket endpoint: ws://localhost:${PORT}/terminal?branch=<branch-name>`);
-  console.log(`📬 Queue polling: ${QUEUE_TABLE}`);
+  console.log(`🔗 Code generation: POST http://localhost:${PORT}/generate-code`);
 });
