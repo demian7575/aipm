@@ -4234,7 +4234,7 @@ function renderDetails() {
   setEditing(false);
 
   editButton?.addEventListener('click', () => {
-    const currentlyEditing = !saveButton.disabled;
+    const currentlyEditing = editableFields.length > 0 && !editableFields[0].disabled;
     if (currentlyEditing) {
       setEditing(false);
     } else {
