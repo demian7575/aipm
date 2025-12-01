@@ -475,6 +475,7 @@ async function performDelegation(payload) {
       id: pr.id,
       html_url: pr.html_url,
       number: pr.number,
+      branchName: branchName,
       taskId: taskId,
       taskHtmlUrl: pr.html_url,
       threadHtmlUrl: pr.html_url,

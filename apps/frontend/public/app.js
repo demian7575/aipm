@@ -1980,7 +1980,7 @@ function renderCodeWhispererSectionList(container, story) {
           title: 'Kiro CLI Terminal',
           content: element,
           cancelLabel: 'Close',
-          size: 'large',
+          size: 'xlarge',
           onClose,
         });
       });
@@ -3363,7 +3363,10 @@ function buildKiroTerminalModalContent(prEntry = null) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
   
+  console.log('🔍 PR Entry:', prEntry);
+  
   const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
+  const branchName = prEntry?.branchName || 'main';
   
   const prInfo = prEntry ? `
     <div class="pr-info">
@@ -3371,7 +3374,7 @@ function buildKiroTerminalModalContent(prEntry = null) {
       <p><strong>PR ID:</strong> ${prId}</p>
       <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
       ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
-      <p><strong>Target Branch:</strong> main</p>
+      <p><strong>Branch:</strong> ${escapeHtml(branchName)}</p>
     </div>
   ` : '';
   
@@ -3419,10 +3422,30 @@ function buildKiroTerminalModalContent(prEntry = null) {
     terminal.writeln('✓ Connected to terminal server');
     terminal.writeln('');
     
-    // Send enter key to activate terminal
-    setTimeout(() => {
-      socket.send(JSON.stringify({ type: 'input', data: '\r' }));
-    }, 500);
+    // Auto-execute git operations and PR context loading
+    if (prEntry?.branchName) {
+      setTimeout(() => {
+        const commands = [
+          'cd /repo/ebaejun/tools/aws/aipm',
+          'git fetch origin',
+          `git checkout ${prEntry.branchName}`,
+          'git log -1 --oneline',
+          'git diff main...HEAD --stat',
+          `echo "\\n📋 PR: ${(prEntry.taskTitle || '').replace(/"/g, '\\"')}"`,
+          'echo "Ready for refinement with Kiro CLI"',
+          ''
+        ];
+        commands.forEach((cmd, i) => {
+          setTimeout(() => {
+            socket.send(JSON.stringify({ type: 'input', data: cmd + '\r' }));
+          }, i * 800);
+        });
+      }, 500);
+    } else {
+      setTimeout(() => {
+        socket.send(JSON.stringify({ type: 'input', data: '\r' }));
+      }, 500);
+    }
   };
   
     socket.onmessage = (event) => {
@@ -5393,7 +5416,7 @@ function openCodeWhispererDelegationModal(story) {
     storyId: story?.id || null,
     taskTitle: values.taskTitle || 'Unknown Task',
     repo: `${values.owner}/${values.repo}`,
-    branchName: values.branchName,
+    branchName: result.branchName || values.branchName,
     target: values.target,
     targetNumber: values.targetNumber,
     number: result.number,

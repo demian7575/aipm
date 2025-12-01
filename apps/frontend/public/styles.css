@@ -2109,3 +2109,13 @@ dialog[data-size='content'] .modal-shell {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
+
+/* Extra large modal for terminal */
+#modal[data-size="xlarge"] .modal-shell {
+  max-width: 95vw;
+  width: 1400px;
+}
+
+#modal[data-size="xlarge"] .modal-body {
+  max-height: 80vh;
+}
