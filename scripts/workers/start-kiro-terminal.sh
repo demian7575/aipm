@@ -16,11 +16,11 @@ ssh -o StrictHostKeyChecking=no ec2-user@$EC2_IP "
     cd ~ && git clone https://github.com/demian7575/aipm.git
   fi
   
-  echo '📥 Pulling latest changes from develop...'
+  echo '📥 Pulling latest changes from main...'
   cd $REPO_PATH
   git fetch origin
-  git checkout develop
-  git pull origin develop
+  git checkout main
+  git pull origin main
 "
 
 # Install dependencies in repo
