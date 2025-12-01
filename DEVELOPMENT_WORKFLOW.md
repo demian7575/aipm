@@ -47,17 +47,22 @@ AI: [starts implementation]
 
 ### Phase 2: Implementation
 
-**On main branch:**
+**On feature branch:**
 
 ```bash
-# 1. Ensure you're on main
+# 1. Start from main
 git checkout main
 git pull origin main
 
-# 2. Make changes
+# 2. Create feature branch
+git checkout -b feature/descriptive-name
+# Example: feature/make-fields-readonly
+# Example: fix/deploy-pr-endpoint
+
+# 3. Make changes
 # ... edit files ...
 
-# 3. Commit with descriptive message
+# 4. Commit with descriptive message
 git add <files>
 git commit -m "feat: <description>
 
@@ -65,8 +70,14 @@ git commit -m "feat: <description>
 - Change 2
 - Change 3"
 
-# 4. Push to main
-git push origin main
+# 5. Push feature branch
+git push origin feature/descriptive-name
+
+# 6. Create Pull Request on GitHub
+# Go to: https://github.com/demian7575/aipm/pulls
+# Click "New Pull Request"
+# Base: main <- Compare: feature/descriptive-name
+# Add description and create PR
 ```
 
 **Commit Message Format:**
@@ -76,21 +87,39 @@ git push origin main
 - `docs:` - Documentation only
 - `test:` - Test changes
 
+**Branch Naming Convention:**
+- `feature/` - New features (e.g., `feature/make-fields-readonly`)
+- `fix/` - Bug fixes (e.g., `fix/deploy-pr-endpoint`)
+- `hotfix/` - Critical production fixes (e.g., `hotfix/api-crash`)
+- `refactor/` - Code improvements (e.g., `refactor/cleanup-handlers`)
+- `docs/` - Documentation updates (e.g., `docs/update-workflow`)
+
+**Branch names should be:**
+- Lowercase with hyphens
+- Descriptive but concise
+- Related to the change being made
+
 ---
 
 ### Phase 3: Deploy to Development
 
-**Deploy to dev environment for testing:**
+**Deploy feature branch to dev environment for testing:**
 
 ```bash
-# Option A: Full deployment (backend + frontend + data sync)
-./deploy-dev-full.sh
+# Option A: Use "Test in Dev" button in AIPM UI
+# 1. Go to your PR in AIPM
+# 2. Click "Deploy to Dev" button
+# 3. Wait for GitHub Actions to complete
 
-# Option B: Frontend only (faster, when backend unchanged)
-git checkout main
+# Option B: Manual deployment (frontend only)
+git checkout feature/your-branch-name
 cp apps/frontend/public/config-dev.js apps/frontend/public/config.js
 aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ \
   --region us-east-1 --exclude "*.md" --delete
+
+# Option C: Full deployment from feature branch
+git checkout feature/your-branch-name
+./deploy-dev-full.sh
 ```
 
 **Verify deployment:**
@@ -134,7 +163,16 @@ aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ \
 **Only after user approval:**
 
 ```bash
-# Full production deployment
+# 1. Merge PR to main
+# Go to GitHub PR page
+# Click "Merge pull request"
+# Confirm merge
+
+# 2. Pull latest main
+git checkout main
+git pull origin main
+
+# 3. Deploy to production
 ./deploy-prod-full.sh
 ```
 
@@ -207,19 +245,30 @@ AI: [deploys to prod]  ✅ CORRECT
 ### Scenario 1: Frontend-Only Change
 
 ```bash
-# 1. Make changes to app.js or styles.css
+# 1. Create feature branch
+git checkout main
+git pull origin main
+git checkout -b feature/make-fields-readonly
+
+# 2. Make changes to app.js or styles.css
 git add apps/frontend/public/
 git commit -m "feat: make fields read-only"
-git push origin main
+git push origin feature/make-fields-readonly
 
-# 2. Deploy to dev
+# 3. Create PR on GitHub
+
+# 4. Deploy to dev (use "Deploy to Dev" button in PR or manual)
 cp apps/frontend/public/config-dev.js apps/frontend/public/config.js
 aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ \
   --region us-east-1 --exclude "*.md" --delete
 
-# 3. User tests and approves
+# 5. User tests and approves
 
-# 4. Deploy to prod
+# 6. Merge PR to main on GitHub
+
+# 7. Deploy to prod
+git checkout main
+git pull origin main
 ./deploy-prod-full.sh
 ```
 
@@ -228,17 +277,27 @@ aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ \
 ### Scenario 2: Backend-Only Change
 
 ```bash
-# 1. Make changes to apps/backend/app.js
+# 1. Create feature branch and make changes
+git checkout main
+git pull origin main
+git checkout -b fix/api-endpoint-logic
 git add apps/backend/
 git commit -m "fix: correct API endpoint logic"
-git push origin main
+git push origin fix/api-endpoint-logic
 
-# 2. Deploy to dev
+# 2. Create PR on GitHub
+
+# 3. Deploy to dev
+git checkout fix/api-endpoint-logic
 npx serverless deploy --stage dev --function api
 
-# 3. User tests and approves
+# 4. User tests and approves
 
-# 4. Deploy to prod
+# 5. Merge PR to main
+
+# 6. Deploy to prod
+git checkout main
+git pull origin main
 npx serverless deploy --stage prod --function api
 ```
 
@@ -247,17 +306,27 @@ npx serverless deploy --stage prod --function api
 ### Scenario 3: Full Stack Change
 
 ```bash
-# 1. Make changes to both frontend and backend
+# 1. Create feature branch and make changes
+git checkout main
+git pull origin main
+git checkout -b feature/new-feature-with-api
 git add apps/
 git commit -m "feat: new feature with API changes"
-git push origin main
+git push origin feature/new-feature-with-api
 
-# 2. Deploy to dev
+# 2. Create PR on GitHub
+
+# 3. Deploy to dev
+git checkout feature/new-feature-with-api
 ./deploy-dev-full.sh
 
-# 3. User tests and approves
+# 4. User tests and approves
 
-# 4. Deploy to prod
+# 5. Merge PR to main
+
+# 6. Deploy to prod
+git checkout main
+git pull origin main
 ./deploy-prod-full.sh
 ```
 
@@ -266,18 +335,29 @@ git push origin main
 ### Scenario 4: Hotfix (Production Issue)
 
 ```bash
-# 1. Identify issue in production
+# 1. Create hotfix branch
+git checkout main
+git pull origin main
+git checkout -b hotfix/critical-issue
+
 # 2. Make minimal fix
 git add <files>
 git commit -m "fix: critical production issue"
-git push origin main
+git push origin hotfix/critical-issue
 
-# 3. Deploy to dev first (even for hotfix!)
+# 3. Create PR on GitHub
+
+# 4. Deploy to dev first (even for hotfix!)
+git checkout hotfix/critical-issue
 ./deploy-dev-full.sh
 
-# 4. Quick verification in dev
+# 5. Quick verification in dev
 
-# 5. Deploy to prod immediately after verification
+# 6. Merge PR to main immediately
+
+# 7. Deploy to prod
+git checkout main
+git pull origin main
 ./deploy-prod-full.sh
 ```
 
@@ -317,12 +397,15 @@ git push origin main
 
 1. ✅ User requested the change
 2. ✅ AI proposed solution and got approval
-3. ✅ Changes implemented on main branch
-4. ✅ Deployed to development first
-5. ✅ User tested and approved in dev
-6. ✅ Deployed to production
-7. ✅ Verified working in production
-8. ✅ User confirmed satisfaction
+3. ✅ Feature branch created from main
+4. ✅ Changes implemented and committed
+5. ✅ Pull Request created on GitHub
+6. ✅ Deployed to development first
+7. ✅ User tested and approved in dev
+8. ✅ PR merged to main
+9. ✅ Deployed to production
+10. ✅ Verified working in production
+11. ✅ User confirmed satisfaction
 
 ---
 
