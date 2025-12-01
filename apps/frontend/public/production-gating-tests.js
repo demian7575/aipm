@@ -172,7 +172,32 @@ function renderTestResults() {
     const resultsContainer = document.getElementById('results');
     Object.entries(PROD_TEST_SUITES).forEach(([suiteKey, suite]) => {
         const suiteDiv = document.createElement('div');
-        suiteDiv.innerHTML = `<h3>${suite.name}</h3>`;
+        suiteDiv.style.marginBottom = '20px';
+        
+        // Create collapsible header
+        const suiteHeader = document.createElement('h3');
+        suiteHeader.style.cursor = 'pointer';
+        suiteHeader.style.userSelect = 'none';
+        suiteHeader.style.padding = '10px';
+        suiteHeader.style.background = '#f8f9fa';
+        suiteHeader.style.borderRadius = '4px';
+        suiteHeader.style.display = 'flex';
+        suiteHeader.style.justifyContent = 'space-between';
+        suiteHeader.style.alignItems = 'center';
+        
+        const suiteTitle = document.createElement('span');
+        suiteTitle.textContent = suite.name;
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.textContent = '▼';
+        toggleIcon.style.fontSize = '12px';
+        
+        suiteHeader.appendChild(suiteTitle);
+        suiteHeader.appendChild(toggleIcon);
+        
+        // Create collapsible content
+        const suiteContent = document.createElement('div');
+        suiteContent.style.marginTop = '10px';
         
         suite.tests.forEach(test => {
             const result = testResults[suiteKey][test.name];
@@ -197,9 +222,18 @@ function renderTestResults() {
                 testDiv.appendChild(durationDiv);
             }
             
-            suiteDiv.appendChild(testDiv);
+            suiteContent.appendChild(testDiv);
         });
         
+        // Add click handler for collapse/expand
+        suiteHeader.addEventListener('click', () => {
+            const isCollapsed = suiteContent.style.display === 'none';
+            suiteContent.style.display = isCollapsed ? 'block' : 'none';
+            toggleIcon.textContent = isCollapsed ? '▼' : '▶';
+        });
+        
+        suiteDiv.appendChild(suiteHeader);
+        suiteDiv.appendChild(suiteContent);
         resultsContainer.appendChild(suiteDiv);
     });
 }
