@@ -55,7 +55,9 @@ const PROD_TEST_SUITES = {
             { name: 'Create PR Feature', test: 'testRunInStagingButton' },
             { name: 'ECS PR Creation Workflow', test: 'testRunInStagingWorkflow' },
             { name: 'Task Card Objective Display', test: 'testTaskCardObjective' },
-            { name: 'Create PR Endpoint', test: 'testCreatePREndpoint' }
+            { name: 'Create PR Endpoint', test: 'testCreatePREndpoint' },
+            { name: 'Auto Root Story Function', test: 'testAutoRootStoryFunction' },
+            { name: 'Deploy PR Endpoint', test: 'testDeployPREndpoint' }
         ]
     },
     stagingWorkflow: {
@@ -1395,6 +1397,56 @@ async function runProductionTest(testName) {
                 };
             } catch (error) {
                 return { success: false, message: `Content-Length test failed - ${error.message}` };
+            }
+
+        case 'testAutoRootStoryFunction':
+            // Test that createRootStory function exists in app.js
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasCreateRootStory = js.includes('createRootStory');
+                const hasAutoCall = js.includes('await createRootStory()');
+                
+                if (!hasCreateRootStory) {
+                    return { success: false, message: 'Auto Root Story: Function not found' };
+                }
+                
+                if (!hasAutoCall) {
+                    return { success: false, message: 'Auto Root Story: Not called when empty' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Auto Root Story: Function exists and auto-called when empty'
+                };
+            } catch (error) {
+                return { success: false, message: `Auto Root Story test failed - ${error.message}` };
+            }
+
+        case 'testDeployPREndpoint':
+            // Test that deploy-pr endpoint exists and uses correct API
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasDeployPR = js.includes('/api/deploy-pr');
+                const usesResolveApiUrl = js.includes('resolveApiUrl(\'/api/deploy-pr\')');
+                
+                if (!hasDeployPR) {
+                    return { success: false, message: 'Deploy PR: Endpoint call not found' };
+                }
+                
+                if (!usesResolveApiUrl) {
+                    return { success: false, message: 'Deploy PR: Not using resolveApiUrl()' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Deploy PR: Endpoint exists and uses correct API resolution'
+                };
+            } catch (error) {
+                return { success: false, message: `Deploy PR test failed - ${error.message}` };
             }
 
         default:
