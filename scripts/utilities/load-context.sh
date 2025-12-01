@@ -2,7 +2,7 @@
 # Load AIPM context into Kiro CLI session
 
 cat << 'EOF'
-I'm working on AIPM at /repo/ebaejun/tools/aws/aipm
+I'm working on AIPM at /home/ec2-user/aipm
 
 Key context to understand:
 

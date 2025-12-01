@@ -3426,7 +3426,7 @@ function buildKiroTerminalModalContent(prEntry = null) {
     if (prEntry?.branchName) {
       setTimeout(() => {
         const commands = [
-          'cd /repo/ebaejun/tools/aws/aipm',
+          'cd /home/ec2-user/aipm',
           'git fetch origin',
           `git checkout ${prEntry.branchName}`,
           'git log -1 --oneline',
