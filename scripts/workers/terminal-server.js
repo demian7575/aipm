@@ -43,6 +43,9 @@ function handleTerminalWebSocket(req, socket, head, url) {
   
   console.log(`[${new Date().toISOString()}] New terminal session: branch=${branch}`);
   
+  // Initialize buffer with any data from head
+  let buffer = Buffer.from(head);
+  
   // Send branch info
   sendWSMessage(socket, { type: 'branch', branch });
   
@@ -86,7 +89,7 @@ function handleTerminalWebSocket(req, socket, head, url) {
     });
     
     // Handle WebSocket messages (user input)
-    let buffer = Buffer.alloc(0);
+    // buffer already initialized above with head data
     
     socket.on('data', (data) => {
       buffer = Buffer.concat([buffer, data]);
