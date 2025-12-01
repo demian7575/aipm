@@ -19,6 +19,7 @@ ssh -o StrictHostKeyChecking=no ec2-user@$EC2_IP "
   echo '📥 Pulling latest changes from main...'
   cd $REPO_PATH
   git fetch origin
+  git reset --hard origin/main
   git checkout main
   git pull origin main
 "
