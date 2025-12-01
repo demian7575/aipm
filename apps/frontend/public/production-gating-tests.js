@@ -55,7 +55,9 @@ const PROD_TEST_SUITES = {
             { name: 'Create PR Feature', test: 'testRunInStagingButton' },
             { name: 'ECS PR Creation Workflow', test: 'testRunInStagingWorkflow' },
             { name: 'Task Card Objective Display', test: 'testTaskCardObjective' },
-            { name: 'Create PR Endpoint', test: 'testCreatePREndpoint' }
+            { name: 'Create PR Endpoint', test: 'testCreatePREndpoint' },
+            { name: 'Auto Root Story Function', test: 'testAutoRootStoryFunction' },
+            { name: 'Deploy PR Endpoint', test: 'testDeployPREndpoint' }
         ]
     },
     stagingWorkflow: {
@@ -151,26 +153,51 @@ function renderTestResults() {
         return;
     }
     
-    // Make the container visible when rendering gating tests
+    // Update environment info
+    const envInfo = document.getElementById('envInfo');
+    if (envInfo) {
+        envInfo.innerHTML = `
+            <div>API: ${PROD_CONFIG.api}</div>
+            <div>Frontend: ${PROD_CONFIG.frontend}</div>
+        `;
+    }
+    
     container.style.display = 'block';
     container.innerHTML = '';
     
-    const envSection = document.createElement('div');
-    envSection.className = 'test-section';
-    envSection.innerHTML = `
-        <div class="test-header">
-            <h2>Production Environment Validation</h2>
-            <small>API: ${PROD_CONFIG.api}</small><br>
-            <small>Frontend: ${PROD_CONFIG.frontend}</small>
-        </div>
-        <div class="test-results" id="results"></div>
-    `;
-    container.appendChild(envSection);
-    
-    const resultsContainer = document.getElementById('results');
     Object.entries(PROD_TEST_SUITES).forEach(([suiteKey, suite]) => {
         const suiteDiv = document.createElement('div');
-        suiteDiv.innerHTML = `<h3>${suite.name}</h3>`;
+        
+        // Check if suite has any failures
+        const hasFailures = suite.tests.some(test => {
+            const result = testResults[suiteKey][test.name];
+            return result.status === 'fail';
+        });
+        
+        // Create collapsible header
+        const suiteHeader = document.createElement('h3');
+        suiteHeader.style.cursor = 'pointer';
+        suiteHeader.style.userSelect = 'none';
+        suiteHeader.style.padding = '10px 0';
+        suiteHeader.style.display = 'flex';
+        suiteHeader.style.justifyContent = 'space-between';
+        suiteHeader.style.alignItems = 'center';
+        suiteHeader.style.textAlign = 'left';
+        
+        const suiteTitle = document.createElement('span');
+        suiteTitle.textContent = suite.name;
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.textContent = hasFailures ? '▼' : '▶';
+        toggleIcon.style.fontSize = '12px';
+        
+        suiteHeader.appendChild(suiteTitle);
+        suiteHeader.appendChild(toggleIcon);
+        
+        // Create collapsible content
+        const suiteContent = document.createElement('div');
+        suiteContent.style.marginTop = '10px';
+        suiteContent.style.display = hasFailures ? 'block' : 'none'; // Default collapsed unless failures
         
         suite.tests.forEach(test => {
             const result = testResults[suiteKey][test.name];
@@ -195,10 +222,19 @@ function renderTestResults() {
                 testDiv.appendChild(durationDiv);
             }
             
-            suiteDiv.appendChild(testDiv);
+            suiteContent.appendChild(testDiv);
         });
         
-        resultsContainer.appendChild(suiteDiv);
+        // Add click handler for collapse/expand
+        suiteHeader.addEventListener('click', () => {
+            const isCollapsed = suiteContent.style.display === 'none';
+            suiteContent.style.display = isCollapsed ? 'block' : 'none';
+            toggleIcon.textContent = isCollapsed ? '▼' : '▶';
+        });
+        
+        suiteDiv.appendChild(suiteHeader);
+        suiteDiv.appendChild(suiteContent);
+        container.appendChild(suiteDiv);
     });
 }
 
@@ -1395,6 +1431,56 @@ async function runProductionTest(testName) {
                 };
             } catch (error) {
                 return { success: false, message: `Content-Length test failed - ${error.message}` };
+            }
+
+        case 'testAutoRootStoryFunction':
+            // Test that createRootStory function exists in app.js
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasCreateRootStory = js.includes('createRootStory');
+                const hasAutoCall = js.includes('await createRootStory()');
+                
+                if (!hasCreateRootStory) {
+                    return { success: false, message: 'Auto Root Story: Function not found' };
+                }
+                
+                if (!hasAutoCall) {
+                    return { success: false, message: 'Auto Root Story: Not called when empty' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Auto Root Story: Function exists and auto-called when empty'
+                };
+            } catch (error) {
+                return { success: false, message: `Auto Root Story test failed - ${error.message}` };
+            }
+
+        case 'testDeployPREndpoint':
+            // Test that deploy-pr endpoint exists and uses correct API
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasDeployPR = js.includes('/api/deploy-pr');
+                const usesResolveApiUrl = js.includes('resolveApiUrl(\'/api/deploy-pr\')');
+                
+                if (!hasDeployPR) {
+                    return { success: false, message: 'Deploy PR: Endpoint call not found' };
+                }
+                
+                if (!usesResolveApiUrl) {
+                    return { success: false, message: 'Deploy PR: Not using resolveApiUrl()' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Deploy PR: Endpoint exists and uses correct API resolution'
+                };
+            } catch (error) {
+                return { success: false, message: `Deploy PR test failed - ${error.message}` };
             }
 
         default:
