@@ -153,26 +153,18 @@ function renderTestResults() {
         return;
     }
     
-    // Make the container visible when rendering gating tests
     container.style.display = 'block';
     container.innerHTML = '';
     
-    const envSection = document.createElement('div');
-    envSection.className = 'test-section';
-    envSection.innerHTML = `
-        <div class="test-header">
-            <h2>Production Environment Validation</h2>
-            <small>API: ${PROD_CONFIG.api}</small><br>
-            <small>Frontend: ${PROD_CONFIG.frontend}</small>
-        </div>
-        <div class="test-results" id="results"></div>
-    `;
-    container.appendChild(envSection);
-    
-    const resultsContainer = document.getElementById('results');
     Object.entries(PROD_TEST_SUITES).forEach(([suiteKey, suite]) => {
         const suiteDiv = document.createElement('div');
         suiteDiv.style.marginBottom = '20px';
+        
+        // Check if suite has any failures
+        const hasFailures = suite.tests.some(test => {
+            const result = testResults[suiteKey][test.name];
+            return result.status === 'fail';
+        });
         
         // Create collapsible header
         const suiteHeader = document.createElement('h3');
@@ -189,7 +181,7 @@ function renderTestResults() {
         suiteTitle.textContent = suite.name;
         
         const toggleIcon = document.createElement('span');
-        toggleIcon.textContent = '▼';
+        toggleIcon.textContent = hasFailures ? '▼' : '▶';
         toggleIcon.style.fontSize = '12px';
         
         suiteHeader.appendChild(suiteTitle);
@@ -198,6 +190,7 @@ function renderTestResults() {
         // Create collapsible content
         const suiteContent = document.createElement('div');
         suiteContent.style.marginTop = '10px';
+        suiteContent.style.display = hasFailures ? 'block' : 'none'; // Default collapsed unless failures
         
         suite.tests.forEach(test => {
             const result = testResults[suiteKey][test.name];
@@ -234,7 +227,7 @@ function renderTestResults() {
         
         suiteDiv.appendChild(suiteHeader);
         suiteDiv.appendChild(suiteContent);
-        resultsContainer.appendChild(suiteDiv);
+        container.appendChild(suiteDiv);
     });
 }
 
