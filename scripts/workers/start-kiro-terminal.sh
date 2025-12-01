@@ -14,10 +14,13 @@ ssh -o StrictHostKeyChecking=no ec2-user@$EC2_IP "
   if [ ! -d $REPO_PATH ]; then
     echo '📦 Cloning repository...'
     cd ~ && git clone https://github.com/demian7575/aipm.git
-  else
-    echo '📥 Pulling latest changes...'
-    cd $REPO_PATH && git pull origin develop
   fi
+  
+  echo '📥 Pulling latest changes from develop...'
+  cd $REPO_PATH
+  git fetch origin
+  git checkout develop
+  git pull origin develop
 "
 
 # Install dependencies in repo
