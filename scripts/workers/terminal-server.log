@@ -1,0 +1,38 @@
+🚀 Starting persistent Kiro session...
+✅ Kiro CLI started (PID: 18041)
+📋 Loading AIPM context...
+🚀 Kiro Terminal Server listening on port 8080
+📁 Repository path: /home/ec2-user/aipm
+🔗 WebSocket endpoint: ws://localhost:8080/terminal?branch=<branch-name>
+🔗 Code generation: POST http://localhost:8080/generate-code
+
+🔨 Generating code for PR #999
+🌿 Branch: develop
+📋 Task: Add a test comment to README
+Already on 'develop'
+Your branch is up to date with 'origin/develop'.
+
+Add a test comment to README[K[38;5;93m> [0mAdd a test comment to README
+To github.com:demian7575/aipm.git
+   92e4005..5643e64  develop -> develop
+✅ Code generated and pushed to develop
+
+🔨 Generating code for PR #221
+🌿 Branch: feature/test-code-generation-1764626605-1764626606771
+📋 Task: Add a test function to verify code generation works. Constraints: Keep it simple, just add a comment. Acceptance Criteria: Function should exist
+From github.com:demian7575/aipm
+ * [new branch]      feature/test-code-generation-1764626605-1764626606771 -> origin/feature/test-code-generation-1764626605-1764626606771
+ * [new branch]      i-want-merge-button-on-development-tasks-1764626287809 -> origin/i-want-merge-button-on-development-tasks-1764626287809
+ * [new branch]      i-want-merge-button-on-development-tasks-1764626346054 -> origin/i-want-merge-button-on-development-tasks-1764626346054
+Switched to a new branch 'feature/test-code-generation-1764626605-1764626606771'
+branch 'feature/test-code-generation-1764626605-1764626606771' set up to track 'origin/feature/test-code-generation-1764626605-1764626606771'.
+
+Add a test function to verify codAdd a test function to verify code generation worke generation works. Conss. Constraints:traints: Keep it simple, just add a comment. Acceptance  Keep it simple, just add a comment. Acceptance Criter[K[A[K[38;5;93m> [0mAdd a test comment to README
+Add a test function to verify code generation works. Constraints: Keep it simple, just add a comment. Acceptance Criteri
+Criter[K[A[K[38;5;93m> [0mAdd a test comment to README
+Add a test function to verify code generation works. Constraints: Keep it simple, just add a comment. Acceptance Criteri
+a: Function should exist[K[A[K[A[K[38;5;93m> [0mAdd a test comment to README
+Add a test function to verify code generation works. Constraints: Keep it simple, just add a comment. Acceptance Criteria: Function should exist
+a: Function should exist[K[A[K[A[K[38;5;93m> [0mAdd a test comment to README
+Add a test function to verify code generation works. Constraints: Keep it simple, just add a comment. Acceptance Criteria: Function should exist
+
