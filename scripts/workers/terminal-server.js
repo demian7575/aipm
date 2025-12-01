@@ -8,6 +8,38 @@ import pty from 'node-pty';
 const PORT = process.env.PORT || 8080;
 const REPO_PATH = process.env.REPO_PATH || '/home/ec2-user/aipm';
 
+// Start single persistent Kiro session
+console.log('🚀 Starting persistent Kiro session...');
+const kiro = pty.spawn('bash', ['-c', `cd ${REPO_PATH} && ./bin/load-context && kiro-cli chat`], {
+  name: 'xterm-256color',
+  cols: 120,
+  rows: 30,
+  cwd: REPO_PATH,
+  env: process.env
+});
+
+console.log(`✅ Kiro CLI started (PID: ${kiro.pid})`);
+console.log('📋 Loading AIPM context...');
+
+// Track all connected clients
+const clients = new Set();
+
+// Broadcast Kiro output to all connected clients
+kiro.onData((data) => {
+  clients.forEach(client => {
+    try {
+      sendWSMessage(client.socket, { type: 'output', data });
+    } catch (e) {
+      clients.delete(client);
+    }
+  });
+});
+
+kiro.onExit(({ exitCode }) => {
+  console.error(`❌ Kiro exited unexpectedly (code: ${exitCode})`);
+  process.exit(1);
+});
+
 const server = createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Kiro Terminal Server Running\n');
@@ -41,53 +73,18 @@ function handleTerminalWebSocket(req, socket, head, url) {
     '\r\n'
   );
   
-  console.log(`[${new Date().toISOString()}] New terminal session: branch=${branch}`);
+  console.log(`[${new Date().toISOString()}] Client connected (branch: ${branch})`);
   
   // Initialize buffer with any data from head
   let buffer = Buffer.from(head);
   
-  // Send branch info
+  // Add client to broadcast list
+  const client = { socket, branch };
+  clients.add(client);
+  
+  // Send branch info and welcome
   sendWSMessage(socket, { type: 'branch', branch });
-  
-  // Checkout branch first
-  sendWSMessage(socket, { type: 'output', data: `✓ Checked out branch: ${branch}\r\n\r\n` });
-  
-  // Start kiro-cli with PTY
-  const kiro = pty.spawn('bash', ['-c', `cd ${REPO_PATH} && git checkout ${branch} 2>/dev/null && kiro-cli chat`], {
-    name: 'xterm-256color',
-    cols: 80,
-    rows: 30,
-    cwd: REPO_PATH,
-    env: process.env
-  });
-  
-  console.log(`[${new Date().toISOString()}] Started Kiro CLI (PID: ${kiro.pid})`);
-  
-  // Wait for Kiro to be ready, then load context
-  let kiroReady = false;
-  
-  // Pipe kiro output to WebSocket
-  kiro.onData((data) => {
-    sendWSMessage(socket, { type: 'output', data });
-    
-    // Detect when Kiro is ready (shows prompt or welcome message)
-    if (!kiroReady && (data.includes('How can I help') || data.includes('What can I help'))) {
-      kiroReady = true;
-      console.log(`[${new Date().toISOString()}] Kiro ready, loading context...`);
-      
-      // Send load-context command
-      setTimeout(() => {
-        kiro.write('./bin/load-context\r');
-      }, 500);
-    }
-  });
-  
-  kiro.onExit(({ exitCode }) => {
-    console.log(`[${new Date().toISOString()}] Kiro exited (code: ${exitCode})`);
-    sendWSMessage(socket, { type: 'output', data: `\r\n✓ Kiro exited (code ${exitCode})\r\n` });
-    sendWSMessage(socket, { type: 'output', data: '✓ Returned to main branch\r\n' });
-    socket.end();
-  });
+  sendWSMessage(socket, { type: 'output', data: `✓ Connected to Kiro session\r\n` });
   
   // Handle WebSocket messages (user input)
   // buffer already initialized above with head data
@@ -103,20 +100,17 @@ function handleTerminalWebSocket(req, socket, head, url) {
         
         if (frame.opcode === 0x8) {
           // Close frame
-          console.log(`[${new Date().toISOString()}] Client closed connection`);
-          kiro.kill();
+          console.log(`[${new Date().toISOString()}] Client disconnected`);
+          clients.delete(client);
           socket.end();
           return;
         }
         
         if (frame.opcode === 0x1 || frame.opcode === 0x2) {
-          // Text or binary frame
-          console.log(`[${new Date().toISOString()}] Received frame:`, frame.payload.toString());
+          // Text or binary frame - send to shared Kiro session
           try {
             const message = JSON.parse(frame.payload.toString());
-            console.log(`[${new Date().toISOString()}] Parsed message:`, message);
             if (message.type === 'input') {
-              console.log(`[${new Date().toISOString()}] Writing to Kiro:`, message.data);
               kiro.write(message.data);
             }
           } catch (e) {
@@ -127,13 +121,13 @@ function handleTerminalWebSocket(req, socket, head, url) {
     });
     
     socket.on('close', () => {
-      console.log(`[${new Date().toISOString()}] Socket closed`);
-      kiro.kill();
+      console.log(`[${new Date().toISOString()}] Client disconnected`);
+      clients.delete(client);
     });
     
     socket.on('error', (err) => {
       console.error(`[${new Date().toISOString()}] Socket error:`, err);
-      kiro.kill();
+      clients.delete(client);
     });
 }
 
