@@ -3316,7 +3316,7 @@ function buildRunInStagingModalContent(prEntry = null) {
     
     // Start terminal session
     try {
-      const response = await fetch(`${API_BASE_URL}/api/terminal/start`, {
+      const response = await fetch(resolveApiUrl('/api/terminal/start'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ branch: prEntry?.branch || 'unknown' })
@@ -3341,7 +3341,7 @@ function buildRunInStagingModalContent(prEntry = null) {
       pollInterval = setInterval(async () => {
         try {
           const outputResponse = await fetch(
-            `${API_BASE_URL}/api/terminal/output?sessionId=${sessionId}&lastIndex=${lastOutputIndex}`
+            resolveApiUrl(`/api/terminal/output?sessionId=${sessionId}&lastIndex=${lastOutputIndex}`)
           );
           const outputResult = await outputResponse.json();
           
@@ -3377,7 +3377,7 @@ function buildRunInStagingModalContent(prEntry = null) {
       if (!sessionId) return;
       
       try {
-        await fetch(`${API_BASE_URL}/api/terminal/input`, {
+        await fetch(resolveApiUrl('/api/terminal/input'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId, data })
@@ -3396,7 +3396,7 @@ function buildRunInStagingModalContent(prEntry = null) {
     
     if (sessionId) {
       try {
-        await fetch(`${API_BASE_URL}/api/terminal/stop`, {
+        await fetch(resolveApiUrl('/api/terminal/stop'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId })
@@ -3423,7 +3423,7 @@ function buildRunInStagingModalContent(prEntry = null) {
     onClose: () => {
       if (pollInterval) clearInterval(pollInterval);
       if (sessionId) {
-        fetch(`${API_BASE_URL}/api/terminal/stop`, {
+        fetch(resolveApiUrl('/api/terminal/stop'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId })
