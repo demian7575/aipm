@@ -2387,7 +2387,7 @@ async function handleDeployPRRequest(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          ref: branchName || `refs/pull/${prNumber}/head`,
+          ref: 'main',
           inputs: {
             pr_number: String(prNumber || ''),
             branch_name: branchName || ''
