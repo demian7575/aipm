@@ -1350,7 +1350,7 @@ async function runProductionTest(testName) {
         case 'testGitHubWorkflowFile':
             // Verify ECS infrastructure documentation exists
             try {
-                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/ECS_DEPLOYMENT.md');
+                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/docs/archive/legacy/ECS_DEPLOYMENT.md');
                 if (!response.ok) {
                     return { success: false, message: 'ECS: Documentation not found' };
                 }
@@ -1371,7 +1371,7 @@ async function runProductionTest(testName) {
         case 'testWorkflowInputFormat':
             // Verify ECS worker script exists
             try {
-                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/q-worker.sh');
+                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/scripts/workers/q-worker.sh');
                 if (!response.ok) {
                     return { success: false, message: 'ECS: Worker script not found' };
                 }
