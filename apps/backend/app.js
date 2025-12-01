@@ -5771,12 +5771,17 @@ export async function createApp() {
           const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
           const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
           
+          const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          if (!tableName) {
+            throw new Error('STORIES_TABLE environment variable not set');
+          }
+          
           const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
           const docClient = DynamoDBDocumentClient.from(client);
           
           // Get existing story
           const getResult = await docClient.send(new GetCommand({
-            TableName: process.env.STORIES_TABLE,
+            TableName: tableName,
             Key: { id: storyId }
           }));
           
@@ -5787,7 +5792,7 @@ export async function createApp() {
           
           // Update story
           await docClient.send(new UpdateCommand({
-            TableName: process.env.STORIES_TABLE,
+            TableName: tableName,
             Key: { id: storyId },
             UpdateExpression: 'SET title = :title, asA = :asA, iWant = :iWant, soThat = :soThat, description = :description, storyPoints = :storyPoints, assigneeEmail = :assigneeEmail, #status = :status, components = :components',
             ExpressionAttributeNames: {
