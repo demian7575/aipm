@@ -107,13 +107,16 @@ function handleTerminalWebSocket(req, socket, head, url) {
         
         if (frame.opcode === 0x1 || frame.opcode === 0x2) {
           // Text or binary frame
+          console.log(`[${new Date().toISOString()}] Received frame:`, frame.payload.toString());
           try {
             const message = JSON.parse(frame.payload.toString());
+            console.log(`[${new Date().toISOString()}] Parsed message:`, message);
             if (message.type === 'input') {
+              console.log(`[${new Date().toISOString()}] Writing to Kiro stdin:`, message.data);
               kiro.stdin.write(message.data);
             }
           } catch (e) {
-            // Ignore parse errors
+            console.error(`[${new Date().toISOString()}] Parse error:`, e.message);
           }
         }
       }
