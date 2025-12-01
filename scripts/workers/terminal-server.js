@@ -121,7 +121,7 @@ function handleTerminalWebSocket(req, socket, head, url) {
       console.error(`[${new Date().toISOString()}] Socket error:`, err);
       kiro.kill();
     });
-  });
+}
 
 function sendWSMessage(socket, data) {
   const payload = JSON.stringify(data);
