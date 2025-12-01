@@ -4233,17 +4233,128 @@ function renderDetails() {
 
   setEditing(false);
 
-  editButton?.addEventListener('click', () => {
-    const currentlyEditing = !saveButton.disabled;
-    if (currentlyEditing) {
-      setEditing(false);
-    } else {
-      setEditing(true);
-      const titleField = form.elements.title;
-      if (titleField) {
-        titleField.focus();
+  editButton?.addEventListener('click', async () => {
+    // Open edit modal
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 800px;">
+        <h2>Edit Story</h2>
+        <form id="edit-story-form">
+          <div class="form-group">
+            <label>Title:</label>
+            <input type="text" name="title" value="${escapeHtml(story.title || '')}" required>
+          </div>
+          <div class="form-group">
+            <label>As a:</label>
+            <input type="text" name="asA" value="${escapeHtml(story.asA || '')}">
+          </div>
+          <div class="form-group">
+            <label>I want:</label>
+            <textarea name="iWant" rows="2">${escapeHtml(story.iWant || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label>So that:</label>
+            <textarea name="soThat" rows="2">${escapeHtml(story.soThat || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Description:</label>
+            <textarea name="description" rows="4">${escapeHtml(story.description || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Story Points:</label>
+            <input type="number" name="storyPoints" value="${story.storyPoints || 0}" min="0">
+          </div>
+          <div class="form-group">
+            <label>Assignee Email:</label>
+            <input type="email" name="assigneeEmail" value="${escapeHtml(story.assigneeEmail || '')}">
+          </div>
+          <div class="form-group">
+            <label>Status:</label>
+            <select name="status">
+              ${STORY_STATUS_GUIDE.map(s => `<option value="${s.value}" ${story.status === s.value ? 'selected' : ''}>${s.value}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Components:</label>
+            <div id="modal-components-display" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 40px; cursor: pointer; background: #f8f9fa;">
+              ${story.components && story.components.length > 0 ? story.components.join(', ') : 'Click to select'}
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <button type="button" class="btn-secondary" id="cancel-edit">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    let modalComponents = Array.isArray(story.components) ? [...story.components] : [];
+    const componentsDisplay = modal.querySelector('#modal-components-display');
+    
+    const updateComponentsDisplay = () => {
+      componentsDisplay.textContent = modalComponents.length > 0 ? modalComponents.join(', ') : 'Click to select';
+    };
+    
+    componentsDisplay.addEventListener('click', async () => {
+      const picked = await openComponentPicker(modalComponents, { title: 'Select Components' });
+      if (Array.isArray(picked)) {
+        modalComponents = picked;
+        updateComponentsDisplay();
       }
-    }
+    });
+    
+    const form = modal.querySelector('#edit-story-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const updates = {
+        title: formData.get('title'),
+        asA: formData.get('asA'),
+        iWant: formData.get('iWant'),
+        soThat: formData.get('soThat'),
+        description: formData.get('description'),
+        storyPoints: parseInt(formData.get('storyPoints')) || 0,
+        assigneeEmail: formData.get('assigneeEmail'),
+        status: formData.get('status'),
+        components: modalComponents
+      };
+      
+      try {
+        const url = `${getApiBaseUrl()}/api/stories/${story.id}`;
+        console.log('Updating story:', story.id, 'URL:', url);
+        
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        
+        if (response.ok) {
+          modal.remove();
+          await loadStories();
+        } else {
+          const errorText = await response.text();
+          console.error('Update failed:', response.status, errorText);
+          alert(`Failed to update story: ${response.status} - ${errorText}`);
+        }
+      } catch (error) {
+        console.error('Error updating story:', error);
+        alert(`Error updating story: ${error.message}`);
+      }
+    });
+    
+    modal.querySelector('#cancel-edit').addEventListener('click', () => {
+      modal.remove();
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
   });
 
   deleteButton?.addEventListener('click', (event) => {

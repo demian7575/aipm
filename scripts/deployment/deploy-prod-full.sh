@@ -56,6 +56,7 @@ echo "📦 Step 4: Deploying Frontend to S3..."
 aws s3 sync apps/frontend/public/ s3://aipm-static-hosting-demo/ \
   --region us-east-1 \
   --exclude "*.md" \
+  --cache-control "no-cache, must-revalidate" \
   --delete
 
 # 5. Verify Deployment

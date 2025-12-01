@@ -5602,6 +5602,103 @@ export async function createApp() {
       return;
     }
 
+    // Update story
+    const updateMatch = pathname.match(/^\/api\/stories\/(\d+)$/);
+    if (updateMatch && method === 'PUT') {
+      try {
+        const storyId = Number(updateMatch[1]);
+        const payload = await parseJson(req);
+        
+        // Check if using DynamoDB or SQLite
+        if (db.constructor.name === 'DynamoDBDataLayer') {
+          // DynamoDB update
+          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+          
+          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const docClient = DynamoDBDocumentClient.from(client);
+          
+          // Get existing story
+          const getResult = await docClient.send(new GetCommand({
+            TableName: process.env.STORIES_TABLE,
+            Key: { id: storyId }
+          }));
+          
+          if (!getResult.Item) {
+            sendJson(res, 404, { message: 'Story not found' });
+            return;
+          }
+          
+          // Update story
+          await docClient.send(new UpdateCommand({
+            TableName: process.env.STORIES_TABLE,
+            Key: { id: storyId },
+            UpdateExpression: 'SET title = :title, asA = :asA, iWant = :iWant, soThat = :soThat, description = :description, storyPoints = :storyPoints, assigneeEmail = :assigneeEmail, #status = :status, components = :components',
+            ExpressionAttributeNames: {
+              '#status': 'status'
+            },
+            ExpressionAttributeValues: {
+              ':title': payload.title ?? getResult.Item.title,
+              ':asA': payload.asA ?? getResult.Item.asA,
+              ':iWant': payload.iWant ?? getResult.Item.iWant,
+              ':soThat': payload.soThat ?? getResult.Item.soThat,
+              ':description': payload.description ?? getResult.Item.description,
+              ':storyPoints': payload.storyPoints ?? getResult.Item.storyPoints,
+              ':assigneeEmail': payload.assigneeEmail ?? getResult.Item.assigneeEmail,
+              ':status': payload.status ?? getResult.Item.status,
+              ':components': payload.components ?? getResult.Item.components
+            }
+          }));
+        } else {
+          // SQLite update
+          const existing = await new Promise((resolve, reject) => {
+            db.get('SELECT * FROM user_stories WHERE id = ?', [storyId], (err, row) => {
+              if (err) reject(err);
+              else resolve(row);
+            });
+          });
+          
+          if (!existing) {
+            sendJson(res, 404, { message: 'Story not found' });
+            return;
+          }
+          
+          const updates = {
+            title: payload.title ?? existing.title,
+            asA: payload.asA ?? existing.asA,
+            iWant: payload.iWant ?? existing.iWant,
+            soThat: payload.soThat ?? existing.soThat,
+            description: payload.description ?? existing.description,
+            storyPoints: payload.storyPoints ?? existing.storyPoints,
+            assigneeEmail: payload.assigneeEmail ?? existing.assigneeEmail,
+            status: payload.status ?? existing.status,
+            components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]'))
+          };
+          
+          await new Promise((resolve, reject) => {
+            db.run(
+              `UPDATE user_stories SET 
+                title = ?, asA = ?, iWant = ?, soThat = ?, description = ?,
+                storyPoints = ?, assigneeEmail = ?, status = ?, components = ?
+              WHERE id = ?`,
+              [updates.title, updates.asA, updates.iWant, updates.soThat, updates.description,
+               updates.storyPoints, updates.assigneeEmail, updates.status, updates.components, storyId],
+              (err) => {
+                if (err) reject(err);
+                else resolve();
+              }
+            );
+          });
+        }
+        
+        sendJson(res, 200, { success: true, message: 'Story updated' });
+      } catch (err) {
+        console.error('Update story error:', err);
+        sendJson(res, err.statusCode || 500, { message: err.message });
+      }
+      return;
+    }
+
     if (pathname === '/api/stories/draft' && method === 'POST') {
       try {
         const payload = await parseJson(req);
