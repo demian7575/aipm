@@ -427,48 +427,29 @@ async function performDelegation(payload) {
       })
     });
     
-    // Add to DynamoDB queue
-    const taskDetails = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
-    const taskId = `task-${timestamp}`;
+    // Call EC2 to generate code (fire and forget - don't wait)
+    const taskDescription = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
+    const ec2Url = process.env.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
     
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(dynamoClient);
-    
-    await docClient.send(new PutCommand({
-      TableName: 'aipm-amazon-q-queue',
-      Item: {
-        id: taskId,
-        title: normalized.taskTitle,
-        details: taskDetails,
+    // Fire and forget - don't await
+    fetch(`${ec2Url}/generate-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         branch: branchName,
-        prNumber: pr.number,
-        prUrl: pr.html_url,
-        owner: normalized.owner,
-        repo: normalized.repo,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      }
-    }));
-    
-    // Trigger Kiro workflow to generate code
-    try {
-      await githubRequest(`${repoPath}/actions/workflows/kiro-generate-code.yml/dispatches`, {
-        method: 'POST',
-        body: JSON.stringify({
-          ref: 'main',
-          inputs: {
-            pr_number: String(pr.number),
-            branch_name: branchName,
-            task_description: taskDetails
-          }
-        })
+        taskDescription,
+        prNumber: pr.number
+      })
+    }).then(response => response.json())
+      .then(result => {
+        console.log('✅ EC2 code generation triggered:', result.success ? 'Success' : 'Failed');
+        if (result.kiroOutput) {
+          console.log('🤖 Kiro output (last 500 chars):', result.kiroOutput.substring(result.kiroOutput.length - 500));
+        }
+      })
+      .catch(error => {
+        console.error('❌ Failed to trigger code generation on EC2:', error.message);
       });
-    } catch (error) {
-      console.error('Failed to trigger Kiro workflow:', error);
-    }
     
     return {
       type: 'pull_request',
@@ -476,7 +457,6 @@ async function performDelegation(payload) {
       html_url: pr.html_url,
       number: pr.number,
       branchName: branchName,
-      taskId: taskId,
       taskHtmlUrl: pr.html_url,
       threadHtmlUrl: pr.html_url,
       confirmationCode: `PR${timestamp}`,

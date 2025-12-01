@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Terminal server for EC2 - handles Kiro CLI WebSocket connections
+// Terminal server for EC2 - handles Kiro CLI WebSocket connections + HTTP API
 
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import pty from 'node-pty';
+import { execSync } from 'node:child_process';
 
 const PORT = process.env.PORT || 8080;
 const REPO_PATH = process.env.REPO_PATH || '/home/ec2-user/aipm';
@@ -40,9 +41,112 @@ kiro.onExit(({ exitCode }) => {
   process.exit(1);
 });
 
-const server = createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Kiro Terminal Server Running\n');
+const server = createServer(async (req, res) => {
+  const url = new URL(req.url, 'http://localhost');
+  
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+  
+  // Health check
+  if (url.pathname === '/' || url.pathname === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Kiro Terminal Server Running\n');
+    return;
+  }
+  
+  // Code generation endpoint
+  if (url.pathname === '/generate-code' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { branch, taskDescription, prNumber } = JSON.parse(body);
+        
+        if (!branch || !taskDescription) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'branch and taskDescription required' }));
+          return;
+        }
+        
+        console.log(`\n🔨 Generating code for PR #${prNumber}`);
+        console.log(`🌿 Branch: ${branch}`);
+        console.log(`📋 Task: ${taskDescription}`);
+        
+        // Capture Kiro output
+        let kiroOutput = '';
+        const outputHandler = (data) => {
+          kiroOutput += data;
+          process.stdout.write(data); // Also log to console
+        };
+        
+        kiro.onData(outputHandler);
+        
+        // Checkout branch (reset any local changes first)
+        const gitCheckout = execSync(`cd ${REPO_PATH} && git reset --hard && git fetch origin && git checkout ${branch}`, { encoding: 'utf8' });
+        console.log(gitCheckout);
+        
+        // Send task to Kiro
+        const command = `${taskDescription}\n`;
+        kiro.write(command);
+        
+        // Wait for Kiro to finish (30 seconds)
+        await new Promise(resolve => setTimeout(resolve, 30000));
+        
+        // Remove output handler
+        kiro.removeListener('data', outputHandler);
+        
+        // Commit and push
+        let gitOutput = '';
+        try {
+          gitOutput = execSync(`cd ${REPO_PATH} && git add . && git commit -m "feat: ${taskDescription.substring(0, 50)}" && git push origin ${branch}`, { encoding: 'utf8' });
+          
+          console.log(`✅ Code generated and pushed to ${branch}`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: true, 
+            message: 'Code generated successfully',
+            branch,
+            kiroOutput: kiroOutput.substring(kiroOutput.length - 2000), // Last 2000 chars
+            gitOutput
+          }));
+        } catch (gitError) {
+          if (gitError.message.includes('nothing to commit')) {
+            console.log(`⚠️  No changes generated`);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              success: true, 
+              message: 'No changes needed',
+              branch,
+              kiroOutput: kiroOutput.substring(kiroOutput.length - 2000),
+              gitOutput: 'No changes to commit'
+            }));
+          } else {
+            throw gitError;
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Code generation failed:`, error.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: error.message 
+        }));
+      }
+    });
+    return;
+  }
+  
+  // 404 for other routes
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not Found\n');
 });
 
 server.on('upgrade', (req, socket, head) => {
@@ -195,4 +299,5 @@ server.listen(PORT, () => {
   console.log(`🚀 Kiro Terminal Server listening on port ${PORT}`);
   console.log(`📁 Repository path: ${REPO_PATH}`);
   console.log(`🔗 WebSocket endpoint: ws://localhost:${PORT}/terminal?branch=<branch-name>`);
+  console.log(`🔗 Code generation: POST http://localhost:${PORT}/generate-code`);
 });

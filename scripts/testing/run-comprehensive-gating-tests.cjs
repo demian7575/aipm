@@ -85,7 +85,7 @@ async function testDynamicButtonCapability(baseUrl, testName) {
         const content = await response.text();
         // Check for button creation code and staging workflow capability
         const hasButtonCreation = content.includes('run-in-staging-btn') && content.includes('Run in Staging');
-        const hasStagingWorkflow = content.includes('buildRunInStagingModalContent') || content.includes('/api/run-staging');
+        const hasStagingWorkflow = content.includes('buildKiroTerminalModalContent') || content.includes('/api/run-staging');
         
         if (hasButtonCreation && hasStagingWorkflow) {
             return { name: testName, status: 'pass', message: 'Found' };
@@ -173,7 +173,7 @@ async function runEnvironmentTests(env, config) {
         // Feature tests
         testButtonExists(config.frontend, 'export-stories-btn', 'PR123 Export Button'),
         testJavaScriptFunction(config.frontend, 'buildExportModalContent', 'Export Modal Function'),
-        testJavaScriptFunction(config.frontend, 'buildRunInStagingModalContent', 'Staging Modal Function')
+        testJavaScriptFunction(config.frontend, 'buildKiroTerminalModalContent', 'Kiro Terminal Modal Function')
     ];
     
     // Add draft generation only for production

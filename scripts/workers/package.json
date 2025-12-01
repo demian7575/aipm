@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "node-pty": "^1.0.0"
+    "node-pty": "^1.0.0",
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
   }
 }
+
