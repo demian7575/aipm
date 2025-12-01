@@ -158,28 +158,33 @@ async function runEnvironmentTests(env, config) {
     console.log(`   API: ${config.api}`);
     console.log(`   Frontend: ${config.frontend}\n`);
     
-    const results = [];
+    // Run all tests in parallel
+    const testPromises = [
+        // Core API tests
+        testEndpoint(`${config.api}/api/stories`, 'API Stories'),
+        
+        // Frontend asset tests
+        testEndpoint(`${config.frontend}/`, 'Frontend Index'),
+        testEndpoint(`${config.frontend}/app.js`, 'Frontend App.js'),
+        testEndpoint(`${config.frontend}/config.js`, 'Frontend Config'),
+        testEndpoint(`${config.frontend}/production-gating-tests.js`, 'Gating Tests Script'),
+        testEndpoint(`${config.frontend}/production-gating-tests.html`, 'Gating Tests Page'),
+        
+        // Feature tests
+        testButtonExists(config.frontend, 'export-stories-btn', 'PR123 Export Button'),
+        testJavaScriptFunction(config.frontend, 'buildExportModalContent', 'Export Modal Function'),
+        testJavaScriptFunction(config.frontend, 'buildRunInStagingModalContent', 'Staging Modal Function')
+    ];
     
-    // Core API tests
-    results.push(await testEndpoint(`${config.api}/api/stories`, 'API Stories'));
-    
-    // Skip draft generation for development environment (Lambda issues)
+    // Add draft generation only for production
     if (env !== 'development') {
-        results.push(await testPostEndpoint(`${config.api}/api/stories/draft`, 
-            { idea: 'test story', parentId: null }, 'API Draft Generation'));
+        testPromises.push(
+            testPostEndpoint(`${config.api}/api/stories/draft`, 
+                { idea: 'test story', parentId: null }, 'API Draft Generation')
+        );
     }
     
-    // Frontend asset tests
-    results.push(await testEndpoint(`${config.frontend}/`, 'Frontend Index'));
-    results.push(await testEndpoint(`${config.frontend}/app.js`, 'Frontend App.js'));
-    results.push(await testEndpoint(`${config.frontend}/config.js`, 'Frontend Config'));
-    results.push(await testEndpoint(`${config.frontend}/production-gating-tests.js`, 'Gating Tests Script'));
-    results.push(await testEndpoint(`${config.frontend}/production-gating-tests.html`, 'Gating Tests Page'));
-    
-    // Feature tests
-    results.push(await testButtonExists(config.frontend, 'export-stories-btn', 'PR123 Export Button'));
-    results.push(await testJavaScriptFunction(config.frontend, 'buildExportModalContent', 'Export Modal Function'));
-    results.push(await testJavaScriptFunction(config.frontend, 'buildRunInStagingModalContent', 'Staging Modal Function'));
+    const results = await Promise.all(testPromises);
     
     const passed = results.filter(r => r.success).length;
     const total = results.length;
