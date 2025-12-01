@@ -1,12 +1,21 @@
 #!/usr/bin/env node
-// Terminal server for EC2 - handles Kiro CLI WebSocket connections
+// Terminal server for EC2 - handles Kiro CLI WebSocket connections + queue processing
 
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import pty from 'node-pty';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { execSync } from 'node:child_process';
 
 const PORT = process.env.PORT || 8080;
 const REPO_PATH = process.env.REPO_PATH || '/home/ec2-user/aipm';
+const QUEUE_TABLE = 'aipm-amazon-q-queue';
+const POLL_INTERVAL = 5000; // 5 seconds
+
+// DynamoDB client
+const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
+const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 // Start single persistent Kiro session
 console.log('🚀 Starting persistent Kiro session...');
@@ -191,8 +200,100 @@ function parseWSFrame(buffer) {
   }
 }
 
+// Queue processing functions
+async function getPendingTasks() {
+  try {
+    const result = await docClient.send(new ScanCommand({
+      TableName: QUEUE_TABLE,
+      FilterExpression: '#status = :pending',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: { ':pending': 'pending' }
+    }));
+    return result.Items || [];
+  } catch (error) {
+    console.error('❌ Failed to scan queue:', error.message);
+    return [];
+  }
+}
+
+async function updateTaskStatus(taskId, status, error = null) {
+  try {
+    await docClient.send(new UpdateCommand({
+      TableName: QUEUE_TABLE,
+      Key: { id: taskId },
+      UpdateExpression: 'SET #status = :status, updatedAt = :now' + (error ? ', #error = :error' : ''),
+      ExpressionAttributeNames: { 
+        '#status': 'status',
+        ...(error ? { '#error': 'error' } : {})
+      },
+      ExpressionAttributeValues: { 
+        ':status': status,
+        ':now': new Date().toISOString(),
+        ...(error ? { ':error': error } : {})
+      }
+    }));
+  } catch (err) {
+    console.error(`❌ Failed to update task ${taskId}:`, err.message);
+  }
+}
+
+async function processTask(task) {
+  console.log(`\n🔨 Processing task: ${task.id}`);
+  console.log(`📋 Title: ${task.title}`);
+  console.log(`🌿 Branch: ${task.branch}`);
+  
+  await updateTaskStatus(task.id, 'processing');
+  
+  try {
+    // Checkout branch
+    console.log(`📥 Checking out branch...`);
+    execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${task.branch}`, { stdio: 'inherit' });
+    
+    // Send task to Kiro via the persistent session
+    console.log(`🤖 Sending to Kiro CLI...`);
+    const command = `Implement this task: ${task.details}\n`;
+    kiro.write(command);
+    
+    // Wait for Kiro to finish (simple timeout approach)
+    await new Promise(resolve => setTimeout(resolve, 30000)); // 30 seconds
+    
+    // Commit and push
+    console.log(`💾 Committing changes...`);
+    try {
+      execSync(`cd ${REPO_PATH} && git add . && git commit -m "feat: ${task.title}" && git push origin ${task.branch}`, { stdio: 'inherit' });
+      console.log(`✅ Task completed: ${task.id}`);
+      await updateTaskStatus(task.id, 'complete');
+    } catch (gitError) {
+      if (gitError.message.includes('nothing to commit')) {
+        console.log(`⚠️  No changes generated`);
+        await updateTaskStatus(task.id, 'complete', 'No changes generated');
+      } else {
+        throw gitError;
+      }
+    }
+  } catch (error) {
+    console.error(`❌ Task failed: ${error.message}`);
+    await updateTaskStatus(task.id, 'failed', error.message);
+  }
+}
+
+async function pollQueue() {
+  const tasks = await getPendingTasks();
+  if (tasks.length > 0) {
+    console.log(`\n📬 Found ${tasks.length} pending task(s)`);
+    for (const task of tasks) {
+      await processTask(task);
+    }
+  }
+}
+
+// Start queue polling
+console.log(`🔄 Starting queue polling (every ${POLL_INTERVAL}ms)...`);
+setInterval(pollQueue, POLL_INTERVAL);
+
 server.listen(PORT, () => {
   console.log(`🚀 Kiro Terminal Server listening on port ${PORT}`);
   console.log(`📁 Repository path: ${REPO_PATH}`);
   console.log(`🔗 WebSocket endpoint: ws://localhost:${PORT}/terminal?branch=<branch-name>`);
+  console.log(`📬 Queue polling: ${QUEUE_TABLE}`);
 });
