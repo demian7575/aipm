@@ -1,0 +1,20 @@
+🚀 Starting persistent Kiro session...
+✅ Kiro CLI started (PID: 19235)
+📋 Loading AIPM context...
+🚀 Kiro Terminal Server listening on port 8080
+📁 Repository path: /home/ec2-user/aipm
+🔗 WebSocket endpoint: ws://localhost:8080/terminal?branch=<branch-name>
+🔗 Code generation: POST http://localhost:8080/generate-code
+
+🔨 Generating code for PR #224
+🌿 Branch: feature/test-code-generation-1764627076-1764627076411
+📋 Task: Add a test function to verify code generation works. Constraints: Keep it simple, just add a comment. Acceptance Criteria: Function should exist
+From github.com:demian7575/aipm
+ * [new branch]      feature/test-code-generation-1764627076-1764627076411 -> origin/feature/test-code-generation-1764627076-1764627076411
+Switched to a new branch 'feature/test-code-generation-1764627076-1764627076411'
+HEAD is now at 7de599d fix: make EC2 call async and reset git before checkout
+branch 'feature/test-code-generation-1764627076-1764627076411' set up to track 'origin/feature/test-code-generation-1764627076-1764627076411'.
+
+Add a test function to verify code generation works. Constraints: Keep it simple, just add a comment. Acceptance Crit[K[38;5;93m> [0mAdd a test function to verify code generation works. Constraints: Keep it simple, just add a comment. Acceptance Crite
+ria: Function should exist[K[A[K[38;5;93m> [0mAdd a test function to verify code generation works. Constraints: Keep it simple, just add a comment. Acceptance Criteria: Function should exist
+
