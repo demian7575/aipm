@@ -89,8 +89,8 @@ const server = createServer(async (req, res) => {
         
         kiro.onData(outputHandler);
         
-        // Checkout branch
-        const gitCheckout = execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${branch}`, { encoding: 'utf8' });
+        // Checkout branch (reset any local changes first)
+        const gitCheckout = execSync(`cd ${REPO_PATH} && git reset --hard && git fetch origin && git checkout ${branch}`, { encoding: 'utf8' });
         console.log(gitCheckout);
         
         // Send task to Kiro

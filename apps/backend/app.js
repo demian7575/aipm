@@ -427,34 +427,29 @@ async function performDelegation(payload) {
       })
     });
     
-    // Call EC2 to generate code directly
+    // Call EC2 to generate code (fire and forget - don't wait)
     const taskDescription = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
     const ec2Url = process.env.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
     
-    try {
-      console.log(`📤 Calling EC2 to generate code for PR #${pr.number}...`);
-      const response = await fetch(`${ec2Url}/generate-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          branch: branchName,
-          taskDescription,
-          prNumber: pr.number
-        })
+    // Fire and forget - don't await
+    fetch(`${ec2Url}/generate-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        branch: branchName,
+        taskDescription,
+        prNumber: pr.number
+      })
+    }).then(response => response.json())
+      .then(result => {
+        console.log('✅ EC2 code generation triggered:', result.success ? 'Success' : 'Failed');
+        if (result.kiroOutput) {
+          console.log('🤖 Kiro output (last 500 chars):', result.kiroOutput.substring(result.kiroOutput.length - 500));
+        }
+      })
+      .catch(error => {
+        console.error('❌ Failed to trigger code generation on EC2:', error.message);
       });
-      
-      const result = await response.json();
-      console.log('✅ EC2 response:', result.success ? 'Success' : 'Failed');
-      if (result.kiroOutput) {
-        console.log('🤖 Kiro output (last 500 chars):', result.kiroOutput.substring(result.kiroOutput.length - 500));
-      }
-      if (result.gitOutput) {
-        console.log('📦 Git output:', result.gitOutput);
-      }
-    } catch (error) {
-      console.error('❌ Failed to trigger code generation on EC2:', error.message);
-      // Don't fail the PR creation if code generation fails
-    }
     
     return {
       type: 'pull_request',
