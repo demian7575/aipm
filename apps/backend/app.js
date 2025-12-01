@@ -2387,7 +2387,7 @@ async function handleDeployPRRequest(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          ref: 'main',  // Workflow must run from main branch
+          ref: branchName || `refs/pull/${prNumber}/head`,
           inputs: {
             pr_number: String(prNumber || ''),
             branch_name: branchName || ''
