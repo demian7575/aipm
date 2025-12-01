@@ -4234,7 +4234,7 @@ function renderDetails() {
   setEditing(false);
 
   editButton?.addEventListener('click', () => {
-    const currentlyEditing = !saveButton.disabled;
+    const currentlyEditing = editButton.textContent === 'Cancel Edit';
     if (currentlyEditing) {
       setEditing(false);
     } else {
