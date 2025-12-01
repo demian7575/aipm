@@ -63,9 +63,23 @@ function handleTerminalWebSocket(req, socket, head, url) {
   
   console.log(`[${new Date().toISOString()}] Started Kiro CLI (PID: ${kiro.pid})`);
   
+  // Wait for Kiro to be ready, then load context
+  let kiroReady = false;
+  
   // Pipe kiro output to WebSocket
   kiro.onData((data) => {
     sendWSMessage(socket, { type: 'output', data });
+    
+    // Detect when Kiro is ready (shows prompt or welcome message)
+    if (!kiroReady && (data.includes('How can I help') || data.includes('What can I help'))) {
+      kiroReady = true;
+      console.log(`[${new Date().toISOString()}] Kiro ready, loading context...`);
+      
+      // Send load-context command
+      setTimeout(() => {
+        kiro.write('./bin/load-context\r');
+      }, 500);
+    }
   });
   
   kiro.onExit(({ exitCode }) => {
