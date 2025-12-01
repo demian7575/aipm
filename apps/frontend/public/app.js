@@ -6009,11 +6009,9 @@ function openChildStoryModal(parentId) {
         <tr>
           <th scope="row">Components</th>
           <td>
-            <p class="components-display" data-child-components-display>Not specified</p>
-            <div class="components-actions">
-              <button type="button" class="secondary components-edit-btn" id="child-components-btn">Choose components</button>
-              <p class="components-hint">Pick the components this child story will deliver.</p>
-            </div>
+            <textarea id="child-components-display" rows="1" style="resize: vertical; min-height: 2em;" placeholder="Enter components (comma-separated)"></textarea>
+            <p class="components-hint">Enter component names separated by commas, or use the button below.</p>
+            <button type="button" class="secondary components-edit-btn" id="child-components-btn">Choose from list</button>
           </td>
         </tr>
       </tbody>
@@ -6021,19 +6019,25 @@ function openChildStoryModal(parentId) {
   `;
 
   let childComponents = [];
-  const childComponentsDisplay = container.querySelector('[data-child-components-display]');
+  const childComponentsDisplay = container.querySelector('#child-components-display');
   const childComponentsButton = container.querySelector('#child-components-btn');
   const ideaInput = container.querySelector('#child-idea');
   const generateBtn = container.querySelector('#child-generate-btn');
 
   const refreshChildComponents = () => {
     if (!childComponentsDisplay) return;
-    const summary = formatComponentsSummary(childComponents);
-    childComponentsDisplay.textContent = summary;
-    childComponentsDisplay.classList.toggle('empty', summary === 'Not specified');
+    childComponentsDisplay.value = childComponents.join(', ');
+    childComponentsDisplay.style.height = 'auto';
+    childComponentsDisplay.style.height = childComponentsDisplay.scrollHeight + 'px';
   };
 
   refreshChildComponents();
+
+  // Sync textarea changes back to array
+  childComponentsDisplay?.addEventListener('input', () => {
+    const text = childComponentsDisplay.value.trim();
+    childComponents = text ? text.split(',').map(c => c.trim()).filter(Boolean) : [];
+  });
 
   childComponentsButton?.addEventListener('click', async () => {
     const picked = await openComponentPicker(childComponents, { title: 'Select Components' });

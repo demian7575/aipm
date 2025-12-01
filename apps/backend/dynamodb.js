@@ -4,8 +4,10 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCo
 const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const STORIES_TABLE = process.env.STORIES_TABLE;
-const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE;
+const STORIES_TABLE = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+
+console.log('DynamoDB: Using tables:', { STORIES_TABLE, ACCEPTANCE_TESTS_TABLE });
 
 export class DynamoDBDataLayer {
   // SQLite compatibility methods
