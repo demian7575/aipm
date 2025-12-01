@@ -3809,12 +3809,12 @@ function renderDetails() {
     </div>
     <div class="full field-row">
       <label>Title</label>
-      <input name="title" value="${escapeHtml(story.title)}" required />
+      <div class="story-text">${escapeHtml(story.title)}</div>
     </div>
     <div class="full field-row">
       <label>Assignee Email</label>
       <div style="display:flex; gap:0.5rem; align-items:center;">
-        <input name="assigneeEmail" type="email" value="${escapeHtml(story.assigneeEmail || '')}" placeholder="name@example.com" />
+        <span class="story-text">${escapeHtml(story.assigneeEmail || 'Not assigned')}</span>
         <button type="button" class="secondary" id="assignee-email-btn" ${
           story.assigneeEmail ? '' : 'disabled'
         }>Email</button>
@@ -3855,9 +3855,6 @@ function renderDetails() {
           </tr>
         </tbody>
       </table>
-    </div>
-    <div class="full form-actions">
-      <button type="submit">Save Story</button>
     </div>
   `;
 
@@ -4174,78 +4171,17 @@ function renderDetails() {
     pointHeader.scope = 'row';
     pointHeader.textContent = 'Story Point';
     const pointCell = document.createElement('td');
-    const pointInput = document.createElement('input');
-    pointInput.type = 'number';
-    pointInput.name = 'storyPoint';
-    pointInput.min = '0';
-    pointInput.step = '1';
-    pointInput.placeholder = 'Estimate';
-    pointInput.value = story.storyPoint != null ? story.storyPoint : '';
-    pointInput.defaultValue = pointInput.value;
-    pointInput.className = 'story-point-input';
-    pointCell.appendChild(pointInput);
+    const pointDisplay = document.createElement('span');
+    pointDisplay.className = 'story-text';
+    pointDisplay.textContent = story.storyPoint != null ? story.storyPoint : 'Not estimated';
+    pointCell.appendChild(pointDisplay);
     pointRow.appendChild(pointHeader);
     pointRow.appendChild(pointCell);
     storyBriefBody.appendChild(pointRow);
   }
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const formData = new FormData(form);
-    const storyPointResult = parseStoryPointInput(formData.get('storyPoint'));
-    if (storyPointResult.error) {
-      showToast(storyPointResult.error, 'error');
-      return;
-    }
-    const rawTitle = formData.get('title');
-    const normalizedTitle = normalizeMindmapText(rawTitle);
-    const payload = {
-      title: normalizedTitle.trim().length > 0 ? normalizedTitle : 'Untitled Story',
-      storyPoint: storyPointResult.value,
-      assigneeEmail: formData.get('assigneeEmail').trim(),
-      description: formData.get('description').trim(),
-      asA: formData.get('asA').trim(),
-      iWant: formData.get('iWant').trim(),
-      soThat: formData.get('soThat').trim(),
-      status: formData.get('status'),
-      components: selectedComponents,
-    };
-
-    if (payload.status == null || String(payload.status).trim() === '') {
-      payload.status = statusValue;
-    } else {
-      payload.status = String(payload.status).trim();
-    }
-
-    try {
-      const result = await updateStory(story.id, payload);
-      await handleStorySaveSuccess(result, 'Story saved');
-    } catch (error) {
-      if (error && error.code === 'INVEST_WARNINGS') {
-        const proceed = window.confirm(
-          `${error.message}\n\n${formatInvestWarnings(error.warnings)}\n\nSave anyway?`
-        );
-        if (proceed) {
-          const result = await updateStory(story.id, { ...payload, acceptWarnings: true });
-          await handleStorySaveSuccess(result, 'Story saved with warnings');
-        }
-      } else if (error && error.code === 'STORY_STATUS_BLOCKED') {
-        const detail = formatStatusBlockDetails(error.details);
-        showToast(error.message || 'Story status update blocked', 'error');
-        if (detail) {
-          window.alert(`${error.message}\n\n${detail}`);
-        } else {
-          window.alert(error.message || 'Story status update blocked.');
-        }
-      } else {
-        showToast(error.message || 'Failed to save story', 'error');
-      }
-    }
-  });
-
   detailsContent.appendChild(form);
 
-  const saveButton = form.querySelector('button[type="submit"]');
   const editButton = form.querySelector('#edit-story-btn');
   const deleteButton = form.querySelector('#delete-story-btn');
   const editableFields = Array.from(
