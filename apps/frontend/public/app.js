@@ -4198,9 +4198,6 @@ function renderDetails() {
     if (statusValueEl) {
       statusValueEl.style.display = enabled ? 'none' : 'inline-flex';
     }
-    if (saveButton) {
-      saveButton.disabled = !enabled;
-    }
     if (editButton) {
       editButton.textContent = enabled ? 'Cancel Edit' : 'Edit Story';
     }
