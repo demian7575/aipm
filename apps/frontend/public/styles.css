@@ -2091,3 +2091,21 @@ dialog[data-size='content'] .modal-shell {
   background: #545b62;
 }
 
+/* Child Story Modal Textareas */
+.child-story-form textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: inherit;
+  resize: vertical;
+  min-height: 2em;
+}
+
+.child-story-form textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+

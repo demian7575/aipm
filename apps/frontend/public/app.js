@@ -5996,15 +5996,15 @@ function openChildStoryModal(parentId) {
       <tbody>
         <tr>
           <th scope="row">As a</th>
-          <td class="story-text" id="child-asa-display"></td>
+          <td><textarea id="child-asa-display" rows="1" style="resize: vertical; min-height: 2em;"></textarea></td>
         </tr>
         <tr>
           <th scope="row">I want</th>
-          <td class="story-text" id="child-iwant-display"></td>
+          <td><textarea id="child-iwant-display" rows="2" style="resize: vertical; min-height: 3em;"></textarea></td>
         </tr>
         <tr>
           <th scope="row">So that</th>
-          <td class="story-text" id="child-sothat-display"></td>
+          <td><textarea id="child-sothat-display" rows="2" style="resize: vertical; min-height: 3em;"></textarea></td>
         </tr>
         <tr>
           <th scope="row">Components</th>
@@ -6072,9 +6072,21 @@ function openChildStoryModal(parentId) {
         if (pointInput) pointInput.value = draft.storyPoint != null ? draft.storyPoint : '';
         if (assigneeInput) assigneeInput.value = draft.assigneeEmail || '';
         if (descriptionInput) descriptionInput.value = draft.description || '';
-        if (asADisplay) asADisplay.textContent = draft.asA || '';
-        if (iWantDisplay) iWantDisplay.textContent = draft.iWant || '';
-        if (soThatDisplay) soThatDisplay.textContent = draft.soThat || '';
+        if (asADisplay) {
+          asADisplay.value = draft.asA || '';
+          asADisplay.style.height = 'auto';
+          asADisplay.style.height = asADisplay.scrollHeight + 'px';
+        }
+        if (iWantDisplay) {
+          iWantDisplay.value = draft.iWant || '';
+          iWantDisplay.style.height = 'auto';
+          iWantDisplay.style.height = iWantDisplay.scrollHeight + 'px';
+        }
+        if (soThatDisplay) {
+          soThatDisplay.value = draft.soThat || '';
+          soThatDisplay.style.height = 'auto';
+          soThatDisplay.style.height = soThatDisplay.scrollHeight + 'px';
+        }
 
         if (Array.isArray(draft.components)) {
           childComponents = normalizeComponentSelection(draft.components);
@@ -6117,9 +6129,9 @@ function openChildStoryModal(parentId) {
             storyPoint: storyPointResult.value,
             assigneeEmail: container.querySelector('#child-assignee').value.trim(),
             description: container.querySelector('#child-description').value.trim(),
-            asA: container.querySelector('#child-asa-display').textContent.trim(),
-            iWant: container.querySelector('#child-iwant-display').textContent.trim(),
-            soThat: container.querySelector('#child-sothat-display').textContent.trim(),
+            asA: container.querySelector('#child-asa-display').value.trim(),
+            iWant: container.querySelector('#child-iwant-display').value.trim(),
+            soThat: container.querySelector('#child-sothat-display').value.trim(),
             components: childComponents,
           };
           try {
