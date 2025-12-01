@@ -198,11 +198,13 @@ async function runEnvironmentTests(env, config) {
 async function main() {
     console.log('🚀 AIPM Comprehensive Gating Tests - All Functionality\n');
     
-    const results = {};
-    
-    for (const [env, config] of Object.entries(ENVIRONMENTS)) {
-        results[env] = await runEnvironmentTests(env, config);
-    }
+    // Run all environments in parallel
+    const results = await Promise.all(
+        Object.entries(ENVIRONMENTS).map(async ([env, config]) => {
+            const result = await runEnvironmentTests(env, config);
+            return [env, result];
+        })
+    ).then(arr => Object.fromEntries(arr));
     
     console.log('\n' + '='.repeat(70));
     console.log('📋 COMPREHENSIVE GATING TEST SUMMARY');
