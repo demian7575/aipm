@@ -3289,9 +3289,11 @@ function buildRunInStagingModalContent(prEntry = null) {
   const stopBtn = container.querySelector('#stop-terminal');
   
   let terminal = null;
-  let socket = null;
+  let sessionId = null;
+  let pollInterval = null;
+  let lastOutputIndex = 0;
   
-  startBtn.addEventListener('click', () => {
+  startBtn.addEventListener('click', async () => {
     if (!window.Terminal) {
       alert('Terminal library not loaded. Please refresh the page.');
       return;
@@ -3309,58 +3311,109 @@ function buildRunInStagingModalContent(prEntry = null) {
     });
     
     terminal.open(terminalContainer);
+    terminal.writeln('🔌 Starting Kiro CLI terminal...');
+    terminal.writeln('');
     
-    // Connect WebSocket
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'unknown')}`;
-    
-    socket = new WebSocket(wsUrl);
-    
-    socket.onopen = () => {
-      terminal.writeln('🔌 Connected to Kiro CLI terminal');
+    // Start terminal session
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/terminal/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch: prEntry?.branch || 'unknown' })
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        terminal.writeln(`❌ Failed to start: ${result.error}`);
+        return;
+      }
+      
+      sessionId = result.sessionId;
+      terminal.writeln(`✓ Session started: ${sessionId}`);
+      terminal.writeln('⏳ Waiting for Kiro worker to pick up session...');
       terminal.writeln('');
+      
       startBtn.style.display = 'none';
       stopBtn.style.display = 'inline-block';
-    };
-    
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
       
-      if (data.type === 'branch') {
-        branchDisplay.textContent = data.branch;
-      } else if (data.type === 'output') {
-        terminal.write(data.data);
-      }
-    };
-    
-    socket.onerror = (error) => {
-      terminal.writeln('\r\n❌ WebSocket error');
-      console.error('WebSocket error:', error);
-    };
-    
-    socket.onclose = () => {
-      terminal.writeln('\r\n🔌 Disconnected');
-      startBtn.style.display = 'inline-block';
-      stopBtn.style.display = 'none';
-    };
+      // Start polling for output
+      pollInterval = setInterval(async () => {
+        try {
+          const outputResponse = await fetch(
+            `${API_BASE_URL}/api/terminal/output?sessionId=${sessionId}&lastIndex=${lastOutputIndex}`
+          );
+          const outputResult = await outputResponse.json();
+          
+          if (outputResult.success && outputResult.output.length > 0) {
+            if (outputResult.branch) {
+              branchDisplay.textContent = outputResult.branch;
+            }
+            
+            outputResult.output.forEach(item => {
+              terminal.write(item.data);
+            });
+            
+            lastOutputIndex = outputResult.nextIndex;
+          }
+          
+          if (outputResult.status === 'complete' || outputResult.status === 'stopped') {
+            clearInterval(pollInterval);
+            terminal.writeln('\r\n✓ Session ended');
+            stopBtn.style.display = 'none';
+            startBtn.style.display = 'inline-block';
+          }
+        } catch (error) {
+          console.error('Poll error:', error);
+        }
+      }, 500);
+      
+    } catch (error) {
+      terminal.writeln(`❌ Error: ${error.message}`);
+    }
     
     // Send terminal input to backend
-    terminal.onData((data) => {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'input', data }));
+    terminal.onData(async (data) => {
+      if (!sessionId) return;
+      
+      try {
+        await fetch(`${API_BASE_URL}/api/terminal/input`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, data })
+        });
+      } catch (error) {
+        console.error('Input error:', error);
       }
     });
   });
   
-  stopBtn.addEventListener('click', () => {
-    if (socket) {
-      socket.close();
+  stopBtn.addEventListener('click', async () => {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
     }
+    
+    if (sessionId) {
+      try {
+        await fetch(`${API_BASE_URL}/api/terminal/stop`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId })
+        });
+      } catch (error) {
+        console.error('Stop error:', error);
+      }
+      sessionId = null;
+    }
+    
     if (terminal) {
       terminal.dispose();
       terminal = null;
     }
+    
     terminalContainer.innerHTML = '';
+    lastOutputIndex = 0;
     startBtn.style.display = 'inline-block';
     stopBtn.style.display = 'none';
   });
@@ -3368,7 +3421,14 @@ function buildRunInStagingModalContent(prEntry = null) {
   return { 
     element: container, 
     onClose: () => {
-      if (socket) socket.close();
+      if (pollInterval) clearInterval(pollInterval);
+      if (sessionId) {
+        fetch(`${API_BASE_URL}/api/terminal/stop`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId })
+        }).catch(() => {});
+      }
       if (terminal) terminal.dispose();
     } 
   };

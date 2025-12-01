@@ -2418,6 +2418,141 @@ async function handleDeployPRRequest(req, res) {
   }
 }
 
+// Terminal session handlers
+async function handleTerminalStart(req, res) {
+  try {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    await new Promise(resolve => req.on('end', resolve));
+    
+    const { branch } = JSON.parse(body);
+    const sessionId = randomUUID();
+    
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    await docClient.send(new PutCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Item: {
+        id: sessionId,
+        type: 'terminal',
+        branch,
+        status: 'pending',
+        output: [],
+        input: [],
+        createdAt: new Date().toISOString(),
+        ttl: Math.floor(Date.now() / 1000) + 3600 // 1 hour TTL
+      }
+    }));
+    
+    sendJson(res, 200, { success: true, sessionId });
+  } catch (error) {
+    console.error('Terminal start error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
+async function handleTerminalInput(req, res) {
+  try {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    await new Promise(resolve => req.on('end', resolve));
+    
+    const { sessionId, data } = JSON.parse(body);
+    
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    await docClient.send(new UpdateCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Key: { id: sessionId },
+      UpdateExpression: 'SET #input = list_append(if_not_exists(#input, :empty), :data)',
+      ExpressionAttributeNames: { '#input': 'input' },
+      ExpressionAttributeValues: {
+        ':data': [{ data, timestamp: new Date().toISOString() }],
+        ':empty': []
+      }
+    }));
+    
+    sendJson(res, 200, { success: true });
+  } catch (error) {
+    console.error('Terminal input error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
+async function handleTerminalOutput(req, res, url) {
+  try {
+    const sessionId = url.searchParams.get('sessionId');
+    const lastIndex = parseInt(url.searchParams.get('lastIndex') || '0');
+    
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    const result = await docClient.send(new GetCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Key: { id: sessionId }
+    }));
+    
+    if (!result.Item) {
+      sendJson(res, 404, { success: false, error: 'Session not found' });
+      return;
+    }
+    
+    const output = result.Item.output || [];
+    const newOutput = output.slice(lastIndex);
+    
+    sendJson(res, 200, {
+      success: true,
+      output: newOutput,
+      nextIndex: output.length,
+      status: result.Item.status,
+      branch: result.Item.branch
+    });
+  } catch (error) {
+    console.error('Terminal output error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
+async function handleTerminalStop(req, res) {
+  try {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    await new Promise(resolve => req.on('end', resolve));
+    
+    const { sessionId } = JSON.parse(body);
+    
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    await docClient.send(new UpdateCommand({
+      TableName: 'aipm-amazon-q-queue',
+      Key: { id: sessionId },
+      UpdateExpression: 'SET #status = :stopped',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: { ':stopped': 'stopped' }
+    }));
+    
+    sendJson(res, 200, { success: true });
+  } catch (error) {
+    console.error('Terminal stop error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
 async function handleCreatePRRequest(req, res) {
   try {
     let body = '';
@@ -5366,168 +5501,6 @@ async function handleFileUpload(req, res, url) {
   });
 }
 
-function handleTerminalWebSocket(req, socket, head, url) {
-  const branch = url.searchParams.get('branch') || 'unknown';
-  
-  // WebSocket handshake
-  const key = req.headers['sec-websocket-key'];
-  const hash = createHash('sha1')
-    .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
-    .digest('base64');
-  
-  socket.write(
-    'HTTP/1.1 101 Switching Protocols\r\n' +
-    'Upgrade: websocket\r\n' +
-    'Connection: Upgrade\r\n' +
-    `Sec-WebSocket-Accept: ${hash}\r\n` +
-    '\r\n'
-  );
-  
-  // Checkout branch and start kiro-cli
-  const repoPath = process.cwd();
-  
-  // Send branch info
-  sendWSMessage(socket, { type: 'branch', branch });
-  
-  // Checkout branch
-  const checkoutResult = spawnSync('git', ['checkout', branch], { cwd: repoPath });
-  if (checkoutResult.error) {
-    sendWSMessage(socket, { type: 'output', data: `❌ Failed to checkout branch: ${checkoutResult.error.message}\r\n` });
-    socket.end();
-    return;
-  }
-  
-  sendWSMessage(socket, { type: 'output', data: `✓ Checked out branch: ${branch}\r\n\r\n` });
-  
-  // Start kiro-cli chat
-  const kiro = spawn('kiro-cli', ['chat'], {
-    cwd: repoPath,
-    env: { ...process.env, TERM: 'xterm-256color' }
-  });
-  
-  // Pipe kiro output to WebSocket
-  kiro.stdout.on('data', (data) => {
-    sendWSMessage(socket, { type: 'output', data: data.toString() });
-  });
-  
-  kiro.stderr.on('data', (data) => {
-    sendWSMessage(socket, { type: 'output', data: data.toString() });
-  });
-  
-  kiro.on('close', (code) => {
-    sendWSMessage(socket, { type: 'output', data: `\r\n✓ Kiro exited (code ${code})\r\n` });
-    
-    // Return to main branch
-    spawnSync('git', ['checkout', 'main'], { cwd: repoPath });
-    sendWSMessage(socket, { type: 'output', data: '✓ Returned to main branch\r\n' });
-    
-    socket.end();
-  });
-  
-  // Handle WebSocket messages (user input)
-  let buffer = Buffer.alloc(0);
-  
-  socket.on('data', (data) => {
-    buffer = Buffer.concat([buffer, data]);
-    
-    while (buffer.length >= 2) {
-      const frame = parseWSFrame(buffer);
-      if (!frame) break;
-      
-      buffer = buffer.slice(frame.length);
-      
-      if (frame.opcode === 0x8) {
-        // Close frame
-        kiro.kill();
-        socket.end();
-        return;
-      }
-      
-      if (frame.opcode === 0x1 || frame.opcode === 0x2) {
-        // Text or binary frame
-        try {
-          const message = JSON.parse(frame.payload.toString());
-          if (message.type === 'input') {
-            kiro.stdin.write(message.data);
-          }
-        } catch (e) {
-          // Ignore parse errors
-        }
-      }
-    }
-  });
-  
-  socket.on('close', () => {
-    kiro.kill();
-    spawnSync('git', ['checkout', 'main'], { cwd: repoPath });
-  });
-  
-  socket.on('error', () => {
-    kiro.kill();
-    spawnSync('git', ['checkout', 'main'], { cwd: repoPath });
-  });
-}
-
-function sendWSMessage(socket, data) {
-  const payload = JSON.stringify(data);
-  const length = Buffer.byteLength(payload);
-  
-  let frame;
-  if (length < 126) {
-    frame = Buffer.alloc(2 + length);
-    frame[0] = 0x81; // FIN + text frame
-    frame[1] = length;
-    frame.write(payload, 2);
-  } else if (length < 65536) {
-    frame = Buffer.alloc(4 + length);
-    frame[0] = 0x81;
-    frame[1] = 126;
-    frame.writeUInt16BE(length, 2);
-    frame.write(payload, 4);
-  } else {
-    frame = Buffer.alloc(10 + length);
-    frame[0] = 0x81;
-    frame[1] = 127;
-    frame.writeBigUInt64BE(BigInt(length), 2);
-    frame.write(payload, 10);
-  }
-  
-  socket.write(frame);
-}
-
-function parseWSFrame(buffer) {
-  if (buffer.length < 2) return null;
-  
-  const opcode = buffer[0] & 0x0f;
-  const masked = (buffer[1] & 0x80) === 0x80;
-  let length = buffer[1] & 0x7f;
-  let offset = 2;
-  
-  if (length === 126) {
-    if (buffer.length < 4) return null;
-    length = buffer.readUInt16BE(2);
-    offset = 4;
-  } else if (length === 127) {
-    if (buffer.length < 10) return null;
-    length = Number(buffer.readBigUInt64BE(2));
-    offset = 10;
-  }
-  
-  if (masked) {
-    if (buffer.length < offset + 4 + length) return null;
-    const mask = buffer.slice(offset, offset + 4);
-    offset += 4;
-    const payload = Buffer.alloc(length);
-    for (let i = 0; i < length; i++) {
-      payload[i] = buffer[offset + i] ^ mask[i % 4];
-    }
-    return { opcode, payload, length: offset + length };
-  } else {
-    if (buffer.length < offset + length) return null;
-    return { opcode, payload: buffer.slice(offset, offset + length), length: offset + length };
-  }
-}
-
 export async function createApp() {
   const db = await ensureDatabase();
 
@@ -5563,6 +5536,26 @@ export async function createApp() {
 
     if (pathname === '/api/personal-delegate/status' && method === 'GET') {
       await handlePersonalDelegateStatusRequest(req, res, url);
+      return;
+    }
+
+    if (pathname === '/api/terminal/start' && method === 'POST') {
+      await handleTerminalStart(req, res);
+      return;
+    }
+
+    if (pathname === '/api/terminal/input' && method === 'POST') {
+      await handleTerminalInput(req, res);
+      return;
+    }
+
+    if (pathname === '/api/terminal/output' && method === 'GET') {
+      await handleTerminalOutput(req, res, url);
+      return;
+    }
+
+    if (pathname === '/api/terminal/stop' && method === 'POST') {
+      await handleTerminalStop(req, res);
       return;
     }
 
@@ -6584,17 +6577,6 @@ export async function createApp() {
     }
 
     await serveStatic(req, res);
-  });
-
-  // WebSocket upgrade handler for terminal
-  server.on('upgrade', (req, socket, head) => {
-    const url = new URL(req.url, 'http://localhost');
-    
-    if (url.pathname === '/terminal') {
-      handleTerminalWebSocket(req, socket, head, url);
-    } else {
-      socket.destroy();
-    }
   });
 
   server.on('close', () => {
