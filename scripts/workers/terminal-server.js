@@ -10,7 +10,7 @@ const REPO_PATH = process.env.REPO_PATH || '/home/ec2-user/aipm';
 
 // Start single persistent Kiro session
 console.log('🚀 Starting persistent Kiro session...');
-const kiro = pty.spawn('bash', ['-c', `cd ${REPO_PATH} && ./bin/load-context && kiro-cli chat`], {
+const kiro = pty.spawn('bash', ['-c', `cd ${REPO_PATH} && cat scripts/utilities/load-context.sh | bash && kiro-cli chat`], {
   name: 'xterm-256color',
   cols: 120,
   rows: 30,
