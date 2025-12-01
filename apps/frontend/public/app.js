@@ -3348,8 +3348,12 @@ function buildRunInStagingModalContent(prEntry = null) {
     
     // Send terminal input to EC2
     terminal.onData((data) => {
+      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
       if (socket && socket.readyState === WebSocket.OPEN) {
+        console.log('Sending to WebSocket:', { type: 'input', data });
         socket.send(JSON.stringify({ type: 'input', data }));
+      } else {
+        console.warn('Socket not ready, state:', socket?.readyState);
       }
     });
   });
