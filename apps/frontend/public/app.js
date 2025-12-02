@@ -6935,6 +6935,15 @@ function initialize() {
   console.log('AIPM initializing...');
   console.log('API Base URL:', window.__AIPM_API_BASE__);
   
+  // Clear cache if environment changed
+  const currentEnv = window.CONFIG?.environment || 'production';
+  const cachedEnv = localStorage.getItem('aipm_environment');
+  if (cachedEnv && cachedEnv !== currentEnv) {
+    console.log(`Environment changed from ${cachedEnv} to ${currentEnv}, clearing cache...`);
+    localStorage.clear();
+  }
+  localStorage.setItem('aipm_environment', currentEnv);
+  
   loadPreferences();
   initializeCodeWhispererDelegations();
   updateWorkspaceColumns();
