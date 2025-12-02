@@ -228,6 +228,33 @@ async function handleCodeWhispererRebaseRequest(req, res) {
   }
 }
 
+async function handleCodeWhispererMergeRequest(req, res) {
+  try {
+    const body = await readRequestBody(req);
+    const { repo, number } = JSON.parse(body);
+    
+    if (!repo || !number) {
+      sendJson(res, 400, { message: 'repo and number are required' });
+      return;
+    }
+
+    const [owner, repoName] = repo.split('/');
+    
+    await githubRequest(`/repos/${owner}/${repoName}/pulls/${number}/merge`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        merge_method: 'squash'
+      })
+    });
+    
+    sendJson(res, 200, { message: 'PR merged successfully' });
+  } catch (error) {
+    console.error('CodeWhisperer merge request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to merge PR' });
+  }
+}
+
 function normalizeDelegatePayload(payload) {
   const owner = String(payload.owner || '').trim();
   const repo = String(payload.repo || '').trim();
@@ -5565,6 +5592,11 @@ export async function createApp() {
 
     if (pathname === '/api/codewhisperer-rebase' && method === 'POST') {
       await handleCodeWhispererRebaseRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/codewhisperer-merge' && method === 'POST') {
+      await handleCodeWhispererMergeRequest(req, res);
       return;
     }
 
