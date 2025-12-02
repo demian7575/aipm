@@ -86,7 +86,7 @@ package:
 
 functions:
   api:
-    handler: handler.handler
+    handler: apps/backend/handler.handler
     events:
       - http:
           path: /{proxy+}
