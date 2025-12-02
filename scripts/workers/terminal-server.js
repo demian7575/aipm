@@ -100,6 +100,8 @@ const server = createServer(async (req, res) => {
         // Capture Kiro output
         let kiroOutput = '';
         let approvalSent = false;
+        let kiroFinished = false;
+        
         const outputHandler = (data) => {
           kiroOutput += data;
           process.stdout.write(data); // Also log to console
@@ -109,6 +111,13 @@ const server = createServer(async (req, res) => {
             console.log('🔔 Permission prompt detected, sending trust (t)...');
             kiro.write('t\r');
             approvalSent = true; // Only send once
+          }
+          
+          // Detect when Kiro is done
+          if (data.includes('Done.') || data.includes('Is there anything else') || 
+              data.includes('completed') || data.includes('successfully')) {
+            console.log('✅ Kiro completion signal detected');
+            kiroFinished = true;
           }
         };
         
@@ -130,12 +139,12 @@ const server = createServer(async (req, res) => {
         console.log('🤖 Sending task to Kiro CLI...');
         console.log('📝 Task:', taskDescription);
         
-        // Format prompt for better Kiro understanding
+        // Format prompt to ask Kiro to say "Done" when finished
         const prompt = `Please implement the following task:
 
 ${taskDescription}
 
-Create or modify files as needed. When done, type "done" or just wait.`;
+Create or modify files as needed. When you're completely finished, say "Done" so I know you're ready.`;
         
         kiro.write(prompt + '\n');
         console.log('✅ Prompt sent');
@@ -145,12 +154,23 @@ Create or modify files as needed. When done, type "done" or just wait.`;
         console.log('⏎ Sending Enter key to execute...');
         kiro.write('\r');
         
-        console.log('⏳ Waiting 90 seconds for Kiro to generate and write code...');
+        console.log('⏳ Waiting for Kiro to complete (max 120 seconds)...');
         
-        // Wait for Kiro to finish (90 seconds total)
-        await new Promise(resolve => setTimeout(resolve, 90000));
+        // Wait for Kiro to finish or timeout (120 seconds max)
+        const startTime = Date.now();
+        const maxWaitTime = 120000; // 2 minutes
         
-        console.log('⏰ 90 seconds elapsed');
+        while (!kiroFinished && (Date.now() - startTime) < maxWaitTime) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Check every 2 seconds
+        }
+        
+        const elapsedTime = Math.round((Date.now() - startTime) / 1000);
+        
+        if (kiroFinished) {
+          console.log(`✅ Kiro completed in ${elapsedTime} seconds`);
+        } else {
+          console.log(`⏰ Timeout after ${elapsedTime} seconds - Kiro may still be working`);
+        }
         console.log('📊 Kiro output length:', kiroOutput.length, 'characters');
         console.log('📊 Last 500 chars:', kiroOutput.substring(Math.max(0, kiroOutput.length - 500)));
         
