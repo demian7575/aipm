@@ -142,6 +142,13 @@ Create or modify files as needed. When done, type "done" or just wait.`;
         // Wait for Kiro to finish (30 seconds)
         await new Promise(resolve => setTimeout(resolve, 30000));
         
+        // Auto-approve any file operations (send 'y' for yes)
+        console.log('✅ Auto-approving file operations...');
+        kiro.write('y\r');
+        
+        // Wait a bit more for file operations to complete
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
         console.log('⏰ 30 seconds elapsed');
         console.log('📊 Kiro output length:', kiroOutput.length, 'characters');
         console.log('📊 Last 500 chars:', kiroOutput.substring(Math.max(0, kiroOutput.length - 500)));
