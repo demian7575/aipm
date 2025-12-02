@@ -2112,10 +2112,10 @@ dialog[data-size='content'] .modal-shell {
 
 /* Extra large modal for terminal */
 #modal[data-size="xlarge"] .modal-shell {
-  max-width: 95vw;
-  width: 1400px;
+  max-width: 98vw;
+  width: 1800px;
 }
 
 #modal[data-size="xlarge"] .modal-body {
-  max-height: 80vh;
+  max-height: 85vh;
 }
