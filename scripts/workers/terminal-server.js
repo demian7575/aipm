@@ -106,10 +106,10 @@ const server = createServer(async (req, res) => {
         
         kiro.onData(outputHandler);
         
-        // Checkout branch (clean working directory first)
+        // Checkout branch (reset tracked files only, keep untracked)
         try {
-          console.log('📥 Cleaning working directory...');
-          execSync(`cd ${REPO_PATH} && git clean -fd && git reset --hard`, { encoding: 'utf8' });
+          console.log('📥 Resetting tracked files...');
+          execSync(`cd ${REPO_PATH} && git reset --hard`, { encoding: 'utf8' });
           console.log('📥 Fetching and checking out branch...');
           const gitCheckout = execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${branch}`, { encoding: 'utf8' });
           console.log(gitCheckout);
