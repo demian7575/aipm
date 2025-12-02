@@ -1708,6 +1708,30 @@ async function rebaseCodeWhispererPR(entry) {
   }
 }
 
+async function mergeCodeWhispererPR(entry) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/codewhisperer-merge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo: entry.repo, number: entry.number })
+    });
+    if (!response.ok) {
+      const data = await response.json();
+      entry.lastError = data.error || `Merge failed: ${response.status}`;
+      return false;
+    }
+    entry.lastError = null;
+    entry.lastCheckedAt = new Date().toISOString();
+    persistCodeWhispererDelegations();
+    return true;
+  } catch (error) {
+    entry.lastError = `Merge error: ${error.message}`;
+    entry.lastCheckedAt = new Date().toISOString();
+    persistCodeWhispererDelegations();
+    return false;
+  }
+}
+
 function formatCodeWhispererTargetLabel(entry) {
   if (!entry) {
     return '';
@@ -1977,6 +2001,26 @@ function renderCodeWhispererSectionList(container, story) {
         rebaseBtn.textContent = original;
       });
       actions.appendChild(rebaseBtn);
+
+      const mergeBtn = document.createElement('button');
+      mergeBtn.type = 'button';
+      mergeBtn.className = 'button primary';
+      mergeBtn.textContent = 'Merge';
+      mergeBtn.addEventListener('click', async () => {
+        if (mergeBtn.disabled) return;
+        const original = mergeBtn.textContent;
+        mergeBtn.disabled = true;
+        mergeBtn.textContent = 'Merging…';
+        const success = await mergeCodeWhispererPR(entry);
+        if (!success) {
+          showToast(entry.lastError || 'Failed to merge PR', 'error');
+        } else {
+          showToast('PR merged successfully', 'success');
+        }
+        mergeBtn.disabled = false;
+        mergeBtn.textContent = original;
+      });
+      actions.appendChild(mergeBtn);
 
       const runInStagingBtn = document.createElement('button');
       runInStagingBtn.type = 'button';
