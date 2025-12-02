@@ -3467,38 +3467,43 @@ function buildKiroTerminalModalContent(prEntry = null) {
   
   // Connect to EC2 WebSocket server
   const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
+  // Pre-checkout branch via SSH before opening terminal
+  if (prEntry?.branchName) {
+    terminal.writeln('🔄 Preparing branch...');
+    
+    try {
+      const response = await fetch('http://44.220.45.57:8080/checkout-branch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch: prEntry.branchName })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        terminal.writeln(`✓ Branch ${prEntry.branchName} ready`);
+      } else {
+        terminal.writeln(`⚠️  Branch checkout warning: ${result.message}`);
+      }
+    } catch (error) {
+      terminal.writeln(`⚠️  Could not pre-checkout branch: ${error.message}`);
+    }
+    
+    terminal.writeln('');
+  }
+  
   const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
   
   socket = new WebSocket(wsUrl);
   
   socket.onopen = () => {
-    terminal.writeln('✓ Connected to terminal server');
-    terminal.writeln('');
-    
-    // Auto-execute git operations and PR context loading
-    if (prEntry?.branchName) {
-      setTimeout(() => {
-        const commands = [
-          'cd /home/ec2-user/aipm',
-          'git fetch origin',
-          `git checkout ${prEntry.branchName}`,
-          'git log -1 --oneline',
-          'git diff main...HEAD --stat',
-          `echo "\\n📋 PR: ${(prEntry.taskTitle || '').replace(/"/g, '\\"')}"`,
-          'echo "Ready for refinement with Kiro CLI"',
-          ''
-        ];
-        commands.forEach((cmd, i) => {
-          setTimeout(() => {
-            socket.send(JSON.stringify({ type: 'input', data: cmd + '\r' }));
-          }, i * 800);
-        });
-      }, 500);
-    } else {
-      setTimeout(() => {
-        socket.send(JSON.stringify({ type: 'input', data: '\r' }));
-      }, 500);
+    terminal.writeln('✓ Connected to Kiro CLI');
+    if (prEntry?.taskTitle) {
+      terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
     }
+    terminal.writeln('');
+    terminal.writeln('💬 Start chatting with Kiro to refine your code!');
+    terminal.writeln('');
   };
   
     socket.onmessage = (event) => {

@@ -65,6 +65,46 @@ const server = createServer(async (req, res) => {
     return;
   }
   
+  // Checkout branch endpoint (pre-checkout before terminal opens)
+  if (url.pathname === '/checkout-branch' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { branch } = JSON.parse(body);
+        
+        if (!branch) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'branch required' }));
+          return;
+        }
+        
+        console.log(`📥 Pre-checkout branch: ${branch}`);
+        
+        // Execute git commands directly
+        execSync(`cd ${REPO_PATH} && git fetch origin`, { encoding: 'utf8' });
+        execSync(`cd ${REPO_PATH} && git checkout ${branch}`, { encoding: 'utf8' });
+        
+        console.log(`✓ Branch ${branch} checked out`);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true, 
+          message: `Branch ${branch} ready`,
+          branch
+        }));
+      } catch (error) {
+        console.error('❌ Checkout failed:', error.message);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          message: error.message 
+        }));
+      }
+    });
+    return;
+  }
+  
   // Restart Kiro endpoint
   if (url.pathname === '/restart-kiro' && req.method === 'POST') {
     try {
