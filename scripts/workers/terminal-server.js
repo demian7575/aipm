@@ -145,12 +145,12 @@ Create or modify files as needed. When done, type "done" or just wait.`;
         console.log('⏎ Sending Enter key to execute...');
         kiro.write('\r');
         
-        console.log('⏳ Waiting 60 seconds for Kiro to generate code...');
+        console.log('⏳ Waiting 90 seconds for Kiro to generate and write code...');
         
-        // Wait for Kiro to finish (60 seconds)
-        await new Promise(resolve => setTimeout(resolve, 60000));
+        // Wait for Kiro to finish (90 seconds total)
+        await new Promise(resolve => setTimeout(resolve, 90000));
         
-        console.log('⏰ 30 seconds elapsed');
+        console.log('⏰ 90 seconds elapsed');
         console.log('📊 Kiro output length:', kiroOutput.length, 'characters');
         console.log('📊 Last 500 chars:', kiroOutput.substring(Math.max(0, kiroOutput.length - 500)));
         
