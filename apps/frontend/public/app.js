@@ -1563,7 +1563,7 @@ async function setCodeWhispererDelegations(storyId, entries) {
   }
   // Update story's PRs via API
   try {
-    const response = await fetch(apiUrl(`/api/stories/${key}/prs`), {
+    const response = await fetch(resolveApiUrl(`/api/stories/${key}/prs`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prs: entries })
@@ -1582,7 +1582,7 @@ async function setCodeWhispererDelegations(storyId, entries) {
 async function addCodeWhispererDelegationEntry(storyId, entry) {
   const key = Number(storyId);
   try {
-    const response = await fetch(apiUrl(`/api/stories/${key}/prs`), {
+    const response = await fetch(resolveApiUrl(`/api/stories/${key}/prs`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entry)
@@ -1613,7 +1613,7 @@ async function removeCodeWhispererDelegation(storyId, localId) {
   }
   
   try {
-    const response = await fetch(apiUrl(`/api/stories/${storyId}/prs/${entry.number}`), {
+    const response = await fetch(resolveApiUrl(`/api/stories/${storyId}/prs/${entry.number}`), {
       method: 'DELETE'
     });
     if (response.ok) {
