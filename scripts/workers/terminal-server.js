@@ -114,10 +114,15 @@ const server = createServer(async (req, res) => {
             lastApprovalTime = Date.now();
           }
           
-          // Detect when Kiro is done
-          if (data.includes('Done.') || data.includes('Is there anything else') || 
-              data.includes('completed') || data.includes('successfully')) {
-            console.log('✅ Kiro completion signal detected');
+          // Detect explicit completion signal
+          if (data.includes('[KIRO_COMPLETE]')) {
+            console.log('✅ Kiro completion signal detected: [KIRO_COMPLETE]');
+            kiroFinished = true;
+          }
+          // Fallback: detect common completion phrases
+          else if (data.includes('Done.') || data.includes('Is there anything else') || 
+              data.includes('completed successfully') || data.includes('All changes have been made')) {
+            console.log('✅ Kiro completion phrase detected');
             kiroFinished = true;
           }
         };
@@ -140,12 +145,15 @@ const server = createServer(async (req, res) => {
         console.log('🤖 Sending task to Kiro CLI...');
         console.log('📝 Task:', taskDescription);
         
-        // Format prompt to ask Kiro to say "Done" when finished
+        // Format prompt to ask Kiro to output completion signal
         const prompt = `Please implement the following task:
 
 ${taskDescription}
 
-Create or modify files as needed. When you're completely finished, say "Done" so I know you're ready.`;
+IMPORTANT: When you're completely finished with all changes, output exactly this line:
+[KIRO_COMPLETE]
+
+This signals that the task is done.`;
         
         kiro.write(prompt + '\n');
         console.log('✅ Prompt sent');
