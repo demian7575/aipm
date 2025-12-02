@@ -284,6 +284,17 @@ textarea {
   color: #2f2f2f;
 }
 
+.outline-item.status-done.health-warning,
+.outline-item.status-done.health-critical {
+  background: #7f7f7f !important;
+  color: #2f2f2f;
+}
+
+.outline-item.status-done.health-warning:hover,
+.outline-item.status-done.health-critical:hover {
+  background: #6f6f6f !important;
+}
+
 .outline-item.health-warning .title {
   color: #b45309;
   font-weight: 600;
@@ -526,6 +537,12 @@ body.is-mindmap-panning {
 .mindmap-node.status-done rect {
   stroke: #2f2f2f;
   fill: #7f7f7f;
+}
+
+.mindmap-node.status-done.health-warning rect,
+.mindmap-node.status-done.health-critical rect {
+  stroke: #2f2f2f !important;
+  fill: #7f7f7f !important;
 }
 
 .mindmap-node.health-warning rect {
