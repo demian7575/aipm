@@ -1541,16 +1541,9 @@ function loadCodeWhispererDelegationsFromStorage() {
   }
 }
 
-function persistCodeWhispererDelegations() {
-  try {
-    const plain = {};
-    state.codewhispererDelegations.forEach((entries, storyId) => {
-      plain[storyId] = entries.map((entry) => ({ ...entry }));
-    });
-    localStorage.setItem(STORAGE_KEYS.codewhispererDelegations, JSON.stringify(plain));
-  } catch (error) {
-    console.error('Failed to persist CodeWhisperer delegations', error);
-  }
+async function persistCodeWhispererDelegations() {
+  // PRs are now stored in the backend via API, not localStorage
+  // This function is kept for compatibility but does nothing
 }
 
 function getCodeWhispererDelegations(storyId) {
@@ -1558,46 +1551,85 @@ function getCodeWhispererDelegations(storyId) {
   if (!Number.isFinite(key)) {
     return [];
   }
-  const entries = state.codewhispererDelegations.get(key);
-  return Array.isArray(entries) ? entries : [];
+  // Get PRs from the story object
+  const story = state.storyIndex.get(key);
+  return story?.prs || [];
 }
 
-function setCodeWhispererDelegations(storyId, entries) {
+async function setCodeWhispererDelegations(storyId, entries) {
   const key = Number(storyId);
   if (!Number.isFinite(key)) {
     return;
   }
-  if (!Array.isArray(entries) || entries.length === 0) {
-    state.codewhispererDelegations.delete(key);
-  } else {
-    state.codewhispererDelegations.set(key, entries);
+  // Update story's PRs via API
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/stories/${key}/prs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prs: entries })
+    });
+    if (response.ok) {
+      const story = state.storyIndex.get(key);
+      if (story) {
+        story.prs = entries;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to persist PRs', error);
   }
-  persistCodeWhispererDelegations();
 }
 
-function addCodeWhispererDelegationEntry(storyId, entry) {
-  const current = getCodeWhispererDelegations(storyId);
-  const next = current.concat(entry);
-  setCodeWhispererDelegations(storyId, next);
-  if (state.selectedStoryId === storyId) {
-    refreshCodeWhispererSection(storyId);
+async function addCodeWhispererDelegationEntry(storyId, entry) {
+  const key = Number(storyId);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/stories/${key}/prs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    });
+    if (response.ok) {
+      const prs = await response.json();
+      const story = state.storyIndex.get(key);
+      if (story) {
+        story.prs = prs;
+      }
+      if (state.selectedStoryId === storyId) {
+        refreshCodeWhispererSection(storyId);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to add PR', error);
   }
 }
 
-function removeCodeWhispererDelegation(storyId, localId) {
+async function removeCodeWhispererDelegation(storyId, localId) {
   const current = getCodeWhispererDelegations(storyId);
   if (!current.length) {
     return;
   }
-  const next = current.filter((entry) => entry.localId !== localId);
-  if (next.length === current.length) {
+  const entry = current.find((e) => e.localId === localId);
+  if (!entry || !entry.number) {
     return;
   }
-  setCodeWhispererDelegations(storyId, next);
-  if (state.selectedStoryId === storyId) {
-    refreshCodeWhispererSection(storyId);
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/stories/${storyId}/prs/${entry.number}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      const prs = await response.json();
+      const story = state.storyIndex.get(Number(storyId));
+      if (story) {
+        story.prs = prs;
+      }
+      if (state.selectedStoryId === storyId) {
+        refreshCodeWhispererSection(storyId);
+      }
+      showToast('PR tracking removed', 'info');
+    }
+  } catch (error) {
+    console.error('Failed to remove PR', error);
   }
-  showToast('CodeWhisperer tracking removed', 'info');
 }
 
 function refreshCodeWhispererSection(storyId) {

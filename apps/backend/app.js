@@ -5,6 +5,7 @@ import {
   requestAcceptanceTestDraftFromAmazonAi
 } from './amazon-ai.js';
 import { DynamoDBDataLayer } from './dynamodb.js';
+import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
 import { spawnSync, spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
@@ -5148,6 +5149,18 @@ async function loadStories(db, options = {}) {
     })
   );
 
+  // Load PRs for each story
+  await Promise.all(
+    Array.from(byId.values()).map(async (story) => {
+      try {
+        story.prs = await getStoryPRs(db, story.id);
+      } catch (error) {
+        console.error(`Failed to load PRs for story ${story.id}:`, error);
+        story.prs = [];
+      }
+    })
+  );
+
   return roots;
 }
 
@@ -6182,6 +6195,44 @@ export async function createApp() {
         sendJson(res, 404, { message: 'Story not found' });
       } else {
         sendJson(res, 204, {});
+      }
+      return;
+    }
+
+    // Story PR endpoints
+    const storyPRsMatch = pathname.match(/^\/api\/stories\/(\d+)\/prs$/);
+    if (storyPRsMatch && method === 'GET') {
+      const storyId = Number(storyPRsMatch[1]);
+      try {
+        const prs = await getStoryPRs(db, storyId);
+        sendJson(res, 200, prs);
+      } catch (error) {
+        sendJson(res, 500, { message: error.message || 'Failed to get PRs' });
+      }
+      return;
+    }
+
+    if (storyPRsMatch && method === 'POST') {
+      const storyId = Number(storyPRsMatch[1]);
+      try {
+        const payload = await parseJson(req);
+        const prs = await addStoryPR(db, storyId, payload);
+        sendJson(res, 200, prs);
+      } catch (error) {
+        sendJson(res, 500, { message: error.message || 'Failed to add PR' });
+      }
+      return;
+    }
+
+    const storyPRMatch = pathname.match(/^\/api\/stories\/(\d+)\/prs\/(\d+)$/);
+    if (storyPRMatch && method === 'DELETE') {
+      const storyId = Number(storyPRMatch[1]);
+      const prNumber = Number(storyPRMatch[2]);
+      try {
+        const prs = await removeStoryPR(db, storyId, prNumber);
+        sendJson(res, 200, prs);
+      } catch (error) {
+        sendJson(res, 500, { message: error.message || 'Failed to remove PR' });
       }
       return;
     }
