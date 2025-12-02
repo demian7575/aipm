@@ -106,9 +106,9 @@ const server = createServer(async (req, res) => {
           kiroOutput += data;
           process.stdout.write(data); // Also log to console
           
-          // Auto-approve when Kiro asks for permission (debounced to prevent spam)
-          if ((kiroOutput.includes('Allow this action?') || kiroOutput.includes('[y/n/t]')) &&
-              (Date.now() - lastApprovalTime > 5000)) {
+          // Auto-approve when Kiro asks for permission (check only new data)
+          if ((data.includes('Allow this action?') || data.includes('[y/n/t]')) &&
+              (Date.now() - lastApprovalTime > 2000)) {
             console.log('🔔 Permission prompt detected, sending trust (t)...');
             kiro.write('t\r\n');
             lastApprovalTime = Date.now();
