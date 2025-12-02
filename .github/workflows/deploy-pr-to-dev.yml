@@ -35,25 +35,31 @@ jobs:
         run: |
           echo "📊 Copying production data to development..."
           
-          # Copy stories
-          aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 | \
-            jq -r '.Items[]' | \
-            while IFS= read -r item; do
-              aws dynamodb put-item \
-                --table-name aipm-backend-dev-stories \
-                --item "$item" \
-                --region us-east-1 2>/dev/null || true
-            done
+          # Get all items from production
+          PROD_STORIES=$(aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1)
+          PROD_TESTS=$(aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1)
           
-          # Copy acceptance tests
-          aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1 | \
-            jq -r '.Items[]' | \
-            while IFS= read -r item; do
-              aws dynamodb put-item \
-                --table-name aipm-backend-dev-acceptance-tests \
-                --item "$item" \
-                --region us-east-1 2>/dev/null || true
-            done
+          # Clear dev tables first
+          echo "🗑️  Clearing dev tables..."
+          aws dynamodb scan --table-name aipm-backend-dev-stories --region us-east-1 --attributes-to-get id | \
+            jq -r '.Items[].id.N' | \
+            xargs -I {} aws dynamodb delete-item --table-name aipm-backend-dev-stories --key '{"id":{"N":"{}"}}' --region us-east-1 2>/dev/null || true
+          
+          aws dynamodb scan --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --attributes-to-get id | \
+            jq -r '.Items[].id.N' | \
+            xargs -I {} aws dynamodb delete-item --table-name aipm-backend-dev-acceptance-tests --key '{"id":{"N":"{}"}}' --region us-east-1 2>/dev/null || true
+          
+          # Copy stories (batch write)
+          echo "📝 Copying stories..."
+          echo "$PROD_STORIES" | jq -c '.Items[] | {PutRequest: {Item: .}}' | \
+            jq -s '{RequestItems: {"aipm-backend-dev-stories": .}}' | \
+            aws dynamodb batch-write-item --region us-east-1 --request-items file:///dev/stdin || true
+          
+          # Copy acceptance tests (batch write)
+          echo "✅ Copying acceptance tests..."
+          echo "$PROD_TESTS" | jq -c '.Items[] | {PutRequest: {Item: .}}' | \
+            jq -s '{RequestItems: {"aipm-backend-dev-acceptance-tests": .}}' | \
+            aws dynamodb batch-write-item --region us-east-1 --request-items file:///dev/stdin || true
           
           echo "✅ Data sync complete"
       
