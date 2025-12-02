@@ -2143,7 +2143,6 @@ dialog[data-size='content'] .modal-shell {
 
 #modal[data-size="fullscreen"] #terminal-container {
   width: 100% !important;
-  height: 100% !important;
 }
 
 #modal[data-size="fullscreen"] .staging-options {
