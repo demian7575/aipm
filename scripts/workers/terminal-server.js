@@ -130,7 +130,14 @@ ${taskDescription}
 Create or modify files as needed. When done, type "done" or just wait.`;
         
         kiro.write(prompt + '\n');
-        console.log('✅ Task sent, waiting 30 seconds for Kiro to generate code...');
+        console.log('✅ Prompt sent');
+        
+        // Wait a moment for Kiro to process, then send Enter to execute
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('⏎ Sending Enter key to execute...');
+        kiro.write('\r');
+        
+        console.log('⏳ Waiting 30 seconds for Kiro to generate code...');
         
         // Wait for Kiro to finish (30 seconds)
         await new Promise(resolve => setTimeout(resolve, 30000));
