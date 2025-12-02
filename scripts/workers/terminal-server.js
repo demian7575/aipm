@@ -99,17 +99,16 @@ const server = createServer(async (req, res) => {
         
         // Capture Kiro output
         let kiroOutput = '';
-        let lastApprovalTime = 0;
+        let approvalSent = false;
         const outputHandler = (data) => {
           kiroOutput += data;
           process.stdout.write(data); // Also log to console
           
-          // Auto-approve when Kiro asks for permission (debounced to avoid multiple sends)
-          if ((data.includes('Allow this action?') || data.includes('[y/n/t]')) && 
-              Date.now() - lastApprovalTime > 5000) { // Only once per 5 seconds
-            console.log('🔔 Permission prompt detected, sending approval...');
-            kiro.write('y\r');
-            lastApprovalTime = Date.now();
+          // Auto-approve when Kiro asks for permission (send 't' to trust for session)
+          if (!approvalSent && (data.includes('Allow this action?') || data.includes('[y/n/t]'))) {
+            console.log('🔔 Permission prompt detected, sending trust (t)...');
+            kiro.write('t\r');
+            approvalSent = true; // Only send once
           }
         };
         
