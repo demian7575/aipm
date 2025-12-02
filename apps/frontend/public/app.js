@@ -1552,7 +1552,7 @@ function getCodeWhispererDelegations(storyId) {
     return [];
   }
   // Get PRs from the story object
-  const story = state.storyIndex.get(key);
+  const story = storyIndex.get(key);
   return story?.prs || [];
 }
 
@@ -1569,7 +1569,7 @@ async function setCodeWhispererDelegations(storyId, entries) {
       body: JSON.stringify({ prs: entries })
     });
     if (response.ok) {
-      const story = state.storyIndex.get(key);
+      const story = storyIndex.get(key);
       if (story) {
         story.prs = entries;
       }
@@ -1589,7 +1589,7 @@ async function addCodeWhispererDelegationEntry(storyId, entry) {
     });
     if (response.ok) {
       const prs = await response.json();
-      const story = state.storyIndex.get(key);
+      const story = storyIndex.get(key);
       if (story) {
         story.prs = prs;
       }
@@ -1618,7 +1618,7 @@ async function removeCodeWhispererDelegation(storyId, localId) {
     });
     if (response.ok) {
       const prs = await response.json();
-      const story = state.storyIndex.get(Number(storyId));
+      const story = storyIndex.get(Number(storyId));
       if (story) {
         story.prs = prs;
       }
