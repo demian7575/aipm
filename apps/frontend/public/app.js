@@ -1710,7 +1710,7 @@ async function rebaseCodeWhispererPR(entry) {
 
 async function mergeCodeWhispererPR(entry) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/codewhisperer-merge`, {
+    const response = await fetch(resolveApiUrl('/api/codewhisperer-merge'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
