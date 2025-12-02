@@ -3422,7 +3422,7 @@ function buildKiroTerminalModalContent(prEntry = null) {
     ${prInfo}
     <div class="staging-options">
       <h3>Refine PR with Kiro</h3>
-      <div id="terminal-container" style="width: 100%; height: 100%; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
+      <div id="terminal-container" style="width: 100%; height: 70vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
     </div>
   `;
   
