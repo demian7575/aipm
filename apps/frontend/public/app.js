@@ -2006,8 +2006,8 @@ function renderCodeWhispererSectionList(container, story) {
       kiroBtn.type = 'button';
       kiroBtn.className = 'button secondary kiro-terminal-btn';
       kiroBtn.textContent = 'Refine with Kiro';
-      kiroBtn.addEventListener('click', () => {
-        const { element, onClose } = buildKiroTerminalModalContent(entry);
+      kiroBtn.addEventListener('click', async () => {
+        const { element, onClose } = await buildKiroTerminalModalContent(entry);
         openModal({
           title: 'Kiro CLI Terminal',
           content: element,
@@ -3399,7 +3399,7 @@ function buildDeployToDevModalContent(prEntry = null) {
   return { element: container, onClose: () => {} };
 }
 
-function buildKiroTerminalModalContent(prEntry = null) {
+async function buildKiroTerminalModalContent(prEntry = null) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
   
