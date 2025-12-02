@@ -154,11 +154,11 @@ Create or modify files as needed. When you're completely finished, say "Done" so
         console.log('⏎ Sending Enter key to execute...');
         kiro.write('\r');
         
-        console.log('⏳ Waiting for Kiro to complete (max 120 seconds)...');
+        console.log('⏳ Waiting for Kiro to complete (max 10 minutes)...');
         
-        // Wait for Kiro to finish or timeout (120 seconds max)
+        // Wait for Kiro to finish or timeout (10 minutes max)
         const startTime = Date.now();
-        const maxWaitTime = 120000; // 2 minutes
+        const maxWaitTime = 600000; // 10 minutes
         
         while (!kiroFinished && (Date.now() - startTime) < maxWaitTime) {
           await new Promise(resolve => setTimeout(resolve, 2000)); // Check every 2 seconds
