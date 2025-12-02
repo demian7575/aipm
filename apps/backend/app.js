@@ -2534,6 +2534,46 @@ async function handleTerminalStop(req, res) {
   }
 }
 
+async function handleMergePRRequest(req, res) {
+  try {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    await new Promise(resolve => req.on('end', resolve));
+    
+    const { owner, repo, prNumber } = JSON.parse(body);
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    const REPO_OWNER = owner || process.env.GITHUB_OWNER || 'demian7575';
+    const REPO_NAME = repo || process.env.GITHUB_REPO || 'aipm';
+    
+    if (!GITHUB_TOKEN) {
+      sendJson(res, 400, { success: false, error: 'GitHub token not configured' });
+      return;
+    }
+    
+    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${prNumber}/merge`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ merge_method: 'squash' })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      sendJson(res, response.status, { success: false, error: error.message || 'Merge failed' });
+      return;
+    }
+    
+    const result = await response.json();
+    sendJson(res, 200, { success: true, sha: result.sha, merged: result.merged });
+  } catch (error) {
+    console.error('Merge PR error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
 async function handleCreatePRRequest(req, res) {
   try {
     let body = '';
@@ -5552,6 +5592,11 @@ export async function createApp() {
 
     if (pathname === '/api/codewhisperer-rebase' && method === 'POST') {
       await handleCodeWhispererRebaseRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/merge-pr' && method === 'POST') {
+      await handleMergePRRequest(req, res);
       return;
     }
 

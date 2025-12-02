@@ -1970,6 +1970,53 @@ function renderCodeWhispererSectionList(container, story) {
       });
       actions.appendChild(runInStagingBtn);
 
+      const mergeBtn = document.createElement('button');
+      mergeBtn.type = 'button';
+      mergeBtn.className = 'button primary merge-pr-btn';
+      mergeBtn.textContent = 'Merge';
+      mergeBtn.addEventListener('click', async () => {
+        const prNumber = entry.number || entry.targetNumber;
+        if (!prNumber) {
+          showToast('PR number not available', 'error');
+          return;
+        }
+        
+        if (!confirm('Merge this PR with squash commit to main branch?')) {
+          return;
+        }
+        
+        mergeBtn.disabled = true;
+        mergeBtn.textContent = 'Merging...';
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/merge-pr`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              owner: entry.owner,
+              repo: entry.repo,
+              prNumber
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            showToast('PR merged successfully', 'success');
+            removeCodeWhispererDelegation(entry.storyId, entry.localId);
+          } else {
+            showToast('Merge failed: ' + (result.error || 'Unknown error'), 'error');
+            mergeBtn.disabled = false;
+            mergeBtn.textContent = 'Merge';
+          }
+        } catch (error) {
+          showToast('Merge error: ' + error.message, 'error');
+          mergeBtn.disabled = false;
+          mergeBtn.textContent = 'Merge';
+        }
+      });
+      actions.appendChild(mergeBtn);
+
       const kiroBtn = document.createElement('button');
       kiroBtn.type = 'button';
       kiroBtn.className = 'button secondary kiro-terminal-btn';
