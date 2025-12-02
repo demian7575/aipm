@@ -57,7 +57,20 @@ const PROD_TEST_SUITES = {
             { name: 'Task Card Objective Display', test: 'testTaskCardObjective' },
             { name: 'Create PR Endpoint', test: 'testCreatePREndpoint' },
             { name: 'Auto Root Story Function', test: 'testAutoRootStoryFunction' },
-            { name: 'Deploy PR Endpoint', test: 'testDeployPREndpoint' }
+            { name: 'Deploy PR Endpoint', test: 'testDeployPREndpoint' },
+            { name: 'Generate Code & PR Button', test: 'testGenerateCodeButton' },
+            { name: 'Test In Dev Button', test: 'testTestInDevButton' },
+            { name: 'Refine with Kiro Button', test: 'testRefineWithKiroButton' }
+        ]
+    },
+    kiroIntegration: {
+        name: 'Kiro CLI Integration',
+        tests: [
+            { name: 'EC2 Terminal Server Health', test: 'testEC2TerminalHealth' },
+            { name: 'Terminal WebSocket Connection', test: 'testTerminalWebSocket' },
+            { name: 'Code Generation Endpoint', test: 'testCodeGenerationEndpoint' },
+            { name: 'Terminal Modal UI', test: 'testTerminalModalUI' },
+            { name: 'Kiro Health Check Function', test: 'testKiroHealthCheck' }
         ]
     },
     stagingWorkflow: {
@@ -1486,6 +1499,227 @@ async function runProductionTest(testName) {
                 };
             } catch (error) {
                 return { success: false, message: `Deploy PR test failed - ${error.message}` };
+            }
+
+        case 'testGenerateCodeButton':
+            // Test Generate Code & PR button exists
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasButton = js.includes('Generate Code & PR');
+                const hasFunction = js.includes('openCodeWhispererDelegationModal');
+                const hasKiroCheck = js.includes('ensureKiroCliRunning');
+                
+                if (!hasButton) {
+                    return { success: false, message: 'Generate Code & PR: Button text not found' };
+                }
+                
+                if (!hasFunction) {
+                    return { success: false, message: 'Generate Code & PR: Modal function missing' };
+                }
+                
+                if (!hasKiroCheck) {
+                    return { success: false, message: 'Generate Code & PR: Kiro health check missing' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Generate Code & PR: Button and functions exist'
+                };
+            } catch (error) {
+                return { success: false, message: `Generate Code & PR test failed - ${error.message}` };
+            }
+
+        case 'testTestInDevButton':
+            // Test "Test In Dev" button exists
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasButton = js.includes('Test in Dev') || js.includes('Test In Dev');
+                const hasFunction = js.includes('buildRunInStagingModalContent');
+                
+                if (!hasButton) {
+                    return { success: false, message: 'Test In Dev: Button text not found' };
+                }
+                
+                if (!hasFunction) {
+                    return { success: false, message: 'Test In Dev: Modal function missing' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Test In Dev: Button and function exist'
+                };
+            } catch (error) {
+                return { success: false, message: `Test In Dev test failed - ${error.message}` };
+            }
+
+        case 'testRefineWithKiroButton':
+            // Test "Refine with Kiro" button exists
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasButton = js.includes('Refine with Kiro');
+                const hasFunction = js.includes('buildKiroTerminalModalContent');
+                const hasTerminalInit = js.includes('new window.Terminal');
+                
+                if (!hasButton) {
+                    return { success: false, message: 'Refine with Kiro: Button text not found' };
+                }
+                
+                if (!hasFunction) {
+                    return { success: false, message: 'Refine with Kiro: Modal function missing' };
+                }
+                
+                if (!hasTerminalInit) {
+                    return { success: false, message: 'Refine with Kiro: Terminal initialization missing' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Refine with Kiro: Button and terminal functions exist'
+                };
+            } catch (error) {
+                return { success: false, message: `Refine with Kiro test failed - ${error.message}` };
+            }
+
+        case 'testEC2TerminalHealth':
+            // Test EC2 terminal server health
+            try {
+                const response = await fetch('http://44.220.45.57:8080/health');
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    return { success: false, message: 'EC2 Terminal: Server not responding' };
+                }
+                
+                if (data.status !== 'running') {
+                    return { success: false, message: `EC2 Terminal: Status is ${data.status}` };
+                }
+                
+                if (!data.kiro || !data.kiro.running) {
+                    return { success: false, message: 'EC2 Terminal: Kiro CLI not running' };
+                }
+                
+                return {
+                    success: true,
+                    message: `EC2 Terminal: Healthy (Kiro PID: ${data.kiro.pid})`
+                };
+            } catch (error) {
+                return { success: false, message: `EC2 Terminal health check failed - ${error.message}` };
+            }
+
+        case 'testTerminalWebSocket':
+            // Test WebSocket connection capability
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/config.js`);
+                const configJs = await response.text();
+                
+                const hasEC2Url = configJs.includes('EC2_TERMINAL_URL');
+                const hasCorrectUrl = configJs.includes('44.220.45.57:8080');
+                
+                if (!hasEC2Url) {
+                    return { success: false, message: 'Terminal WebSocket: EC2_TERMINAL_URL not configured' };
+                }
+                
+                if (!hasCorrectUrl) {
+                    return { success: false, message: 'Terminal WebSocket: Incorrect EC2 URL' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Terminal WebSocket: Configuration correct'
+                };
+            } catch (error) {
+                return { success: false, message: `Terminal WebSocket test failed - ${error.message}` };
+            }
+
+        case 'testCodeGenerationEndpoint':
+            // Test code generation endpoint exists
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasEndpoint = js.includes('/api/personal-delegate');
+                const hasEC2Call = js.includes('generate-code') || js.includes('EC2_TERMINAL_URL');
+                
+                if (!hasEndpoint) {
+                    return { success: false, message: 'Code Generation: API endpoint not found' };
+                }
+                
+                if (!hasEC2Call) {
+                    return { success: false, message: 'Code Generation: EC2 integration missing' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Code Generation: Endpoint and EC2 integration exist'
+                };
+            } catch (error) {
+                return { success: false, message: `Code Generation endpoint test failed - ${error.message}` };
+            }
+
+        case 'testTerminalModalUI':
+            // Test terminal modal UI elements
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/styles.css`);
+                const css = await response.text();
+                
+                const hasFullscreen = css.includes('#modal[data-size="fullscreen"]');
+                const hasTerminalContainer = css.includes('#terminal-container');
+                const hasWidth = css.includes('95vw');
+                
+                if (!hasFullscreen) {
+                    return { success: false, message: 'Terminal Modal: Fullscreen style missing' };
+                }
+                
+                if (!hasTerminalContainer) {
+                    return { success: false, message: 'Terminal Modal: Container style missing' };
+                }
+                
+                if (!hasWidth) {
+                    return { success: false, message: 'Terminal Modal: Width style missing' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Terminal Modal: UI styles configured correctly'
+                };
+            } catch (error) {
+                return { success: false, message: `Terminal Modal UI test failed - ${error.message}` };
+            }
+
+        case 'testKiroHealthCheck':
+            // Test Kiro health check function
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await response.text();
+                
+                const hasFunction = js.includes('ensureKiroCliRunning');
+                const hasHealthCheck = js.includes('/health');
+                const hasRestartEndpoint = js.includes('/restart-kiro');
+                
+                if (!hasFunction) {
+                    return { success: false, message: 'Kiro Health Check: Function not found' };
+                }
+                
+                if (!hasHealthCheck) {
+                    return { success: false, message: 'Kiro Health Check: Health endpoint missing' };
+                }
+                
+                if (!hasRestartEndpoint) {
+                    return { success: false, message: 'Kiro Health Check: Restart endpoint missing' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Kiro Health Check: Function and endpoints exist'
+                };
+            } catch (error) {
+                return { success: false, message: `Kiro Health Check test failed - ${error.message}` };
             }
 
         default:
