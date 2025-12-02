@@ -118,11 +118,18 @@ const server = createServer(async (req, res) => {
           throw new Error(`Failed to checkout branch: ${gitError.message}`);
         }
         
-        // Send task to Kiro
+        // Send task to Kiro with explicit instructions
         console.log('🤖 Sending task to Kiro CLI...');
         console.log('📝 Task:', taskDescription);
-        const command = `${taskDescription}\n`;
-        kiro.write(command);
+        
+        // Format prompt for better Kiro understanding
+        const prompt = `Please implement the following task:
+
+${taskDescription}
+
+Create or modify files as needed. When done, type "done" or just wait.`;
+        
+        kiro.write(prompt + '\n');
         console.log('✅ Task sent, waiting 30 seconds for Kiro to generate code...');
         
         // Wait for Kiro to finish (30 seconds)
