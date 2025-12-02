@@ -2012,7 +2012,7 @@ function renderCodeWhispererSectionList(container, story) {
           title: 'Kiro CLI Terminal',
           content: element,
           cancelLabel: 'Close',
-          size: 'xlarge',
+          size: 'fullscreen',
           onClose,
         });
       });
@@ -2053,7 +2053,15 @@ function buildCodeWhispererSection(story) {
   actionBtn.type = 'button';
   actionBtn.className = 'secondary';
   actionBtn.textContent = 'Generate Code & PR';
-  actionBtn.addEventListener('click', () => openCodeWhispererDelegationModal(story));
+  actionBtn.addEventListener('click', async () => {
+    // Check and activate Kiro CLI if needed
+    const kiroReady = await ensureKiroCliRunning();
+    if (!kiroReady) {
+      showToast('Kiro CLI failed to start. Please contact support.', 'error');
+      return;
+    }
+    openCodeWhispererDelegationModal(story);
+  });
   heading.appendChild(actionBtn);
 
   section.appendChild(heading);
@@ -3414,7 +3422,7 @@ function buildKiroTerminalModalContent(prEntry = null) {
     ${prInfo}
     <div class="staging-options">
       <h3>Refine PR with Kiro</h3>
-      <div id="terminal-container" style="width: 100%; height: 70vh; background: #000; padding: 10px; box-sizing: border-box;"></div>
+      <div id="terminal-container" style="width: 100%; height: 100%; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
     </div>
   `;
   
@@ -3441,11 +3449,24 @@ function buildKiroTerminalModalContent(prEntry = null) {
   });
   
   terminal.open(terminalContainer);
+  
+  // Manual resize function
+  const resizeTerminal = () => {
+    const width = terminalContainer.clientWidth;
+    const height = terminalContainer.clientHeight;
+    const cols = Math.floor(width / 9); // Approximate char width
+    const rows = Math.floor(height / 17); // Approximate line height
+    if (cols > 0 && rows > 0) {
+      terminal.resize(cols, rows);
+    }
+  };
+  
+  resizeTerminal(); // Initial size
   terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
   terminal.writeln('');
   
   // Connect to EC2 WebSocket server
-  const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://localhost:8080';
+  const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
   const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
   
   socket = new WebSocket(wsUrl);
@@ -3483,9 +3504,7 @@ function buildKiroTerminalModalContent(prEntry = null) {
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       
-      if (data.type === 'branch') {
-        branchDisplay.textContent = data.branch;
-      } else if (data.type === 'output') {
+      if (data.type === 'output') {
         terminal.write(data.data);
       }
     };
@@ -3510,10 +3529,24 @@ function buildKiroTerminalModalContent(prEntry = null) {
       }
     });
   
+  // Auto-resize terminal when modal is resized
+  const resizeObserver = new ResizeObserver(() => {
+    if (terminal && terminalContainer) {
+      const width = terminalContainer.clientWidth;
+      const height = terminalContainer.clientHeight;
+      const cols = Math.floor(width / 9);
+      const rows = Math.floor(height / 17);
+      if (cols > 0 && rows > 0) {
+        terminal.resize(cols, rows);
+      }
+    }
+  });
+  resizeObserver.observe(terminalContainer);
   
   return { 
     element: container, 
     onClose: () => {
+      resizeObserver.disconnect();
       if (socket) socket.close();
       if (terminal) terminal.dispose();
     } 
@@ -5277,6 +5310,32 @@ function validateCodeWhispererInput(values) {
     valid: Object.keys(errors).length === 0,
     errors
   };
+}
+
+async function ensureKiroCliRunning() {
+  try {
+    const res = await fetch('http://44.220.45.57:8080/health');
+    const data = await res.json();
+    
+    if (data.status === 'running' && data.kiro?.running) {
+      return true; // Already running
+    }
+    
+    // Not running - start it
+    await fetch('http://44.220.45.57:8080/restart-kiro', { method: 'POST' });
+    
+    // Wait 10 seconds for restart
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    
+    // Check again
+    const checkRes = await fetch('http://44.220.45.57:8080/health');
+    const checkData = await checkRes.json();
+    
+    return checkData.status === 'running' && checkData.kiro?.running;
+  } catch (error) {
+    console.error('Failed to ensure Kiro CLI running:', error);
+    return false;
+  }
 }
 
 function openCodeWhispererDelegationModal(story) {
