@@ -57,8 +57,25 @@ const server = createServer(async (req, res) => {
   
   // Health check
   if (url.pathname === '/' || url.pathname === '/health') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Kiro Terminal Server Running\n');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'running',
+      kiro: { pid: kiro.pid, running: !kiro.killed }
+    }));
+    return;
+  }
+  
+  // Restart Kiro endpoint
+  if (url.pathname === '/restart-kiro' && req.method === 'POST') {
+    try {
+      console.log('🔄 Restarting Kiro CLI...');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, message: 'Server will restart' }));
+      setTimeout(() => process.exit(0), 1000);
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: error.message }));
+    }
     return;
   }
   
@@ -89,9 +106,16 @@ const server = createServer(async (req, res) => {
         
         kiro.onData(outputHandler);
         
-        // Checkout branch (reset any local changes first)
-        const gitCheckout = execSync(`cd ${REPO_PATH} && git reset --hard && git fetch origin && git checkout ${branch}`, { encoding: 'utf8' });
-        console.log(gitCheckout);
+        // Checkout branch (clean working directory first)
+        try {
+          // Remove untracked files and reset
+          execSync(`cd ${REPO_PATH} && git clean -fd && git reset --hard`, { encoding: 'utf8' });
+          const gitCheckout = execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${branch}`, { encoding: 'utf8' });
+          console.log(gitCheckout);
+        } catch (gitError) {
+          console.error('Git checkout failed:', gitError.message);
+          throw new Error(`Failed to checkout branch: ${gitError.message}`);
+        }
         
         // Send task to Kiro
         const command = `${taskDescription}\n`;
