@@ -1538,19 +1538,24 @@ async function runProductionTest(testName) {
                 const js = await response.text();
                 
                 const hasButton = js.includes('Test in Dev') || js.includes('Test In Dev');
-                const hasFunction = js.includes('buildRunInStagingModalContent');
+                const hasFunction = js.includes('bedrockImplementation');
+                const hasDeployEndpoint = js.includes('/api/deploy-pr');
                 
                 if (!hasButton) {
                     return { success: false, message: 'Test In Dev: Button text not found' };
                 }
                 
                 if (!hasFunction) {
-                    return { success: false, message: 'Test In Dev: Modal function missing' };
+                    return { success: false, message: 'Test In Dev: bedrockImplementation function missing' };
+                }
+                
+                if (!hasDeployEndpoint) {
+                    return { success: false, message: 'Test In Dev: Deploy endpoint missing' };
                 }
                 
                 return {
                     success: true,
-                    message: 'Test In Dev: Button and function exist'
+                    message: 'Test In Dev: Button, function, and endpoint exist'
                 };
             } catch (error) {
                 return { success: false, message: `Test In Dev test failed - ${error.message}` };
