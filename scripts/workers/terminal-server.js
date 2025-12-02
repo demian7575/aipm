@@ -137,17 +137,14 @@ Create or modify files as needed. When done, type "done" or just wait.`;
         console.log('⏎ Sending Enter key to execute...');
         kiro.write('\r');
         
-        console.log('⏳ Waiting 30 seconds for Kiro to generate code...');
+        console.log('⏳ Waiting for Kiro to generate code...');
         
-        // Wait for Kiro to finish (30 seconds)
-        await new Promise(resolve => setTimeout(resolve, 30000));
-        
-        // Auto-approve any file operations (send 'y' for yes)
-        console.log('✅ Auto-approving file operations...');
-        kiro.write('y\r');
-        
-        // Wait a bit more for file operations to complete
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        // Send approval multiple times during generation (Kiro may ask for permission)
+        for (let i = 0; i < 6; i++) {
+          await new Promise(resolve => setTimeout(resolve, 10000)); // Every 10 seconds
+          console.log(`✅ Sending approval (${i + 1}/6)...`);
+          kiro.write('y\r');
+        }
         
         console.log('⏰ 30 seconds elapsed');
         console.log('📊 Kiro output length:', kiroOutput.length, 'characters');
