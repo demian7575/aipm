@@ -108,24 +108,37 @@ const server = createServer(async (req, res) => {
         
         // Checkout branch (clean working directory first)
         try {
-          // Remove untracked files and reset
+          console.log('📥 Cleaning working directory...');
           execSync(`cd ${REPO_PATH} && git clean -fd && git reset --hard`, { encoding: 'utf8' });
+          console.log('📥 Fetching and checking out branch...');
           const gitCheckout = execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${branch}`, { encoding: 'utf8' });
           console.log(gitCheckout);
         } catch (gitError) {
-          console.error('Git checkout failed:', gitError.message);
+          console.error('❌ Git checkout failed:', gitError.message);
           throw new Error(`Failed to checkout branch: ${gitError.message}`);
         }
         
         // Send task to Kiro
+        console.log('🤖 Sending task to Kiro CLI...');
+        console.log('📝 Task:', taskDescription);
         const command = `${taskDescription}\n`;
         kiro.write(command);
+        console.log('✅ Task sent, waiting 30 seconds for Kiro to generate code...');
         
         // Wait for Kiro to finish (30 seconds)
         await new Promise(resolve => setTimeout(resolve, 30000));
         
+        console.log('⏰ 30 seconds elapsed');
+        console.log('📊 Kiro output length:', kiroOutput.length, 'characters');
+        console.log('📊 Last 500 chars:', kiroOutput.substring(Math.max(0, kiroOutput.length - 500)));
+        
         // Remove output handler
         kiro.removeListener('data', outputHandler);
+        
+        // Check if any files changed
+        console.log('🔍 Checking for file changes...');
+        const gitStatus = execSync(`cd ${REPO_PATH} && git status --porcelain`, { encoding: 'utf8' });
+        console.log('📊 Git status:', gitStatus || '(no changes)');
         
         // Commit and push
         let gitOutput = '';
