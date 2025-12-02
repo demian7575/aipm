@@ -4804,6 +4804,7 @@ async function ensureDatabase() {
   ensureColumn(db, 'user_stories', 'status', "status TEXT DEFAULT 'Draft'");
   ensureColumn(db, 'user_stories', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'user_stories', 'updated_at', 'updated_at TEXT');
+  ensureColumn(db, 'user_stories', 'prs', "prs TEXT DEFAULT '[]'");
 
   ensureColumn(db, 'acceptance_tests', 'given', "given TEXT NOT NULL DEFAULT '[]'");
   ensureColumn(db, 'acceptance_tests', 'when_step', "when_step TEXT NOT NULL DEFAULT '[]'");
@@ -5150,6 +5151,7 @@ async function loadStories(db, options = {}) {
   );
 
   // Load PRs for each story
+  console.log(`Loading PRs for ${byId.size} stories...`);
   await Promise.all(
     Array.from(byId.values()).map(async (story) => {
       try {
@@ -5160,6 +5162,7 @@ async function loadStories(db, options = {}) {
       }
     })
   );
+  console.log(`Finished loading PRs`);
 
   return roots;
 }

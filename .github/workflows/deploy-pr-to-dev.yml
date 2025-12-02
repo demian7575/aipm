@@ -51,7 +51,7 @@ jobs:
               echo "$item" | aws dynamodb put-item --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --item file:///dev/stdin
             done
           
-          echo "✅ Data sync complete"
+          echo "✅ Data sync complete (Note: PR queue is shared between environments)"
       
       - name: Create dev config
         run: |
