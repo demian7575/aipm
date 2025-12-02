@@ -84,6 +84,9 @@ const server = createServer(async (req, res) => {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
+      const startTime = Date.now();
+      const timings = {};
+      
       try {
         const { branch, taskDescription, prNumber } = JSON.parse(body);
         
@@ -96,6 +99,7 @@ const server = createServer(async (req, res) => {
         console.log(`\n🔨 Generating code for PR #${prNumber}`);
         console.log(`🌿 Branch: ${branch}`);
         console.log(`📋 Task: ${taskDescription}`);
+        console.log(`⏱️  Start time: ${new Date().toISOString()}`);
         
         // Capture Kiro output
         let kiroOutput = '';
@@ -130,18 +134,22 @@ const server = createServer(async (req, res) => {
         kiro.onData(outputHandler);
         
         // Checkout branch (reset tracked files only, keep untracked)
+        const gitStartTime = Date.now();
         try {
           console.log('📥 Resetting tracked files...');
           execSync(`cd ${REPO_PATH} && git reset --hard`, { encoding: 'utf8' });
           console.log('📥 Fetching and checking out branch...');
           const gitCheckout = execSync(`cd ${REPO_PATH} && git fetch origin && git checkout ${branch}`, { encoding: 'utf8' });
           console.log(gitCheckout);
+          timings.gitCheckout = Date.now() - gitStartTime;
+          console.log(`⏱️  Git checkout: ${timings.gitCheckout}ms`);
         } catch (gitError) {
           console.error('❌ Git checkout failed:', gitError.message);
           throw new Error(`Failed to checkout branch: ${gitError.message}`);
         }
         
         // Send task to Kiro with explicit instructions
+        const promptStartTime = Date.now();
         console.log('🤖 Sending task to Kiro CLI...');
         console.log('📝 Task:', taskDescription);
         
@@ -162,10 +170,13 @@ This signals that the task is done.`;
         await new Promise(resolve => setTimeout(resolve, 2000));
         console.log('⏎ Sending Enter key to execute...');
         kiro.write('\r');
+        timings.promptSend = Date.now() - promptStartTime;
+        console.log(`⏱️  Prompt send: ${timings.promptSend}ms`);
         
         console.log('⏳ Waiting for Kiro to complete (max 10 minutes)...');
         
         // Wait for Kiro to finish or timeout (10 minutes max)
+        const kiroStartTime = Date.now();
         const startTime = Date.now();
         const maxWaitTime = 600000; // 10 minutes
         
@@ -173,6 +184,7 @@ This signals that the task is done.`;
           await new Promise(resolve => setTimeout(resolve, 2000)); // Check every 2 seconds
         }
         
+        timings.kiroExecution = Date.now() - kiroStartTime;
         const elapsedTime = Math.round((Date.now() - startTime) / 1000);
         
         if (kiroFinished) {
@@ -180,6 +192,7 @@ This signals that the task is done.`;
         } else {
           console.log(`⏰ Timeout after ${elapsedTime} seconds - Kiro may still be working`);
         }
+        console.log(`⏱️  Kiro execution: ${timings.kiroExecution}ms`);
         console.log('📊 Kiro output length:', kiroOutput.length, 'characters');
         console.log('📊 Last 500 chars:', kiroOutput.substring(Math.max(0, kiroOutput.length - 500)));
         
@@ -187,27 +200,41 @@ This signals that the task is done.`;
         kiro.removeListener('data', outputHandler);
         
         // Check if any files changed
+        const gitStatusStartTime = Date.now();
         console.log('🔍 Checking for file changes...');
         const gitStatus = execSync(`cd ${REPO_PATH} && git status --porcelain`, { encoding: 'utf8' });
         console.log('📊 Git status:', gitStatus || '(no changes)');
+        timings.gitStatus = Date.now() - gitStatusStartTime;
+        console.log(`⏱️  Git status check: ${timings.gitStatus}ms`);
         
         if (!gitStatus || gitStatus.trim() === '') {
           console.log('ℹ️  No file changes detected - feature may already be implemented');
+          timings.total = Date.now() - startTime;
+          console.log(`⏱️  TOTAL TIME: ${timings.total}ms (${Math.round(timings.total/1000)}s)`);
+          console.log('📊 Timing breakdown:', JSON.stringify(timings, null, 2));
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ 
             success: true, 
             message: 'No changes needed - feature already implemented',
             branch,
             kiroOutput: kiroOutput.substring(kiroOutput.length - 2000),
-            noChanges: true
+            noChanges: true,
+            timings
           }));
           return;
         }
         
         // Commit and push
+        const gitPushStartTime = Date.now();
         let gitOutput = '';
         try {
           gitOutput = execSync(`cd ${REPO_PATH} && git add . && git commit -m "feat: ${taskDescription.substring(0, 50)}" && git push origin ${branch}`, { encoding: 'utf8' });
+          
+          timings.gitPush = Date.now() - gitPushStartTime;
+          timings.total = Date.now() - startTime;
+          console.log(`⏱️  Git commit/push: ${timings.gitPush}ms`);
+          console.log(`⏱️  TOTAL TIME: ${timings.total}ms (${Math.round(timings.total/1000)}s)`);
+          console.log('📊 Timing breakdown:', JSON.stringify(timings, null, 2));
           
           console.log(`✅ Code generated and pushed to ${branch}`);
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -216,7 +243,8 @@ This signals that the task is done.`;
             message: 'Code generated successfully',
             branch,
             kiroOutput: kiroOutput.substring(kiroOutput.length - 2000), // Last 2000 chars
-            gitOutput
+            gitOutput,
+            timings
           }));
         } catch (gitError) {
           if (gitError.message.includes('nothing to commit')) {
