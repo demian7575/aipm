@@ -102,6 +102,12 @@ const server = createServer(async (req, res) => {
         const outputHandler = (data) => {
           kiroOutput += data;
           process.stdout.write(data); // Also log to console
+          
+          // Auto-approve when Kiro asks for permission
+          if (data.includes('Allow this action?') || data.includes('[y/n/t]')) {
+            console.log('🔔 Permission prompt detected, sending approval...');
+            kiro.write('y\r');
+          }
         };
         
         kiro.onData(outputHandler);
@@ -137,14 +143,10 @@ Create or modify files as needed. When done, type "done" or just wait.`;
         console.log('⏎ Sending Enter key to execute...');
         kiro.write('\r');
         
-        console.log('⏳ Waiting for Kiro to generate code...');
+        console.log('⏳ Waiting 60 seconds for Kiro to generate code...');
         
-        // Send approval multiple times during generation (Kiro may ask for permission)
-        for (let i = 0; i < 6; i++) {
-          await new Promise(resolve => setTimeout(resolve, 10000)); // Every 10 seconds
-          console.log(`✅ Sending approval (${i + 1}/6)...`);
-          kiro.write('y\r');
-        }
+        // Wait for Kiro to finish (60 seconds)
+        await new Promise(resolve => setTimeout(resolve, 60000));
         
         console.log('⏰ 30 seconds elapsed');
         console.log('📊 Kiro output length:', kiroOutput.length, 'characters');
