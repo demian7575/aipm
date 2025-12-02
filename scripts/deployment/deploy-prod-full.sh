@@ -31,22 +31,9 @@ fi
 
 echo "✅ Backend deployed: $API_ENDPOINT"
 
-# 3. Create Frontend Config (don't overwrite in git)
-echo "📝 Step 3: Creating frontend config for production..."
-cat > apps/frontend/public/config-prod.js << EOF
-// Production Environment Configuration
-window.CONFIG = {
-    API_BASE_URL: '${API_ENDPOINT}',
-    apiEndpoint: '${API_ENDPOINT}',
-    ENVIRONMENT: 'production',
-    environment: 'production',
-    stage: 'prod',
-    region: 'us-east-1',
-    storiesTable: 'aipm-backend-prod-stories',
-    acceptanceTestsTable: 'aipm-backend-prod-acceptance-tests',
-    DEBUG: false
-};
-EOF
+# 3. Generate Frontend Config
+echo "📝 Step 3: Generating frontend config for production..."
+./scripts/deployment/generate-config.sh prod
 
 # Copy to config.js for deployment
 cp apps/frontend/public/config-prod.js apps/frontend/public/config.js

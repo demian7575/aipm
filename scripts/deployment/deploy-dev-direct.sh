@@ -237,20 +237,9 @@ API_ENDPOINT="https://$API_ID.execute-api.$REGION.amazonaws.com/dev"
 echo ""
 echo "🎨 Step 6: Deploying frontend..."
 
-# Create config.js
-cat > apps/frontend/public/config.js << EOF
-window.CONFIG = {
-  API_BASE_URL: '$API_ENDPOINT',
-  apiEndpoint: '$API_ENDPOINT',
-  ENVIRONMENT: 'development',
-  environment: 'development',
-  stage: 'dev',
-  region: '$REGION',
-  storiesTable: 'aipm-backend-dev-stories',
-  acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
-  DEBUG: true
-};
-EOF
+# Generate config.js using the script
+cd "$(dirname "$0")/../.."
+./scripts/deployment/generate-config.sh dev
 
 # Deploy to S3
 aws s3 sync apps/frontend/public/ s3://$S3_BUCKET --delete --cache-control no-cache

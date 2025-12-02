@@ -55,19 +55,8 @@ jobs:
       
       - name: Create dev config
         run: |
-          cat > apps/frontend/public/config.js << 'EOF'
-          window.CONFIG = {
-            API_BASE_URL: 'https://tepm6xhsm0.execute-api.us-east-1.amazonaws.com/dev',
-            apiEndpoint: 'https://tepm6xhsm0.execute-api.us-east-1.amazonaws.com/dev',
-            ENVIRONMENT: 'development',
-            environment: 'development',
-            stage: 'dev',
-            region: 'us-east-1',
-            storiesTable: 'aipm-backend-dev-stories',
-            acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
-            DEBUG: true
-          };
-          EOF
+          chmod +x scripts/deployment/generate-config.sh
+          ./scripts/deployment/generate-config.sh dev
       
       - name: Deploy frontend to S3
         run: |
