@@ -106,8 +106,8 @@ const server = createServer(async (req, res) => {
           kiroOutput += data;
           process.stdout.write(data); // Also log to console
           
-          // Auto-approve when Kiro asks for permission (send 't' to trust for session)
-          if (!approvalSent && (data.includes('Allow this action?') || data.includes('[y/n/t]'))) {
+          // Auto-approve when Kiro asks for permission (check accumulated output)
+          if (!approvalSent && (kiroOutput.includes('Allow this action?') || kiroOutput.includes('[y/n/t]'))) {
             console.log('🔔 Permission prompt detected, sending trust (t)...');
             kiro.write('t\r');
             approvalSent = true; // Only send once
