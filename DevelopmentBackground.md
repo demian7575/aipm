@@ -948,6 +948,42 @@ node scripts/testing/run-comprehensive-gating-tests.cjs
 
 **Purpose**: Leverage Kiro CLI for automated code generation and PR creation.
 
+**Updated**: 2025-12-04 - System now uses EC2 terminal server for reliable code generation.
+
+#### Architecture (Current)
+
+```
+Frontend "Generate Code & PR" Button
+  ↓
+Backend Lambda creates PR with TASK.md
+  ↓
+Backend calls http://44.220.45.57:8080/generate-code
+  ↓
+EC2 Terminal Server spawns Kiro CLI (non-interactive)
+  ↓
+Kiro generates code (1-2 minutes)
+  ↓
+Kiro outputs [KIRO_COMPLETE]
+  ↓
+Terminal server sends /quit to Kiro
+  ↓
+Terminal server commits & pushes to PR branch
+  ↓
+PR updated with generated code
+```
+
+#### Key Components
+- **Terminal Server**: `scripts/workers/terminal-server.js` (EC2: 44.220.45.57:8080)
+- **Deployment**: `./scripts/workers/start-kiro-terminal.sh`
+- **Health Check**: `./scripts/workers/check-system-health.sh`
+- **Logs**: `ssh ec2-user@44.220.45.57 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'`
+
+#### Critical Implementation Details
+1. **Completion Detection**: Checks last 500 chars of accumulated output for `[KIRO_COMPLETE]`
+2. **Graceful Exit**: Sends `/quit` command instead of killing process
+3. **Quote Escaping**: Escapes quotes in commit messages to prevent shell errors
+4. **Timeout**: 10-minute safety timeout ensures code gets pushed even if Kiro doesn't signal completion
+
 #### How It Works
 
 1. **User creates PR** via AIPM UI ("Generate Code & PR" button)
