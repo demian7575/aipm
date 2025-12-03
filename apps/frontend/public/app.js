@@ -1708,6 +1708,31 @@ async function rebaseCodeWhispererPR(entry) {
   }
 }
 
+async function mergePR(entry) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/merge-pr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        repo: entry.repo,
+        number: entry.number
+      })
+    });
+    
+    if (!response.ok) {
+      const data = await response.json();
+      entry.lastError = data.message || `Merge failed: ${response.status}`;
+      return { success: false, message: entry.lastError };
+    }
+    
+    const data = await response.json();
+    return { success: true, message: data.message };
+  } catch (error) {
+    entry.lastError = `Merge error: ${error.message}`;
+    return { success: false, message: entry.lastError };
+  }
+}
+
 function formatCodeWhispererTargetLabel(entry) {
   if (!entry) {
     return '';
@@ -2017,6 +2042,30 @@ function renderCodeWhispererSectionList(container, story) {
         });
       });
       actions.appendChild(kiroBtn);
+
+      const mergeBtn = document.createElement('button');
+      mergeBtn.type = 'button';
+      mergeBtn.className = 'button primary merge-pr-btn';
+      mergeBtn.textContent = 'Merge';
+      mergeBtn.addEventListener('click', async () => {
+        if (!confirm('Run gating tests and merge this PR to main? This will squash all commits into one.')) return;
+        mergeBtn.disabled = true;
+        mergeBtn.textContent = 'Running tests...';
+        try {
+          const result = await mergePR(entry);
+          if (result && result.success) {
+            showToast('PR merged successfully', 'success');
+            removeCodeWhispererDelegation(entry.storyId, entry.localId);
+          } else {
+            showToast('Merge failed: ' + (result?.message || 'Unknown error'), 'error');
+          }
+        } catch (error) {
+          showToast('Merge error: ' + error.message, 'error');
+        }
+        mergeBtn.disabled = false;
+        mergeBtn.textContent = 'Merge';
+      });
+      actions.appendChild(mergeBtn);
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
