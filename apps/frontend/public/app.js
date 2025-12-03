@@ -2018,6 +2018,45 @@ function renderCodeWhispererSectionList(container, story) {
       });
       actions.appendChild(kiroBtn);
 
+      const mergeBtn = document.createElement('button');
+      mergeBtn.type = 'button';
+      mergeBtn.className = 'button primary merge-pr-btn';
+      mergeBtn.textContent = 'Merge';
+      mergeBtn.addEventListener('click', async () => {
+        if (!confirm('Run gating tests and merge this PR to main? This will squash all commits.')) {
+          return;
+        }
+        mergeBtn.disabled = true;
+        mergeBtn.textContent = 'Merging...';
+        
+        try {
+          const response = await fetch(resolveApiUrl(`/api/stories/${entry.storyId}/prs/${entry.number}/merge`), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              owner: entry.owner,
+              repo: entry.repo,
+              branchName: entry.branchName
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            showToast('PR merged successfully', 'success');
+            refreshCodeWhispererSection(entry.storyId);
+          } else {
+            const error = await response.json();
+            showToast('Merge failed: ' + (error.message || 'Unknown error'), 'error');
+          }
+        } catch (error) {
+          showToast('Merge error: ' + error.message, 'error');
+        }
+        
+        mergeBtn.disabled = false;
+        mergeBtn.textContent = 'Merge';
+      });
+      actions.appendChild(mergeBtn);
+
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'link-button codewhisperer-remove';

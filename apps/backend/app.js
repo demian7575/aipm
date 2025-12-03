@@ -62,6 +62,47 @@ async function githubRequest(path, options = {}) {
   return data;
 }
 
+async function mergePRToMain(storyId, prNumber, payload) {
+  const { owner = 'your-org', repo = 'aipm', branchName } = payload;
+  
+  // Run gating tests
+  const testResult = spawnSync('node', ['./scripts/testing/run-comprehensive-gating-tests.cjs'], {
+    encoding: 'utf8',
+    timeout: 60000
+  });
+  
+  if (testResult.status !== 0) {
+    throw new Error(`Gating tests failed: ${testResult.stderr || testResult.stdout}`);
+  }
+  
+  // Merge PR with squash
+  const mergeResult = spawnSync('git', [
+    'merge', '--squash', branchName || `pr-${prNumber}`
+  ], { encoding: 'utf8' });
+  
+  if (mergeResult.status !== 0) {
+    throw new Error(`Merge failed: ${mergeResult.stderr}`);
+  }
+  
+  // Commit squashed changes
+  const commitResult = spawnSync('git', [
+    'commit', '-m', `Merge PR #${prNumber} (squashed)`
+  ], { encoding: 'utf8' });
+  
+  if (commitResult.status !== 0) {
+    throw new Error(`Commit failed: ${commitResult.stderr}`);
+  }
+  
+  // Push to main
+  const pushResult = spawnSync('git', ['push', 'origin', 'main'], { encoding: 'utf8' });
+  
+  if (pushResult.status !== 0) {
+    throw new Error(`Push failed: ${pushResult.stderr}`);
+  }
+  
+  return { success: true, message: 'PR merged successfully' };
+}
+
 async function getAllStories(db) {
   try {
     const query = 'SELECT * FROM stories ORDER BY id';
@@ -6271,6 +6312,20 @@ export async function createApp() {
         sendJson(res, 200, prs);
       } catch (error) {
         sendJson(res, 500, { message: error.message || 'Failed to remove PR' });
+      }
+      return;
+    }
+
+    const mergePRMatch = pathname.match(/^\/api\/stories\/(\d+)\/prs\/(\d+)\/merge$/);
+    if (mergePRMatch && method === 'POST') {
+      const storyId = Number(mergePRMatch[1]);
+      const prNumber = Number(mergePRMatch[2]);
+      try {
+        const payload = await parseJson(req);
+        const result = await mergePRToMain(storyId, prNumber, payload);
+        sendJson(res, 200, result);
+      } catch (error) {
+        sendJson(res, 500, { message: error.message || 'Failed to merge PR' });
       }
       return;
     }

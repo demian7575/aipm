@@ -2126,6 +2126,21 @@ dialog[data-size='content'] .modal-shell {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
+/* Merge button styling */
+.merge-pr-btn {
+  background-color: #28a745;
+  color: white;
+  font-weight: 600;
+}
+
+.merge-pr-btn:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.merge-pr-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
 
 /* Extra large modal for terminal */
 #modal[data-size="xlarge"] .modal-shell {
