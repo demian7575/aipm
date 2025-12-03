@@ -2017,7 +2017,7 @@ function renderCodeWhispererSectionList(container, story) {
         mergeBtn.textContent = 'Merging...';
         
         try {
-          const response = await fetch('/api/merge-pr', {
+          const response = await fetch(resolveApiUrl('/api/merge-pr'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prNumber: entry.number })
