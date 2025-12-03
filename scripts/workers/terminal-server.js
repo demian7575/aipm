@@ -282,7 +282,8 @@ This signals that the task is done.`;
         const gitPushStartTime = Date.now();
         let gitOutput = '';
         try {
-          gitOutput = execSync(`cd ${REPO_PATH} && git add . && git commit -m "feat: ${taskDescription.substring(0, 50)}" && git push origin ${branch}`, { encoding: 'utf8' });
+          const commitMsg = `feat: ${taskDescription.substring(0, 50)}`.replace(/"/g, '\\"');
+          gitOutput = execSync(`cd ${REPO_PATH} && git add . && git commit -m "${commitMsg}" && git push origin ${branch}`, { encoding: 'utf8' });
           
           timings.gitPush = Date.now() - gitPushStartTime;
           timings.total = Date.now() - startTime;
