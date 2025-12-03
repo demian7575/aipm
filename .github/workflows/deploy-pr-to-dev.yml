@@ -43,7 +43,38 @@ jobs:
           # Rebase onto main
           echo "🔄 Rebasing onto main..."
           git fetch origin main
-          git rebase origin/main
+          
+          if ! git rebase origin/main; then
+            echo "⚠️  Rebase conflict detected - using Kiro CLI to resolve"
+            
+            # Get conflict files
+            CONFLICT_FILES=$(git diff --name-only --diff-filter=U)
+            echo "📝 Conflicted files: $CONFLICT_FILES"
+            
+            # Use Kiro CLI to resolve conflicts
+            echo "🤖 Asking Kiro to resolve conflicts..."
+            KIRO_PROMPT="Resolve the following git rebase conflicts:\n\n$(git status)\n\nConflicted files:\n$CONFLICT_FILES\n\nPlease resolve all conflicts, then output [KIRO_COMPLETE]"
+            
+            # Call Kiro via EC2 terminal server
+            RESPONSE=$(curl -s -X POST http://44.220.45.57:8080/generate-code \
+              -H "Content-Type: application/json" \
+              -d "{\"branch\":\"$(git branch --show-current)\",\"taskDescription\":\"$KIRO_PROMPT\",\"prNumber\":${{ github.event.inputs.pr_number || 0 }}}" \
+              --max-time 120)
+            
+            echo "📥 Kiro response: $RESPONSE"
+            
+            # Check if Kiro resolved conflicts
+            if git diff --name-only --diff-filter=U | grep -q .; then
+              echo "❌ Kiro failed to resolve conflicts"
+              git rebase --abort
+              exit 1
+            fi
+            
+            # Continue rebase
+            git add .
+            git rebase --continue
+            echo "✅ Conflicts resolved by Kiro"
+          fi
           
           echo "✅ Rebase complete"
       
