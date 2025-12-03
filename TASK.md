@@ -1,6 +1,6 @@
-# When User Story Is Done Status, The Background Color Of The User Story Should Be Grey
+# I Want "merge" Button On "development Tasks"
 
-As a PM, I want to implement When User Story is done status, the background color of the User story should be grey. This ensures i can accomplish my goals more effectively. This work supports the parent story "Implement A “run In Staging” Button On Each PR Card In The Development Tasks Board. This Ensures I Can Deploy The PR To…".
+As a PM, I want "Merge" button on "Development Tasks" so that verifiy development codes using gating tests and merge the development progress as a single commit(development progress should be squashed as a single commit) to github main branch.
 
 Constraints: 
 
