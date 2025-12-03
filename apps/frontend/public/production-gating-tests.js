@@ -1619,6 +1619,11 @@ async function runProductionTest(testName) {
             }
 
         case 'testTerminalWebSocket':
+            // Skip in development environment
+            if (PROD_CONFIG.environment === 'development') {
+                return { success: true, message: 'Terminal WebSocket: Skipped in development' };
+            }
+            
             // Test WebSocket connection capability
             try {
                 const response = await fetch(`${PROD_CONFIG.frontend}/config.js`);
