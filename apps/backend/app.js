@@ -2457,6 +2457,63 @@ async function handleDeployPRRequest(req, res) {
   }
 }
 
+async function handleMergePR(req, res) {
+  try {
+    const payload = await parseJson(req);
+    const { prNumber } = payload;
+    
+    if (!prNumber) {
+      sendJson(res, 400, { success: false, error: 'PR number is required' });
+      return;
+    }
+
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
+    const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+    
+    if (!GITHUB_TOKEN) {
+      sendJson(res, 400, { success: false, error: 'GitHub token not configured' });
+      return;
+    }
+
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    try {
+      await execAsync('npm test', { cwd: process.cwd(), timeout: 60000 });
+    } catch (testError) {
+      sendJson(res, 400, { success: false, error: 'Gating tests failed', details: testError.message });
+      return;
+    }
+
+    const mergeResponse = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${prNumber}/merge`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ merge_method: 'squash' })
+      }
+    );
+
+    if (!mergeResponse.ok) {
+      const errorData = await mergeResponse.json();
+      sendJson(res, mergeResponse.status, { success: false, error: errorData.message || 'Failed to merge PR' });
+      return;
+    }
+
+    const mergeData = await mergeResponse.json();
+    sendJson(res, 200, { success: true, message: 'PR merged successfully', sha: mergeData.sha, merged: mergeData.merged });
+  } catch (error) {
+    console.error('Merge PR error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
 // Terminal session handlers
 async function handleTerminalStart(req, res) {
   try {
@@ -5580,6 +5637,11 @@ export async function createApp() {
 
     if (pathname === '/api/deploy-pr' && method === 'POST') {
       await handleDeployPRRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/merge-pr' && method === 'POST') {
+      await handleMergePR(req, res);
       return;
     }
 
