@@ -45,6 +45,8 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000 } = {}) {
       finish({ success: false, timedOut: true });
     }, timeoutMs);
 
+    let completionDetected = false;
+    
     const handleData = (chunk) => {
       const text = chunk.toString();
       output += text;
@@ -55,9 +57,10 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000 } = {}) {
         kiroProcess.stdin.write('t\n');
       }
 
-      if (text.includes('[KIRO_COMPLETE]') || text.includes('completed successfully') ||
-          text.includes('All changes have been made') || text.includes('Is there anything else')) {
-        finish({ success: true });
+      if (!completionDetected && text.includes('[KIRO_COMPLETE]')) {
+        completionDetected = true;
+        console.log('✅ Kiro completion signal detected, sending /quit...');
+        kiroProcess.stdin.write('/quit\n');
       }
     };
 
@@ -66,7 +69,7 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000 } = {}) {
 
     kiroProcess.on('exit', (code) => {
       if (!finished) {
-        finish({ success: false, exitCode: code });
+        finish({ success: completionDetected || code === 0, exitCode: code });
       }
     });
 
