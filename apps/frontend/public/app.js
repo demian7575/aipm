@@ -2002,6 +2002,45 @@ function renderCodeWhispererSectionList(container, story) {
       });
       actions.appendChild(runInStagingBtn);
 
+      const mergeBtn = document.createElement('button');
+      mergeBtn.type = 'button';
+      mergeBtn.className = 'button primary merge-pr-btn';
+      mergeBtn.textContent = 'Merge';
+      mergeBtn.addEventListener('click', async () => {
+        if (!entry.number) {
+          showToast('PR number not available', 'error');
+          return;
+        }
+        if (!confirm('Run gating tests and merge this PR to main?')) return;
+        
+        mergeBtn.disabled = true;
+        mergeBtn.textContent = 'Merging...';
+        
+        try {
+          const response = await fetch(resolveApiUrl('/api/merge-pr'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prNumber: entry.number })
+          });
+          const result = await response.json();
+          
+          if (result.success) {
+            showToast('PR merged successfully', 'success');
+            if (state.selectedStoryId === entry.storyId) {
+              refreshCodeWhispererSection(entry.storyId);
+            }
+          } else {
+            showToast(result.error || 'Failed to merge PR', 'error');
+          }
+        } catch (error) {
+          showToast('Merge error: ' + error.message, 'error');
+        }
+        
+        mergeBtn.disabled = false;
+        mergeBtn.textContent = 'Merge';
+      });
+      actions.appendChild(mergeBtn);
+
       const kiroBtn = document.createElement('button');
       kiroBtn.type = 'button';
       kiroBtn.className = 'button secondary kiro-terminal-btn';
