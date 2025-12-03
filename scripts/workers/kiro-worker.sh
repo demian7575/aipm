@@ -36,7 +36,8 @@ while true; do
       echo "   Branch: $BRANCH"
       echo "   PR: #$PR_NUMBER"
       
-      # Checkout PR branch
+      # Checkout PR branch (stash any local changes first)
+      git stash push -m "Auto-stash before processing $TASK_ID" 2>/dev/null || true
       git fetch origin
       git checkout "$BRANCH" 2>/dev/null || git checkout -b "$BRANCH" origin/"$BRANCH"
       git pull origin "$BRANCH"
