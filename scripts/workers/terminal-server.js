@@ -4,7 +4,7 @@
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import pty from 'node-pty';
-import { execSync } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 
 const PORT = process.env.PORT || 8080;
 const REPO_PATH = process.env.REPO_PATH || '/home/ec2-user/aipm';
@@ -21,6 +21,65 @@ const kiro = pty.spawn('bash', ['-c', `cd ${REPO_PATH} && cat scripts/utilities/
 
 console.log(`✅ Kiro CLI started (PID: ${kiro.pid})`);
 console.log('📋 Loading AIPM context...');
+
+async function runNonInteractiveKiro(prompt, { timeoutMs = 600000 } = {}) {
+  return await new Promise((resolve, reject) => {
+    const kiroProcess = spawn('bash', ['-lc', `cd ${REPO_PATH} && source scripts/utilities/load-context.sh && kiro-cli chat`], {
+      env: process.env,
+      cwd: REPO_PATH
+    });
+
+    let output = '';
+    let finished = false;
+
+    const finish = (result) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeoutId);
+      try { kiroProcess.kill('SIGKILL'); } catch (e) { /* ignore */ }
+      resolve({ ...result, output });
+    };
+
+    const timeoutId = setTimeout(() => {
+      console.warn('⏰ Kiro non-interactive run timed out');
+      finish({ success: false, timedOut: true });
+    }, timeoutMs);
+
+    const handleData = (chunk) => {
+      const text = chunk.toString();
+      output += text;
+      process.stdout.write(text);
+
+      if (text.includes('Allow this action?') || text.includes('[y/n/t]')) {
+        console.log('🔔 Permission prompt detected (non-interactive), sending trust (t)...');
+        kiroProcess.stdin.write('t\n');
+      }
+
+      if (text.includes('[KIRO_COMPLETE]') || text.includes('completed successfully') ||
+          text.includes('All changes have been made') || text.includes('Is there anything else')) {
+        finish({ success: true });
+      }
+    };
+
+    kiroProcess.stdout.on('data', handleData);
+    kiroProcess.stderr.on('data', handleData);
+
+    kiroProcess.on('exit', (code) => {
+      if (!finished) {
+        finish({ success: false, exitCode: code });
+      }
+    });
+
+    kiroProcess.on('error', (err) => {
+      if (!finished) {
+        clearTimeout(timeoutId);
+        reject(err);
+      }
+    });
+
+    kiroProcess.stdin.write(`${prompt}\n`);
+  });
+}
 
 // Track all connected clients
 const clients = new Set();
@@ -141,38 +200,6 @@ const server = createServer(async (req, res) => {
         console.log(`📋 Task: ${taskDescription}`);
         console.log(`⏱️  Start time: ${new Date().toISOString()}`);
         
-        // Capture Kiro output
-        let kiroOutput = '';
-        let lastApprovalTime = 0;
-        let kiroFinished = false;
-        
-        const outputHandler = (data) => {
-          kiroOutput += data;
-          process.stdout.write(data); // Also log to console
-          
-          // Auto-approve when Kiro asks for permission (check only new data)
-          if ((data.includes('Allow this action?') || data.includes('[y/n/t]')) &&
-              (Date.now() - lastApprovalTime > 2000)) {
-            console.log('🔔 Permission prompt detected, sending trust (t)...');
-            kiro.write('t\r\n');
-            lastApprovalTime = Date.now();
-          }
-          
-          // Detect explicit completion signal
-          if (data.includes('[KIRO_COMPLETE]')) {
-            console.log('✅ Kiro completion signal detected: [KIRO_COMPLETE]');
-            kiroFinished = true;
-          }
-          // Fallback: detect common completion phrases
-          else if (data.includes('Done.') || data.includes('Is there anything else') || 
-              data.includes('completed successfully') || data.includes('All changes have been made')) {
-            console.log('✅ Kiro completion phrase detected');
-            kiroFinished = true;
-          }
-        };
-        
-        kiro.onData(outputHandler);
-        
         // Checkout branch (reset tracked files only, keep untracked)
         const gitStartTime = Date.now();
         try {
@@ -203,41 +230,28 @@ IMPORTANT: When you're completely finished with all changes, output exactly this
 
 This signals that the task is done.`;
         
-        kiro.write(prompt + '\n');
-        console.log('✅ Prompt sent');
-        
-        // Wait a moment for Kiro to process, then send Enter to execute
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        console.log('⏎ Sending Enter key to execute...');
-        kiro.write('\r');
         timings.promptSend = Date.now() - promptStartTime;
-        console.log(`⏱️  Prompt send: ${timings.promptSend}ms`);
-        
+        console.log('✅ Prompt prepared, launching non-interactive Kiro run');
+
         console.log('⏳ Waiting for Kiro to complete (max 10 minutes)...');
-        
-        // Wait for Kiro to finish or timeout (10 minutes max)
+
         const kiroStartTime = Date.now();
-        const startTime = Date.now();
-        const maxWaitTime = 600000; // 10 minutes
-        
-        while (!kiroFinished && (Date.now() - startTime) < maxWaitTime) {
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Check every 2 seconds
-        }
-        
+        const { success: kiroSuccess, timedOut, output: kiroOutput = '', exitCode } =
+          await runNonInteractiveKiro(prompt, { timeoutMs: 600000 });
         timings.kiroExecution = Date.now() - kiroStartTime;
-        const elapsedTime = Math.round((Date.now() - startTime) / 1000);
-        
-        if (kiroFinished) {
+        const elapsedTime = Math.round(timings.kiroExecution / 1000);
+
+        if (kiroSuccess) {
           console.log(`✅ Kiro completed in ${elapsedTime} seconds`);
-        } else {
+        } else if (timedOut) {
           console.log(`⏰ Timeout after ${elapsedTime} seconds - Kiro may still be working`);
+        } else {
+          console.log(`⚠️  Kiro exited early (code: ${exitCode}) after ${elapsedTime} seconds`);
         }
+
         console.log(`⏱️  Kiro execution: ${timings.kiroExecution}ms`);
         console.log('📊 Kiro output length:', kiroOutput.length, 'characters');
         console.log('📊 Last 500 chars:', kiroOutput.substring(Math.max(0, kiroOutput.length - 500)));
-        
-        // Remove output handler
-        kiro.removeListener('data', outputHandler);
         
         // Check if any files changed
         const gitStatusStartTime = Date.now();
