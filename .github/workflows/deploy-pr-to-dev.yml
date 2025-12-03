@@ -42,6 +42,12 @@ jobs:
             BRANCH_NAME="pr-${{ github.event.inputs.pr_number }}"
           fi
           
+          # Get PR objective from TASK.md if exists
+          PR_OBJECTIVE=""
+          if [ -f "TASK.md" ]; then
+            PR_OBJECTIVE=$(cat TASK.md)
+          fi
+          
           # Rebase onto main
           echo "🔄 Rebasing onto main..."
           git fetch origin main
@@ -53,14 +59,12 @@ jobs:
             CONFLICT_FILES=$(git diff --name-only --diff-filter=U)
             echo "📝 Conflicted files: $CONFLICT_FILES"
             
-            # Abort current rebase to start fresh
+            # Abort current rebase
             git rebase --abort
             
-            # Checkout branch again
+            # Try Kiro conflict resolution first
+            echo "🤖 Attempt 1: Asking Kiro to resolve conflicts..."
             git checkout $BRANCH_NAME
-            
-            # Use Kiro CLI via terminal server to resolve conflicts
-            echo "🤖 Calling Kiro terminal server to resolve conflicts and rebase..."
             TASK_DESC="Rebase this branch onto origin/main and resolve all merge conflicts. Files with conflicts: $CONFLICT_FILES. After resolving conflicts, complete the rebase successfully."
             
             RESPONSE=$(curl -s -X POST http://44.220.45.57:8080/generate-code \
@@ -68,28 +72,53 @@ jobs:
               -d "{\"branch\":\"$BRANCH_NAME\",\"taskDescription\":\"$TASK_DESC\",\"prNumber\":${{ github.event.inputs.pr_number || 0 }}}" \
               --max-time 120)
             
-            echo "📥 Kiro response: $RESPONSE"
-            
-            # Check if Kiro succeeded
             SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
-            NO_CHANGES=$(echo "$RESPONSE" | jq -r '.noChanges // false')
             
-            if [ "$SUCCESS" != "true" ]; then
-              echo "❌ Kiro failed to resolve conflicts"
-              exit 1
-            fi
-            
-            if [ "$NO_CHANGES" = "true" ]; then
-              echo "⚠️  Kiro reported no changes - conflicts may not be resolved"
-              # Try rebase again to verify
-              if ! git rebase origin/main; then
-                echo "❌ Conflicts still exist after Kiro attempt"
+            if [ "$SUCCESS" = "true" ]; then
+              # Verify rebase worked
+              if git rebase origin/main 2>/dev/null; then
+                echo "✅ Conflicts resolved by Kiro"
+              else
                 git rebase --abort
-                exit 1
+                SUCCESS="false"
               fi
             fi
             
-            echo "✅ Conflicts resolved by Kiro"
+            # If Kiro failed, regenerate from main
+            if [ "$SUCCESS" != "true" ]; then
+              echo "⚠️  Kiro conflict resolution failed"
+              echo "🔄 Attempt 2: Regenerating code from main branch..."
+              
+              # Reset to main
+              git checkout main
+              git pull origin main
+              
+              # Create new branch or reset existing
+              git branch -D $BRANCH_NAME 2>/dev/null || true
+              git checkout -b $BRANCH_NAME
+              
+              # Regenerate code using Kiro
+              echo "🤖 Regenerating code with Kiro..."
+              REGEN_TASK="Regenerate the feature implementation. Original objective: $PR_OBJECTIVE"
+              
+              REGEN_RESPONSE=$(curl -s -X POST http://44.220.45.57:8080/generate-code \
+                -H "Content-Type: application/json" \
+                -d "{\"branch\":\"$BRANCH_NAME\",\"taskDescription\":\"$REGEN_TASK\",\"prNumber\":${{ github.event.inputs.pr_number || 0 }}}" \
+                --max-time 120)
+              
+              REGEN_SUCCESS=$(echo "$REGEN_RESPONSE" | jq -r '.success // false')
+              
+              if [ "$REGEN_SUCCESS" != "true" ]; then
+                echo "❌ Code regeneration failed"
+                exit 1
+              fi
+              
+              # Push regenerated code to PR branch
+              echo "📤 Pushing regenerated code to PR..."
+              git push -f origin $BRANCH_NAME
+              
+              echo "✅ Code regenerated from main and pushed to PR"
+            fi
           fi
           
           echo "✅ Rebase complete"
