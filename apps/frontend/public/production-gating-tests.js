@@ -69,6 +69,7 @@ const PROD_TEST_SUITES = {
             { name: 'EC2 Terminal Server Health', test: 'testEC2TerminalHealth' },
             { name: 'Terminal WebSocket Connection', test: 'testTerminalWebSocket' },
             { name: 'Code Generation Endpoint', test: 'testCodeGenerationEndpoint' },
+            { name: 'Checkout Branch Endpoint', test: 'testCheckoutBranchEndpoint' },
             { name: 'Terminal Modal UI', test: 'testTerminalModalUI' },
             { name: 'Kiro Health Check Function', test: 'testKiroHealthCheck' }
         ]
@@ -1665,6 +1666,37 @@ async function runProductionTest(testName) {
                 };
             } catch (error) {
                 return { success: false, message: `Code Generation endpoint test failed - ${error.message}` };
+            }
+
+        case 'testCheckoutBranchEndpoint':
+            // Test checkout-branch endpoint on EC2 terminal server
+            try {
+                const response = await fetch('http://44.220.45.57:8080/checkout-branch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ branch: 'main' })
+                });
+                
+                if (!response.ok) {
+                    return { success: false, message: `Checkout Branch: HTTP ${response.status}` };
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    return { success: false, message: 'Checkout Branch: Endpoint returned failure' };
+                }
+                
+                if (data.branch !== 'main') {
+                    return { success: false, message: 'Checkout Branch: Branch mismatch' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Checkout Branch: Endpoint working correctly'
+                };
+            } catch (error) {
+                return { success: false, message: `Checkout Branch test failed - ${error.message}` };
             }
 
         case 'testTerminalModalUI':
