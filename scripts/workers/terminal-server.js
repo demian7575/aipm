@@ -57,7 +57,9 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000 } = {}) {
         kiroProcess.stdin.write('t\n');
       }
 
-      if (!completionDetected && text.includes('[KIRO_COMPLETE]')) {
+      // Check last 500 chars of accumulated output for completion signal
+      const recentOutput = output.substring(Math.max(0, output.length - 500));
+      if (!completionDetected && recentOutput.includes('[KIRO_COMPLETE]')) {
         completionDetected = true;
         console.log('✅ Kiro completion signal detected, sending /quit...');
         kiroProcess.stdin.write('/quit\n');
