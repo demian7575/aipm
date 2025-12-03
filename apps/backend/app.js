@@ -464,7 +464,29 @@ async function performDelegation(payload) {
     });
     
     // Call EC2 to generate code (fire and forget - don't wait)
-    const taskDescription = `${normalized.objective}. Constraints: ${normalized.constraints}. Acceptance Criteria: ${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).join(', ')}`;
+    const criteria = normalizeAcceptanceCriteria(normalized.acceptanceCriteria);
+    const hasCriteria = criteria.length > 0 && criteria.some(c => c.trim().length > 0);
+    const hasConstraints = normalized.constraints && normalized.constraints.trim().length > 1;
+    
+    // Build detailed task description for Kiro
+    let taskDescription = `${normalized.objective}`;
+    
+    if (hasConstraints) {
+      taskDescription += `\n\nConstraints: ${normalized.constraints}`;
+    }
+    
+    if (hasCriteria) {
+      taskDescription += `\n\nAcceptance Criteria:\n${criteria.map(c => `- ${c}`).join('\n')}`;
+    } else {
+      // Provide implementation guidance when criteria is missing
+      taskDescription += `\n\nImplementation guidance:
+- Add the button to the Development Tasks section in apps/frontend/public/app.js
+- Button should be labeled "${normalized.taskTitle.replace(/^I Want /i, '').replace(/"/g, '')}"
+- Implement the button's click handler
+- Follow existing button patterns in the codebase
+- Test the functionality works correctly`;
+    }
+    
     const ec2Url = process.env.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
     
     // Fire and forget - don't await
