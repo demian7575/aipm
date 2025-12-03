@@ -53,6 +53,7 @@ package:
     - .github/**
     - .serverless/**
     - venv/**
+    - temp/**
     - apps/frontend/**
     - hooks/**
     - '*.md'
