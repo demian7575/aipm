@@ -162,8 +162,13 @@ jobs:
       
       - name: Deploy backend Lambda
         run: |
-          echo "📦 Deploying backend to dev..."
-          npx serverless deploy --stage dev --region us-east-1 --verbose
+          echo "📦 Packaging backend..."
+          npx serverless package --stage dev --region us-east-1
+          echo "📤 Updating Lambda function directly..."
+          aws lambda update-function-code \
+            --function-name aipm-backend-dev-api \
+            --zip-file fileb://.serverless/aipm-backend.zip \
+            --region us-east-1
           echo "✅ Backend deployed"
       
       - name: Create dev config
