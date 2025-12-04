@@ -1226,7 +1226,7 @@ function loadPreferences() {
     const layoutRaw = localStorage.getItem(STORAGE_KEYS.layout);
     if (layoutRaw) {
       const data = JSON.parse(layoutRaw);
-      state.autoLayout = data.autoLayout ?? true;
+      state.autoLayout = data.autoLayout ?? false; // Default to manual layout to preserve positions
       state.manualPositions = data.positions ?? {};
     }
   } catch (error) {
