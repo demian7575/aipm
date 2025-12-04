@@ -1,6 +1,6 @@
-# I Want To Remove "export Stories", "export All Data", "import All Data", "export Mindmap", "impot Mindmap" Button And A…
+# I Want A Kiro Button To Open Kiro Terminal(kiro Cli On Ec2)
 
-As a User, I want to implement I want to remove "Export Stories", "Export All Data", "Import All Data", "Export Mindmap", "Impot MindMap" button and associated codes. This ensures i can accomplish my goals more effectively. This work supports the parent story "I Will Improve AIPM Apprearance Simple And Clear".
+As a User, I want to implement I want a Kiro button to open kiro terminal(Kiro cli on EC2). This ensures i can accomplish my goals more effectively. This work supports the parent story "I Will Improve AIPM Apprearance Simple And Clear".
 
 Constraints: 
 
