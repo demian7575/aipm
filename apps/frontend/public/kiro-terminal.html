@@ -43,6 +43,7 @@
   </div>
   <div id="terminal-container"></div>
 
+  <script src="/config-dev.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
   <script>
@@ -70,7 +71,12 @@
 
     window.addEventListener('resize', () => fitAddon.fit());
 
-    const EC2_TERMINAL_URL = 'ws://44.220.45.57:8080';
+    const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
+    
+    terminal.writeln('🔌 Connecting to Kiro CLI...');
+    terminal.writeln(`📡 Server: ${EC2_TERMINAL_URL}`);
+    terminal.writeln('');
+    
     const socket = new WebSocket(EC2_TERMINAL_URL);
 
     socket.onopen = () => {
@@ -87,12 +93,16 @@
       terminal.write(event.data);
     };
 
-    socket.onerror = () => {
+    socket.onerror = (error) => {
       terminal.writeln('\r\n❌ Connection error');
+      console.error('WebSocket error:', error);
     };
 
-    socket.onclose = () => {
-      terminal.writeln('\r\n🔌 Connection closed');
+    socket.onclose = (event) => {
+      terminal.writeln(`\r\n🔌 Connection closed (code: ${event.code})`);
+      if (event.code === 1006) {
+        terminal.writeln('⚠️  Abnormal closure - server may be unreachable');
+      }
     };
 
     terminal.onData((data) => {
