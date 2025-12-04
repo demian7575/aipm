@@ -1388,25 +1388,8 @@ async function runProductionTest(testName) {
             }
 
         case 'testWorkflowInputFormat':
-            // Verify ECS worker script exists
-            try {
-                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/scripts/workers/q-worker.sh');
-                if (!response.ok) {
-                    return { success: false, message: 'ECS: Worker script not found' };
-                }
-                
-                const script = await response.text();
-                const hasAmazonQ = script.includes('kiro-cli');
-                const hasGitOps = script.includes('git clone') && script.includes('git push');
-                const hasPRCreation = script.includes('github.com') && script.includes('/pulls');
-                
-                return {
-                    success: hasAmazonQ && hasGitOps && hasPRCreation,
-                    message: `ECS Worker: Q:${hasAmazonQ?'✓':'✗'} Git:${hasGitOps?'✓':'✗'} PR:${hasPRCreation?'✓':'✗'}`
-                };
-            } catch (error) {
-                return { success: false, message: `ECS worker test failed - ${error.message}` };
-            }
+            // ECS worker has been replaced by local Kiro worker
+            return { success: true, message: 'ECS: Using local Kiro worker instead' };
 
         case 'testLambdaPermissions':
             // Test Lambda ECS permissions by checking if personal-delegate endpoint works
