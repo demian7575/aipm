@@ -2437,6 +2437,24 @@ function collectTestsNeedingAttention(story) {
   });
 }
 
+async function loadStoryPRs(storyId) {
+  try {
+    const url = resolveApiUrl(`/api/stories/${storyId}`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PRs: ${response.status}`);
+    }
+    const data = await response.json();
+    const story = storyIndex.get(storyId);
+    if (story && data.prs) {
+      story.prs = data.prs;
+      renderDetails();
+    }
+  } catch (error) {
+    console.error(`Failed to load PRs for story ${storyId}:`, error);
+  }
+}
+
 async function loadStories(preserveSelection = true) {
   console.log('loadStories called, preserveSelection:', preserveSelection);
   const previousSelection = preserveSelection ? state.selectedStoryId : null;
@@ -4081,6 +4099,11 @@ function renderDetails() {
   if (!story) {
     detailsPlaceholder.classList.remove('hidden');
     return;
+  }
+
+  // Lazy load PRs if not already loaded
+  if (!story.prs || story.prs.length === 0) {
+    loadStoryPRs(story.id).catch(err => console.error('Failed to load PRs:', err));
   }
 
   detailsPlaceholder.classList.add('hidden');

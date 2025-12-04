@@ -5288,22 +5288,10 @@ async function loadStories(db, options = {}) {
         { includeAiInvest }
       );
       applyInvestAnalysisToStory(story, analysis);
+      // PRs loaded lazily when story is selected
+      story.prs = [];
     })
   );
-
-  // Load PRs for each story
-  console.log(`Loading PRs for ${byId.size} stories...`);
-  await Promise.all(
-    Array.from(byId.values()).map(async (story) => {
-      try {
-        story.prs = await getStoryPRs(db, story.id);
-      } catch (error) {
-        console.error(`Failed to load PRs for story ${story.id}:`, error);
-        story.prs = [];
-      }
-    })
-  );
-  console.log(`Finished loading PRs`);
 
   return roots;
 }
@@ -6028,6 +6016,17 @@ export async function createApp() {
     }
 
     const storyIdMatch = pathname.match(/^\/api\/stories\/(\d+)$/);
+    if (storyIdMatch && method === 'GET') {
+      const storyId = Number(storyIdMatch[1]);
+      try {
+        const prs = await getStoryPRs(db, storyId);
+        sendJson(res, 200, { prs });
+      } catch (error) {
+        console.error(`Failed to load PRs for story ${storyId}:`, error);
+        sendJson(res, 500, { message: 'Failed to load PRs', prs: [] });
+      }
+      return;
+    }
     if (storyIdMatch && method === 'PATCH') {
       const storyId = Number(storyIdMatch[1]);
       try {
