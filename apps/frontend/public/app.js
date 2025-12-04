@@ -1867,7 +1867,7 @@ function renderCodeWhispererSectionList(container, story) {
       kiroBtn.className = 'button secondary kiro-terminal-btn';
       kiroBtn.textContent = 'Refine with Kiro';
       kiroBtn.addEventListener('click', async () => {
-        // Open terminal in new window
+        // Open terminal via HTTP to avoid mixed content issues
         const prId = entry?.number || entry?.targetNumber || 'unknown';
         const branchName = entry?.branchName || 'main';
         const taskTitle = entry?.taskTitle || 'Development task';
@@ -1878,8 +1878,11 @@ function renderCodeWhispererSectionList(container, story) {
           taskTitle
         });
         
+        // Use HTTP endpoint to avoid WebSocket mixed content blocking
+        const terminalUrl = `http://44.220.45.57:8080/terminal.html?${params.toString()}`;
+        
         const newWindow = window.open(
-          `/kiro-terminal.html?${params.toString()}`,
+          terminalUrl,
           `kiro-terminal-${prId}`,
           'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no'
         );
