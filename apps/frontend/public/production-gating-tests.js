@@ -1189,22 +1189,6 @@ async function runProductionTest(testName) {
             } catch (error) {
                 return { success: false, message: `Export test failed - ${error.message}` };
             }
-                    const hasExportFunction = js.includes('buildExportModalContent');
-                    
-                    return {
-                        success: hasExportFunction,
-                        message: `PR123: Export button ${hasExportBtn ? 'found' : 'missing'}, function ${hasExportFunction ? 'found' : 'missing'}`
-                    };
-                }
-                
-                return {
-                    success: true,
-                    message: 'PR123: Export button found in HTML'
-                };
-                
-            } catch (error) {
-                return { success: false, message: `PR123: Export test failed - ${error.message}` };
-            }
 
         case 'testRunInStagingWorkflow':
             // Test ECS-based PR creation endpoint (replaced Run in Staging)
