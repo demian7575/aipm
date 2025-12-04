@@ -2112,6 +2112,27 @@ function buildCodeWhispererSection(story) {
   return section;
 }
 
+function generateAcceptanceCriteria(story) {
+  if (!story) return '';
+  const criteria = [];
+  if (Array.isArray(story.acceptanceTests) && story.acceptanceTests.length > 0) {
+    story.acceptanceTests.forEach((test) => {
+      if (test.title?.trim()) {
+        criteria.push(test.title.trim());
+      } else {
+        const parts = [];
+        if (test.when?.length) parts.push(test.when.join(', '));
+        if (test.then?.length) parts.push(test.then.join(', '));
+        if (parts.length) criteria.push(parts.join(' → '));
+      }
+    });
+  }
+  if (criteria.length === 0 && story.soThat?.trim()) {
+    criteria.push(`Implement: ${story.soThat.trim()}`);
+  }
+  return criteria.join('\n');
+}
+
 function canDelegateToCodeWhisperer(story) {
   const reasons = [];
   
@@ -5486,12 +5507,7 @@ function openCodeWhispererDelegationModal(story) {
 
   const acceptancePrefill = defaults.acceptanceCriteria?.trim()
     ? defaults.acceptanceCriteria
-    : Array.isArray(story?.acceptanceTests)
-    ? story.acceptanceTests
-        .map((test) => (test && test.title ? String(test.title).trim() : ''))
-        .filter((value) => value.length > 0)
-        .join('\n')
-    : '';
+    : generateAcceptanceCriteria(story);
 
   repoInput.value = defaults.repositoryApiUrl || DEFAULT_REPO_API_URL;
   ownerInput.value = defaults.owner || '';
