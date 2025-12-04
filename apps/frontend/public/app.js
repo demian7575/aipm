@@ -2839,9 +2839,26 @@ function renderMindmap() {
   const nodeMap = new Map();
   layout.nodes.forEach((node) => {
     const manual = state.manualPositions[node.id];
-    const x = state.autoLayout || !manual ? node.x : manual.x;
-    const y = state.autoLayout || !manual ? node.y : manual.y;
-    const centerY = state.autoLayout || !manual ? node.centerY : y + node.height / 2;
+    let x, y, centerY;
+    
+    if (state.autoLayout) {
+      // Auto layout mode: always use computed positions
+      x = node.x;
+      y = node.y;
+      centerY = node.centerY;
+    } else if (manual) {
+      // Manual layout mode with saved position: use saved position
+      x = manual.x;
+      y = manual.y;
+      centerY = y + node.height / 2;
+    } else {
+      // Manual layout mode but no saved position (new node): use computed position and save it
+      x = node.x;
+      y = node.y;
+      centerY = node.centerY;
+      state.manualPositions[node.id] = { x, y };
+    }
+    
     const positioned = { ...node, x, y, centerY };
     nodes.push(positioned);
     nodeMap.set(node.id, positioned);
