@@ -4,6 +4,7 @@ import {
   requestDocumentFromAmazonAi,
   requestAcceptanceTestDraftFromAmazonAi
 } from './amazon-ai.js';
+import { analyzeInvestWithKiro, generateStoryDraftWithKiro, generateAcceptanceTestWithKiro } from './kiro-ai.js';
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
 import { spawnSync, spawn } from 'node:child_process';
@@ -2880,55 +2881,46 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
-  const config = readAiConfig();
-  if (!config.enabled) {
-    return {
-      warnings: baseline,
-      source: 'heuristic',
-      summary: '',
-      ai: null,
-      fallbackWarnings: baseline,
-      usedFallback: true,
-    };
-  }
-
+  
+  // Try Kiro CLI first
   try {
-    const aiResult = await requestInvestAnalysisFromAi(story, options, config);
-    if (!aiResult) {
+    const kiroResult = await analyzeInvestWithKiro(story, options);
+    if (kiroResult && kiroResult.warnings) {
+      const kiroWarnings = kiroResult.warnings.map((warning) => ({
+        criterion: warning.criterion,
+        message: warning.message,
+        details: warning.details || '',
+        suggestion: warning.suggestion || '',
+        source: 'kiro'
+      })).filter(Boolean);
+      
       return {
-        warnings: baseline,
-        source: 'heuristic',
-        summary: '',
-        ai: null,
+        warnings: kiroWarnings,
+        source: 'kiro-cli',
+        summary: kiroResult.summary || '',
+        ai: {
+          warnings: kiroWarnings,
+          summary: kiroResult.summary || '',
+          model: 'kiro-cli',
+          raw: kiroResult.raw,
+        },
         fallbackWarnings: baseline,
-        usedFallback: true,
+        usedFallback: false,
       };
     }
-    const aiWarnings = aiResult.warnings.map((warning) => normalizeAiWarning(warning)).filter(Boolean);
-    return {
-      warnings: aiWarnings,
-      source: 'amazon-ai',
-      summary: aiResult.summary || '',
-      ai: {
-        warnings: aiWarnings,
-        summary: aiResult.summary || '',
-        model: aiResult.model,
-        raw: aiResult.raw,
-      },
-      fallbackWarnings: baseline,
-      usedFallback: false,
-    };
   } catch (error) {
-    console.error('Amazon AI INVEST analysis failed', error);
-    return {
-      warnings: baseline,
-      source: 'fallback',
-      summary: '',
-      ai: { error: error.message },
-      fallbackWarnings: baseline,
-      usedFallback: true,
-    };
+    console.error('Kiro CLI INVEST analysis failed, falling back to heuristics:', error);
   }
+
+  // Fallback to heuristics
+  return {
+    warnings: baseline,
+    source: 'heuristic',
+    summary: '',
+    ai: null,
+    fallbackWarnings: baseline,
+    usedFallback: true,
+  };
 }
 
 function buildBaselineInvestAnalysis(story, options = {}) {
