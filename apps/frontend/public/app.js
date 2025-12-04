@@ -5372,7 +5372,6 @@ function createDefaultCodeWhispererForm(story) {
     objective: story?.description || '',
     prTitle: story?.title || '',
     constraints: '',
-    acceptanceCriteria: '',
     createTrackingCard: true
   };
 }
