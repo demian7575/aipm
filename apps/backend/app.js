@@ -6146,7 +6146,7 @@ export async function createApp() {
           componentsChanged;
 
         const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
+          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, hidden_from_mindmap = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
         );
         update.run(
           title,
@@ -6158,6 +6158,7 @@ export async function createApp() {
           nextIWant,
           nextSoThat,
           nextStatus,
+          payload.hiddenFromMindmap ? 1 : 0,
           now(),
           JSON.stringify(warnings),
           JSON.stringify({

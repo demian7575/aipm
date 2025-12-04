@@ -2571,7 +2571,10 @@ function computeLayout(nodes, depth = 0, startY = Y_OFFSET, horizontalGap = 0, m
     const expanded = state.expanded.has(story.id);
     let childLayout = null;
     if (expanded && story.children && story.children.length > 0) {
-      childLayout = computeLayout(story.children, depth + 1, cursorY, horizontalGap, metrics);
+      const visibleChildren = story.children.filter(c => !c.hiddenFromMindmap);
+      if (visibleChildren.length > 0) {
+        childLayout = computeLayout(visibleChildren, depth + 1, cursorY, horizontalGap, metrics);
+      }
     }
 
     let nodeY = cursorY;
@@ -2713,7 +2716,7 @@ function renderMindmap() {
     if (!story.children || story.children.length === 0) return;
     if (!state.expanded.has(story.id)) return;
     story.children.forEach((child) => {
-      if (nodeMap.has(child.id)) {
+      if (!child.hiddenFromMindmap && nodeMap.has(child.id)) {
         edges.push({ from: node, to: nodeMap.get(child.id) });
       }
     });
@@ -4757,9 +4760,10 @@ function renderDetails() {
   const childList = document.createElement('div');
   childList.className = 'record-list';
   if (story.children && story.children.length) {
-    childList.innerHTML = story.children
-      .map(
-        (child) => `
+    const visibleChildren = story.children.filter(c => !c.hiddenFromMindmap);
+    const hiddenChildren = story.children.filter(c => c.hiddenFromMindmap);
+    
+    const renderChild = (child) => `
           <table class="vertical-table" data-story-id="${child.id}">
             <tbody>
               <tr>
@@ -4791,14 +4795,16 @@ function renderDetails() {
                 <th scope="row">Actions</th>
                 <td class="actions">
                   <button type="button" class="secondary" data-action="select-story" data-story-id="${child.id}">Select</button>
+                  <button type="button" class="secondary" data-action="toggle-hide" data-story-id="${child.id}">${child.hiddenFromMindmap ? 'Show' : 'Hide'}</button>
                   <button type="button" class="danger" data-action="delete-story" data-story-id="${child.id}">Delete</button>
                 </td>
               </tr>
             </tbody>
           </table>
-        `
-      )
-      .join('');
+        `;
+    
+    childList.innerHTML = visibleChildren.map(renderChild).join('') + 
+      (hiddenChildren.length ? '<hr style="margin: 20px 0;"><p style="font-weight: bold; margin-bottom: 10px;">Hidden from Mindmap:</p>' + hiddenChildren.map(renderChild).join('') : '');
   } else {
     childList.innerHTML = '<p class="empty-state">No child stories yet.</p>';
   }
@@ -4815,6 +4821,25 @@ function renderDetails() {
       const target = storyIndex.get(storyId);
       if (target) {
         handleStorySelection(target);
+      }
+    });
+  });
+
+  childList.querySelectorAll('[data-action="toggle-hide"]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const storyId = Number(button.getAttribute('data-story-id'));
+      const child = storyIndex.get(storyId);
+      if (child) {
+        try {
+          await sendJson(resolveApiUrl(`/api/stories/${storyId}`), {
+            method: 'PUT',
+            body: JSON.stringify({ hiddenFromMindmap: !child.hiddenFromMindmap })
+          });
+          await loadStories();
+          showToast(child.hiddenFromMindmap ? 'Story shown in mindmap' : 'Story hidden from mindmap', 'success');
+        } catch (error) {
+          showToast(error.message || 'Failed to update story', 'error');
+        }
       }
     });
   });
