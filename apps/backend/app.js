@@ -5,6 +5,7 @@ import {
   requestAcceptanceTestDraftFromAmazonAi
 } from './amazon-ai.js';
 import { analyzeInvestWithKiro, generateStoryDraftWithKiro, generateAcceptanceTestWithKiro } from './kiro-ai.js';
+import { generateInvestCompliantStory, generateAcceptanceTest } from './story-generator.js';
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
 import { spawnSync, spawn } from 'node:child_process';
@@ -6032,7 +6033,10 @@ export async function createApp() {
           const stories = await loadStories(db);
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
-        const draft = generateStoryDraftFromIdea(idea, { parent });
+        
+        // Use improved INVEST-compliant story generator
+        const draft = generateInvestCompliantStory(idea, { parent });
+        
         sendJson(res, 200, draft);
       } catch (error) {
         console.error('Failed to generate story draft', error);
