@@ -13,13 +13,13 @@ export function generateInvestCompliantStory(idea, context = {}) {
   const persona = generatePersona(intent, parent);
   
   // Generate goal (Negotiable & Estimable)
-  const goal = generateGoal(intent, parent);
+  const goal = generateGoal(idea, intent, parent);
   
   // Generate benefit (Valuable)
   const benefit = generateBenefit(intent, goal, parent);
   
-  // Generate title (Small & Testable)
-  const title = generateTitle(persona, goal);
+  // Generate title (Small & Testable) - use original idea, cleaned up
+  const title = generateTitle(idea);
   
   // Generate description with acceptance criteria hints
   const description = generateDescription(persona, goal, benefit, intent);
@@ -151,28 +151,15 @@ function generatePersona(intent, parent) {
 /**
  * Generate clear, actionable goal
  */
-function generateGoal(intent, parent) {
-  const action = intent.action;
-  const subject = intent.subject;
-  
-  // Create specific, actionable goal
-  let goal = `${action} ${subject}`;
-  
-  // Only add context if it adds value and isn't redundant
-  const needsContext = subject.length < 10 && !intent.isUI && !intent.isBackend;
-  
-  if (needsContext) {
-    if (intent.isUI) {
-      goal += ' in the interface';
-    } else if (intent.isBackend) {
-      goal += ' via API';
-    }
-  }
+function generateGoal(idea, intent, parent) {
+  // Use the original idea as the goal, just lowercase it
+  let goal = idea.trim();
+  goal = goal.charAt(0).toLowerCase() + goal.slice(1);
   
   // Ensure it's not too implementation-specific (Negotiable)
   goal = goal.replace(/\b(using|with|via|through)\s+\w+\s+(library|framework|tool)\b/gi, '');
   
-  return goal.charAt(0).toLowerCase() + goal.slice(1);
+  return goal;
 }
 
 /**
@@ -216,22 +203,16 @@ function generateBenefit(intent, goal, parent) {
 /**
  * Generate concise, descriptive title
  */
-function generateTitle(persona, goal) {
-  // Title should be short and descriptive (Small principle)
-  // Capitalize first letter and keep it concise
-  let title = goal.trim();
-  
-  // Remove redundant phrases
-  title = title.replace(/\s+in the interface$/i, '');
-  title = title.replace(/\s+via API$/i, '');
+function generateTitle(idea) {
+  // Use the original idea as title, just clean it up
+  let title = idea.trim();
   
   // Capitalize first letter
   title = title.charAt(0).toUpperCase() + title.slice(1);
   
-  // Limit length
-  const words = title.split(/\s+/);
-  if (words.length > 6) {
-    title = words.slice(0, 6).join(' ') + '...';
+  // Limit length to 100 characters
+  if (title.length > 100) {
+    title = title.substring(0, 97) + '...';
   }
   
   return title;
