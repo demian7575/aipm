@@ -37,6 +37,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const kiroBtn = document.getElementById('kiro-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -6868,6 +6869,16 @@ function initialize() {
       cancelLabel: 'Close',
       size: 'content',
       onClose,
+    });
+  });
+
+  kiroBtn?.addEventListener('click', async () => {
+    const { element, onClose } = await buildKiroTerminalModalContent();
+    openModal({
+      title: 'Kiro CLI Terminal',
+      content: element,
+      cancelLabel: 'Close',
+      onClose
     });
   });
 
