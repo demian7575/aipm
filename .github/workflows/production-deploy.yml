@@ -45,23 +45,8 @@ jobs:
     - name: Deploy to Production
       run: |
         echo "🚀 Deploying AIPM to Production Environment"
-        
-        # Deploy backend
-        serverless deploy --stage prod --verbose
-        
-        # Update frontend config for production
-        cat > dist/public/config.js << 'EOF'
-        // AIPM Frontend Configuration - Production Environment
-        // Auto-deployed from main branch
-        window.__AIPM_API_BASE__ = 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod';
-        
-        // Production environment configuration
-        // API Gateway ID: wk6h5fkqk9
-        // Stage: prod
-        EOF
-        
-        # Deploy frontend
-        aws s3 sync dist/public/ s3://aipm-static-hosting-demo --delete --region us-east-1
+        chmod +x bin/deploy-prod
+        ./bin/deploy-prod
         
     - name: Verify Production Deployment
       run: |
