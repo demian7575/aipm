@@ -141,24 +141,54 @@ jobs:
       - name: Sync production data to development
         run: |
           echo "📊 Copying production data to development..."
+          node -e "
+          const { DynamoDBClient, ScanCommand, DeleteItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+          const client = new DynamoDBClient({ region: 'us-east-1' });
           
-          # Copy stories
-          echo "📝 Copying stories..."
-          aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 | \
-            jq -c '.Items[]' | \
-            while IFS= read -r item; do
-              echo "$item" | aws dynamodb put-item --table-name aipm-backend-dev-stories --region us-east-1 --item file:///dev/stdin || true
-            done
+          async function copyData() {
+            // Scan prod stories
+            console.log('📝 Scanning production stories...');
+            const prodStories = await client.send(new ScanCommand({ TableName: 'aipm-backend-prod-stories' }));
+            console.log(\`Found \${prodStories.Items.length} stories\`);
+            
+            // Clear dev stories
+            console.log('🗑️  Clearing dev stories...');
+            const devStories = await client.send(new ScanCommand({ TableName: 'aipm-backend-dev-stories', AttributesToGet: ['id'] }));
+            for (const item of devStories.Items) {
+              await client.send(new DeleteItemCommand({ TableName: 'aipm-backend-dev-stories', Key: { id: item.id } }));
+            }
+            
+            // Copy to dev
+            console.log('📋 Copying stories to dev...');
+            for (const item of prodStories.Items) {
+              await client.send(new PutItemCommand({ TableName: 'aipm-backend-dev-stories', Item: item }));
+            }
+            
+            // Scan prod tests
+            console.log('📝 Scanning production tests...');
+            const prodTests = await client.send(new ScanCommand({ TableName: 'aipm-backend-prod-acceptance-tests' }));
+            console.log(\`Found \${prodTests.Items.length} tests\`);
+            
+            // Clear dev tests
+            if (prodTests.Items.length > 0) {
+              console.log('🗑️  Clearing dev tests...');
+              const devTests = await client.send(new ScanCommand({ TableName: 'aipm-backend-dev-acceptance-tests', AttributesToGet: ['id'] }));
+              for (const item of devTests.Items) {
+                await client.send(new DeleteItemCommand({ TableName: 'aipm-backend-dev-acceptance-tests', Key: { id: item.id } }));
+              }
+              
+              // Copy tests to dev
+              console.log('📋 Copying tests to dev...');
+              for (const item of prodTests.Items) {
+                await client.send(new PutItemCommand({ TableName: 'aipm-backend-dev-acceptance-tests', Item: item }));
+              }
+            }
+            
+            console.log('✅ Data sync complete');
+          }
           
-          # Copy acceptance tests
-          echo "✅ Copying acceptance tests..."
-          aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1 | \
-            jq -c '.Items[]' | \
-            while IFS= read -r item; do
-              echo "$item" | aws dynamodb put-item --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --item file:///dev/stdin || true
-            done
-          
-          echo "✅ Data sync complete"
+          copyData().catch(err => { console.error(err); process.exit(1); });
+          "
       
       - name: Deploy backend Lambda
         run: |
