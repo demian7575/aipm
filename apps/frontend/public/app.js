@@ -5341,6 +5341,30 @@ function kebabCase(text) {
     .replace(/-{2,}/g, '-');
 }
 
+function generateAcceptanceCriteria(story) {
+  if (!story) return '';
+  const criteria = [];
+  if (story.asA && story.iWant && story.soThat) {
+    criteria.push(`As a ${story.asA}, I want ${story.iWant}, so that ${story.soThat}`);
+    criteria.push('');
+  }
+  if (Array.isArray(story.acceptanceTests) && story.acceptanceTests.length > 0) {
+    story.acceptanceTests.forEach((test, idx) => {
+      if (test.title) criteria.push(`${idx + 1}. ${test.title}`);
+      if (Array.isArray(test.given) && test.given.length > 0) {
+        criteria.push(`   Given: ${test.given.join(', ')}`);
+      }
+      if (Array.isArray(test.when) && test.when.length > 0) {
+        criteria.push(`   When: ${test.when.join(', ')}`);
+      }
+      if (Array.isArray(test.then) && test.then.length > 0) {
+        criteria.push(`   Then: ${test.then.join(', ')}`);
+      }
+    });
+  }
+  return criteria.join('\n');
+}
+
 function createDefaultCodeWhispererForm(story) {
   return {
     repositoryApiUrl: 'https://api.github.com',
@@ -5351,7 +5375,7 @@ function createDefaultCodeWhispererForm(story) {
     objective: story?.description || '',
     prTitle: story?.title || '',
     constraints: '',
-    acceptanceCriteria: '',
+    acceptanceCriteria: generateAcceptanceCriteria(story),
     createTrackingCard: true
   };
 }
