@@ -105,6 +105,131 @@ kiro.onExit(({ exitCode }) => {
   process.exit(1);
 });
 
+function getTerminalHTML() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kiro CLI Terminal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: #2a2a2a;
+      padding: 12px 20px;
+      border-bottom: 1px solid #444;
+    }
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .header p {
+      font-size: 13px;
+      color: #aaa;
+    }
+    #terminal-container {
+      flex: 1;
+      padding: 10px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Kiro CLI Terminal</h1>
+    <p id="pr-info">Loading...</p>
+  </div>
+  <div id="terminal-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const prId = params.get('prId') || 'unknown';
+    const branchName = params.get('branchName') || 'main';
+    const taskTitle = params.get('taskTitle') || 'Development task';
+
+    document.getElementById('pr-info').textContent = \`PR #\${prId} - \${taskTitle} (\${branchName})\`;
+
+    const terminal = new Terminal({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      theme: {
+        background: '#000000',
+        foreground: '#ffffff'
+      }
+    });
+
+    const fitAddon = new FitAddon.FitAddon();
+    terminal.loadAddon(fitAddon);
+    terminal.open(document.getElementById('terminal-container'));
+    fitAddon.fit();
+
+    window.addEventListener('resize', () => fitAddon.fit());
+
+    const wsUrl = \`ws://\${window.location.host}/terminal?branch=\${encodeURIComponent(branchName)}\`;
+    
+    terminal.writeln('🔌 Connecting to Kiro CLI...');
+    terminal.writeln(\`📡 Server: \${wsUrl}\`);
+    terminal.writeln('');
+    
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      terminal.writeln('✅ Connected to Kiro CLI');
+      terminal.writeln('');
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'output' && msg.data) {
+          terminal.write(msg.data);
+        }
+      } catch (e) {
+        terminal.write(event.data);
+      }
+    };
+
+    socket.onerror = (error) => {
+      terminal.writeln('\\r\\n❌ Connection error');
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = (event) => {
+      terminal.writeln(\`\\r\\n🔌 Connection closed (code: \${event.code})\`);
+      if (event.code === 1006) {
+        terminal.writeln('⚠️  Abnormal closure - server may be unreachable');
+      }
+    };
+
+    terminal.onData((data) => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'input', data }));
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      }
+    });
+  </script>
+</body>
+</html>`;
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   
@@ -116,6 +241,13 @@ const server = createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
+    return;
+  }
+  
+  // Serve terminal HTML page
+  if (url.pathname === '/terminal.html') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(getTerminalHTML());
     return;
   }
   
