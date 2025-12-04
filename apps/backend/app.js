@@ -2882,37 +2882,43 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
   
-  // Try Kiro CLI first
-  try {
-    const kiroResult = await analyzeInvestWithKiro(story, options);
-    if (kiroResult && kiroResult.warnings) {
-      const kiroWarnings = kiroResult.warnings.map((warning) => ({
-        criterion: warning.criterion,
-        message: warning.message,
-        details: warning.details || '',
-        suggestion: warning.suggestion || '',
-        source: 'kiro'
-      })).filter(Boolean);
-      
-      return {
-        warnings: kiroWarnings,
-        source: 'kiro-cli',
-        summary: kiroResult.summary || '',
-        ai: {
+  // Skip Kiro CLI in Lambda environment (not available)
+  // Kiro CLI only works on EC2 terminal server
+  const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+  
+  if (!isLambda) {
+    // Try Kiro CLI only in non-Lambda environments
+    try {
+      const kiroResult = await analyzeInvestWithKiro(story, options);
+      if (kiroResult && kiroResult.warnings) {
+        const kiroWarnings = kiroResult.warnings.map((warning) => ({
+          criterion: warning.criterion,
+          message: warning.message,
+          details: warning.details || '',
+          suggestion: warning.suggestion || '',
+          source: 'kiro'
+        })).filter(Boolean);
+        
+        return {
           warnings: kiroWarnings,
+          source: 'kiro-cli',
           summary: kiroResult.summary || '',
-          model: 'kiro-cli',
-          raw: kiroResult.raw,
-        },
-        fallbackWarnings: baseline,
-        usedFallback: false,
-      };
+          ai: {
+            warnings: kiroWarnings,
+            summary: kiroResult.summary || '',
+            model: 'kiro-cli',
+            raw: kiroResult.raw,
+          },
+          fallbackWarnings: baseline,
+          usedFallback: false,
+        };
+      }
+    } catch (error) {
+      console.error('Kiro CLI INVEST analysis failed, falling back to heuristics:', error);
     }
-  } catch (error) {
-    console.error('Kiro CLI INVEST analysis failed, falling back to heuristics:', error);
   }
 
-  // Fallback to heuristics
+  // Use heuristics (works in all environments)
   return {
     warnings: baseline,
     source: 'heuristic',
