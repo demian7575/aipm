@@ -426,8 +426,8 @@ async function runProductionTest(testName) {
                 const js = await response.text();
                 
                 const functions = {
-                    exportModal: js.includes('buildExportModalContent'),
-                    stagingModal: js.includes('buildRunInStagingModalContent'),
+                    kiroTerminal: js.includes('kiro-btn') || js.includes('kiro-terminal.html'),
+                    devDeploy: js.includes('buildRunInStagingModalContent') || js.includes('Test in Dev'),
                     heatmapModal: js.includes('buildHeatmapModalContent')
                 };
                 
@@ -436,7 +436,7 @@ async function runProductionTest(testName) {
                 
                 return {
                     success: working >= 2, // At least 2 functions should exist
-                    message: `JS Functions: ${working}/${total} found - Export:${functions.exportModal?'✓':'✗'} Staging:${functions.stagingModal?'✓':'✗'} Heatmap:${functions.heatmapModal?'✓':'✗'}`
+                    message: `JS Functions: ${working}/${total} found - Kiro:${functions.kiroTerminal?'✓':'✗'} DevDeploy:${functions.devDeploy?'✓':'✗'} Heatmap:${functions.heatmapModal?'✓':'✗'}`
                 };
             } catch (error) {
                 return { success: false, message: `JS Functions: Error - ${error.message}` };
