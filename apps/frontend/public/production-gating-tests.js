@@ -398,17 +398,14 @@ async function runProductionTest(testName) {
                 const response = await fetch(`${PROD_CONFIG.frontend}/index.html`);
                 const html = await response.text();
                 
-                // Check app.js for PR Cards capability
                 const appJsResponse = await fetch(`${PROD_CONFIG.frontend}/app.js`);
                 const appJsContent = await appJsResponse.text();
                 
                 const features = {
-                    exportBtn: html.includes('export-stories-btn'),
+                    kiroBtn: html.includes('kiro-btn'),
                     heatmapBtn: html.includes('open-heatmap-btn'),
-                    // PR123: Check for PR Cards capability in app.js (dynamic content)
+                    runtimeData: html.includes('runtime-data-link'),
                     prCardSupport: appJsContent.includes('Development Tasks') || 
-                                  appJsContent.includes('codewhisperer') ||
-                                  appJsContent.includes('run-in-staging-btn') ||
                                   appJsContent.includes('renderCodeWhispererSectionList')
                 };
                 
@@ -417,7 +414,7 @@ async function runProductionTest(testName) {
                 
                 return {
                     success: working === total,
-                    message: `Features: ${working}/${total} found - Export:${features.exportBtn?'✓':'✗'} Heatmap:${features.heatmapBtn?'✓':'✗'} PRCards:${features.prCardSupport?'✓':'✗'}`
+                    message: `Features: ${working}/${total} found - Kiro:${features.kiroBtn?'✓':'✗'} Heatmap:${features.heatmapBtn?'✓':'✗'} Data:${features.runtimeData?'✓':'✗'} PRCards:${features.prCardSupport?'✓':'✗'}`
                 };
             } catch (error) {
                 return { success: false, message: `Features: Error - ${error.message}` };
@@ -1165,25 +1162,33 @@ async function runProductionTest(testName) {
             }
 
         case 'testPR123ExportFunctionality':
-            // Test PR123: Export Stories functionality by checking deployment
+            // Test data export via Runtime Data button
             try {
-                // Check if the main page has the export button
                 const response = await fetch(`${PROD_CONFIG.frontend}/index.html`);
                 if (!response.ok) {
-                    return { success: false, message: 'PR123: Cannot access main page' };
+                    return { success: false, message: 'Export: Cannot access main page' };
                 }
                 
                 const html = await response.text();
-                const hasExportBtn = html.includes('export-stories-btn');
+                const hasRuntimeDataLink = html.includes('runtime-data-link') || html.includes('Runtime Data');
                 
-                if (!hasExportBtn) {
-                    return { success: false, message: 'PR123: Export Stories button not found in HTML' };
+                if (!hasRuntimeDataLink) {
+                    return { success: false, message: 'Export: Runtime Data link not found' };
                 }
                 
-                // Check if app.js has the export function
-                const jsResponse = await fetch(`${PROD_CONFIG.frontend}/app.js`);
-                if (jsResponse.ok) {
-                    const js = await jsResponse.text();
+                // Test runtime data endpoint
+                const dataResponse = await fetch(`${PROD_CONFIG.api}/api/runtime-data`);
+                if (!dataResponse.ok) {
+                    return { success: false, message: 'Export: Runtime data endpoint not accessible' };
+                }
+                
+                return {
+                    success: true,
+                    message: 'Export: Runtime Data download available'
+                };
+            } catch (error) {
+                return { success: false, message: `Export test failed - ${error.message}` };
+            }
                     const hasExportFunction = js.includes('buildExportModalContent');
                     
                     return {
@@ -1546,33 +1551,44 @@ async function runProductionTest(testName) {
             }
 
         case 'testRefineWithKiroButton':
-            // Test "Refine with Kiro" button exists
+            // Test Kiro button exists in header
             try {
-                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
-                const js = await response.text();
+                const htmlResponse = await fetch(`${PROD_CONFIG.frontend}/index.html`);
+                const html = await htmlResponse.text();
                 
-                const hasButton = js.includes('Refine with Kiro');
-                const hasFunction = js.includes('buildKiroTerminalModalContent');
-                const hasTerminalInit = js.includes('new window.Terminal');
+                const jsResponse = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await jsResponse.text();
+                
+                const terminalResponse = await fetch(`${PROD_CONFIG.frontend}/kiro-terminal.html`);
+                const terminalHtml = await terminalResponse.text();
+                
+                const hasButton = html.includes('id="kiro-btn"');
+                const hasEventListener = js.includes('kiro-btn');
+                const hasTerminalPage = terminalHtml.includes('Kiro CLI Terminal');
+                const hasTerminalInit = terminalHtml.includes('new Terminal');
                 
                 if (!hasButton) {
-                    return { success: false, message: 'Refine with Kiro: Button text not found' };
+                    return { success: false, message: 'Kiro: Button not found in header' };
                 }
                 
-                if (!hasFunction) {
-                    return { success: false, message: 'Refine with Kiro: Modal function missing' };
+                if (!hasEventListener) {
+                    return { success: false, message: 'Kiro: Event listener missing' };
+                }
+                
+                if (!hasTerminalPage) {
+                    return { success: false, message: 'Kiro: Terminal page missing' };
                 }
                 
                 if (!hasTerminalInit) {
-                    return { success: false, message: 'Refine with Kiro: Terminal initialization missing' };
+                    return { success: false, message: 'Kiro: Terminal initialization missing' };
                 }
                 
                 return {
                     success: true,
-                    message: 'Refine with Kiro: Button and terminal functions exist'
+                    message: 'Kiro: Button in header, terminal page, and initialization exist'
                 };
             } catch (error) {
-                return { success: false, message: `Refine with Kiro test failed - ${error.message}` };
+                return { success: false, message: `Kiro button test failed - ${error.message}` };
             }
 
         case 'testEC2TerminalHealth':
