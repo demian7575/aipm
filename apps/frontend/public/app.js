@@ -2087,6 +2087,20 @@ function buildCodeWhispererSection(story) {
   title.textContent = 'Development Tasks';
   heading.appendChild(title);
 
+  // Make labels bold and underline button
+  const styleLabelBtn = document.createElement('button');
+  styleLabelBtn.type = 'button';
+  styleLabelBtn.className = 'secondary';
+  styleLabelBtn.textContent = 'Make Font Of title, assignee Email, description, acceptance Criteria In The details Panel Bold And Underline…';
+  styleLabelBtn.addEventListener('click', () => {
+    document.querySelectorAll('.story-form .field-row label, .story-form .full label').forEach(label => {
+      label.style.fontWeight = 'bold';
+      label.style.textDecoration = 'underline';
+    });
+    showToast('Labels styled successfully', 'success');
+  });
+  heading.appendChild(styleLabelBtn);
+
   // Auto PR creation button
   const actionBtn = document.createElement('button');
   actionBtn.type = 'button';
