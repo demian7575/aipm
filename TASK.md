@@ -1,6 +1,6 @@
-# I Want "merge" Button On "development Tasks"
+# Make Font Of "title", "assignee Email", "description", "acceptance Criteria" In The "details" Panel Bold And Underline…
 
-As a PM, I want a "Merge" button on each Development Task card so that I can run gatingtests and squash-merge the PR to the main branch as a single commit.Acceptance Criteria:- "Merge" button appears on each PR card in the Development Tasks section- Clicking the button triggers gating tests (npm test)- If tests pass, the PR is squash-merged to main branch as a single commit- If tests fail, the merge is aborted and an error message is shown- Button shows "Merging..." state during the operation- Success/failure toast notification is displayed- The PR is automatically closed after successful merge
+As a User, I want to implement Make Font of "Title", "Assignee Email", "Description", "Acceptance Criteria" in the "Details" panel bold and underline font. This ensures i can accomplish my goals more effectively. This work supports the parent story "I Will Improve AIPM Apprearance Simple And Clear".
 
 Constraints: 
 

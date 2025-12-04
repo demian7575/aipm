@@ -870,6 +870,12 @@ body.is-mindmap-panning {
   gap: 0.35rem;
 }
 
+.story-form .field-row label,
+.story-form .full > label {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
 .story-form .full {
   grid-column: span 2;
 }
