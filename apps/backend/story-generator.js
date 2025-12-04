@@ -83,10 +83,39 @@ function extractAction(idea) {
 }
 
 function extractSubject(idea) {
-  // Extract main noun/subject
-  const words = idea.split(/\s+/);
-  const nouns = words.filter(w => w.length > 3 && !/^(the|and|for|with|from)$/i.test(w));
-  return nouns[0] || 'feature';
+  // Extract main noun/subject, skipping action words
+  const actionWords = [
+    'create', 'add', 'implement', 'build', 'develop',
+    'view', 'see', 'display', 'show', 'list',
+    'edit', 'update', 'modify', 'change',
+    'delete', 'remove', 'hide',
+    'search', 'filter', 'sort', 'find',
+    'export', 'import', 'download', 'upload',
+    'send', 'receive', 'notify', 'alert',
+    'validate', 'verify', 'check', 'test'
+  ];
+  
+  const words = idea.split(/\s+/).filter(w => w.length > 2);
+  
+  // Find first word that's not an action word
+  for (const word of words) {
+    const lower = word.toLowerCase().replace(/[^a-z]/g, '');
+    if (!actionWords.includes(lower) && !/^(the|and|for|with|from|to|a|an)$/i.test(lower)) {
+      return word;
+    }
+  }
+  
+  // Fallback: use words after the action
+  const firstAction = words.findIndex(w => 
+    actionWords.includes(w.toLowerCase().replace(/[^a-z]/g, ''))
+  );
+  
+  if (firstAction >= 0 && firstAction < words.length - 1) {
+    // Return the rest of the phrase after the action
+    return words.slice(firstAction + 1).join(' ');
+  }
+  
+  return words[0] || 'feature';
 }
 
 function extractContext(idea) {
@@ -129,11 +158,15 @@ function generateGoal(intent, parent) {
   // Create specific, actionable goal
   let goal = `${action} ${subject}`;
   
-  // Add context for clarity
-  if (intent.isUI) {
-    goal += ' in the interface';
-  } else if (intent.isBackend) {
-    goal += ' via API';
+  // Only add context if it adds value and isn't redundant
+  const needsContext = subject.length < 10 && !intent.isUI && !intent.isBackend;
+  
+  if (needsContext) {
+    if (intent.isUI) {
+      goal += ' in the interface';
+    } else if (intent.isBackend) {
+      goal += ' via API';
+    }
   }
   
   // Ensure it's not too implementation-specific (Negotiable)
@@ -185,9 +218,23 @@ function generateBenefit(intent, goal, parent) {
  */
 function generateTitle(persona, goal) {
   // Title should be short and descriptive (Small principle)
-  const words = goal.split(/\s+/);
-  const key = words.slice(0, 5).join(' ');
-  return key.charAt(0).toUpperCase() + key.slice(1);
+  // Capitalize first letter and keep it concise
+  let title = goal.trim();
+  
+  // Remove redundant phrases
+  title = title.replace(/\s+in the interface$/i, '');
+  title = title.replace(/\s+via API$/i, '');
+  
+  // Capitalize first letter
+  title = title.charAt(0).toUpperCase() + title.slice(1);
+  
+  // Limit length
+  const words = title.split(/\s+/);
+  if (words.length > 6) {
+    title = words.slice(0, 6).join(' ') + '...';
+  }
+  
+  return title;
 }
 
 /**
