@@ -1,6 +1,6 @@
-# Make Font Of "title", "assignee Email", "description", "acceptance Criteria" In The "details" Panel Bold And Underline…
+# In "refine With Kiro" Workflow, The Kiro-cli Terminal Should Be Open As Independent Terminal Window
 
-As a User, I want to implement Make Font of "Title", "Assignee Email", "Description", "Acceptance Criteria" in the "Details" panel bold and underline font. This ensures i can accomplish my goals more effectively. This work supports the parent story "I Will Improve AIPM Apprearance Simple And Clear".
+As a Working convinience, I want to implement In "Refine with Kiro" workflow, the Kiro-cli terminal should be open as independent terminal window. This ensures i can move the window out of the browser for working convinience. This work supports the parent story "I Will Improve AIPM Apprearance Simple And Clear".
 
 Constraints: 
 
