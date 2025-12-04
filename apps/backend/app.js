@@ -5277,21 +5277,40 @@ async function loadStories(db, options = {}) {
     story.tasks.push(buildTaskFromRow(row));
   });
 
-  await Promise.all(
-    stories.map(async (story) => {
-      const analysis = await evaluateInvestAnalysis(
-        story,
-        {
-          acceptanceTests: story.acceptanceTests,
-          includeTestChecks: true,
-        },
-        { includeAiInvest }
-      );
+  // Read INVEST analysis from DB (already calculated during create/update)
+  storyRows.forEach((row) => {
+    const story = byId.get(row.id);
+    if (!story) return;
+    
+    // PRs loaded lazily when story is selected
+    story.prs = [];
+    
+    const storedWarnings = parseJsonArray(row.invest_warnings);
+    const storedAnalysis = row.invest_analysis ? JSON.parse(row.invest_analysis) : null;
+    
+    if (storedWarnings.length > 0 || storedAnalysis) {
+      story.investWarnings = storedWarnings;
+      story.investSatisfied = storedWarnings.length === 0;
+      story.investHealth = { satisfied: story.investSatisfied, issues: storedWarnings };
+      story.investAnalysis = storedAnalysis || {
+        source: 'heuristic',
+        summary: '',
+        aiSummary: '',
+        aiWarnings: [],
+        aiModel: null,
+        usedFallback: true,
+        error: null,
+        fallbackWarnings: storedWarnings,
+      };
+    } else {
+      // Fallback: calculate if not stored (for old data)
+      const analysis = buildBaselineInvestAnalysis(story, {
+        acceptanceTests: story.acceptanceTests,
+        includeTestChecks: true,
+      });
       applyInvestAnalysisToStory(story, analysis);
-      // PRs loaded lazily when story is selected
-      story.prs = [];
-    })
-  );
+    }
+  });
 
   return roots;
 }
@@ -5815,7 +5834,7 @@ export async function createApp() {
         }
         const timestamp = now();
         const statement = db.prepare(
-          'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+          'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at, invest_warnings, invest_analysis) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
         );
         const { lastInsertRowid } = await statement.run(
           parentId,
@@ -5829,7 +5848,17 @@ export async function createApp() {
           assigneeEmail,
           'Draft',
           timestamp,
-          timestamp
+          timestamp,
+          JSON.stringify(warnings),
+          JSON.stringify({
+            source: analysis.source,
+            summary: analysis.summary,
+            aiSummary: analysis.ai?.summary || '',
+            aiModel: analysis.ai?.model || null,
+            usedFallback: analysis.usedFallback,
+            error: analysis.ai?.error || null,
+            fallbackWarnings: analysis.fallbackWarnings || [],
+          })
         );
         const newStoryId = Number(lastInsertRowid);
         
@@ -6117,7 +6146,7 @@ export async function createApp() {
           componentsChanged;
 
         const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ? WHERE id = ?' // prettier-ignore
+          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
         );
         update.run(
           title,
@@ -6130,6 +6159,16 @@ export async function createApp() {
           nextSoThat,
           nextStatus,
           now(),
+          JSON.stringify(warnings),
+          JSON.stringify({
+            source: analysis.source,
+            summary: analysis.summary,
+            aiSummary: analysis.ai?.summary || '',
+            aiModel: analysis.ai?.model || null,
+            usedFallback: analysis.usedFallback,
+            error: analysis.ai?.error || null,
+            fallbackWarnings: analysis.fallbackWarnings || [],
+          }),
           storyId
         );
 
