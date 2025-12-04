@@ -7138,10 +7138,25 @@ function initialize() {
   });
 
   autoLayoutToggle.addEventListener('click', () => {
+    const wasAutoLayout = state.autoLayout;
     state.autoLayout = !state.autoLayout;
+    
     if (state.autoLayout) {
+      // Enabling auto layout: clear manual positions
       state.manualPositions = {};
+    } else if (wasAutoLayout) {
+      // Disabling auto layout: save current positions to preserve them
+      // First render with auto layout to get current positions
+      const horizontalGap = AUTO_LAYOUT_HORIZONTAL_GAP;
+      const metrics = collectMindmapNodeMetrics(state.stories);
+      const layout = computeLayout(state.stories, 0, Y_OFFSET, horizontalGap, metrics);
+      
+      // Save all current positions as manual positions
+      layout.nodes.forEach((node) => {
+        state.manualPositions[node.id] = { x: node.x, y: node.y };
+      });
     }
+    
     persistLayout();
     persistMindmap();
     renderMindmap();
