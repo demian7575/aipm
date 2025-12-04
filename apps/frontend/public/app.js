@@ -339,7 +339,7 @@ const state = {
   expanded: new Set(),
   selectedStoryId: null,
   manualPositions: {},
-  autoLayout: true,
+  autoLayout: false, // Default to manual layout to preserve positions
   showDependencies: false,
   mindmapZoom: 1,
   panelVisibility: {
