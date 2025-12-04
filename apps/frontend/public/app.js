@@ -1861,20 +1861,6 @@ function renderCodeWhispererSectionList(container, story) {
       });
       actions.appendChild(mergeBtn);
 
-      const kiroBtn = document.createElement('button');
-      kiroBtn.type = 'button';
-      kiroBtn.className = 'button secondary kiro-terminal-btn';
-      kiroBtn.textContent = 'Refine with Kiro';
-      kiroBtn.addEventListener('click', () => {
-        const params = new URLSearchParams({
-          prId: entry.number || entry.targetNumber || '',
-          branchName: entry.branchName || '',
-          taskTitle: entry.taskTitle || ''
-        });
-        window.open(`/kiro-terminal.html?${params.toString()}`, '_blank', 'width=1200,height=800');
-      });
-      actions.appendChild(kiroBtn);
-
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'link-button codewhisperer-remove';
@@ -6850,6 +6836,12 @@ function initialize() {
     console.log('Refresh button clicked');
     loadStories();
   });
+  
+  const kiroBtn = document.getElementById('kiro-btn');
+  kiroBtn?.addEventListener('click', () => {
+    window.open('/kiro-terminal.html', '_blank', 'width=1200,height=800');
+  });
+  
   generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
