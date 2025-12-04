@@ -36,7 +36,6 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
-const exportStoriesBtn = document.getElementById('export-stories-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -938,105 +937,6 @@ function computeHealthSeverity(story) {
   return 'ok';
 }
 
-function exportCompleteData() {
-  const data = {
-    version: AIPM_VERSION,
-    timestamp: new Date().toISOString(),
-    stories: state.stories, // All user stories with acceptance tests and tasks
-    layout: {
-      autoLayout: state.autoLayout,
-      positions: state.manualPositions
-    },
-    mindmap: {
-      zoom: state.mindmapZoom,
-      showDependencies: state.showDependencies,
-      centerPosition: state.mindmapCenterPosition
-    },
-    ui: {
-      expanded: Array.from(state.expanded.values()),
-      selectedStoryId: state.selectedStoryId,
-      panelVisibility: state.panelVisibility
-    },
-    codewhispererDelegations: Object.fromEntries(state.codewhispererDelegations)
-  };
-  
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `aipm-complete-backup-${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function importCompleteData(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        
-        // Validate data structure
-        if (!data.stories || !Array.isArray(data.stories)) {
-          throw new Error('Invalid backup file: missing stories data');
-        }
-        
-        // Restore stories data
-        state.stories = data.stories;
-        rebuildStoryIndex();
-        
-        // Restore layout data
-        if (data.layout) {
-          state.autoLayout = data.layout.autoLayout ?? true;
-          state.manualPositions = data.layout.positions ?? {};
-        }
-        
-        // Restore mindmap data
-        if (data.mindmap) {
-          state.mindmapZoom = data.mindmap.zoom ?? 1;
-          state.showDependencies = data.mindmap.showDependencies ?? false;
-          if (data.mindmap.centerPosition) {
-            state.mindmapCenterPosition = data.mindmap.centerPosition;
-          }
-        }
-        
-        // Restore UI state
-        if (data.ui) {
-          if (Array.isArray(data.ui.expanded)) {
-            state.expanded = new Set(data.ui.expanded.map(Number));
-          }
-          if (data.ui.selectedStoryId != null) {
-            state.selectedStoryId = Number(data.ui.selectedStoryId);
-          }
-          if (data.ui.panelVisibility) {
-            state.panelVisibility = { ...state.panelVisibility, ...data.ui.panelVisibility };
-          }
-        }
-        
-        // Restore CodeWhisperer delegations
-        if (data.codewhispererDelegations) {
-          state.codewhispererDelegations = new Map(Object.entries(data.codewhispererDelegations));
-        }
-        
-        // Persist all restored data
-        persistAllData();
-        
-        // Re-render everything
-        renderAll();
-        updateWorkspaceColumns();
-        
-        resolve(data);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsText(file);
-  });
-}
-
 function persistAllData() {
   // Persist stories data locally
   try {
@@ -1089,86 +989,6 @@ function autoBackupData() {
   } catch (error) {
     console.error('Auto-backup failed', error);
   }
-}
-
-function exportMindmapData() {
-  const data = {
-    version: AIPM_VERSION,
-    timestamp: new Date().toISOString(),
-    layout: {
-      autoLayout: state.autoLayout,
-      positions: state.manualPositions
-    },
-    mindmap: {
-      zoom: state.mindmapZoom,
-      showDependencies: state.showDependencies,
-      centerPosition: state.mindmapCenterPosition
-    },
-    expanded: Array.from(state.expanded.values()),
-    selectedStoryId: state.selectedStoryId
-  };
-  
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `aipm-mindmap-backup-${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function importMindmapData(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        
-        // Validate data structure
-        if (!data.layout || !data.mindmap) {
-          throw new Error('Invalid mindmap backup file');
-        }
-        
-        // Restore layout data
-        state.autoLayout = data.layout.autoLayout ?? true;
-        state.manualPositions = data.layout.positions ?? {};
-        
-        // Restore mindmap data
-        state.mindmapZoom = data.mindmap.zoom ?? 1;
-        state.showDependencies = data.mindmap.showDependencies ?? false;
-        if (data.mindmap.centerPosition) {
-          state.mindmapCenterPosition = data.mindmap.centerPosition;
-        }
-        
-        // Restore expanded state
-        if (Array.isArray(data.expanded)) {
-          state.expanded = new Set(data.expanded.map(Number));
-        }
-        
-        // Restore selection
-        if (data.selectedStoryId != null) {
-          state.selectedStoryId = Number(data.selectedStoryId);
-        }
-        
-        // Persist the restored data
-        persistLayout();
-        persistMindmap();
-        persistExpanded();
-        persistSelection();
-        
-        // Re-render
-        renderAll();
-        
-        resolve(data);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsText(file);
-  });
 }
 
 function migrateMindmapData(fromVersion) {
@@ -3688,119 +3508,6 @@ async function bedrockImplementation(prEntry) {
     console.error('❌ Deployment error:', error);
     return { success: false, message: error.message };
   }
-}
-
-function buildExportModalContent() {
-  const container = document.createElement('div');
-  container.className = 'export-modal';
-  
-  container.innerHTML = `
-    <div class="export-options">
-      <h3>Export Format</h3>
-      <label><input type="radio" name="format" value="json" checked> JSON</label>
-      <label><input type="radio" name="format" value="csv"> CSV</label>
-      
-      <h3>Export Options</h3>
-      <label><input type="checkbox" id="include-acceptance-tests" checked> Include Acceptance Tests</label>
-      <label><input type="checkbox" id="include-children" checked> Include Child Stories</label>
-      
-      <div class="export-actions">
-        <button id="export-download" class="primary">Download Export</button>
-      </div>
-    </div>
-  `;
-  
-  const downloadBtn = container.querySelector('#export-download');
-  downloadBtn.addEventListener('click', async () => {
-    const format = container.querySelector('input[name="format"]:checked').value;
-    const includeTests = container.querySelector('#include-acceptance-tests').checked;
-    const includeChildren = container.querySelector('#include-children').checked;
-    
-    try {
-      const stories = await fetchStories();
-      const exportData = prepareExportData(stories, { includeTests, includeChildren });
-      
-      if (format === 'json') {
-        downloadJSON(exportData, 'aipm-stories.json');
-      } else {
-        downloadCSV(exportData, 'aipm-stories.csv');
-      }
-    } catch (error) {
-      console.error('Export failed:', error);
-      alert('Export failed: ' + error.message);
-    }
-  });
-  
-  return { element: container, onClose: () => {} };
-}
-
-function prepareExportData(stories, options) {
-  return stories.map(story => {
-    const data = {
-      id: story.id,
-      title: story.title,
-      description: story.description,
-      asA: story.asA,
-      iWant: story.iWant,
-      soThat: story.soThat,
-      status: story.status,
-      storyPoint: story.storyPoint,
-      assigneeEmail: story.assigneeEmail,
-      components: story.components?.join(', ') || '',
-      createdAt: story.createdAt,
-      updatedAt: story.updatedAt
-    };
-    
-    if (options.includeTests && story.acceptanceTests) {
-      data.acceptanceTests = story.acceptanceTests.length;
-      data.acceptanceTestDetails = story.acceptanceTests.map(t => 
-        `${t.given} | ${t.when} | ${t.then}`
-      ).join('; ');
-    }
-    
-    if (options.includeChildren && story.children) {
-      data.childrenCount = story.children.length;
-    }
-    
-    return data;
-  });
-}
-
-function downloadJSON(data, filename) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function downloadCSV(data, filename) {
-  if (!data.length) return;
-  
-  const headers = Object.keys(data[0]);
-  const csvContent = [
-    headers.join(','),
-    ...data.map(row => 
-      headers.map(header => {
-        const value = row[header] || '';
-        return `"${String(value).replace(/"/g, '""')}"`;
-      }).join(',')
-    )
-  ].join('\n');
-  
-  const blob = new Blob([csvContent], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
 function buildHeatmapModalContent() {
@@ -7164,17 +6871,6 @@ function initialize() {
     });
   });
 
-  exportStoriesBtn?.addEventListener('click', () => {
-    const { element, onClose } = buildExportModalContent();
-    openModal({
-      title: 'Export Stories',
-      content: element,
-      cancelLabel: 'Close',
-      size: 'content',
-      onClose,
-    });
-  });
-
   autoLayoutToggle.addEventListener('click', () => {
     const wasAutoLayout = state.autoLayout;
     state.autoLayout = !state.autoLayout;
@@ -7209,76 +6905,6 @@ function initialize() {
   if (runtimeDataLink) {
     runtimeDataLink.href = resolveApiUrl('/api/runtime-data');
   }
-
-  // Complete data backup functionality
-  const exportCompleteBtn = document.getElementById('export-complete-btn');
-  const importCompleteBtn = document.getElementById('import-complete-btn');
-  const importCompleteFile = document.getElementById('import-complete-file');
-
-  exportCompleteBtn?.addEventListener('click', () => {
-    try {
-      exportCompleteData();
-      showToast('Complete data exported successfully', 'success');
-    } catch (error) {
-      console.error('Failed to export complete data', error);
-      showToast('Failed to export complete data', 'error');
-    }
-  });
-
-  importCompleteBtn?.addEventListener('click', () => {
-    importCompleteFile?.click();
-  });
-
-  importCompleteFile?.addEventListener('change', async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    try {
-      await importCompleteData(file);
-      showToast('Complete data imported successfully', 'success');
-    } catch (error) {
-      console.error('Failed to import complete data', error);
-      showToast('Failed to import complete data: ' + error.message, 'error');
-    } finally {
-      // Clear the file input
-      event.target.value = '';
-    }
-  });
-
-  // Mindmap backup functionality
-  const exportMindmapBtn = document.getElementById('export-mindmap-btn');
-  const importMindmapBtn = document.getElementById('import-mindmap-btn');
-  const importMindmapFile = document.getElementById('import-mindmap-file');
-
-  exportMindmapBtn?.addEventListener('click', () => {
-    try {
-      exportMindmapData();
-      showToast('Mindmap data exported successfully', 'success');
-    } catch (error) {
-      console.error('Failed to export mindmap data', error);
-      showToast('Failed to export mindmap data', 'error');
-    }
-  });
-
-  importMindmapBtn?.addEventListener('click', () => {
-    importMindmapFile?.click();
-  });
-
-  importMindmapFile?.addEventListener('change', async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    try {
-      await importMindmapData(file);
-      showToast('Mindmap data imported successfully', 'success');
-    } catch (error) {
-      console.error('Failed to import mindmap data', error);
-      showToast('Failed to import mindmap data: ' + error.message, 'error');
-    } finally {
-      // Clear the file input
-      event.target.value = '';
-    }
-  });
 
   loadStories();
   
