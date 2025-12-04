@@ -1865,15 +1865,13 @@ function renderCodeWhispererSectionList(container, story) {
       kiroBtn.type = 'button';
       kiroBtn.className = 'button secondary kiro-terminal-btn';
       kiroBtn.textContent = 'Refine with Kiro';
-      kiroBtn.addEventListener('click', async () => {
-        const { element, onClose } = await buildKiroTerminalModalContent(entry);
-        openModal({
-          title: 'Kiro CLI Terminal',
-          content: element,
-          cancelLabel: 'Close',
-          size: 'fullscreen',
-          onClose,
+      kiroBtn.addEventListener('click', () => {
+        const params = new URLSearchParams({
+          prId: entry.number || entry.targetNumber || '',
+          branchName: entry.branchName || '',
+          taskTitle: entry.taskTitle || ''
         });
+        window.open(`/kiro-terminal.html?${params.toString()}`, '_blank', 'width=1200,height=800');
       });
       actions.appendChild(kiroBtn);
 
