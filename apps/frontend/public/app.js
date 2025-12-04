@@ -2103,6 +2103,16 @@ function buildCodeWhispererSection(story) {
   });
   heading.appendChild(actionBtn);
 
+  // Kiro terminal window button
+  const kiroTerminalBtn = document.createElement('button');
+  kiroTerminalBtn.type = 'button';
+  kiroTerminalBtn.className = 'secondary';
+  kiroTerminalBtn.textContent = 'In refine With Kiro Workflow, The Kiro-cli Terminal Should Be Open As Independent Terminal Window';
+  kiroTerminalBtn.addEventListener('click', () => {
+    window.open('/kiro-terminal', 'KiroTerminal', 'width=1200,height=800,resizable=yes,scrollbars=yes');
+  });
+  heading.appendChild(kiroTerminalBtn);
+
   section.appendChild(heading);
 
   const list = document.createElement('div');
