@@ -31,13 +31,11 @@ const mindmapCanvas = document.getElementById('mindmap-canvas');
 const detailsPanel = document.getElementById('details-panel');
 const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
-const refreshBtn = document.getElementById('refresh-btn');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
-const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
@@ -521,14 +519,6 @@ function handleMindmapPointerEnd(event) {
 
 function syncDependencyOverlayControls() {
   const pressed = state.showDependencies;
-  if (dependencyToggleBtn) {
-    dependencyToggleBtn.classList.toggle('is-active', pressed);
-    dependencyToggleBtn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
-    dependencyToggleBtn.setAttribute(
-      'title',
-      pressed ? 'Hide dependency connections on the mindmap' : 'Show dependency connections on the mindmap'
-    );
-  }
   document.querySelectorAll('[data-role="dependency-overlay-toggle"]').forEach((button) => {
     button.classList.toggle('is-active', pressed);
     button.setAttribute('aria-pressed', pressed ? 'true' : 'false');
@@ -565,11 +555,6 @@ if (referenceBtn) {
   });
 }
 
-if (dependencyToggleBtn) {
-  dependencyToggleBtn.addEventListener('click', () => {
-    toggleDependencyOverlay();
-  });
-}
 
 if (mindmapZoomInBtn) {
   mindmapZoomInBtn.addEventListener('click', () => {
@@ -6831,11 +6816,6 @@ function initialize() {
   renderOutline();
   renderMindmap();
   renderDetails();
-
-  refreshBtn.addEventListener('click', () => {
-    console.log('Refresh button clicked');
-    loadStories();
-  });
   
   const kiroBtn = document.getElementById('kiro-btn');
   kiroBtn?.addEventListener('click', () => {
