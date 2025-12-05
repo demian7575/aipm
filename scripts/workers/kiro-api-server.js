@@ -9,6 +9,9 @@ const REPO_PATH = process.env.REPO_PATH || '/home/ec2-user/aipm';
 
 // Active requests tracking
 const activeRequests = new Map();
+const requestQueue = [];
+const MAX_CONCURRENT = 2; // Limit concurrent Kiro sessions
+let activeCount = 0;
 
 // Execute Kiro with prompt and return JSON
 async function executeKiro(prompt, context = '', timeoutMs = 600000) {
@@ -89,6 +92,9 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
     kiro.on('exit', (code) => {
       clearTimeout(timeout);
       clearInterval(checkInterval);
+      activeCount--;
+      processQueue();
+      
       if (code === 0) {
         resolve({ success: true, output });
       } else {
@@ -99,6 +105,26 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
     // Send prompt
     kiro.stdin.write(fullPrompt + '\n');
   });
+}
+
+// Queue management
+async function executeWithQueue(prompt, context, timeoutMs) {
+  if (activeCount < MAX_CONCURRENT) {
+    activeCount++;
+    return executeKiro(prompt, context, timeoutMs);
+  }
+  
+  return new Promise((resolve) => {
+    requestQueue.push({ prompt, context, timeoutMs, resolve });
+  });
+}
+
+function processQueue() {
+  while (activeCount < MAX_CONCURRENT && requestQueue.length > 0) {
+    const { prompt, context, timeoutMs, resolve } = requestQueue.shift();
+    activeCount++;
+    executeKiro(prompt, context, timeoutMs).then(resolve);
+  }
 }
 
 const server = createServer(async (req, res) => {
@@ -120,7 +146,9 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       status: 'running',
-      activeRequests: activeRequests.size,
+      activeRequests: activeCount,
+      queuedRequests: requestQueue.length,
+      maxConcurrent: MAX_CONCURRENT,
       uptime: process.uptime()
     }));
     return;
@@ -145,7 +173,7 @@ const server = createServer(async (req, res) => {
         console.log(`📥 Request ${requestId}: ${prompt.substring(0, 50)}...`);
         activeRequests.set(requestId, { startTime: Date.now(), prompt });
         
-        const result = await executeKiro(prompt, context, timeoutMs);
+        const result = await executeWithQueue(prompt, context, timeoutMs);
         
         activeRequests.delete(requestId);
         console.log(`✅ Request ${requestId} completed`);
