@@ -200,11 +200,14 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000, workerName = 
 
     let output = '';
     let finished = false;
+    let lastOutputTime = Date.now();
+    let noOutputCount = 0;
 
     const finish = (result) => {
       if (finished) return;
       finished = true;
       clearTimeout(timeoutId);
+      clearInterval(completionCheckInterval);
       try { kiroProcess.kill('SIGKILL'); } catch (e) { /* ignore */ }
       resolve({ ...result, output });
     };
@@ -213,10 +216,36 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000, workerName = 
       console.warn('⏰ Kiro non-interactive run timed out');
       finish({ success: false, timedOut: true });
     }, timeoutMs);
+    
+    // Double-check for completion every 5 seconds
+    const completionCheckInterval = setInterval(() => {
+      const timeSinceLastOutput = Date.now() - lastOutputTime;
+      
+      // If no output for 10 seconds, check if Kiro is done
+      if (timeSinceLastOutput > 10000) {
+        noOutputCount++;
+        
+        // Check output for completion indicators
+        const lowerOutput = output.toLowerCase();
+        const hasCompletionWords = lowerOutput.includes('complete') || 
+                                   lowerOutput.includes('done') || 
+                                   lowerOutput.includes('finished') ||
+                                   lowerOutput.includes('successfully');
+        const hasTimeMarker = output.includes('▸ Time:');
+        
+        if (hasCompletionWords && hasTimeMarker && noOutputCount >= 2) {
+          console.log('✅ Detected completion via double-check (no output for 20s + completion indicators)');
+          finish({ success: true });
+        }
+      } else {
+        noOutputCount = 0; // Reset if we got output
+      }
+    }, 5000);
 
     const handleData = (chunk) => {
       const text = chunk.toString();
       output += text;
+      lastOutputTime = Date.now(); // Update last output time
       process.stdout.write(text);
       
       // Update worker activity to prevent idle timeout
@@ -240,6 +269,7 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000, workerName = 
           (text.includes('Done.') && text.includes('▸ Time:')) ||
           (text.includes('✅') && text.includes('▸ Time:')) ||
           (text.includes('✓') && text.includes('▸ Time:'))) {
+        console.log('✅ Detected completion signal in output');
         finish({ success: true });
       }
     };
