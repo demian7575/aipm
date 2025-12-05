@@ -253,17 +253,6 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000 } = {}) {
 // Track all connected clients
 const clients = new Set();
 
-// Broadcast Kiro output to all connected clients
-kiro.onData((data) => {
-  clients.forEach(client => {
-    try {
-      sendWSMessage(client.socket, { type: 'output', data });
-    } catch (e) {
-      clients.delete(client);
-    }
-  });
-});
-
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   
