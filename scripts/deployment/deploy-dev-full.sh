@@ -80,8 +80,47 @@ aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ \
   --exclude "*.md" \
   --delete
 
-# 6. Verify Deployment
-echo "✅ Step 6: Verifying deployment..."
+# 6. Deploy EC2 Terminal Server (Worker Pool)
+echo "🖥️  Step 6: Deploying EC2 Terminal Server..."
+EC2_HOST="ec2-user@44.220.45.57"
+EC2_REPO_PATH="/home/ec2-user/aipm"
+
+# Check if SSH access is available
+if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$EC2_HOST" "echo 'SSH OK'" 2>/dev/null | grep -q "SSH OK"; then
+  echo "  ✅ SSH connection successful"
+  
+  # Deploy to EC2
+  ssh -o StrictHostKeyChecking=no "$EC2_HOST" << 'ENDSSH'
+    cd /home/ec2-user/aipm
+    echo "  📥 Pulling latest code..."
+    git pull origin develop
+    
+    echo "  🔄 Restarting terminal server..."
+    pkill -f terminal-server || true
+    sleep 2
+    
+    nohup node scripts/workers/terminal-server.js > /tmp/terminal-server.log 2>&1 &
+    sleep 3
+    
+    echo "  ✅ Terminal server restarted"
+ENDSSH
+  
+  # Verify terminal server is running
+  if curl -s -o /dev/null -w "%{http_code}" http://44.220.45.57:8080/health | grep -q "200"; then
+    echo "  ✅ Terminal server health check passed"
+  else
+    echo "  ⚠️  Terminal server health check failed (may need a few more seconds to start)"
+  fi
+else
+  echo "  ⚠️  SSH connection failed - EC2 terminal server not updated"
+  echo "  📝 Manual deployment required:"
+  echo "     ssh $EC2_HOST"
+  echo "     cd $EC2_REPO_PATH && git pull origin develop"
+  echo "     pkill -f terminal-server && nohup node scripts/workers/terminal-server.js > /tmp/terminal-server.log 2>&1 &"
+fi
+
+# 7. Verify Deployment
+echo "✅ Step 7: Verifying deployment..."
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🎉 DEVELOPMENT ENVIRONMENT DEPLOYED"
@@ -93,6 +132,7 @@ echo "  • Backend:   $API_ENDPOINT"
 echo "  • Lambda:    aipm-backend-dev-api"
 echo "  • Stories:   aipm-backend-dev-stories ($STORY_COUNT from prod)"
 echo "  • Tests:     aipm-backend-dev-acceptance-tests ($TEST_COUNT from prod)"
+echo "  • EC2:       http://44.220.45.57:8080/health (Worker Pool)"
 echo ""
 echo "🧪 Test: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/production-gating-tests.html"
 echo ""
