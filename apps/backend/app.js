@@ -4945,6 +4945,7 @@ async function ensureDatabase() {
   ensureColumn(db, 'user_stories', 'created_at', 'created_at TEXT');
   ensureColumn(db, 'user_stories', 'updated_at', 'updated_at TEXT');
   ensureColumn(db, 'user_stories', 'prs', "prs TEXT DEFAULT '[]'");
+  ensureColumn(db, 'user_stories', 'hidden_from_mindmap', "hidden_from_mindmap INTEGER DEFAULT 0");
 
   ensureColumn(db, 'acceptance_tests', 'given', "given TEXT NOT NULL DEFAULT '[]'");
   ensureColumn(db, 'acceptance_tests', 'when_step', "when_step TEXT NOT NULL DEFAULT '[]'");
@@ -6062,6 +6063,18 @@ export async function createApp() {
       const storyId = Number(storyIdMatch[1]);
       try {
         const payload = await parseJson(req);
+        
+        if (payload.hidden_from_mindmap !== undefined) {
+          const hiddenValue = payload.hidden_from_mindmap ? 1 : 0;
+          db.prepare('UPDATE user_stories SET hidden_from_mindmap = ?, updated_at = ? WHERE id = ?').run(
+            hiddenValue,
+            now(),
+            storyId
+          );
+          sendJson(res, 200, { success: true });
+          return;
+        }
+        
         const title = String(payload.title ?? '').trim();
         if (!title) {
           throw Object.assign(new Error('Title is required'), { statusCode: 400 });

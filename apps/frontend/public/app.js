@@ -31,13 +31,11 @@ const mindmapCanvas = document.getElementById('mindmap-canvas');
 const detailsPanel = document.getElementById('details-panel');
 const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
-const refreshBtn = document.getElementById('refresh-btn');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
-const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
@@ -307,6 +305,7 @@ function normalizeStoryTree(story) {
   if (normalized.storyPoint == null && story.story_point != null) {
     normalized.storyPoint = story.story_point;
   }
+  normalized.hiddenFromMindmap = Boolean(story.hidden_from_mindmap || story.hiddenFromMindmap);
   if (Array.isArray(story.tasks)) {
     normalized.tasks = story.tasks
       .map((task) => normalizeTaskRecord(task))
@@ -317,7 +316,8 @@ function normalizeStoryTree(story) {
   if (Array.isArray(story.children)) {
     normalized.children = story.children
       .map((child) => normalizeStoryTree(child))
-      .filter((child) => child != null);
+      .filter((child) => child != null)
+      .sort((a, b) => (a.hiddenFromMindmap === b.hiddenFromMindmap ? 0 : a.hiddenFromMindmap ? 1 : -1));
   } else {
     normalized.children = [];
   }
@@ -562,12 +562,6 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
-  });
-}
-
-if (dependencyToggleBtn) {
-  dependencyToggleBtn.addEventListener('click', () => {
-    toggleDependencyOverlay();
   });
 }
 
@@ -2571,7 +2565,10 @@ function computeLayout(nodes, depth = 0, startY = Y_OFFSET, horizontalGap = 0, m
     const expanded = state.expanded.has(story.id);
     let childLayout = null;
     if (expanded && story.children && story.children.length > 0) {
-      childLayout = computeLayout(story.children, depth + 1, cursorY, horizontalGap, metrics);
+      const visibleChildren = story.children.filter((child) => !child.hiddenFromMindmap);
+      if (visibleChildren.length > 0) {
+        childLayout = computeLayout(visibleChildren, depth + 1, cursorY, horizontalGap, metrics);
+      }
     }
 
     let nodeY = cursorY;
@@ -2712,7 +2709,7 @@ function renderMindmap() {
     const story = node.story;
     if (!story.children || story.children.length === 0) return;
     if (!state.expanded.has(story.id)) return;
-    story.children.forEach((child) => {
+    story.children.filter((child) => !child.hiddenFromMindmap).forEach((child) => {
       if (nodeMap.has(child.id)) {
         edges.push({ from: node, to: nodeMap.get(child.id) });
       }
@@ -4791,6 +4788,7 @@ function renderDetails() {
                 <th scope="row">Actions</th>
                 <td class="actions">
                   <button type="button" class="secondary" data-action="select-story" data-story-id="${child.id}">Select</button>
+                  <button type="button" class="secondary" data-action="toggle-hide" data-story-id="${child.id}">${child.hiddenFromMindmap ? 'Show' : 'Hide'}</button>
                   <button type="button" class="danger" data-action="delete-story" data-story-id="${child.id}">Delete</button>
                 </td>
               </tr>
@@ -4824,6 +4822,28 @@ function renderDetails() {
       const storyId = Number(button.getAttribute('data-story-id'));
       if (!Number.isFinite(storyId)) return;
       void confirmAndDeleteStory(storyId, { fallbackSelectionId: story.id });
+    });
+  });
+
+  childList.querySelectorAll('[data-action="toggle-hide"]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const storyId = Number(button.getAttribute('data-story-id'));
+      if (!Number.isFinite(storyId)) return;
+      const child = storyIndex.get(storyId);
+      if (!child) return;
+      try {
+        await fetch(`${API_BASE}/api/user-stories/${storyId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hidden_from_mindmap: child.hiddenFromMindmap ? 0 : 1 }),
+        });
+        await loadStories();
+        if (state.selectedStory?.id === story.id) {
+          renderDetails(story);
+        }
+      } catch (error) {
+        showToast(error.message || 'Failed to update story', 'error');
+      }
     });
   });
 }
@@ -6832,11 +6852,6 @@ function initialize() {
   renderMindmap();
   renderDetails();
 
-  refreshBtn.addEventListener('click', () => {
-    console.log('Refresh button clicked');
-    loadStories();
-  });
-  
   const kiroBtn = document.getElementById('kiro-btn');
   kiroBtn?.addEventListener('click', () => {
     window.open('/kiro-terminal.html', '_blank', 'width=1200,height=800');
