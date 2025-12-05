@@ -490,6 +490,7 @@ async function performDelegation(payload) {
     }
     
     const kiroApiUrl = process.env.KIRO_API_URL || 'http://44.220.45.57:8081';
+    const taskId = `kiro-${timestamp}`;
     
     // Fire and forget - don't await
     fetch(`${kiroApiUrl}/execute`, {
@@ -502,13 +503,13 @@ async function performDelegation(payload) {
       })
     }).then(response => response.json())
       .then(result => {
-        console.log('✅ Kiro API code generation triggered:', result.success ? 'Success' : 'Failed');
+        console.log(`✅ Kiro API task ${taskId}:`, result.success ? 'Success' : 'Failed');
         if (result.output) {
           console.log('🤖 Kiro output (last 500 chars):', result.output.substring(Math.max(0, result.output.length - 500)));
         }
       })
       .catch(error => {
-        console.error('❌ Failed to trigger code generation via Kiro API:', error.message);
+        console.error(`❌ Kiro API task ${taskId} failed:`, error.message);
       });
     
     return {
@@ -520,6 +521,7 @@ async function performDelegation(payload) {
       taskHtmlUrl: pr.html_url,
       threadHtmlUrl: pr.html_url,
       confirmationCode: `PR${timestamp}`,
+      taskId: taskId,
     };
   }
 

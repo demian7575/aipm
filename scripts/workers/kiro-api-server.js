@@ -31,8 +31,10 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
     let lastOutputTime = Date.now();
     let hasGitCommit = false;
     let hasGitPush = false;
+    let lastCheckLog = Date.now();
     
     const timeout = setTimeout(() => {
+      console.log('⏱️  Timeout reached, killing process');
       kiro.kill('SIGKILL');
       resolve({ success: false, error: 'Timeout', output });
     }, timeoutMs);
@@ -40,26 +42,42 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
     // Robust completion detection
     function checkCompletion() {
       const idle = Date.now() - lastOutputTime;
+      const now = Date.now();
+      
+      // Log check every 30s
+      if (now - lastCheckLog > 30000) {
+        console.log(`🔍 Completion check: idle=${Math.floor(idle/1000)}s, commit=${hasGitCommit}, push=${hasGitPush}`);
+        lastCheckLog = now;
+      }
       
       // Method 1: Git operations completed (most reliable)
       if (hasGitCommit && hasGitPush && idle > 10000) {
+        console.log('✅ Completion detected: Git operations + 10s idle');
         return true;
       }
       
       // Method 2: Idle after time marker (fallback)
       if (idle > 20000 && /▸ Time:.*\d+ms/.test(output)) {
+        console.log('✅ Completion detected: Time marker + 20s idle');
         return true;
       }
       
       // Method 3: Explicit completion markers
       if (/\[KIRO_COMPLETE\]|Implementation complete|✅.*complete/i.test(output)) {
+        console.log('✅ Completion detected: Explicit marker');
+        return true;
+      }
+      
+      // Method 4: Very long idle (missed signal fallback)
+      if (idle > 60000) {
+        console.log('⚠️  Completion detected: 60s idle (missed signal?)');
         return true;
       }
       
       return false;
     }
 
-    // Check for completion every 5s
+    // Check for completion every 3s (more frequent)
     const checkInterval = setInterval(() => {
       if (checkCompletion()) {
         clearTimeout(timeout);
@@ -67,23 +85,30 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
         kiro.kill('SIGKILL');
         resolve({ success: true, output, hasGitCommit, hasGitPush });
       }
-    }, 5000);
+    }, 3000);
 
     kiro.stdout.on('data', (chunk) => {
       const text = chunk.toString();
       output += text;
       lastOutputTime = Date.now();
       
-      // Track git operations
-      if (/git commit|committed|Committed changes/i.test(text)) {
-        hasGitCommit = true;
+      // Track git operations with more patterns
+      if (/git commit|committed|Committed changes|commit.*created|files? changed/i.test(text)) {
+        if (!hasGitCommit) {
+          console.log('📝 Git commit detected');
+          hasGitCommit = true;
+        }
       }
-      if (/git push|pushed|Pushed to/i.test(text)) {
-        hasGitPush = true;
+      if (/git push|pushed|Pushed to|push.*origin|branch.*->.*branch/i.test(text)) {
+        if (!hasGitPush) {
+          console.log('🚀 Git push detected');
+          hasGitPush = true;
+        }
       }
       
       // Auto-approve permissions
       if (text.includes('[y/n/t]')) {
+        console.log('✓ Auto-approving permission');
         kiro.stdin.write('t\n');
       }
     });
@@ -94,11 +119,17 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
       lastOutputTime = Date.now();
       
       // Track git operations (git outputs to stderr)
-      if (/git commit|committed|Committed changes/i.test(text)) {
-        hasGitCommit = true;
+      if (/git commit|committed|Committed changes|commit.*created|files? changed/i.test(text)) {
+        if (!hasGitCommit) {
+          console.log('📝 Git commit detected (stderr)');
+          hasGitCommit = true;
+        }
       }
-      if (/git push|pushed|Pushed to/i.test(text)) {
-        hasGitPush = true;
+      if (/git push|pushed|Pushed to|push.*origin|branch.*->.*branch/i.test(text)) {
+        if (!hasGitPush) {
+          console.log('🚀 Git push detected (stderr)');
+          hasGitPush = true;
+        }
       }
     });
 
