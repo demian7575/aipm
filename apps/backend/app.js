@@ -4,6 +4,8 @@ import {
   requestDocumentFromAmazonAi,
   requestAcceptanceTestDraftFromAmazonAi
 } from './amazon-ai.js';
+import { analyzeInvestWithKiro, generateStoryDraftWithKiro, generateAcceptanceTestWithKiro } from './kiro-ai.js';
+import { generateInvestCompliantStory, generateAcceptanceTest } from './story-generator.js';
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
 import { spawnSync, spawn } from 'node:child_process';
@@ -2457,6 +2459,90 @@ async function handleDeployPRRequest(req, res) {
   }
 }
 
+async function handleMergePR(req, res) {
+  try {
+    const payload = await parseJson(req);
+    const { prNumber } = payload;
+    
+    if (!prNumber) {
+      sendJson(res, 400, { success: false, error: 'PR number is required' });
+      return;
+    }
+
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
+    const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+    
+    if (!GITHUB_TOKEN) {
+      sendJson(res, 400, { success: false, error: 'GitHub token not configured' });
+      return;
+    }
+
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    try {
+      await execAsync('npm test', { cwd: process.cwd(), timeout: 60000 });
+    } catch (testError) {
+      sendJson(res, 400, { success: false, error: 'Gating tests failed', details: testError.message });
+      return;
+    }
+
+    const mergeResponse = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${prNumber}/merge`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ merge_method: 'squash' })
+      }
+    );
+
+    if (!mergeResponse.ok) {
+      const errorData = await mergeResponse.json();
+      sendJson(res, mergeResponse.status, { success: false, error: errorData.message || 'Failed to merge PR' });
+      return;
+    }
+
+    const mergeData = await mergeResponse.json();
+    
+    // Trigger production deployment after successful merge
+    console.log('✅ PR merged successfully, triggering production deployment...');
+    try {
+      const deployResponse = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/production-deploy.yml/dispatches`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ ref: 'main' })
+        }
+      );
+      
+      if (deployResponse.ok) {
+        console.log('✅ Production deployment triggered');
+      } else {
+        console.warn('⚠️  Failed to trigger deployment:', await deployResponse.text());
+      }
+    } catch (deployError) {
+      console.warn('⚠️  Deployment trigger error:', deployError.message);
+      // Don't fail the merge if deployment trigger fails
+    }
+    
+    sendJson(res, 200, { success: true, message: 'PR merged successfully and production deployment triggered', sha: mergeData.sha, merged: mergeData.merged });
+  } catch (error) {
+    console.error('Merge PR error:', error);
+    sendJson(res, 500, { success: false, error: error.message });
+  }
+}
+
 // Terminal session handlers
 async function handleTerminalStart(req, res) {
   try {
@@ -2796,55 +2882,52 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
-  const config = readAiConfig();
-  if (!config.enabled) {
-    return {
-      warnings: baseline,
-      source: 'heuristic',
-      summary: '',
-      ai: null,
-      fallbackWarnings: baseline,
-      usedFallback: true,
-    };
+  
+  // Skip Kiro CLI in Lambda environment (not available)
+  // Kiro CLI only works on EC2 terminal server
+  const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+  
+  if (!isLambda) {
+    // Try Kiro CLI only in non-Lambda environments
+    try {
+      const kiroResult = await analyzeInvestWithKiro(story, options);
+      if (kiroResult && kiroResult.warnings) {
+        const kiroWarnings = kiroResult.warnings.map((warning) => ({
+          criterion: warning.criterion,
+          message: warning.message,
+          details: warning.details || '',
+          suggestion: warning.suggestion || '',
+          source: 'kiro'
+        })).filter(Boolean);
+        
+        return {
+          warnings: kiroWarnings,
+          source: 'kiro-cli',
+          summary: kiroResult.summary || '',
+          ai: {
+            warnings: kiroWarnings,
+            summary: kiroResult.summary || '',
+            model: 'kiro-cli',
+            raw: kiroResult.raw,
+          },
+          fallbackWarnings: baseline,
+          usedFallback: false,
+        };
+      }
+    } catch (error) {
+      console.error('Kiro CLI INVEST analysis failed, falling back to heuristics:', error);
+    }
   }
 
-  try {
-    const aiResult = await requestInvestAnalysisFromAi(story, options, config);
-    if (!aiResult) {
-      return {
-        warnings: baseline,
-        source: 'heuristic',
-        summary: '',
-        ai: null,
-        fallbackWarnings: baseline,
-        usedFallback: true,
-      };
-    }
-    const aiWarnings = aiResult.warnings.map((warning) => normalizeAiWarning(warning)).filter(Boolean);
-    return {
-      warnings: aiWarnings,
-      source: 'amazon-ai',
-      summary: aiResult.summary || '',
-      ai: {
-        warnings: aiWarnings,
-        summary: aiResult.summary || '',
-        model: aiResult.model,
-        raw: aiResult.raw,
-      },
-      fallbackWarnings: baseline,
-      usedFallback: false,
-    };
-  } catch (error) {
-    console.error('Amazon AI INVEST analysis failed', error);
-    return {
-      warnings: baseline,
-      source: 'fallback',
-      summary: '',
-      ai: { error: error.message },
-      fallbackWarnings: baseline,
-      usedFallback: true,
-    };
-  }
+  // Use heuristics (works in all environments)
+  return {
+    warnings: baseline,
+    source: 'heuristic',
+    summary: '',
+    ai: null,
+    fallbackWarnings: baseline,
+    usedFallback: true,
+  };
 }
 
 function buildBaselineInvestAnalysis(story, options = {}) {
@@ -5193,33 +5276,40 @@ async function loadStories(db, options = {}) {
     story.tasks.push(buildTaskFromRow(row));
   });
 
-  await Promise.all(
-    stories.map(async (story) => {
-      const analysis = await evaluateInvestAnalysis(
-        story,
-        {
-          acceptanceTests: story.acceptanceTests,
-          includeTestChecks: true,
-        },
-        { includeAiInvest }
-      );
+  // Read INVEST analysis from DB (already calculated during create/update)
+  storyRows.forEach((row) => {
+    const story = byId.get(row.id);
+    if (!story) return;
+    
+    // PRs loaded lazily when story is selected
+    story.prs = [];
+    
+    const storedWarnings = parseJsonArray(row.invest_warnings);
+    const storedAnalysis = row.invest_analysis ? JSON.parse(row.invest_analysis) : null;
+    
+    if (storedWarnings.length > 0 || storedAnalysis) {
+      story.investWarnings = storedWarnings;
+      story.investSatisfied = storedWarnings.length === 0;
+      story.investHealth = { satisfied: story.investSatisfied, issues: storedWarnings };
+      story.investAnalysis = storedAnalysis || {
+        source: 'heuristic',
+        summary: '',
+        aiSummary: '',
+        aiWarnings: [],
+        aiModel: null,
+        usedFallback: true,
+        error: null,
+        fallbackWarnings: storedWarnings,
+      };
+    } else {
+      // Fallback: calculate if not stored (for old data)
+      const analysis = buildBaselineInvestAnalysis(story, {
+        acceptanceTests: story.acceptanceTests,
+        includeTestChecks: true,
+      });
       applyInvestAnalysisToStory(story, analysis);
-    })
-  );
-
-  // Load PRs for each story
-  console.log(`Loading PRs for ${byId.size} stories...`);
-  await Promise.all(
-    Array.from(byId.values()).map(async (story) => {
-      try {
-        story.prs = await getStoryPRs(db, story.id);
-      } catch (error) {
-        console.error(`Failed to load PRs for story ${story.id}:`, error);
-        story.prs = [];
-      }
-    })
-  );
-  console.log(`Finished loading PRs`);
+    }
+  });
 
   return roots;
 }
@@ -5583,6 +5673,11 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/merge-pr' && method === 'POST') {
+      await handleMergePR(req, res);
+      return;
+    }
+
     if (pathname === '/api/personal-delegate' && method === 'POST') {
       await handlePersonalDelegateRequest(req, res);
       return;
@@ -5738,7 +5833,7 @@ export async function createApp() {
         }
         const timestamp = now();
         const statement = db.prepare(
-          'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+          'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at, invest_warnings, invest_analysis) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
         );
         const { lastInsertRowid } = await statement.run(
           parentId,
@@ -5752,7 +5847,17 @@ export async function createApp() {
           assigneeEmail,
           'Draft',
           timestamp,
-          timestamp
+          timestamp,
+          JSON.stringify(warnings),
+          JSON.stringify({
+            source: analysis.source,
+            summary: analysis.summary,
+            aiSummary: analysis.ai?.summary || '',
+            aiModel: analysis.ai?.model || null,
+            usedFallback: analysis.usedFallback,
+            error: analysis.ai?.error || null,
+            fallbackWarnings: analysis.fallbackWarnings || [],
+          })
         );
         const newStoryId = Number(lastInsertRowid);
         
@@ -5928,7 +6033,42 @@ export async function createApp() {
           const stories = await loadStories(db);
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
-        const draft = generateStoryDraftFromIdea(idea, { parent });
+        
+        // Call EC2 Kiro API for high-quality story generation
+        try {
+          const kiroResponse = await fetch('http://44.220.45.57:8080/kiro/generate-story', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idea, parentStory: parent }),
+            signal: AbortSignal.timeout(120000) // 2 minute timeout
+          });
+          
+          if (kiroResponse.ok) {
+            const kiroResult = await kiroResponse.json();
+            
+            // Format response to match expected structure
+            const draft = {
+              title: kiroResult.title || idea,
+              description: kiroResult.acceptanceCriteria 
+                ? `As a ${kiroResult.asA}, I want to ${kiroResult.iWant}, so that ${kiroResult.soThat}.\n\nAcceptance Criteria:\n${kiroResult.acceptanceCriteria.map(c => `- ${c}`).join('\n')}`
+                : `As a ${kiroResult.asA}, I want to ${kiroResult.iWant}, so that ${kiroResult.soThat}.`,
+              asA: kiroResult.asA || 'User',
+              iWant: kiroResult.iWant || idea,
+              soThat: kiroResult.soThat || 'I can accomplish my work effectively',
+              components: kiroResult.components || [],
+              storyPoint: kiroResult.storyPoint || 3,
+              assigneeEmail: parent?.assigneeEmail || '',
+            };
+            
+            sendJson(res, 200, draft);
+            return;
+          }
+        } catch (kiroError) {
+          console.error('Kiro API failed, using fallback:', kiroError.message);
+        }
+        
+        // Fallback to simple generation if Kiro fails
+        const draft = generateInvestCompliantStory(idea, { parent });
         sendJson(res, 200, draft);
       } catch (error) {
         console.error('Failed to generate story draft', error);
@@ -5939,6 +6079,17 @@ export async function createApp() {
     }
 
     const storyIdMatch = pathname.match(/^\/api\/stories\/(\d+)$/);
+    if (storyIdMatch && method === 'GET') {
+      const storyId = Number(storyIdMatch[1]);
+      try {
+        const prs = await getStoryPRs(db, storyId);
+        sendJson(res, 200, { prs });
+      } catch (error) {
+        console.error(`Failed to load PRs for story ${storyId}:`, error);
+        sendJson(res, 500, { message: 'Failed to load PRs', prs: [] });
+      }
+      return;
+    }
     if (storyIdMatch && method === 'PATCH') {
       const storyId = Number(storyIdMatch[1]);
       try {
@@ -6029,7 +6180,7 @@ export async function createApp() {
           componentsChanged;
 
         const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ? WHERE id = ?' // prettier-ignore
+          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
         );
         update.run(
           title,
@@ -6042,6 +6193,16 @@ export async function createApp() {
           nextSoThat,
           nextStatus,
           now(),
+          JSON.stringify(warnings),
+          JSON.stringify({
+            source: analysis.source,
+            summary: analysis.summary,
+            aiSummary: analysis.ai?.summary || '',
+            aiModel: analysis.ai?.model || null,
+            usedFallback: analysis.usedFallback,
+            error: analysis.ai?.error || null,
+            fallbackWarnings: analysis.fallbackWarnings || [],
+          }),
           storyId
         );
 
