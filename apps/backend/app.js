@@ -465,7 +465,7 @@ async function performDelegation(payload) {
       })
     });
     
-    // Call EC2 to generate code (fire and forget - don't wait)
+    // Call Kiro API to generate code (fire and forget - don't wait)
     const criteria = normalizeAcceptanceCriteria(normalized.acceptanceCriteria);
     const hasCriteria = criteria.length > 0 && criteria.some(c => c.trim().length > 0);
     const hasConstraints = normalized.constraints && normalized.constraints.trim().length > 1;
@@ -489,26 +489,26 @@ async function performDelegation(payload) {
 - Test the functionality works correctly`;
     }
     
-    const ec2Url = process.env.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
+    const kiroApiUrl = process.env.KIRO_API_URL || 'http://44.220.45.57:8081';
     
     // Fire and forget - don't await
-    fetch(`${ec2Url}/generate-code`, {
+    fetch(`${kiroApiUrl}/execute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        branch: branchName,
-        taskDescription,
-        prNumber: pr.number
+        prompt: `Checkout branch ${branchName}, implement this task, commit and push:\n\n${taskDescription}`,
+        context: `Working on PR #${pr.number} in branch ${branchName}`,
+        timeoutMs: 600000
       })
     }).then(response => response.json())
       .then(result => {
-        console.log('✅ EC2 code generation triggered:', result.success ? 'Success' : 'Failed');
-        if (result.kiroOutput) {
-          console.log('🤖 Kiro output (last 500 chars):', result.kiroOutput.substring(result.kiroOutput.length - 500));
+        console.log('✅ Kiro API code generation triggered:', result.success ? 'Success' : 'Failed');
+        if (result.output) {
+          console.log('🤖 Kiro output (last 500 chars):', result.output.substring(Math.max(0, result.output.length - 500)));
         }
       })
       .catch(error => {
-        console.error('❌ Failed to trigger code generation on EC2:', error.message);
+        console.error('❌ Failed to trigger code generation via Kiro API:', error.message);
       });
     
     return {
@@ -2883,42 +2883,10 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
   
-  // Skip Kiro CLI in Lambda environment (not available)
-  // Kiro CLI only works on EC2 terminal server
-  const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+  // Skip Kiro API for INVEST analysis - it's too slow for synchronous requests
+  // Use fast heuristics instead
+  // TODO: Make INVEST analysis async via queue like story generation
   
-  if (!isLambda) {
-    // Try Kiro CLI only in non-Lambda environments
-    try {
-      const kiroResult = await analyzeInvestWithKiro(story, options);
-      if (kiroResult && kiroResult.warnings) {
-        const kiroWarnings = kiroResult.warnings.map((warning) => ({
-          criterion: warning.criterion,
-          message: warning.message,
-          details: warning.details || '',
-          suggestion: warning.suggestion || '',
-          source: 'kiro'
-        })).filter(Boolean);
-        
-        return {
-          warnings: kiroWarnings,
-          source: 'kiro-cli',
-          summary: kiroResult.summary || '',
-          ai: {
-            warnings: kiroWarnings,
-            summary: kiroResult.summary || '',
-            model: 'kiro-cli',
-            raw: kiroResult.raw,
-          },
-          fallbackWarnings: baseline,
-          usedFallback: false,
-        };
-      }
-    } catch (error) {
-      console.error('Kiro CLI INVEST analysis failed, falling back to heuristics:', error);
-    }
-  }
-
   // Use heuristics (works in all environments)
   return {
     warnings: baseline,
@@ -6034,46 +6002,76 @@ export async function createApp() {
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
         
-        // Call EC2 Kiro API for high-quality story generation
+        // Use fallback immediately - Kiro will enhance it later via callback
+        const draft = generateInvestCompliantStory(idea, { parent });
+        draft.source = 'heuristic'; // Mark as heuristic-generated
+        
+        // Queue Kiro request for async processing (Kiro will POST result back)
         try {
-          const kiroResponse = await fetch('http://44.220.45.57:8080/kiro/generate-story', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idea, parentStory: parent }),
-            signal: AbortSignal.timeout(120000) // 2 minute timeout
+          const { createKiroRequest } = await import('./kiro-queue.js');
+          const requestId = await createKiroRequest('generate-story', {
+            idea,
+            parentStory: parent,
+            callbackUrl: `${process.env.API_BASE_URL || 'https://tepm6xhsm0.execute-api.us-east-1.amazonaws.com/dev'}/api/kiro-callback`
           });
-          
-          if (kiroResponse.ok) {
-            const kiroResult = await kiroResponse.json();
-            
-            // Format response to match expected structure
-            const draft = {
-              title: kiroResult.title || idea,
-              description: kiroResult.acceptanceCriteria 
-                ? `As a ${kiroResult.asA}, I want to ${kiroResult.iWant}, so that ${kiroResult.soThat}.\n\nAcceptance Criteria:\n${kiroResult.acceptanceCriteria.map(c => `- ${c}`).join('\n')}`
-                : `As a ${kiroResult.asA}, I want to ${kiroResult.iWant}, so that ${kiroResult.soThat}.`,
-              asA: kiroResult.asA || 'User',
-              iWant: kiroResult.iWant || idea,
-              soThat: kiroResult.soThat || 'I can accomplish my work effectively',
-              components: kiroResult.components || [],
-              storyPoint: kiroResult.storyPoint || 3,
-              assigneeEmail: parent?.assigneeEmail || '',
-            };
-            
-            sendJson(res, 200, draft);
-            return;
-          }
-        } catch (kiroError) {
-          console.error('Kiro API failed, using fallback:', kiroError.message);
+          draft.kiroRequestId = requestId; // Include request ID for tracking
+          console.log(`📝 Queued Kiro story generation: ${requestId}`);
+        } catch (queueError) {
+          console.error('Failed to queue Kiro request:', queueError.message);
         }
         
-        // Fallback to simple generation if Kiro fails
-        const draft = generateInvestCompliantStory(idea, { parent });
         sendJson(res, 200, draft);
       } catch (error) {
         console.error('Failed to generate story draft', error);
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to generate story draft' });
+      }
+      return;
+    }
+    
+    // Kiro callback endpoint - Kiro POSTs results here
+    if (pathname === '/api/kiro-callback' && method === 'POST') {
+      try {
+        const { requestId, result, error } = await parseJson(req);
+        
+        if (!requestId) {
+          sendJson(res, 400, { message: 'requestId required' });
+          return;
+        }
+        
+        const { updateKiroRequest } = await import('./kiro-queue.js');
+        await updateKiroRequest(requestId, result, error);
+        
+        console.log(`✅ Kiro callback received for ${requestId}`);
+        sendJson(res, 200, { success: true });
+      } catch (error) {
+        console.error('Kiro callback failed:', error);
+        sendJson(res, 500, { message: error.message });
+      }
+      return;
+    }
+    
+    // Check Kiro request status
+    if (pathname.startsWith('/api/kiro-status/') && method === 'GET') {
+      try {
+        const requestId = pathname.substring(17); // Remove '/api/kiro-status/'
+        const { getKiroRequest } = await import('./kiro-queue.js');
+        const request = await getKiroRequest(requestId);
+        
+        if (!request) {
+          sendJson(res, 404, { message: 'Request not found' });
+          return;
+        }
+        
+        sendJson(res, 200, {
+          requestId: request.requestId,
+          status: request.status,
+          result: request.result || null,
+          error: request.error || null
+        });
+      } catch (error) {
+        console.error('Failed to get Kiro status:', error);
+        sendJson(res, 500, { message: error.message });
       }
       return;
     }
@@ -6528,11 +6526,27 @@ export async function createApp() {
           timestamp,
         });
         
+        console.log('Acceptance test created, lastInsertRowid:', lastInsertRowid);
+        
         // Restore the original flag
         acceptanceTestsHasTitleColumn = originalFlag;
         
-        const refreshedStory = flattenStories(await loadStories(db)).find((node) => node.id === storyId);
-        const created = refreshedStory?.acceptanceTests.find((item) => item.id === Number(lastInsertRowid)) ?? null;
+        // Return the created test directly instead of re-querying (avoids DynamoDB eventual consistency issues)
+        const created = {
+          id: Number(lastInsertRowid),
+          storyId,
+          title: desiredTitle,
+          given,
+          when,
+          then,
+          status: payload.status ? String(payload.status) : 'Draft',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          measurabilityWarnings: warnings,
+          measurabilitySuggestions: suggestions,
+          gwtHealth: { satisfied: true, issues: [] }
+        };
+        console.log('Returning created test:', created);
         sendJson(res, 201, created);
       } catch (error) {
         const status = error.statusCode ?? 500;
