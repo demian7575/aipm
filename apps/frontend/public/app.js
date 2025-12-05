@@ -1910,15 +1910,7 @@ function renderCodeWhispererSectionList(container, story) {
       actions.appendChild(openLink);
     }
 
-    if (threadUrl && (!taskUrl || threadUrl !== taskUrl)) {
-      const threadLink = document.createElement('a');
-      threadLink.href = threadUrl;
-      threadLink.className = 'link-button';
-      threadLink.target = '_blank';
-      threadLink.rel = 'noreferrer noopener';
-      threadLink.textContent = 'View conversation';
-      actions.appendChild(threadLink);
-    }
+
 
     if (entry.latestStatus && entry.latestStatus.htmlUrl) {
       const updateLink = document.createElement('a');
