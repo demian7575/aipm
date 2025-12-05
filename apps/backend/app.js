@@ -104,6 +104,28 @@ async function handlePersonalDelegateRequest(req, res) {
     
     const result = await performDelegation(payload);
     
+    // Store PR in database if storyId is provided
+    if (payload.storyId && result.number) {
+      const db = await ensureDatabase();
+      const prEntry = {
+        localId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        storyId: payload.storyId,
+        taskTitle: payload.taskTitle || 'Development task',
+        repo: `${payload.owner}/${payload.repo}`,
+        branchName: result.branchName,
+        number: result.number,
+        type: result.type,
+        taskId: result.taskId,
+        prUrl: result.html_url,
+        htmlUrl: result.html_url,
+        taskUrl: result.taskHtmlUrl || result.html_url,
+        threadUrl: result.threadHtmlUrl || result.html_url,
+        confirmationCode: result.confirmationCode,
+        createdAt: new Date().toISOString()
+      };
+      await addStoryPR(db, payload.storyId, prEntry);
+    }
+    
     sendJson(res, 200, result);
   } catch (error) {
     console.error('Personal delegation request failed', error);
@@ -492,6 +514,8 @@ async function performDelegation(payload) {
     const kiroApiUrl = process.env.KIRO_API_URL || 'http://44.220.45.57:8081';
     const taskId = `kiro-${timestamp}`;
     
+    console.log(`🤖 Calling Kiro API: ${kiroApiUrl}/execute for PR #${pr.number}`);
+    
     // Fire and forget - don't await
     fetch(`${kiroApiUrl}/execute`, {
       method: 'POST',
@@ -501,7 +525,10 @@ async function performDelegation(payload) {
         context: `Working on PR #${pr.number} in branch ${branchName}`,
         timeoutMs: 600000
       })
-    }).then(response => response.json())
+    }).then(response => {
+      console.log(`📡 Kiro API response status: ${response.status}`);
+      return response.json();
+    })
       .then(result => {
         console.log(`✅ Kiro API task ${taskId}:`, result.success ? 'Success' : 'Failed');
         if (result.output) {
@@ -2105,6 +2132,7 @@ function ensureArray(value) {
 
 function parseJsonArray(value) {
   if (!value) return [];
+  if (Array.isArray(value)) return value; // Already an array (from DynamoDB)
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : [];
@@ -5148,6 +5176,7 @@ async function loadStories(db, options = {}) {
       acceptanceTests: [],
       referenceDocuments: [],
       tasks: [],
+      prs: parseJsonArray(row.prs),
       dependencies: [],
       dependents: [],
       blockedBy: [],
@@ -5251,8 +5280,7 @@ async function loadStories(db, options = {}) {
     const story = byId.get(row.id);
     if (!story) return;
     
-    // PRs loaded lazily when story is selected
-    story.prs = [];
+    // PRs are already loaded in the story object above
     
     const storedWarnings = parseJsonArray(row.invest_warnings);
     const storedAnalysis = row.invest_analysis ? JSON.parse(row.invest_analysis) : null;

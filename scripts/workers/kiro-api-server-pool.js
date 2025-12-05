@@ -1,51 +1,91 @@
-#!/usr/bin/env node
-// Kiro API Server - Persistent Worker Pool
+import http from 'http';
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 
-import { createServer } from 'node:http';
-import pty from 'node-pty';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const REPO_PATH = resolve(__dirname, '../..');
 
-const PORT = process.env.KIRO_API_PORT || 8081;
-const REPO_PATH = process.env.REPO_PATH || '/home/ec2-user/aipm';
+const PORT = 8081;
 const POOL_SIZE = 2;
 
-// Worker pool
 const workers = [];
 
-// Initialize worker
 function createWorker(id) {
   const worker = {
     id,
     pty: null,
     busy: false,
+    ready: false,
     output: '',
     lastActivity: Date.now(),
     currentTask: null,
-    restartCount: 0
+    restartCount: 0,
+    lastApprovalTime: 0
   };
   
   function startPty() {
     console.log(`🔄 Starting worker ${id}`);
     
-    worker.pty = pty.spawn('kiro-cli', ['chat'], {
-      name: 'xterm-color',
-      cols: 80,
-      rows: 30,
+    worker.pty = spawn('kiro-cli', ['chat'], {
       cwd: REPO_PATH,
-      env: { ...process.env, PATH: `${process.env.HOME}/.local/bin:${process.env.PATH}` }
+      stdio: ['pipe', 'pipe', 'pipe']
     });
     
-    worker.pty.onData((data) => {
-      worker.output += data;
+    worker.pty.stdout.on('data', (data) => {
+      const text = data.toString();
+      worker.output += text;
       worker.lastActivity = Date.now();
       
-      // Auto-approve permissions
-      if (data.includes('[y/n/t]')) {
-        worker.pty.write('t\r');
+      // Log Kiro output - sanitize for safe logging
+      const cleanData = text
+        .replace(/\x1b\[[0-9;]*m/g, '')
+        .replace(/\x1b\[[\?0-9;]*[A-Za-z]/g, '')
+        .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
+        .replace(/\r/g, '')
+        .trim();
+      
+      if (cleanData.length > 0 && worker.busy) {
+        const safeData = cleanData
+          .substring(0, 200)
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n');
+        console.log(`📝 Worker ${id}: ${safeData}`);
+      }
+      
+      // Auto-approve permissions - check for complete prompt
+      const recentOutput = worker.output.slice(-1000);
+      const timeSinceLastApproval = Date.now() - worker.lastApprovalTime;
+      
+      const hasCompletePrompt = 
+        (recentOutput.includes('[y/n/t]:') || 
+         (recentOutput.includes('y/n/t') && recentOutput.includes(']:'))) &&
+        timeSinceLastApproval > 2000;
+      
+      if (hasCompletePrompt) {
+        console.log(`🔓 Worker ${id}: Auto-approving permission`);
+        setTimeout(() => {
+          worker.pty.stdin.write('y\n');
+        }, 200);
+        worker.lastApprovalTime = Date.now();
+      }
+      
+      // Mark as ready when we see the prompt
+      if (!worker.ready && text.includes('Model:')) {
+        worker.ready = true;
+        console.log(`✅ Worker ${id}: Ready`);
       }
     });
     
-    worker.pty.onExit(() => {
-      console.log(`⚠️  Worker ${id} exited, restarting...`);
+    worker.pty.stderr.on('data', (data) => {
+      console.log(`⚠️  Worker ${id} stderr: ${data.toString().substring(0, 200)}`);
+    });
+    
+    worker.pty.on('exit', (code) => {
+      console.log(`⚠️  Worker ${id} exited with code ${code}, restarting...`);
+      worker.ready = false;
       worker.restartCount++;
       setTimeout(() => startPty(), 2000);
     });
@@ -61,8 +101,9 @@ for (let i = 0; i < POOL_SIZE; i++) {
 }
 
 // Wait for workers to be ready
-await new Promise(resolve => setTimeout(resolve, 3000));
-console.log(`✅ ${POOL_SIZE} workers ready`);
+setTimeout(() => {
+  console.log(`✅ ${POOL_SIZE} workers ready`);
+}, 3000);
 
 // Execute task on worker
 async function executeOnWorker(worker, prompt, timeoutMs = 600000) {
@@ -89,41 +130,41 @@ async function executeOnWorker(worker, prompt, timeoutMs = 600000) {
       
       // Check git operations
       if (/git commit|committed|files? changed/i.test(worker.output) && !hasGitCommit) {
-        console.log(`📝 Worker ${worker.id}: commit`);
+        console.log(`📝 Worker ${worker.id}: commit detected`);
         hasGitCommit = true;
       }
       if (/git push|pushed|branch.*->/i.test(worker.output) && !hasGitPush) {
-        console.log(`🚀 Worker ${worker.id}: push`);
+        console.log(`🚀 Worker ${worker.id}: push detected`);
         hasGitPush = true;
       }
       
       // Completion detection
       if (hasGitCommit && hasGitPush && idle > 10000) {
-        console.log(`✅ Worker ${worker.id}: complete (git)`);
+        console.log(`✅ Worker ${worker.id}: complete (git operations)`);
         clearTimeout(timeout);
         clearInterval(checkInterval);
         worker.busy = false;
         worker.currentTask = null;
         resolve({ success: true, output: worker.output, hasGitCommit, hasGitPush });
       } else if (idle > 60000 && elapsed > 60000) {
-        console.log(`⚠️  Worker ${worker.id}: complete (idle)`);
+        console.log(`⚠️  Worker ${worker.id}: complete (idle timeout)`);
         clearTimeout(timeout);
         clearInterval(checkInterval);
         worker.busy = false;
         worker.currentTask = null;
-        resolve({ success: true, output: worker.output, hasGitCommit, hasGitPush });
+        resolve({ success: false, output: worker.output, hasGitCommit, hasGitPush });
       }
     }, 3000);
     
     // Send prompt
     console.log(`📤 Worker ${worker.id}: sending prompt`);
-    worker.pty.write(prompt + '\r');
+    worker.pty.stdin.write(prompt + '\n');
   });
 }
 
 // Get available worker
 function getAvailableWorker() {
-  return workers.find(w => !w.busy && w.pty);
+  return workers.find(w => !w.busy && w.pty && w.ready);
 }
 
 // Request queue
@@ -151,79 +192,58 @@ async function execute(prompt, context, timeoutMs) {
   
   return new Promise((resolve) => {
     queue.push({ prompt, context, timeoutMs, resolve });
+    processQueue();
   });
 }
 
-// Health monitor
-setInterval(() => {
-  workers.forEach(w => {
-    const idle = Date.now() - w.lastActivity;
-    if (w.busy && idle > 300000) { // 5 min stuck
-      console.log(`⚠️  Worker ${w.id} stuck, restarting`);
-      w.pty.kill();
-      w.busy = false;
-      w.currentTask = null;
-    }
-  });
-  processQueue();
-}, 30000);
+// Health check
+function getHealth() {
+  return {
+    status: 'running',
+    workers: workers.map(w => ({
+      id: w.id,
+      busy: w.busy,
+      ready: w.ready,
+      currentTask: w.currentTask,
+      idle: Math.floor((Date.now() - w.lastActivity) / 1000),
+      restarts: w.restartCount
+    })),
+    queued: queue.length,
+    uptime: process.uptime()
+  };
+}
 
 // HTTP Server
-const server = createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://localhost');
-  
+const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   if (req.method === 'OPTIONS') {
-    res.writeHead(204);
+    res.writeHead(200);
     res.end();
     return;
   }
   
-  if (url.pathname === '/health') {
-    const status = workers.map(w => ({
-      id: w.id,
-      busy: w.busy,
-      currentTask: w.currentTask,
-      idle: Math.floor((Date.now() - w.lastActivity) / 1000),
-      restarts: w.restartCount
-    }));
-    
+  if (req.url === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      status: 'running',
-      workers: status,
-      queued: queue.length,
-      uptime: process.uptime()
-    }));
+    res.end(JSON.stringify(getHealth()));
     return;
   }
   
-  if (url.pathname === '/execute' && req.method === 'POST') {
+  if (req.url === '/execute' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
         const { prompt, context, timeoutMs } = JSON.parse(body);
-        
-        if (!prompt) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'prompt required' }));
-          return;
-        }
-        
         console.log(`📥 Request: ${prompt.substring(0, 50)}...`);
-        const result = await execute(prompt, context, timeoutMs);
-        
+        const result = await execute(prompt, context, timeoutMs || 600000);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
-        
       } catch (error) {
-        console.error(`❌ Error:`, error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message }));
+        res.end(JSON.stringify({ success: false, error: error.message }));
       }
     });
     return;
@@ -233,7 +253,28 @@ const server = createServer(async (req, res) => {
   res.end('Not Found');
 });
 
-server.listen(PORT, () => {
-  console.log(`🚀 Kiro API Server (Worker Pool) on port ${PORT}`);
-  console.log(`👷 ${POOL_SIZE} persistent workers`);
-});
+function tryListen(port) {
+  server.listen(port, () => {
+    console.log(`🚀 Kiro API Server (Worker Pool) on port ${port}`);
+    console.log(`👷 ${POOL_SIZE} persistent workers`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`⚠️  Port ${port} in use, trying ${port + 1}`);
+      tryListen(port + 1);
+    } else {
+      throw err;
+    }
+  });
+}
+
+tryListen(PORT);
+
+// Health monitor - kill stuck workers
+setInterval(() => {
+  workers.forEach(worker => {
+    if (worker.busy && Date.now() - worker.lastActivity > 300000) {
+      console.log(`💀 Killing stuck worker ${worker.id}`);
+      worker.pty.kill();
+    }
+  });
+}, 60000);

@@ -449,9 +449,26 @@ async function runProductionTest(testName) {
             try {
                 const response = await fetch(`${PROD_CONFIG.api}/api/stories`);
                 const stories = await response.json();
+                
+                // Check PRs field is preserved (not cleared)
+                const getAllStories = (items) => {
+                    let result = [];
+                    if (Array.isArray(items)) {
+                        for (const item of items) {
+                            result.push(item);
+                            if (item.children) result.push(...getAllStories(item.children));
+                        }
+                    }
+                    return result;
+                };
+                
+                const allStories = getAllStories(stories);
+                const storiesWithPRs = allStories.filter(s => s.prs && s.prs.length > 0);
+                const hasPRsField = allStories.every(s => 'prs' in s);
+                
                 return {
-                    success: response.ok && Array.isArray(stories),
-                    message: `Stories API: ${response.status} - ${Array.isArray(stories) ? stories.length + ' stories' : 'Invalid response'}`
+                    success: response.ok && Array.isArray(stories) && hasPRsField,
+                    message: `Stories API: ${response.status} - ${stories.length} roots, ${allStories.length} total, ${storiesWithPRs.length} with PRs, prs field: ${hasPRsField ? '✓' : '✗'}`
                 };
             } catch (error) {
                 return { success: false, message: `Stories API: Error - ${error.message}` };

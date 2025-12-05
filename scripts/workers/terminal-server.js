@@ -543,13 +543,47 @@ IMPORTANT: When you're completely finished with all changes, output exactly this
 This signals that the task is done.`;
         
         timings.promptSend = Date.now() - promptStartTime;
-        console.log('✅ Prompt prepared, launching non-interactive Kiro run');
+        console.log('✅ Prompt prepared, launching Kiro via API');
 
         console.log('⏳ Waiting for Kiro to complete (max 10 minutes)...');
 
         const kiroStartTime = Date.now();
-        const { success: kiroSuccess, timedOut, output: kiroOutput = '', exitCode } =
-          await runNonInteractiveKiro(prompt, { timeoutMs: 600000, workerName: workerForTracking ? Object.keys(workers).find(k => workers[k] === workerForTracking) : null });
+        
+        // Use Kiro API instead of spawning process
+        const KIRO_API_URL = process.env.KIRO_API_URL || 'http://localhost:8081';
+        let kiroSuccess = false;
+        let timedOut = false;
+        let kiroOutput = '';
+        let exitCode = null;
+        
+        try {
+          // Load context
+          const contextScript = execSync('cat scripts/utilities/load-context.sh', { 
+            cwd: REPO_PATH, 
+            encoding: 'utf8' 
+          });
+          
+          const apiResponse = await fetch(`${KIRO_API_URL}/execute`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt,
+              context: contextScript,
+              timeoutMs: 600000
+            })
+          });
+          
+          const apiResult = await apiResponse.json();
+          kiroSuccess = apiResult.success;
+          kiroOutput = apiResult.output || '';
+          timedOut = apiResult.error === 'Timeout';
+          
+        } catch (error) {
+          console.error('❌ Kiro API call failed:', error.message);
+          kiroSuccess = false;
+          kiroOutput = error.message;
+        }
+        
         timings.kiroExecution = Date.now() - kiroStartTime;
         const elapsedTime = Math.round(timings.kiroExecution / 1000);
         
