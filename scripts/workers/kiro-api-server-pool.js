@@ -12,6 +12,13 @@ const PORT = 8081;
 const POOL_SIZE = 2;
 
 const workers = [];
+const requestQueue = [];
+
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
 
 function stripAnsi(text) {
   return text.replace(/\x1b\[[0-9;]*m/g, '').replace(/\x1b\[[\d;]*[A-Za-z]/g, '');
@@ -43,6 +50,7 @@ function createWorker(id) {
 
     worker.pty.onData((data) => {
       worker.output += data;
+      worker.lastActivity = Date.now();
       const clean = stripAnsi(data);
       
       // Log all output for debugging
@@ -51,8 +59,9 @@ function createWorker(id) {
       }
       
       // Detect ready state
-      if (clean.includes('Model:')) {
+      if (!worker.ready && clean.includes('Model:')) {
         worker.ready = true;
+        processQueue();
       }
       
       // Auto-approve tool usage
@@ -69,8 +78,11 @@ function createWorker(id) {
     worker.pty.onExit(() => {
       console.log(`❌ Worker ${id} exited, restarting...`);
       worker.ready = false;
+      worker.busy = false;
+      worker.currentTask = null;
       worker.restartCount++;
       setTimeout(startPty, 2000);
+      processQueue();
     });
   }
 
@@ -86,12 +98,35 @@ setTimeout(() => {
   console.log(`✅ ${workers.filter(w => w.ready).length} workers ready`);
 }, 10000);
 
+function getActiveCount() {
+  return workers.filter(w => w.busy).length;
+}
+
+function enqueueRequest(task) {
+  requestQueue.push(task);
+}
+
+function processQueue() {
+  const availableWorker = workers.find(w => !w.busy && w.ready);
+  if (!availableWorker) return;
+
+  const nextTask = requestQueue.shift();
+  if (!nextTask) return;
+
+  nextTask(availableWorker);
+}
+
 const server = http.createServer(async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  
+  setCorsHeaders(res);
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
+    const body = JSON.stringify({
       status: 'running',
       workers: workers.map(w => ({
         id: w.id,
@@ -101,9 +136,19 @@ const server = http.createServer(async (req, res) => {
         idle: Math.floor((Date.now() - w.lastActivity) / 1000),
         restarts: w.restartCount
       })),
-      queued: 0,
+      activeRequests: getActiveCount(),
+      queuedRequests: requestQueue.length,
+      maxConcurrent: POOL_SIZE,
       uptime: process.uptime()
-    }));
+    });
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+
+    if (req.method === 'HEAD') {
+      res.end();
+    } else {
+      res.end(body);
+    }
     return;
   }
 
@@ -112,57 +157,65 @@ const server = http.createServer(async (req, res) => {
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const { prompt, timeoutMs = 300000 } = JSON.parse(body);
-        
-        console.log(`📥 Request: ${prompt.substring(0, 50)}...`);
-        
-        const worker = workers.find(w => !w.busy && w.ready);
-        if (!worker) {
-          res.writeHead(503, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'No workers available' }));
+        const parsed = JSON.parse(body);
+        const { prompt, timeoutMs = 300000 } = parsed;
+
+        if (!prompt) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'prompt required' }));
           return;
         }
 
-        worker.busy = true;
-        worker.currentTask = prompt.substring(0, 50);
-        worker.output = '';
-        worker.lastActivity = Date.now();
+        console.log(`📥 Request: ${prompt.substring(0, 50)}...`);
 
-        worker.pty.write(prompt + '\r');
+        const taskHandler = (worker) => {
+          worker.busy = true;
+          worker.currentTask = prompt.substring(0, 50);
+          worker.output = '';
+          worker.lastActivity = Date.now();
 
-        const startTime = Date.now();
-        const checkInterval = setInterval(() => {
-          const elapsed = Date.now() - startTime;
-          const clean = stripAnsi(worker.output);
-          
-          // Check if complete (Kiro returns to prompt)
-          if (clean.includes('Model:') && elapsed > 5000 && worker.output.length > 500) {
-            clearInterval(checkInterval);
-            worker.busy = false;
-            worker.currentTask = null;
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              success: true,
-              output: worker.output
-            }));
-          }
-          
-          // Timeout
-          if (elapsed > timeoutMs) {
-            clearInterval(checkInterval);
-            worker.busy = false;
-            worker.currentTask = null;
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              success: true,
-              output: worker.output,
-              timeout: true
-            }));
-          }
-        }, 2000);
+          worker.pty.write(prompt + '\r');
 
+          const startTime = Date.now();
+          const checkInterval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const clean = stripAnsi(worker.output);
+
+            if (clean.includes('Model:') && elapsed > 5000 && worker.output.length > 500) {
+              clearInterval(checkInterval);
+              worker.busy = false;
+              worker.currentTask = null;
+              processQueue();
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: true,
+                output: worker.output
+              }));
+            }
+
+            if (elapsed > timeoutMs) {
+              clearInterval(checkInterval);
+              worker.busy = false;
+              worker.currentTask = null;
+              processQueue();
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: true,
+                output: worker.output,
+                timeout: true
+              }));
+            }
+          }, 2000);
+        };
+
+        const availableWorker = workers.find(w => !w.busy && w.ready);
+        if (availableWorker) {
+          taskHandler(availableWorker);
+        } else {
+          enqueueRequest(taskHandler);
+        }
       } catch (error) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: error.message }));
