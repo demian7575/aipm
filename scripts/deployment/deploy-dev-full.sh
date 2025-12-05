@@ -93,30 +93,48 @@ if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$EC2_HOST" "echo 'SSH OK
   ssh -o StrictHostKeyChecking=no "$EC2_HOST" << 'ENDSSH'
     cd /home/ec2-user/aipm
     echo "  📥 Pulling latest code..."
+    git fetch origin
+    git reset --hard origin/develop
     git pull origin develop
     
-    echo "  🔄 Restarting terminal server..."
-    pkill -f terminal-server || true
-    sleep 2
-    
-    nohup node scripts/workers/terminal-server.js > /tmp/terminal-server.log 2>&1 &
-    sleep 3
-    
-    echo "  ✅ Terminal server restarted"
+    # Check if systemd service exists
+    if sudo systemctl list-unit-files | grep -q aipm-terminal-server; then
+      echo "  🔄 Restarting systemd service..."
+      sudo systemctl restart aipm-terminal-server
+      sleep 3
+      
+      if sudo systemctl is-active --quiet aipm-terminal-server; then
+        echo "  ✅ Service restarted successfully"
+      else
+        echo "  ⚠️  Service failed to start, check logs"
+      fi
+    else
+      echo "  ⚠️  Systemd service not configured"
+      echo "  🔧 Setting up service..."
+      bash scripts/deployment/setup-ec2-service.sh
+    fi
 ENDSSH
   
   # Verify terminal server is running
+  sleep 2
   if curl -s -o /dev/null -w "%{http_code}" http://44.220.45.57:8080/health | grep -q "200"; then
     echo "  ✅ Terminal server health check passed"
   else
-    echo "  ⚠️  Terminal server health check failed (may need a few more seconds to start)"
+    echo "  ⚠️  Terminal server health check failed"
+    echo "  📝 Check logs: ssh $EC2_HOST 'sudo journalctl -u aipm-terminal-server -n 50'"
   fi
 else
   echo "  ⚠️  SSH connection failed - EC2 terminal server not updated"
   echo "  📝 Manual deployment required:"
   echo "     ssh $EC2_HOST"
-  echo "     cd $EC2_REPO_PATH && git pull origin develop"
-  echo "     pkill -f terminal-server && nohup node scripts/workers/terminal-server.js > /tmp/terminal-server.log 2>&1 &"
+  echo "     cd $EC2_REPO_PATH"
+  echo "     git pull origin develop"
+  echo "     sudo systemctl restart aipm-terminal-server"
+  echo ""
+  echo "  📝 Or setup systemd service:"
+  echo "     ssh $EC2_HOST"
+  echo "     cd $EC2_REPO_PATH"
+  echo "     bash scripts/deployment/setup-ec2-service.sh"
 fi
 
 # 7. Verify Deployment
