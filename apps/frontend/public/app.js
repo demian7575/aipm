@@ -5319,32 +5319,7 @@ function validateCodeWhispererInput(values) {
   };
 }
 
-async function ensureKiroCliRunning() {
-  try {
-    const res = await fetch('http://44.220.45.57:8080/health');
-    const data = await res.json();
-    
-    // Check new worker pool structure
-    if (data.status === 'running' && data.workers?.worker1?.healthy && data.workers?.worker2?.healthy) {
-      return true; // Workers are healthy
-    }
-    
-    // Not running - start it
-    await fetch('http://44.220.45.57:8080/restart-kiro', { method: 'POST' });
-    
-    // Wait 10 seconds for restart
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    
-    // Check again
-    const checkRes = await fetch('http://44.220.45.57:8080/health');
-    const checkData = await checkRes.json();
-    
-    return checkData.status === 'running' && checkData.workers?.worker1?.healthy && checkData.workers?.worker2?.healthy;
-  } catch (error) {
-    console.error('Failed to ensure Kiro CLI running:', error);
-    return false;
-  }
-}
+// Kiro API is managed by backend - no frontend health check needed
 
 function openCodeWhispererDelegationModal(story) {
   const defaults = createDefaultCodeWhispererForm(story);
