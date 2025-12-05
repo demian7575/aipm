@@ -1390,7 +1390,9 @@ async function runProductionTest(testName) {
         case 'testWorkflowInputFormat':
             // Verify ECS worker script exists
             try {
-                const response = await fetch('https://raw.githubusercontent.com/demian7575/aipm/main/scripts/workers/q-worker.sh');
+                // Use correct branch based on environment
+                const branch = PROD_CONFIG.environment === 'production' ? 'main' : 'develop';
+                const response = await fetch(`https://raw.githubusercontent.com/demian7575/aipm/${branch}/scripts/workers/q-worker.sh`);
                 if (!response.ok) {
                     return { success: false, message: 'ECS: Worker script not found' };
                 }
@@ -1606,8 +1608,13 @@ async function runProductionTest(testName) {
                     return { success: false, message: `EC2 Terminal: Status is ${data.status}` };
                 }
                 
-                if (!data.kiro || !data.kiro.running) {
-                    return { success: false, message: 'EC2 Terminal: Kiro CLI not running' };
+                // Check for worker pool (new structure)
+                if (!data.workers || !data.workers.worker1 || !data.workers.worker2) {
+                    return { success: false, message: 'EC2 Terminal: Worker pool not initialized' };
+                }
+                
+                if (!data.workers.worker1.healthy || !data.workers.worker2.healthy) {
+                    return { success: false, message: 'EC2 Terminal: One or more workers unhealthy' };
                 }
                 
                 return {
