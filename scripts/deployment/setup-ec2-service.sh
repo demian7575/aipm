@@ -22,6 +22,7 @@ StandardOutput=append:/tmp/terminal-server.log
 StandardError=append:/tmp/terminal-server.log
 Environment=NODE_ENV=production
 Environment=REPO_PATH=/home/ec2-user/aipm
+Environment=PATH=/home/ec2-user/.local/bin:/usr/local/bin:/usr/bin:/bin
 
 [Install]
 WantedBy=multi-user.target
