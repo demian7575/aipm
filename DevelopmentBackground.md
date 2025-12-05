@@ -29,6 +29,66 @@
 - Assume existing code is "too complicated" - it may handle edge cases you don't see
 - Remove functionality that seems unused - it may be critical for specific scenarios
 
+### Rule #2: Error Prevention Over Error Fixing 🔴
+
+**CRITICAL PRINCIPLE: Updating workflow to prevent errors is MORE IMPORTANT than fixing the error itself.**
+
+When you encounter an error:
+
+1. ✅ **Fix the immediate error** (solve the problem now)
+2. ✅✅ **MORE IMPORTANT: Prevent it from happening again** (solve it forever)
+
+#### How to Prevent Errors from Repeating
+
+**Add automated checks:**
+- ✅ Gating tests to catch the issue before deployment
+- ✅ Pre-deployment validation scripts
+- ✅ Health checks and monitoring
+- ✅ Automated rollback on failure
+
+**Update workflows:**
+- ✅ Add steps to deployment scripts
+- ✅ Update documentation with new procedures
+- ✅ Create checklists for common operations
+- ✅ Automate manual steps that caused errors
+
+**Example - Port Not Open Error:**
+```
+❌ Bad:     Fix port 8081 not open, move on
+✅ Good:    Fix port 8081, add gating test to verify port is open
+✅✅ Best:  Fix port, add test, update deployment script to auto-open port, 
+           add to pre-deployment checklist, document in runbook
+```
+
+**Example - Git Conflicts on EC2:**
+```
+❌ Bad:     Manually stash and reset, move on
+✅ Good:    Stash and reset, document the steps
+✅✅ Best:  Create deployment script that auto-handles git state,
+           add pre-deployment check for uncommitted changes,
+           add gating test to verify clean state
+```
+
+**Priority:**
+```
+Preventing future errors > Fixing current error
+Automation > Documentation > Manual fixes
+```
+
+**Why:** 
+- Fixing an error once helps **now**
+- Preventing it helps **forever**
+- Each error is an opportunity to improve the system
+- Manual fixes don't scale, automation does
+
+**Checklist after fixing any error:**
+- [ ] Error fixed and verified
+- [ ] Gating test added to catch this error
+- [ ] Deployment script updated to prevent this error
+- [ ] Documentation updated with prevention steps
+- [ ] Checklist updated for manual operations
+- [ ] Team notified of new prevention measures
+
 ✅ **ALWAYS:**
 - Read and understand the ENTIRE existing implementation before modifying
 - Ask "Why was this done this way?" before simplifying
