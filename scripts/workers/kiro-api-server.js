@@ -32,6 +32,7 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
     let hasGitCommit = false;
     let hasGitPush = false;
     let lastCheckLog = Date.now();
+    let promptSent = false;
     
     const timeout = setTimeout(() => {
       console.log('⏱️  Timeout reached, killing process');
@@ -92,6 +93,13 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
       output += text;
       lastOutputTime = Date.now();
       
+      // Send prompt when Kiro is ready (shows prompt or model info)
+      if (!promptSent && (text.includes('Model:') || text.includes('>'))) {
+        console.log('📤 Kiro ready, sending prompt');
+        kiro.stdin.write(fullPrompt + '\n');
+        promptSent = true;
+      }
+      
       // Track git operations with more patterns
       if (/git commit|committed|Committed changes|commit.*created|files? changed/i.test(text)) {
         if (!hasGitCommit) {
@@ -146,8 +154,7 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
       }
     });
 
-    // Send prompt
-    kiro.stdin.write(fullPrompt + '\n');
+    // Prompt will be sent when Kiro is ready (see stdout handler)
   });
 }
 
