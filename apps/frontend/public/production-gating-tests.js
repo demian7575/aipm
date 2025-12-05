@@ -1619,7 +1619,7 @@ async function runProductionTest(testName) {
                 
                 return {
                     success: true,
-                    message: `EC2 Terminal: Healthy (Kiro PID: ${data.kiro.pid})`
+                    message: `EC2 Terminal: Healthy (Workers: ${data.workers.worker1.pid}, ${data.workers.worker2.pid})`
                 };
             } catch (error) {
                 return { success: false, message: `EC2 Terminal health check failed - ${error.message}` };
