@@ -511,32 +511,28 @@ async function performDelegation(payload) {
 - Test the functionality works correctly`;
     }
     
-    const kiroApiUrl = process.env.KIRO_API_URL || 'http://44.220.45.57:8081';
-    const taskId = `kiro-${timestamp}`;
+    const prProcessorUrl = process.env.EC2_PR_PROCESSOR_URL || 'http://44.220.45.57:8082';
     
-    console.log(`🤖 Calling Kiro API: ${kiroApiUrl}/execute for PR #${pr.number}`);
+    console.log(`🤖 Calling PR Processor: ${prProcessorUrl}/process-pr for PR #${pr.number}`);
     
     // Fire and forget - don't await
-    fetch(`${kiroApiUrl}/execute`, {
+    fetch(`${prProcessorUrl}/process-pr`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        prompt: `Checkout branch ${branchName}, implement this task, commit and push:\n\n${taskDescription}`,
-        context: `Working on PR #${pr.number} in branch ${branchName}`,
-        timeoutMs: 600000
+        branch: branchName,
+        prNumber: pr.number,
+        taskDescription
       })
     }).then(response => {
-      console.log(`📡 Kiro API response status: ${response.status}`);
+      console.log(`📡 PR Processor response status: ${response.status}`);
       return response.json();
     })
       .then(result => {
-        console.log(`✅ Kiro API task ${taskId}:`, result.success ? 'Success' : 'Failed');
-        if (result.output) {
-          console.log('🤖 Kiro output (last 500 chars):', result.output.substring(Math.max(0, result.output.length - 500)));
-        }
+        console.log(`✅ PR Processor:`, result.message || 'Processing started');
       })
       .catch(error => {
-        console.error(`❌ Kiro API task ${taskId} failed:`, error.message);
+        console.error(`❌ PR Processor failed:`, error.message);
       });
     
     return {
@@ -548,7 +544,6 @@ async function performDelegation(payload) {
       taskHtmlUrl: pr.html_url,
       threadHtmlUrl: pr.html_url,
       confirmationCode: `PR${timestamp}`,
-      taskId: taskId,
     };
   }
 
