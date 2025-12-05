@@ -1779,9 +1779,10 @@ function renderCodeWhispererSectionList(container, story) {
     return;
   }
 
-  // Fetch PR URLs for tasks that don't have them yet
+  // Fetch PR URLs for tasks that don't have them yet (only once per entry)
   entries.forEach(async (entry) => {
-    if (entry.taskId && !entry.prUrl) {
+    if (entry.taskId && !entry.prUrl && !entry._fetching) {
+      entry._fetching = true;
       try {
         const response = await fetch(`${API_BASE_URL}/api/queue-status?taskId=${entry.taskId}`);
         if (response.ok) {
@@ -1789,11 +1790,17 @@ function renderCodeWhispererSectionList(container, story) {
           if (data.success && data.task && data.task.prUrl) {
             entry.prUrl = data.task.prUrl;
             entry.status = data.task.status;
+            delete entry._fetching;
             persistCodeWhispererDelegations();
             renderCodeWhispererSectionList(container, story);
+          } else {
+            delete entry._fetching;
           }
+        } else {
+          delete entry._fetching;
         }
       } catch (error) {
+        delete entry._fetching;
         console.error('Failed to fetch PR URL:', error);
       }
     }
@@ -2054,12 +2061,7 @@ function buildCodeWhispererSection(story) {
   actionBtn.className = 'secondary';
   actionBtn.textContent = 'Generate Code & PR';
   actionBtn.addEventListener('click', async () => {
-    // Check and activate Kiro CLI if needed
-    const kiroReady = await ensureKiroCliRunning();
-    if (!kiroReady) {
-      showToast('Kiro CLI failed to start. Please contact support.', 'error');
-      return;
-    }
+    // Backend handles EC2 communication, no need to check from frontend
     openCodeWhispererDelegationModal(story);
   });
   heading.appendChild(actionBtn);
@@ -2389,7 +2391,7 @@ async function loadStories(preserveSelection = true) {
   try {
     const url = resolveApiUrl('/api/stories');
     console.log('Fetching from API:', url);
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: 'no-store' });
     console.log('API response status:', response.status);
     
     if (!response.ok) {
@@ -5322,8 +5324,9 @@ async function ensureKiroCliRunning() {
     const res = await fetch('http://44.220.45.57:8080/health');
     const data = await res.json();
     
-    if (data.status === 'running' && data.kiro?.running) {
-      return true; // Already running
+    // Check new worker pool structure
+    if (data.status === 'running' && data.workers?.worker1?.healthy && data.workers?.worker2?.healthy) {
+      return true; // Workers are healthy
     }
     
     // Not running - start it
@@ -5336,7 +5339,7 @@ async function ensureKiroCliRunning() {
     const checkRes = await fetch('http://44.220.45.57:8080/health');
     const checkData = await checkRes.json();
     
-    return checkData.status === 'running' && checkData.kiro?.running;
+    return checkData.status === 'running' && checkData.workers?.worker1?.healthy && checkData.workers?.worker2?.healthy;
   } catch (error) {
     console.error('Failed to ensure Kiro CLI running:', error);
     return false;
@@ -6215,7 +6218,38 @@ function openChildStoryModal(parentId) {
           childComponents = normalizeComponentSelection(draft.components);
           refreshChildComponents();
         }
-        showToast('Draft story generated', 'success');
+        
+        const source = draft.source || 'unknown';
+        if (source === 'heuristic' && draft.kiroRequestId) {
+          showToast('Draft generated (AI enhancement in progress...)', 'info');
+          // Poll for Kiro result
+          pollKiroResult(draft.kiroRequestId, (enhancedDraft) => {
+            if (titleInput) titleInput.value = enhancedDraft.title || draft.title;
+            if (pointInput) pointInput.value = enhancedDraft.storyPoint != null ? enhancedDraft.storyPoint : draft.storyPoint;
+            if (asADisplay) {
+              asADisplay.value = enhancedDraft.asA || draft.asA;
+              asADisplay.style.height = 'auto';
+              asADisplay.style.height = asADisplay.scrollHeight + 'px';
+            }
+            if (iWantDisplay) {
+              iWantDisplay.value = enhancedDraft.iWant || draft.iWant;
+              iWantDisplay.style.height = 'auto';
+              iWantDisplay.style.height = iWantDisplay.scrollHeight + 'px';
+            }
+            if (soThatDisplay) {
+              soThatDisplay.value = enhancedDraft.soThat || draft.soThat;
+              soThatDisplay.style.height = 'auto';
+              soThatDisplay.style.height = soThatDisplay.scrollHeight + 'px';
+            }
+            if (Array.isArray(enhancedDraft.components)) {
+              childComponents = normalizeComponentSelection(enhancedDraft.components);
+              refreshChildComponents();
+            }
+            showToast('✨ AI-enhanced story ready!', 'success');
+          });
+        } else {
+          showToast('Draft story generated', 'success');
+        }
       }
     } catch (error) {
       console.error('Story draft generation failed', error);
@@ -6410,31 +6444,44 @@ function openAcceptanceTestModal(storyId, options = {}) {
       {
         label: test ? 'Save Changes' : 'Create Test',
         onClick: async () => {
+          console.log('Create Test clicked');
           const given = splitLines(givenField.value);
           const when = splitLines(whenField.value);
           const then = splitLines(thenField.value);
           const status = statusField.value;
+          console.log('Parsed fields:', { given, when, then, status });
           if (!given.length || !when.length || !then.length) {
+            console.log('Validation failed: empty fields');
             showToast('Please provide Given, When, and Then steps.', 'error');
             return false;
           }
           try {
             if (test) {
+              console.log('Updating test:', test.id);
               const updated = await updateAcceptanceTest(test.id, { given, when, then, status });
+              console.log('Update result:', updated);
               if (updated === null) {
+                console.log('Update returned null, keeping modal open');
                 return false;
               }
               await loadStories();
               showToast('Acceptance test updated', 'success');
             } else {
+              console.log('Creating test for story:', storyId);
               const created = await createAcceptanceTest(storyId, { given, when, then, status });
+              console.log('Create result:', created);
               if (created === null) {
+                console.log('Create returned null, keeping modal open');
                 return false;
               }
+              console.log('Loading stories...');
               await loadStories();
+              console.log('Showing success toast');
               showToast('Acceptance test created', 'success');
             }
+            console.log('onClick completed successfully');
           } catch (error) {
+            console.error('onClick error:', error);
             showToast(error.message || 'Failed to save acceptance test', 'error');
             return false;
           }
@@ -6443,9 +6490,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
     ],
   });
 
-  if (!test) {
-    loadDraft();
-  }
+  // Don't auto-generate draft - let user click Generate button
 }
 
 function openTaskModal(storyId, task = null) {
@@ -6781,23 +6826,28 @@ async function fetchAcceptanceTestDraft(storyId, options = {}) {
 
 async function createAcceptanceTest(storyId, payload) {
   try {
+    console.log('createAcceptanceTest: sending request', { storyId, payload });
     return await sendJson(resolveApiUrl(`/api/stories/${storyId}/tests`), {
       method: 'POST',
       body: payload,
     });
   } catch (error) {
+    console.log('createAcceptanceTest: caught error', error);
     if (error && error.code === 'MEASURABILITY_WARNINGS') {
-      const proceed = window.confirm(
-        `${error.message}\n\n${formatMeasurabilityWarnings(error.warnings, error.suggestions)}\n\nCreate anyway?`
-      );
+      console.log('createAcceptanceTest: measurability warnings detected');
+      const message = `${error.message}\n\n${formatMeasurabilityWarnings(error.warnings, error.suggestions)}\n\nCreate anyway?`;
+      console.log('createAcceptanceTest: showing confirmation dialog');
+      const proceed = window.confirm(message);
       if (proceed) {
         return await sendJson(resolveApiUrl(`/api/stories/${storyId}/tests`), {
           method: 'POST',
           body: { ...payload, acceptWarnings: true },
         });
       }
+      console.log('createAcceptanceTest: user cancelled, returning null');
       return null;
     }
+    console.log('createAcceptanceTest: non-measurability error, rethrowing');
     throw error;
   }
 }
@@ -7015,9 +7065,47 @@ async function sendJson(url, options = {}) {
   if (!response.ok) {
     const error = data && typeof data === 'object' ? data : { message: data || response.statusText };
     error.status = response.status;
+    console.log('sendJson: throwing error', { status: response.status, error });
     throw error;
   }
+  console.log('sendJson: success', { status: response.status, data });
   return data;
+}
+
+function pollKiroResult(requestId, onComplete, maxAttempts = 60) {
+  let attempts = 0;
+  
+  const poll = async () => {
+    attempts++;
+    
+    try {
+      const status = await sendJson(resolveApiUrl(`/api/kiro-status/${requestId}`));
+      
+      if (status.status === 'completed' && status.result) {
+        console.log('✨ Kiro enhancement completed:', status.result);
+        onComplete(status.result);
+        return;
+      }
+      
+      if (status.status === 'failed') {
+        console.error('❌ Kiro enhancement failed:', status.error);
+        return;
+      }
+      
+      // Still pending or processing, poll again
+      if (attempts < maxAttempts) {
+        setTimeout(poll, 5000); // Poll every 5 seconds
+      } else {
+        console.warn('⏰ Kiro polling timeout after', maxAttempts * 5, 'seconds');
+      }
+    } catch (error) {
+      console.error('Kiro polling error:', error);
+      // Don't retry on error
+    }
+  };
+  
+  // Start polling after 5 seconds (give Kiro time to start)
+  setTimeout(poll, 5000);
 }
 
 function splitLines(value) {
