@@ -230,8 +230,16 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000, workerName = 
         kiroProcess.stdin.write('t\n');
       }
 
-      if (text.includes('[KIRO_COMPLETE]') || text.includes('completed successfully') ||
-          text.includes('All changes have been made') || text.includes('Is there anything else')) {
+      // Detect completion signals
+      if (text.includes('[KIRO_COMPLETE]') || 
+          text.includes('completed successfully') ||
+          text.includes('All changes have been made') || 
+          text.includes('Is there anything else') ||
+          text.includes('Implementation complete') ||
+          text.includes('✓ Implementation complete') ||
+          (text.includes('Done.') && text.includes('▸ Time:')) ||
+          (text.includes('✅') && text.includes('▸ Time:')) ||
+          (text.includes('✓') && text.includes('▸ Time:'))) {
         finish({ success: true });
       }
     };
