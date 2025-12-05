@@ -1,6 +1,6 @@
-# I want to remove "View conversation", "Check status" from Task card as they are redundant
+# I want to remove "View conversation", "Check status" from Development Task card as they are redundant
 
-As a Project Manager, I want to i want to remove "View conversation", "Check status" from Task card as they are redundant, so that I can access the information I need.
+As a Project Manager, I want to i want to remove "View conversation", "Check status" from Development   Task card as they are redundant, so that I can access the information I need.
 
 Constraints: 
 
