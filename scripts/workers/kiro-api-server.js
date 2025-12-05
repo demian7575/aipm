@@ -16,7 +16,11 @@ let activeCount = 0;
 // Execute Kiro with prompt and return JSON
 async function executeKiro(prompt, context = '', timeoutMs = 600000) {
   return new Promise((resolve, reject) => {
-    const fullPrompt = context ? `${context}\n\n${prompt}` : prompt;
+    // Add completion signal instruction
+    const completionInstruction = '\n\nWhen completely done, output: [KIRO_COMPLETE]';
+    const fullPrompt = context ? 
+      `${context}\n\n${prompt}${completionInstruction}` : 
+      `${prompt}${completionInstruction}`;
     
     const kiro = spawn('bash', ['-lc', 'kiro-cli chat'], {
       cwd: REPO_PATH,
@@ -25,31 +29,43 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
 
     let output = '';
     let lastOutputTime = Date.now();
+    let hasGitCommit = false;
+    let hasGitPush = false;
     
     const timeout = setTimeout(() => {
       kiro.kill('SIGKILL');
       resolve({ success: false, error: 'Timeout', output });
     }, timeoutMs);
 
+    // Robust completion detection
+    function checkCompletion() {
+      const idle = Date.now() - lastOutputTime;
+      
+      // Method 1: Git operations completed (most reliable)
+      if (hasGitCommit && hasGitPush && idle > 10000) {
+        return true;
+      }
+      
+      // Method 2: Idle after time marker (fallback)
+      if (idle > 20000 && /▸ Time:.*\d+ms/.test(output)) {
+        return true;
+      }
+      
+      // Method 3: Explicit completion markers
+      if (/\[KIRO_COMPLETE\]|Implementation complete|✅.*complete/i.test(output)) {
+        return true;
+      }
+      
+      return false;
+    }
+
     // Check for completion every 5s
     const checkInterval = setInterval(() => {
-      const idle = Date.now() - lastOutputTime;
-      if (idle > 20000 && output.includes('▸ Time:')) {
+      if (checkCompletion()) {
         clearTimeout(timeout);
         clearInterval(checkInterval);
         kiro.kill('SIGKILL');
-        
-        // Try to extract JSON from output
-        const jsonMatch = output.match(/\{[\s\S]*?\}/);
-        if (jsonMatch) {
-          try {
-            const result = JSON.parse(jsonMatch[0]);
-            resolve({ success: true, result, output });
-            return;
-          } catch (e) {}
-        }
-        
-        resolve({ success: true, output });
+        resolve({ success: true, output, hasGitCommit, hasGitPush });
       }
     }, 5000);
 
@@ -58,35 +74,32 @@ async function executeKiro(prompt, context = '', timeoutMs = 600000) {
       output += text;
       lastOutputTime = Date.now();
       
+      // Track git operations
+      if (/git commit|committed|Committed changes/i.test(text)) {
+        hasGitCommit = true;
+      }
+      if (/git push|pushed|Pushed to/i.test(text)) {
+        hasGitPush = true;
+      }
+      
       // Auto-approve permissions
       if (text.includes('[y/n/t]')) {
         kiro.stdin.write('t\n');
       }
-      
-      // Check for completion signals
-      if (text.includes('[KIRO_COMPLETE]') || 
-          text.includes('Implementation complete') ||
-          (text.includes('Done.') && text.includes('▸ Time:'))) {
-        clearTimeout(timeout);
-        clearInterval(checkInterval);
-        kiro.kill('SIGKILL');
-        
-        const jsonMatch = output.match(/\{[\s\S]*?\}/);
-        if (jsonMatch) {
-          try {
-            const result = JSON.parse(jsonMatch[0]);
-            resolve({ success: true, result, output });
-            return;
-          } catch (e) {}
-        }
-        
-        resolve({ success: true, output });
-      }
     });
 
     kiro.stderr.on('data', (chunk) => {
-      output += chunk.toString();
+      const text = chunk.toString();
+      output += text;
       lastOutputTime = Date.now();
+      
+      // Track git operations (git outputs to stderr)
+      if (/git commit|committed|Committed changes/i.test(text)) {
+        hasGitCommit = true;
+      }
+      if (/git push|pushed|Pushed to/i.test(text)) {
+        hasGitPush = true;
+      }
     });
 
     kiro.on('exit', (code) => {
