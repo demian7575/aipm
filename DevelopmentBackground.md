@@ -1485,6 +1485,32 @@ window.__AIPM_API_BASE__ = 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.c
 
 ### 2025-12-05: Kiro API Migration & Error Prevention
 
+#### Critical Issue: Kiro API Not in Deployment Scripts ❌
+
+**Problem:** Kiro API deployment was NOT included in main deployment scripts  
+**Impact:** Kiro API had to be deployed manually, easy to forget  
+**Root Cause:** New component added but deployment scripts not updated
+
+**Why This Happened:**
+- Kiro API was added as new component
+- Deployment scripts (deploy-prod-full.sh, deploy-prod-complete.sh) not updated
+- Only manual deployment script created (deploy-kiro-api.sh)
+- No checklist to verify all components included
+
+**Fix Applied:**
+- ✅ Updated deploy-prod-full.sh to include Kiro API
+- ✅ Updated deploy-prod-complete.sh to include Kiro API
+- ✅ Added health checks for both Terminal Server and Kiro API
+- ✅ Added to deployment output
+
+**Prevention Measures:**
+- ✅ Deployment checklist now includes Kiro API
+- ✅ Pre-deployment tests check Kiro API
+- ✅ Automated deployment scripts updated
+- ✅ This lesson documented
+
+**Lesson:** When adding new infrastructure component, ALWAYS update deployment scripts immediately
+
 #### What We Did
 - Migrated "Generate Code & PR" from PTY-based terminal server to REST API
 - Implemented robust multi-signal completion detection

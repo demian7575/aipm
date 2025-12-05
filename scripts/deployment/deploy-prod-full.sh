@@ -47,8 +47,8 @@ aws s3 sync apps/frontend/public/ s3://aipm-static-hosting-demo/ \
   --delete
 
 # 5. Verify Deployment
-# 5. Deploy EC2 Terminal Server (Worker Pool)
-echo "🖥️  Step 5: Deploying EC2 Terminal Server..."
+# 5. Deploy EC2 Services (Terminal Server + Kiro API)
+echo "🖥️  Step 5: Deploying EC2 Services..."
 EC2_HOST="ec2-user@44.220.45.57"
 EC2_REPO_PATH="/home/ec2-user/aipm"
 
@@ -64,44 +64,61 @@ if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$EC2_HOST" "echo 'SSH OK
     git reset --hard origin/main
     git pull origin main
     
-    # Check if systemd service exists
+    # Deploy Terminal Server
     if sudo systemctl list-unit-files | grep -q aipm-terminal-server; then
-      echo "  🔄 Restarting systemd service..."
+      echo "  🔄 Restarting terminal server..."
       sudo systemctl restart aipm-terminal-server
-      sleep 3
+      sleep 2
       
       if sudo systemctl is-active --quiet aipm-terminal-server; then
-        echo "  ✅ Service restarted successfully"
+        echo "  ✅ Terminal server restarted"
       else
-        echo "  ⚠️  Service failed to start, check logs"
+        echo "  ⚠️  Terminal server failed to start"
       fi
     else
-      echo "  ⚠️  Systemd service not configured"
-      echo "  🔧 Setting up service..."
-      bash scripts/deployment/setup-ec2-service.sh
+      echo "  ⚠️  Terminal server not configured"
+    fi
+    
+    # Deploy Kiro API Server
+    if sudo systemctl list-unit-files | grep -q kiro-api-server; then
+      echo "  🔄 Restarting Kiro API server..."
+      sudo systemctl restart kiro-api-server
+      sleep 2
+      
+      if sudo systemctl is-active --quiet kiro-api-server; then
+        echo "  ✅ Kiro API server restarted"
+      else
+        echo "  ⚠️  Kiro API server failed to start"
+      fi
+    else
+      echo "  🔧 Setting up Kiro API server..."
+      bash scripts/deployment/setup-kiro-api-service.sh
     fi
 ENDSSH
   
-  # Verify terminal server is running
+  # Verify services
   sleep 2
+  echo "  🔍 Verifying services..."
+  
   if curl -s -o /dev/null -w "%{http_code}" http://44.220.45.57:8080/health | grep -q "200"; then
     echo "  ✅ Terminal server health check passed"
   else
     echo "  ⚠️  Terminal server health check failed"
-    echo "  📝 Check logs: ssh $EC2_HOST 'sudo journalctl -u aipm-terminal-server -n 50'"
+  fi
+  
+  if curl -s -o /dev/null -w "%{http_code}" http://44.220.45.57:8081/health | grep -q "200"; then
+    echo "  ✅ Kiro API health check passed"
+  else
+    echo "  ⚠️  Kiro API health check failed"
   fi
 else
-  echo "  ⚠️  SSH connection failed - EC2 terminal server not updated"
+  echo "  ⚠️  SSH connection failed - EC2 services not updated"
   echo "  📝 Manual deployment required:"
   echo "     ssh $EC2_HOST"
   echo "     cd $EC2_REPO_PATH"
   echo "     git pull origin main"
   echo "     sudo systemctl restart aipm-terminal-server"
-  echo ""
-  echo "  📝 Or setup systemd service:"
-  echo "     ssh $EC2_HOST"
-  echo "     cd $EC2_REPO_PATH"
-  echo "     bash scripts/deployment/setup-ec2-service.sh"
+  echo "     sudo systemctl restart kiro-api-server"
 fi
 
 # 6. Verify Deployment
@@ -117,7 +134,8 @@ echo "  • Backend:   $API_ENDPOINT"
 echo "  • Lambda:    aipm-backend-prod-api"
 echo "  • Stories:   aipm-backend-prod-stories"
 echo "  • Tests:     aipm-backend-prod-acceptance-tests"
-echo "  • EC2:       http://44.220.45.57:8080/health (Worker Pool)"
+echo "  • Terminal:  http://44.220.45.57:8080/health (Worker Pool)"
+echo "  • Kiro API:  http://44.220.45.57:8081/health (Code Generation)"
 echo ""
 echo "🧪 Test: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/production-gating-tests.html"
 echo ""
