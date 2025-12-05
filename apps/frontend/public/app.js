@@ -1698,17 +1698,7 @@ function renderCodeWhispererSectionList(container, story) {
     const taskUrl = entry.taskUrl || entry.htmlUrl;
     const threadUrl = entry.threadUrl || entry.htmlUrl;
 
-    if (taskUrl) {
-      const openLink = document.createElement('a');
-      openLink.href = taskUrl;
-      openLink.className = 'button secondary';
-      openLink.target = '_blank';
-      openLink.rel = 'noreferrer noopener';
-      openLink.textContent = 'Open PR';
-      actions.appendChild(openLink);
-    }
-
-    if (threadUrl && (!taskUrl || threadUrl !== taskUrl)) {
+    if (threadUrl) {
       const threadLink = document.createElement('a');
       threadLink.href = threadUrl;
       threadLink.className = 'link-button';
