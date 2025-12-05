@@ -191,7 +191,7 @@ startWorker('worker2');
 // Start health monitor
 setInterval(monitorWorkers, 60000); // Check every minute
 
-async function runNonInteractiveKiro(prompt, { timeoutMs = 600000 } = {}) {
+async function runNonInteractiveKiro(prompt, { timeoutMs = 600000, workerName = null } = {}) {
   return await new Promise((resolve, reject) => {
     const kiroProcess = spawn('bash', ['-lc', `cd ${REPO_PATH} && source scripts/utilities/load-context.sh && kiro-cli chat`], {
       env: process.env,
@@ -218,6 +218,12 @@ async function runNonInteractiveKiro(prompt, { timeoutMs = 600000 } = {}) {
       const text = chunk.toString();
       output += text;
       process.stdout.write(text);
+      
+      // Update worker activity to prevent idle timeout
+      if (workerName && workers[workerName]) {
+        workers[workerName].lastActivity = Date.now();
+        workers[workerName].lastProgressTime = Date.now();
+      }
 
       if (text.includes('Allow this action?') || text.includes('[y/n/t]')) {
         console.log('🔔 Permission prompt detected (non-interactive), sending trust (t)...');
@@ -461,8 +467,10 @@ Respond ONLY with valid JSON:
         // Track task start (for health monitoring)
         const workerForTracking = Object.values(workers).find(w => !w.busy);
         if (workerForTracking) {
+          workerForTracking.busy = true;
           workerForTracking.taskStartTime = Date.now();
           workerForTracking.lastProgressTime = Date.now();
+          workerForTracking.lastActivity = Date.now();
           workerForTracking.currentTask = { branch, prNumber };
         }
         
@@ -503,9 +511,16 @@ This signals that the task is done.`;
 
         const kiroStartTime = Date.now();
         const { success: kiroSuccess, timedOut, output: kiroOutput = '', exitCode } =
-          await runNonInteractiveKiro(prompt, { timeoutMs: 600000 });
+          await runNonInteractiveKiro(prompt, { timeoutMs: 600000, workerName: workerForTracking ? Object.keys(workers).find(k => workers[k] === workerForTracking) : null });
         timings.kiroExecution = Date.now() - kiroStartTime;
         const elapsedTime = Math.round(timings.kiroExecution / 1000);
+        
+        // Clear worker tracking
+        if (workerForTracking) {
+          workerForTracking.busy = false;
+          workerForTracking.taskStartTime = null;
+          workerForTracking.currentTask = null;
+        }
 
         if (kiroSuccess) {
           console.log(`✅ Kiro completed in ${elapsedTime} seconds`);
