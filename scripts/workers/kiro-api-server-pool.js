@@ -173,6 +173,8 @@ const server = http.createServer(async (req, res) => {
           worker.currentTask = prompt.substring(0, 50);
           worker.output = '';
           worker.lastActivity = Date.now();
+          let lastOutputLength = 0;
+          let stableCount = 0;
 
           worker.pty.write(prompt + '\r');
 
@@ -180,8 +182,22 @@ const server = http.createServer(async (req, res) => {
           const checkInterval = setInterval(() => {
             const elapsed = Date.now() - startTime;
             const clean = stripAnsi(worker.output);
+            
+            // Check if output is stable (no new output for 2 check cycles)
+            if (worker.output.length === lastOutputLength) {
+              stableCount++;
+            } else {
+              stableCount = 0;
+              lastOutputLength = worker.output.length;
+            }
 
-            if (clean.includes('Model:') && elapsed > 5000 && worker.output.length > 500) {
+            // Detect completion signals
+            const hasTimeMarker = clean.includes('▸ Time:');
+            const hasPromptReturn = />\s*$/.test(clean.trim());
+            const isStable = stableCount >= 2 && elapsed > 3000;
+            const hasMinOutput = worker.output.length > 200;
+            
+            if (hasMinOutput && (hasTimeMarker || (hasPromptReturn && isStable))) {
               clearInterval(checkInterval);
               worker.busy = false;
               worker.currentTask = null;
@@ -192,6 +208,7 @@ const server = http.createServer(async (req, res) => {
                 success: true,
                 output: worker.output
               }));
+              return;
             }
 
             if (elapsed > timeoutMs) {
