@@ -513,10 +513,10 @@ async function performDelegation(payload) {
     
     const prProcessorUrl = process.env.EC2_PR_PROCESSOR_URL || 'http://44.220.45.57:8082';
     
-    console.log(`🤖 Calling PR Processor: ${prProcessorUrl}/process-pr for PR #${pr.number}`);
+    console.log(`🤖 Calling PR Processor: ${prProcessorUrl}/api/process-pr for PR #${pr.number}`);
     
     // Fire and forget - don't await
-    fetch(`${prProcessorUrl}/process-pr`, {
+    fetch(`${prProcessorUrl}/api/process-pr`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

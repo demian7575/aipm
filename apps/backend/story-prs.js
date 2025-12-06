@@ -46,7 +46,9 @@ export async function addStoryPR(db, storyId, prData) {
     const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
     
     const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client);
+    const docClient = DynamoDBDocumentClient.from(client, {
+      marshallOptions: { removeUndefinedValues: true }
+    });
     const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
     
     await docClient.send(new UpdateCommand({
@@ -74,7 +76,9 @@ export async function removeStoryPR(db, storyId, prNumber) {
     const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
     
     const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client);
+    const docClient = DynamoDBDocumentClient.from(client, {
+      marshallOptions: { removeUndefinedValues: true }
+    });
     const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
     
     await docClient.send(new UpdateCommand({

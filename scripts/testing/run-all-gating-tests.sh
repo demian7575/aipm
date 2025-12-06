@@ -14,25 +14,39 @@ TOTAL_FAILED=0
 echo "📦 Running Environment Tests (Production + Development)..."
 if node scripts/testing/run-comprehensive-gating-tests.cjs; then
     echo "✅ Environment tests passed"
-    ((TOTAL_PASSED++))
+    TOTAL_PASSED=$((TOTAL_PASSED + 1))
 else
     echo "❌ Environment tests failed"
-    ((TOTAL_FAILED++))
+    TOTAL_FAILED=$((TOTAL_FAILED + 1))
 fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# 2. Run Kiro API tests (if available)
+# 2. Run browser-based tests (90 tests: 45 prod + 45 dev)
+echo "🌐 Running Browser-Based Tests (90 tests)..."
+if node scripts/testing/run-browser-tests-automated.cjs; then
+    echo "✅ Browser tests validated"
+    TOTAL_PASSED=$((TOTAL_PASSED + 1))
+else
+    echo "❌ Browser tests failed"
+    TOTAL_FAILED=$((TOTAL_FAILED + 1))
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# 3. Run Kiro API tests (if available)
 if [ -n "$KIRO_API_URL" ] || curl -s -m 2 http://44.220.45.57:8081/health > /dev/null 2>&1; then
     echo "🤖 Running Kiro API Tests..."
     if bash scripts/testing/test-kiro-api-gating.sh; then
         echo "✅ Kiro API tests passed"
-        ((TOTAL_PASSED++))
+        TOTAL_PASSED=$((TOTAL_PASSED + 1))
     else
         echo "❌ Kiro API tests failed"
-        ((TOTAL_FAILED++))
+        TOTAL_FAILED=$((TOTAL_FAILED + 1))
     fi
 else
     echo "⏭️  Skipping Kiro API tests (service not available)"
