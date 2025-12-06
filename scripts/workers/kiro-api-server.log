@@ -1,0 +1,9 @@
+🚀 Kiro API Server listening on port 8081
+📁 Repository: /home/ec2-user/aipm
+🔗 POST /execute - Execute Kiro with prompt
+🔗 GET /health - Health check
+📥 Request 1765041815253-hkomtae0b: Read TASK.md and implement the feature. undefined...
+🔍 Completion check: idle=29s, commit=false, push=false
+🔍 Completion check: idle=59s, commit=false, push=false
+⚠️  Completion detected: 60s idle (missed signal?)
+✅ Request 1765041815253-hkomtae0b completed
