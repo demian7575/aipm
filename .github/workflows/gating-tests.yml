@@ -1,0 +1,51 @@
+name: AIPM Gating Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  gating-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Run Environment Tests
+      run: |
+        node scripts/testing/run-comprehensive-gating-tests.cjs
+
+    - name: Run Browser Test Validation
+      run: |
+        node scripts/testing/run-browser-tests-automated.cjs
+
+    - name: Run Complete Gating Test Suite
+      run: |
+        bash scripts/testing/run-all-gating-tests.sh
+
+    - name: Test Summary
+      if: always()
+      run: |
+        echo "## Gating Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ $? -eq 0 ]; then
+          echo "✅ All gating tests passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Some gating tests failed" >> $GITHUB_STEP_SUMMARY
+        fi
