@@ -170,9 +170,7 @@ async function runEnvironmentTests(env, config) {
         testEndpoint(`${config.frontend}/production-gating-tests.js`, 'Gating Tests Script'),
         testEndpoint(`${config.frontend}/production-gating-tests.html`, 'Gating Tests Page'),
         
-        // Feature tests
-        testButtonExists(config.frontend, 'export-stories-btn', 'PR123 Export Button'),
-        testJavaScriptFunction(config.frontend, 'buildExportModalContent', 'Export Modal Function'),
+        // Feature tests (export buttons removed in PR #302)
         testJavaScriptFunction(config.frontend, 'buildKiroTerminalModalContent', 'Kiro Terminal Modal Function')
     ];
     
@@ -225,8 +223,6 @@ async function main() {
     console.log('='.repeat(70));
     if (allPassed) {
         console.log('🎉 ALL FUNCTIONALITY TESTS PASSING');
-        console.log('✅ PR123 Export Feature: Working');
-        console.log('✅ Run in Staging Button: Working');
         console.log('✅ All environments ready for production');
     } else {
         console.log('⚠️  SOME FUNCTIONALITY TESTS FAILING');
