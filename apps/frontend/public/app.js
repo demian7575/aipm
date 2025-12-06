@@ -4293,8 +4293,7 @@ function renderDetails() {
     }
   });
 
-  const codewhispererSection = buildCodeWhispererSection(story);
-  detailsContent.appendChild(codewhispererSection);
+  // PR functionality removed
 
   const dependencySection = document.createElement('section');
   dependencySection.className = 'dependencies-section';
