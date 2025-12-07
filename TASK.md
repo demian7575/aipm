@@ -1,12 +1,12 @@
-# I want to remove "Refresh", "Run time Data" butoon on top of AIPM Mindmap.
+# Make "Child Stories" in "Details" panel simple
 
-As a User, I want to i want to remove "refresh", "run time data" butoon on top of aipm mindmap.. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
+As a User, I want to i want to make "child stories" in "details" panel, much more simple, - only "title" i.e. remove "story point", "status", "components", "actions". This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
 
 Constraints: 
 
 Acceptance Criteria:
 - The feature works as described
-- The implementation matches the requirement: I want to remove "Refresh", "Run time Data" butoon on top of AIPM Mindmap.
+- The implementation matches the requirement: I want to make "Child Stories" in "Details" panel, much more simple, - Only "Title" i.e. remove "Story Point", "Status", "Components", "Actions"
 - The changes are properly tested
 
 ---
