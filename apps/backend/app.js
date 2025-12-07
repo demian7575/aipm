@@ -3202,7 +3202,7 @@ function toStoryTitle(value) {
     return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
   });
   const title = words.join(' ');
-  return limitLength(title, 500);
+  return limitLength(title, 120);
 }
 
 function cleanupPersona(value) {

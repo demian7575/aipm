@@ -2,12 +2,12 @@
 
 export function generateInvestCompliantStory(idea, context = {}) {
   // Simple heuristic-based story generation
-  const title = idea.length > 500 ? idea.substring(0, 497) + '...' : idea;
+  const title = idea.length > 120 ? idea.substring(0, 117) + '...' : idea;
   const parent = context?.parent || null;
   const asA = parent?.asA || 'User';
   const soThat = 'I can accomplish my goals more effectively';
   
-  // Generate description
+  // Generate description with full details
   let description = `As a ${asA}, I want to ${idea.toLowerCase()}.`;
   if (soThat) {
     description += ` This ensures ${soThat.toLowerCase()}.`;
