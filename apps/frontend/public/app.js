@@ -3360,6 +3360,12 @@ async function bedrockImplementation(prEntry) {
       body: JSON.stringify(payload)
     });
     
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Deploy API error:', response.status, errorText);
+      throw new Error(`Deploy API returned ${response.status}: ${errorText}`);
+    }
+    
     const result = await response.json();
     console.log('📥 Response from /api/deploy-pr:', result);
     
@@ -3373,7 +3379,7 @@ async function bedrockImplementation(prEntry) {
       };
     } else {
       console.log('⚠️ Deployment failed:', result.error);
-      return { success: false, message: result.error };
+      return { success: false, message: result.error || 'Deployment failed' };
     }
   } catch (error) {
     console.error('❌ Deployment error:', error);
