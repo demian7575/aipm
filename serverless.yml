@@ -14,9 +14,10 @@ provider:
     STAGE: ${self:provider.stage}
     STORIES_TABLE: ${self:service}-${self:provider.stage}-stories
     ACCEPTANCE_TESTS_TABLE: ${self:service}-${self:provider.stage}-acceptance-tests
-    GITHUB_TOKEN: ${env:GITHUB_TOKEN, ''}
+    GITHUB_TOKEN: ${ssm:/aipm/github-token}
     GITHUB_OWNER: ${env:GITHUB_OWNER, 'demian7575'}
     GITHUB_REPO: ${env:GITHUB_REPO, 'aipm'}
+    EC2_PR_PROCESSOR_URL: ${env:EC2_PR_PROCESSOR_URL, 'http://44.220.45.57:8082'}
   iam:
     role:
       statements:
