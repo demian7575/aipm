@@ -522,7 +522,7 @@ async function performDelegation(payload) {
       body: JSON.stringify({
         branch: branchName,
         prNumber: pr.number,
-        taskDescription
+        taskDetails: taskDescription
       })
     }).then(response => {
       console.log(`📡 PR Processor response status: ${response.status}`);
