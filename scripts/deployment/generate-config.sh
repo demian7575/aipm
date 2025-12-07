@@ -15,7 +15,7 @@ if [ "$ENV" = "prod" ]; then
   TESTS_TABLE="aipm-backend-prod-acceptance-tests"
   DEBUG="false"
 elif [ "$ENV" = "dev" ]; then
-  API_URL="https://tepm6xhsm0.execute-api.us-east-1.amazonaws.com/dev"
+  API_URL="https://dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev"
   ENVIRONMENT="development"
   STAGE="dev"
   STORIES_TABLE="aipm-backend-dev-stories"
@@ -26,8 +26,7 @@ else
   exit 1
 fi
 
-cat > apps/frontend/public/config.js << EOF
-window.CONFIG = {
+CONFIG_CONTENT="window.CONFIG = {
   API_BASE_URL: '$API_URL',
   apiEndpoint: '$API_URL',
   ENVIRONMENT: '$ENVIRONMENT',
@@ -37,8 +36,13 @@ window.CONFIG = {
   storiesTable: '$STORIES_TABLE',
   acceptanceTestsTable: '$TESTS_TABLE',
   DEBUG: $DEBUG
-};
-EOF
+};"
+
+# Create config-{env}.js
+echo "$CONFIG_CONTENT" > apps/frontend/public/config-$ENV.js
+
+# Also create config.js for immediate use
+echo "$CONFIG_CONTENT" > apps/frontend/public/config.js
 
 echo "✅ Generated config.js for $ENV environment"
 echo "   API: $API_URL"

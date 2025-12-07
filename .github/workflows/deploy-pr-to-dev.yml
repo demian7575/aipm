@@ -163,7 +163,16 @@ jobs:
       - name: Deploy backend Lambda
         run: |
           echo "📦 Deploying backend to dev..."
-          npx serverless deploy --stage dev --region us-east-1 --verbose
+          
+          # Check if dev stack exists
+          if aws cloudformation describe-stacks --stack-name aipm-backend-dev --region us-east-1 2>/dev/null; then
+            echo "Dev stack exists, updating..."
+            npx serverless deploy --stage dev --region us-east-1
+          else
+            echo "Dev stack doesn't exist, creating..."
+            npx serverless deploy --stage dev --region us-east-1
+          fi
+          
           echo "✅ Backend deployed"
       
       - name: Create dev config
@@ -176,6 +185,45 @@ jobs:
           echo "📦 Deploying frontend to dev..."
           aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting --delete --cache-control no-cache
           echo "✅ Frontend deployed"
+      
+      - name: Run gating tests
+        run: |
+          echo "🧪 Running development gating tests..."
+          
+          # Wait for deployment to stabilize
+          sleep 5
+          
+          # Test dev API endpoint
+          DEV_API="https://dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev"
+          echo "Testing API: $DEV_API"
+          
+          API_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$DEV_API/api/stories")
+          if [ "$API_RESPONSE" != "200" ]; then
+            echo "❌ API health check failed (HTTP $API_RESPONSE)"
+            exit 1
+          fi
+          echo "✅ API health check passed"
+          
+          # Test frontend deployment
+          FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
+          echo "Testing frontend: $FRONTEND_URL"
+          
+          FRONTEND_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL")
+          if [ "$FRONTEND_RESPONSE" != "200" ]; then
+            echo "❌ Frontend health check failed (HTTP $FRONTEND_RESPONSE)"
+            exit 1
+          fi
+          echo "✅ Frontend health check passed"
+          
+          # Test config.js exists
+          CONFIG_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL/config.js")
+          if [ "$CONFIG_RESPONSE" != "200" ]; then
+            echo "❌ Config.js not found (HTTP $CONFIG_RESPONSE)"
+            exit 1
+          fi
+          echo "✅ Config.js deployed"
+          
+          echo "✅ All gating tests passed"
       
       - name: Comment on PR
         if: github.event.inputs.pr_number

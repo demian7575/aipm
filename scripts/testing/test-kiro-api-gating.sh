@@ -1,8 +1,6 @@
 #!/bin/bash
 # Kiro API Gating Tests - Functional Requirements Validation
 
-set -e
-
 KIRO_API_URL="${KIRO_API_URL:-http://44.220.45.57:8081}"
 PASSED=0
 FAILED=0
