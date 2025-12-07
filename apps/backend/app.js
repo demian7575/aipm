@@ -20,6 +20,8 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 // Removed delegation imports - now using direct PR creation
 
+console.log('e2e-test-1765087351');
+
 // Add delegation helper functions
 function ensureGithubToken() {
   const token = process.env.GITHUB_TOKEN;
