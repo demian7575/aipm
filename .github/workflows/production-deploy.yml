@@ -29,9 +29,6 @@ jobs:
     - name: Install dependencies
       run: npm install --legacy-peer-deps
       
-    - name: Build application
-      run: npm run build
-      
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -46,22 +43,15 @@ jobs:
       run: |
         echo "🚀 Deploying AIPM to Production Environment"
         
-        # Deploy backend
-        serverless deploy --stage prod --verbose
+        # Deploy backend using serverless
+        serverless deploy --stage prod --region us-east-1
         
-        # Update frontend config for production
-        cat > dist/public/config.js << 'EOF'
-        // AIPM Frontend Configuration - Production Environment
-        // Auto-deployed from main branch
-        window.__AIPM_API_BASE__ = 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod';
+        # Generate frontend config for production
+        chmod +x scripts/deployment/generate-config.sh
+        ./scripts/deployment/generate-config.sh prod
         
-        // Production environment configuration
-        // API Gateway ID: wk6h5fkqk9
-        // Stage: prod
-        EOF
-        
-        # Deploy frontend
-        aws s3 sync dist/public/ s3://aipm-static-hosting-demo --delete --region us-east-1
+        # Deploy frontend from source directory
+        aws s3 sync apps/frontend/public/ s3://aipm-static-hosting-demo --delete --region us-east-1 --cache-control no-cache
         
     - name: Verify Production Deployment
       run: |
