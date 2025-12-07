@@ -138,6 +138,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
+      - name: Deploy backend Lambda
+        run: |
+          echo "📦 Deploying backend to dev..."
+          
+          # Check if dev stack exists
+          if aws cloudformation describe-stacks --stack-name aipm-backend-dev --region us-east-1 2>/dev/null; then
+            echo "Dev stack exists, updating..."
+            npx serverless deploy --stage dev --region us-east-1
+          else
+            echo "Dev stack doesn't exist, creating..."
+            npx serverless deploy --stage dev --region us-east-1
+          fi
+          
+          echo "✅ Backend deployed"
+      
       - name: Sync production data to development
         run: |
           echo "📊 Copying production data to development..."
@@ -159,21 +174,6 @@ jobs:
             done
           
           echo "✅ Data sync complete"
-      
-      - name: Deploy backend Lambda
-        run: |
-          echo "📦 Deploying backend to dev..."
-          
-          # Check if dev stack exists
-          if aws cloudformation describe-stacks --stack-name aipm-backend-dev --region us-east-1 2>/dev/null; then
-            echo "Dev stack exists, updating..."
-            npx serverless deploy --stage dev --region us-east-1
-          else
-            echo "Dev stack doesn't exist, creating..."
-            npx serverless deploy --stage dev --region us-east-1
-          fi
-          
-          echo "✅ Backend deployed"
       
       - name: Create dev config
         run: |
