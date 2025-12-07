@@ -4969,11 +4969,20 @@ function kebabCase(text) {
 }
 
 function createDefaultCodeWhispererForm(story) {
+  // Generate branch name from title, limited to 200 chars (GitHub limit is 255 bytes)
+  let branchName = '';
+  if (story?.title) {
+    branchName = story.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (branchName.length > 200) {
+      branchName = branchName.substring(0, 200).replace(/-+$/, '');
+    }
+  }
+  
   return {
     repositoryApiUrl: 'https://api.github.com',
     owner: 'demian7575',
     repo: 'aipm',
-    branchName: story?.title ? story.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : '',
+    branchName,
     taskTitle: story?.title || '',
     objective: story?.description || story?.iWant || story?.title || '',
     prTitle: story?.title || '',
