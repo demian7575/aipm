@@ -1498,6 +1498,37 @@ async function requestCodeWhispererStatus(entry) {
   }
 }
 
+async function mergePR(prEntry) {
+  try {
+    const payload = {
+      prNumber: prEntry?.number || prEntry?.targetNumber,
+      owner: prEntry?.owner || 'demian7575',
+      repo: prEntry?.repo || 'aipm'
+    };
+    
+    console.log('🔀 Merging PR:', payload);
+    
+    const response = await fetch(resolveApiUrl('/api/merge-pr'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Merge API error:', response.status, errorText);
+      throw new Error(`Merge API returned ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ Merge result:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Merge error:', error);
+    return { success: false, message: error.message };
+  }
+}
+
 async function rebaseCodeWhispererPR(entry) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/codewhisperer-rebase`, {
@@ -1792,6 +1823,33 @@ function renderCodeWhispererSectionList(container, story) {
         runInStagingBtn.textContent = 'Test in Dev';
       });
       actions.appendChild(runInStagingBtn);
+
+      const mergeBtn = document.createElement('button');
+      mergeBtn.type = 'button';
+      mergeBtn.className = 'button primary merge-pr-btn';
+      mergeBtn.textContent = 'Merge PR';
+      mergeBtn.addEventListener('click', async () => {
+        if (!confirm(`Merge PR #${entry.number || entry.targetNumber} into main?`)) return;
+        mergeBtn.disabled = true;
+        mergeBtn.textContent = 'Merging...';
+        
+        try {
+          const result = await mergePR(entry);
+          if (result && result.success) {
+            showToast('PR merged successfully', 'success');
+            removeCodeWhispererDelegation(entry.storyId, entry.localId);
+          } else {
+            showToast('Merge failed: ' + (result?.message || 'Unknown error'), 'error');
+            mergeBtn.disabled = false;
+            mergeBtn.textContent = 'Merge PR';
+          }
+        } catch (error) {
+          showToast('Merge error: ' + error.message, 'error');
+          mergeBtn.disabled = false;
+          mergeBtn.textContent = 'Merge PR';
+        }
+      });
+      actions.appendChild(mergeBtn);
 
       const kiroBtn = document.createElement('button');
       kiroBtn.type = 'button';
