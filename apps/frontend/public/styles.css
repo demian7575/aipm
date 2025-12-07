@@ -1149,6 +1149,33 @@ body.is-mindmap-panning {
   gap: 0.75rem;
 }
 
+.child-story-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.child-story-item {
+  padding: 0.5rem;
+  border-left: 3px solid #3b82f6;
+  background: #f9fafb;
+}
+
+.child-story-title {
+  color: #1e40af;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.child-story-title:hover {
+  text-decoration: underline;
+  color: #1e3a8a;
+}
+
 .dependencies-section {
   margin-top: 1.5rem;
 }
