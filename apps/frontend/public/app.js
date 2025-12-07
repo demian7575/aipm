@@ -6144,7 +6144,7 @@ function openTaskModal(storyId, task = null) {
   const container = document.createElement('div');
   container.className = 'modal-form task-form';
   container.innerHTML = `
-    <label>Title<input id="task-title" /></label>
+    <label>Title<textarea id="task-title" rows="1" style="resize: none; overflow: hidden;"></textarea></label>
     <label>Assignee<input id="task-assignee" type="email" placeholder="owner@example.com" /></label>
     <label>Status
       <select id="task-status"></select>
@@ -6159,6 +6159,13 @@ function openTaskModal(storyId, task = null) {
   const estimationInput = container.querySelector('#task-estimation');
   const descriptionInput = container.querySelector('#task-description');
 
+  // Auto-resize title textarea
+  const autoResize = () => {
+    titleInput.style.height = 'auto';
+    titleInput.style.height = titleInput.scrollHeight + 'px';
+  };
+  titleInput.addEventListener('input', autoResize);
+
   TASK_STATUS_OPTIONS.forEach((status) => {
     const option = document.createElement('option');
     option.value = status;
@@ -6170,6 +6177,7 @@ function openTaskModal(storyId, task = null) {
     titleInput.value = task.title || '';
     descriptionInput.value = task.description || '';
     assigneeInput.value = task.assigneeEmail || '';
+    setTimeout(autoResize, 0); // Resize after value is set
     const estimationSources = [task.estimationHours, task.estimation_hours, task.estimation];
     for (const source of estimationSources) {
       if (source != null && source !== '') {
