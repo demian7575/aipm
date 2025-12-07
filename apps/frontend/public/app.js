@@ -1836,8 +1836,16 @@ function renderCodeWhispererSectionList(container, story) {
         try {
           const result = await mergePR(entry);
           if (result && result.success) {
-            showToast('PR merged successfully', 'success');
-            removeCodeWhispererDelegation(entry.storyId, entry.localId);
+            showToast('PR merged and deleted from GitHub', 'success');
+            // Refresh the card to show updated status
+            const story = state.stories.get(entry.storyId);
+            if (story) {
+              const section = document.querySelector(`[data-story-id="${entry.storyId}"] .codewhisperer-section`);
+              if (section) {
+                const list = section.querySelector('.codewhisperer-task-list');
+                if (list) renderCodeWhispererSectionList(list, story);
+              }
+            }
           } else {
             showToast('Merge failed: ' + (result?.message || 'Unknown error'), 'error');
             mergeBtn.disabled = false;

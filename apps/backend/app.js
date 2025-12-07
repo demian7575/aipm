@@ -2551,6 +2551,41 @@ async function handleMergePR(req, res) {
 
     const mergeData = await mergeResponse.json();
     
+    // Get PR details to find the branch name
+    const prResponse = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${prNumber}`,
+      {
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      }
+    );
+    
+    if (prResponse.ok) {
+      const prData = await prResponse.json();
+      const branchName = prData.head.ref;
+      
+      // Delete the branch
+      console.log(`🗑️  Deleting branch: ${branchName}`);
+      const deleteResponse = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${branchName}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        }
+      );
+      
+      if (deleteResponse.ok) {
+        console.log(`✅ Branch ${branchName} deleted`);
+      } else {
+        console.warn(`⚠️  Failed to delete branch ${branchName}:`, await deleteResponse.text());
+      }
+    }
+    
     // Trigger production deployment after successful merge
     console.log('✅ PR merged successfully, triggering production deployment...');
     try {
