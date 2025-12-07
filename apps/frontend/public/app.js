@@ -5476,16 +5476,19 @@ async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
     button.textContent && button.textContent.trim().toLowerCase() === 'create task'
   );
 
-  const initialValues = readValues();
-  
-  if (typeof validateCodeWhispererInput === 'function') {
-    latestValidation = validateCodeWhispererInput(initialValues);
-  } else {
-    latestValidation = { valid: true, errors: {} };
-  }
-  
-  applyErrors(latestValidation?.errors || {}, { force: false });
-  setSubmitButtonState(latestValidation);
+  // Delay initial validation to ensure form is fully rendered
+  setTimeout(() => {
+    const initialValues = readValues();
+    
+    if (typeof validateCodeWhispererInput === 'function') {
+      latestValidation = validateCodeWhispererInput(initialValues);
+    } else {
+      latestValidation = { valid: true, errors: {} };
+    }
+    
+    applyErrors(latestValidation?.errors || {}, { force: false });
+    setSubmitButtonState(latestValidation);
+  }, 10);
 }
 
 function openHealthIssueModal(title, issue, context = null) {
