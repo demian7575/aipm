@@ -4130,7 +4130,7 @@ function renderDetails() {
         <form id="edit-story-form">
           <div class="form-group">
             <label>Title:</label>
-            <input type="text" name="title" value="${escapeHtml(story.title || '')}" required>
+            <textarea name="title" rows="1" style="resize: none; overflow: hidden;" required>${escapeHtml(story.title || '')}</textarea>
           </div>
           <div class="form-group">
             <label>As a:</label>
@@ -4194,6 +4194,16 @@ function renderDetails() {
     });
     
     const form = modal.querySelector('#edit-story-form');
+    
+    // Auto-resize title textarea
+    const titleTextarea = form.querySelector('textarea[name="title"]');
+    const autoResizeTitle = () => {
+      titleTextarea.style.height = 'auto';
+      titleTextarea.style.height = titleTextarea.scrollHeight + 'px';
+    };
+    titleTextarea.addEventListener('input', autoResizeTitle);
+    setTimeout(autoResizeTitle, 10); // Initial resize
+    
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
