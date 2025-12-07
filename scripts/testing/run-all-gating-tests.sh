@@ -38,7 +38,21 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# 3. Run Kiro API tests (if available)
+# 3. Run Deployment Configuration Tests
+echo "⚙️  Running Deployment Configuration Tests..."
+if bash scripts/testing/test-deployment-config-gating.sh; then
+    echo "✅ Deployment configuration tests passed"
+    TOTAL_PASSED=$((TOTAL_PASSED + 1))
+else
+    echo "❌ Deployment configuration tests failed"
+    TOTAL_FAILED=$((TOTAL_FAILED + 1))
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# 4. Run Kiro API tests (if available)
 if [ -n "$KIRO_API_URL" ] || curl -s -m 2 http://44.220.45.57:8081/health > /dev/null 2>&1; then
     echo "🤖 Running Kiro API Tests..."
     if bash scripts/testing/test-kiro-api-gating.sh; then
