@@ -193,8 +193,8 @@ jobs:
           # Wait for deployment to stabilize
           sleep 5
           
-          # Test dev API endpoint
-          DEV_API="https://dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev"
+          # Get dev API endpoint from CloudFormation
+          DEV_API=$(aws cloudformation describe-stacks --stack-name aipm-backend-dev --region us-east-1 --query 'Stacks[0].Outputs[?OutputKey==`ServiceEndpoint`].OutputValue' --output text)
           echo "Testing API: $DEV_API"
           
           API_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$DEV_API/api/stories")
