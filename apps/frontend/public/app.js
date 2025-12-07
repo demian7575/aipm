@@ -6248,6 +6248,9 @@ function openTaskModal(storyId, task = null) {
       },
     ],
   });
+  
+  // Trigger resize after modal is rendered
+  setTimeout(autoResize, 10);
 }
 
 function openReferenceModal(storyId) {
