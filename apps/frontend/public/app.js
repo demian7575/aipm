@@ -31,7 +31,6 @@ const mindmapCanvas = document.getElementById('mindmap-canvas');
 const detailsPanel = document.getElementById('details-panel');
 const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
-const refreshBtn = document.getElementById('refresh-btn');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 const generateDocBtn = document.getElementById('generate-doc-btn');
@@ -6908,10 +6907,6 @@ function initialize() {
   renderMindmap();
   renderDetails();
 
-  refreshBtn.addEventListener('click', () => {
-    console.log('Refresh button clicked');
-    loadStories();
-  });
   generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
