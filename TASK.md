@@ -1,12 +1,23 @@
-# I want to remove "Refresh", "Run time Data" butoon on top of AIPM Mindmap.
+# Unintended periodic "SendJson" messagesendJson: success{status: 200
 
-As a User, I want to i want to remove "refresh", "run time data" butoon on top of aipm mindmap.. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
+As a User, I want to unintended periodic "sendjson" messagesendjson: success {status: 200, data: {…}}data: {requestid: 'd82a28ad-bd72-418b-8f36-dfd7403c8de3', status: 'pending', result: null, error: null}status: 200[[prototype]]: object. This ensures i can accomplish my goals more effectively. This work supports the parent story "BUG FIX".
 
 Constraints: 
 
 Acceptance Criteria:
 - The feature works as described
-- The implementation matches the requirement: I want to remove "Refresh", "Run time Data" butoon on top of AIPM Mindmap.
+- The implementation matches the requirement: Unintended periodic "SendJson" message
+- sendJson: success
+- {status: 200, data: {…}}
+- data
+- :
+- {requestId: 'd82a28ad-bd72-418b-8f36-dfd7403c8de3', status: 'pending', result: null, error: null}
+- status
+- :
+- 200
+- [[Prototype]]
+- :
+- Object
 - The changes are properly tested
 
 ---
