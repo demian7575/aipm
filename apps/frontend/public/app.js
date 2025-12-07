@@ -6203,6 +6203,11 @@ function openTaskModal(storyId, task = null) {
             showToast('Task title is required', 'error');
             return false;
           }
+          if (title.length < 10) {
+            showToast('Task title must be at least 10 characters', 'error');
+            titleInput.focus();
+            return false;
+          }
           const assigneeEmail = assigneeInput.value.trim();
           if (!assigneeEmail) {
             showToast('Task assignee is required', 'error');
