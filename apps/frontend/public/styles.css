@@ -1546,6 +1546,7 @@ body.is-mindmap-panning {
 
 .vertical-table td {
   white-space: pre-line;
+  word-break: break-word;
 }
 
 .vertical-table .actions {
