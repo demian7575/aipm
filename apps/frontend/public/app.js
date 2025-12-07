@@ -5766,7 +5766,7 @@ function openChildStoryModal(parentId) {
         <p class="form-hint">Use your idea to draft the story details automatically.</p>
       </div>
     </div>
-    <label>Title<input id="child-title" /></label>
+    <label>Title<textarea id="child-title" rows="1" style="resize: none; overflow: hidden;"></textarea></label>
     <label>Story Point<input id="child-point" type="number" min="0" step="1" placeholder="Estimate" /></label>
     <label>Assignee Email<input id="child-assignee" type="email" placeholder="name@example.com" /></label>
     <label>Description<textarea id="child-description"></textarea></label>
@@ -5801,6 +5801,18 @@ function openChildStoryModal(parentId) {
   const childComponentsButton = container.querySelector('#child-components-btn');
   const ideaInput = container.querySelector('#child-idea');
   const generateBtn = container.querySelector('#child-generate-btn');
+  const titleInput = container.querySelector('#child-title');
+
+  // Auto-resize title textarea
+  const autoResizeTitle = () => {
+    if (titleInput) {
+      titleInput.style.height = 'auto';
+      titleInput.style.height = titleInput.scrollHeight + 'px';
+    }
+  };
+  if (titleInput) {
+    titleInput.addEventListener('input', autoResizeTitle);
+  }
 
   const refreshChildComponents = () => {
     if (!childComponentsDisplay) return;
@@ -5851,6 +5863,7 @@ function openChildStoryModal(parentId) {
         const soThatDisplay = container.querySelector('#child-sothat-display');
 
         if (titleInput) titleInput.value = draft.title || '';
+        autoResizeTitle();
         if (pointInput) pointInput.value = draft.storyPoint != null ? draft.storyPoint : '';
         if (assigneeInput) assigneeInput.value = draft.assigneeEmail || '';
         if (descriptionInput) descriptionInput.value = draft.description || '';
@@ -5881,6 +5894,7 @@ function openChildStoryModal(parentId) {
           // Poll for Kiro result
           pollKiroResult(draft.kiroRequestId, (enhancedDraft) => {
             if (titleInput) titleInput.value = enhancedDraft.title || draft.title;
+            autoResizeTitle();
             if (pointInput) pointInput.value = enhancedDraft.storyPoint != null ? enhancedDraft.storyPoint : draft.storyPoint;
             if (asADisplay) {
               asADisplay.value = enhancedDraft.asA || draft.asA;
