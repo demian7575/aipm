@@ -30,8 +30,8 @@ const server = http.createServer(async (req, res) => {
 
   if (req.url === '/api/process-pr' && req.method === 'POST') {
     let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
+    req.on('data', chunk => body += chunk.toString());
+    req.on('end', () => {
       try {
         const { prNumber, branch, repo, owner, taskDetails } = JSON.parse(body);
         
@@ -40,8 +40,9 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(202, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'accepted', prNumber, branch }));
         
-        processInBackground(prNumber, branch, repo, owner, taskDetails);
+        setImmediate(() => processInBackground(prNumber, branch, repo, owner, taskDetails));
       } catch (error) {
+        console.error(`❌ Parse error:`, error.message);
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
