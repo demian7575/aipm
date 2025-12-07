@@ -8,14 +8,16 @@ set -e
 ENV=${1:-prod}
 
 if [ "$ENV" = "prod" ]; then
-  API_URL="https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod"
+  # Get prod API URL from CloudFormation
+  API_URL=$(aws cloudformation describe-stacks --stack-name aipm-backend-prod --region us-east-1 --query 'Stacks[0].Outputs[?OutputKey==`ServiceEndpoint`].OutputValue' --output text 2>/dev/null || echo "https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod")
   ENVIRONMENT="production"
   STAGE="prod"
   STORIES_TABLE="aipm-backend-prod-stories"
   TESTS_TABLE="aipm-backend-prod-acceptance-tests"
   DEBUG="false"
 elif [ "$ENV" = "dev" ]; then
-  API_URL="https://dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev"
+  # Get dev API URL from CloudFormation
+  API_URL=$(aws cloudformation describe-stacks --stack-name aipm-backend-dev --region us-east-1 --query 'Stacks[0].Outputs[?OutputKey==`ServiceEndpoint`].OutputValue' --output text 2>/dev/null || echo "https://chob6arn1k.execute-api.us-east-1.amazonaws.com/dev")
   ENVIRONMENT="development"
   STAGE="dev"
   STORIES_TABLE="aipm-backend-dev-stories"
