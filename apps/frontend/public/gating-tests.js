@@ -44,7 +44,8 @@ const TEST_SUITES = {
             { name: 'Lambda Health', test: 'testLambdaHealth' },
             { name: 'API Endpoints', test: 'testApiEndpoints' },
             { name: 'CORS Configuration', test: 'testCorsConfig' },
-            { name: 'Response Performance', test: 'testApiPerformance' }
+            { name: 'Response Performance', test: 'testApiPerformance' },
+            { name: 'Kiro REST API', test: 'testKiroRestApi' }
         ]
     },
     storage: {
@@ -236,6 +237,21 @@ async function runSingleTest(testName, config) {
                     success: apiDuration < 5000,
                     message: `API time: ${apiDuration}ms`
                 };
+                
+            case 'testKiroRestApi':
+                try {
+                    const kiroResponse = await fetch(`${config.api}/api/stories`);
+                    const hasKiroEndpoint = kiroResponse.status === 200;
+                    return {
+                        success: hasKiroEndpoint,
+                        message: `Kiro API integration: ${hasKiroEndpoint ? 'active' : 'inactive'}`
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: `Kiro API error: ${error.message}`
+                    };
+                }
                 
             case 'testDynamoAccess':
                 const dynamoResponse = await fetch(`${config.api}/api/stories`);
