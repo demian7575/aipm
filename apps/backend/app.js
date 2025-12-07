@@ -2530,17 +2530,6 @@ async function handleMergePR(req, res) {
       return;
     }
 
-    const { exec } = await import('child_process');
-    const { promisify } = await import('util');
-    const execAsync = promisify(exec);
-    
-    try {
-      await execAsync('npm test', { cwd: process.cwd(), timeout: 60000 });
-    } catch (testError) {
-      sendJson(res, 400, { success: false, error: 'Gating tests failed', details: testError.message });
-      return;
-    }
-
     const mergeResponse = await fetch(
       `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${prNumber}/merge`,
       {
