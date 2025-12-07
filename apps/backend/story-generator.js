@@ -2,7 +2,7 @@
 
 export function generateInvestCompliantStory(idea, parentStory) {
   // Simple heuristic-based story generation
-  const title = idea.length > 80 ? idea.substring(0, 77) + '...' : idea;
+  const title = idea.length > 500 ? idea.substring(0, 497) + '...' : idea;
   
   return {
     title,
