@@ -4717,53 +4717,27 @@ function renderDetails() {
       <button type="button" class="secondary" id="add-child-btn">Create Child Story</button>
     </div>
   `;
-  const childList = document.createElement('div');
-  childList.className = 'record-list';
+  const childList = document.createElement('ul');
+  childList.className = 'child-story-list';
   if (story.children && story.children.length) {
-    childList.innerHTML = story.children
-      .map(
-        (child) => `
-          <table class="vertical-table" data-story-id="${child.id}">
-            <tbody>
-              <tr>
-                <th scope="row">Title</th>
-                <td>${escapeHtml(child.title)}</td>
-              </tr>
-              <tr>
-                <th scope="row">Story Point</th>
-                <td>${child.storyPoint != null ? child.storyPoint : '—'}</td>
-              </tr>
-              <tr>
-                <th scope="row">Status</th>
-                <td>${escapeHtml(child.status || 'Draft')}</td>
-              </tr>
-              <tr>
-                <th scope="row">Components</th>
-                <td>${
-                  Array.isArray(child.components) && child.components.length
-                    ? escapeHtml(
-                        child.components
-                          .map((entry) => formatComponentLabel(entry))
-                          .filter((entry) => entry && entry.length > 0)
-                          .join(', ') || 'Not specified'
-                      )
-                    : '—'
-                }</td>
-              </tr>
-              <tr>
-                <th scope="row">Actions</th>
-                <td class="actions">
-                  <button type="button" class="secondary" data-action="select-story" data-story-id="${child.id}">Select</button>
-                  <button type="button" class="danger" data-action="delete-story" data-story-id="${child.id}">Delete</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        `
-      )
-      .join('');
+    story.children.forEach((child) => {
+      const li = document.createElement('li');
+      li.className = 'child-story-item';
+      
+      const titleLink = document.createElement('a');
+      titleLink.href = '#';
+      titleLink.className = 'child-story-title';
+      titleLink.textContent = child.title;
+      titleLink.setAttribute('data-story-id', child.id);
+      
+      li.appendChild(titleLink);
+      childList.appendChild(li);
+    });
   } else {
-    childList.innerHTML = '<p class="empty-state">No child stories yet.</p>';
+    const emptyState = document.createElement('p');
+    emptyState.className = 'empty-state';
+    emptyState.textContent = 'No child stories yet.';
+    childList.appendChild(emptyState);
   }
   childrenSection.appendChild(childList);
   detailsContent.appendChild(childrenSection);
@@ -4772,22 +4746,16 @@ function renderDetails() {
     .querySelector('#add-child-btn')
     .addEventListener('click', () => openChildStoryModal(story.id));
 
-  childList.querySelectorAll('[data-action="select-story"]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const storyId = Number(button.getAttribute('data-story-id'));
+  childList.querySelectorAll('.child-story-title').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const storyId = Number(link.getAttribute('data-story-id'));
       const target = storyIndex.get(storyId);
       if (target) {
         handleStorySelection(target);
       }
     });
   });
-
-  childList.querySelectorAll('[data-action="delete-story"]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const storyId = Number(button.getAttribute('data-story-id'));
-      if (!Number.isFinite(storyId)) return;
-      void confirmAndDeleteStory(storyId, { fallbackSelectionId: story.id });
-    });
   });
 }
 
