@@ -1720,16 +1720,6 @@ function renderCodeWhispererSectionList(container, story) {
     const taskUrl = entry.taskUrl || entry.htmlUrl;
     const threadUrl = entry.threadUrl || entry.htmlUrl;
 
-    if (taskUrl) {
-      const openLink = document.createElement('a');
-      openLink.href = taskUrl;
-      openLink.className = 'button secondary';
-      openLink.target = '_blank';
-      openLink.rel = 'noreferrer noopener';
-      openLink.textContent = 'Open PR';
-      actions.appendChild(openLink);
-    }
-
     if (threadUrl && (!taskUrl || threadUrl !== taskUrl)) {
       const threadLink = document.createElement('a');
       threadLink.href = threadUrl;
@@ -1759,32 +1749,6 @@ function renderCodeWhispererSectionList(container, story) {
     }
 
     if (entry.createTrackingCard !== false) {
-      const checkBtn = document.createElement('button');
-      checkBtn.type = 'button';
-      checkBtn.className = 'link-button codewhisperer-refresh';
-      checkBtn.textContent = 'Check status';
-      checkBtn.addEventListener('click', async () => {
-        if (checkBtn.disabled) {
-          return;
-        }
-        const original = checkBtn.textContent;
-        checkBtn.disabled = true;
-        checkBtn.textContent = 'Checking…';
-        const success = await requestCodeWhispererStatus(entry);
-        if (!success) {
-          const message = entry.lastError || 'Unable to update CodeWhisperer status.';
-          showToast(message, 'error');
-        }
-        if (!success) {
-          checkBtn.disabled = false;
-          checkBtn.textContent = original;
-        }
-        if (state.selectedStoryId === entry.storyId) {
-          refreshCodeWhispererSection(entry.storyId);
-        }
-      });
-      actions.appendChild(checkBtn);
-
       const rebaseBtn = document.createElement('button');
       rebaseBtn.type = 'button';
       rebaseBtn.className = 'link-button codewhisperer-rebase';
