@@ -29,6 +29,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
+          # If no PR number or branch provided, just use main
+          if [ -z "${{ github.event.inputs.pr_number }}" ] && [ -z "${{ github.event.inputs.branch_name }}" ]; then
+            echo "📥 No PR specified, deploying main branch to dev"
+            git checkout main
+            echo "✅ Using main branch"
+            exit 0
+          fi
+          
           # Checkout PR branch
           if [ -n "${{ github.event.inputs.branch_name }}" ]; then
             echo "📥 Checking out branch: ${{ github.event.inputs.branch_name }}"
