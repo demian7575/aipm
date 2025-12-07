@@ -6840,7 +6840,6 @@ async function sendJson(url, options = {}) {
     console.log('sendJson: throwing error', { status: response.status, error });
     throw error;
   }
-  console.log('sendJson: success', { status: response.status, data });
   return data;
 }
 
