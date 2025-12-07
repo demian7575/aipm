@@ -5098,12 +5098,14 @@ function openCodeWhispererDelegationModal(story) {
 
   const acceptancePrefill = defaults.acceptanceCriteria?.trim()
     ? defaults.acceptanceCriteria
-    : Array.isArray(story?.acceptanceTests)
+    : Array.isArray(story?.acceptanceTests) && story.acceptanceTests.length > 0
     ? story.acceptanceTests
         .map((test) => (test && test.title ? String(test.title).trim() : ''))
         .filter((value) => value.length > 0)
         .join('\n')
-    : '';
+    : story?.iWant 
+    ? `The feature works as described\nThe implementation matches the requirement: ${story.iWant}\nThe changes are properly tested`
+    : 'The feature works as described\nThe user interface is intuitive\nThe changes are properly tested';
 
   repoInput.value = defaults.repositoryApiUrl || DEFAULT_REPO_API_URL;
   ownerInput.value = defaults.owner || '';
