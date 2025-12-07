@@ -515,25 +515,52 @@ async function performDelegation(payload) {
     
     console.log(`🤖 Calling PR Processor: ${prProcessorUrl}/api/process-pr for PR #${pr.number}`);
     
-    // Fire and forget - don't await
-    fetch(`${prProcessorUrl}/api/process-pr`, {
+    // Call PR Processor using http module (Lambda compatible)
+    const http = await import('node:http');
+    const prUrl = new URL(`${prProcessorUrl}/api/process-pr`);
+    const postData = JSON.stringify({
+      branch: branchName,
+      prNumber: pr.number,
+      taskDetails: taskDescription
+    });
+    
+    const options = {
+      hostname: prUrl.hostname,
+      port: prUrl.port || 80,
+      path: prUrl.pathname,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        branch: branchName,
-        prNumber: pr.number,
-        taskDetails: taskDescription
-      })
-    }).then(response => {
-      console.log(`📡 PR Processor response status: ${response.status}`);
-      return response.json();
-    })
-      .then(result => {
-        console.log(`✅ PR Processor:`, result.message || 'Processing started');
-      })
-      .catch(error => {
-        console.error(`❌ PR Processor failed:`, error.message);
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      timeout: 5000
+    };
+    
+    const req = http.default.request(options, (res) => {
+      console.log(`📡 PR Processor response status: ${res.statusCode}`);
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          console.log(`✅ PR Processor:`, result.status || 'Processing started');
+        } catch (e) {
+          console.log(`✅ PR Processor: Response received`);
+        }
       });
+    });
+    
+    req.on('error', (error) => {
+      console.error(`❌ PR Processor failed:`, error.message);
+    });
+    
+    req.on('timeout', () => {
+      console.error(`❌ PR Processor timeout`);
+      req.destroy();
+    });
+    
+    req.write(postData);
+    req.end();
     
     return {
       type: 'pull_request',
@@ -3175,7 +3202,7 @@ function toStoryTitle(value) {
     return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
   });
   const title = words.join(' ');
-  return limitLength(title, 120);
+  return limitLength(title, 500);
 }
 
 function cleanupPersona(value) {
