@@ -5480,8 +5480,11 @@ async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
   setTimeout(() => {
     const initialValues = readValues();
     
+    console.log('Initial form values:', initialValues);
+    
     if (typeof validateCodeWhispererInput === 'function') {
       latestValidation = validateCodeWhispererInput(initialValues);
+      console.log('Validation result:', latestValidation);
     } else {
       latestValidation = { valid: true, errors: {} };
     }
