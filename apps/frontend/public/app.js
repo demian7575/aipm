@@ -4975,7 +4975,7 @@ function createDefaultCodeWhispererForm(story) {
     repo: 'aipm',
     branchName: story?.title ? story.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : '',
     taskTitle: story?.title || '',
-    objective: story?.description || '',
+    objective: story?.description || story?.iWant || story?.title || '',
     prTitle: story?.title || '',
     constraints: '',
     acceptanceCriteria: '',
@@ -5485,6 +5485,9 @@ async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
     if (typeof validateCodeWhispererInput === 'function') {
       latestValidation = validateCodeWhispererInput(initialValues);
       console.log('Validation result:', latestValidation);
+      if (!latestValidation.valid) {
+        console.log('Validation errors:', latestValidation.errors);
+      }
     } else {
       latestValidation = { valid: true, errors: {} };
     }
