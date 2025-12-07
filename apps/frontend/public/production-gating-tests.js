@@ -1196,16 +1196,6 @@ async function runProductionTest(testName) {
                 success: true,
                 message: 'PR123: Export feature removed in PR #302 (expected)'
             };
-                }
-                
-                return {
-                    success: true,
-                    message: 'PR123: Export button found in HTML'
-                };
-                
-            } catch (error) {
-                return { success: false, message: `PR123: Export test failed - ${error.message}` };
-            }
 
         case 'testRunInStagingWorkflow':
             // Test ECS-based PR creation endpoint (replaced Run in Staging)
