@@ -40,7 +40,9 @@ function createWorker(id) {
   function startPty() {
     console.log(`🔄 Starting worker ${id}`);
     
-    worker.pty = pty.spawn('kiro-cli', ['chat', '--trust-all-tools'], {
+    const kiroPath = process.env.HOME ? `${process.env.HOME}/.local/bin/kiro-cli` : 'kiro-cli';
+    
+    worker.pty = pty.spawn(kiroPath, ['chat', '--trust-all-tools'], {
       name: 'xterm-color',
       cols: 120,
       rows: 30,
