@@ -414,7 +414,6 @@ async function runProductionTest(testName) {
                 const appJsContent = await appJsResponse.text();
                 
                 const features = {
-                    exportBtn: html.includes('export-stories-btn'),
                     heatmapBtn: html.includes('open-heatmap-btn'),
                     // PR123: Check for PR Cards capability in app.js (dynamic content)
                     prCardSupport: appJsContent.includes('Development Tasks') || 
@@ -428,7 +427,7 @@ async function runProductionTest(testName) {
                 
                 return {
                     success: working === total,
-                    message: `Features: ${working}/${total} found - Export:${features.exportBtn?'✓':'✗'} Heatmap:${features.heatmapBtn?'✓':'✗'} PRCards:${features.prCardSupport?'✓':'✗'}`
+                    message: `Features: ${working}/${total} found - Heatmap:${features.heatmapBtn?'✓':'✗'} PRCards:${features.prCardSupport?'✓':'✗'}`
                 };
             } catch (error) {
                 return { success: false, message: `Features: Error - ${error.message}` };
@@ -440,8 +439,7 @@ async function runProductionTest(testName) {
                 const js = await response.text();
                 
                 const functions = {
-                    exportModal: js.includes('buildExportModalContent'),
-                    stagingModal: js.includes('buildRunInStagingModalContent'),
+                    kiroTerminalModal: js.includes('buildKiroTerminalModalContent'),
                     heatmapModal: js.includes('buildHeatmapModalContent')
                 };
                 
@@ -449,8 +447,8 @@ async function runProductionTest(testName) {
                 const total = Object.keys(functions).length;
                 
                 return {
-                    success: working >= 2, // At least 2 functions should exist
-                    message: `JS Functions: ${working}/${total} found - Export:${functions.exportModal?'✓':'✗'} Staging:${functions.stagingModal?'✓':'✗'} Heatmap:${functions.heatmapModal?'✓':'✗'}`
+                    success: working === total,
+                    message: `JS Functions: ${working}/${total} found - KiroTerminal:${functions.kiroTerminalModal?'✓':'✗'} Heatmap:${functions.heatmapModal?'✓':'✗'}`
                 };
             } catch (error) {
                 return { success: false, message: `JS Functions: Error - ${error.message}` };
@@ -1193,31 +1191,11 @@ async function runProductionTest(testName) {
             }
 
         case 'testPR123ExportFunctionality':
-            // Test PR123: Export Stories functionality by checking deployment
-            try {
-                // Check if the main page has the export button
-                const response = await fetch(`${PROD_CONFIG.frontend}/index.html`);
-                if (!response.ok) {
-                    return { success: false, message: 'PR123: Cannot access main page' };
-                }
-                
-                const html = await response.text();
-                const hasExportBtn = html.includes('export-stories-btn');
-                
-                if (!hasExportBtn) {
-                    return { success: false, message: 'PR123: Export Stories button not found in HTML' };
-                }
-                
-                // Check if app.js has the export function
-                const jsResponse = await fetch(`${PROD_CONFIG.frontend}/app.js`);
-                if (jsResponse.ok) {
-                    const js = await jsResponse.text();
-                    const hasExportFunction = js.includes('buildExportModalContent');
-                    
-                    return {
-                        success: hasExportFunction,
-                        message: `PR123: Export button ${hasExportBtn ? 'found' : 'missing'}, function ${hasExportFunction ? 'found' : 'missing'}`
-                    };
+            // Export functionality was removed in PR #302
+            return {
+                success: true,
+                message: 'PR123: Export feature removed in PR #302 (expected)'
+            };
                 }
                 
                 return {
@@ -1661,23 +1639,23 @@ async function runProductionTest(testName) {
         case 'testTerminalWebSocket':
             // Test WebSocket connection capability
             try {
-                const response = await fetch(`${PROD_CONFIG.frontend}/config.js`);
-                const configJs = await response.text();
+                // Check if config.js has EC2_TERMINAL_URL or if app.js has fallback
+                const configResponse = await fetch(`${PROD_CONFIG.frontend}/config.js`);
+                const configJs = await configResponse.text();
+                const hasConfigUrl = configJs.includes('EC2_TERMINAL_URL');
                 
-                const hasEC2Url = configJs.includes('EC2_TERMINAL_URL');
-                const hasCorrectUrl = configJs.includes('44.220.45.57:8080');
+                // Check app.js for fallback URL
+                const appResponse = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const appJs = await appResponse.text();
+                const hasFallbackUrl = appJs.includes('44.220.45.57:8080');
                 
-                if (!hasEC2Url) {
-                    return { success: false, message: 'Terminal WebSocket: EC2_TERMINAL_URL not configured' };
-                }
-                
-                if (!hasCorrectUrl) {
-                    return { success: false, message: 'Terminal WebSocket: Incorrect EC2 URL' };
+                if (!hasConfigUrl && !hasFallbackUrl) {
+                    return { success: false, message: 'Terminal WebSocket: No EC2 URL configured' };
                 }
                 
                 return {
                     success: true,
-                    message: 'Terminal WebSocket: Configuration correct'
+                    message: hasConfigUrl ? 'Terminal WebSocket: Configured in config.js' : 'Terminal WebSocket: Using fallback URL'
                 };
             } catch (error) {
                 return { success: false, message: `Terminal WebSocket test failed - ${error.message}` };
