@@ -2675,9 +2675,28 @@ function renderMindmap() {
     return;
   }
 
+  // Filter out stories with "Done" status
+  const filterDoneStories = (stories) => {
+    return stories
+      .filter(story => story.status !== 'Done')
+      .map(story => ({
+        ...story,
+        children: story.children ? filterDoneStories(story.children) : []
+      }));
+  };
+  const visibleStories = filterDoneStories(state.stories);
+
+  if (visibleStories.length === 0) {
+    layoutStatus.textContent = 'All stories are done.';
+    mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
+    applyMindmapZoom();
+    mindmapHasCentered = false;
+    return;
+  }
+
   const horizontalGap = state.autoLayout ? AUTO_LAYOUT_HORIZONTAL_GAP : 0;
-  const metrics = collectMindmapNodeMetrics(state.stories);
-  const layout = computeLayout(state.stories, 0, Y_OFFSET, horizontalGap, metrics);
+  const metrics = collectMindmapNodeMetrics(visibleStories);
+  const layout = computeLayout(visibleStories, 0, Y_OFFSET, horizontalGap, metrics);
   const nodes = [];
   const nodeMap = new Map();
   layout.nodes.forEach((node) => {
