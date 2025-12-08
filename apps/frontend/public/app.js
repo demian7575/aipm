@@ -1497,6 +1497,31 @@ async function requestCodeWhispererStatus(entry) {
   }
 }
 
+async function checkPRUpToDate(prEntry) {
+  try {
+    const prNumber = prEntry?.number || prEntry?.targetNumber;
+    const owner = prEntry?.owner || 'demian7575';
+    const repo = prEntry?.repo || 'aipm';
+    
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`);
+    if (!response.ok) {
+      throw new Error(`GitHub API returned ${response.status}`);
+    }
+    
+    const prData = await response.json();
+    const mergeable = prData.mergeable;
+    const mergeableState = prData.mergeable_state;
+    
+    // Check if PR is behind main
+    const upToDate = mergeableState === 'clean' || mergeableState === 'unstable';
+    
+    return { upToDate, mergeable, mergeableState };
+  } catch (error) {
+    console.error('Error checking PR status:', error);
+    throw error;
+  }
+}
+
 async function mergePR(prEntry) {
   try {
     const payload = {
@@ -1828,8 +1853,29 @@ function renderCodeWhispererSectionList(container, story) {
       mergeBtn.className = 'button primary merge-pr-btn';
       mergeBtn.textContent = 'Merge PR';
       mergeBtn.addEventListener('click', async () => {
-        if (!confirm(`Merge PR #${entry.number || entry.targetNumber} into main?`)) return;
         mergeBtn.disabled = true;
+        mergeBtn.textContent = 'Checking...';
+        
+        // Check if PR is up-to-date with main
+        try {
+          const checkResult = await checkPRUpToDate(entry);
+          if (!checkResult.upToDate) {
+            mergeBtn.disabled = false;
+            mergeBtn.textContent = 'Merge PR';
+            alert('The code base is not up to date. Please rebase onto origin/main before merging.');
+            return;
+          }
+        } catch (error) {
+          console.warn('Failed to check PR status:', error);
+          // Continue with merge if check fails
+        }
+        
+        if (!confirm(`Merge PR #${entry.number || entry.targetNumber} into main?`)) {
+          mergeBtn.disabled = false;
+          mergeBtn.textContent = 'Merge PR';
+          return;
+        }
+        
         mergeBtn.textContent = 'Merging...';
         
         try {
