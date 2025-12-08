@@ -4734,10 +4734,8 @@ function isAcceptanceTestPassed(status) {
   return typeof status === 'string' && status.trim().toLowerCase() === 'pass';
 }
 
-function ensureCanMarkStoryDone(db, storyId) {
-  const storyRows = db
-    .prepare('SELECT id, parent_id, title, status FROM user_stories')
-    .all();
+async function ensureCanMarkStoryDone(db, storyId) {
+  const storyRows = await safeSelectAll(db, 'SELECT id, parent_id, title, status FROM user_stories');
   const childrenByParent = new Map();
   storyRows.forEach((row) => {
     const parentId = row.parent_id == null ? null : Number(row.parent_id);
@@ -4763,7 +4761,7 @@ function ensureCanMarkStoryDone(db, storyId) {
   const testQuery = acceptanceTestsHasTitleColumn
     ? 'SELECT id, title, status FROM acceptance_tests WHERE story_id = ?'
     : 'SELECT id, status FROM acceptance_tests WHERE story_id = ?';
-  const tests = db.prepare(testQuery).all(storyId);
+  const tests = await safeSelectAll(db, testQuery, storyId);
   const failingTests = tests.filter((test) => !isAcceptanceTestPassed(test.status));
 
   const details = {
@@ -6228,7 +6226,7 @@ export async function createApp() {
         }
 
         if (nextStatus === 'Done') {
-          ensureCanMarkStoryDone(db, storyId);
+          await ensureCanMarkStoryDone(db, storyId);
         }
 
         const nextAsA = asA ?? existing.as_a ?? '';
