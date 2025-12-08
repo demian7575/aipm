@@ -62,10 +62,7 @@ jobs:
           
           # Try to rebase
           if git rebase origin/main; then
-            echo "✅ Rebase successful"
-            # Push the rebased branch back to GitHub
-            git push -f origin $BRANCH_NAME
-            echo "📤 Pushed rebased branch to GitHub"
+            echo "✅ Rebase successful - deploying rebased code"
           else
             echo "⚠️  Rebase conflict detected - using Kiro CLI to resolve"
             
@@ -91,9 +88,7 @@ jobs:
             if [ "$SUCCESS" = "true" ]; then
               # Verify rebase worked
               if git rebase origin/main 2>/dev/null; then
-                echo "✅ Conflicts resolved by Kiro"
-                git push -f origin $BRANCH_NAME
-                echo "📤 Pushed rebased branch to GitHub"
+                echo "✅ Conflicts resolved by Kiro - deploying rebased code"
               else
                 git rebase --abort
                 SUCCESS="false"
