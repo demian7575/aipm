@@ -37,7 +37,7 @@ declare -A ENVS
 ENVS[prod]="${PROD_API_ID}.execute-api.us-east-1.amazonaws.com/prod|aipm-static-hosting-demo|aipm-backend-prod-api"
 ENVS[dev]="${DEV_API_ID}.execute-api.us-east-1.amazonaws.com/dev|aipm-dev-frontend-hosting|aipm-backend-dev-api"
 
-# Test 1: Frontend Config Points to Correct API
+# Test 1-2: Frontend Config Points to Correct API
 TEST_NUM=1
 for env in prod dev; do
     IFS='|' read -r api_url s3_bucket lambda_name <<< "${ENVS[$env]}"
@@ -54,7 +54,7 @@ for env in prod dev; do
     ((TEST_NUM++))
 done
 
-# Test 3: Lambda GITHUB_TOKEN Configuration
+# Test 3-4: Lambda GITHUB_TOKEN Configuration
 for env in prod dev; do
     IFS='|' read -r api_url s3_bucket lambda_name <<< "${ENVS[$env]}"
     

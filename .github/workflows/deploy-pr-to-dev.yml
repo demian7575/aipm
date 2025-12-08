@@ -60,8 +60,11 @@ jobs:
           echo "🔄 Rebasing PR onto latest main..."
           git fetch origin main
           
+          # Configure git to use non-interactive editor
+          git config core.editor true
+          
           # Try to rebase
-          if git rebase origin/main; then
+          if GIT_EDITOR=true git rebase origin/main; then
             echo "✅ Rebase successful - deploying rebased code"
           else
             echo "⚠️  Rebase conflict detected - using Kiro CLI to resolve"
@@ -87,7 +90,7 @@ jobs:
             
             if [ "$SUCCESS" = "true" ]; then
               # Verify rebase worked
-              if git rebase origin/main 2>/dev/null; then
+              if GIT_EDITOR=true git rebase origin/main 2>/dev/null; then
                 echo "✅ Conflicts resolved by Kiro - deploying rebased code"
               else
                 git rebase --abort
