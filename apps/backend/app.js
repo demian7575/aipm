@@ -4829,7 +4829,8 @@ async function safeSelectAll(db, sql, ...params) {
   try {
     // Check if this is DynamoDB adapter
     if (db.safeSelectAll && typeof db.safeSelectAll === 'function') {
-      return await db.safeSelectAll(sql, ...params);
+      const result = await db.safeSelectAll(sql, ...params);
+      return Array.isArray(result) ? result : [];
     }
     
     // SQLite path
