@@ -1863,7 +1863,7 @@ function renderCodeWhispererSectionList(container, story) {
           if (!checkResult.upToDate) {
             mergeBtn.disabled = false;
             mergeBtn.textContent = 'Merge PR';
-            alert('The code base is not up to date. Please rebase onto origin/main before merging.');
+            alert('The code base is outdated. Click \'Test in Dev\' again to rebase to origin/main before main.');
             return;
           }
         } catch (error) {
