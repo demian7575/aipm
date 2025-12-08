@@ -3813,6 +3813,7 @@ function renderDetails() {
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
+      <button type="button" class="primary" id="done-story-btn">Done</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
     </div>
     <div class="full field-row">
@@ -4378,6 +4379,15 @@ function renderDetails() {
   deleteButton?.addEventListener('click', (event) => {
     event.preventDefault();
     void confirmAndDeleteStory(story.id);
+  });
+
+  const doneButton = form.querySelector('#done-story-btn');
+  doneButton?.addEventListener('click', async (event) => {
+    event.preventDefault();
+    if (confirm('Mark this story as Done?')) {
+      await updateStory(story.id, { status: 'Done' });
+      location.reload();
+    }
   });
 
   const emailBtn = form.querySelector('#assignee-email-btn');
