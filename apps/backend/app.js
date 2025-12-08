@@ -5754,6 +5754,18 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/version' && method === 'GET') {
+      const version = { version: '0.1.0' };
+      const branch = spawnSync('git', ['branch', '--show-current'], { encoding: 'utf8' }).stdout.trim();
+      const prMatch = branch.match(/#(\d+)/);
+      if (prMatch) {
+        version.prNumber = prMatch[1];
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(version));
+      return;
+    }
+
     if (pathname === '/api/codewhisperer-status' && method === 'POST') {
       await handleCodeWhispererStatusRequest(req, res);
       return;
