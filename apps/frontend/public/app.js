@@ -4756,7 +4756,6 @@ function renderDetails() {
       }
     });
   });
-  });
 }
 
 function toggleStoryExpansion(storyId) {
