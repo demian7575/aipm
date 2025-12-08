@@ -60,6 +60,11 @@ jobs:
           echo "🔄 Merging latest main into PR branch..."
           git fetch origin main
           
+          # Force update app.js from main to ensure latest fixes
+          echo "📥 Updating app.js from main..."
+          git checkout origin/main -- apps/frontend/public/app.js
+          git add apps/frontend/public/app.js
+          
           if ! git merge origin/main --no-edit; then
             echo "⚠️  Merge conflict detected - using Kiro CLI to resolve"
             
