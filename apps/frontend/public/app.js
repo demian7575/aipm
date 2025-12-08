@@ -33,6 +33,7 @@ const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
+const refineKiroBtn = document.getElementById('refine-kiro-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -1903,22 +1904,6 @@ function renderCodeWhispererSectionList(container, story) {
         }
       });
       actions.appendChild(mergeBtn);
-
-      const kiroBtn = document.createElement('button');
-      kiroBtn.type = 'button';
-      kiroBtn.className = 'button secondary kiro-terminal-btn';
-      kiroBtn.textContent = 'Refine with Kiro';
-      kiroBtn.addEventListener('click', async () => {
-        const { element, onClose } = await buildKiroTerminalModalContent(entry);
-        openModal({
-          title: 'Kiro CLI Terminal',
-          content: element,
-          cancelLabel: 'Close',
-          size: 'fullscreen',
-          onClose,
-        });
-      });
-      actions.appendChild(kiroBtn);
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -6939,6 +6924,26 @@ function initialize() {
   renderMindmap();
   renderDetails();
 
+  refineKiroBtn?.addEventListener('click', async () => {
+    if (!state.selectedStoryId) {
+      showToast('Please select a story first', 'warning');
+      return;
+    }
+    const story = storyIndex.get(state.selectedStoryId);
+    if (!story) {
+      showToast('Story not found', 'error');
+      return;
+    }
+    const entry = { storyId: story.id, title: story.title };
+    const { element, onClose } = await buildKiroTerminalModalContent(entry);
+    openModal({
+      title: 'Kiro CLI Terminal',
+      content: element,
+      cancelLabel: 'Close',
+      size: 'fullscreen',
+      onClose,
+    });
+  });
   generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));

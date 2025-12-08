@@ -1,12 +1,12 @@
-# Hide User Story in "Done" status from mindmap view.
+# Move "Refine with Kiro" button at every "Development Tasks" card to Top of the "AIPM window".
 
-As a User, I want to hide user story in "done" status from mindmap view.. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
+As a User, I want to move "refine with kiro" button at every "development tasks" card to top of the "aipm window".. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
 
 Constraints: 
 
 Acceptance Criteria:
 - The feature works as described
-- The implementation matches the requirement: Hide User Story in "Done" status from mindmap view.
+- The implementation matches the requirement: Move "Refine with Kiro" button at every "Development Tasks" card to Top of the "AIPM window".
 - The changes are properly tested
 
 ---
