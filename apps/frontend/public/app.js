@@ -1,3 +1,5 @@
+import { createKiroTerminal } from './components/kiro-terminal.js';
+
 // Removed Codex/CodeWhisperer imports - now using automatic PR creation
 
 function getApiBaseUrl() {
@@ -3303,162 +3305,36 @@ function buildDeployToDevModalContent(prEntry = null) {
   return { element: container, onClose: () => {} };
 }
 
+function buildTerminalRoute(prEntry = null) {
+  const params = new URLSearchParams();
+  const branchName = prEntry?.branchName || prEntry?.branch;
+  const prId = prEntry?.number || prEntry?.targetNumber;
+
+  if (prId) params.set('pr', prId);
+  if (branchName) params.set('branch', branchName);
+  if (prEntry?.taskTitle) params.set('title', prEntry.taskTitle);
+
+  const base = `${window.location.origin.replace(/\/$/, '')}/terminal/`;
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
+}
+
 async function buildKiroTerminalModalContent(prEntry = null) {
   const container = document.createElement('div');
-  container.className = 'run-staging-modal';
-  
-  console.log('🔍 PR Entry:', prEntry);
-  
-  const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
-  const branchName = prEntry?.branchName || 'main';
-  
-  const prInfo = prEntry ? `
-    <div class="pr-info">
-      <h4>PR Information</h4>
-      <p><strong>PR ID:</strong> ${prId}</p>
-      <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
-      ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
-      <p><strong>Branch:</strong> ${escapeHtml(branchName)}</p>
-    </div>
-  ` : '';
-  
-  container.innerHTML = `
-    ${prInfo}
-    <div class="staging-options">
-      <h3>Refine PR with Kiro</h3>
-      <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
-    </div>
-  `;
-  
-  const terminalContainer = container.querySelector('#terminal-container');
-  
-  let terminal = null;
-  let socket = null;
-  
-  // Auto-start terminal immediately
-  if (!window.Terminal) {
-    terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
-    return { element: container, onClose: () => {} };
-  }
-  
-  // Create xterm terminal
-  terminal = new window.Terminal({
-    cursorBlink: true,
-    fontSize: 14,
-    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-    theme: {
-      background: '#000000',
-      foreground: '#ffffff'
-    }
-  });
-  
-  terminal.open(terminalContainer);
-  
-  // Manual resize function
-  const resizeTerminal = () => {
-    const width = terminalContainer.clientWidth;
-    const height = terminalContainer.clientHeight;
-    const cols = Math.floor(width / 9); // Approximate char width
-    const rows = Math.floor(height / 17); // Approximate line height
-    if (cols > 0 && rows > 0) {
-      terminal.resize(cols, rows);
-    }
-  };
-  
-  resizeTerminal(); // Initial size
-  terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
-  terminal.writeln('');
-  
-  // Connect to EC2 WebSocket server
-  const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
-  // Pre-checkout branch via SSH before opening terminal
-  if (prEntry?.branchName) {
-    terminal.writeln('🔄 Preparing branch...');
-    
-    try {
-      const response = await fetch('http://44.220.45.57:8080/checkout-branch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branch: prEntry.branchName })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        terminal.writeln(`✓ Branch ${prEntry.branchName} ready`);
-      } else {
-        terminal.writeln(`⚠️  Branch checkout warning: ${result.message}`);
-      }
-    } catch (error) {
-      terminal.writeln(`⚠️  Could not pre-checkout branch: ${error.message}`);
-    }
-    
-    terminal.writeln('');
-  }
-  
-  const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
-  
-  socket = new WebSocket(wsUrl);
-  
-  socket.onopen = () => {
-    terminal.writeln('✓ Connected to Kiro CLI');
-    if (prEntry?.taskTitle) {
-      terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
-    }
-    terminal.writeln('');
-    terminal.writeln('💬 Start chatting with Kiro to refine your code!');
-    terminal.writeln('');
-  };
-  
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'output') {
-        terminal.write(data.data);
-      }
-    };
-    
-    socket.onerror = (error) => {
-      terminal.writeln('\r\n❌ Connection error');
-      console.error('WebSocket error:', error);
-    };
-    
-    socket.onclose = () => {
-      terminal.writeln('\r\n🔌 Disconnected');
-    };
-    
-    // Send terminal input to EC2
-    terminal.onData((data) => {
-      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log('Sending to WebSocket:', { type: 'input', data });
-        socket.send(JSON.stringify({ type: 'input', data }));
-      } else {
-        console.warn('Socket not ready, state:', socket?.readyState);
-      }
-    });
-  
-  // Auto-resize terminal when modal is resized
-  const resizeObserver = new ResizeObserver(() => {
-    if (terminal && terminalContainer) {
-      const width = terminalContainer.clientWidth;
-      const height = terminalContainer.clientHeight;
-      const cols = Math.floor(width / 9);
-      const rows = Math.floor(height / 17);
-      if (cols > 0 && rows > 0) {
-        terminal.resize(cols, rows);
-      }
-    }
-  });
-  resizeObserver.observe(terminalContainer);
-  
-  return { 
-    element: container, 
-    onClose: () => {
-      resizeObserver.disconnect();
-      if (socket) socket.close();
-      if (terminal) terminal.dispose();
-    } 
+  container.className = 'run-staging-modal kiro-terminal-modal';
+
+  const { element, destroy } = await createKiroTerminal({ prEntry });
+
+  const routeLink = document.createElement('div');
+  routeLink.className = 'kiro-terminal-route-link';
+  routeLink.innerHTML = `<a href="${buildTerminalRoute(prEntry)}" target="_blank" rel="noopener">Open full terminal view</a>`;
+
+  container.appendChild(element);
+  container.appendChild(routeLink);
+
+  return {
+    element: container,
+    onClose: destroy,
   };
 }
 

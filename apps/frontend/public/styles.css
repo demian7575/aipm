@@ -2205,6 +2205,21 @@ dialog[data-size='content'] .modal-shell {
   flex-shrink: 0;
 }
 
+.kiro-terminal-modal .kiro-terminal-route-link {
+  margin-top: 12px;
+  text-align: right;
+}
+
+.kiro-terminal-modal .kiro-terminal-route-link a {
+  color: #5b8def;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kiro-terminal-modal .kiro-terminal-route-link a:hover {
+  text-decoration: underline;
+}
+
 /* Bold and underline specific labels in Details panel */
 .story-form .field-row > label,
 .story-form .full > label {
