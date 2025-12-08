@@ -1887,7 +1887,7 @@ function renderCodeWhispererSectionList(container, story) {
           if (result && result.success) {
             showToast('PR merged and deleted from GitHub', 'success');
             // Refresh the card to show updated status
-            const story = state.stories.get(entry.storyId);
+            const story = state.stories.find(s => s.id === entry.storyId);
             if (story) {
               const section = document.querySelector(`[data-story-id="${entry.storyId}"] .codewhisperer-section`);
               if (section) {
