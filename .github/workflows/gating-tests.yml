@@ -27,6 +27,36 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
+    - name: Wait for Deployment Propagation
+      run: |
+        echo "⏳ Waiting for deployments to propagate..."
+        sleep 30
+        
+        echo "🔍 Checking Lambda health..."
+        MAX_RETRIES=5
+        RETRY_COUNT=0
+        
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          # Test prod Lambda
+          PROD_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/stories" || echo "000")
+          
+          # Test dev Lambda
+          DEV_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://chob6arn1k.execute-api.us-east-1.amazonaws.com/dev/api/stories" || echo "000")
+          
+          if [ "$PROD_STATUS" = "200" ] && [ "$DEV_STATUS" = "200" ]; then
+            echo "✅ Both environments responding"
+            break
+          fi
+          
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+          if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo "⏳ Retry $RETRY_COUNT/$MAX_RETRIES - Prod: $PROD_STATUS, Dev: $DEV_STATUS"
+            sleep 15
+          fi
+        done
+        
+        echo "✅ Ready for gating tests"
+
     - name: Run Environment Tests
       run: |
         node scripts/testing/run-comprehensive-gating-tests.cjs
