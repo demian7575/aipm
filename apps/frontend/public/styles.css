@@ -2200,3 +2200,12 @@ dialog[data-size='content'] .modal-shell {
   margin: 0 0 0.5rem 0;
   flex-shrink: 0;
 }
+
+/* Child story done styling */
+.child-story-done {
+  opacity: 0.6;
+}
+
+.child-story-done .child-story-title {
+  color: #4b5563;
+}
