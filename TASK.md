@@ -1,25 +1,27 @@
-# When click "Merge PR" button
+# Chnage Color of Child Story in "Child Stories" list dark grey , when the stuatus of a Child Story become 'Done'
 
-As a User, I want to when click "merge pr" button, if the code base of the pr is not the latest. pop up  dialog box to show "the code base is outdated. click 'test in dev' again to rebase to origin/main before main".. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
+As a User, I want to chnage color of child story in "child stories" list dark grey , when the stuatus of a child story become 'done'. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
 
 Constraints: 
 
 Acceptance Criteria:
 - The feature works as described
-- The implementation matches the requirement: When click "Merge PR" button, if the code base of the PR is not the latest. Pop up  dialog box to show "The code base is outdated. Click 'Test in Dev' again to rebase to origin/main before main".
+- The implementation matches the requirement: Chnage Color of Child Story in "Child Stories" list dark grey , when the stuatus of a Child Story become 'Done'
 - The changes are properly tested
 
 ---
 ✅ Implementation Complete
 
-## Implementation Details:
-The feature is already implemented in `apps/frontend/public/app.js` (lines 1856-1872):
+## Changes Made
 
-1. When "Merge PR" button is clicked, it first checks if PR is up-to-date
-2. Calls `checkPRUpToDate(entry)` to verify PR status
-3. If `!checkResult.upToDate`, shows alert dialog with message:
-   "The code base is outdated. Click 'Test in Dev' again to rebase to origin/main before main."
-4. Prevents merge and returns early if outdated
-5. Only proceeds with merge if PR is up-to-date
+### 1. Updated `apps/frontend/public/app.js`
+- Modified child story rendering logic (lines 4800-4817)
+- Added conditional class `done-story` when child status is 'Done'
 
-The implementation matches all acceptance criteria.
+### 2. Updated `apps/frontend/public/styles.css`
+- Added CSS rule for `.child-story-title.done-story`
+- Applied dark grey color (#4b5563) to done child stories
+
+## Implementation Details
+
+When rendering child stories in the details panel, the code now checks if `child.status === 'Done'` and applies the `done-story` class to the title link. The CSS styling changes the text color to dark grey (#4b5563) for completed child stories, making them visually distinct from active stories.

@@ -1176,6 +1176,10 @@ body.is-mindmap-panning {
   color: #1e3a8a;
 }
 
+.child-story-title.done-story {
+  color: #4b5563;
+}
+
 .dependencies-section {
   margin-top: 1.5rem;
 }
