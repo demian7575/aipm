@@ -29,15 +29,19 @@ else
     echo "      Current: $(echo "$PROD_CONFIG" | grep API_BASE_URL)"
 fi
 
-# Test 2: Dev config.js points to dev API
+# Test 2: Dev config.js points to dev API (skip if dev doesn't exist)
 echo ""
 echo "📋 Test 2: Development Frontend Config"
-DEV_CONFIG=$(curl -s -m 5 http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/config.js)
-if echo "$DEV_CONFIG" | grep -q "dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev"; then
-    test_pass "Development config points to dev API"
+if aws cloudformation describe-stacks --stack-name aipm-dev --region us-east-1 >/dev/null 2>&1; then
+    DEV_CONFIG=$(curl -s -m 5 http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/config.js)
+    if echo "$DEV_CONFIG" | grep -q "dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev"; then
+        test_pass "Development config points to dev API"
+    else
+        test_fail "Development config NOT pointing to dev API"
+        echo "      Current: $(echo "$DEV_CONFIG" | grep API_BASE_URL)"
+    fi
 else
-    test_fail "Development config NOT pointing to dev API"
-    echo "      Current: $(echo "$DEV_CONFIG" | grep API_BASE_URL)"
+    echo "   ⏭️  Skipped (dev environment not deployed)"
 fi
 
 # Test 3: Production Lambda has GITHUB_TOKEN
@@ -54,18 +58,22 @@ else
     test_fail "Production Lambda GITHUB_TOKEN is empty or missing"
 fi
 
-# Test 4: Dev Lambda has GITHUB_TOKEN
+# Test 4: Dev Lambda has GITHUB_TOKEN (skip if dev doesn't exist)
 echo ""
 echo "📋 Test 4: Development Lambda GITHUB_TOKEN"
-DEV_TOKEN=$(aws lambda get-function-configuration \
-    --function-name aipm-backend-dev-api \
-    --region us-east-1 \
-    --query 'Environment.Variables.GITHUB_TOKEN' \
-    --output text 2>/dev/null)
-if [ -n "$DEV_TOKEN" ] && [ "$DEV_TOKEN" != "None" ] && [ "$DEV_TOKEN" != "" ]; then
-    test_pass "Development Lambda has GITHUB_TOKEN configured"
+if aws lambda get-function-configuration --function-name aipm-backend-dev-api --region us-east-1 >/dev/null 2>&1; then
+    DEV_TOKEN=$(aws lambda get-function-configuration \
+        --function-name aipm-backend-dev-api \
+        --region us-east-1 \
+        --query 'Environment.Variables.GITHUB_TOKEN' \
+        --output text 2>/dev/null)
+    if [ -n "$DEV_TOKEN" ] && [ "$DEV_TOKEN" != "None" ] && [ "$DEV_TOKEN" != "" ]; then
+        test_pass "Development Lambda has GITHUB_TOKEN configured"
+    else
+        test_fail "Development Lambda GITHUB_TOKEN is empty or missing"
+    fi
 else
-    test_fail "Development Lambda GITHUB_TOKEN is empty or missing"
+    echo "   ⏭️  Skipped (dev Lambda not deployed)"
 fi
 
 # Test 5: Production Lambda has EC2_PR_PROCESSOR_URL
@@ -107,15 +115,19 @@ else
     echo "      Response: $(echo "$PROD_HEALTH" | head -c 100)"
 fi
 
-# Test 8: Dev Lambda is not broken
+# Test 8: Dev Lambda is not broken (skip if dev doesn't exist)
 echo ""
 echo "📋 Test 8: Development Lambda Health"
-DEV_HEALTH=$(curl -s -m 10 https://dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev/api/stories 2>&1)
-if echo "$DEV_HEALTH" | jq -e 'type == "array"' > /dev/null 2>&1; then
-    test_pass "Development Lambda responding correctly"
+if aws lambda get-function-configuration --function-name aipm-backend-dev-api --region us-east-1 >/dev/null 2>&1; then
+    DEV_HEALTH=$(curl -s -m 10 https://dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev/api/stories 2>&1)
+    if echo "$DEV_HEALTH" | jq -e 'type == "array"' > /dev/null 2>&1; then
+        test_pass "Development Lambda responding correctly"
+    else
+        test_fail "Development Lambda not responding or broken"
+        echo "      Response: $(echo "$DEV_HEALTH" | head -c 100)"
+    fi
 else
-    test_fail "Development Lambda not responding or broken"
-    echo "      Response: $(echo "$DEV_HEALTH" | head -c 100)"
+    echo "   ⏭️  Skipped (dev Lambda not deployed)"
 fi
 
 # Test 9: serverless.yml uses SSM for GITHUB_TOKEN
