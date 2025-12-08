@@ -1864,6 +1864,22 @@ function renderCodeWhispererSectionList(container, story) {
         // Check if PR is up-to-date with main
         try {
           const checkResult = await checkPRUpToDate(entry);
+          
+          // Check if PR is already merged
+          const prNumber = entry?.number || entry?.targetNumber;
+          const repoPath = entry?.repo || 'demian7575/aipm';
+          const [owner, repo] = repoPath.split('/');
+          const prResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`);
+          if (prResponse.ok) {
+            const prData = await prResponse.json();
+            if (prData.state === 'closed' && prData.merged_at) {
+              mergeBtn.disabled = false;
+              mergeBtn.textContent = 'Merge PR';
+              alert('This PR is already merged.');
+              return;
+            }
+          }
+          
           if (!checkResult.upToDate) {
             mergeBtn.disabled = false;
             mergeBtn.textContent = 'Merge PR';
