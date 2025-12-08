@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kiro CLI Terminal</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="stylesheet" href="styles.css?v=1.1.0" />
+    <link rel="stylesheet" href="vendor/xterm/xterm.min.css" />
+    <style>
+      :root {
+        --terminal-bg: #0b0b0b;
+        --terminal-fg: #e8e8e8;
+        --panel-bg: #0f1629;
+        --accent: #67b0ff;
+      }
+      body {
+        margin: 0;
+        background: var(--terminal-bg);
+        color: var(--terminal-fg);
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      .terminal-page {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 100vh;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: rgba(15, 22, 41, 0.85);
+        backdrop-filter: blur(6px);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        gap: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      }
+      .title-block h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .meta {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 13px;
+      }
+      .meta span {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 6px 10px;
+      }
+      .meta a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .toolbar button {
+        background: #182235;
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      .toolbar button[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .status {
+        padding: 8px 16px;
+        font-size: 13px;
+        background: rgba(255, 255, 255, 0.04);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .status .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+        font-weight: 600;
+      }
+      .status .pill.ready { color: #3bcf81; }
+      .status .pill.connecting { color: #f9d56e; }
+      .status .pill.error { color: #f97a7a; }
+      #terminal-shell {
+        padding: 16px;
+      }
+      #terminal {
+        width: 100%;
+        height: calc(100vh - 148px);
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+    </style>
+    <script src="vendor/xterm/xterm.min.js"></script>
+  </head>
+  <body>
+    <div class="terminal-page">
+      <header>
+        <div class="title-block">
+          <h1>Kiro CLI Terminal</h1>
+          <div class="meta" id="meta"></div>
+        </div>
+        <div class="toolbar">
+          <button id="reconnect">Reconnect</button>
+          <button id="clear">Clear</button>
+          <button id="copy">Copy</button>
+        </div>
+      </header>
+      <div class="status" id="status"></div>
+      <div id="terminal-shell">
+        <div id="terminal"></div>
+      </div>
+    </div>
+    <script>
+      const configScript = document.createElement('script');
+      configScript.src = 'config.js';
+      configScript.onload = () => {
+        const appScript = document.createElement('script');
+        appScript.type = 'module';
+        appScript.src = 'kiro-terminal.js?v=' + Date.now();
+        document.body.appendChild(appScript);
+      };
+      document.head.appendChild(configScript);
+    </script>
+  </body>
+</html>
