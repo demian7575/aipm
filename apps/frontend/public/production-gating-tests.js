@@ -1562,17 +1562,20 @@ async function runProductionTest(testName) {
             }
 
         case 'testRefineWithKiroButton':
-            // Test "Refine with Kiro" button exists
+            // Test "Refine with Kiro" button exists in header
             try {
-                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
-                const js = await response.text();
+                const htmlResponse = await fetch(`${PROD_CONFIG.frontend}/index.html`);
+                const html = await htmlResponse.text();
                 
-                const hasButton = js.includes('Refine with Kiro');
+                const jsResponse = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const js = await jsResponse.text();
+                
+                const hasButton = html.includes('Refine with Kiro');
                 const hasFunction = js.includes('buildKiroTerminalModalContent');
                 const hasTerminalInit = js.includes('new window.Terminal');
                 
                 if (!hasButton) {
-                    return { success: false, message: 'Refine with Kiro: Button text not found' };
+                    return { success: false, message: 'Refine with Kiro: Button text not found in header' };
                 }
                 
                 if (!hasFunction) {

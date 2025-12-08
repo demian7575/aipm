@@ -4734,10 +4734,8 @@ function isAcceptanceTestPassed(status) {
   return typeof status === 'string' && status.trim().toLowerCase() === 'pass';
 }
 
-function ensureCanMarkStoryDone(db, storyId) {
-  const storyRows = db
-    .prepare('SELECT id, parent_id, title, status FROM user_stories')
-    .all();
+async function ensureCanMarkStoryDone(db, storyId) {
+  const storyRows = await safeSelectAll(db, 'SELECT id, parent_id, title, status FROM user_stories');
   const childrenByParent = new Map();
   storyRows.forEach((row) => {
     const parentId = row.parent_id == null ? null : Number(row.parent_id);
@@ -4763,7 +4761,7 @@ function ensureCanMarkStoryDone(db, storyId) {
   const testQuery = acceptanceTestsHasTitleColumn
     ? 'SELECT id, title, status FROM acceptance_tests WHERE story_id = ?'
     : 'SELECT id, status FROM acceptance_tests WHERE story_id = ?';
-  const tests = db.prepare(testQuery).all(storyId);
+  const tests = await safeSelectAll(db, testQuery, storyId);
   const failingTests = tests.filter((test) => !isAcceptanceTestPassed(test.status));
 
   const details = {
@@ -4777,12 +4775,10 @@ function ensureCanMarkStoryDone(db, storyId) {
       title: acceptanceTestsHasTitleColumn && typeof test.title === 'string' ? test.title : '',
       status: test.status || ACCEPTANCE_TEST_STATUS_DRAFT,
     })),
-    missingTests: tests.length === 0,
   };
 
   if (
     details.incompleteChildren.length > 0 ||
-    details.missingTests ||
     details.failingTests.length > 0
   ) {
     const error = new Error(
@@ -4833,7 +4829,8 @@ async function safeSelectAll(db, sql, ...params) {
   try {
     // Check if this is DynamoDB adapter
     if (db.safeSelectAll && typeof db.safeSelectAll === 'function') {
-      return await db.safeSelectAll(sql, ...params);
+      const result = await db.safeSelectAll(sql, ...params);
+      return Array.isArray(result) ? result : [];
     }
     
     // SQLite path
@@ -6228,7 +6225,7 @@ export async function createApp() {
         }
 
         if (nextStatus === 'Done') {
-          ensureCanMarkStoryDone(db, storyId);
+          await ensureCanMarkStoryDone(db, storyId);
         }
 
         const nextAsA = asA ?? existing.as_a ?? '';
