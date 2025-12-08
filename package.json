@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "bash scripts/testing/run-all-gating-tests.sh"
+    "test": "bash scripts/testing/run-all-gating-tests.sh",
+    "test:dev-gating": "echo 'Dev gating tests - skipping Node.js tests'",
+    "gating:dev": "bash scripts/testing/test-deployment-config-gating.sh"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.932.0",
