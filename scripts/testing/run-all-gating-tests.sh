@@ -52,7 +52,21 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# 4. Run Kiro API tests (if available)
+# 4. Run Merge PR Workflow Tests
+echo "🔀 Running Merge PR Workflow Tests..."
+if bash scripts/testing/test-merge-pr-workflow.sh; then
+    echo "✅ Merge PR workflow tests passed"
+    TOTAL_PASSED=$((TOTAL_PASSED + 1))
+else
+    echo "❌ Merge PR workflow tests failed"
+    TOTAL_FAILED=$((TOTAL_FAILED + 1))
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# 5. Run Kiro API tests (if available)
 if [ -n "$KIRO_API_URL" ] || curl -s -m 2 http://44.220.45.57:8081/health > /dev/null 2>&1; then
     echo "🤖 Running Kiro API Tests..."
     if bash scripts/testing/test-kiro-api-gating.sh; then
