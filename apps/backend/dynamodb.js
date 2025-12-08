@@ -21,6 +21,13 @@ export class DynamoDBDataLayer {
           const result = await this.createStory(story);
           return { lastInsertRowid: result.id };
         }
+        if (sql.includes('UPDATE user_stories')) {
+          // UPDATE user_stories SET ... WHERE id = ?
+          const id = params[params.length - 1]; // Last param is the ID
+          const updates = this._parseUpdateParams(sql, params);
+          await this.updateStory(id, updates);
+          return { changes: 1 };
+        }
         if (sql.includes('DELETE FROM user_stories WHERE id = ?')) {
           // Delete story by ID
           const id = params[0];
@@ -101,6 +108,25 @@ export class DynamoDBDataLayer {
       status: status || 'Draft',
       createdAt: createdAt || new Date().toISOString(),
       updatedAt: updatedAt || new Date().toISOString()
+    };
+  }
+
+  _parseUpdateParams(sql, params) {
+    // UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?
+    const [title, description, components, storyPoint, assigneeEmail, asA, iWant, soThat, status, updatedAt, investWarnings, investAnalysis] = params;
+    return {
+      title,
+      description,
+      components,
+      storyPoint,
+      assigneeEmail,
+      asA,
+      iWant,
+      soThat,
+      status,
+      updatedAt,
+      investWarnings,
+      investAnalysis
     };
   }
 
