@@ -4388,7 +4388,10 @@ function renderDetails() {
       const response = await fetch(`${getApiBaseUrl()}/api/stories/${story.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Done' })
+        body: JSON.stringify({ 
+          title: story.title,
+          status: 'Done' 
+        })
       });
       if (response.ok) {
         await loadStories();
