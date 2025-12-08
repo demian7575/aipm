@@ -6979,15 +6979,13 @@ function initialize() {
       showToast('Story not found', 'error');
       return;
     }
-    const entry = { storyId: story.id, title: story.title };
-    const { element, onClose } = await buildKiroTerminalModalContent(entry);
-    openModal({
-      title: 'Kiro CLI Terminal',
-      content: element,
-      cancelLabel: 'Close',
-      size: 'fullscreen',
-      onClose,
+    
+    // Open Kiro terminal in new window
+    const params = new URLSearchParams({
+      storyId: story.id,
+      title: story.title
     });
+    window.open(`/kiro-terminal.html?${params.toString()}`, '_blank', 'width=1200,height=800');
   });
   generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));

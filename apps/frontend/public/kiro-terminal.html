@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kiro CLI Terminal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1e1e1e;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: #2d2d2d;
+      padding: 12px 20px;
+      border-bottom: 1px solid #444;
+    }
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .header .story-info {
+      font-size: 13px;
+      color: #aaa;
+    }
+    #terminal-container {
+      flex: 1;
+      padding: 10px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Kiro CLI Terminal</h1>
+    <div class="story-info" id="story-info">Loading story context...</div>
+  </div>
+  <div id="terminal-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const storyId = params.get('storyId');
+    const storyTitle = params.get('title');
+    
+    // Display story info
+    const storyInfo = document.getElementById('story-info');
+    if (storyTitle) {
+      storyInfo.textContent = `Story: ${decodeURIComponent(storyTitle)}`;
+    }
+
+    // Create terminal
+    const terminal = new Terminal({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      theme: {
+        background: '#1e1e1e',
+        foreground: '#ffffff'
+      }
+    });
+
+    const fitAddon = new FitAddon.FitAddon();
+    terminal.loadAddon(fitAddon);
+    
+    const terminalContainer = document.getElementById('terminal-container');
+    terminal.open(terminalContainer);
+    fitAddon.fit();
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      fitAddon.fit();
+    });
+
+    // Initialize terminal session
+    let sessionId = null;
+    let pollInterval = null;
+    let lastOutputIndex = 0;
+
+    async function startTerminalSession() {
+      try {
+        terminal.writeln('🚀 Starting Kiro CLI session...\r\n');
+        
+        const response = await fetch('/api/terminal/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            branch: 'main',
+            storyId: storyId,
+            storyTitle: storyTitle
+          })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          sessionId = result.sessionId;
+          terminal.writeln(`✅ Session started: ${sessionId}\r\n`);
+          startPolling();
+        } else {
+          terminal.writeln(`❌ Failed to start session: ${result.error}\r\n`);
+        }
+      } catch (error) {
+        terminal.writeln(`❌ Error: ${error.message}\r\n`);
+      }
+    }
+
+    function startPolling() {
+      pollInterval = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/terminal/output?sessionId=${sessionId}&lastIndex=${lastOutputIndex}`);
+          const result = await response.json();
+          
+          if (result.output && result.output.length > 0) {
+            result.output.forEach(line => {
+              terminal.writeln(line);
+            });
+            lastOutputIndex = result.nextIndex;
+          }
+
+          if (result.status === 'completed' || result.status === 'stopped') {
+            clearInterval(pollInterval);
+            terminal.writeln('\r\n✅ Session completed.');
+          }
+        } catch (error) {
+          console.error('Polling error:', error);
+        }
+      }, 1000);
+    }
+
+    // Handle terminal input
+    terminal.onData(async (data) => {
+      if (!sessionId) return;
+      
+      try {
+        await fetch('/api/terminal/input', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sessionId,
+            input: data
+          })
+        });
+      } catch (error) {
+        console.error('Input error:', error);
+      }
+    });
+
+    // Cleanup on window close
+    window.addEventListener('beforeunload', async () => {
+      if (sessionId) {
+        await fetch('/api/terminal/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId })
+        });
+      }
+    });
+
+    // Start session
+    startTerminalSession();
+  </script>
+</body>
+</html>
