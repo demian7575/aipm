@@ -3396,7 +3396,7 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     terminal.writeln('');
   }
   
-  const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
+  const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(branchName)}`;
   
   socket = new WebSocket(wsUrl);
   
