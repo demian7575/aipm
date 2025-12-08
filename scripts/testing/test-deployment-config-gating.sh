@@ -19,10 +19,23 @@ test_fail() {
     ((FAILED++))
 }
 
+# Dynamically fetch API Gateway IDs from CloudFormation
+PROD_API_ID=$(aws cloudformation describe-stacks \
+    --stack-name aipm-backend-prod \
+    --region us-east-1 \
+    --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayRestApiId`].OutputValue' \
+    --output text 2>/dev/null)
+
+DEV_API_ID=$(aws cloudformation describe-stacks \
+    --stack-name aipm-backend-dev \
+    --region us-east-1 \
+    --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayRestApiId`].OutputValue' \
+    --output text 2>/dev/null)
+
 # Define environments
 declare -A ENVS
-ENVS[prod]="wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod|aipm-static-hosting-demo|aipm-backend-prod-api"
-ENVS[dev]="dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev|aipm-dev-frontend-hosting|aipm-backend-dev-api"
+ENVS[prod]="${PROD_API_ID}.execute-api.us-east-1.amazonaws.com/prod|aipm-static-hosting-demo|aipm-backend-prod-api"
+ENVS[dev]="${DEV_API_ID}.execute-api.us-east-1.amazonaws.com/dev|aipm-dev-frontend-hosting|aipm-backend-dev-api"
 
 # Test 1: Frontend Config Points to Correct API
 TEST_NUM=1
