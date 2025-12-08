@@ -4777,12 +4777,10 @@ function ensureCanMarkStoryDone(db, storyId) {
       title: acceptanceTestsHasTitleColumn && typeof test.title === 'string' ? test.title : '',
       status: test.status || ACCEPTANCE_TEST_STATUS_DRAFT,
     })),
-    missingTests: tests.length === 0,
   };
 
   if (
     details.incompleteChildren.length > 0 ||
-    details.missingTests ||
     details.failingTests.length > 0
   ) {
     const error = new Error(
