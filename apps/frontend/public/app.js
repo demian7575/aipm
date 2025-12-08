@@ -4806,6 +4806,9 @@ function renderDetails() {
       const titleLink = document.createElement('a');
       titleLink.href = '#';
       titleLink.className = 'child-story-title';
+      if (child.status === 'Done') {
+        titleLink.classList.add('done-story');
+      }
       titleLink.textContent = child.title;
       titleLink.setAttribute('data-story-id', child.id);
       
