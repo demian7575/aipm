@@ -1,4 +1,5 @@
 // Removed Codex/CodeWhisperer imports - now using automatic PR creation
+import terminalClient from './terminal-client.js';
 
 function getApiBaseUrl() {
   return (window.CONFIG?.API_BASE_URL || '').replace(/\/$/, '');
@@ -3306,7 +3307,7 @@ function buildDeployToDevModalContent(prEntry = null) {
 async function buildKiroTerminalModalContent(prEntry = null) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
-  
+
   console.log('🔍 PR Entry:', prEntry);
   
   const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
@@ -3326,15 +3327,22 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     ${prInfo}
     <div class="staging-options">
       <h3>Refine PR with Kiro</h3>
+      <div class="terminal-status" data-tone="info">
+        <div class="terminal-status__text">Connecting to terminal service…</div>
+        <button class="secondary terminal-status__retry" type="button" aria-label="Retry terminal connection" disabled>Retry</button>
+      </div>
       <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
     </div>
   `;
-  
+
+  const statusBar = container.querySelector('.terminal-status');
+  const statusText = container.querySelector('.terminal-status__text');
+  const retryButton = container.querySelector('.terminal-status__retry');
   const terminalContainer = container.querySelector('#terminal-container');
-  
+
   let terminal = null;
-  let socket = null;
-  
+  let session = null;
+
   // Auto-start terminal immediately
   if (!window.Terminal) {
     terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
@@ -3368,22 +3376,31 @@ async function buildKiroTerminalModalContent(prEntry = null) {
   resizeTerminal(); // Initial size
   terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
   terminal.writeln('');
-  
-  // Connect to EC2 WebSocket server
-  const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
-  // Pre-checkout branch via SSH before opening terminal
+
+  const setStatus = (message, tone = 'info') => {
+    if (statusText) {
+      statusText.textContent = message;
+    }
+    if (statusBar) {
+      statusBar.dataset.tone = tone;
+    }
+  };
+
+  const enableRetry = (enabled, label = 'Retry') => {
+    if (retryButton) {
+      retryButton.textContent = label;
+      retryButton.disabled = !enabled;
+      retryButton.hidden = !enabled;
+    }
+  };
+
+  // Pre-checkout branch via HTTP before opening terminal
   if (prEntry?.branchName) {
     terminal.writeln('🔄 Preparing branch...');
-    
+
     try {
-      const response = await fetch('http://44.220.45.57:8080/checkout-branch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branch: prEntry.branchName })
-      });
-      
-      const result = await response.json();
-      
+      const result = await terminalClient.checkoutBranch(prEntry.branchName, { token: prEntry?.token });
+
       if (result.success) {
         terminal.writeln(`✓ Branch ${prEntry.branchName} ready`);
       } else {
@@ -3392,51 +3409,87 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     } catch (error) {
       terminal.writeln(`⚠️  Could not pre-checkout branch: ${error.message}`);
     }
-    
+
     terminal.writeln('');
   }
-  
-  const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
-  
-  socket = new WebSocket(wsUrl);
-  
-  socket.onopen = () => {
-    terminal.writeln('✓ Connected to Kiro CLI');
-    if (prEntry?.taskTitle) {
-      terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
+
+  const connectSession = () => {
+    if (session) {
+      session.close();
     }
-    terminal.writeln('');
-    terminal.writeln('💬 Start chatting with Kiro to refine your code!');
-    terminal.writeln('');
+
+    enableRetry(false, 'Retry');
+    setStatus('Connecting to terminal service…', 'info');
+
+    try {
+      session = terminalClient.openSession({
+        branch: prEntry?.branchName || prEntry?.branch || 'main',
+        token: prEntry?.token,
+        onOpen: ({ attempt }) => {
+          setStatus('Connected to terminal', 'success');
+          enableRetry(false, 'Retry');
+          terminal.writeln('✓ Connected to Kiro CLI');
+          if (prEntry?.taskTitle) {
+            terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
+          }
+          terminal.writeln('');
+          terminal.writeln('💬 Start chatting with Kiro to refine your code!');
+          terminal.writeln('');
+          console.info('[terminal] session_open', { attempt });
+        },
+        onMessage: (data) => {
+          if (data?.type === 'output') {
+            terminal.write(data.data);
+          } else if (data?.message) {
+            terminal.writeln(data.message);
+          }
+        },
+        onError: (error) => {
+          setStatus('Connection error', 'error');
+          terminal.writeln(`\r\n❌ Connection error: ${error?.message || 'Unknown error'}`);
+        },
+        onRetry: ({ attempt, delay }) => {
+          const seconds = Math.round(delay / 1000);
+          setStatus(`Disconnected. Retrying in ${seconds}s…`, 'warning');
+          enableRetry(false, `Retrying in ${seconds}s…`);
+          terminal.writeln(`\r\n🔄 Attempt ${attempt} to reconnect in ${seconds}s...`);
+        },
+        onClose: ({ retry, delay }) => {
+          if (!retry) {
+            setStatus('Disconnected from terminal', 'warning');
+            enableRetry(true, 'Reconnect');
+            terminal.writeln('\r\n🔌 Disconnected');
+            return;
+          }
+
+          const seconds = Math.round((delay || 0) / 1000);
+          setStatus(`Disconnected. Retrying in ${seconds}s…`, 'warning');
+          enableRetry(false, `Retrying in ${seconds}s…`);
+        },
+      });
+    } catch (error) {
+      setStatus(error.message || 'Failed to connect', 'error');
+      enableRetry(true, 'Retry');
+      terminal.writeln(`\r\n❌ ${error.message || 'Failed to start terminal session'}`);
+    }
   };
-  
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'output') {
-        terminal.write(data.data);
-      }
-    };
-    
-    socket.onerror = (error) => {
-      terminal.writeln('\r\n❌ Connection error');
-      console.error('WebSocket error:', error);
-    };
-    
-    socket.onclose = () => {
-      terminal.writeln('\r\n🔌 Disconnected');
-    };
-    
-    // Send terminal input to EC2
-    terminal.onData((data) => {
-      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log('Sending to WebSocket:', { type: 'input', data });
-        socket.send(JSON.stringify({ type: 'input', data }));
-      } else {
-        console.warn('Socket not ready, state:', socket?.readyState);
-      }
-    });
+
+  retryButton?.addEventListener('click', () => {
+    setStatus('Reconnecting...', 'info');
+    enableRetry(false, 'Reconnecting…');
+    connectSession();
+  });
+
+  connectSession();
+
+  // Send terminal input to EC2
+  terminal.onData((data) => {
+    try {
+      session?.send({ type: 'input', data });
+    } catch (error) {
+      setStatus('Unable to send input — reconnecting…', 'error');
+    }
+  });
   
   // Auto-resize terminal when modal is resized
   const resizeObserver = new ResizeObserver(() => {
@@ -3452,13 +3505,13 @@ async function buildKiroTerminalModalContent(prEntry = null) {
   });
   resizeObserver.observe(terminalContainer);
   
-  return { 
-    element: container, 
+  return {
+    element: container,
     onClose: () => {
       resizeObserver.disconnect();
-      if (socket) socket.close();
+      if (session) session.close();
       if (terminal) terminal.dispose();
-    } 
+    }
   };
 }
 

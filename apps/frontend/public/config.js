@@ -7,5 +7,6 @@ window.CONFIG = {
   region: 'us-east-1',
   storiesTable: 'aipm-backend-prod-stories',
   acceptanceTestsTable: 'aipm-backend-prod-acceptance-tests',
+  EC2_TERMINAL_URL: 'ws://44.220.45.57:8080',
   DEBUG: false
 };
