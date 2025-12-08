@@ -3303,16 +3303,18 @@ function buildDeployToDevModalContent(prEntry = null) {
   return { element: container, onClose: () => {} };
 }
 
-async function buildKiroTerminalModalContent(prEntry = null) {
-  const container = document.createElement('div');
+async function buildKiroTerminalContent(prEntry = null, hostWindow = window) {
+  const hostDocument = hostWindow.document;
+  const container = hostDocument.createElement('div');
   container.className = 'run-staging-modal';
-  
+
   console.log('🔍 PR Entry:', prEntry);
-  
+
   const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
   const branchName = prEntry?.branchName || 'main';
-  
-  const prInfo = prEntry ? `
+
+  const prInfo = prEntry
+    ? `
     <div class="pr-info">
       <h4>PR Information</h4>
       <p><strong>PR ID:</strong> ${prId}</p>
@@ -3320,29 +3322,30 @@ async function buildKiroTerminalModalContent(prEntry = null) {
       ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
       <p><strong>Branch:</strong> ${escapeHtml(branchName)}</p>
     </div>
-  ` : '';
-  
+  `
+    : '';
+
   container.innerHTML = `
     ${prInfo}
     <div class="staging-options">
       <h3>Refine PR with Kiro</h3>
-      <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
+      <div id="terminal-container" style="width: 100%; height: 80vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
     </div>
   `;
-  
+
   const terminalContainer = container.querySelector('#terminal-container');
-  
+
   let terminal = null;
   let socket = null;
-  
+
   // Auto-start terminal immediately
-  if (!window.Terminal) {
+  if (!hostWindow.Terminal) {
     terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
     return { element: container, onClose: () => {} };
   }
-  
+
   // Create xterm terminal
-  terminal = new window.Terminal({
+  terminal = new hostWindow.Terminal({
     cursorBlink: true,
     fontSize: 14,
     fontFamily: 'Menlo, Monaco, "Courier New", monospace',
@@ -3351,9 +3354,9 @@ async function buildKiroTerminalModalContent(prEntry = null) {
       foreground: '#ffffff'
     }
   });
-  
+
   terminal.open(terminalContainer);
-  
+
   // Manual resize function
   const resizeTerminal = () => {
     const width = terminalContainer.clientWidth;
@@ -3364,13 +3367,14 @@ async function buildKiroTerminalModalContent(prEntry = null) {
       terminal.resize(cols, rows);
     }
   };
-  
+
   resizeTerminal(); // Initial size
   terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
   terminal.writeln('');
-  
+
   // Connect to EC2 WebSocket server
-  const rawTerminalUrl = window.CONFIG?.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
+  const hostConfig = hostWindow.CONFIG || window.CONFIG || {};
+  const rawTerminalUrl = hostConfig.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
   let terminalUrl;
 
   try {
@@ -3390,16 +3394,16 @@ async function buildKiroTerminalModalContent(prEntry = null) {
   // Pre-checkout branch via SSH before opening terminal
   if (prEntry?.branchName) {
     terminal.writeln('🔄 Preparing branch...');
-    
+
     try {
       const response = await fetch(`${httpBase}/checkout-branch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ branch: prEntry.branchName })
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         terminal.writeln(`✓ Branch ${prEntry.branchName} ready`);
       } else {
@@ -3408,14 +3412,14 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     } catch (error) {
       terminal.writeln(`⚠️  Could not pre-checkout branch: ${error.message}`);
     }
-    
+
     terminal.writeln('');
   }
-  
+
   const wsUrl = `${wsBase}/terminal?branch=${encodeURIComponent(branchName)}`;
-  
-  socket = new WebSocket(wsUrl);
-  
+
+  socket = new hostWindow.WebSocket(wsUrl);
+
   socket.onopen = () => {
     terminal.writeln('✓ Connected to Kiro CLI');
     if (prEntry?.taskTitle) {
@@ -3425,37 +3429,37 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     terminal.writeln('💬 Start chatting with Kiro to refine your code!');
     terminal.writeln('');
   };
-  
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'output') {
-        terminal.write(data.data);
-      }
-    };
-    
-    socket.onerror = (error) => {
-      terminal.writeln('\r\n❌ Connection error');
-      console.error('WebSocket error:', error);
-    };
-    
-    socket.onclose = () => {
-      terminal.writeln('\r\n🔌 Disconnected');
-    };
-    
-    // Send terminal input to EC2
-    terminal.onData((data) => {
-      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log('Sending to WebSocket:', { type: 'input', data });
-        socket.send(JSON.stringify({ type: 'input', data }));
-      } else {
-        console.warn('Socket not ready, state:', socket?.readyState);
-      }
-    });
-  
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === 'output') {
+      terminal.write(data.data);
+    }
+  };
+
+  socket.onerror = (error) => {
+    terminal.writeln('\r\n❌ Connection error');
+    console.error('WebSocket error:', error);
+  };
+
+  socket.onclose = () => {
+    terminal.writeln('\r\n🔌 Disconnected');
+  };
+
+  // Send terminal input to EC2
+  terminal.onData((data) => {
+    console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
+    if (socket && socket.readyState === hostWindow.WebSocket.OPEN) {
+      console.log('Sending to WebSocket:', { type: 'input', data });
+      socket.send(JSON.stringify({ type: 'input', data }));
+    } else {
+      console.warn('Socket not ready, state:', socket?.readyState);
+    }
+  });
+
   // Auto-resize terminal when modal is resized
-  const resizeObserver = new ResizeObserver(() => {
+  const resizeObserver = new hostWindow.ResizeObserver(() => {
     if (terminal && terminalContainer) {
       const width = terminalContainer.clientWidth;
       const height = terminalContainer.clientHeight;
@@ -3467,15 +3471,57 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     }
   });
   resizeObserver.observe(terminalContainer);
-  
-  return { 
-    element: container, 
+
+  return {
+    element: container,
     onClose: () => {
       resizeObserver.disconnect();
       if (socket) socket.close();
       if (terminal) terminal.dispose();
-    } 
+    }
   };
+}
+
+async function openKiroTerminalWindow(prEntry) {
+  const terminalWindow = window.open('', '_blank', 'width=1200,height=900');
+
+  if (!terminalWindow) {
+    showToast('Please allow pop-ups to open the Kiro terminal window', 'error');
+    return;
+  }
+
+  terminalWindow.document.title = 'Kiro CLI Terminal';
+  terminalWindow.document.body.style.margin = '0';
+  terminalWindow.document.body.style.background = '#0b0b0b';
+  terminalWindow.document.body.style.color = '#ffffff';
+  terminalWindow.document.body.style.fontFamily = 'Inter, system-ui, -apple-system, Segoe UI, sans-serif';
+
+  // Share runtime configuration with the popup
+  terminalWindow.CONFIG = window.CONFIG;
+  terminalWindow.Terminal = window.Terminal;
+
+  const styleTag = terminalWindow.document.createElement('style');
+  styleTag.textContent = `
+    .kiro-window-wrapper { padding: 16px; box-sizing: border-box; height: 100vh; overflow: hidden; }
+    .kiro-window-wrapper h3 { margin-top: 0; }
+    .kiro-window-wrapper .pr-info { margin-bottom: 12px; background: #0f1629; padding: 12px; border-radius: 8px; }
+    .kiro-window-wrapper .pr-info a { color: #67b0ff; }
+  `;
+  terminalWindow.document.head.appendChild(styleTag);
+
+  const shell = terminalWindow.document.createElement('div');
+  shell.className = 'kiro-window-wrapper';
+  terminalWindow.document.body.appendChild(shell);
+
+  const { element, onClose } = await buildKiroTerminalContent(prEntry, terminalWindow);
+  shell.appendChild(element);
+
+  const cleanup = () => {
+    onClose?.();
+    terminalWindow.removeEventListener('beforeunload', cleanup);
+  };
+
+  terminalWindow.addEventListener('beforeunload', cleanup);
 }
 
 async function bedrockImplementation(prEntry) {
@@ -6996,14 +7042,7 @@ function initialize() {
       return;
     }
     const entry = { storyId: story.id, title: story.title };
-    const { element, onClose } = await buildKiroTerminalModalContent(entry);
-    openModal({
-      title: 'Kiro CLI Terminal',
-      content: element,
-      cancelLabel: 'Close',
-      size: 'fullscreen',
-      onClose,
-    });
+    await openKiroTerminalWindow(entry);
   });
   generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
