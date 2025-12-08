@@ -1513,8 +1513,9 @@ async function checkPRUpToDate(prEntry) {
     const mergeable = prData.mergeable;
     const mergeableState = prData.mergeable_state;
     
-    // Check if PR is behind main
-    const upToDate = mergeableState === 'clean' || mergeableState === 'unstable';
+    // If GitHub is still calculating, assume up-to-date and let merge attempt proceed
+    // GitHub will block the actual merge if there are issues
+    const upToDate = mergeableState === 'clean' || mergeableState === 'unstable' || mergeableState === 'unknown';
     
     return { upToDate, mergeable, mergeableState };
   } catch (error) {
