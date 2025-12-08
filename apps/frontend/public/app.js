@@ -4385,7 +4385,7 @@ function renderDetails() {
   doneButton?.addEventListener('click', async (event) => {
     event.preventDefault();
     if (confirm('Mark this story as Done?')) {
-      await updateStory(story.id, { status: 'Done' });
+      await updateStory(story.id, { ...story, status: 'Done' });
       location.reload();
     }
   });
