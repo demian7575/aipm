@@ -3813,6 +3813,7 @@ function renderDetails() {
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
+      <button type="button" class="primary" id="mark-done-btn">Done</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
     </div>
     <div class="full field-row">
@@ -4378,6 +4379,27 @@ function renderDetails() {
   deleteButton?.addEventListener('click', (event) => {
     event.preventDefault();
     void confirmAndDeleteStory(story.id);
+  });
+
+  const markDoneBtn = form.querySelector('#mark-done-btn');
+  markDoneBtn?.addEventListener('click', async (event) => {
+    event.preventDefault();
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/stories/${story.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Done' })
+      });
+      if (response.ok) {
+        await loadStories();
+        showToast('Story marked as Done', 'success');
+      } else {
+        const errorText = await response.text();
+        showToast(`Failed to mark story as Done: ${errorText}`, 'error');
+      }
+    } catch (error) {
+      showToast(`Error: ${error.message}`, 'error');
+    }
   });
 
   const emailBtn = form.querySelector('#assignee-email-btn');
