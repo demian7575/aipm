@@ -29,9 +29,8 @@ test_warn() {
 
 # Test 1: Lambda can create PRs
 echo "📋 Test 1: Lambda PR Creation Endpoint"
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-    https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/health \
-    -H "Content-Type: application/json" \
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+    https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/stories \
     --max-time 10)
 if [ "$RESPONSE" = "200" ]; then
     test_pass "Lambda is responding"
