@@ -7,7 +7,7 @@ const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1
 const docClient = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true }
 });
-const QUEUE_TABLE = process.env.KIRO_QUEUE_TABLE || 'aipm-backend-dev-kiro-queue';
+const QUEUE_TABLE = process.env.KIRO_QUEUE_TABLE || 'aipm-amazon-q-queue';
 
 export async function createKiroRequest(type, payload) {
   const requestId = randomUUID();
