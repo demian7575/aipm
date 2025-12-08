@@ -5162,17 +5162,17 @@ function openCodeWhispererDelegationModal(story) {
     </div>
     <div class="field">
       <label for="codewhisperer-task-title">Task title</label>
-      <input id="codewhisperer-task-title" name="taskTitle" required />
+      <textarea id="codewhisperer-task-title" name="taskTitle" rows="1" style="resize: vertical; overflow: hidden;" required></textarea>
       <p class="field-error" data-error-for="taskTitle" hidden></p>
     </div>
     <div class="field full">
       <label for="codewhisperer-objective">Objective</label>
-      <input id="codewhisperer-objective" name="objective" required />
+      <textarea id="codewhisperer-objective" name="objective" rows="2" style="resize: vertical; overflow: hidden;" required></textarea>
       <p class="field-error" data-error-for="objective" hidden></p>
     </div>
     <div class="field">
       <label for="codewhisperer-pr-title">PR title</label>
-      <input id="codewhisperer-pr-title" name="prTitle" required />
+      <textarea id="codewhisperer-pr-title" name="prTitle" rows="1" style="resize: vertical; overflow: hidden;" required></textarea>
       <p class="field-error" data-error-for="prTitle" hidden></p>
     </div>
     <div class="field">
@@ -5237,6 +5237,19 @@ function openCodeWhispererDelegationModal(story) {
   constraintsInput.value = defaults.constraints || '';
   acceptanceInput.value = acceptancePrefill;
   createCardInput.checked = defaults.createTrackingCard !== false;
+
+  // Auto-resize textareas
+  const autoResize = (textarea) => {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  };
+  
+  [taskTitleInput, objectiveInput, prTitleInput].forEach(textarea => {
+    if (textarea && textarea.tagName === 'TEXTAREA') {
+      autoResize(textarea);
+      textarea.addEventListener('input', () => autoResize(textarea));
+    }
+  });
 
   let submitButton = null;
   let submitting = false;
