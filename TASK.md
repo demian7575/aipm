@@ -1,12 +1,12 @@
-# Make "Child Stories" in "Details" panel simple
+# Move "Refine with Kiro" button at every "Development Tasks" card to Top of the "AIPM window".
 
-As a User, I want to i want to make "child stories" in "details" panel, much more simple, - only "title" i.e. remove "story point", "status", "components", "actions". This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
+As a User, I want to move "refine with kiro" button at every "development tasks" card to top of the "aipm window".. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
 
 Constraints: 
 
 Acceptance Criteria:
 - The feature works as described
-- The implementation matches the requirement: I want to make "Child Stories" in "Details" panel, much more simple, - Only "Title" i.e. remove "Story Point", "Status", "Components", "Actions"
+- The implementation matches the requirement: Move "Refine with Kiro" button at every "Development Tasks" card to Top of the "AIPM window".
 - The changes are properly tested
 
 ---
