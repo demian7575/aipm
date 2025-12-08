@@ -45,8 +45,11 @@ export function generateInvestCompliantStory(idea, context = {}) {
   const asA = parent?.asA || 'User';
   const soThat = 'I can accomplish my goals more effectively';
   
-  // Generate description with full details
-  let description = `As a ${asA}, I want to ${idea.toLowerCase()}.`;
+  // Normalize idea text - ensure it starts lowercase for proper sentence construction
+  const normalizedIdea = idea.charAt(0).toLowerCase() + idea.slice(1);
+  
+  // Generate description with proper grammar
+  let description = `As a ${asA}, I want to ${normalizedIdea}.`;
   if (soThat) {
     description += ` This ensures ${soThat.toLowerCase()}.`;
   }
