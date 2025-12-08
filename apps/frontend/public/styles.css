@@ -2204,3 +2204,10 @@ dialog[data-size='content'] .modal-shell {
   margin: 0 0 0.5rem 0;
   flex-shrink: 0;
 }
+
+/* Bold and underline specific labels in Details panel */
+.story-form .field-row > label,
+.story-form .full > label {
+  font-weight: bold;
+  text-decoration: underline;
+}
