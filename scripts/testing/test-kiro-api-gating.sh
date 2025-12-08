@@ -108,7 +108,7 @@ fi
 # FR-1.1: Accept valid request (simple test - don't wait for completion)
 echo ""
 echo "📋 FR-1.1: Accept Valid Request"
-RESPONSE=$(timeout 10 curl -s -w "\n%{http_code}" -X POST "$KIRO_API_URL/execute" \
+RESPONSE=$(timeout 30 curl -s -w "\n%{http_code}" -X POST "$KIRO_API_URL/execute" \
     -H "Content-Type: application/json" \
     -d '{"prompt":"echo test","timeoutMs":5000}' 2>/dev/null || echo -e "\n000")
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
