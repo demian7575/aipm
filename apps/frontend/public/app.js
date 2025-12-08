@@ -1501,8 +1501,8 @@ async function requestCodeWhispererStatus(entry) {
 async function checkPRUpToDate(prEntry) {
   try {
     const prNumber = prEntry?.number || prEntry?.targetNumber;
-    const owner = prEntry?.owner || 'demian7575';
-    const repo = prEntry?.repo || 'aipm';
+    const repoPath = prEntry?.repo || 'demian7575/aipm';
+    const [owner, repo] = repoPath.split('/');
     
     const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`);
     if (!response.ok) {
@@ -1525,10 +1525,13 @@ async function checkPRUpToDate(prEntry) {
 
 async function mergePR(prEntry) {
   try {
+    const repoPath = prEntry?.repo || 'demian7575/aipm';
+    const [owner, repo] = repoPath.split('/');
+    
     const payload = {
       prNumber: prEntry?.number || prEntry?.targetNumber,
-      owner: prEntry?.owner || 'demian7575',
-      repo: prEntry?.repo || 'aipm'
+      owner,
+      repo
     };
     
     console.log('🔀 Merging PR:', payload);
