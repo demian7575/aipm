@@ -56,17 +56,18 @@ jobs:
             PR_OBJECTIVE=$(cat TASK.md)
           fi
           
-          # Merge main into PR branch to get latest changes
-          echo "🔄 Merging latest main into PR branch..."
+          # Rebase PR onto latest main
+          echo "🔄 Rebasing PR onto latest main..."
           git fetch origin main
           
-          # Force update app.js from main to ensure latest fixes
-          echo "📥 Updating app.js from main..."
-          git checkout origin/main -- apps/frontend/public/app.js
-          git add apps/frontend/public/app.js
-          
-          if ! git merge origin/main --no-edit; then
-            echo "⚠️  Merge conflict detected - using Kiro CLI to resolve"
+          # Try to rebase
+          if git rebase origin/main; then
+            echo "✅ Rebase successful"
+            # Push the rebased branch back to GitHub
+            git push -f origin $BRANCH_NAME
+            echo "📤 Pushed rebased branch to GitHub"
+          else
+            echo "⚠️  Rebase conflict detected - using Kiro CLI to resolve"
             
             # Get conflict files
             CONFLICT_FILES=$(git diff --name-only --diff-filter=U)
@@ -91,6 +92,8 @@ jobs:
               # Verify rebase worked
               if git rebase origin/main 2>/dev/null; then
                 echo "✅ Conflicts resolved by Kiro"
+                git push -f origin $BRANCH_NAME
+                echo "📤 Pushed rebased branch to GitHub"
               else
                 git rebase --abort
                 SUCCESS="false"
@@ -134,7 +137,7 @@ jobs:
             fi
           fi
           
-          echo "✅ Merge complete"
+          echo "✅ Rebase complete"
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
