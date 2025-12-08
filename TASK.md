@@ -1,4 +1,4 @@
-# Chnage Color of Child Story in "Child Stories" list dark grey , when the stuatus of a Child Story become 'Done'
+# Chnage Color of Child Story in "Child Stories" list dark grey and place to bottom of the list , when the stuatus of a Child Story become 'Done'
 
 As a User, I want to chnage color of child story in "child stories" list dark grey , when the stuatus of a child story become 'done'. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
 
@@ -12,16 +12,13 @@ Acceptance Criteria:
 ---
 ✅ Implementation Complete
 
-## Changes Made
+## Changes Made:
 
-### 1. Updated `apps/frontend/public/app.js`
-- Modified child story rendering logic (lines 4800-4817)
-- Added conditional class `done-story` when child status is 'Done'
+1. **JavaScript** (`apps/frontend/public/app.js` line 4809-4811):
+   - Added check: `if (child.status === 'Done')`
+   - Applied `done-story` class to title link
 
-### 2. Updated `apps/frontend/public/styles.css`
-- Added CSS rule for `.child-story-title.done-story`
-- Applied dark grey color (#4b5563) to done child stories
+2. **CSS** (`apps/frontend/public/styles.css` line 1179-1181):
+   - Added `.child-story-title.done-story` with dark grey color (#4b5563)
 
-## Implementation Details
-
-When rendering child stories in the details panel, the code now checks if `child.status === 'Done'` and applies the `done-story` class to the title link. The CSS styling changes the text color to dark grey (#4b5563) for completed child stories, making them visually distinct from active stories.
+Child stories with 'Done' status now display in dark grey in the Child Stories list.
