@@ -3322,68 +3322,199 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     </div>
   ` : '';
   
+  const newTabUrl = new URL(window.location.href);
+  newTabUrl.hash = 'kiro-terminal';
+
   container.innerHTML = `
     ${prInfo}
     <div class="staging-options">
-      <h3>Refine PR with Kiro</h3>
-      <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
+      <div class="terminal-header">
+        <div>
+          <h3>Refine PR with Kiro</h3>
+          <p class="terminal-helper">Popups blocked? Use the embedded terminal below or open it in a new tab.</p>
+        </div>
+        <div class="terminal-status" role="status" aria-live="polite">
+          <span id="terminal-status-badge" class="terminal-badge status-connecting">Connecting…</span>
+          <a id="terminal-open-tab" class="terminal-open-link" href="${newTabUrl.toString()}" target="_blank" rel="noopener">Open in new tab</a>
+        </div>
+      </div>
+      <div class="terminal-toolbar" role="toolbar" aria-label="Terminal controls">
+        <button type="button" id="terminal-copy" class="secondary" aria-label="Copy terminal contents">Copy</button>
+        <button type="button" id="terminal-paste" class="secondary" aria-label="Paste from clipboard">Paste</button>
+        <button type="button" id="terminal-clear" class="secondary" aria-label="Clear terminal output">Clear</button>
+        <button type="button" id="terminal-reconnect" class="secondary" aria-label="Reconnect to terminal">Reconnect</button>
+        <button type="button" id="terminal-font-toggle" class="secondary" aria-pressed="false" aria-label="Toggle font size">Larger text</button>
+      </div>
+      <div id="terminal-container" class="terminal-shell" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;" role="region" aria-label="Kiro interactive terminal" tabindex="0"></div>
+      <p class="terminal-fallback-notice" aria-live="polite"></p>
     </div>
   `;
-  
+
   const terminalContainer = container.querySelector('#terminal-container');
-  
+  const statusBadge = container.querySelector('#terminal-status-badge');
+  const openTabLink = container.querySelector('#terminal-open-tab');
+  const fallbackNotice = container.querySelector('.terminal-fallback-notice');
+  const copyBtn = container.querySelector('#terminal-copy');
+  const pasteBtn = container.querySelector('#terminal-paste');
+  const clearBtn = container.querySelector('#terminal-clear');
+  const reconnectBtn = container.querySelector('#terminal-reconnect');
+  const fontToggleBtn = container.querySelector('#terminal-font-toggle');
+
   let terminal = null;
   let socket = null;
-  
+  let fitAddon = null;
+  let isLargeFont = false;
+
+  const setStatus = (state, label) => {
+    statusBadge.textContent = label;
+    statusBadge.className = `terminal-badge status-${state}`;
+  };
+
+  const createFitAddon = () => {
+    if (window.FitAddon?.FitAddon) {
+      return new window.FitAddon.FitAddon();
+    }
+
+    console.warn('FitAddon not found; using fallback fit handler');
+    return {
+      activate(term) {
+        this._terminal = term;
+      },
+      dispose() {},
+      fit() {
+        if (!this._terminal) return;
+        const core = this._terminal._core;
+        const dims = core?._renderService?.dimensions;
+        const cellWidth = dims?.actualCellWidth || dims?.css?.cell?.width;
+        const cellHeight = dims?.actualCellHeight || dims?.css?.cell?.height;
+        const parent = this._terminal.element?.parentElement;
+        if (!cellWidth || !cellHeight || !parent) return;
+        const availableWidth = parent.clientWidth - (core?.viewport?.scrollBarWidth || 0);
+        const availableHeight = parent.clientHeight;
+        const cols = Math.max(2, Math.floor(availableWidth / cellWidth));
+        const rows = Math.max(2, Math.floor(availableHeight / cellHeight));
+        if (cols > 0 && rows > 0) {
+          this._terminal.resize(cols, rows);
+        }
+      }
+    };
+  };
+
+  const updateFontSize = () => {
+    if (!terminal) return;
+    terminal.options.fontSize = isLargeFont ? 16 : 14;
+    fontToggleBtn.textContent = isLargeFont ? 'Smaller text' : 'Larger text';
+    fontToggleBtn.setAttribute('aria-pressed', isLargeFont ? 'true' : 'false');
+    fitAddon?.fit();
+  };
+
+  const getBufferText = () => {
+    if (!terminal) return '';
+    const buffer = terminal.buffer.active;
+    const lines = [];
+    for (let i = 0; i < buffer.length; i += 1) {
+      const line = buffer.getLine(i);
+      if (line) {
+        lines.push(line.translateToString(true));
+      }
+    }
+    return lines.join('\n').trimEnd();
+  };
+
+  const copyTerminal = async () => {
+    const text = getBufferText();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus(statusBadge.classList.contains('status-connected') ? 'connected' : 'connecting', `${statusBadge.textContent}`);
+      showToast('Terminal output copied', 'success');
+    } catch (error) {
+      console.error('Copy failed', error);
+      showToast('Clipboard copy blocked. Select text and try again.', 'warning');
+    }
+  };
+
+  const pasteToTerminal = async () => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      showToast('Not connected to terminal', 'warning');
+      return;
+    }
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        socket.send(JSON.stringify({ type: 'input', data: text }));
+      }
+    } catch (error) {
+      console.error('Paste failed', error);
+      showToast('Clipboard paste blocked by browser', 'warning');
+    }
+  };
+
+  const clearTerminal = () => {
+    terminal?.clear();
+    terminal?.focus();
+  };
+
+  const ensureFocus = () => {
+    if (terminal) {
+      terminal.focus();
+      terminalContainer.focus({ preventScroll: true });
+    }
+  };
+
   // Auto-start terminal immediately
   if (!window.Terminal) {
     terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
     return { element: container, onClose: () => {} };
   }
-  
+
   // Create xterm terminal
   terminal = new window.Terminal({
     cursorBlink: true,
+    convertEol: true,
     fontSize: 14,
     fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+    rendererType: 'canvas',
     theme: {
-      background: '#000000',
-      foreground: '#ffffff'
+      background: '#0a0a0f',
+      foreground: '#f5f5f5',
+      cursor: '#38bdf8',
+      cursorAccent: '#0a0a0f',
+      black: '#0f172a',
+      blue: '#38bdf8',
+      cyan: '#22d3ee',
+      green: '#4ade80',
+      magenta: '#c084fc',
+      red: '#f87171',
+      white: '#f5f5f5',
+      yellow: '#fbbf24'
     }
   });
-  
+
+  fitAddon = createFitAddon();
+  terminal.loadAddon(fitAddon);
   terminal.open(terminalContainer);
-  
-  // Manual resize function
-  const resizeTerminal = () => {
-    const width = terminalContainer.clientWidth;
-    const height = terminalContainer.clientHeight;
-    const cols = Math.floor(width / 9); // Approximate char width
-    const rows = Math.floor(height / 17); // Approximate line height
-    if (cols > 0 && rows > 0) {
-      terminal.resize(cols, rows);
-    }
-  };
-  
-  resizeTerminal(); // Initial size
+  ensureFocus();
+  fitAddon.fit();
+
   terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
   terminal.writeln('');
-  
+
   // Connect to EC2 WebSocket server
   const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
   // Pre-checkout branch via SSH before opening terminal
   if (prEntry?.branchName) {
     terminal.writeln('🔄 Preparing branch...');
-    
+
     try {
       const response = await fetch('http://44.220.45.57:8080/checkout-branch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ branch: prEntry.branchName })
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         terminal.writeln(`✓ Branch ${prEntry.branchName} ready`);
       } else {
@@ -3392,73 +3523,112 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     } catch (error) {
       terminal.writeln(`⚠️  Could not pre-checkout branch: ${error.message}`);
     }
-    
+
     terminal.writeln('');
   }
-  
+
   const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
-  
-  socket = new WebSocket(wsUrl);
-  
-  socket.onopen = () => {
-    terminal.writeln('✓ Connected to Kiro CLI');
-    if (prEntry?.taskTitle) {
-      terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
-    }
-    terminal.writeln('');
-    terminal.writeln('💬 Start chatting with Kiro to refine your code!');
-    terminal.writeln('');
-  };
-  
+
+  const wireSocketHandlers = () => {
+    if (!socket) return;
+
+    socket.onopen = () => {
+      setStatus('connected', 'Connected');
+      terminal.writeln('✓ Connected to Kiro CLI');
+      if (prEntry?.taskTitle) {
+        terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
+      }
+      terminal.writeln('');
+      terminal.writeln('💬 Start chatting with Kiro to refine your code!');
+      terminal.writeln('');
+      ensureFocus();
+      fitAddon?.fit();
+    };
+
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      
+
       if (data.type === 'output') {
         terminal.write(data.data);
       }
     };
-    
+
     socket.onerror = (error) => {
+      setStatus('disconnected', 'Connection error');
       terminal.writeln('\r\n❌ Connection error');
       console.error('WebSocket error:', error);
     };
-    
+
     socket.onclose = () => {
+      setStatus('disconnected', 'Disconnected');
       terminal.writeln('\r\n🔌 Disconnected');
     };
-    
-    // Send terminal input to EC2
-    terminal.onData((data) => {
-      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log('Sending to WebSocket:', { type: 'input', data });
-        socket.send(JSON.stringify({ type: 'input', data }));
-      } else {
-        console.warn('Socket not ready, state:', socket?.readyState);
-      }
-    });
-  
+  };
+
+  const connectSocket = () => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.close();
+    }
+    setStatus('connecting', 'Connecting…');
+    terminal.writeln('🔌 Connecting...');
+    socket = new WebSocket(wsUrl);
+    wireSocketHandlers();
+  };
+
+  connectSocket();
+
+  // Send terminal input to EC2
+  terminal.onData((data) => {
+    console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      console.log('Sending to WebSocket:', { type: 'input', data });
+      socket.send(JSON.stringify({ type: 'input', data }));
+    } else {
+      console.warn('Socket not ready, state:', socket?.readyState);
+      setStatus('disconnected', 'Disconnected');
+    }
+  });
+
   // Auto-resize terminal when modal is resized
   const resizeObserver = new ResizeObserver(() => {
-    if (terminal && terminalContainer) {
-      const width = terminalContainer.clientWidth;
-      const height = terminalContainer.clientHeight;
-      const cols = Math.floor(width / 9);
-      const rows = Math.floor(height / 17);
-      if (cols > 0 && rows > 0) {
-        terminal.resize(cols, rows);
-      }
+    if (fitAddon) {
+      fitAddon.fit();
     }
   });
   resizeObserver.observe(terminalContainer);
-  
-  return { 
-    element: container, 
+
+  terminalContainer.addEventListener('focus', ensureFocus);
+
+  copyBtn?.addEventListener('click', copyTerminal);
+  pasteBtn?.addEventListener('click', pasteToTerminal);
+  clearBtn?.addEventListener('click', clearTerminal);
+  reconnectBtn?.addEventListener('click', () => {
+    connectSocket();
+    ensureFocus();
+  });
+  fontToggleBtn?.addEventListener('click', () => {
+    isLargeFont = !isLargeFont;
+    updateFontSize();
+  });
+
+  openTabLink?.addEventListener('click', (event) => {
+    const opened = window.open(openTabLink.href, '_blank', 'noopener');
+    if (!opened) {
+      event.preventDefault();
+      fallbackNotice.textContent = 'Popup blocked. The terminal will stay embedded on this page.';
+      fallbackNotice.classList.add('visible');
+    }
+  });
+
+  updateFontSize();
+
+  return {
+    element: container,
     onClose: () => {
       resizeObserver.disconnect();
       if (socket) socket.close();
       if (terminal) terminal.dispose();
-    } 
+    }
   };
 }
 

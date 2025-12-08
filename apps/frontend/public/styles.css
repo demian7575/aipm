@@ -2205,6 +2205,90 @@ dialog[data-size='content'] .modal-shell {
   flex-shrink: 0;
 }
 
+.terminal-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.terminal-helper {
+  margin: 4px 0 0;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+.terminal-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+}
+
+.terminal-badge.status-connected {
+  background: #16a34a;
+  color: #f8fafc;
+  border-color: #15803d;
+}
+
+.terminal-badge.status-connecting {
+  background: #f59e0b;
+  color: #0f172a;
+  border-color: #d97706;
+}
+
+.terminal-badge.status-disconnected {
+  background: #f87171;
+  color: #fff1f2;
+  border-color: #dc2626;
+}
+
+.terminal-open-link {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.terminal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.terminal-shell {
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  background: #0a0a0f;
+  outline: none;
+}
+
+.terminal-shell:focus {
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
+}
+
+.terminal-fallback-notice {
+  margin-top: 8px;
+  color: #f97316;
+  display: none;
+  font-weight: 600;
+}
+
+.terminal-fallback-notice.visible {
+  display: block;
+}
+
 /* Bold and underline specific labels in Details panel */
 .story-form .field-row > label,
 .story-form .full > label {
