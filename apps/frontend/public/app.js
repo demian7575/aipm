@@ -3370,13 +3370,29 @@ async function buildKiroTerminalModalContent(prEntry = null) {
   terminal.writeln('');
   
   // Connect to EC2 WebSocket server
-  const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
+  const rawTerminalUrl = window.CONFIG?.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
+  let terminalUrl;
+
+  try {
+    terminalUrl = new URL(rawTerminalUrl);
+  } catch (error) {
+    console.warn('Invalid EC2_TERMINAL_URL, falling back to default', error);
+    terminalUrl = new URL('http://44.220.45.57:8080');
+  }
+
+  const basePath = terminalUrl.pathname.replace(/\/$/, '');
+  const wsProtocol = terminalUrl.protocol === 'https:' ? 'wss:' : terminalUrl.protocol === 'http:' ? 'ws:' : terminalUrl.protocol;
+  const wsBase = `${wsProtocol}//${terminalUrl.host}${basePath}`;
+
+  // Match the protocol for REST endpoints (checkout-branch) to avoid mixed content issues
+  const httpProtocol = wsProtocol === 'wss:' ? 'https:' : wsProtocol === 'ws:' ? 'http:' : terminalUrl.protocol;
+  const httpBase = `${httpProtocol}//${terminalUrl.host}${basePath}`;
   // Pre-checkout branch via SSH before opening terminal
   if (prEntry?.branchName) {
     terminal.writeln('🔄 Preparing branch...');
     
     try {
-      const response = await fetch('http://44.220.45.57:8080/checkout-branch', {
+      const response = await fetch(`${httpBase}/checkout-branch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ branch: prEntry.branchName })
@@ -3396,7 +3412,7 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     terminal.writeln('');
   }
   
-  const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(branchName)}`;
+  const wsUrl = `${wsBase}/terminal?branch=${encodeURIComponent(branchName)}`;
   
   socket = new WebSocket(wsUrl);
   
