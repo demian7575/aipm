@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kiro CLI Terminal</title>
+  <script src="config.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
   <style>
     * {
@@ -87,12 +88,15 @@
     let sessionId = null;
     let pollInterval = null;
     let lastOutputIndex = 0;
+    
+    // Get API base URL from config
+    const API_BASE_URL = window.CONFIG?.API_BASE_URL || window.CONFIG?.apiEndpoint || 'https://chob6arn1k.execute-api.us-east-1.amazonaws.com/dev';
 
     async function startTerminalSession() {
       try {
         terminal.writeln('🚀 Starting Kiro CLI session...\r\n');
         
-        const response = await fetch('/api/terminal/start', {
+        const response = await fetch(`${API_BASE_URL}/api/terminal/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -118,7 +122,7 @@
     function startPolling() {
       pollInterval = setInterval(async () => {
         try {
-          const response = await fetch(`/api/terminal/output?sessionId=${sessionId}&lastIndex=${lastOutputIndex}`);
+          const response = await fetch(`${API_BASE_URL}/api/terminal/output?sessionId=${sessionId}&lastIndex=${lastOutputIndex}`);
           const result = await response.json();
           
           if (result.output && result.output.length > 0) {
@@ -143,7 +147,7 @@
       if (!sessionId) return;
       
       try {
-        await fetch('/api/terminal/input', {
+        await fetch(`${API_BASE_URL}/api/terminal/input`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -159,7 +163,7 @@
     // Cleanup on window close
     window.addEventListener('beforeunload', async () => {
       if (sessionId) {
-        await fetch('/api/terminal/stop', {
+        await fetch(`${API_BASE_URL}/api/terminal/stop`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId })
