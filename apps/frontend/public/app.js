@@ -7015,6 +7015,25 @@ function initialize() {
     runtimeDataLink.href = resolveApiUrl('/api/runtime-data');
   }
 
+  // Display version with PR number in development
+  const versionDisplay = document.getElementById('version-display');
+  if (versionDisplay) {
+    const version = 'v0.1.0';
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('ec2');
+    if (isDev) {
+      fetch(resolveApiUrl('/api/version'))
+        .then(r => r.json())
+        .then(data => {
+          versionDisplay.textContent = data.prNumber ? `${version} (PR #${data.prNumber})` : version;
+        })
+        .catch(() => {
+          versionDisplay.textContent = version;
+        });
+    } else {
+      versionDisplay.textContent = version;
+    }
+  }
+
   loadStories();
   
   // Set up periodic auto-backup (every 5 minutes)
