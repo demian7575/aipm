@@ -159,39 +159,6 @@ async function handlePersonalDelegateStatusRequest(req, res, url) {
   }
 }
 
-async function handleQueueStatusRequest(req, res, url) {
-  try {
-    const taskId = url.searchParams.get('taskId');
-    
-    if (!taskId) {
-      sendJson(res, 400, { message: 'taskId is required' });
-      return;
-    }
-
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(dynamoClient);
-    
-    const result = await docClient.send(new GetCommand({
-      TableName: 'aipm-amazon-q-queue',
-      Key: { id: taskId }
-    }));
-    
-    if (!result.Item) {
-      sendJson(res, 404, { message: 'Task not found' });
-      return;
-    }
-    
-    sendJson(res, 200, result.Item);
-  } catch (error) {
-    console.error('Queue status request failed', error);
-    const status = error.statusCode || 500;
-    sendJson(res, status, { message: error.message || 'Failed to fetch queue status' });
-  }
-}
-
 async function handleCodeWhispererStatusRequest(req, res) {
   try {
     const body = await readRequestBody(req);
@@ -5749,11 +5716,6 @@ export async function createApp() {
       return;
     }
 
-    if (pathname === '/api/queue-status' && method === 'GET') {
-      await handleQueueStatusRequest(req, res, url);
-      return;
-    }
-
     if (pathname === '/api/codewhisperer-status' && method === 'POST') {
       await handleCodeWhispererStatusRequest(req, res);
       return;
@@ -6079,72 +6041,11 @@ export async function createApp() {
         const draft = generateInvestCompliantStory(idea, { parent });
         draft.source = 'heuristic'; // Mark as heuristic-generated
         
-        // Queue Kiro request for async processing (Kiro will POST result back)
-        try {
-          const { createKiroRequest } = await import('./kiro-queue.js');
-          const requestId = await createKiroRequest('generate-story', {
-            idea,
-            parentStory: parent,
-            callbackUrl: `${process.env.API_BASE_URL || 'https://tepm6xhsm0.execute-api.us-east-1.amazonaws.com/dev'}/api/kiro-callback`
-          });
-          draft.kiroRequestId = requestId; // Include request ID for tracking
-          console.log(`📝 Queued Kiro story generation: ${requestId}`);
-        } catch (queueError) {
-          console.error('Failed to queue Kiro request:', queueError.message);
-        }
-        
         sendJson(res, 200, draft);
       } catch (error) {
         console.error('Failed to generate story draft', error);
         const status = error.statusCode ?? 500;
         sendJson(res, status, { message: error.message || 'Failed to generate story draft' });
-      }
-      return;
-    }
-    
-    // Kiro callback endpoint - Kiro POSTs results here
-    if (pathname === '/api/kiro-callback' && method === 'POST') {
-      try {
-        const { requestId, result, error } = await parseJson(req);
-        
-        if (!requestId) {
-          sendJson(res, 400, { message: 'requestId required' });
-          return;
-        }
-        
-        const { updateKiroRequest } = await import('./kiro-queue.js');
-        await updateKiroRequest(requestId, result, error);
-        
-        console.log(`✅ Kiro callback received for ${requestId}`);
-        sendJson(res, 200, { success: true });
-      } catch (error) {
-        console.error('Kiro callback failed:', error);
-        sendJson(res, 500, { message: error.message });
-      }
-      return;
-    }
-    
-    // Check Kiro request status
-    if (pathname.startsWith('/api/kiro-status/') && method === 'GET') {
-      try {
-        const requestId = pathname.substring(17); // Remove '/api/kiro-status/'
-        const { getKiroRequest } = await import('./kiro-queue.js');
-        const request = await getKiroRequest(requestId);
-        
-        if (!request) {
-          sendJson(res, 404, { message: 'Request not found' });
-          return;
-        }
-        
-        sendJson(res, 200, {
-          requestId: request.requestId,
-          status: request.status,
-          result: request.result || null,
-          error: request.error || null
-        });
-      } catch (error) {
-        console.error('Failed to get Kiro status:', error);
-        sendJson(res, 500, { message: error.message });
       }
       return;
     }
