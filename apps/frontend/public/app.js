@@ -1905,21 +1905,6 @@ function renderCodeWhispererSectionList(container, story) {
       });
       actions.appendChild(mergeBtn);
 
-      const refineBtn = document.createElement('button');
-      refineBtn.type = 'button';
-      refineBtn.className = 'button secondary refine-kiro-btn';
-      refineBtn.textContent = 'Refine with Kiro';
-      refineBtn.addEventListener('click', async () => {
-        const prNumber = entry.number || entry.targetNumber;
-        const branchName = entry.branchName;
-        if (!prNumber || !branchName) {
-          showToast('PR information missing', 'error');
-          return;
-        }
-        showKiroTerminalModal(prNumber, branchName);
-      });
-      actions.appendChild(refineBtn);
-
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'link-button codewhisperer-remove';
