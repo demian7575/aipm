@@ -114,11 +114,10 @@ export class DynamoDBDataLayer {
   _parseUpdateParams(sql, params) {
     // UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?
     const [title, description, components, storyPoint, assigneeEmail, asA, iWant, soThat, status, updatedAt, investWarnings, investAnalysis] = params;
-    return {
+    const updates = {
       title,
       description,
       components,
-      storyPoint,
       assigneeEmail,
       asA,
       iWant,
@@ -128,6 +127,11 @@ export class DynamoDBDataLayer {
       investWarnings,
       investAnalysis
     };
+    // Only include storyPoint if it's not null/undefined
+    if (storyPoint != null) {
+      updates.storyPoint = storyPoint;
+    }
+    return updates;
   }
 
   // Stories operations
