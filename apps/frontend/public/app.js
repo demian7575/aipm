@@ -4780,6 +4780,10 @@ function renderDetails() {
       titleLink.textContent = child.title;
       titleLink.setAttribute('data-story-id', child.id);
       
+      if (child.status === 'Done') {
+        titleLink.style.color = '#666';
+      }
+      
       li.appendChild(titleLink);
       childList.appendChild(li);
     });
