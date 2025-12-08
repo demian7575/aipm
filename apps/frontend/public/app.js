@@ -4390,7 +4390,8 @@ function renderDetails() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           title: story.title,
-          status: 'Done' 
+          status: 'Done',
+          acceptWarnings: true
         })
       });
       if (response.ok) {
