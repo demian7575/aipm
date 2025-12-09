@@ -45,11 +45,28 @@ export function generateInvestCompliantStory(idea, context = {}) {
   const asA = parent?.asA || 'User';
   const soThat = 'I can accomplish my goals more effectively';
   
-  // Normalize idea text - ensure it starts lowercase for proper sentence construction
-  const normalizedIdea = idea.charAt(0).toLowerCase() + idea.slice(1);
+  // Clean up the idea text for natural description
+  let cleanIdea = idea.trim();
   
-  // Generate description with proper grammar
-  let description = `As a ${asA}, I want to ${normalizedIdea}.`;
+  // Remove common prefixes that would make the sentence awkward
+  const prefixPatterns = [
+    /^I want to\s+/i,
+    /^As a .+ I want to\s+/i,
+    /^to\s+/i
+  ];
+  
+  for (const pattern of prefixPatterns) {
+    cleanIdea = cleanIdea.replace(pattern, '');
+  }
+  
+  // Ensure first letter is lowercase for proper sentence construction
+  cleanIdea = cleanIdea.charAt(0).toLowerCase() + cleanIdea.slice(1);
+  
+  // Remove trailing period if present
+  cleanIdea = cleanIdea.replace(/\.$/, '');
+  
+  // Generate description with natural grammar
+  let description = `As a ${asA}, I want to ${cleanIdea}.`;
   if (soThat) {
     description += ` This ensures ${soThat.toLowerCase()}.`;
   }
