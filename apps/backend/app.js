@@ -5755,7 +5755,8 @@ export async function createApp() {
       const version = { version: pkg.version };
       
       // In development, extract PR number from branch name
-      if (process.env.NODE_ENV !== 'production') {
+      const stage = process.env.STAGE || process.env.AWS_STAGE || 'prod';
+      if (stage === 'dev' || stage === 'development') {
         try {
           const { execSync } = await import('child_process');
           const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
