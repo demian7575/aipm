@@ -1,12 +1,12 @@
 # Show Version of AIPM to know which version of AIPM is working
 
-As a User, I want to show version of aipm to know which version of aipm is working.  in development environment, the version should show the GitHub PR number also.
+Show Version of AIPM to know which version of AIPM is working
 
 Constraints: 
 
 Acceptance Criteria:
 - The feature works as described
-- The implementation matches the requirement: Show Version of AIPM to know which version of AIPM is working.  In Development environment, The version should show the GitHub PR number also
+- The user interface is intuitive
 - The changes are properly tested
 
 ---
