@@ -1735,6 +1735,17 @@ function renderCodeWhispererSectionList(container, story) {
 
     card.appendChild(header);
 
+    const assigneeDiv = document.createElement('div');
+    assigneeDiv.className = 'codewhisperer-assignee';
+    assigneeDiv.innerHTML = `<span>Assignee:</span> <input type="email" class="assignee-input" value="${escapeHtml(entry.assignee || '')}" placeholder="assignee@example.com" />`;
+    card.appendChild(assigneeDiv);
+    
+    const assigneeInput = assigneeDiv.querySelector('.assignee-input');
+    assigneeInput.addEventListener('change', async () => {
+      entry.assignee = assigneeInput.value.trim();
+      persistCodeWhispererDelegations();
+    });
+
     if (entry.objective) {
       const objective = document.createElement('p');
       objective.className = 'codewhisperer-objective';

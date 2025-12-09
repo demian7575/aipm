@@ -1075,6 +1075,28 @@ body.is-mindmap-panning {
   line-height: 1.5;
 }
 
+.codewhisperer-assignee {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.codewhisperer-assignee span {
+  font-weight: 600;
+  color: #374151;
+}
+
+.codewhisperer-assignee .assignee-input {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
 .codewhisperer-confirmation span {
   font-weight: 600;
   margin-right: 0.35rem;
