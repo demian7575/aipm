@@ -1,12 +1,12 @@
-# Auto generated "Description" in  User story generated in "Create Child Story" modal is not seems natural.
+# Chnage Color of Child Story in "Child Stories" list dark grey and place to bottom of the list , when the stuatus of a Child Story become 'Done'
 
-As a User, I want to auto generated "Description" in  User story generated in "Create Child Story" modal is not seems natural.. This ensures i can accomplish my goals more effectively. This work supports the parent story "BUG FIX".
+As a User, I want to chnage color of child story in "child stories" list dark grey , when the stuatus of a child story become 'done'. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
 
 Constraints: 
 
 Acceptance Criteria:
 - The feature works as described
-- The implementation matches the requirement: Auto generated "Description" in  User story generated in "Create Child Story" modal is not seems natural.
+- The implementation matches the requirement: Chnage Color of Child Story in "Child Stories" list dark grey , when the stuatus of a Child Story become 'Done'
 - The changes are properly tested
 
 ---
