@@ -1851,7 +1851,7 @@ function renderCodeWhispererSectionList(container, story) {
           
           try {
             // Trigger code generation via personal-delegate API
-            const response = await fetch(`${API_BASE_URL}/api/personal-delegate`, {
+            const response = await fetch(resolveApiUrl('/api/personal-delegate'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
