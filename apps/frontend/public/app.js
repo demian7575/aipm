@@ -238,6 +238,37 @@ for (const [alias, canonical] of COMPONENT_SYNONYMS.entries()) {
   }
 }
 
+function getVisibleMindmapStories(stories) {
+  const filterDoneStories = (entries) => {
+    return entries
+      .filter((story) => story && story.status !== 'Done')
+      .map((story) => ({
+        ...story,
+        children: story.children ? filterDoneStories(story.children) : [],
+      }));
+  };
+
+  return filterDoneStories(Array.isArray(stories) ? stories : []);
+}
+
+function seedManualPositionsFromAutoLayout() {
+  const visibleStories = getVisibleMindmapStories(state.stories);
+  if (visibleStories.length === 0) {
+    state.manualPositions = {};
+    return false;
+  }
+
+  const metrics = collectMindmapNodeMetrics(visibleStories);
+  const layout = computeLayout(visibleStories, 0, Y_OFFSET, AUTO_LAYOUT_HORIZONTAL_GAP, metrics);
+  const nextPositions = {};
+  layout.nodes.forEach((node) => {
+    nextPositions[node.id] = { x: node.x, y: node.y };
+  });
+
+  state.manualPositions = nextPositions;
+  return Object.keys(nextPositions).length > 0;
+}
+
 function parseStoryPointInput(raw) {
   if (raw == null) {
     return { value: null, error: null };
@@ -2678,16 +2709,7 @@ function renderMindmap() {
     return;
   }
 
-  // Filter out stories with "Done" status
-  const filterDoneStories = (stories) => {
-    return stories
-      .filter(story => story.status !== 'Done')
-      .map(story => ({
-        ...story,
-        children: story.children ? filterDoneStories(story.children) : []
-      }));
-  };
-  const visibleStories = filterDoneStories(state.stories);
+  const visibleStories = getVisibleMindmapStories(state.stories);
 
   if (visibleStories.length === 0) {
     layoutStatus.textContent = 'All stories are done.';
@@ -2700,6 +2722,22 @@ function renderMindmap() {
   const horizontalGap = state.autoLayout ? AUTO_LAYOUT_HORIZONTAL_GAP : 0;
   const metrics = collectMindmapNodeMetrics(visibleStories);
   const layout = computeLayout(visibleStories, 0, Y_OFFSET, horizontalGap, metrics);
+
+  // When manual layout is enabled, seed missing manual positions from the
+  // latest computed layout so nodes stay stable across redraws instead of
+  // drifting to newly calculated coordinates.
+  if (!state.autoLayout) {
+    let manualPositionsUpdated = false;
+    layout.nodes.forEach((node) => {
+      if (!state.manualPositions[node.id]) {
+        state.manualPositions[node.id] = { x: node.x, y: node.y };
+        manualPositionsUpdated = true;
+      }
+    });
+    if (manualPositionsUpdated) {
+      persistLayout();
+    }
+  }
   const nodes = [];
   const nodeMap = new Map();
   layout.nodes.forEach((node) => {
@@ -2995,11 +3033,14 @@ function setupNodeInteraction(group, node) {
   let originY = 0;
 
   function onMouseMove(event) {
+    if (!dragging && state.autoLayout) {
+      seedManualPositionsFromAutoLayout();
+      state.autoLayout = false;
+    }
     dragging = true;
     const dx = event.clientX - startX;
     const dy = event.clientY - startY;
     state.manualPositions[node.id] = { x: originX + dx, y: originY + dy };
-    state.autoLayout = false;
     renderMindmap();
   }
 
@@ -7096,8 +7137,11 @@ function initialize() {
   });
 
   autoLayoutToggle.addEventListener('click', () => {
-    state.autoLayout = !state.autoLayout;
     if (state.autoLayout) {
+      seedManualPositionsFromAutoLayout();
+      state.autoLayout = false;
+    } else {
+      state.autoLayout = true;
       state.manualPositions = {};
     }
     persistLayout();
