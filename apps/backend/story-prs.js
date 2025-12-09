@@ -1,6 +1,50 @@
 // Story-PR association management
 // Stores PR connections directly in stories table
 
+function normalizePrEntry(prData) {
+  if (!prData || typeof prData !== 'object') {
+    return null;
+  }
+
+  const normalized = { ...prData };
+  normalized.assignee = typeof prData.assignee === 'string' ? prData.assignee : '';
+  normalized.createdAt = normalized.createdAt || new Date().toISOString();
+  normalized.updatedAt = normalized.updatedAt || null;
+
+  if (!normalized.localId) {
+    normalized.localId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  return normalized;
+}
+
+async function persistStoryPRs(db, storyId, prs) {
+  if (db.constructor.name === 'DynamoDBDataLayer') {
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client, {
+      marshallOptions: { removeUndefinedValues: true }
+    });
+    const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+
+    await docClient.send(new UpdateCommand({
+      TableName: tableName,
+      Key: { id: Number(storyId) },
+      UpdateExpression: 'SET prs = :prs',
+      ExpressionAttributeValues: {
+        ':prs': prs
+      }
+    }));
+  } else {
+    // SQLite
+    db.prepare('UPDATE user_stories SET prs = ? WHERE id = ?').run(JSON.stringify(prs), storyId);
+  }
+
+  return prs;
+}
+
 export async function getStoryPRs(db, storyId) {
   console.log(`getStoryPRs called for story ${storyId}, db type: ${db.constructor.name}`);
   
@@ -32,67 +76,31 @@ export async function getStoryPRs(db, storyId) {
 
 export async function addStoryPR(db, storyId, prData) {
   const prs = await getStoryPRs(db, storyId);
-  
+
+  if (Array.isArray(prData?.prs)) {
+    const normalized = prData.prs.map(normalizePrEntry).filter(Boolean);
+    return persistStoryPRs(db, storyId, normalized);
+  }
+
+  const normalizedEntry = normalizePrEntry(prData);
+  if (!normalizedEntry) {
+    return prs;
+  }
+
   // Check if PR already exists
-  const existingIndex = prs.findIndex(pr => pr.number === prData.number);
+  const existingIndex = prs.findIndex((pr) => pr.number === normalizedEntry.number);
   if (existingIndex >= 0) {
-    prs[existingIndex] = { ...prs[existingIndex], ...prData, updatedAt: new Date().toISOString() };
+    prs[existingIndex] = { ...prs[existingIndex], ...normalizedEntry, updatedAt: new Date().toISOString() };
   } else {
-    prs.push({ ...prData, createdAt: new Date().toISOString() });
+    prs.push({ ...normalizedEntry, createdAt: new Date().toISOString() });
   }
-  
-  if (db.constructor.name === 'DynamoDBDataLayer') {
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client, {
-      marshallOptions: { removeUndefinedValues: true }
-    });
-    const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-    
-    await docClient.send(new UpdateCommand({
-      TableName: tableName,
-      Key: { id: Number(storyId) },
-      UpdateExpression: 'SET prs = :prs',
-      ExpressionAttributeValues: {
-        ':prs': prs
-      }
-    }));
-  } else {
-    // SQLite
-    db.prepare('UPDATE user_stories SET prs = ? WHERE id = ?').run(JSON.stringify(prs), storyId);
-  }
-  
-  return prs;
+
+  return persistStoryPRs(db, storyId, prs);
 }
 
 export async function removeStoryPR(db, storyId, prNumber) {
   const prs = await getStoryPRs(db, storyId);
   const filtered = prs.filter(pr => pr.number !== prNumber);
-  
-  if (db.constructor.name === 'DynamoDBDataLayer') {
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client, {
-      marshallOptions: { removeUndefinedValues: true }
-    });
-    const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-    
-    await docClient.send(new UpdateCommand({
-      TableName: tableName,
-      Key: { id: Number(storyId) },
-      UpdateExpression: 'SET prs = :prs',
-      ExpressionAttributeValues: {
-        ':prs': filtered
-      }
-    }));
-  } else {
-    // SQLite
-    db.prepare('UPDATE user_stories SET prs = ? WHERE id = ?').run(JSON.stringify(filtered), storyId);
-  }
-  
-  return filtered;
+
+  return persistStoryPRs(db, storyId, filtered);
 }

@@ -1170,6 +1170,9 @@ function codewhispererEntryShape(entry, storyId) {
     return null;
   }
   const normalized = { ...entry };
+  normalized.assignee = typeof normalized.assignee === 'string' ? normalized.assignee : '';
+  normalized.createdAt = normalized.createdAt || new Date().toISOString();
+  normalized.updatedAt = normalized.updatedAt || null;
   normalized.storyId = normalized.storyId ?? storyId;
   if (!normalized.localId) {
     normalized.localId = `codewhisperer-${normalized.storyId}-${Date.now()}-${Math.random()
@@ -1321,11 +1324,14 @@ function ensureCodeWhispererEntryShape(entry, storyId) {
   if (!entry || typeof entry !== 'object') {
     return null;
   }
-  
+
   return {
+    assignee: typeof entry.assignee === 'string' ? entry.assignee : '',
     localId: entry.localId || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     storyId: storyId || entry.storyId,
     taskTitle: entry.taskTitle || 'Unknown Task',
+    createdAt: entry.createdAt || null,
+    updatedAt: entry.updatedAt || null,
     repo: entry.repo || '',
     branchName: entry.branchName || '',
     target: entry.target || 'new-issue',
@@ -1404,30 +1410,46 @@ function getCodeWhispererDelegations(storyId) {
   }
   // Get PRs from the story object
   const story = storyIndex.get(key);
-  return story?.prs || [];
+  return (story?.prs || []).map((entry) => ensureCodeWhispererEntryShape(entry, key)).filter(Boolean);
 }
 
 async function setCodeWhispererDelegations(storyId, entries) {
   const key = Number(storyId);
   if (!Number.isFinite(key)) {
-    return;
+    return false;
   }
+  const normalizedEntries = (entries || [])
+    .map((entry) =>
+      ensureCodeWhispererEntryShape(
+        {
+          ...entry,
+          assignee: typeof entry.assignee === 'string' ? entry.assignee.trim() : '',
+        },
+        key
+      )
+    )
+    .filter(Boolean);
+
   // Update story's PRs via API
   try {
     const response = await fetch(resolveApiUrl(`/api/stories/${key}/prs`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prs: entries })
+      body: JSON.stringify({ prs: normalizedEntries })
     });
     if (response.ok) {
+      const prs = await response.json();
       const story = storyIndex.get(key);
       if (story) {
-        story.prs = entries;
+        story.prs = prs.map((entry) => ensureCodeWhispererEntryShape(entry, key)).filter(Boolean);
       }
+      return true;
     }
+    console.error('Failed to persist PRs', response.status, response.statusText);
   } catch (error) {
     console.error('Failed to persist PRs', error);
   }
+  return false;
 }
 
 async function addCodeWhispererDelegationEntry(storyId, entry) {
@@ -1809,17 +1831,24 @@ function renderCodeWhispererSectionList(container, story) {
     updateAssigneeBtn.style.fontSize = '12px';
     updateAssigneeBtn.addEventListener('click', async () => {
       const newAssignee = assigneeInput.value.trim();
-      entry.assignee = newAssignee;
-      
-      // Save to backend
-      const allEntries = getCodeWhispererDelegations(story.id);
-      await setCodeWhispererDelegations(story.id, allEntries);
-      
-      showToast('Assignee updated', 'success');
-      
-      // Trigger code generation if assignee is "Kiro"
-      if (newAssignee.toLowerCase() === 'kiro') {
-        showToast('Kiro assigned - use "Generate Code & PR" to start code generation', 'info');
+      const updatedEntries = getCodeWhispererDelegations(story.id).map((item) =>
+        item.localId === entry.localId
+          ? { ...item, assignee: newAssignee, updatedAt: new Date().toISOString() }
+          : item
+      );
+
+      const saved = await setCodeWhispererDelegations(story.id, updatedEntries);
+
+      if (saved) {
+        showToast('Assignee updated', 'success');
+        renderCodeWhispererSectionList(container, story);
+
+        // Trigger code generation messaging if assignee is "Kiro"
+        if (newAssignee.toLowerCase() === 'kiro') {
+          showToast('Kiro assigned — click "Generate Code & PR" to start code generation.', 'info');
+        }
+      } else {
+        showToast('Failed to update assignee. Please try again.', 'error');
       }
     });
     assigneeRow.appendChild(updateAssigneeBtn);
@@ -5257,6 +5286,7 @@ function createDefaultCodeWhispererForm(story) {
     owner: 'demian7575',
     repo: 'aipm',
     branchName,
+    assignee: story?.assigneeEmail || '',
     taskTitle: story?.title || '',
     objective: story?.description || story?.iWant || story?.title || '',
     prTitle: story?.title || '',
@@ -5316,7 +5346,7 @@ function openCodeWhispererDelegationModal(story) {
     </div>
     <div class="field">
       <label for="codewhisperer-assignee">Assignee</label>
-      <input id="codewhisperer-assignee" name="assignee" type="email" placeholder="assignee@example.com" />
+      <input id="codewhisperer-assignee" name="assignee" type="text" placeholder="Add an assignee (optional)" />
       <p class="field-error" data-error-for="assignee" hidden></p>
     </div>
     <div class="field">
