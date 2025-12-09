@@ -49,13 +49,13 @@ class KiroTerminalApp {
   }
 
   setupEventHandlers(terminal) {
-    // Terminal input
-    this.terminalUI.onData((data) => {
+    // Terminal input - send to WebSocket
+    const dataDisposable = this.terminalUI.onData((data) => {
       this.controller.send(data);
     });
 
     // Terminal resize
-    this.terminalUI.onResize(({ cols, rows }) => {
+    const resizeDisposable = this.terminalUI.onResize(({ cols, rows }) => {
       this.controller.resize(cols, rows);
       this.updateTerminalSize();
     });

@@ -20,7 +20,9 @@ export class TerminalUI {
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
       theme: this.getTheme(),
       scrollback: 10000,
-      convertEol: true
+      convertEol: true,
+      disableStdin: false,
+      cursorStyle: 'block'
     });
 
     if (FitAddon) {
@@ -34,6 +36,9 @@ export class TerminalUI {
       this.fitAddon.fit();
       window.addEventListener('resize', () => this.fit());
     }
+
+    // Focus terminal immediately
+    setTimeout(() => this.terminal.focus(), 100);
 
     return this.terminal;
   }
