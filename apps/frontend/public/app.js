@@ -1785,6 +1785,35 @@ function renderCodeWhispererSectionList(container, story) {
       card.appendChild(branch);
     }
 
+    // Assignee field with inline editing
+    const assigneeContainer = document.createElement('p');
+    assigneeContainer.className = 'codewhisperer-assignee';
+    const assigneeLabel = document.createElement('span');
+    assigneeLabel.textContent = 'Assignee:';
+    assigneeContainer.appendChild(assigneeLabel);
+    
+    const assigneeInput = document.createElement('input');
+    assigneeInput.type = 'email';
+    assigneeInput.placeholder = 'email@example.com';
+    assigneeInput.value = entry.assignee || '';
+    assigneeInput.style.cssText = 'margin-left: 8px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;';
+    assigneeInput.addEventListener('blur', () => {
+      const newAssignee = assigneeInput.value.trim();
+      if (newAssignee !== (entry.assignee || '')) {
+        entry.assignee = newAssignee;
+        persistCodeWhispererDelegations();
+        showToast('Assignee updated', 'success');
+      }
+    });
+    assigneeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        assigneeInput.blur();
+      }
+    });
+    assigneeContainer.appendChild(assigneeInput);
+    card.appendChild(assigneeContainer);
+
     const status = document.createElement('p');
     status.className = 'codewhisperer-status-line';
 
