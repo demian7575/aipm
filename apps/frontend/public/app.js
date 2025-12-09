@@ -3303,7 +3303,86 @@ function buildDeployToDevModalContent(prEntry = null) {
   return { element: container, onClose: () => {} };
 }
 
-async function buildKiroTerminalModalContent(prEntry = null) {
+function getEc2TerminalBaseUrl() {
+  return window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
+}
+
+function toHttpTerminalUrl(baseUrl) {
+  if (!baseUrl) return '';
+  if (baseUrl.startsWith('ws://')) return `http://${baseUrl.slice(5)}`;
+  if (baseUrl.startsWith('wss://')) return `https://${baseUrl.slice(6)}`;
+  return baseUrl;
+}
+
+function buildKiroContextSummary(story) {
+  if (!story) return '';
+
+  const parts = [];
+  parts.push(`Story: ${story.title || 'Untitled story'}`);
+
+  if (story.description) {
+    parts.push(`Description:\n${story.description}`);
+  }
+
+  const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
+  if (tests.length) {
+    const formatted = tests
+      .map((test, index) => {
+        const title = test.title || `Acceptance Test ${index + 1}`;
+        const status = test.status || 'Draft';
+        const given = test.given || '';
+        const when = test.when || '';
+        const then = test.then || '';
+        return [`• ${title} (${status})`, given && `  Given ${given}`, when && `  When ${when}`, then && `  Then ${then}`]
+          .filter(Boolean)
+          .join('\n');
+      })
+      .join('\n');
+    parts.push(`Acceptance Tests:\n${formatted}`);
+  }
+
+  const components = Array.isArray(story.components) ? story.components : [];
+  if (components.length) {
+    parts.push(`Components: ${components.map(formatComponentLabel).join(', ')}`);
+  }
+
+  return parts.filter(Boolean).join('\n\n');
+}
+
+async function prepareKiroTerminalContext(prEntry = {}) {
+  const context = { summary: '', branchStatus: '' };
+
+  if (prEntry.storyId && storyIndex.has(prEntry.storyId)) {
+    context.summary = buildKiroContextSummary(storyIndex.get(prEntry.storyId));
+  }
+
+  const baseUrl = getEc2TerminalBaseUrl();
+  const httpBase = toHttpTerminalUrl(baseUrl);
+
+  if (prEntry?.branchName && httpBase) {
+    try {
+      const response = await fetch(`${httpBase}/checkout-branch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch: prEntry.branchName })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        context.branchStatus = `✓ Branch ${prEntry.branchName} ready`;
+      } else {
+        context.branchStatus = `⚠️  Branch checkout warning: ${result.message}`;
+      }
+    } catch (error) {
+      context.branchStatus = `⚠️  Could not pre-checkout branch: ${error.message}`;
+    }
+  }
+
+  return context;
+}
+
+async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
   
@@ -3322,10 +3401,15 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     </div>
   ` : '';
   
+  const contextSummary = kiroContext?.summary
+    ? `<div class="kiro-context"><h4>Loaded context</h4><pre>${escapeHtml(kiroContext.summary)}</pre></div>`
+    : '';
+
   container.innerHTML = `
     ${prInfo}
     <div class="staging-options">
       <h3>Refine PR with Kiro</h3>
+      ${contextSummary}
       <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
     </div>
   `;
@@ -3369,34 +3453,15 @@ async function buildKiroTerminalModalContent(prEntry = null) {
   terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
   terminal.writeln('');
   
-  // Connect to EC2 WebSocket server
-  const EC2_TERMINAL_URL = window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
-  // Pre-checkout branch via SSH before opening terminal
-  if (prEntry?.branchName) {
-    terminal.writeln('🔄 Preparing branch...');
-    
-    try {
-      const response = await fetch('http://44.220.45.57:8080/checkout-branch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branch: prEntry.branchName })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        terminal.writeln(`✓ Branch ${prEntry.branchName} ready`);
-      } else {
-        terminal.writeln(`⚠️  Branch checkout warning: ${result.message}`);
-      }
-    } catch (error) {
-      terminal.writeln(`⚠️  Could not pre-checkout branch: ${error.message}`);
+    // Connect to EC2 WebSocket server
+    const EC2_TERMINAL_URL = getEc2TerminalBaseUrl();
+
+    if (kiroContext?.branchStatus) {
+      terminal.writeln(kiroContext.branchStatus);
+      terminal.writeln('');
     }
-    
-    terminal.writeln('');
-  }
-  
-  const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
+
+    const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
   
   socket = new WebSocket(wsUrl);
   
@@ -6979,15 +7044,23 @@ function initialize() {
       showToast('Story not found', 'error');
       return;
     }
-    const entry = { storyId: story.id, title: story.title };
-    const { element, onClose } = await buildKiroTerminalModalContent(entry);
-    openModal({
-      title: 'Kiro CLI Terminal',
-      content: element,
-      cancelLabel: 'Close',
-      size: 'fullscreen',
-      onClose,
+
+    // Open dedicated terminal page
+    const params = new URLSearchParams({
+      storyId: story.id,
+      storyTitle: story.title || 'Untitled',
+      branch: 'main'
     });
+    
+    const terminalUrl = `terminal/index.html?${params}`;
+    
+    // Try to open in new window, fallback to same tab if blocked
+    const terminalWindow = window.open(terminalUrl, 'kiro-terminal', 'width=1200,height=800');
+    
+    if (!terminalWindow) {
+      // Popup blocked, open in same tab
+      window.location.href = terminalUrl;
+    }
   });
   generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
