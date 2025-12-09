@@ -6,10 +6,10 @@ const css = await readFile('./apps/frontend/public/styles.css', 'utf-8');
 
 const tests = [
   ['Assignee field on card', appJs.includes('codewhisperer-assignee')],
-  ['Editable input', appJs.includes('assignee-input')],
-  ['Change handler', appJs.includes("addEventListener('change'")],
-  ['CSS styling', css.includes('.codewhisperer-assignee')],
-  ['Input CSS', css.includes('.assignee-input')]
+  ['Assignee row element', appJs.includes('codewhisperer-assignee-row')],
+  ['Update button', appJs.includes('updateAssigneeBtn')],
+  ['Assignee input', appJs.includes("assigneeInput.type = 'text'")],
+  ['Assignee label', appJs.includes("assigneeLabel.textContent = 'Assignee:'")]
 ];
 
 let p = 0;
