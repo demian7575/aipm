@@ -6,6 +6,7 @@
   "scripts": {
     "test": "bash scripts/testing/run-all-gating-tests.sh",
     "test:dev-gating": "echo 'Dev gating tests - skipping Node.js tests'",
+    "build": "node scripts/build.js",
     "deploy:dev": "bash bin/deploy-dev",
     "deploy:prod": "bash bin/deploy-prod",
     "gating:dev": "bash scripts/testing/test-deployment-config-gating.sh"
