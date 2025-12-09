@@ -51,8 +51,13 @@ fi
 echo "📦 Step 3: Deploying Backend (Lambda + API Gateway + DynamoDB)..."
 npx serverless deploy --stage dev || echo "⚠️  Serverless deploy skipped (already deployed)"
 
-# Use correct dev API endpoint
-API_ENDPOINT="https://dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev"
+# Get API endpoint from CloudFormation
+API_ID=$(aws cloudformation describe-stacks \
+  --stack-name aipm-backend-dev \
+  --region us-east-1 \
+  --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayRestApiId`].OutputValue' \
+  --output text)
+API_ENDPOINT="https://${API_ID}.execute-api.us-east-1.amazonaws.com/dev"
 echo "✅ Backend endpoint: $API_ENDPOINT"
 
 # 4. Create Frontend Config (don't overwrite in git)
