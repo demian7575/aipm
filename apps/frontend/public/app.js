@@ -7044,28 +7044,22 @@ function initialize() {
       showToast('Story not found', 'error');
       return;
     }
-    const entry = { storyId: story.id, title: story.title };
 
-    const restore = { disabled: refineKiroBtn.disabled, label: refineKiroBtn.textContent };
-    refineKiroBtn.disabled = true;
-    refineKiroBtn.textContent = 'Preparing Kiro...';
-
-    try {
-      const kiroContext = await prepareKiroTerminalContext(entry);
-      const { element, onClose } = await buildKiroTerminalModalContent(entry, kiroContext);
-      openModal({
-        title: 'Kiro CLI Terminal',
-        content: element,
-        cancelLabel: 'Close',
-        size: 'fullscreen',
-        onClose,
-      });
-    } catch (error) {
-      console.error('Failed to open Kiro terminal', error);
-      showToast(error.message || 'Unable to open Kiro terminal', 'error');
-    } finally {
-      refineKiroBtn.disabled = restore.disabled;
-      refineKiroBtn.textContent = restore.label;
+    // Open dedicated terminal page
+    const params = new URLSearchParams({
+      storyId: story.id,
+      storyTitle: story.title || 'Untitled',
+      branch: 'main'
+    });
+    
+    const terminalUrl = `terminal/index.html?${params}`;
+    
+    // Try to open in new window, fallback to same tab if blocked
+    const terminalWindow = window.open(terminalUrl, 'kiro-terminal', 'width=1200,height=800');
+    
+    if (!terminalWindow) {
+      // Popup blocked, open in same tab
+      window.location.href = terminalUrl;
     }
   });
   generateDocBtn?.addEventListener('click', openDocumentPanel);
