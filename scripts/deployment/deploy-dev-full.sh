@@ -23,7 +23,8 @@ if [ "$STORY_COUNT" -gt 0 ]; then
   
   # Copy items
   cat /tmp/prod-stories.json | jq -c '.Items[]' | while read item; do
-    aws dynamodb put-item --table-name aipm-backend-dev-stories --item "$item" --region us-east-1
+    echo "$item" > /tmp/story-item.json
+    aws dynamodb put-item --table-name aipm-backend-dev-stories --item file:///tmp/story-item.json --region us-east-1
   done
   echo "  ✅ Copied $STORY_COUNT stories"
 fi
@@ -40,7 +41,8 @@ if [ "$TEST_COUNT" -gt 0 ]; then
   
   # Copy items
   cat /tmp/prod-tests.json | jq -c '.Items[]' | while read item; do
-    aws dynamodb put-item --table-name aipm-backend-dev-acceptance-tests --item "$item" --region us-east-1
+    echo "$item" > /tmp/test-item.json
+    aws dynamodb put-item --table-name aipm-backend-dev-acceptance-tests --item file:///tmp/test-item.json --region us-east-1
   done
   echo "  ✅ Copied $TEST_COUNT tests"
 fi
