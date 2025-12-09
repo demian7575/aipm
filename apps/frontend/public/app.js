@@ -1704,6 +1704,13 @@ function renderCodeWhispererSectionList(container, story) {
 
     card.appendChild(header);
 
+    if (entry.assignee) {
+      const assignee = document.createElement('p');
+      assignee.className = 'codewhisperer-assignee';
+      assignee.innerHTML = `<span>Assignee:</span> ${escapeHtml(entry.assignee)}`;
+      card.appendChild(assignee);
+    }
+
     if (entry.objective) {
       const objective = document.createElement('p');
       objective.className = 'codewhisperer-objective';
@@ -5230,6 +5237,11 @@ function openCodeWhispererDelegationModal(story) {
       <textarea id="codewhisperer-task-title" name="taskTitle" rows="1" style="resize: vertical; overflow: hidden;" required></textarea>
       <p class="field-error" data-error-for="taskTitle" hidden></p>
     </div>
+    <div class="field">
+      <label for="codewhisperer-assignee">Assignee</label>
+      <input id="codewhisperer-assignee" name="assignee" type="email" placeholder="assignee@example.com" />
+      <p class="field-error" data-error-for="assignee" hidden></p>
+    </div>
     <div class="field full">
       <label for="codewhisperer-objective">Objective</label>
       <textarea id="codewhisperer-objective" name="objective" rows="2" style="resize: vertical; overflow: hidden;" required></textarea>
@@ -5275,6 +5287,7 @@ function openCodeWhispererDelegationModal(story) {
   const repoNameInput = form.elements.repo;
   const branchInput = form.elements.branchName;
   const taskTitleInput = form.elements.taskTitle;
+  const assigneeInput = form.elements.assignee;
   const objectiveInput = form.elements.objective;
   const prTitleInput = form.elements.prTitle;
   const constraintsInput = form.elements.constraints;
@@ -5297,6 +5310,7 @@ function openCodeWhispererDelegationModal(story) {
   repoNameInput.value = defaults.repo || '';
   branchInput.value = defaults.branchName || '';
   taskTitleInput.value = defaults.taskTitle || '';
+  assigneeInput.value = defaults.assignee || story?.assigneeEmail || '';
   objectiveInput.value = defaults.objective || '';
   prTitleInput.value = defaults.prTitle || '';
   constraintsInput.value = defaults.constraints || '';
@@ -5356,6 +5370,7 @@ function openCodeWhispererDelegationModal(story) {
       repo: repoNameInput.value.trim(),
       branchName: branchInput.value.trim(),
       taskTitle: taskTitleInput.value.trim(),
+      assignee: assigneeInput.value.trim(),
       objective: objectiveInput.value.trim(),
       prTitle: prTitleInput.value.trim(),
       constraints: constraintsInput.value.trim(),
