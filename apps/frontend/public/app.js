@@ -7014,6 +7014,19 @@ function splitLines(value) {
     .filter(Boolean);
 }
 
+async function fetchVersion() {
+  try {
+    const res = await fetch(resolveApiUrl('/api/version'));
+    const data = await res.json();
+    const versionEl = document.getElementById('version-display');
+    if (versionEl) {
+      versionEl.textContent = data.pr ? `v${data.version} (PR #${data.pr})` : `v${data.version}`;
+    }
+  } catch (e) {
+    console.error('Failed to fetch version:', e);
+  }
+}
+
 function initialize() {
   console.log('AIPM initializing...');
   console.log('API Base URL:', window.__AIPM_API_BASE__);
@@ -7033,6 +7046,7 @@ function initialize() {
   renderOutline();
   renderMindmap();
   renderDetails();
+  fetchVersion();
 
   refineKiroBtn?.addEventListener('click', async () => {
     if (!state.selectedStoryId) {

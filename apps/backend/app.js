@@ -5749,6 +5749,25 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/version' && method === 'GET') {
+      const { readFile } = await import('fs/promises');
+      const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
+      const version = { version: pkg.version };
+      
+      // In development, extract PR number from branch name
+      if (process.env.NODE_ENV !== 'production') {
+        try {
+          const { execSync } = await import('child_process');
+          const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+          const prMatch = branch.match(/pr[_-]?(\d+)/i);
+          if (prMatch) version.pr = prMatch[1];
+        } catch (e) {}
+      }
+      
+      sendJson(res, 200, version);
+      return;
+    }
+
     if (pathname === '/api/queue-status' && method === 'GET') {
       await handleQueueStatusRequest(req, res, url);
       return;
