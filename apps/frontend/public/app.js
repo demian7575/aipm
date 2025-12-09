@@ -1778,6 +1778,13 @@ function renderCodeWhispererSectionList(container, story) {
       card.appendChild(branch);
     }
 
+    if (entry.assignee) {
+      const assignee = document.createElement('p');
+      assignee.className = 'codewhisperer-assignee';
+      assignee.innerHTML = `<span>Assignee:</span> ${escapeHtml(entry.assignee)}`;
+      card.appendChild(assignee);
+    }
+
     const status = document.createElement('p');
     status.className = 'codewhisperer-status-line';
 
@@ -1839,6 +1846,21 @@ function renderCodeWhispererSectionList(container, story) {
     }
 
     if (entry.createTrackingCard !== false) {
+      const editAssigneeBtn = document.createElement('button');
+      editAssigneeBtn.type = 'button';
+      editAssigneeBtn.className = 'link-button';
+      editAssigneeBtn.textContent = 'Edit Assignee';
+      editAssigneeBtn.addEventListener('click', () => {
+        const newAssignee = prompt('Enter assignee email:', entry.assignee || '');
+        if (newAssignee !== null) {
+          entry.assignee = newAssignee.trim();
+          persistCodeWhispererDelegations();
+          renderCodeWhispererSectionList(container, story);
+          showToast('Assignee updated', 'success');
+        }
+      });
+      actions.appendChild(editAssigneeBtn);
+
       const rebaseBtn = document.createElement('button');
       rebaseBtn.type = 'button';
       rebaseBtn.className = 'link-button codewhisperer-rebase';
@@ -5267,6 +5289,11 @@ function openCodeWhispererDelegationModal(story) {
       <p class="field-error" data-error-for="branchName" hidden></p>
     </div>
     <div class="field">
+      <label for="codewhisperer-assignee">Assignee</label>
+      <input id="codewhisperer-assignee" name="assignee" type="email" placeholder="assignee@example.com" />
+      <p class="field-error" data-error-for="assignee" hidden></p>
+    </div>
+    <div class="field">
       <label for="codewhisperer-task-title">Task title</label>
       <textarea id="codewhisperer-task-title" name="taskTitle" rows="1" style="resize: vertical; overflow: hidden;" required></textarea>
       <p class="field-error" data-error-for="taskTitle" hidden></p>
@@ -5315,6 +5342,7 @@ function openCodeWhispererDelegationModal(story) {
   const ownerInput = form.elements.owner;
   const repoNameInput = form.elements.repo;
   const branchInput = form.elements.branchName;
+  const assigneeInput = form.elements.assignee;
   const taskTitleInput = form.elements.taskTitle;
   const objectiveInput = form.elements.objective;
   const prTitleInput = form.elements.prTitle;
@@ -5337,6 +5365,7 @@ function openCodeWhispererDelegationModal(story) {
   ownerInput.value = defaults.owner || '';
   repoNameInput.value = defaults.repo || '';
   branchInput.value = defaults.branchName || '';
+  assigneeInput.value = defaults.assignee || '';
   taskTitleInput.value = defaults.taskTitle || '';
   objectiveInput.value = defaults.objective || '';
   prTitleInput.value = defaults.prTitle || '';
@@ -5396,6 +5425,7 @@ function openCodeWhispererDelegationModal(story) {
       owner: ownerInput.value.trim(),
       repo: repoNameInput.value.trim(),
       branchName: branchInput.value.trim(),
+      assignee: assigneeInput.value.trim(),
       taskTitle: taskTitleInput.value.trim(),
       objective: objectiveInput.value.trim(),
       prTitle: prTitleInput.value.trim(),
@@ -5420,6 +5450,7 @@ function openCodeWhispererDelegationModal(story) {
     localId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     storyId: story?.id || null,
     taskTitle: values.taskTitle || 'Unknown Task',
+    assignee: values.assignee || '',
     repo: `${values.owner}/${values.repo}`,
     branchName: result.branchName || values.branchName,
     target: values.target,
