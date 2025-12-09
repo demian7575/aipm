@@ -1778,11 +1778,73 @@ function renderCodeWhispererSectionList(container, story) {
       card.appendChild(branch);
     }
 
-    // Always show assignee field
-    const assignee = document.createElement('p');
-    assignee.className = 'codewhisperer-assignee';
-    assignee.innerHTML = `<span>Assignee:</span> ${escapeHtml(entry.assignee || '(not assigned)')}`;
-    card.appendChild(assignee);
+    // Assignee with editable text box and Update button
+    const assigneeRow = document.createElement('div');
+    assigneeRow.className = 'codewhisperer-assignee-row';
+    assigneeRow.style.display = 'flex';
+    assigneeRow.style.alignItems = 'center';
+    assigneeRow.style.gap = '8px';
+    assigneeRow.style.marginBottom = '8px';
+    
+    const assigneeLabel = document.createElement('span');
+    assigneeLabel.textContent = 'Assignee:';
+    assigneeLabel.style.fontWeight = 'bold';
+    assigneeRow.appendChild(assigneeLabel);
+    
+    const assigneeInput = document.createElement('input');
+    assigneeInput.type = 'text';
+    assigneeInput.value = entry.assignee || '';
+    assigneeInput.placeholder = '(not assigned)';
+    assigneeInput.style.flex = '1';
+    assigneeInput.style.padding = '4px 8px';
+    assigneeInput.style.border = '1px solid #ccc';
+    assigneeInput.style.borderRadius = '4px';
+    assigneeRow.appendChild(assigneeInput);
+    
+    const updateAssigneeBtn = document.createElement('button');
+    updateAssigneeBtn.type = 'button';
+    updateAssigneeBtn.className = 'button secondary';
+    updateAssigneeBtn.textContent = 'Update';
+    updateAssigneeBtn.style.padding = '4px 12px';
+    updateAssigneeBtn.style.fontSize = '12px';
+    updateAssigneeBtn.addEventListener('click', async () => {
+      const newAssignee = assigneeInput.value.trim();
+      entry.assignee = newAssignee;
+      persistCodeWhispererDelegations();
+      showToast('Assignee updated', 'success');
+      
+      // Trigger code generation if assignee is "Kiro"
+      if (newAssignee.toLowerCase() === 'kiro') {
+        updateAssigneeBtn.disabled = true;
+        updateAssigneeBtn.textContent = 'Generating...';
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/generate-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              storyId: story.id,
+              taskId: entry.localId,
+              prUrl: entry.prUrl,
+              branchName: entry.branchName
+            })
+          });
+          
+          if (response.ok) {
+            showToast('Code generation started by Kiro', 'success');
+          } else {
+            showToast('Failed to start code generation', 'error');
+          }
+        } catch (error) {
+          console.error('Code generation error:', error);
+          showToast('Error starting code generation', 'error');
+        }
+        updateAssigneeBtn.disabled = false;
+        updateAssigneeBtn.textContent = 'Update';
+      }
+    });
+    assigneeRow.appendChild(updateAssigneeBtn);
+    
+    card.appendChild(assigneeRow);
 
     const status = document.createElement('p');
     status.className = 'codewhisperer-status-line';
@@ -1845,51 +1907,6 @@ function renderCodeWhispererSectionList(container, story) {
     }
 
     if (entry.createTrackingCard !== false) {
-      const updateBtn = document.createElement('button');
-      updateBtn.type = 'button';
-      updateBtn.className = 'link-button';
-      updateBtn.textContent = 'Update';
-      updateBtn.addEventListener('click', async () => {
-        const newAssignee = prompt('Enter assignee (use "Kiro" for AI code generation):', entry.assignee || '');
-        if (newAssignee !== null) {
-          entry.assignee = newAssignee.trim();
-          persistCodeWhispererDelegations();
-          renderCodeWhispererSectionList(container, story);
-          showToast('Assignee updated', 'success');
-          
-          // Trigger code generation if assignee is "Kiro"
-          if (entry.assignee.toLowerCase() === 'kiro') {
-            updateBtn.disabled = true;
-            updateBtn.textContent = 'Generating...';
-            try {
-              // Trigger code generation via backend
-              const response = await fetch(`${API_BASE_URL}/api/generate-code`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  storyId: story.id,
-                  taskId: entry.localId,
-                  prUrl: entry.prUrl,
-                  branchName: entry.branchName
-                })
-              });
-              
-              if (response.ok) {
-                showToast('Code generation started by Kiro', 'success');
-              } else {
-                showToast('Failed to start code generation', 'error');
-              }
-            } catch (error) {
-              console.error('Code generation error:', error);
-              showToast('Error starting code generation', 'error');
-            }
-            updateBtn.disabled = false;
-            updateBtn.textContent = 'Update';
-          }
-        }
-      });
-      actions.appendChild(updateBtn);
-
       const rebaseBtn = document.createElement('button');
       rebaseBtn.type = 'button';
       rebaseBtn.className = 'link-button codewhisperer-rebase';
