@@ -1810,36 +1810,16 @@ function renderCodeWhispererSectionList(container, story) {
     updateAssigneeBtn.addEventListener('click', async () => {
       const newAssignee = assigneeInput.value.trim();
       entry.assignee = newAssignee;
-      persistCodeWhispererDelegations();
+      
+      // Save to backend
+      const allEntries = getCodeWhispererDelegations(story.id);
+      await setCodeWhispererDelegations(story.id, allEntries);
+      
       showToast('Assignee updated', 'success');
       
       // Trigger code generation if assignee is "Kiro"
       if (newAssignee.toLowerCase() === 'kiro') {
-        updateAssigneeBtn.disabled = true;
-        updateAssigneeBtn.textContent = 'Generating...';
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/generate-code`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              storyId: story.id,
-              taskId: entry.localId,
-              prUrl: entry.prUrl,
-              branchName: entry.branchName
-            })
-          });
-          
-          if (response.ok) {
-            showToast('Code generation started by Kiro', 'success');
-          } else {
-            showToast('Failed to start code generation', 'error');
-          }
-        } catch (error) {
-          console.error('Code generation error:', error);
-          showToast('Error starting code generation', 'error');
-        }
-        updateAssigneeBtn.disabled = false;
-        updateAssigneeBtn.textContent = 'Update';
+        showToast('Kiro assigned - use "Generate Code & PR" to start code generation', 'info');
       }
     });
     assigneeRow.appendChild(updateAssigneeBtn);
