@@ -1,0 +1,198 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  overflow: hidden;
+}
+
+.terminal-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Header */
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: #252526;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.terminal-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.terminal-title h1 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.story-info {
+  font-size: 13px;
+  color: #858585;
+}
+
+.terminal-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.branch-selector {
+  padding: 6px 12px;
+  background: #3c3c3c;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-icon {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #d4d4d4;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.btn-icon:hover {
+  background: #3c3c3c;
+}
+
+.btn-text {
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  color: #4fc3f7;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-text:hover {
+  text-decoration: underline;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #2d2d30;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.status-indicator.connected .status-dot {
+  background: #4caf50;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.connecting .status-dot {
+  background: #ff9800;
+}
+
+.status-indicator.error .status-dot {
+  background: #f44336;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Context Panel */
+.context-panel {
+  background: #252526;
+  border-bottom: 1px solid #3e3e42;
+  max-height: 300px;
+  overflow: hidden;
+  transition: max-height 0.3s;
+}
+
+.context-panel.collapsed {
+  max-height: 0;
+}
+
+.context-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: #2d2d30;
+}
+
+.context-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.context-content {
+  padding: 16px 20px;
+  max-height: 250px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.context-content pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Courier New', monospace;
+  color: #858585;
+}
+
+.context-content .loading {
+  color: #858585;
+  font-style: italic;
+}
+
+/* Terminal Container */
+.terminal-container {
+  flex: 1;
+  padding: 16px;
+  overflow: hidden;
+}
+
+/* Footer */
+.terminal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px;
+  background: #252526;
+  border-top: 1px solid #3e3e42;
+  font-size: 12px;
+  color: #858585;
+}
+
+.terminal-info {
+  display: flex;
+  gap: 12px;
+}
+
+.terminal-actions {
+  display: flex;
+  gap: 8px;
+}
