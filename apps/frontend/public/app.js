@@ -1843,9 +1843,13 @@ function renderCodeWhispererSectionList(container, story) {
         showToast('Assignee updated', 'success');
         renderCodeWhispererSectionList(container, story);
 
-        // Trigger code generation messaging if assignee is "Kiro"
+        // Trigger code generation if assignee is "Kiro"
         if (newAssignee.toLowerCase() === 'kiro') {
-          showToast('Kiro assigned — click "Generate Code & PR" to start code generation.', 'info');
+          showToast('Kiro assigned - opening code generation modal...', 'info');
+          // Open the code generation modal automatically
+          setTimeout(() => {
+            openCodeWhispererDelegationModal(story);
+          }, 500);
         }
       } else {
         showToast('Failed to update assignee. Please try again.', 'error');
