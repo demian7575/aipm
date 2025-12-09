@@ -29,7 +29,11 @@ class KiroTerminalApp {
     // Initialize controller
     this.controller = new TerminalController({
       baseUrl: window.CONFIG?.EC2_TERMINAL_URL,
-      onStatusChange: (status, error) => this.updateStatus(status, error)
+      onStatusChange: (status, error) => this.updateStatus(status, error),
+      onBranchChange: (branch) => {
+        this.currentBranch = branch;
+        this.ensureBranchOption(branch);
+      }
     });
 
     await this.loadBranches();

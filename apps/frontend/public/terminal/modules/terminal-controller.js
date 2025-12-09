@@ -12,6 +12,7 @@ export class TerminalController {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 3;
     this.onStatusChange = config.onStatusChange || (() => {});
+    this.onBranchChange = config.onBranchChange || (() => {});
   }
 
   normalizeBaseUrl(url) {
@@ -28,6 +29,30 @@ export class TerminalController {
     if (url.startsWith('http://')) return `ws://${url.slice(7)}`;
     if (url.startsWith('https://')) return `wss://${url.slice(8)}`;
     return url;
+  }
+
+  parseMessages(data) {
+    if (typeof data !== 'string') return [];
+
+    const segments = data.split(/}(?={)/g).map((segment, index, arr) => {
+      // Re-attach the missing brace except for the last segment
+      return index < arr.length - 1 ? `${segment}}` : segment;
+    });
+
+    const messages = [];
+
+    segments.forEach((segment) => {
+      const trimmed = segment?.trim();
+      if (!trimmed) return;
+
+      try {
+        messages.push(JSON.parse(trimmed));
+      } catch (error) {
+        console.warn('Failed to parse terminal message segment', trimmed, error);
+      }
+    });
+
+    return messages;
   }
 
   async checkoutBranch(branchName) {
@@ -63,7 +88,28 @@ export class TerminalController {
     };
 
     this.socket.onmessage = (event) => {
-      terminal.write(event.data);
+      const messages = this.parseMessages(event.data);
+
+      if (!messages.length) {
+        terminal.write(typeof event.data === 'string' ? event.data : '');
+        return;
+      }
+
+      messages.forEach((payload) => {
+        if (payload?.type === 'branch' && payload.branch) {
+          this.onBranchChange(payload.branch);
+          return;
+        }
+
+        if (payload?.type === 'output' && typeof payload.data === 'string') {
+          terminal.write(payload.data);
+          return;
+        }
+
+        if (typeof payload === 'string') {
+          terminal.write(payload);
+        }
+      });
     };
 
     this.socket.onerror = (error) => {
@@ -87,7 +133,7 @@ export class TerminalController {
 
   send(data) {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(data);
+      this.socket.send(JSON.stringify({ type: 'input', data }));
     }
   }
 
