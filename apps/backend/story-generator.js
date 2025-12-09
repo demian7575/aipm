@@ -43,7 +43,6 @@ export function generateInvestCompliantStory(idea, context = {}) {
   const title = generateCompactTitle(idea);
   const parent = context?.parent || null;
   const asA = parent?.asA || 'User';
-  const soThat = 'I can accomplish my goals more effectively';
   
   // Clean up the idea text for natural description
   let cleanIdea = idea.trim();
@@ -65,26 +64,29 @@ export function generateInvestCompliantStory(idea, context = {}) {
   // Remove trailing period if present
   cleanIdea = cleanIdea.replace(/\.$/, '');
   
-  // Generate description with natural grammar
-  let description = `As a ${asA}, I want to ${cleanIdea}.`;
-  if (soThat) {
-    description += ` This ensures ${soThat.toLowerCase()}.`;
-  }
+  // Use cleaned idea as "I want" for clarity
+  const iWant = cleanIdea;
+  
+  // Generate specific "So that" with parent context
+  let soThat = 'I can accomplish my goals more effectively';
   if (parent?.title) {
-    description += ` This work supports the parent story "${parent.title}".`;
+    soThat = `I can accomplish my goals more effectively. This work supports the parent story "${parent.title}"`;
   }
+  
+  // Generate clear, detailed description
+  let description = `As a ${asA}, I want to ${cleanIdea}. This ensures ${soThat.toLowerCase()}.`;
   
   return {
     title,
     description,
     asA,
-    iWant: idea,
+    iWant,
     soThat,
     storyPoint: 3,
     components: parent?.components || [],
     acceptanceCriteria: [
       'The feature works as described',
-      'The user interface is intuitive',
+      'The implementation matches the requirement: ' + title,
       'The changes are properly tested'
     ]
   };
