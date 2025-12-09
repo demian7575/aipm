@@ -1,12 +1,12 @@
-# Show Version of AIPM to know which version of AIPM is working
+# Auto generated "Description" in  User story generated in "Create Child Story" modal is not seems natural.
 
-As a User, I want to show version of aipm to know which version of aipm is working.  in development environment, the version should show the GitHub PR number also.
+As a User, I want to auto generated "Description" in  User story generated in "Create Child Story" modal is not seems natural.. This ensures i can accomplish my goals more effectively. This work supports the parent story "BUG FIX".
 
 Constraints: 
 
 Acceptance Criteria:
 - The feature works as described
-- The implementation matches the requirement: Show Version of AIPM to know which version of AIPM is working.  In Development environment, The version should show the GitHub PR number also
+- The implementation matches the requirement: Auto generated "Description" in  User story generated in "Create Child Story" modal is not seems natural.
 - The changes are properly tested
 
 ---
