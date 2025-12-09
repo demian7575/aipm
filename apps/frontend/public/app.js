@@ -1778,12 +1778,11 @@ function renderCodeWhispererSectionList(container, story) {
       card.appendChild(branch);
     }
 
-    if (entry.assignee) {
-      const assignee = document.createElement('p');
-      assignee.className = 'codewhisperer-assignee';
-      assignee.innerHTML = `<span>Assignee:</span> ${escapeHtml(entry.assignee)}`;
-      card.appendChild(assignee);
-    }
+    // Always show assignee field
+    const assignee = document.createElement('p');
+    assignee.className = 'codewhisperer-assignee';
+    assignee.innerHTML = `<span>Assignee:</span> ${escapeHtml(entry.assignee || '(not assigned)')}`;
+    card.appendChild(assignee);
 
     const status = document.createElement('p');
     status.className = 'codewhisperer-status-line';
@@ -1846,20 +1845,50 @@ function renderCodeWhispererSectionList(container, story) {
     }
 
     if (entry.createTrackingCard !== false) {
-      const editAssigneeBtn = document.createElement('button');
-      editAssigneeBtn.type = 'button';
-      editAssigneeBtn.className = 'link-button';
-      editAssigneeBtn.textContent = 'Edit Assignee';
-      editAssigneeBtn.addEventListener('click', () => {
-        const newAssignee = prompt('Enter assignee email:', entry.assignee || '');
+      const updateBtn = document.createElement('button');
+      updateBtn.type = 'button';
+      updateBtn.className = 'link-button';
+      updateBtn.textContent = 'Update';
+      updateBtn.addEventListener('click', async () => {
+        const newAssignee = prompt('Enter assignee (use "Kiro" for AI code generation):', entry.assignee || '');
         if (newAssignee !== null) {
           entry.assignee = newAssignee.trim();
           persistCodeWhispererDelegations();
           renderCodeWhispererSectionList(container, story);
           showToast('Assignee updated', 'success');
+          
+          // Trigger code generation if assignee is "Kiro"
+          if (entry.assignee.toLowerCase() === 'kiro') {
+            updateBtn.disabled = true;
+            updateBtn.textContent = 'Generating...';
+            try {
+              // Trigger code generation via backend
+              const response = await fetch(`${API_BASE_URL}/api/generate-code`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  storyId: story.id,
+                  taskId: entry.localId,
+                  prUrl: entry.prUrl,
+                  branchName: entry.branchName
+                })
+              });
+              
+              if (response.ok) {
+                showToast('Code generation started by Kiro', 'success');
+              } else {
+                showToast('Failed to start code generation', 'error');
+              }
+            } catch (error) {
+              console.error('Code generation error:', error);
+              showToast('Error starting code generation', 'error');
+            }
+            updateBtn.disabled = false;
+            updateBtn.textContent = 'Update';
+          }
         }
       });
-      actions.appendChild(editAssigneeBtn);
+      actions.appendChild(updateBtn);
 
       const rebaseBtn = document.createElement('button');
       rebaseBtn.type = 'button';
