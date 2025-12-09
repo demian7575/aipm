@@ -1742,6 +1742,13 @@ function renderCodeWhispererSectionList(container, story) {
       card.appendChild(objective);
     }
 
+    if (entry.assignee) {
+      const assigneeEl = document.createElement('p');
+      assigneeEl.className = 'codewhisperer-assignee';
+      assigneeEl.innerHTML = `<span>Assignee:</span> ${escapeHtml(entry.assignee)}`;
+      card.appendChild(assigneeEl);
+    }
+
     if (entry.confirmationCode) {
       const confirmation = document.createElement('p');
       confirmation.className = 'codewhisperer-confirmation';
@@ -5280,6 +5287,11 @@ function openCodeWhispererDelegationModal(story) {
       <label for="codewhisperer-pr-title">PR title</label>
       <textarea id="codewhisperer-pr-title" name="prTitle" rows="1" style="resize: vertical; overflow: hidden;" required></textarea>
       <p class="field-error" data-error-for="prTitle" hidden></p>
+    </div>
+    <div class="field">
+      <label for="codewhisperer-assignee">Assignee</label>
+      <input id="codewhisperer-assignee" name="assignee" placeholder="Enter assignee name or email" />
+      <p class="field-error" data-error-for="assignee" hidden></p>
     </div>
     <div class="field">
       <label for="codewhisperer-constraints">Constraints</label>
