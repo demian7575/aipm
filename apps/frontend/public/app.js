@@ -4927,7 +4927,14 @@ function renderDetails() {
   const childList = document.createElement('ul');
   childList.className = 'child-story-list';
   if (story.children && story.children.length) {
-    story.children.forEach((child) => {
+    // Sort children: non-Done stories first, Done stories at bottom
+    const sortedChildren = [...story.children].sort((a, b) => {
+      const aDone = a.status === 'Done' ? 1 : 0;
+      const bDone = b.status === 'Done' ? 1 : 0;
+      return aDone - bDone;
+    });
+    
+    sortedChildren.forEach((child) => {
       const li = document.createElement('li');
       li.className = 'child-story-item';
       
