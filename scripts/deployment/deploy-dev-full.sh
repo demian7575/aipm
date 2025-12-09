@@ -22,8 +22,8 @@ if [ "$STORY_COUNT" -gt 0 ]; then
     xargs -I {} aws dynamodb delete-item --table-name aipm-backend-dev-stories --key '{"id":{"N":"{}"}}' --region us-east-1 2>/dev/null || true
   
   # Copy items
-  cat /tmp/prod-stories.json | jq -c '.Items[]' | while read item; do
-    echo "$item" > /tmp/story-item.json
+  cat /tmp/prod-stories.json | jq -c '.Items[]' | while IFS= read -r item; do
+    printf '%s\n' "$item" > /tmp/story-item.json
     aws dynamodb put-item --table-name aipm-backend-dev-stories --item file:///tmp/story-item.json --region us-east-1
   done
   echo "  ✅ Copied $STORY_COUNT stories"
@@ -40,8 +40,8 @@ if [ "$TEST_COUNT" -gt 0 ]; then
     xargs -I {} aws dynamodb delete-item --table-name aipm-backend-dev-acceptance-tests --key '{"id":{"N":"{}"}}' --region us-east-1 2>/dev/null || true
   
   # Copy items
-  cat /tmp/prod-tests.json | jq -c '.Items[]' | while read item; do
-    echo "$item" > /tmp/test-item.json
+  cat /tmp/prod-tests.json | jq -c '.Items[]' | while IFS= read -r item; do
+    printf '%s\n' "$item" > /tmp/test-item.json
     aws dynamodb put-item --table-name aipm-backend-dev-acceptance-tests --item file:///tmp/test-item.json --region us-east-1
   done
   echo "  ✅ Copied $TEST_COUNT tests"
