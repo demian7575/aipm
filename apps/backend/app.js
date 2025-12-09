@@ -5754,15 +5754,13 @@ export async function createApp() {
       const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
       const version = { version: pkg.version };
       
-      // In development, extract PR number from branch name
+      // In development, include PR number if available
       const stage = process.env.STAGE || process.env.AWS_STAGE || 'prod';
       if (stage === 'dev' || stage === 'development') {
-        try {
-          const { execSync } = await import('child_process');
-          const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
-          const prMatch = branch.match(/pr[_-]?(\d+)/i);
-          if (prMatch) version.pr = prMatch[1];
-        } catch (e) {}
+        const prNumber = process.env.PR_NUMBER;
+        if (prNumber) {
+          version.pr = prNumber;
+        }
       }
       
       sendJson(res, 200, version);
