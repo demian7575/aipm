@@ -40,7 +40,7 @@ async function pollQueue() {
         ExpressionAttributeValues: { ':processing': { S: 'processing' } }
       }));
 
-      const repoPath = `/repo/ebaejun/tools/aws/${repo}`;
+      const repoPath = `/home/ec2-user/${repo}`;
       execSync(`git stash`, { cwd: repoPath });
       execSync(`git fetch origin ${branch}`, { cwd: repoPath });
       execSync(`git checkout ${branch}`, { cwd: repoPath });
@@ -58,7 +58,7 @@ async function pollQueue() {
 
       if (result.success) {
         execSync(`git add -A && git commit -m "Implement feature" && git push origin ${branch}`, {
-          cwd: `/repo/ebaejun/tools/aws/${repo}`
+          cwd: `/home/ec2-user/${repo}`
         });
 
         await dynamodb.send(new UpdateItemCommand({
