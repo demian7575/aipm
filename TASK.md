@@ -1,12 +1,12 @@
-# Auto generated "Description" in  User story generated in "Create Child Story" modal is not seems natural.
+# Add Assignee to the "Development Tasks" card. So that I can assign assignee for the task
 
-As a User, I want to auto generated "Description" in  User story generated in "Create Child Story" modal is not seems natural.. This ensures i can accomplish my goals more effectively. This work supports the parent story "BUG FIX".
+As a User, I want to add assignee to the "development tasks" card. so that i can assign assignee for the task. This ensures i can accomplish my goals more effectively. This work supports the parent story "Simple and Clear Apprearance".
 
 Constraints: 
 
 Acceptance Criteria:
 - The feature works as described
-- The implementation matches the requirement: Auto generated "Description" in  User story generated in "Create Child Story" modal is not seems natural.
+- The implementation matches the requirement: Add Assignee to the "Development Tasks" card. So that I can assign assignee for the task
 - The changes are properly tested
 
 ---
