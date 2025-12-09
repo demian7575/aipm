@@ -1844,12 +1844,41 @@ function renderCodeWhispererSectionList(container, story) {
         renderCodeWhispererSectionList(container, story);
 
         // Trigger code generation if assignee is "Kiro"
-        if (newAssignee.toLowerCase() === 'kiro') {
-          showToast('Kiro assigned - opening code generation modal...', 'info');
-          // Open the code generation modal automatically
-          setTimeout(() => {
-            openCodeWhispererDelegationModal(story);
-          }, 500);
+        if (newAssignee.toLowerCase() === 'kiro' && entry.prUrl) {
+          showToast('Kiro assigned - triggering code generation...', 'info');
+          updateAssigneeBtn.disabled = true;
+          updateAssigneeBtn.textContent = 'Generating...';
+          
+          try {
+            // Trigger code generation via personal-delegate API
+            const response = await fetch(`${API_BASE_URL}/api/personal-delegate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                storyId: story.id,
+                taskTitle: entry.taskTitle || story.title,
+                objective: `Update PR based on story requirements: ${story.description || story.title}`,
+                prUrl: entry.prUrl,
+                branchName: entry.branchName,
+                repo: entry.repo,
+                target: 'pr',
+                targetNumber: entry.number
+              })
+            });
+            
+            if (response.ok) {
+              showToast('Code generation started by Kiro', 'success');
+            } else {
+              const error = await response.json();
+              showToast(`Failed to start code generation: ${error.message || 'Unknown error'}`, 'error');
+            }
+          } catch (error) {
+            console.error('Code generation error:', error);
+            showToast('Error starting code generation', 'error');
+          }
+          
+          updateAssigneeBtn.disabled = false;
+          updateAssigneeBtn.textContent = 'Update';
         }
       } else {
         showToast('Failed to update assignee. Please try again.', 'error');
