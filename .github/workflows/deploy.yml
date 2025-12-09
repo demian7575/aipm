@@ -50,7 +50,7 @@ jobs:
           aws-region: us-east-1
           
       - name: Deploy to development
-        run: ./deploy-develop.sh
+        run: ./bin/deploy-dev
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -80,6 +80,6 @@ jobs:
           aws-region: us-east-1
           
       - name: Deploy to production
-        run: ./deploy.sh
+        run: ./bin/deploy-prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
