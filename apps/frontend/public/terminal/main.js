@@ -21,12 +21,11 @@ class KiroTerminalApp {
   }
 
   async initializeUI() {
-    // Initialize terminal UI
+    // Show loading state
     const container = document.getElementById('terminalContainer');
-    this.terminalUI = new TerminalUI(container, { fontSize: this.fontSize });
-    const terminal = await this.terminalUI.initialize();
+    container.innerHTML = '<div style="color: #fff; padding: 20px;">Loading...</div>';
 
-    // Initialize controller
+    // Initialize controller first
     this.controller = new TerminalController({
       baseUrl: window.CONFIG?.EC2_TERMINAL_URL,
       onStatusChange: (status, error) => this.updateStatus(status, error),
@@ -38,13 +37,27 @@ class KiroTerminalApp {
 
     await this.loadBranches();
 
-    // Setup event handlers
-    this.setupEventHandlers(terminal);
-    
     // Load story context
     if (this.storyId) {
       await this.loadStoryContext();
     }
+
+    // Checkout branch before showing terminal
+    if (this.currentBranch) {
+      try {
+        await this.controller.checkoutBranch(this.currentBranch);
+      } catch (error) {
+        console.warn('Branch checkout failed:', error);
+      }
+    }
+
+    // Now initialize terminal UI
+    container.innerHTML = '';
+    this.terminalUI = new TerminalUI(container, { fontSize: this.fontSize });
+    const terminal = await this.terminalUI.initialize();
+
+    // Setup event handlers
+    this.setupEventHandlers(terminal);
 
     // Update UI
     this.updateStoryInfo();
@@ -204,23 +217,7 @@ class KiroTerminalApp {
     this.terminalUI.writeln('🔌 Connecting to Kiro CLI...');
     this.terminalUI.writeln('');
 
-    // Checkout branch first
-    if (this.currentBranch) {
-      this.terminalUI.writeln(`🔄 Checking out branch: ${this.currentBranch}`);
-      try {
-        const result = await this.controller.checkoutBranch(this.currentBranch);
-        if (result.success) {
-          this.terminalUI.writeln(`✓ Branch ready`);
-        } else {
-          this.terminalUI.writeln(`⚠️  ${result.message || 'Branch checkout warning'}`);
-        }
-      } catch (error) {
-        this.terminalUI.writeln(`⚠️  Could not checkout branch: ${error.message}`);
-      }
-      this.terminalUI.writeln('');
-    }
-
-    // Connect WebSocket
+    // Connect WebSocket (branch already checked out)
     this.controller.connect(this.terminalUI.terminal, {
       branch: this.currentBranch,
       storyId: this.storyId
