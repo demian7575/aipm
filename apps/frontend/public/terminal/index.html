@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kiro CLI Terminal</title>
+  <script src="../config.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+  <link rel="stylesheet" href="terminal.css">
+</head>
+<body>
+  <div class="terminal-app">
+    <!-- Header -->
+    <header class="terminal-header">
+      <div class="terminal-title">
+        <h1>🤖 Kiro CLI Terminal</h1>
+        <span class="story-info" id="storyInfo"></span>
+      </div>
+      <div class="terminal-controls">
+        <select id="branchSelector" class="branch-selector">
+          <option value="">Select branch...</option>
+        </select>
+        <button id="reconnectBtn" class="btn-icon" title="Reconnect">
+          <span>🔄</span>
+        </button>
+        <button id="clearBtn" class="btn-icon" title="Clear">
+          <span>🗑️</span>
+        </button>
+        <button id="copyBtn" class="btn-icon" title="Copy selection">
+          <span>📋</span>
+        </button>
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot"></span>
+          <span class="status-text">Disconnected</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Context Panel (collapsible) -->
+    <div class="context-panel" id="contextPanel">
+      <div class="context-header">
+        <h3>Story Context</h3>
+        <button id="toggleContext" class="btn-text">Hide</button>
+      </div>
+      <div class="context-content" id="contextContent">
+        <p class="loading">Loading context...</p>
+      </div>
+    </div>
+
+    <!-- Terminal Container -->
+    <div class="terminal-container" id="terminalContainer"></div>
+
+    <!-- Footer -->
+    <footer class="terminal-footer">
+      <div class="terminal-info">
+        <span id="terminalSize">80x24</span>
+        <span>•</span>
+        <span id="connectionInfo">Not connected</span>
+      </div>
+      <div class="terminal-actions">
+        <button id="fontSizeDown" class="btn-text">A-</button>
+        <button id="fontSizeUp" class="btn-text">A+</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Load dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+  
+  <!-- Load modules -->
+  <script type="module" src="main.js"></script>
+</body>
+</html>

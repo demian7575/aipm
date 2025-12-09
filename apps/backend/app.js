@@ -5749,6 +5749,24 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/version' && method === 'GET') {
+      const { readFile } = await import('fs/promises');
+      const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
+      const version = { version: pkg.version };
+      
+      // In development, include PR number if available
+      const stage = process.env.STAGE || process.env.AWS_STAGE || 'prod';
+      if (stage === 'dev' || stage === 'development') {
+        const prNumber = process.env.PR_NUMBER;
+        if (prNumber) {
+          version.pr = prNumber;
+        }
+      }
+      
+      sendJson(res, 200, version);
+      return;
+    }
+
     if (pathname === '/api/queue-status' && method === 'GET') {
       await handleQueueStatusRequest(req, res, url);
       return;

@@ -238,6 +238,37 @@ for (const [alias, canonical] of COMPONENT_SYNONYMS.entries()) {
   }
 }
 
+function getVisibleMindmapStories(stories) {
+  const filterDoneStories = (entries) => {
+    return entries
+      .filter((story) => story && story.status !== 'Done')
+      .map((story) => ({
+        ...story,
+        children: story.children ? filterDoneStories(story.children) : [],
+      }));
+  };
+
+  return filterDoneStories(Array.isArray(stories) ? stories : []);
+}
+
+function seedManualPositionsFromAutoLayout() {
+  const visibleStories = getVisibleMindmapStories(state.stories);
+  if (visibleStories.length === 0) {
+    state.manualPositions = {};
+    return false;
+  }
+
+  const metrics = collectMindmapNodeMetrics(visibleStories);
+  const layout = computeLayout(visibleStories, 0, Y_OFFSET, AUTO_LAYOUT_HORIZONTAL_GAP, metrics);
+  const nextPositions = {};
+  layout.nodes.forEach((node) => {
+    nextPositions[node.id] = { x: node.x, y: node.y };
+  });
+
+  state.manualPositions = nextPositions;
+  return Object.keys(nextPositions).length > 0;
+}
+
 function parseStoryPointInput(raw) {
   if (raw == null) {
     return { value: null, error: null };
@@ -2678,16 +2709,7 @@ function renderMindmap() {
     return;
   }
 
-  // Filter out stories with "Done" status
-  const filterDoneStories = (stories) => {
-    return stories
-      .filter(story => story.status !== 'Done')
-      .map(story => ({
-        ...story,
-        children: story.children ? filterDoneStories(story.children) : []
-      }));
-  };
-  const visibleStories = filterDoneStories(state.stories);
+  const visibleStories = getVisibleMindmapStories(state.stories);
 
   if (visibleStories.length === 0) {
     layoutStatus.textContent = 'All stories are done.';
@@ -2700,6 +2722,22 @@ function renderMindmap() {
   const horizontalGap = state.autoLayout ? AUTO_LAYOUT_HORIZONTAL_GAP : 0;
   const metrics = collectMindmapNodeMetrics(visibleStories);
   const layout = computeLayout(visibleStories, 0, Y_OFFSET, horizontalGap, metrics);
+
+  // When manual layout is enabled, seed missing manual positions from the
+  // latest computed layout so nodes stay stable across redraws instead of
+  // drifting to newly calculated coordinates.
+  if (!state.autoLayout) {
+    let manualPositionsUpdated = false;
+    layout.nodes.forEach((node) => {
+      if (!state.manualPositions[node.id]) {
+        state.manualPositions[node.id] = { x: node.x, y: node.y };
+        manualPositionsUpdated = true;
+      }
+    });
+    if (manualPositionsUpdated) {
+      persistLayout();
+    }
+  }
   const nodes = [];
   const nodeMap = new Map();
   layout.nodes.forEach((node) => {
@@ -2995,11 +3033,14 @@ function setupNodeInteraction(group, node) {
   let originY = 0;
 
   function onMouseMove(event) {
+    if (!dragging && state.autoLayout) {
+      seedManualPositionsFromAutoLayout();
+      state.autoLayout = false;
+    }
     dragging = true;
     const dx = event.clientX - startX;
     const dy = event.clientY - startY;
     state.manualPositions[node.id] = { x: originX + dx, y: originY + dy };
-    state.autoLayout = false;
     renderMindmap();
   }
 
@@ -3303,7 +3344,86 @@ function buildDeployToDevModalContent(prEntry = null) {
   return { element: container, onClose: () => {} };
 }
 
-async function buildKiroTerminalModalContent(prEntry = null) {
+function getEc2TerminalBaseUrl() {
+  return window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
+}
+
+function toHttpTerminalUrl(baseUrl) {
+  if (!baseUrl) return '';
+  if (baseUrl.startsWith('ws://')) return `http://${baseUrl.slice(5)}`;
+  if (baseUrl.startsWith('wss://')) return `https://${baseUrl.slice(6)}`;
+  return baseUrl;
+}
+
+function buildKiroContextSummary(story) {
+  if (!story) return '';
+
+  const parts = [];
+  parts.push(`Story: ${story.title || 'Untitled story'}`);
+
+  if (story.description) {
+    parts.push(`Description:\n${story.description}`);
+  }
+
+  const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
+  if (tests.length) {
+    const formatted = tests
+      .map((test, index) => {
+        const title = test.title || `Acceptance Test ${index + 1}`;
+        const status = test.status || 'Draft';
+        const given = test.given || '';
+        const when = test.when || '';
+        const then = test.then || '';
+        return [`• ${title} (${status})`, given && `  Given ${given}`, when && `  When ${when}`, then && `  Then ${then}`]
+          .filter(Boolean)
+          .join('\n');
+      })
+      .join('\n');
+    parts.push(`Acceptance Tests:\n${formatted}`);
+  }
+
+  const components = Array.isArray(story.components) ? story.components : [];
+  if (components.length) {
+    parts.push(`Components: ${components.map(formatComponentLabel).join(', ')}`);
+  }
+
+  return parts.filter(Boolean).join('\n\n');
+}
+
+async function prepareKiroTerminalContext(prEntry = {}) {
+  const context = { summary: '', branchStatus: '' };
+
+  if (prEntry.storyId && storyIndex.has(prEntry.storyId)) {
+    context.summary = buildKiroContextSummary(storyIndex.get(prEntry.storyId));
+  }
+
+  const baseUrl = getEc2TerminalBaseUrl();
+  const httpBase = toHttpTerminalUrl(baseUrl);
+
+  if (prEntry?.branchName && httpBase) {
+    try {
+      const response = await fetch(`${httpBase}/checkout-branch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch: prEntry.branchName })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        context.branchStatus = `✓ Branch ${prEntry.branchName} ready`;
+      } else {
+        context.branchStatus = `⚠️  Branch checkout warning: ${result.message}`;
+      }
+    } catch (error) {
+      context.branchStatus = `⚠️  Could not pre-checkout branch: ${error.message}`;
+    }
+  }
+
+  return context;
+}
+
+async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
   
@@ -3322,10 +3442,15 @@ async function buildKiroTerminalModalContent(prEntry = null) {
     </div>
   ` : '';
   
+  const contextSummary = kiroContext?.summary
+    ? `<div class="kiro-context"><h4>Loaded context</h4><pre>${escapeHtml(kiroContext.summary)}</pre></div>`
+    : '';
+
   container.innerHTML = `
     ${prInfo}
     <div class="staging-options">
       <h3>Refine PR with Kiro</h3>
+      ${contextSummary}
       <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
     </div>
   `;
@@ -3369,50 +3494,15 @@ async function buildKiroTerminalModalContent(prEntry = null) {
   terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
   terminal.writeln('');
   
-  // Connect to EC2 WebSocket server
-  const rawTerminalUrl = window.CONFIG?.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
-  let terminalUrl;
+    // Connect to EC2 WebSocket server
+    const EC2_TERMINAL_URL = getEc2TerminalBaseUrl();
 
-  try {
-    terminalUrl = new URL(rawTerminalUrl);
-  } catch (error) {
-    console.warn('Invalid EC2_TERMINAL_URL, falling back to default', error);
-    terminalUrl = new URL('http://44.220.45.57:8080');
-  }
-
-  const basePath = terminalUrl.pathname.replace(/\/$/, '');
-  const wsProtocol = terminalUrl.protocol === 'https:' ? 'wss:' : terminalUrl.protocol === 'http:' ? 'ws:' : terminalUrl.protocol;
-  const wsBase = `${wsProtocol}//${terminalUrl.host}${basePath}`;
-
-  // Match the protocol for REST endpoints (checkout-branch) to avoid mixed content issues
-  const httpProtocol = wsProtocol === 'wss:' ? 'https:' : wsProtocol === 'ws:' ? 'http:' : terminalUrl.protocol;
-  const httpBase = `${httpProtocol}//${terminalUrl.host}${basePath}`;
-  // Pre-checkout branch via SSH before opening terminal
-  if (prEntry?.branchName) {
-    terminal.writeln('🔄 Preparing branch...');
-    
-    try {
-      const response = await fetch(`${httpBase}/checkout-branch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branch: prEntry.branchName })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        terminal.writeln(`✓ Branch ${prEntry.branchName} ready`);
-      } else {
-        terminal.writeln(`⚠️  Branch checkout warning: ${result.message}`);
-      }
-    } catch (error) {
-      terminal.writeln(`⚠️  Could not pre-checkout branch: ${error.message}`);
+    if (kiroContext?.branchStatus) {
+      terminal.writeln(kiroContext.branchStatus);
+      terminal.writeln('');
     }
-    
-    terminal.writeln('');
-  }
-  
-  const wsUrl = `${wsBase}/terminal?branch=${encodeURIComponent(branchName)}`;
+
+    const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
   
   socket = new WebSocket(wsUrl);
   
@@ -6965,6 +7055,19 @@ function splitLines(value) {
     .filter(Boolean);
 }
 
+async function fetchVersion() {
+  try {
+    const res = await fetch(resolveApiUrl('/api/version'));
+    const data = await res.json();
+    const versionEl = document.getElementById('version-display');
+    if (versionEl) {
+      versionEl.textContent = data.pr ? `v${data.version} (PR #${data.pr})` : `v${data.version}`;
+    }
+  } catch (e) {
+    console.error('Failed to fetch version:', e);
+  }
+}
+
 function initialize() {
   console.log('AIPM initializing...');
   console.log('API Base URL:', window.__AIPM_API_BASE__);
@@ -6984,6 +7087,7 @@ function initialize() {
   renderOutline();
   renderMindmap();
   renderDetails();
+  fetchVersion();
 
   refineKiroBtn?.addEventListener('click', async () => {
     if (!state.selectedStoryId) {
@@ -6995,15 +7099,23 @@ function initialize() {
       showToast('Story not found', 'error');
       return;
     }
-    const entry = { storyId: story.id, title: story.title };
-    const { element, onClose } = await buildKiroTerminalModalContent(entry);
-    openModal({
-      title: 'Kiro CLI Terminal',
-      content: element,
-      cancelLabel: 'Close',
-      size: 'fullscreen',
-      onClose,
+
+    // Open dedicated terminal page
+    const params = new URLSearchParams({
+      storyId: story.id,
+      storyTitle: story.title || 'Untitled',
+      branch: 'main'
     });
+    
+    const terminalUrl = `terminal/index.html?${params}`;
+    
+    // Try to open in new window, fallback to same tab if blocked
+    const terminalWindow = window.open(terminalUrl, 'kiro-terminal', 'width=1200,height=800');
+    
+    if (!terminalWindow) {
+      // Popup blocked, open in same tab
+      window.location.href = terminalUrl;
+    }
   });
   generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
@@ -7025,8 +7137,11 @@ function initialize() {
   });
 
   autoLayoutToggle.addEventListener('click', () => {
-    state.autoLayout = !state.autoLayout;
     if (state.autoLayout) {
+      seedManualPositionsFromAutoLayout();
+      state.autoLayout = false;
+    } else {
+      state.autoLayout = true;
       state.manualPositions = {};
     }
     persistLayout();

@@ -64,8 +64,10 @@ function startWorker(name) {
       workers[name].lastProgressTime = Date.now();
     }
     
-    // Broadcast to WebSocket clients
+    // Broadcast to WebSocket clients that are subscribed to worker output
     clients.forEach(client => {
+      if (client.type !== 'worker') return;
+
       try {
         sendWSMessage(client.socket, { type: 'output', data, worker: name });
       } catch (e) {
@@ -749,44 +751,70 @@ function handleTerminalWebSocket(req, socket, head, url) {
   
   console.log(`[${new Date().toISOString()}] Client connected (branch: ${branch})`);
   
+  // Initialize dedicated PTY for this WebSocket session
+  const sessionPty = pty.spawn('bash', ['-lc', `cd ${REPO_PATH} && source scripts/utilities/load-context.sh && kiro-cli chat`], {
+    name: 'xterm-256color',
+    cols: 120,
+    rows: 30,
+    cwd: REPO_PATH,
+    env: process.env
+  });
+
+  const client = { socket, branch, type: 'terminal', pty: sessionPty };
+  clients.add(client);
+
+  const cleanup = () => {
+    clients.delete(client);
+    try { sessionPty.kill(); } catch (e) { /* ignore */ }
+  };
+
   // Initialize buffer with any data from head
   let buffer = Buffer.from(head);
-  
-  // Add client to broadcast list
-  const client = { socket, branch };
-  clients.add(client);
-  
+
   // Send branch info and welcome
   sendWSMessage(socket, { type: 'branch', branch });
   sendWSMessage(socket, { type: 'output', data: `✓ Connected to Kiro session\r\n` });
-  
+
+  sessionPty.onData((data) => {
+    try {
+      sendWSMessage(socket, { type: 'output', data });
+    } catch (e) {
+      console.error(`[${new Date().toISOString()}] Failed to send PTY data:`, e.message);
+    }
+  });
+
+  sessionPty.onExit(() => {
+    console.log(`[${new Date().toISOString()}] PTY session ended`);
+    cleanup();
+    socket.end();
+  });
+
   // Handle WebSocket messages (user input)
   // buffer already initialized above with head data
-  
+
   socket.on('data', (data) => {
     buffer = Buffer.concat([buffer, data]);
-      
+
       while (buffer.length >= 2) {
         const frame = parseWSFrame(buffer);
         if (!frame) break;
-        
+
         buffer = buffer.slice(frame.length);
-        
+
         if (frame.opcode === 0x8) {
           // Close frame
           console.log(`[${new Date().toISOString()}] Client disconnected`);
-          clients.delete(client);
+          cleanup();
           socket.end();
           return;
         }
-        
+
         if (frame.opcode === 0x1 || frame.opcode === 0x2) {
-          // Text or binary frame - send to first available worker
+          // Text or binary frame - send to this client's PTY
           try {
             const message = JSON.parse(frame.payload.toString());
             if (message.type === 'input') {
-              const workerName = getAvailableWorker() || 'worker1';
-              workers[workerName].pty.write(message.data);
+              sessionPty.write(message.data);
             }
           } catch (e) {
             console.error(`[${new Date().toISOString()}] Parse error:`, e.message);
@@ -794,15 +822,15 @@ function handleTerminalWebSocket(req, socket, head, url) {
         }
       }
     });
-    
+
     socket.on('close', () => {
       console.log(`[${new Date().toISOString()}] Client disconnected`);
-      clients.delete(client);
+      cleanup();
     });
-    
+
     socket.on('error', (err) => {
       console.error(`[${new Date().toISOString()}] Socket error:`, err);
-      clients.delete(client);
+      cleanup();
     });
 }
 

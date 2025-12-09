@@ -18,6 +18,7 @@ provider:
     GITHUB_OWNER: ${env:GITHUB_OWNER, 'demian7575'}
     GITHUB_REPO: ${env:GITHUB_REPO, 'aipm'}
     EC2_PR_PROCESSOR_URL: ${env:EC2_PR_PROCESSOR_URL, 'http://44.220.45.57:8082'}
+    PR_NUMBER: ${env:PR_NUMBER, ''}
   iam:
     role:
       statements:
