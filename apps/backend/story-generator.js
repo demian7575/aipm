@@ -51,7 +51,9 @@ export function generateInvestCompliantStory(idea, context = {}) {
   const prefixPatterns = [
     /^I want to\s+/i,
     /^As a .+ I want to\s+/i,
-    /^to\s+/i
+    /^to\s+/i,
+    /^when\s+/i,
+    /^that\s+/i
   ];
   
   for (const pattern of prefixPatterns) {
@@ -59,7 +61,9 @@ export function generateInvestCompliantStory(idea, context = {}) {
   }
   
   // Ensure first letter is lowercase for proper sentence construction
-  cleanIdea = cleanIdea.charAt(0).toLowerCase() + cleanIdea.slice(1);
+  if (cleanIdea.length > 0) {
+    cleanIdea = cleanIdea.charAt(0).toLowerCase() + cleanIdea.slice(1);
+  }
   
   // Remove trailing period if present
   cleanIdea = cleanIdea.replace(/\.$/, '');
@@ -67,14 +71,26 @@ export function generateInvestCompliantStory(idea, context = {}) {
   // Use cleaned idea as "I want" for clarity
   const iWant = cleanIdea;
   
-  // Generate specific "So that" with parent context
+  // Generate "So that" - only include parent reference if explicitly mentioned in idea
   let soThat = 'I can accomplish my goals more effectively';
-  if (parent?.title) {
+  const ideaLower = idea.toLowerCase();
+  if (parent?.title && (ideaLower.includes('parent') || ideaLower.includes(parent.title.toLowerCase()))) {
     soThat = `I can accomplish my goals more effectively. This work supports the parent story "${parent.title}"`;
   }
   
-  // Generate clear, detailed description
-  let description = `As a ${asA}, I want to ${cleanIdea}. This ensures ${soThat.toLowerCase()}.`;
+  // Generate clear, unambiguous description
+  let description;
+  if (cleanIdea.match(/^(add|create|build|implement|enable|provide|develop)/i)) {
+    description = `This feature ${cleanIdea.replace(/^(add|create|build|implement|enable|provide|develop)\s*/i, 'adds ')}`;
+  } else if (cleanIdea.match(/^(users?|system|application)/i)) {
+    description = `This enables ${cleanIdea}`;
+  } else {
+    description = `This feature enables users to ${cleanIdea}`;
+  }
+  
+  if (!description.endsWith('.')) {
+    description += '.';
+  }
   
   return {
     title,
@@ -86,7 +102,7 @@ export function generateInvestCompliantStory(idea, context = {}) {
     components: parent?.components || [],
     acceptanceCriteria: [
       'The feature works as described',
-      'The implementation matches the requirement: ' + title,
+      'The implementation matches the requirement',
       'The changes are properly tested'
     ]
   };
