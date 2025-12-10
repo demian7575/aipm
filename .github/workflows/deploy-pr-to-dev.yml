@@ -152,35 +152,39 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Deploy backend Lambda
-        run: |
-          echo "📦 Deploying backend to dev..."
-          
-          # Check if dev stack exists
-          if aws cloudformation describe-stacks --stack-name aipm-backend-dev --region us-east-1 2>/dev/null; then
-            echo "Dev stack exists, updating..."
-            npx serverless deploy --stage dev --region us-east-1
-          else
-            echo "Dev stack doesn't exist, creating..."
-            npx serverless deploy --stage dev --region us-east-1
-          fi
-          
-          echo "✅ Backend deployed"
-      
       - name: Sync production data to development
         run: |
-          echo "📊 Copying production data to development..."
+          echo "📊 Syncing production data to development..."
           
-          # Copy stories
-          echo "📝 Copying stories..."
+          # Clear existing dev data first (delete and recreate tables for clean slate)
+          echo "🧹 Clearing existing dev data..."
+          
+          # Delete dev tables if they exist
+          aws dynamodb delete-table --table-name aipm-backend-dev-stories --region us-east-1 2>/dev/null || true
+          aws dynamodb delete-table --table-name aipm-backend-dev-acceptance-tests --region us-east-1 2>/dev/null || true
+          
+          # Wait for tables to be deleted
+          echo "⏳ Waiting for tables to be deleted..."
+          sleep 10
+          
+          # Deploy backend to recreate clean tables
+          echo "📦 Deploying backend to dev (creates clean tables)..."
+          npx serverless deploy --stage dev --region us-east-1
+          
+          # Wait for tables to be ready
+          echo "⏳ Waiting for new tables to be ready..."
+          sleep 5
+          
+          # Copy stories from prod
+          echo "📝 Copying stories from production..."
           aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 | \
             jq -c '.Items[]' | \
             while IFS= read -r item; do
               echo "$item" | aws dynamodb put-item --table-name aipm-backend-dev-stories --region us-east-1 --item file:///dev/stdin || true
             done
           
-          # Copy acceptance tests
-          echo "✅ Copying acceptance tests..."
+          # Copy acceptance tests from prod
+          echo "✅ Copying acceptance tests from production..."
           aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1 | \
             jq -c '.Items[]' | \
             while IFS= read -r item; do
