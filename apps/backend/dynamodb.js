@@ -62,9 +62,30 @@ export class DynamoDBDataLayer {
       return stories;
     }
     
-    // For other tables, return empty arrays for now
+    // For other tables, query the appropriate DynamoDB tables
     if (sql.includes('acceptance_tests')) {
-      return [];
+      const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+      try {
+        const result = await this.docClient.send(new ScanCommand({
+          TableName: tableName
+        }));
+        const tests = (result.Items || []).map(item => ({
+          id: item.id,
+          story_id: item.story_id,
+          title: item.title || '',
+          given: item.given,
+          when_step: item.when_step,
+          then_step: item.then_step,
+          status: item.status,
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        }));
+        console.log('DynamoDB: Returning', tests.length, 'acceptance tests');
+        return tests;
+      } catch (error) {
+        console.error('DynamoDB: Error querying acceptance tests:', error);
+        return [];
+      }
     }
     if (sql.includes('reference_documents')) {
       return [];
