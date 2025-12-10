@@ -66,7 +66,7 @@ export class DynamoDBDataLayer {
     if (sql.includes('acceptance_tests')) {
       const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
       try {
-        const result = await this.docClient.send(new ScanCommand({
+        const result = await docClient.send(new ScanCommand({
           TableName: tableName
         }));
         const tests = (result.Items || []).map(item => ({

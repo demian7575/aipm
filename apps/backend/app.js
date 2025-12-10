@@ -5950,20 +5950,6 @@ export async function createApp() {
         );
         const newStoryId = Number(lastInsertRowid);
         
-        // Try to create automatic acceptance test, but don't fail story creation if it fails
-        try {
-          await createAutomaticAcceptanceTest(db, {
-            id: newStoryId,
-            title,
-            asA,
-            iWant,
-            soThat,
-            components,
-          });
-        } catch (error) {
-          console.error('Failed to create automatic acceptance test, but story creation continues:', error);
-        }
-        
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
         if (created) {
           applyInvestAnalysisToStory(created, analysis);
@@ -6334,18 +6320,6 @@ export async function createApp() {
           if (Number(existingTestCountRow.count ?? 0) > 0) {
             markAcceptanceTestsForReview(db, storyId);
           }
-          await createAutomaticAcceptanceTest(
-            db,
-            {
-              id: storyId,
-              title,
-              asA: nextAsA,
-              iWant: nextIWant,
-              soThat: nextSoThat,
-              components,
-            },
-            { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
-          );
         }
         const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
         if (updated) {

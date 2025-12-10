@@ -6453,6 +6453,8 @@ function openAcceptanceTestModal(storyId, options = {}) {
     }
   }
 
+  let isSubmitting = false;
+  
   openModal({
     title: test ? 'Edit Acceptance Test' : 'Create Acceptance Test',
     content: container,
@@ -6460,6 +6462,11 @@ function openAcceptanceTestModal(storyId, options = {}) {
       {
         label: test ? 'Save Changes' : 'Create Test',
         onClick: async () => {
+          if (isSubmitting) {
+            console.log('Already submitting, ignoring duplicate click');
+            return false;
+          }
+          isSubmitting = true;
           console.log('Create Test clicked');
           const given = splitLines(givenField.value);
           const when = splitLines(whenField.value);
@@ -6469,6 +6476,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
           if (!given.length || !when.length || !then.length) {
             console.log('Validation failed: empty fields');
             showToast('Please provide Given, When, and Then steps.', 'error');
+            isSubmitting = false;
             return false;
           }
           try {
@@ -6478,6 +6486,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
               console.log('Update result:', updated);
               if (updated === null) {
                 console.log('Update returned null, keeping modal open');
+                isSubmitting = false;
                 return false;
               }
               await loadStories();
@@ -6488,6 +6497,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
               console.log('Create result:', created);
               if (created === null) {
                 console.log('Create returned null, keeping modal open');
+                isSubmitting = false;
                 return false;
               }
               console.log('Loading stories...');
@@ -6499,6 +6509,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
           } catch (error) {
             console.error('onClick error:', error);
             showToast(error.message || 'Failed to save acceptance test', 'error');
+            isSubmitting = false;
             return false;
           }
         },
