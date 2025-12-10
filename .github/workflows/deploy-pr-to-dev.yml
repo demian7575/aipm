@@ -156,24 +156,30 @@ jobs:
         run: |
           echo "📊 Syncing production mindmap data to development..."
           
-          # Clear existing dev data first (delete and recreate tables for clean slate)
-          echo "🧹 Clearing existing dev data..."
-          
-          # Delete dev tables if they exist
-          aws dynamodb delete-table --table-name aipm-backend-dev-stories --region us-east-1 2>/dev/null || true
-          aws dynamodb delete-table --table-name aipm-backend-dev-acceptance-tests --region us-east-1 2>/dev/null || true
-          
-          # Wait for tables to be deleted
-          echo "⏳ Waiting for tables to be deleted..."
-          sleep 10
-          
-          # Deploy backend to recreate clean tables
-          echo "📦 Deploying backend to dev (creates clean tables)..."
+          # Deploy backend first to ensure tables exist
+          echo "📦 Deploying backend to dev (ensures tables exist)..."
           npx serverless deploy --stage dev --region us-east-1
           
           # Wait for tables to be ready
-          echo "⏳ Waiting for new tables to be ready..."
-          sleep 5
+          echo "⏳ Waiting for tables to be ready..."
+          sleep 10
+          
+          # Clear existing dev data
+          echo "🧹 Clearing existing dev data..."
+          
+          # Clear stories table
+          aws dynamodb scan --table-name aipm-backend-dev-stories --region us-east-1 --attributes-to-get id | \
+            jq -r '.Items[]?.id?.N // empty' | \
+            while read -r id; do
+              [ -n "$id" ] && aws dynamodb delete-item --table-name aipm-backend-dev-stories --region us-east-1 --key "{\"id\":{\"N\":\"$id\"}}" || true
+            done
+          
+          # Clear acceptance tests table
+          aws dynamodb scan --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --attributes-to-get id | \
+            jq -r '.Items[]?.id?.N // empty' | \
+            while read -r id; do
+              [ -n "$id" ] && aws dynamodb delete-item --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --key "{\"id\":{\"N\":\"$id\"}}" || true
+            done
           
           # Copy stories from prod (mindmap data)
           echo "📝 Copying user stories (mindmap data) from production..."
