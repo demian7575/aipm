@@ -4479,42 +4479,72 @@ function acceptanceTestColumnsForInsert() {
   };
 }
 
-function insertAcceptanceTest(
+async function insertAcceptanceTest(
   db,
   { storyId, title = '', given, when, then, status = ACCEPTANCE_TEST_STATUS_DRAFT, timestamp = now() }
 ) {
-  const { columns, placeholders } = acceptanceTestColumnsForInsert();
-  const statement = db.prepare(`INSERT INTO acceptance_tests (${columns}) VALUES (${placeholders})`);
-  const params = acceptanceTestsHasTitleColumn
-    ? [
-        storyId,
-        title,
-        JSON.stringify(given),
-        JSON.stringify(when),
-        JSON.stringify(then),
+  if (db.constructor.name === 'DynamoDBDataLayer') {
+    // DynamoDB implementation
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+    
+    const id = Date.now(); // Generate unique ID
+    
+    await docClient.send(new PutCommand({
+      TableName: tableName,
+      Item: {
+        id,
+        story_id: storyId,
+        title: acceptanceTestsHasTitleColumn ? title : undefined,
+        given: JSON.stringify(given),
+        when_step: JSON.stringify(when),
+        then_step: JSON.stringify(then),
         status,
-        timestamp,
-        timestamp,
-      ]
-    : [
-        storyId,
-        JSON.stringify(given),
-        JSON.stringify(when),
-        JSON.stringify(then),
-        status,
-        timestamp,
-        timestamp,
-      ];
-  
-  let result;
-  try {
-    result = statement.run(...params);
-  } catch (error) {
-    console.error(`Debug: insertAcceptanceTest SQL error:`, error);
-    throw error;
+        created_at: timestamp,
+        updated_at: timestamp
+      }
+    }));
+    
+    return { lastInsertRowid: id };
+  } else {
+    // SQLite implementation
+    const { columns, placeholders } = acceptanceTestColumnsForInsert();
+    const statement = db.prepare(`INSERT INTO acceptance_tests (${columns}) VALUES (${placeholders})`);
+    const params = acceptanceTestsHasTitleColumn
+      ? [
+          storyId,
+          title,
+          JSON.stringify(given),
+          JSON.stringify(when),
+          JSON.stringify(then),
+          status,
+          timestamp,
+          timestamp,
+        ]
+      : [
+          storyId,
+          JSON.stringify(given),
+          JSON.stringify(when),
+          JSON.stringify(then),
+          status,
+          timestamp,
+          timestamp,
+        ];
+    
+    let result;
+    try {
+      result = statement.run(...params);
+    } catch (error) {
+      console.error(`Debug: insertAcceptanceTest SQL error:`, error);
+      throw error;
+    }
+    
+    return result;
   }
-  
-  return result;
 }
 
   function insertTask(
@@ -6607,7 +6637,7 @@ export async function createApp() {
         const originalFlag = acceptanceTestsHasTitleColumn;
         acceptanceTestsHasTitleColumn = hasTitleColumn;
         
-        const { lastInsertRowid } = insertAcceptanceTest(db, {
+        const { lastInsertRowid } = await insertAcceptanceTest(db, {
           storyId,
           title: desiredTitle,
           given,
