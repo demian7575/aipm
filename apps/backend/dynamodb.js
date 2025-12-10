@@ -53,7 +53,7 @@ export class DynamoDBDataLayer {
   }
 
   // Add safeSelectAll method for SQLite compatibility
-  async safeSelectAll(sql) {
+  async safeSelectAll(sql, ...params) {
     console.log('DynamoDB: safeSelectAll called with:', sql.substring(0, 50) + '...');
     
     if (sql.includes('user_stories')) {
@@ -66,22 +66,49 @@ export class DynamoDBDataLayer {
     if (sql.includes('acceptance_tests')) {
       const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
       try {
-        const result = await docClient.send(new ScanCommand({
-          TableName: tableName
-        }));
-        const tests = (result.Items || []).map(item => ({
-          id: item.id,
-          story_id: item.story_id,
-          title: item.title || '',
-          given: item.given,
-          when_step: item.when_step,
-          then_step: item.then_step,
-          status: item.status,
-          created_at: item.created_at,
-          updated_at: item.updated_at
-        }));
-        console.log('DynamoDB: Returning', tests.length, 'acceptance tests');
-        return tests;
+        // Check if this is a filtered query by story_id
+        if (sql.includes('WHERE story_id = ?') && params.length > 0) {
+          const storyId = params[0];
+          console.log('DynamoDB: Filtering acceptance tests by story_id:', storyId);
+          const result = await docClient.send(new ScanCommand({
+            TableName: tableName,
+            FilterExpression: 'story_id = :storyId',
+            ExpressionAttributeValues: {
+              ':storyId': parseInt(storyId)
+            }
+          }));
+          const tests = (result.Items || []).map(item => ({
+            id: item.id,
+            story_id: item.story_id,
+            title: item.title || '',
+            given: item.given,
+            when_step: item.when_step,
+            then_step: item.then_step,
+            status: item.status,
+            created_at: item.created_at,
+            updated_at: item.updated_at
+          }));
+          console.log('DynamoDB: Returning', tests.length, 'acceptance tests for story', storyId);
+          return tests;
+        } else {
+          // Return all acceptance tests
+          const result = await docClient.send(new ScanCommand({
+            TableName: tableName
+          }));
+          const tests = (result.Items || []).map(item => ({
+            id: item.id,
+            story_id: item.story_id,
+            title: item.title || '',
+            given: item.given,
+            when_step: item.when_step,
+            then_step: item.then_step,
+            status: item.status,
+            created_at: item.created_at,
+            updated_at: item.updated_at
+          }));
+          console.log('DynamoDB: Returning', tests.length, 'acceptance tests');
+          return tests;
+        }
       } catch (error) {
         console.error('DynamoDB: Error querying acceptance tests:', error);
         return [];

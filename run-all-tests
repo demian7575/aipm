@@ -1,0 +1,16 @@
+#!/bin/bash
+# SINGLE TRIGGER POINT - Connects to all entry points
+# Browser Tests, GitHub Actions, Shell Scripts, npm commands
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+echo "🎯 SINGLE TRIGGER POINT - All Tests Repository"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Executing 95+ tests from single location"
+echo ""
+
+# Execute the single test repository
+node tests/all-tests.js

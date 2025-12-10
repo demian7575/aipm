@@ -1,0 +1,18 @@
+#!/bin/bash
+# Universal Gating Test Entry Point
+# Can be executed from any environment: JavaScript, Node.js, shell scripts, GitHub Actions
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "🎯 Universal Gating Test Entry Point"
+echo "📍 Executing from: $(pwd)"
+echo "🏠 Script location: $SCRIPT_DIR"
+echo ""
+
+# Change to the correct directory
+cd "$SCRIPT_DIR"
+
+# Execute the simple unified runner
+node scripts/testing/unified-gating-runner-simple.js

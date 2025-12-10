@@ -51,6 +51,11 @@ const PROD_TEST_SUITES = {
             { name: 'Parent-Child Relationships', test: 'testParentChildRelationships' },
             { name: 'Story Data Structure', test: 'testStoryDataStructure' },
             { name: 'No Circular References', test: 'testNoCircularReferences' },
+            { name: 'Acceptance Test Modal Function', test: 'testAcceptanceTestModalFunction' },
+            { name: 'Create Acceptance Test Function', test: 'testCreateAcceptanceTestFunction' },
+            { name: 'Duplicate Prevention Flag', test: 'testDuplicatePreventionFlag' },
+            { name: 'Acceptance Test Workflow', test: 'testAcceptanceTestWorkflow' },
+            { name: 'Story Completion Validation', test: 'testStoryCompletionValidation' },
             { name: 'PR123 Export Feature', test: 'testPR123ExportFunctionality' },
             { name: 'Create PR Feature', test: 'testRunInStagingButton' },
             { name: 'ECS PR Creation Workflow', test: 'testRunInStagingWorkflow' },
@@ -1882,6 +1887,154 @@ async function runProductionTest(testName) {
                 return { success: true, message: `Integration successful - Created PR #${data.number}` };
             } catch (error) {
                 return { success: false, message: `Lambda to PR Processor integration failed: ${error.message}` };
+            }
+
+        case 'testAcceptanceTestModalFunction':
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const jsContent = await response.text();
+                const hasModalFunction = jsContent.includes('function openAcceptanceTestModal');
+                return {
+                    success: hasModalFunction,
+                    message: hasModalFunction ? 'Acceptance test modal function found' : 'Modal function missing'
+                };
+            } catch (error) {
+                return { success: false, message: `Modal function check failed: ${error.message}` };
+            }
+
+        case 'testCreateAcceptanceTestFunction':
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const jsContent = await response.text();
+                const hasCreateFunction = jsContent.includes('createAcceptanceTest');
+                return {
+                    success: hasCreateFunction,
+                    message: hasCreateFunction ? 'Create acceptance test function found' : 'Create function missing'
+                };
+            } catch (error) {
+                return { success: false, message: `Create function check failed: ${error.message}` };
+            }
+
+        case 'testDuplicatePreventionFlag':
+            try {
+                const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
+                const jsContent = await response.text();
+                const hasPreventionFlag = jsContent.includes('isSubmitting');
+                return {
+                    success: hasPreventionFlag,
+                    message: hasPreventionFlag ? 'Duplicate prevention flag found' : 'Prevention flag missing'
+                };
+            } catch (error) {
+                return { success: false, message: `Prevention flag check failed: ${error.message}` };
+            }
+
+        case 'testAcceptanceTestWorkflow':
+            try {
+                // Test story creation
+                const storyResponse = await fetch(`${PROD_CONFIG.api}/api/stories`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: 'Gating Test Story',
+                        description: 'Test story for acceptance test workflow',
+                        asA: 'Test User',
+                        iWant: 'to test acceptance test workflow',
+                        soThat: 'the gating tests pass',
+                        parentId: null,
+                        acceptWarnings: true
+                    })
+                });
+                
+                if (!storyResponse.ok) {
+                    return { success: false, message: 'Story creation failed' };
+                }
+                
+                const story = await storyResponse.json();
+                
+                // Test acceptance test creation
+                const testResponse = await fetch(`${PROD_CONFIG.api}/api/stories/${story.id}/tests`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        given: ['Given I am a test user'],
+                        when: ['When I perform a test action'],
+                        then: ['Then the system should respond correctly within 2 seconds'],
+                        status: 'Draft',
+                        acceptWarnings: true
+                    })
+                });
+                
+                if (!testResponse.ok) {
+                    return { success: false, message: 'Acceptance test creation failed' };
+                }
+                
+                return { success: true, message: 'Acceptance test workflow verified' };
+            } catch (error) {
+                return { success: false, message: `Workflow test failed: ${error.message}` };
+            }
+
+        case 'testStoryCompletionValidation':
+            try {
+                // Create story with acceptance test
+                const storyResponse = await fetch(`${PROD_CONFIG.api}/api/stories`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: 'Completion Test Story',
+                        description: 'Test story for completion validation',
+                        asA: 'Test User',
+                        iWant: 'to test story completion',
+                        soThat: 'validation works correctly',
+                        parentId: null,
+                        acceptWarnings: true
+                    })
+                });
+                
+                if (!storyResponse.ok) {
+                    return { success: false, message: 'Story creation failed' };
+                }
+                
+                const story = await storyResponse.json();
+                
+                // Create acceptance test in Draft status
+                const testResponse = await fetch(`${PROD_CONFIG.api}/api/stories/${story.id}/tests`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        given: ['Given I have a draft test'],
+                        when: ['When I try to complete the story'],
+                        then: ['Then it should be blocked'],
+                        status: 'Draft',
+                        acceptWarnings: true
+                    })
+                });
+                
+                if (!testResponse.ok) {
+                    return { success: false, message: 'Test creation failed' };
+                }
+                
+                // Try to mark story as Done (should fail)
+                const updateResponse = await fetch(`${PROD_CONFIG.api}/api/stories/${story.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: story.title,
+                        description: story.description,
+                        asA: story.asA,
+                        iWant: story.iWant,
+                        soThat: story.soThat,
+                        status: 'Done'
+                    })
+                });
+                
+                // Should fail with 409 status
+                const completionBlocked = updateResponse.status === 409;
+                return {
+                    success: completionBlocked,
+                    message: completionBlocked ? 'Story completion properly blocked' : 'Story completion should be blocked but wasn\'t'
+                };
+            } catch (error) {
+                return { success: false, message: `Completion validation failed: ${error.message}` };
             }
 
         default:

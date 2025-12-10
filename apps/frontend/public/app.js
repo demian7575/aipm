@@ -6314,6 +6314,11 @@ function openChildStoryModal(parentId) {
             }
             await loadStories();
             showToast('Child story created', 'success');
+            
+            // Auto-open acceptance test modal for the newly created story
+            setTimeout(() => {
+              openAcceptanceTestModal(created.id);
+            }, 500);
           } catch (error) {
             showToast(error.message || 'Failed to create story', 'error');
             return false;
@@ -6517,7 +6522,10 @@ function openAcceptanceTestModal(storyId, options = {}) {
     ],
   });
 
-  // Don't auto-generate draft - let user click Generate button
+  // Auto-generate draft for new tests (not when editing existing tests)
+  if (!test) {
+    loadDraft();
+  }
 }
 
 function openTaskModal(storyId, task = null) {

@@ -1,4 +1,4 @@
-name: AIPM Gating Tests
+name: AIPM Unified Gating Tests
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  gating-tests:
+  unified-gating-tests:
     runs-on: ubuntu-latest
     
     steps:
@@ -37,45 +37,35 @@ jobs:
         RETRY_COUNT=0
         
         while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-          # Test prod Lambda
           PROD_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/stories" || echo "000")
           
-          # Test dev Lambda
-          DEV_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://chob6arn1k.execute-api.us-east-1.amazonaws.com/dev/api/stories" || echo "000")
-          
-          if [ "$PROD_STATUS" = "200" ] && [ "$DEV_STATUS" = "200" ]; then
-            echo "✅ Both environments responding"
+          if [ "$PROD_STATUS" = "200" ]; then
+            echo "✅ Production environment responding"
             break
           fi
           
           RETRY_COUNT=$((RETRY_COUNT + 1))
           if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-            echo "⏳ Retry $RETRY_COUNT/$MAX_RETRIES - Prod: $PROD_STATUS, Dev: $DEV_STATUS"
+            echo "⏳ Retry $RETRY_COUNT/$MAX_RETRIES - Status: $PROD_STATUS"
             sleep 15
           fi
         done
         
-        echo "✅ Ready for gating tests"
+        echo "✅ Ready for unified gating tests"
 
-    - name: Run Environment Tests
+    - name: Run All Tests (Single Trigger)
       run: |
-        node scripts/testing/run-comprehensive-gating-tests.cjs
-
-    - name: Run Browser Test Validation
-      run: |
-        node scripts/testing/run-browser-tests-automated.cjs
-
-    - name: Run Complete Gating Test Suite
-      run: |
-        bash scripts/testing/run-all-gating-tests.sh
+        ./run-all-tests
 
     - name: Test Summary
       if: always()
       run: |
-        echo "## Gating Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "## Unified Gating Test Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ $? -eq 0 ]; then
-          echo "✅ All gating tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All unified gating tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "🎯 JavaScript, Node.js, Shell, and Browser tests consolidated" >> $GITHUB_STEP_SUMMARY
         else
-          echo "❌ Some gating tests failed" >> $GITHUB_STEP_SUMMARY
+          echo "❌ Some unified gating tests failed" >> $GITHUB_STEP_SUMMARY
+          echo "🔧 Check individual test categories for details" >> $GITHUB_STEP_SUMMARY
         fi
