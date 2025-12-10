@@ -67,14 +67,24 @@ export function generateInvestCompliantStory(idea, context = {}) {
   // Use cleaned idea as "I want" for clarity
   const iWant = cleanIdea;
   
-  // Generate specific "So that" with parent context
+  // Generate "So that" - only include parent reference if explicitly mentioned in idea
   let soThat = 'I can accomplish my goals more effectively';
-  if (parent?.title) {
+  const ideaLower = idea.toLowerCase();
+  if (parent?.title && (ideaLower.includes('parent') || ideaLower.includes(parent.title.toLowerCase()))) {
     soThat = `I can accomplish my goals more effectively. This work supports the parent story "${parent.title}"`;
   }
   
-  // Generate clear, detailed description
-  let description = `As a ${asA}, I want to ${cleanIdea}. This ensures ${soThat.toLowerCase()}.`;
+  // Generate clear, unambiguous description
+  let description;
+  if (cleanIdea.match(/^(add|create|build|implement|enable|provide|develop)/i)) {
+    description = `This feature adds ${cleanIdea.replace(/^add\s*/i, '')}`;
+  } else {
+    description = `This feature enables users to ${cleanIdea}`;
+  }
+  
+  if (!description.endsWith('.')) {
+    description += '.';
+  }
   
   return {
     title,
