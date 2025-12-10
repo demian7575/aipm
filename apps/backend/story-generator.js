@@ -58,7 +58,7 @@ export function generateInvestCompliantStory(idea, context = {}) {
     cleanIdea = cleanIdea.replace(pattern, '');
   }
   
-  // Ensure first letter is lowercase for proper sentence construction
+  // Ensure proper capitalization for sentence construction
   cleanIdea = cleanIdea.charAt(0).toLowerCase() + cleanIdea.slice(1);
   
   // Remove trailing period if present
@@ -67,13 +67,20 @@ export function generateInvestCompliantStory(idea, context = {}) {
   // Use cleaned idea as "I want" for clarity
   const iWant = cleanIdea;
   
-  // Generate specific "So that" with parent context
+  // Generate "So that" only from the idea content, no generic text
   let soThat = 'I can accomplish my goals more effectively';
-  if (parent?.title) {
-    soThat = `I can accomplish my goals more effectively. This work supports the parent story "${parent.title}"`;
+  
+  // Only include parent reference if explicitly mentioned in the idea
+  const mentionsParent = parent?.title && 
+    (idea.toLowerCase().includes(parent.title.toLowerCase()) ||
+     idea.toLowerCase().includes('parent') ||
+     idea.toLowerCase().includes('support'));
+  
+  if (mentionsParent) {
+    soThat = `I can accomplish my goals more effectively and support the ${parent.title} functionality`;
   }
   
-  // Generate clear, detailed description
+  // Generate clear, grammatically correct description
   let description = `As a ${asA}, I want to ${cleanIdea}. This ensures ${soThat.toLowerCase()}.`;
   
   return {
@@ -86,7 +93,7 @@ export function generateInvestCompliantStory(idea, context = {}) {
     components: parent?.components || [],
     acceptanceCriteria: [
       'The feature works as described',
-      'The implementation matches the requirement: ' + title,
+      'The implementation matches the requirement: ' + cleanIdea,
       'The changes are properly tested'
     ]
   };
