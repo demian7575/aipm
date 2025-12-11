@@ -73,19 +73,35 @@ async function testEnvironment(envName, config) {
     let passed = 0;
     let total = 0;
     
-    // Test frontend assets
+    // Test frontend assets with syntax validation
     const frontendTests = [
         { url: `${config.frontend}/`, desc: 'Frontend Index' },
-        { url: `${config.frontend}/app.js`, desc: 'Frontend App.js' },
-        { url: `${config.frontend}/config.js`, desc: 'Frontend Config' },
+        { url: `${config.frontend}/app.js`, desc: 'Frontend App.js', validateJS: true },
+        { url: `${config.frontend}/config.js`, desc: 'Frontend Config', validateJS: true },
         { url: `${config.frontend}/gating-tests.html`, desc: 'Gating Tests Page' },
-        { url: `${config.frontend}/gating-tests.js`, desc: 'Gating Tests Script' }
+        { url: `${config.frontend}/gating-tests.js`, desc: 'Gating Tests Script', validateJS: true }
     ];
     
     for (const test of frontendTests) {
         const result = await testEndpoint(test.url, test.desc);
         total++;
-        if (result.success) passed++;
+        if (result.success) {
+            passed++;
+            // Additional JavaScript syntax validation
+            if (test.validateJS && result.data) {
+                total++; // Count syntax validation as separate test
+                try {
+                    // Use Node.js VM to validate syntax without executing
+                    const vm = require('vm');
+                    new vm.Script(result.data);
+                    console.log(`   ✅ ${test.desc} Syntax: Valid`);
+                    passed++;
+                } catch (syntaxError) {
+                    console.log(`   ❌ ${test.desc} Syntax: ${syntaxError.message}`);
+                    // Don't increment passed for syntax errors
+                }
+            }
+        }
     }
     
     // Test API endpoints
