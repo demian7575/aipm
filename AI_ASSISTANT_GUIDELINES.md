@@ -81,7 +81,7 @@ Keep a DECISIONS.md file:
 - **Decision**: Use Amazon Bedrock (Claude 3 Sonnet)
 - **Reason**: AWS-native, cost-effective, already integrated
 - **Status**: ✅ Implemented
-- **Files**: .github/workflows/q-code-generation.yml
+- **Files**: .github/workflows/kiro-generate-code.yml
 - **Don't revisit unless**: Requirements change
 
 ## 2025-11-30: Event-driven Lambda
@@ -143,7 +143,7 @@ Here's how it works...
 
 **✅ GOOD (Prevents Loop):**
 ```
-"Bedrock is already integrated (see q-code-generation.yml).
+"Bedrock is already integrated (see kiro-generate-code.yml).
 Are you asking to:
 1. Switch to different service?
 2. Fix an issue?

@@ -596,7 +596,7 @@ deploy-develop.sh     # Development deployment script
            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     GitHub Actions                           │
-│  - Workflow: q-code-generation.yml                          │
+│  - Workflow: kiro-generate-code.yml                        │
 │  - Triggers: API dispatch, manual, PR events                │
 │  - Actions: Code generation, PR creation, deployment        │
 └─────────────────────────────────────────────────────────────┘
