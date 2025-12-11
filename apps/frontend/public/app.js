@@ -7398,7 +7398,7 @@ function openCreatePRModal(story, taskEntry = null) {
     const values = Object.fromEntries(formData.entries());
 
     try {
-      const response = await fetch('/api/create-pr', {
+      const response = await fetch(`${API_BASE_URL}/api/create-pr`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
