@@ -39,7 +39,7 @@ async function persistStoryPRs(db, storyId, prs) {
     }));
 
     // Note: Kiro assignment is stored but code generation must be triggered manually
-    // via "Generate Code & PR" button since queue infrastructure was removed
+    // via "Create PR" button since queue infrastructure was removed
   } else {
     // SQLite
     db.prepare('UPDATE user_stories SET prs = ? WHERE id = ?').run(JSON.stringify(prs), storyId);

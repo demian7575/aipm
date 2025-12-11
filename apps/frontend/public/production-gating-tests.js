@@ -57,7 +57,7 @@ const PROD_TEST_SUITES = {
             { name: 'Create PR Endpoint', test: 'testCreatePREndpoint' },
             { name: 'Auto Root Story Function', test: 'testAutoRootStoryFunction' },
             { name: 'Deploy PR Endpoint', test: 'testDeployPREndpoint' },
-            { name: 'Generate Code & PR Button', test: 'testGenerateCodeButton' },
+            { name: 'Create PR Button', test: 'testGenerateCodeButton' },
             { name: 'Test In Dev Button', test: 'testTestInDevButton' },
             { name: 'Refine with Kiro Button', test: 'testRefineWithKiroButton' }
         ]
@@ -1607,28 +1607,28 @@ async function runProductionTest(testName) {
             }
 
         case 'testGenerateCodeButton':
-            // Test Generate Code & PR button exists
+            // Test Create PR button exists
             try {
                 const response = await fetch(`${PROD_CONFIG.frontend}/app.js`);
                 const js = await response.text();
                 
-                const hasButton = js.includes('Generate Code & PR');
+                const hasButton = js.includes('Create PR');
                 const hasFunction = js.includes('openCodeWhispererDelegationModal');
                 
                 if (!hasButton) {
-                    return { success: false, message: 'Generate Code & PR: Button text not found' };
+                    return { success: false, message: 'Create PR: Button text not found' };
                 }
                 
                 if (!hasFunction) {
-                    return { success: false, message: 'Generate Code & PR: Modal function missing' };
+                    return { success: false, message: 'Create PR: Modal function missing' };
                 }
                 
                 return {
                     success: true,
-                    message: 'Generate Code & PR: Button and functions exist'
+                    message: 'Create PR: Button and functions exist'
                 };
             } catch (error) {
-                return { success: false, message: `Generate Code & PR test failed - ${error.message}` };
+                return { success: false, message: `Create PR test failed - ${error.message}` };
             }
 
         case 'testTestInDevButton':

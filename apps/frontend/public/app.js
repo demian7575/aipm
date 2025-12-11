@@ -2026,7 +2026,7 @@ function buildCodeWhispererSection(story) {
   const actionBtn = document.createElement('button');
   actionBtn.type = 'button';
   actionBtn.className = 'secondary';
-  actionBtn.textContent = 'Generate Code & PR';
+  actionBtn.textContent = 'Create PR';
   actionBtn.addEventListener('click', async () => {
     // Backend handles EC2 communication, no need to check from frontend
     openCodeWhispererDelegationModal(story);
