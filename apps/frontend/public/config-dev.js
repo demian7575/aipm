@@ -1,6 +1,6 @@
 window.CONFIG = {
-  API_BASE_URL: 'https://dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev',
-  apiEndpoint: 'https://dka9vov9vg.execute-api.us-east-1.amazonaws.com/dev',
+  API_BASE_URL: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
+  apiEndpoint: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
   ENVIRONMENT: 'development',
   environment: 'development',
   stage: 'dev',

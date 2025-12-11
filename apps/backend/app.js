@@ -311,23 +311,30 @@ function buildTaskBrief(payload) {
     '@codex',
     '',
     '# AIPM Task Brief',
-    `Story-ID: ${payload.storyId ?? ''}`.trim(),
-    `Story-Title: ${payload.storyTitle ?? ''}`.trim(),
+    `**Story ID:** ${payload.storyId ?? 'N/A'}`,
+    `**Story Title:** ${payload.storyTitle ?? payload.taskTitle ?? 'N/A'}`,
     '',
-    '## Objective',
+    '## 📋 Full Story Details',
     payload.objective || 'Deliver the referenced story with Codex support.',
     '',
-    '## Deliverables',
-    `- Implement feature per story in branch: ${payload.branchName}`,
+    '## 🎯 Deliverables',
+    `- Implement feature per story in branch: \`${payload.branchName}\``,
     '- Tests: unit + minimal e2e (where applicable)',
     `- PR back to main with title: "${payload.prTitle}"`,
+    '- Code should follow existing patterns and conventions',
+    '- Include proper error handling and validation',
     '',
-    '## Constraints',
-    payload.constraints,
-    '',
-    '## Acceptance Criteria',
   ];
 
+  // Add constraints section if provided
+  if (payload.constraints && payload.constraints.trim()) {
+    lines.push('## ⚠️ Constraints');
+    lines.push(payload.constraints.trim());
+    lines.push('');
+  }
+
+  // Add acceptance criteria section
+  lines.push('## ✅ Acceptance Criteria');
   if (criteria.length) {
     criteria.forEach((line) => {
       lines.push(`- ${line}`);
@@ -338,9 +345,12 @@ function buildTaskBrief(payload) {
 
   lines.push(
     '',
-    '## Repo',
-    `Owner/Repo: ${payload.owner}/${payload.repo}`,
-    `Default API URL: https://api.github.com/repos/${payload.owner}/${payload.repo}`
+    '## 📁 Repository Info',
+    `**Owner/Repo:** ${payload.owner}/${payload.repo}`,
+    `**Default API URL:** https://api.github.com/repos/${payload.owner}/${payload.repo}`,
+    '',
+    '---',
+    '*Auto-generated from AIPM Story Management System*'
   );
 
   return lines.join('\n');

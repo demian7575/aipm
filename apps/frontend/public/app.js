@@ -5281,6 +5281,54 @@ function createDefaultCodeWhispererForm(story) {
     }
   }
   
+  // Build comprehensive objective with full story details
+  let objective = '';
+  if (story?.title) {
+    objective += `Title: ${story.title}\n\n`;
+  }
+  if (story?.asA) {
+    objective += `As a: ${story.asA}\n`;
+  }
+  if (story?.iWant) {
+    objective += `I want: ${story.iWant}\n`;
+  }
+  if (story?.soThat) {
+    objective += `So that: ${story.soThat}\n`;
+  }
+  if (story?.description && story.description !== story.iWant) {
+    objective += `\nDescription: ${story.description}\n`;
+  }
+  if (story?.components && story.components.length > 0) {
+    objective += `\nComponents: ${story.components.join(', ')}\n`;
+  }
+  if (story?.storyPoint) {
+    objective += `\nStory Points: ${story.storyPoint}\n`;
+  }
+  
+  // Add acceptance tests as context
+  if (story?.acceptanceTests && story.acceptanceTests.length > 0) {
+    objective += `\nAcceptance Tests:\n`;
+    story.acceptanceTests.forEach((test, index) => {
+      if (test?.title) {
+        objective += `${index + 1}. ${test.title}\n`;
+        if (test.given && test.given.length > 0) {
+          objective += `   Given: ${test.given.join(', ')}\n`;
+        }
+        if (test.when && test.when.length > 0) {
+          objective += `   When: ${test.when.join(', ')}\n`;
+        }
+        if (test.then && test.then.length > 0) {
+          objective += `   Then: ${test.then.join(', ')}\n`;
+        }
+      }
+    });
+  }
+  
+  // Fallback if no detailed info available
+  if (!objective.trim()) {
+    objective = story?.description || story?.iWant || story?.title || '';
+  }
+  
   return {
     repositoryApiUrl: 'https://api.github.com',
     owner: 'demian7575',
@@ -5288,7 +5336,7 @@ function createDefaultCodeWhispererForm(story) {
     branchName,
     assignee: story?.assigneeEmail || '',
     taskTitle: story?.title || '',
-    objective: story?.description || story?.iWant || story?.title || '',
+    objective: objective.trim(),
     prTitle: story?.title || '',
     constraints: '',
     acceptanceCriteria: '',
