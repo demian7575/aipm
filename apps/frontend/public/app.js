@@ -5550,13 +5550,7 @@ function openCodeWhispererDelegationModal(story) {
 }
 
 // Poll queue status for PR URL
-async function pollQueueStatus(entry) {
-  if (!entry.taskId || entry.prUrl) {
-    return; // Already have PR URL or no taskId
-  }
-  
-  // Queue polling removed - no longer needed
-}
+
 
 function buildAcceptanceTestFallback(story, acceptanceCriteriaText) {
   if (!story) {
@@ -7194,13 +7188,10 @@ function initialize() {
       return;
     }
 
-    // Open dedicated terminal page
-    const params = new URLSearchParams({
-      storyId: story.id,
-      storyTitle: story.title || 'Untitled',
-      branch: 'main'
-    });
-    
+    // Terminal functionality removed - show message
+    showToast('Terminal functionality has been removed', 'info');
+  });
+
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
 
@@ -7250,25 +7241,8 @@ function initialize() {
       autoBackupData();
     }
   }, 5 * 60 * 1000);
-  
-  // Poll queue status for PR URLs (every 30 seconds)
-  setInterval(() => {
-    const allDelegations = getAllCodeWhispererDelegations();
-    allDelegations.forEach(entry => {
-      if (entry.taskId && !entry.prUrl) {
-        pollQueueStatus(entry);
-      }
-    });
-  }, 30 * 1000);
 }
 
-function getAllCodeWhispererDelegations() {
-  const all = [];
-  state.stories.forEach(story => {
-    const entries = getCodeWhispererDelegations(story.id);
-    all.push(...entries);
-  });
-  return all;
-}
+
 
 initialize();
