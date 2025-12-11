@@ -7397,28 +7397,42 @@ function openCreatePRModal(story, taskEntry = null) {
     const formData = new FormData(form);
     const values = Object.fromEntries(formData.entries());
 
+    console.log('Create PR - Form values:', values);
+    console.log('Create PR - Story:', story);
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/create-pr`, {
+      const payload = {
+        storyId: story.id,
+        branchName: values.branchName,
+        prTitle: values.prTitle,
+        prBody: values.description,
+        story: story
+      };
+      
+      console.log('Create PR - Payload:', payload);
+      console.log('Create PR - API URL:', resolveApiUrl('/api/create-pr'));
+
+      const response = await fetch(resolveApiUrl('/api/create-pr'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          storyId: story.id,
-          branchName: values.branchName,
-          prTitle: values.prTitle,
-          prBody: values.description,
-          story: story
-        }),
+        body: JSON.stringify(payload),
       });
+
+      console.log('Create PR - Response status:', response.status);
+      console.log('Create PR - Response ok:', response.ok);
 
       if (response.ok) {
         const result = await response.json();
+        console.log('Create PR - Success result:', result);
         showToast(result.message || 'Pull request created', 'success');
         closeModal();
       } else {
         const error = await response.json();
+        console.log('Create PR - Error result:', error);
         showToast(error.error || 'Failed to create pull request', 'error');
       }
     } catch (error) {
+      console.error('Create PR - Exception:', error);
       showToast('Error creating pull request', 'error');
     }
   };
