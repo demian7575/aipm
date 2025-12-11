@@ -1860,6 +1860,16 @@ function renderCodeWhispererSectionList(container, story) {
     const actions = document.createElement('div');
     actions.className = 'codewhisperer-task-actions';
 
+    // Add Generate Code button for each task
+    const generateCodeBtn = document.createElement('button');
+    generateCodeBtn.type = 'button';
+    generateCodeBtn.className = 'button secondary';
+    generateCodeBtn.textContent = 'Generate Code';
+    generateCodeBtn.addEventListener('click', async () => {
+      openGenerateCodeModal(story, entry);
+    });
+    actions.appendChild(generateCodeBtn);
+
     const taskUrl = entry.taskUrl || entry.htmlUrl;
     const threadUrl = entry.threadUrl || entry.htmlUrl;
 
@@ -2021,16 +2031,6 @@ function buildCodeWhispererSection(story) {
   const title = document.createElement('h3');
   title.textContent = 'Development Tasks';
   heading.appendChild(title);
-
-  // Generate Code button
-  const generateCodeBtn = document.createElement('button');
-  generateCodeBtn.type = 'button';
-  generateCodeBtn.className = 'secondary';
-  generateCodeBtn.textContent = 'Generate Code';
-  generateCodeBtn.addEventListener('click', async () => {
-    openGenerateCodeModal(story);
-  });
-  heading.appendChild(generateCodeBtn);
 
   // Create PR button
   const createPRBtn = document.createElement('button');
@@ -7252,17 +7252,17 @@ function initialize() {
   }, 5 * 60 * 1000);
 }
 
-function openGenerateCodeModal(story) {
+function openGenerateCodeModal(story, taskEntry = null) {
   const form = document.createElement('form');
   form.className = 'modal-form';
   form.innerHTML = `
     <div class="field">
       <label for="task-title">Task Title</label>
-      <input id="task-title" name="taskTitle" required />
+      <input id="task-title" name="taskTitle" value="${escapeHtml(story?.title || '')}" required />
     </div>
     <div class="field">
       <label for="objective">Objective</label>
-      <textarea id="objective" name="objective" rows="3" required></textarea>
+      <textarea id="objective" name="objective" rows="3" required>${escapeHtml(story?.description || '')}</textarea>
     </div>
     <div class="field">
       <label for="constraints">Constraints</label>
@@ -7272,59 +7272,124 @@ function openGenerateCodeModal(story) {
       <label for="acceptance">Acceptance Criteria</label>
       <textarea id="acceptance" name="acceptanceCriteria" rows="3" required></textarea>
     </div>
+    <div class="field">
+      <label>
+        <input type="checkbox" name="enableGatingTests" checked />
+        Enable iterative fix and gating tests (max 10 iterations)
+      </label>
+    </div>
+    <div class="field">
+      <label>
+        <input type="checkbox" name="deployToDev" checked />
+        Deploy to development environment after tests pass
+      </label>
+    </div>
   `;
 
+  let isGenerating = false;
+  let submitButton = null;
+
+  const updateProgress = (message) => {
+    const progressDiv = form.querySelector('.progress-status') || document.createElement('div');
+    progressDiv.className = 'progress-status';
+    progressDiv.textContent = message;
+    if (!form.querySelector('.progress-status')) {
+      form.appendChild(progressDiv);
+    }
+  };
+
   const handleSubmit = async () => {
+    if (isGenerating) return;
+    isGenerating = true;
+    
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Generating...';
+    }
+
     const formData = new FormData(form);
     const values = Object.fromEntries(formData.entries());
-
+    
     try {
-      const response = await fetch('/api/generate-code', {
+      updateProgress('Starting code generation with gating tests...');
+      
+      const response = await fetch('/api/generate-code-with-gating', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storyId: story.id,
-          ...values
+          taskTitle: values.taskTitle,
+          objective: values.objective,
+          constraints: values.constraints,
+          acceptanceCriteria: values.acceptanceCriteria,
+          enableGatingTests: values.enableGatingTests === 'on',
+          deployToDev: values.deployToDev === 'on',
+          maxIterations: 10
         }),
       });
 
       if (response.ok) {
-        showToast('Code generation started', 'success');
-        closeModal();
+        const result = await response.json();
+        updateProgress(`Code generation completed. Iterations: ${result.iterations || 0}`);
+        showToast('Code generation with gating tests completed successfully', 'success');
+        setTimeout(() => closeModal(), 2000);
       } else {
-        showToast('Failed to start code generation', 'error');
+        const error = await response.text();
+        updateProgress(`Failed: ${error}`);
+        showToast('Code generation failed', 'error');
       }
     } catch (error) {
-      showToast('Error starting code generation', 'error');
+      updateProgress(`Error: ${error.message}`);
+      showToast('Error during code generation', 'error');
+    } finally {
+      isGenerating = false;
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Generate Code';
+      }
     }
   };
 
   openModal({
-    title: 'Generate Code',
+    title: 'Generate Code with Gating Tests',
     content: form,
-    actions: [{ label: 'Generate', onClick: handleSubmit }],
+    actions: [{ label: 'Generate Code', onClick: handleSubmit }],
   });
+
+  setTimeout(() => {
+    submitButton = document.querySelector('.modal-footer button:last-child');
+  }, 100);
 }
 
-function openCreatePRModal(story) {
+function openCreatePRModal(story, taskEntry = null) {
   const form = document.createElement('form');
   form.className = 'modal-form';
+  
+  // Reuse existing auto-fill logic
+  const defaults = createDefaultCodeWhispererForm(story);
+  
+  // Override with task entry values if available
+  const repoUrl = taskEntry?.repo ? `https://github.com/${taskEntry.repo}` : `https://github.com/${defaults.owner}/${defaults.repo}`;
+  const branchName = taskEntry?.branchName || defaults.branchName;
+  const prTitle = taskEntry?.taskTitle || defaults.prTitle;
+  const description = taskEntry?.description || defaults.objective;
+  
   form.innerHTML = `
     <div class="field">
       <label for="repo-url">Repository URL</label>
-      <input id="repo-url" name="repositoryUrl" type="url" required />
+      <input id="repo-url" name="repositoryUrl" type="url" value="${escapeHtml(repoUrl)}" required />
     </div>
     <div class="field">
       <label for="branch">Branch Name</label>
-      <input id="branch" name="branchName" required />
+      <input id="branch" name="branchName" value="${escapeHtml(branchName)}" required />
     </div>
     <div class="field">
       <label for="pr-title">PR Title</label>
-      <input id="pr-title" name="prTitle" required />
+      <input id="pr-title" name="prTitle" value="${escapeHtml(prTitle)}" required />
     </div>
     <div class="field">
       <label for="description">Description</label>
-      <textarea id="description" name="description" rows="3"></textarea>
+      <textarea id="description" name="description" rows="3">${escapeHtml(description)}</textarea>
     </div>
   `;
 
