@@ -1716,22 +1716,6 @@ function renderCodeWhispererSectionList(container, story) {
     if (entry.taskId && !entry.prUrl && !entry._fetching) {
       entry._fetching = true;
       try {
-        const response = await fetch(`${API_BASE_URL}/api/queue-status?taskId=${entry.taskId}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.task && data.task.prUrl) {
-            entry.prUrl = data.task.prUrl;
-            entry.status = data.task.status;
-            delete entry._fetching;
-            persistCodeWhispererDelegations();
-            renderCodeWhispererSectionList(container, story);
-          } else {
-            delete entry._fetching;
-          }
-        } else {
-          delete entry._fetching;
-        }
-      } catch (error) {
         delete entry._fetching;
         console.error('Failed to fetch PR URL:', error);
       }
@@ -5580,22 +5564,6 @@ async function pollQueueStatus(entry) {
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/queue-status?taskId=${entry.taskId}`);
-    if (!response.ok) return;
-    
-    const data = await response.json();
-    if (data.success && data.task && data.task.prUrl) {
-      entry.prUrl = data.task.prUrl;
-      entry.status = data.task.status;
-      persistCodeWhispererDelegations();
-      
-      // Refresh the UI
-      if (state.selectedStoryId) {
-        refreshCodeWhispererSection(state.selectedStoryId);
-      }
-    }
-  } catch (error) {
-    console.error('Queue status poll error:', error);
   }
 }
 
@@ -7242,17 +7210,6 @@ function initialize() {
       branch: 'main'
     });
     
-    const terminalUrl = `terminal/index.html?${params}`;
-    
-    // Try to open in new window, fallback to same tab if blocked
-    const terminalWindow = window.open(terminalUrl, 'kiro-terminal', 'width=1200,height=800');
-    
-    if (!terminalWindow) {
-      // Popup blocked, open in same tab
-      window.location.href = terminalUrl;
-    }
-  });
-  generateDocBtn?.addEventListener('click', openDocumentPanel);
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
 

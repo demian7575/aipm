@@ -159,38 +159,7 @@ async function handlePersonalDelegateStatusRequest(req, res, url) {
   }
 }
 
-async function handleQueueStatusRequest(req, res, url) {
-  try {
-    const taskId = url.searchParams.get('taskId');
-    
-    if (!taskId) {
-      sendJson(res, 400, { message: 'taskId is required' });
-      return;
-    }
 
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(dynamoClient);
-    
-    const result = await docClient.send(new GetCommand({
-      TableName: 'aipm-amazon-q-queue',
-      Key: { id: taskId }
-    }));
-    
-    if (!result.Item) {
-      sendJson(res, 404, { message: 'Task not found' });
-      return;
-    }
-    
-    sendJson(res, 200, result.Item);
-  } catch (error) {
-    console.error('Queue status request failed', error);
-    const status = error.statusCode || 500;
-    sendJson(res, status, { message: error.message || 'Failed to fetch queue status' });
-  }
-}
 
 async function handleCodeWhispererStatusRequest(req, res) {
   try {
@@ -2630,139 +2599,10 @@ async function handleMergePR(req, res) {
 }
 
 // Terminal session handlers
-async function handleTerminalStart(req, res) {
-  try {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    await new Promise(resolve => req.on('end', resolve));
-    
-    const { branch } = JSON.parse(body);
-    const sessionId = randomUUID();
-    
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const client = new DynamoDBClient({ region: 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client);
-    
-    await docClient.send(new PutCommand({
-      TableName: 'aipm-amazon-q-queue',
-      Item: {
-        id: sessionId,
-        type: 'terminal',
-        branch,
-        status: 'pending',
-        output: [],
-        input: [],
-        createdAt: new Date().toISOString(),
-        ttl: Math.floor(Date.now() / 1000) + 3600 // 1 hour TTL
-      }
-    }));
-    
-    sendJson(res, 200, { success: true, sessionId });
-  } catch (error) {
-    console.error('Terminal start error:', error);
-    sendJson(res, 500, { success: false, error: error.message });
-  }
-}
 
-async function handleTerminalInput(req, res) {
-  try {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    await new Promise(resolve => req.on('end', resolve));
-    
-    const { sessionId, data } = JSON.parse(body);
-    
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const client = new DynamoDBClient({ region: 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client);
-    
-    await docClient.send(new UpdateCommand({
-      TableName: 'aipm-amazon-q-queue',
-      Key: { id: sessionId },
-      UpdateExpression: 'SET #input = list_append(if_not_exists(#input, :empty), :data)',
-      ExpressionAttributeNames: { '#input': 'input' },
-      ExpressionAttributeValues: {
-        ':data': [{ data, timestamp: new Date().toISOString() }],
-        ':empty': []
-      }
-    }));
-    
-    sendJson(res, 200, { success: true });
-  } catch (error) {
-    console.error('Terminal input error:', error);
-    sendJson(res, 500, { success: false, error: error.message });
-  }
-}
 
-async function handleTerminalOutput(req, res, url) {
-  try {
-    const sessionId = url.searchParams.get('sessionId');
-    const lastIndex = parseInt(url.searchParams.get('lastIndex') || '0');
-    
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const client = new DynamoDBClient({ region: 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client);
-    
-    const result = await docClient.send(new GetCommand({
-      TableName: 'aipm-amazon-q-queue',
-      Key: { id: sessionId }
-    }));
-    
-    if (!result.Item) {
-      sendJson(res, 404, { success: false, error: 'Session not found' });
-      return;
-    }
-    
-    const output = result.Item.output || [];
-    const newOutput = output.slice(lastIndex);
-    
-    sendJson(res, 200, {
-      success: true,
-      output: newOutput,
-      nextIndex: output.length,
-      status: result.Item.status,
-      branch: result.Item.branch
-    });
-  } catch (error) {
-    console.error('Terminal output error:', error);
-    sendJson(res, 500, { success: false, error: error.message });
-  }
-}
 
-async function handleTerminalStop(req, res) {
-  try {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    await new Promise(resolve => req.on('end', resolve));
-    
-    const { sessionId } = JSON.parse(body);
-    
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const client = new DynamoDBClient({ region: 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client);
-    
-    await docClient.send(new UpdateCommand({
-      TableName: 'aipm-amazon-q-queue',
-      Key: { id: sessionId },
-      UpdateExpression: 'SET #status = :stopped',
-      ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':stopped': 'stopped' }
-    }));
-    
-    sendJson(res, 200, { success: true });
-  } catch (error) {
-    console.error('Terminal stop error:', error);
-    sendJson(res, 500, { success: false, error: error.message });
-  }
-}
+
 
 async function handleCreatePRRequest(req, res) {
   try {
@@ -5769,25 +5609,9 @@ export async function createApp() {
       return;
     }
 
-    if (pathname === '/api/terminal/start' && method === 'POST') {
-      await handleTerminalStart(req, res);
-      return;
-    }
 
-    if (pathname === '/api/terminal/input' && method === 'POST') {
-      await handleTerminalInput(req, res);
-      return;
-    }
 
-    if (pathname === '/api/terminal/output' && method === 'GET') {
-      await handleTerminalOutput(req, res, url);
-      return;
-    }
 
-    if (pathname === '/api/terminal/stop' && method === 'POST') {
-      await handleTerminalStop(req, res);
-      return;
-    }
 
     if (pathname === '/api/version' && method === 'GET') {
       const { readFile } = await import('fs/promises');
@@ -5807,10 +5631,7 @@ export async function createApp() {
       return;
     }
 
-    if (pathname === '/api/queue-status' && method === 'GET') {
-      await handleQueueStatusRequest(req, res, url);
-      return;
-    }
+
 
     if (pathname === '/api/codewhisperer-status' && method === 'POST') {
       await handleCodeWhispererStatusRequest(req, res);
