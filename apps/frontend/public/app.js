@@ -7403,15 +7403,20 @@ function openCreatePRModal(story, taskEntry = null) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storyId: story.id,
-          ...values
+          branchName: values.branchName,
+          prTitle: values.prTitle,
+          prBody: values.description,
+          story: story
         }),
       });
 
       if (response.ok) {
-        showToast('Pull request created', 'success');
+        const result = await response.json();
+        showToast(result.message || 'Pull request created', 'success');
         closeModal();
       } else {
-        showToast('Failed to create pull request', 'error');
+        const error = await response.json();
+        showToast(error.error || 'Failed to create pull request', 'error');
       }
     } catch (error) {
       showToast('Error creating pull request', 'error');
