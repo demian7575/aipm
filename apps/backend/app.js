@@ -539,6 +539,28 @@ async function performDelegation(payload) {
     req.write(postData);
     req.end();
     
+    // Also create local processing request as fallback
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      
+      const requestsDir = path.join(process.cwd(), 'tmp', 'pr-requests');
+      await fs.mkdir(requestsDir, { recursive: true });
+      
+      const requestFile = path.join(requestsDir, `pr-${pr.number}-${Date.now()}.json`);
+      const requestData = {
+        branch: branchName,
+        prNumber: pr.number,
+        taskDetails: taskDescription,
+        createdAt: new Date().toISOString()
+      };
+      
+      await fs.writeFile(requestFile, JSON.stringify(requestData, null, 2));
+      console.log(`📝 Created local processing request: ${requestFile}`);
+    } catch (error) {
+      console.error(`❌ Failed to create local processing request:`, error.message);
+    }
+    
     return {
       type: 'pull_request',
       id: pr.id,
