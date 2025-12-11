@@ -2022,16 +2022,26 @@ function buildCodeWhispererSection(story) {
   title.textContent = 'Development Tasks';
   heading.appendChild(title);
 
-  // Auto PR creation button
-  const actionBtn = document.createElement('button');
-  actionBtn.type = 'button';
-  actionBtn.className = 'secondary';
-  actionBtn.textContent = 'Generate Code & PR';
-  actionBtn.addEventListener('click', async () => {
+  // Generate Code button
+  const generateCodeBtn = document.createElement('button');
+  generateCodeBtn.type = 'button';
+  generateCodeBtn.className = 'secondary';
+  generateCodeBtn.textContent = 'Generate Code';
+  generateCodeBtn.addEventListener('click', async () => {
     // Backend handles EC2 communication, no need to check from frontend
-    openCodeWhispererDelegationModal(story);
+    openGenerateCodeModal(story);
   });
-  heading.appendChild(actionBtn);
+  heading.appendChild(generateCodeBtn);
+
+  // Create PR button
+  const createPRBtn = document.createElement('button');
+  createPRBtn.type = 'button';
+  createPRBtn.className = 'secondary';
+  createPRBtn.textContent = 'Create PR';
+  createPRBtn.addEventListener('click', async () => {
+    openCreatePRModal(story);
+  });
+  heading.appendChild(createPRBtn);
 
   section.appendChild(heading);
 
@@ -5839,6 +5849,282 @@ async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
     applyErrors(latestValidation?.errors || {}, { force: false });
     setSubmitButtonState(latestValidation);
   }, 10);
+}
+
+function openGenerateCodeModal(story) {
+  const defaults = createDefaultCodeWhispererForm(story);
+  const form = document.createElement('form');
+  form.className = 'modal-form codewhisperer-form';
+  form.noValidate = true;
+  form.innerHTML = `
+    <div class="form-error-banner" data-role="codewhisperer-error" hidden></div>
+    <div class="field">
+      <label for="generate-task-title">Task title</label>
+      <textarea id="generate-task-title" name="taskTitle" rows="1" style="resize: vertical; overflow: hidden;" required></textarea>
+      <p class="field-error" data-error-for="taskTitle" hidden></p>
+    </div>
+    <div class="field full">
+      <label for="generate-objective">Objective</label>
+      <textarea id="generate-objective" name="objective" rows="2" style="resize: vertical; overflow: hidden;" required></textarea>
+      <p class="field-error" data-error-for="objective" hidden></p>
+    </div>
+    <div class="field">
+      <label for="generate-constraints">Constraints</label>
+      <textarea id="generate-constraints" name="constraints" rows="3" required></textarea>
+      <p class="field-error" data-error-for="constraints" hidden></p>
+    </div>
+    <div class="field full">
+      <label for="generate-acceptance">Acceptance criteria</label>
+      <textarea
+        id="generate-acceptance"
+        name="acceptanceCriteria"
+        rows="4"
+        placeholder="List each criterion on a new line"
+        required
+      ></textarea>
+      <p class="field-error" data-error-for="acceptanceCriteria" hidden></p>
+    </div>
+  `;
+
+  const taskTitleInput = form.elements.taskTitle;
+  const objectiveInput = form.elements.objective;
+  const constraintsInput = form.elements.constraints;
+  const acceptanceInput = form.elements.acceptanceCriteria;
+
+  const acceptancePrefill = defaults.acceptanceCriteria?.trim()
+    ? defaults.acceptanceCriteria
+    : Array.isArray(story?.acceptanceTests) && story.acceptanceTests.length > 0
+    ? story.acceptanceTests
+        .map((test) => (test && test.title ? String(test.title).trim() : ''))
+        .filter((value) => value.length > 0)
+        .join('\n')
+    : story?.iWant 
+    ? `The feature works as described\nThe implementation matches the requirement: ${story.iWant}\nThe changes are properly tested`
+    : 'The feature works as described\nThe user interface is intuitive\nThe changes are properly tested';
+
+  taskTitleInput.value = defaults.taskTitle || '';
+  objectiveInput.value = defaults.objective || '';
+  constraintsInput.value = defaults.constraints || '';
+  acceptanceInput.value = acceptancePrefill;
+
+  const autoResize = (textarea) => {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  };
+
+  [taskTitleInput, objectiveInput, constraintsInput, acceptanceInput].forEach((textarea) => {
+    autoResize(textarea);
+    textarea.addEventListener('input', () => autoResize(textarea));
+  });
+
+  let submitting = false;
+  let submitButton = null;
+
+  const setSubmitButtonState = () => {
+    if (submitButton) {
+      submitButton.disabled = submitting;
+      submitButton.textContent = submitting ? 'Generating...' : 'Generate Code';
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    submitting = true;
+    setSubmitButtonState();
+
+    try {
+      const formData = new FormData(form);
+      const values = Object.fromEntries(formData.entries());
+      
+      // Create a code generation task without PR creation
+      const response = await fetch('/api/codewhisperer/generate-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storyId: story.id,
+          taskTitle: values.taskTitle,
+          objective: values.objective,
+          constraints: values.constraints,
+          acceptanceCriteria: values.acceptanceCriteria,
+        }),
+      });
+
+      if (response.ok) {
+        showToast('Code generation task created successfully', 'success');
+        closeModal();
+        refreshStoryDetails();
+      } else {
+        const error = await response.text();
+        showToast(`Failed to create code generation task: ${error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error creating code generation task:', error);
+      showToast('Failed to create code generation task', 'error');
+    } finally {
+      submitting = false;
+      setSubmitButtonState();
+    }
+  };
+
+  openModal({
+    title: 'Generate Code',
+    content: form,
+    cancelLabel: 'Cancel',
+    size: 'content',
+    actions: [
+      {
+        label: 'Generate Code',
+        onClick: handleSubmit,
+      },
+    ],
+  });
+
+  submitButton = Array.from(modalFooter.querySelectorAll('button')).find((button) =>
+    button.textContent && button.textContent.trim().toLowerCase() === 'generate code'
+  );
+}
+
+function openCreatePRModal(story) {
+  const defaults = createDefaultCodeWhispererForm(story);
+  const form = document.createElement('form');
+  form.className = 'modal-form codewhisperer-form';
+  form.noValidate = true;
+  form.innerHTML = `
+    <div class="form-error-banner" data-role="codewhisperer-error" hidden></div>
+    <div class="field">
+      <label for="pr-repo-url">Repository API URL</label>
+      <input id="pr-repo-url" name="repositoryApiUrl" type="url" placeholder="${escapeHtml(
+        DEFAULT_REPO_API_URL
+      )}" required />
+      <p class="field-error" data-error-for="repositoryApiUrl" hidden></p>
+    </div>
+    <div class="field">
+      <label for="pr-owner">Owner</label>
+      <input id="pr-owner" name="owner" required />
+      <p class="field-error" data-error-for="owner" hidden></p>
+    </div>
+    <div class="field">
+      <label for="pr-repo">Repository</label>
+      <input id="pr-repo" name="repo" required />
+      <p class="field-error" data-error-for="repo" hidden></p>
+    </div>
+    <div class="field">
+      <label for="pr-branch">Branch name</label>
+      <input id="pr-branch" name="branchName" required />
+      <p class="field-error" data-error-for="branchName" hidden></p>
+    </div>
+    <div class="field">
+      <label for="pr-assignee">Assignee</label>
+      <input id="pr-assignee" name="assignee" type="text" placeholder="Add an assignee (optional)" />
+      <p class="field-error" data-error-for="assignee" hidden></p>
+    </div>
+    <div class="field">
+      <label for="pr-title">PR title</label>
+      <textarea id="pr-title" name="prTitle" rows="1" style="resize: vertical; overflow: hidden;" required></textarea>
+      <p class="field-error" data-error-for="prTitle" hidden></p>
+    </div>
+    <div class="field full codewhisperer-checkbox">
+      <label>
+        <input type="checkbox" name="createTrackingCard" checked />
+        <span>Create tracking card</span>
+      </label>
+    </div>
+  `;
+
+  const repoInput = form.elements.repositoryApiUrl;
+  const ownerInput = form.elements.owner;
+  const repoNameInput = form.elements.repo;
+  const branchInput = form.elements.branchName;
+  const assigneeInput = form.elements.assignee;
+  const prTitleInput = form.elements.prTitle;
+  const createCardInput = form.elements.createTrackingCard;
+
+  repoInput.value = defaults.repositoryApiUrl || DEFAULT_REPO_API_URL;
+  ownerInput.value = defaults.owner || '';
+  repoNameInput.value = defaults.repo || '';
+  branchInput.value = defaults.branchName || '';
+  assigneeInput.value = defaults.assignee || '';
+  prTitleInput.value = defaults.prTitle || '';
+  createCardInput.checked = defaults.createTrackingCard !== false;
+
+  const autoResize = (textarea) => {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  };
+
+  [prTitleInput].forEach((textarea) => {
+    autoResize(textarea);
+    textarea.addEventListener('input', () => autoResize(textarea));
+  });
+
+  let submitting = false;
+  let submitButton = null;
+
+  const setSubmitButtonState = () => {
+    if (submitButton) {
+      submitButton.disabled = submitting;
+      submitButton.textContent = submitting ? 'Creating...' : 'Create PR';
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    submitting = true;
+    setSubmitButtonState();
+
+    try {
+      const formData = new FormData(form);
+      const values = Object.fromEntries(formData.entries());
+      
+      // Create PR without code generation
+      const response = await fetch('/api/codewhisperer/create-pr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storyId: story.id,
+          repositoryApiUrl: values.repositoryApiUrl,
+          owner: values.owner,
+          repo: values.repo,
+          branchName: values.branchName,
+          assignee: values.assignee,
+          prTitle: values.prTitle,
+          createTrackingCard: values.createTrackingCard === 'on',
+        }),
+      });
+
+      if (response.ok) {
+        showToast('Pull request created successfully', 'success');
+        closeModal();
+        refreshStoryDetails();
+      } else {
+        const error = await response.text();
+        showToast(`Failed to create pull request: ${error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error creating pull request:', error);
+      showToast('Failed to create pull request', 'error');
+    } finally {
+      submitting = false;
+      setSubmitButtonState();
+    }
+  };
+
+  openModal({
+    title: 'Create Pull Request',
+    content: form,
+    cancelLabel: 'Cancel',
+    size: 'content',
+    actions: [
+      {
+        label: 'Create PR',
+        onClick: handleSubmit,
+      },
+    ],
+  });
+
+  submitButton = Array.from(modalFooter.querySelectorAll('button')).find((button) =>
+    button.textContent && button.textContent.trim().toLowerCase() === 'create pr'
+  );
 }
 
 function openHealthIssueModal(title, issue, context = null) {
