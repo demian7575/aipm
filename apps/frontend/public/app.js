@@ -2022,16 +2022,25 @@ function buildCodeWhispererSection(story) {
   title.textContent = 'Development Tasks';
   heading.appendChild(title);
 
-  // Auto PR creation button
-  const actionBtn = document.createElement('button');
-  actionBtn.type = 'button';
-  actionBtn.className = 'secondary';
-  actionBtn.textContent = 'Generate Code & PR';
-  actionBtn.addEventListener('click', async () => {
-    // Backend handles EC2 communication, no need to check from frontend
-    openCodeWhispererDelegationModal(story);
+  // Generate Code button with iterative gating tests
+  const generateCodeBtn = document.createElement('button');
+  generateCodeBtn.type = 'button';
+  generateCodeBtn.className = 'secondary';
+  generateCodeBtn.textContent = 'Generate Code';
+  generateCodeBtn.addEventListener('click', async () => {
+    openGenerateCodeModal(story);
   });
-  heading.appendChild(actionBtn);
+  heading.appendChild(generateCodeBtn);
+
+  // Create PR button  
+  const createPRBtn = document.createElement('button');
+  createPRBtn.type = 'button';
+  createPRBtn.className = 'secondary';
+  createPRBtn.textContent = 'Create PR';
+  createPRBtn.addEventListener('click', async () => {
+    openCreatePRModal(story);
+  });
+  heading.appendChild(createPRBtn);
 
   section.appendChild(heading);
 
@@ -5839,6 +5848,170 @@ async function generateAcceptanceTestForDelegation(acceptanceCriteriaText) {
     applyErrors(latestValidation?.errors || {}, { force: false });
     setSubmitButtonState(latestValidation);
   }, 10);
+}
+
+function openGenerateCodeModal(story) {
+  const form = document.createElement('form');
+  form.className = 'modal-form';
+  form.innerHTML = `
+    <div class="field">
+      <label for="task-title">Task Title</label>
+      <input id="task-title" name="taskTitle" required />
+    </div>
+    <div class="field">
+      <label for="objective">Objective</label>
+      <textarea id="objective" name="objective" rows="3" required></textarea>
+    </div>
+    <div class="field">
+      <label for="constraints">Constraints</label>
+      <textarea id="constraints" name="constraints" rows="2"></textarea>
+    </div>
+    <div class="field">
+      <label for="acceptance">Acceptance Criteria</label>
+      <textarea id="acceptance" name="acceptanceCriteria" rows="3" required></textarea>
+    </div>
+    <div class="field">
+      <label>
+        <input type="checkbox" name="enableGatingTests" checked />
+        Enable iterative gating tests (max 10 iterations)
+      </label>
+    </div>
+    <div class="field">
+      <label>
+        <input type="checkbox" name="deployToDev" checked />
+        Deploy to development environment after tests pass
+      </label>
+    </div>
+  `;
+
+  let isGenerating = false;
+  let submitButton = null;
+
+  const updateProgress = (message) => {
+    const progressDiv = form.querySelector('.progress-status') || document.createElement('div');
+    progressDiv.className = 'progress-status';
+    progressDiv.textContent = message;
+    if (!form.querySelector('.progress-status')) {
+      form.appendChild(progressDiv);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (isGenerating) return;
+    isGenerating = true;
+    
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Generating...';
+    }
+
+    const formData = new FormData(form);
+    const values = Object.fromEntries(formData.entries());
+    
+    try {
+      updateProgress('Starting code generation...');
+      
+      const response = await fetch('/api/generate-code-with-gating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storyId: story.id,
+          taskTitle: values.taskTitle,
+          objective: values.objective,
+          constraints: values.constraints,
+          acceptanceCriteria: values.acceptanceCriteria,
+          enableGatingTests: values.enableGatingTests === 'on',
+          deployToDev: values.deployToDev === 'on',
+          maxIterations: 10
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        updateProgress(`Code generation completed. Iterations: ${result.iterations || 0}`);
+        showToast('Code generation with gating tests completed successfully', 'success');
+        setTimeout(() => closeModal(), 2000);
+      } else {
+        const error = await response.text();
+        updateProgress(`Failed: ${error}`);
+        showToast('Code generation failed', 'error');
+      }
+    } catch (error) {
+      updateProgress(`Error: ${error.message}`);
+      showToast('Error during code generation', 'error');
+    } finally {
+      isGenerating = false;
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Generate Code';
+      }
+    }
+  };
+
+  openModal({
+    title: 'Generate Code with Gating Tests',
+    content: form,
+    actions: [{ label: 'Generate Code', onClick: handleSubmit }],
+  });
+
+  // Get reference to submit button for state management
+  setTimeout(() => {
+    submitButton = document.querySelector('.modal-footer button:last-child');
+  }, 100);
+}
+
+function openCreatePRModal(story) {
+  const form = document.createElement('form');
+  form.className = 'modal-form';
+  form.innerHTML = `
+    <div class="field">
+      <label for="repo-url">Repository URL</label>
+      <input id="repo-url" name="repositoryUrl" type="url" required />
+    </div>
+    <div class="field">
+      <label for="branch">Branch Name</label>
+      <input id="branch" name="branchName" required />
+    </div>
+    <div class="field">
+      <label for="pr-title">PR Title</label>
+      <input id="pr-title" name="prTitle" required />
+    </div>
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="3"></textarea>
+    </div>
+  `;
+
+  const handleSubmit = async () => {
+    const formData = new FormData(form);
+    const values = Object.fromEntries(formData.entries());
+    
+    try {
+      const response = await fetch('/api/create-pr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storyId: story.id,
+          ...values
+        }),
+      });
+
+      if (response.ok) {
+        showToast('Pull request created successfully', 'success');
+        closeModal();
+      } else {
+        showToast('Failed to create pull request', 'error');
+      }
+    } catch (error) {
+      showToast('Error creating pull request', 'error');
+    }
+  };
+
+  openModal({
+    title: 'Create Pull Request',
+    content: form,
+    actions: [{ label: 'Create PR', onClick: handleSubmit }],
+  });
 }
 
 function openHealthIssueModal(title, issue, context = null) {
