@@ -5555,8 +5555,7 @@ async function pollQueueStatus(entry) {
     return; // Already have PR URL or no taskId
   }
   
-  try {
-  }
+  // Queue polling removed - no longer needed
 }
 
 function buildAcceptanceTestFallback(story, acceptanceCriteriaText) {
