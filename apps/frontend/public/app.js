@@ -1712,15 +1712,7 @@ function renderCodeWhispererSectionList(container, story) {
   }
 
   // Fetch PR URLs for tasks that don't have them yet (only once per entry)
-  entries.forEach(async (entry) => {
-    if (entry.taskId && !entry.prUrl && !entry._fetching) {
-      entry._fetching = true;
-      try {
-        delete entry._fetching;
-        console.error('Failed to fetch PR URL:', error);
-      }
-    }
-  });
+  // Queue polling removed - no longer needed
 
   entries.forEach((entry) => {
     const card = document.createElement('article');
