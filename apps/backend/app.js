@@ -2521,6 +2521,71 @@ async function handleDeployPRRequest(req, res) {
   }
 }
 
+async function safeRun(db, sql, params = []) {
+  if (db.constructor.name === 'DynamoDBDataLayer') {
+    // For DynamoDB, we'd need to implement the update logic
+    return { changes: 0 };
+  } else {
+    // SQLite implementation
+    const statement = db.prepare(sql);
+    return statement.run(...params);
+  }
+}
+
+async function addAcceptanceTestsAsGatingTests(prNumber, mergeData) {
+  try {
+    console.log(`🧪 Adding acceptance tests as gating tests for PR #${prNumber}`);
+    
+    // Get database instance
+    const db = await getDatabaseInstance();
+    
+    // Find user stories that might be associated with this PR
+    // Look for stories that have this PR number in their title or description
+    const stories = await safeSelectAll(db, 
+      `SELECT id, title, description FROM user_stories 
+       WHERE title LIKE ? OR description LIKE ?`, 
+      [`%${prNumber}%`, `%${prNumber}%`]
+    );
+    
+    if (stories.length === 0) {
+      console.log(`ℹ️  No user stories found associated with PR #${prNumber}`);
+      return;
+    }
+    
+    for (const story of stories) {
+      // Get acceptance tests for this story
+      const acceptanceTests = await safeSelectAll(db,
+        'SELECT * FROM acceptance_tests WHERE story_id = ? AND status = ?',
+        [story.id, 'Pass']
+      );
+      
+      if (acceptanceTests.length > 0) {
+        console.log(`✅ Found ${acceptanceTests.length} passing acceptance tests for story ${story.id}`);
+        
+        // Create gating test entries (this could be extended to integrate with CI/CD)
+        for (const test of acceptanceTests) {
+          console.log(`🔒 Adding gating test: ${test.title || `Test ${test.id}`}`);
+          
+          // Mark test as a gating test by updating its status or adding metadata
+          // For now, we'll log this action - in a real implementation, this would
+          // integrate with your CI/CD pipeline to add these as required checks
+          await safeRun(db,
+            'UPDATE acceptance_tests SET status = ? WHERE id = ?',
+            ['Gating', test.id]
+          );
+        }
+      } else {
+        console.log(`⚠️  No passing acceptance tests found for story ${story.id}`);
+      }
+    }
+    
+    console.log(`✅ Acceptance test gating setup completed for PR #${prNumber}`);
+  } catch (error) {
+    console.error('Error adding acceptance tests as gating tests:', error);
+    // Don't fail the merge if gating test setup fails
+  }
+}
+
 async function handleMergePR(req, res) {
   try {
     const payload = await parseJson(req);
@@ -2595,6 +2660,9 @@ async function handleMergePR(req, res) {
         console.warn(`⚠️  Failed to delete branch ${branchName}:`, await deleteResponse.text());
       }
     }
+    
+    // Add acceptance tests as gating tests after successful merge
+    await addAcceptanceTestsAsGatingTests(prNumber, mergeData);
     
     // Trigger production deployment after successful merge
     console.log('✅ PR merged successfully, triggering production deployment...');
