@@ -4,6 +4,10 @@ set -e
 echo "🚀 Deploying COMPLETE PRODUCTION Environment..."
 echo "================================================"
 
+# 0. Validate build before deployment
+echo "🔍 Step 0: Validating build..."
+node scripts/validate-build.js
+
 # 1. Switch to main branch
 echo "📌 Step 1: Switching to main branch..."
 git checkout main

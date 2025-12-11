@@ -9,32 +9,40 @@ const ENVIRONMENTS = {
         frontend: 'http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com'
     },
     development: {
-        api: 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod',
+        api: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
         frontend: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'
     }
 };
 
-async function testPostEndpoint(url, data, description) {
+async function testEndpoint(url, description, method = 'GET', data = null) {
     return new Promise((resolve) => {
-        const postData = JSON.stringify(data);
         const client = url.startsWith('https:') ? https : http;
         const urlObj = new URL(url);
         
         const options = {
             hostname: urlObj.hostname,
             port: urlObj.port,
-            path: urlObj.pathname,
-            method: 'POST',
+            path: urlObj.pathname + urlObj.search,
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(postData)
+                'User-Agent': 'AIPM-Gating-Test/1.0'
             }
         };
         
+        if (data && method === 'POST') {
+            const postData = JSON.stringify(data);
+            options.headers['Content-Length'] = Buffer.byteLength(postData);
+        }
+        
         const request = client.request(options, (res) => {
-            const success = res.statusCode === 200;
-            console.log(`   ${success ? '✅' : '❌'} ${description}: ${res.statusCode}`);
-            resolve({ success, status: res.statusCode });
+            let responseData = '';
+            res.on('data', chunk => responseData += chunk);
+            res.on('end', () => {
+                const success = res.statusCode === 200;
+                console.log(`   ${success ? '✅' : '❌'} ${description}: ${res.statusCode}`);
+                resolve({ success, status: res.statusCode, data: responseData });
+            });
         });
         
         request.on('error', (err) => {
@@ -42,158 +50,84 @@ async function testPostEndpoint(url, data, description) {
             resolve({ success: false, error: err.message });
         });
         
-        request.setTimeout(5000, () => {
+        request.setTimeout(10000, () => {
             console.log(`   ❌ ${description}: Timeout`);
             request.destroy();
             resolve({ success: false, error: 'Timeout' });
         });
         
-        request.write(postData);
+        if (data && method === 'POST') {
+            request.write(JSON.stringify(data));
+        }
+        
         request.end();
     });
 }
 
-async function testEndpoint(url, description) {
-    return new Promise((resolve) => {
-        const client = url.startsWith('https:') ? https : http;
-        const request = client.get(url, (res) => {
-            const success = res.statusCode === 200;
-            console.log(`   ${success ? '✅' : '❌'} ${description}: ${res.statusCode}`);
-            resolve({ success, status: res.statusCode });
-        });
-        
-        request.on('error', (err) => {
-            console.log(`   ❌ ${description}: Error - ${err.message}`);
-            resolve({ success: false, error: err.message });
-        });
-        
-        request.setTimeout(5000, () => {
-            console.log(`   ❌ ${description}: Timeout`);
-            request.destroy();
-            resolve({ success: false, error: 'Timeout' });
-        });
-    });
-}
-
-async function testDynamicButtonCapability(baseUrl, testName) {
-    try {
-        const response = await fetch(`${baseUrl}/app.js`, { timeout: 5000 });
-        if (!response.ok) {
-            return { name: testName, status: 'fail', message: `HTTP ${response.status}` };
-        }
-        
-        const content = await response.text();
-        // Check for button creation code and staging workflow capability
-        const hasButtonCreation = content.includes('run-in-staging-btn') && content.includes('Run in Staging');
-        const hasStagingWorkflow = content.includes('buildKiroTerminalModalContent') || content.includes('/api/run-staging');
-        
-        if (hasButtonCreation && hasStagingWorkflow) {
-            return { name: testName, status: 'pass', message: 'Found' };
-        } else {
-            return { name: testName, status: 'fail', message: 'Missing' };
-        }
-    } catch (error) {
-        return { name: testName, status: 'fail', message: error.message.includes('timeout') ? 'Timeout' : error.message };
-    }
-}
-
-async function testButtonExists(frontendUrl, buttonId, description) {
-    return new Promise((resolve) => {
-        const client = http;
-        const request = client.get(`${frontendUrl}/index.html`, (res) => {
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => {
-                const hasButton = data.includes(`id="${buttonId}"`);
-                const success = res.statusCode === 200 && hasButton;
-                console.log(`   ${success ? '✅' : '❌'} ${description}: ${hasButton ? 'Found' : 'Missing'}`);
-                resolve({ success, hasButton });
-            });
-        });
-        
-        request.on('error', (err) => {
-            console.log(`   ❌ ${description}: Error - ${err.message}`);
-            resolve({ success: false, error: err.message });
-        });
-        
-        request.setTimeout(5000, () => {
-            console.log(`   ❌ ${description}: Timeout`);
-            request.destroy();
-            resolve({ success: false, error: 'Timeout' });
-        });
-    });
-}
-
-async function testJavaScriptFunction(frontendUrl, functionName, description) {
-    return new Promise((resolve) => {
-        const client = http;
-        const request = client.get(`${frontendUrl}/app.js`, (res) => {
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => {
-                const hasFunction = data.includes(`function ${functionName}`) || 
-                                  data.includes(`${functionName} =`) ||
-                                  data.includes(`const ${functionName}`);
-                const success = res.statusCode === 200 && hasFunction;
-                console.log(`   ${success ? '✅' : '❌'} ${description}: ${hasFunction ? 'Found' : 'Missing'}`);
-                resolve({ success, hasFunction });
-            });
-        });
-        
-        request.on('error', (err) => {
-            console.log(`   ❌ ${description}: Error - ${err.message}`);
-            resolve({ success: false, error: err.message });
-        });
-        
-        request.setTimeout(5000, () => {
-            console.log(`   ❌ ${description}: Timeout`);
-            request.destroy();
-            resolve({ success: false, error: 'Timeout' });
-        });
-    });
-}
-
-async function runEnvironmentTests(env, config) {
-    console.log(`\n🧪 Testing ${env.toUpperCase()} Environment - Comprehensive Validation`);
+async function testEnvironment(envName, config) {
+    console.log(`\n🧪 Testing ${envName.toUpperCase()} Environment - Comprehensive Validation`);
     console.log(`   API: ${config.api}`);
-    console.log(`   Frontend: ${config.frontend}\n`);
+    console.log(`   Frontend: ${config.frontend}`);
+    console.log('');
     
-    // Run all tests in parallel
-    const testPromises = [
-        // Core API tests
-        testEndpoint(`${config.api}/api/stories`, 'API Stories'),
-        
-        // Frontend asset tests
-        testEndpoint(`${config.frontend}/`, 'Frontend Index'),
-        testEndpoint(`${config.frontend}/app.js`, 'Frontend App.js'),
-        testEndpoint(`${config.frontend}/config.js`, 'Frontend Config'),
-        testEndpoint(`${config.frontend}/production-gating-tests.js`, 'Gating Tests Script'),
-        testEndpoint(`${config.frontend}/production-gating-tests.html`, 'Gating Tests Page'),
-        
-        // Feature tests (export buttons removed in PR #302)
-        testJavaScriptFunction(config.frontend, 'buildKiroTerminalModalContent', 'Kiro Terminal Modal Function')
+    let passed = 0;
+    let total = 0;
+    
+    // Test frontend assets with syntax validation
+    const frontendTests = [
+        { url: `${config.frontend}/`, desc: 'Frontend Index' },
+        { url: `${config.frontend}/app.js`, desc: 'Frontend App.js', validateJS: true },
+        { url: `${config.frontend}/config.js`, desc: 'Frontend Config', validateJS: true },
+        { url: `${config.frontend}/gating-tests.html`, desc: 'Gating Tests Page' },
+        { url: `${config.frontend}/gating-tests.js`, desc: 'Gating Tests Script', validateJS: true }
     ];
     
-    // Add draft generation only for production
-    if (env !== 'development') {
-        testPromises.push(
-            testPostEndpoint(`${config.api}/api/stories/draft`, 
-                { idea: 'test story', parentId: null }, 'API Draft Generation')
-        );
+    for (const test of frontendTests) {
+        const result = await testEndpoint(test.url, test.desc);
+        total++;
+        if (result.success) {
+            passed++;
+            // Additional JavaScript syntax validation
+            if (test.validateJS && result.data) {
+                total++; // Count syntax validation as separate test
+                try {
+                    // Use Node.js VM to validate syntax without executing
+                    const vm = require('vm');
+                    new vm.Script(result.data);
+                    console.log(`   ✅ ${test.desc} Syntax: Valid`);
+                    passed++;
+                } catch (syntaxError) {
+                    console.log(`   ❌ ${test.desc} Syntax: ${syntaxError.message}`);
+                    // Don't increment passed for syntax errors
+                }
+            }
+        }
     }
     
-    const results = await Promise.all(testPromises);
+    // Test API endpoints
+    const apiTests = [
+        { url: `${config.api}/api/stories`, desc: 'API Stories' },
+        { url: `${config.api}/api/stories/draft`, desc: 'API Draft Generation', method: 'POST', data: { idea: 'test' } }
+    ];
     
-    const passed = results.filter(r => r.success).length;
-    const total = results.length;
+    for (const test of apiTests) {
+        const result = await testEndpoint(test.url, test.desc, test.method, test.data);
+        total++;
+        if (result.success) passed++;
+    }
     
-    console.log(`\n📊 ${env.toUpperCase()} Results: ${passed}/${total} tests passed`);
-    
-    if (passed === total) {
-        console.log(`✅ ${env.toUpperCase()} environment: ALL TESTS PASSED`);
+    // Test Kiro Terminal Modal Function (frontend-specific)
+    const modalTest = await testEndpoint(`${config.frontend}/app.js`, 'Kiro Terminal Modal Function');
+    if (modalTest.success && modalTest.data.includes('Connecting to Kiro CLI terminal')) {
+        console.log('   ✅ Kiro Terminal Modal Function: Found');
+        passed++;
     } else {
-        console.log(`❌ ${env.toUpperCase()} environment: ${total - passed} tests failed`);
+        console.log('   ❌ Kiro Terminal Modal Function: Not Found');
     }
+    total++;
+    
+    console.log(`\n📊 ${envName.toUpperCase()} Results: ${passed}/${total} tests passed`);
+    console.log(`${passed === total ? '✅' : '❌'} ${envName.toUpperCase()} environment: ${passed === total ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED'}`);
     
     return { passed, total, success: passed === total };
 }
@@ -201,35 +135,38 @@ async function runEnvironmentTests(env, config) {
 async function main() {
     console.log('🚀 AIPM Comprehensive Gating Tests - All Functionality\n');
     
-    // Run all environments in parallel
-    const results = await Promise.all(
-        Object.entries(ENVIRONMENTS).map(async ([env, config]) => {
-            const result = await runEnvironmentTests(env, config);
-            return [env, result];
-        })
-    ).then(arr => Object.fromEntries(arr));
+    let totalPassed = 0;
+    let totalTests = 0;
+    let envResults = {};
     
-    console.log('\n' + '='.repeat(70));
-    console.log('📋 COMPREHENSIVE GATING TEST SUMMARY');
-    console.log('='.repeat(70));
-    
-    let allPassed = true;
-    for (const [env, result] of Object.entries(results)) {
-        const status = result.success ? '✅ PASS' : '❌ FAIL';
-        console.log(`${env.toUpperCase().padEnd(12)}: ${status} (${result.passed}/${result.total})`);
-        if (!result.success) allPassed = false;
+    // Test each environment
+    for (const [envName, config] of Object.entries(ENVIRONMENTS)) {
+        const result = await testEnvironment(envName, config);
+        envResults[envName] = result;
+        totalPassed += result.passed;
+        totalTests += result.total;
     }
     
-    console.log('='.repeat(70));
-    if (allPassed) {
+    // Summary
+    console.log('\n======================================================================');
+    console.log('📋 COMPREHENSIVE GATING TEST SUMMARY');
+    console.log('======================================================================');
+    
+    for (const [envName, result] of Object.entries(envResults)) {
+        console.log(`${envName.toUpperCase().padEnd(12)}: ${result.success ? '✅' : '❌'} PASS (${result.passed}/${result.total})`);
+    }
+    
+    console.log('======================================================================');
+    
+    if (totalPassed === totalTests) {
         console.log('🎉 ALL FUNCTIONALITY TESTS PASSING');
         console.log('✅ All environments ready for production');
+        process.exit(0);
     } else {
         console.log('⚠️  SOME FUNCTIONALITY TESTS FAILING');
-        console.log('❌ Requires fixes before production deployment');
+        console.log('❌ Fix issues before deployment');
+        process.exit(1);
     }
-    
-    process.exit(allPassed ? 0 : 1);
 }
 
 main().catch(console.error);
