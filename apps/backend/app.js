@@ -2660,6 +2660,7 @@ async function handleCreatePRRequest(req, res) {
               targetNumber: result.prNumber,
               number: result.prNumber,
               htmlUrl: result.prUrl,
+              taskUrl: result.prUrl,
               assignee: '',
               createTrackingCard: true
             };
