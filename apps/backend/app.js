@@ -2659,6 +2659,7 @@ async function handleCreatePRRequest(req, res) {
               target: 'pull-request',
               targetNumber: result.prNumber,
               number: result.prNumber,
+              prUrl: result.prUrl,
               htmlUrl: result.prUrl,
               taskUrl: result.prUrl,
               assignee: '',
