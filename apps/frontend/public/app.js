@@ -7320,7 +7320,7 @@ function openGenerateCodeModal(story, taskEntry = null) {
     try {
       updateProgress('Starting code generation with gating tests...');
       
-      const response = await fetch(resolveApiUrl('/api/generate-code-with-gating'), {
+      const response = await fetch(resolveApiUrl('/api/personal-delegate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
