@@ -5264,9 +5264,13 @@ function createDefaultCodeWhispererForm(story) {
   let branchName = '';
   if (story?.title) {
     branchName = story.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    if (branchName.length > 200) {
-      branchName = branchName.substring(0, 200).replace(/-+$/, '');
+    // Add timestamp to make branch name unique
+    const timestamp = Date.now();
+    const maxTitleLength = 180; // Leave room for timestamp
+    if (branchName.length > maxTitleLength) {
+      branchName = branchName.substring(0, maxTitleLength).replace(/-+$/, '');
     }
+    branchName = `${branchName}-${timestamp}`;
   }
   
   // Build comprehensive objective with full story details
