@@ -2647,6 +2647,7 @@ async function handleCreatePRRequest(req, res) {
         // If PR creation was successful, add it to the story
         if (result.success) {
           try {
+            console.log('PR creation successful, adding to story:', storyId);
             const prEntry = {
               localId: `pr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               storyId: parseInt(storyId),
@@ -2663,13 +2664,11 @@ async function handleCreatePRRequest(req, res) {
               createTrackingCard: true
             };
             
-            // Add PR to story's PRs list
-            const story = await getStory(parseInt(storyId));
-            if (story) {
-              const currentPRs = story.prs || [];
-              currentPRs.push(prEntry);
-              await updateStory(parseInt(storyId), { prs: currentPRs });
-            }
+            console.log('Created PR entry:', prEntry);
+            
+            // Add PR to story using the imported function
+            const addResult = await addStoryPR(parseInt(storyId), prEntry);
+            console.log('Add PR result:', addResult);
           } catch (error) {
             console.error('Failed to add PR to story:', error);
             // Don't fail the whole request if we can't update the story
