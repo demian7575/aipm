@@ -2666,8 +2666,9 @@ async function handleCreatePRRequest(req, res) {
             
             console.log('Created PR entry:', prEntry);
             
-            // Add PR to story using the imported function
-            const addResult = await addStoryPR(parseInt(storyId), prEntry);
+            // Get database instance and add PR to story
+            const db = await ensureDatabase();
+            const addResult = await addStoryPR(db, parseInt(storyId), prEntry);
             console.log('Add PR result:', addResult);
           } catch (error) {
             console.error('Failed to add PR to story:', error);
