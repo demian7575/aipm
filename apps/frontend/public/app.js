@@ -7433,6 +7433,15 @@ function openCreatePRModal(story, taskEntry = null) {
         console.log('Create PR - Success result:', result);
         showToast(result.message || 'Pull request created', 'success');
         closeModal();
+        
+        // Refresh the story to show the new PR
+        if (result.success) {
+          await loadStories();
+          // Refresh the current story's details if it's selected
+          if (state.selectedStoryId === story.id) {
+            renderDetails();
+          }
+        }
       } else {
         const error = await response.json();
         console.log('Create PR - Error result:', error);
