@@ -2644,6 +2644,38 @@ async function handleCreatePRRequest(req, res) {
           storyId
         });
         
+        // If PR creation was successful, add it to the story
+        if (result.success) {
+          try {
+            const prEntry = {
+              localId: `pr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              storyId: parseInt(storyId),
+              taskTitle: prTitle,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              repo: `${REPO_OWNER}/${REPO_NAME}`,
+              branchName: branchName,
+              target: 'pull-request',
+              targetNumber: result.prNumber,
+              number: result.prNumber,
+              htmlUrl: result.prUrl,
+              assignee: '',
+              createTrackingCard: true
+            };
+            
+            // Add PR to story's PRs list
+            const story = await getStory(parseInt(storyId));
+            if (story) {
+              const currentPRs = story.prs || [];
+              currentPRs.push(prEntry);
+              await updateStory(parseInt(storyId), { prs: currentPRs });
+            }
+          } catch (error) {
+            console.error('Failed to add PR to story:', error);
+            // Don't fail the whole request if we can't update the story
+          }
+        }
+        
         res.writeHead(200, {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
