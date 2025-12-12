@@ -1,7 +1,10 @@
 // Removed Codex/CodeWhisperer imports - now using automatic PR creation
 
 function getApiBaseUrl() {
-  return (window.CONFIG?.API_BASE_URL || '').replace(/\/$/, '');
+  console.log('getApiBaseUrl - window.CONFIG:', window.CONFIG);
+  const baseUrl = (window.CONFIG?.API_BASE_URL || '').replace(/\/$/, '');
+  console.log('getApiBaseUrl - returning:', baseUrl);
+  return baseUrl;
 }
 
 const DEFAULT_REPO_API_URL = 'https://api.github.com';
