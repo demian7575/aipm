@@ -1,29 +1,13 @@
-# Improve User Story Generation
+# Test Real PR Creation
 
-As a User, I want to when a User Story is auto-generated from an idea in the "Create Child Story" modal, the system must ensure that:
+Create actual PR with branch and code
 
-All generated content (Title, Description, As a, I want, So that) is grammatically correct and written in natural, fluent English.
-
-The generated User Story fully explains the requirement with no ambiguity or room for interpretation.
-
-The output includes only information derived from the provided idea. Any redundant or unrelated details—including references to parent User Stories that are not explicitly mentioned in the idea—must be excluded. This ensures i can accomplish my goals more effectively. this work supports the parent story "user story management".
-
-Constraints: 
+Constraints: Must be a real PR
 
 Acceptance Criteria:
-- The feature works as described
-- The implementation matches the requirement: when a User Story is auto-generated from an idea in the "Create Child Story" modal, the system must ensure that:
-- All generated content (Title, Description, As a, I want, So that) is grammatically correct and written in natural, fluent English.
-- The generated User Story fully explains the requirement with no ambiguity or room for interpretation.
-- The output includes only information derived from the provided idea. Any redundant or unrelated details—including references to parent User Stories that are not explicitly mentioned in the idea—must be excluded
-- The changes are properly tested
+- Should create branch
+- Should create PR
+- Should include generated code
 
----
-✅ Implementation Complete
-
-✅ Grammar: PASS
-✅ Clear: PASS
-✅ No redundant parent: PASS
-✅ All criteria met
-
-**Final Result:** All acceptance criteria satisfied
+## Generated Code Summary
+Generated implementation template for: Test Real PR Creation
