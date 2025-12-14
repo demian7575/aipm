@@ -12,7 +12,6 @@ import { spawnSync, spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import { readFile, stat, mkdir, writeFile, unlink } from 'node:fs/promises';
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -34,34 +33,59 @@ function generateConfirmationCode() {
 }
 
 async function githubRequest(path, options = {}) {
-  const token = ensureGithubToken();
-  const url = new URL(path, 'https://api.github.com');
-  const headers = {
-    Accept: 'application/vnd.github+json',
-    Authorization: `Bearer ${token}`,
-    'User-Agent': 'aipm-delegation-server',
-  };
-  if (options.body && !headers['Content-Type']) {
-    headers['Content-Type'] = 'application/json';
-  }
-  const response = await fetch(url, {
-    ...options,
-    headers: { ...headers, ...(options.headers || {}) },
-  });
-  const text = await response.text();
-  let data = null;
-  if (text) {
+  const maxRetries = 3;
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      data = JSON.parse(text);
-    } catch {
-      data = text;
+      const token = ensureGithubToken();
+      const url = new URL(path, 'https://api.github.com');
+      const headers = {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'User-Agent': 'aipm-delegation-server',
+      };
+      if (options.body && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+      }
+      const response = await fetch(url, {
+        ...options,
+        headers: { ...headers, ...(options.headers || {}) },
+      });
+      const text = await response.text();
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
+      }
+      if (!response.ok) {
+        const message = (data && data.message) || `GitHub request failed with status ${response.status}`;
+        const error = Object.assign(new Error(message), { statusCode: response.status || 502, details: data });
+        
+        // Don't retry on 4xx errors except 429 (rate limit)
+        if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+          throw error;
+        }
+        
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ GitHub API attempt ${attempt} failed:`, error.message);
+      
+      if (attempt < maxRetries && (error.statusCode === 429 || error.statusCode >= 500)) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ Retrying GitHub API in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
     }
   }
-  if (!response.ok) {
-    const message = (data && data.message) || `GitHub request failed with status ${response.status}`;
-    throw Object.assign(new Error(message), { statusCode: response.status || 502, details: data });
-  }
-  return data;
 }
 
 async function getAllStories(db) {
@@ -91,10 +115,15 @@ async function getAllStories(db) {
 }
 
 async function handlePersonalDelegateRequest(req, res) {
+  const startTime = Date.now();
+  let success = false;
+  let errorType = null;
+
   try {
     // Check GitHub token first
     const token = process.env.GITHUB_TOKEN;
     if (!token) {
+      errorType = 'config_error';
       sendJson(res, 400, { message: 'GitHub token not configured' });
       return;
     }
@@ -103,6 +132,7 @@ async function handlePersonalDelegateRequest(req, res) {
     const payload = JSON.parse(body);
     
     const result = await performDelegation(payload);
+    success = true;
     
     // Store PR in database if storyId is provided
     if (payload.storyId && result.number) {
@@ -128,9 +158,15 @@ async function handlePersonalDelegateRequest(req, res) {
     
     sendJson(res, 200, result);
   } catch (error) {
+    success = false;
+    errorType = error.statusCode >= 400 && error.statusCode < 500 ? 'client_error' : 'server_error';
     console.error('Personal delegation request failed', error);
     const status = error.statusCode || 500;
     sendJson(res, status, { message: error.message || 'Failed to create delegation' });
+  } finally {
+    // Log metrics
+    const duration = Date.now() - startTime;
+    console.log(`📊 Delegation request: success=${success}, duration=${duration}ms, error=${errorType || 'none'}`);
   }
 }
 
@@ -325,56 +361,161 @@ function buildTaskBrief(payload) {
   return lines.join('\n');
 }
 
-async function generateCodeWithBedrock(taskTitle, objective, constraints, acceptanceCriteria) {
-  const bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
+async function generateCodeWithKiro(taskTitle, objective, constraints, acceptanceCriteria) {
+  // Check if we're in development environment and can use local Kiro CLI
+  const isDevelopment = !process.env.AWS_LAMBDA_FUNCTION_NAME;
   
-  const criteriaText = acceptanceCriteria.map(c => `- ${c}`).join('\n');
-  const prompt = `Generate code for this task:
+  if (isDevelopment) {
+    try {
+      console.log(`🤖 Using local Kiro CLI for code generation`);
+      
+      const { spawn } = await import('child_process');
+      const prompt = `Generate functional JavaScript code for: ${taskTitle}
 
-Title: ${taskTitle}
 Objective: ${objective}
 Constraints: ${constraints}
-Acceptance Criteria:
-${criteriaText}
+Acceptance Criteria: ${acceptanceCriteria?.join(', ') || 'None specified'}
 
-Project context: AIPM is a vanilla JavaScript project with Express backend.
-Generate minimal, working code. Return ONLY valid JSON with this structure:
-{"files":[{"path":"filename.js","content":"code here"}],"summary":"Brief description"}`;
+Please provide complete, working code implementation, not templates or TODO comments.`;
 
-  const requestBody = {
-    anthropic_version: 'bedrock-2023-05-31',
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }]
-  };
+      return new Promise((resolve, reject) => {
+        const kiro = spawn('kiro-cli', ['chat'], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: { ...process.env, TERM: 'dumb' }
+        });
 
-  const command = new InvokeModelCommand({
-    modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
-    body: JSON.stringify(requestBody)
-  });
+        let output = '';
+        let errorOutput = '';
 
-  const response = await bedrockClient.send(command);
-  const result = JSON.parse(new TextDecoder().decode(response.body));
-  const text = result.content[0].text;
-  
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('No JSON in response');
-  
-  return JSON.parse(jsonMatch[0]);
+        kiro.stdout.on('data', (data) => {
+          output += data.toString();
+        });
+
+        kiro.stderr.on('data', (data) => {
+          errorOutput += data.toString();
+        });
+
+        kiro.on('close', (code) => {
+          const cleanOutput = output
+            .replace(/\u001b\[[0-9;]*m/g, '')
+            .replace(/^.*?> .*$/gm, '')
+            .replace(/^.*?Thinking\.\.\..*$/gm, '')
+            .replace(/^.*?Model:.*$/gm, '')
+            .replace(/^.*?Did you know\?.*$/gm, '')
+            .replace(/^.*?Time:.*$/gm, '')
+            .replace(/^.*?To exit.*$/gm, '')
+            .replace(/^\s*$/gm, '')
+            .trim();
+
+          if (cleanOutput) {
+            const fileName = taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            resolve({
+              files: [{
+                path: `${fileName}.js`,
+                content: cleanOutput
+              }],
+              summary: `Generated implementation for: ${taskTitle}`
+            });
+          } else {
+            reject(new Error(`No code output from Kiro CLI. Error: ${errorOutput}`));
+          }
+        });
+
+        kiro.on('error', (error) => {
+          reject(error);
+        });
+
+        kiro.stdin.write(prompt + '\n');
+        kiro.stdin.end();
+        
+        setTimeout(() => {
+          kiro.kill();
+          reject(new Error('Kiro CLI timeout'));
+        }, 30000);
+      });
+
+    } catch (error) {
+      console.error(`❌ Local Kiro CLI failed:`, error.message);
+    }
+  }
+
+  // Fallback to Lambda API for production or if local CLI fails
+  try {
+    console.log(`🤖 Using deployed Kiro Lambda API for code generation`);
+    
+    const KIRO_API_URL = process.env.KIRO_API_URL || 'https://uv8ivcul61.execute-api.us-east-1.amazonaws.com/prod';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const payload = {
+      taskTitle,
+      objective,
+      constraints,
+      acceptanceCriteria,
+      projectContext: 'AIPM is a vanilla JavaScript project with Express backend'
+    };
+
+    const response = await fetch(`${KIRO_API_URL}/generate-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Kiro API returned ${response.status}: ${await response.text()}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Kiro API call successful');
+    
+    return {
+      files: result.files || [{
+        path: `${taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.js`,
+        content: result.code || `// ${taskTitle}\n// Generated by Kiro API\n\n// TODO: Implement ${objective}`
+      }],
+      summary: result.summary || `Code generated by Kiro API for: ${taskTitle}`
+    };
+
+  } catch (error) {
+    console.error(`❌ Kiro API failed:`, error.message);
+    
+    return {
+      files: [{
+        path: `${taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.js`,
+        content: `// ${taskTitle}\n// ${objective}\n\nfunction ${taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '')}() {\n  // TODO: Implement ${objective}\n  return 'Not implemented';\n}\n\nexport default ${taskTitle.toLowerCase().replace(/[^a-z0-9]+/g, '')};`
+      }],
+      summary: `Fallback implementation for: ${taskTitle}`,
+      error: error.message
+    };
+  }
 }
 
 async function performDelegation(payload) {
   const normalized = normalizeDelegatePayload(payload);
-  const body = buildTaskBrief({ ...normalized, owner: normalized.owner, repo: normalized.repo });
   const repoPath = `/repos/${normalized.owner}/${normalized.repo}`;
   const confirmationCode = generateConfirmationCode();
 
+  // Generate code using Kiro CLI
+  const generatedCode = await generateCodeWithKiro(
+    normalized.taskTitle,
+    normalized.objective,
+    normalized.constraints,
+    normalizeAcceptanceCriteria(normalized.acceptanceCriteria)
+  );
+
   if (normalized.target === 'new-issue') {
-    // Create issue directly for new-issue target
+    // Create issue with generated code
+    const body = buildTaskBrief({ ...normalized, owner: normalized.owner, repo: normalized.repo });
+    const codeSection = `\n\n## 🤖 Generated Code\n\n${generatedCode.files.map(f => `**${f.path}:**\n\`\`\`javascript\n${f.content}\n\`\`\``).join('\n\n')}\n\n**Summary:** ${generatedCode.summary}`;
+    
     const issue = await githubRequest(`${repoPath}/issues`, {
       method: 'POST',
       body: JSON.stringify({
         title: normalized.taskTitle,
-        body,
+        body: body + codeSection,
       }),
     });
     return {
@@ -385,6 +526,7 @@ async function performDelegation(payload) {
       taskHtmlUrl: issue.html_url,
       threadHtmlUrl: issue.html_url,
       confirmationCode,
+      generatedCode,
     };
   }
 
@@ -408,32 +550,49 @@ async function performDelegation(payload) {
       })
     });
     
-    // Create placeholder file using Git Data API (required for PR creation)
-    const fileContent = `# ${normalized.taskTitle}\n\n${normalized.objective}\n\nConstraints: ${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}\n\n---\n⏳ Code is being generated by Kiro CLI...`;
+    // Create blobs for generated code files
+    const treeItems = [];
+    for (const file of generatedCode.files) {
+      const blob = await githubRequest(`${repoPath}/git/blobs`, {
+        method: 'POST',
+        body: JSON.stringify({
+          content: Buffer.from(file.content).toString('base64'),
+          encoding: 'base64'
+        })
+      });
+      treeItems.push({
+        path: file.path,
+        mode: '100644',
+        type: 'blob',
+        sha: blob.sha
+      });
+    }
     
-    // Create blob
-    const blob = await githubRequest(`${repoPath}/git/blobs`, {
+    // Add TASK.md with task description
+    const taskContent = `# ${normalized.taskTitle}\n\n${normalized.objective}\n\nConstraints: ${normalized.constraints}\n\nAcceptance Criteria:\n${normalizeAcceptanceCriteria(normalized.acceptanceCriteria).map(c => `- ${c}`).join('\n')}\n\n## Generated Code Summary\n${generatedCode.summary}`;
+    const taskBlob = await githubRequest(`${repoPath}/git/blobs`, {
       method: 'POST',
       body: JSON.stringify({
-        content: Buffer.from(fileContent).toString('base64'),
+        content: Buffer.from(taskContent).toString('base64'),
         encoding: 'base64'
       })
+    });
+    treeItems.push({
+      path: 'TASK.md',
+      mode: '100644',
+      type: 'blob',
+      sha: taskBlob.sha
     });
     
     // Get base tree
     const baseCommit = await githubRequest(`${repoPath}/git/commits/${baseRef.object.sha}`);
     
-    // Create tree with new file
+    // Create tree with generated files
     const tree = await githubRequest(`${repoPath}/git/trees`, {
       method: 'POST',
       body: JSON.stringify({
         base_tree: baseCommit.tree.sha,
-        tree: [{
-          path: 'TASK.md',
-          mode: '100644',
-          type: 'blob',
-          sha: blob.sha
-        }]
+        tree: treeItems
       })
     });
     

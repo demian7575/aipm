@@ -64,7 +64,6 @@ package:
     - 'deploy*.sh'
     - 'update-gating-tests.js'
     - 'GATING-TESTS.md'
-    - 'lambda-app.js'
     - 'handler.js'
     # Exclude large unnecessary packages
     - 'node_modules/aws-sdk/**'

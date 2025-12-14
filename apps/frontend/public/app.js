@@ -1,3 +1,4 @@
+// Cache refresh: 1765548890
 // Removed Codex/CodeWhisperer imports - now using automatic PR creation
 
 function getApiBaseUrl() {
@@ -7324,6 +7325,8 @@ function openGenerateCodeModal(story, taskEntry = null) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          owner: 'demian7575',
+          repo: 'aipm',
           storyId: story.id,
           taskTitle: values.taskTitle,
           objective: values.objective,

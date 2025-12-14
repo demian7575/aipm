@@ -1,0 +1,27 @@
+service: aipm-kiro-api
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: prod
+  timeout: 120
+  memorySize: 1024
+
+functions:
+  generateCode:
+    handler: kiro-lambda.handler
+    events:
+      - http:
+          path: /generate-code
+          method: post
+          cors: true
+
+package:
+  exclude:
+    - node_modules/**
+    - .git/**
+    - apps/frontend/**
+    - temp/**
+    - venv/**
