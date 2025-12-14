@@ -2818,10 +2818,19 @@ async function handleCreatePRRequest(req, res) {
             
             // Get database instance and add PR to story
             const db = await ensureDatabase();
+            console.log('Database instance type:', db.constructor.name);
             const addResult = await addStoryPR(db, parseInt(storyId), prEntry);
             console.log('Add PR result:', addResult);
+            
+            // Verify the PR was actually added by fetching it back
+            const verifyPRs = await getStoryPRs(db, parseInt(storyId));
+            console.log('Verification - PRs after adding:', verifyPRs);
+            
+            // Update the result to include the PR entry for immediate frontend use
+            result.prEntry = prEntry;
           } catch (error) {
             console.error('Failed to add PR to story:', error);
+            console.error('Error stack:', error.stack);
             // Don't fail the whole request if we can't update the story
           }
         }

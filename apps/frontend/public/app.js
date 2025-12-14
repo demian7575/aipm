@@ -7382,14 +7382,18 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
   console.log('📊 TaskEntry.number:', taskEntry?.number);
   console.log('📊 TaskEntry.targetNumber:', taskEntry?.targetNumber);
   
-  if (!taskEntry || (!taskEntry.number && !taskEntry.targetNumber)) {
-    console.error('❌ No PR found - taskEntry missing or no number/targetNumber');
-    showToast('No PR found to update', 'error');
+  // More robust validation - check for PR number in multiple places
+  const prNumber = taskEntry?.number || taskEntry?.targetNumber || taskEntry?.prNumber;
+  const prUrl = taskEntry?.prUrl || taskEntry?.htmlUrl || taskEntry?.taskUrl;
+  
+  if (!taskEntry || !prNumber) {
+    console.error('❌ No PR found - taskEntry missing or no PR number found');
+    console.log('Available taskEntry properties:', taskEntry ? Object.keys(taskEntry) : 'none');
+    showToast('No PR found to update. Create a PR first.', 'error');
     return;
   }
-
-  const prNumber = taskEntry.number || taskEntry.targetNumber;
-  console.log('✅ Found PR number:', prNumber);
+  
+  console.log('✅ PR validation passed - PR number:', prNumber, 'PR URL:', prUrl);
 
   const form = document.createElement('form');
   form.className = 'modal-form';
@@ -7566,6 +7570,18 @@ function openCreatePRModal(story, taskEntry = null) {
         console.log('Create PR - Success result:', result);
         showToast(result.message || 'Pull request created', 'success');
         closeModal();
+        
+        // Immediately add PR entry to story data for instant availability
+        if (result.success && result.prEntry) {
+          const currentStory = storyIndex.get(story.id);
+          if (currentStory) {
+            if (!currentStory.prs) {
+              currentStory.prs = [];
+            }
+            currentStory.prs.push(result.prEntry);
+            console.log('Added PR entry to story immediately:', result.prEntry);
+          }
+        }
         
         // Refresh the story to show the new PR
         if (result.success) {
