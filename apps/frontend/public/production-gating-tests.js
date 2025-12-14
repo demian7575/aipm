@@ -2761,7 +2761,7 @@ async function runProductionTest(testName) {
                 // Dev environment is optional - test passes if prod is accessible
                 let devAccessible = false;
                 try {
-                    const devResponse = await fetch('https://tepm6xhsm0.execute-api.us-east-1.amazonaws.com/dev/api/stories', {
+                    const devResponse = await fetch('https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev/api/stories', {
                         signal: AbortSignal.timeout(3000)
                     });
                     devAccessible = devResponse.ok;
