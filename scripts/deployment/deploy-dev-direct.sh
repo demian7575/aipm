@@ -129,7 +129,7 @@ else
           ],
           "Resource": [
             "arn:aws:dynamodb:us-east-1:*:table/aipm-backend-dev-*",
-            "arn:aws:dynamodb:us-east-1:*:table/aipm-amazon-q-queue"
+            "arn:aws:dynamodb:us-east-1:*:table/aipm-backend-dev-*"
           ]
         }]
       }'
