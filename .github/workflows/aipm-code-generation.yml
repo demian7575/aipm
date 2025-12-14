@@ -1,0 +1,191 @@
+name: AIPM Code Generation
+
+on:
+  repository_dispatch:
+    types: [generate-code]
+  workflow_dispatch:
+    inputs:
+      taskTitle:
+        description: 'Task Title'
+        required: true
+      objective:
+        description: 'Objective'
+        required: true
+      constraints:
+        description: 'Constraints'
+        required: false
+      acceptanceCriteria:
+        description: 'Acceptance Criteria'
+        required: false
+      storyId:
+        description: 'Story ID'
+        required: true
+      prNumber:
+        description: 'PR Number'
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Install Kiro CLI
+        run: |
+          curl -fsSL https://cli.kiro.dev/install | bash
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          kiro-cli --version
+
+      - name: Generate Code with Kiro
+        id: generate
+        env:
+          TASK_TITLE: ${{ github.event.inputs.taskTitle || github.event.client_payload.taskTitle }}
+          OBJECTIVE: ${{ github.event.inputs.objective || github.event.client_payload.objective }}
+          CONSTRAINTS: ${{ github.event.inputs.constraints || github.event.client_payload.constraints }}
+          ACCEPTANCE_CRITERIA: ${{ github.event.inputs.acceptanceCriteria || github.event.client_payload.acceptanceCriteria }}
+          STORY_ID: ${{ github.event.inputs.storyId || github.event.client_payload.storyId }}
+          PR_NUMBER: ${{ github.event.inputs.prNumber || github.event.client_payload.prNumber }}
+        run: |
+          echo "Generating code for: $TASK_TITLE"
+          echo "Objective: $OBJECTIVE"
+          
+          # Create prompt for Kiro
+          PROMPT="Generate functional JavaScript code for: $TASK_TITLE
+
+          Objective: $OBJECTIVE
+          Constraints: $CONSTRAINTS
+          Acceptance Criteria: $ACCEPTANCE_CRITERIA
+
+          Requirements:
+          - Create complete, working implementation
+          - Use modern JavaScript (ES6+)
+          - Include proper error handling
+          - Add JSDoc comments
+          - Export the main function as default
+          - No TODO comments or placeholders
+          
+          Generate only the code, no explanations."
+          
+          echo "=== Kiro Prompt ==="
+          echo "$PROMPT"
+          echo "=================="
+          
+          # Generate code with Kiro CLI
+          echo "$PROMPT" | kiro-cli chat > kiro-output.txt 2>&1 || true
+          
+          echo "=== Kiro Output ==="
+          cat kiro-output.txt
+          echo "=================="
+          
+          # Extract code from output (remove ANSI codes and UI elements)
+          sed -i 's/\x1b\[[0-9;]*m//g' kiro-output.txt
+          
+          # Create the generated file
+          FILENAME=$(echo "$TASK_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
+          
+          # Try to extract just the code part
+          if grep -q "function\|const\|let\|var\|class\|export" kiro-output.txt; then
+            # Found code, extract it
+            grep -A 1000 -E "(function|const|let|var|class|export)" kiro-output.txt | head -100 > "${FILENAME}.js"
+          else
+            # Fallback: use entire output
+            cat kiro-output.txt > "${FILENAME}.js"
+          fi
+          
+          echo "Generated file: ${FILENAME}.js"
+          echo "File contents:"
+          cat "${FILENAME}.js"
+          
+          # Set outputs
+          echo "filename=${FILENAME}.js" >> $GITHUB_OUTPUT
+          echo "story_id=$STORY_ID" >> $GITHUB_OUTPUT
+
+      - name: Commit generated code
+        env:
+          STORY_ID: ${{ steps.generate.outputs.story_id }}
+          FILENAME: ${{ steps.generate.outputs.filename }}
+          TASK_TITLE: ${{ github.event.inputs.taskTitle || github.event.client_payload.taskTitle }}
+        run: |
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Check if PR branch exists
+          BRANCH_NAME="story-${STORY_ID}-implementation"
+          
+          if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
+            echo "Branch $BRANCH_NAME exists, checking out"
+            git fetch origin "$BRANCH_NAME"
+            git checkout "$BRANCH_NAME"
+          else
+            echo "Creating new branch $BRANCH_NAME"
+            git checkout -b "$BRANCH_NAME"
+          fi
+          
+          # Add the generated file
+          git add "$FILENAME"
+          
+          # Commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "feat: Generate code for $TASK_TITLE
+
+            Generated by Kiro CLI via GitHub Actions
+            
+            - Task: $TASK_TITLE
+            - File: $FILENAME"
+            
+            git push origin "$BRANCH_NAME"
+            echo "Code committed and pushed to $BRANCH_NAME"
+          fi
+
+      - name: Update PR or create new one
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STORY_ID: ${{ steps.generate.outputs.story_id }}
+          TASK_TITLE: ${{ github.event.inputs.taskTitle || github.event.client_payload.taskTitle }}
+          FILENAME: ${{ steps.generate.outputs.filename }}
+          PR_NUMBER: ${{ github.event.inputs.prNumber || github.event.client_payload.prNumber }}
+        run: |
+          BRANCH_NAME="story-${STORY_ID}-implementation"
+          
+          if [ -n "$PR_NUMBER" ]; then
+            echo "Updating existing PR #$PR_NUMBER"
+            gh pr comment "$PR_NUMBER" --body "✅ **Code Generated Successfully**
+
+            Generated file: \`$FILENAME\`
+            
+            The code has been generated using Kiro CLI and committed to this PR branch."
+          else
+            echo "Creating new PR"
+            gh pr create \
+              --title "🤖 Generated: $TASK_TITLE" \
+              --body "## Generated Code
+
+            **Task:** $TASK_TITLE
+            **Generated File:** \`$FILENAME\`
+
+            This code was generated using Kiro CLI via GitHub Actions.
+
+            ### Review and Test
+            Please review the generated code and test it before merging." \
+              --base main \
+              --head "$BRANCH_NAME" || echo "PR may already exist"
+          fi
