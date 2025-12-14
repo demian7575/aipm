@@ -158,7 +158,16 @@ jobs:
           
           # Deploy backend first to ensure tables exist
           echo "📦 Deploying backend to dev (ensures tables exist)..."
-          npx serverless deploy --stage dev --region us-east-1
+          
+          # Set PR_NUMBER environment variable for deployment
+          if [ -n "${{ github.event.inputs.pr_number }}" ]; then
+            export PR_NUMBER="${{ github.event.inputs.pr_number }}"
+            echo "🔢 Setting PR_NUMBER=$PR_NUMBER for development environment"
+            npx serverless deploy --stage dev --region us-east-1
+          else
+            echo "📦 Deploying without PR number (main branch)"
+            npx serverless deploy --stage dev --region us-east-1
+          fi
           
           # Wait for tables to be ready
           echo "⏳ Waiting for tables to be ready..."
