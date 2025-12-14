@@ -17,6 +17,8 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
+
+console.log('e2e-test-1765733462039');
 // Removed delegation imports - now using direct PR creation
 
 // Add delegation helper functions
