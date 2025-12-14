@@ -1870,7 +1870,7 @@ function renderCodeWhispererSectionList(container, story) {
     generateCodeBtn.className = 'button secondary';
     generateCodeBtn.textContent = 'Generate Code';
     generateCodeBtn.addEventListener('click', async () => {
-      openGenerateCodeModal(story, entry);
+      openUpdatePRWithCodeModal(story, entry);
     });
     actions.appendChild(generateCodeBtn);
 
@@ -5356,7 +5356,7 @@ function validateCodeWhispererInput(values) {
 
 // Kiro API is managed by backend - no frontend health check needed
 
-function openCodeWhispererDelegationModal(story) {
+function openCreatePRWithCodeModal(story) {
   const defaults = createDefaultCodeWhispererForm(story);
   const form = document.createElement('form');
   form.className = 'modal-form codewhisperer-form';
@@ -7260,7 +7260,7 @@ function initialize() {
   }, 5 * 60 * 1000);
 }
 
-function openGenerateCodeModal(story, taskEntry = null) {
+function openCreateIssueModal(story, taskEntry = null) {
   const form = document.createElement('form');
   form.className = 'modal-form';
   form.innerHTML = `
@@ -7355,13 +7355,115 @@ function openGenerateCodeModal(story, taskEntry = null) {
       isGenerating = false;
       if (submitButton) {
         submitButton.disabled = false;
+        submitButton.textContent = 'Create Issue';
+      }
+    }
+  };
+
+  openModal({
+    title: 'Create Issue with Generated Code',
+    content: form,
+    actions: [{ label: 'Create Issue', onClick: handleSubmit }],
+  });
+
+  setTimeout(() => {
+    submitButton = document.querySelector('.modal-footer button:last-child');
+  }, 100);
+}
+
+function openUpdatePRWithCodeModal(story, taskEntry = null) {
+  if (!taskEntry || !taskEntry.number) {
+    showToast('No PR found to update', 'error');
+    return;
+  }
+
+  const form = document.createElement('form');
+  form.className = 'modal-form';
+  form.innerHTML = `
+    <div class="field">
+      <label>PR to Update</label>
+      <p><strong>PR #${taskEntry.number}</strong> - ${escapeHtml(taskEntry.taskTitle || 'Development Task')}</p>
+    </div>
+    <div class="field">
+      <label for="prompt">Code Generation Prompt</label>
+      <textarea id="prompt" name="prompt" rows="4" required placeholder="Describe what code to generate...">${escapeHtml(story?.description || '')}</textarea>
+    </div>
+  `;
+
+  let isGenerating = false;
+  let submitButton = null;
+
+  const updateProgress = (message) => {
+    const progressDiv = form.querySelector('.progress-status') || document.createElement('div');
+    progressDiv.className = 'progress-status';
+    progressDiv.textContent = message;
+    if (!form.querySelector('.progress-status')) {
+      form.appendChild(progressDiv);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (isGenerating) return;
+    isGenerating = true;
+    
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Generating...';
+    }
+
+    const formData = new FormData(form);
+    const values = Object.fromEntries(formData.entries());
+    
+    try {
+      updateProgress('Generating code...');
+      
+      const response = await fetch(resolveApiUrl('/api/generate-code'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: values.prompt
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          updateProgress('Code generated successfully!');
+          
+          // Display the generated code
+          const codeDisplay = document.createElement('div');
+          codeDisplay.className = 'generated-code';
+          codeDisplay.innerHTML = `
+            <h4>Generated Code:</h4>
+            <pre><code>${escapeHtml(result.code)}</code></pre>
+            <p><em>Note: Code has been generated. You may need to manually commit it to PR #${taskEntry.number}</em></p>
+          `;
+          form.appendChild(codeDisplay);
+          
+          showToast('Code generated successfully', 'success');
+        } else {
+          updateProgress('Code generation failed');
+          showToast('Code generation failed', 'error');
+        }
+      } else {
+        const error = await response.text();
+        updateProgress(`Failed: ${error}`);
+        showToast('Code generation failed', 'error');
+      }
+    } catch (error) {
+      updateProgress(`Error: ${error.message}`);
+      showToast('Error during code generation', 'error');
+    } finally {
+      isGenerating = false;
+      if (submitButton) {
+        submitButton.disabled = false;
         submitButton.textContent = 'Generate Code';
       }
     }
   };
 
   openModal({
-    title: 'Generate Code with Gating Tests',
+    title: 'Generate Code for PR',
     content: form,
     actions: [{ label: 'Generate Code', onClick: handleSubmit }],
   });

@@ -114,7 +114,7 @@ async function getAllStories(db) {
   }
 }
 
-async function handlePersonalDelegateRequest(req, res) {
+async function handleCreatePRWithCodeRequest(req, res) {
   const startTime = Date.now();
   let success = false;
   let errorType = null;
@@ -5787,7 +5787,7 @@ export async function createApp() {
     }
 
     if (pathname === '/api/personal-delegate' && method === 'POST') {
-      await handlePersonalDelegateRequest(req, res);
+      await handleCreatePRWithCodeRequest(req, res);
       return;
     }
 
