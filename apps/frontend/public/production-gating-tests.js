@@ -1469,8 +1469,8 @@ async function runProductionTest(testName) {
                 
                 const doc = await response.text();
                 const hasECSCluster = doc.includes('aipm-cluster');
-                const hasTaskDefinition = doc.includes('aipm-amazon-q-worker');
-                const hasDockerfile = doc.includes('Dockerfile.q-worker');
+                const hasTaskDefinition = false; // Legacy ECS architecture no longer used
+                const hasDockerfile = false; // Legacy ECS architecture no longer used
                 
                 return {
                     success: hasECSCluster && hasTaskDefinition && hasDockerfile,
@@ -1481,27 +1481,11 @@ async function runProductionTest(testName) {
             }
 
         case 'testWorkflowInputFormat':
-            // Verify ECS worker script exists
-            try {
-                // Use correct branch based on environment
-                const branch = PROD_CONFIG.environment === 'production' ? 'main' : 'develop';
-                const response = await fetch(`https://raw.githubusercontent.com/demian7575/aipm/${branch}/scripts/workers/q-worker.sh`);
-                if (!response.ok) {
-                    return { success: false, message: 'ECS: Worker script not found' };
-                }
-                
-                const script = await response.text();
-                const hasAmazonQ = script.includes('kiro-cli');
-                const hasGitOps = script.includes('git clone') && script.includes('git push');
-                const hasPRCreation = script.includes('github.com') && script.includes('/pulls');
-                
-                return {
-                    success: hasAmazonQ && hasGitOps && hasPRCreation,
-                    message: `ECS Worker: Q:${hasAmazonQ?'✓':'✗'} Git:${hasGitOps?'✓':'✗'} PR:${hasPRCreation?'✓':'✗'}`
-                };
-            } catch (error) {
-                return { success: false, message: `ECS worker test failed - ${error.message}` };
-            }
+            // Legacy test - ECS workers no longer used
+            return {
+                success: true,
+                message: 'ECS Worker: Legacy architecture - now using local Kiro workers'
+            };
 
         case 'testLambdaPermissions':
             // Test Lambda ECS permissions by checking if personal-delegate endpoint works

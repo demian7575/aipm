@@ -6257,19 +6257,8 @@ export async function createApp() {
         const draft = generateInvestCompliantStory(idea, { parent });
         draft.source = 'heuristic'; // Mark as heuristic-generated
         
-        // Queue Kiro request for async processing (Kiro will POST result back)
-        try {
-          const { createKiroRequest } = await import('./kiro-queue.js');
-          const requestId = await createKiroRequest('generate-story', {
-            idea,
-            parentStory: parent,
-            callbackUrl: `${process.env.API_BASE_URL || 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev'}/api/kiro-callback`
-          });
-          draft.kiroRequestId = requestId; // Include request ID for tracking
-          console.log(`📝 Queued Kiro story generation: ${requestId}`);
-        } catch (queueError) {
-          console.error('Failed to queue Kiro request:', queueError.message);
-        }
+        // Note: Kiro integration now uses local workers with browser authentication
+        // No longer using async queue - direct integration through local Kiro CLI
         
         sendJson(res, 200, draft);
       } catch (error) {
@@ -6280,50 +6269,15 @@ export async function createApp() {
       return;
     }
     
-    // Kiro callback endpoint - Kiro POSTs results here
+    // Legacy endpoint - no longer used with local Kiro workers
     if (pathname === '/api/kiro-callback' && method === 'POST') {
-      try {
-        const { requestId, result, error } = await parseJson(req);
-        
-        if (!requestId) {
-          sendJson(res, 400, { message: 'requestId required' });
-          return;
-        }
-        
-        const { updateKiroRequest } = await import('./kiro-queue.js');
-        await updateKiroRequest(requestId, result, error);
-        
-        console.log(`✅ Kiro callback received for ${requestId}`);
-        sendJson(res, 200, { success: true });
-      } catch (error) {
-        console.error('Kiro callback failed:', error);
-        sendJson(res, 500, { message: error.message });
-      }
+      sendJson(res, 200, { success: true, message: 'Legacy endpoint - using local Kiro workers' });
       return;
     }
     
-    // Check Kiro request status
+    // Legacy endpoint - no longer used with local Kiro workers  
     if (pathname.startsWith('/api/kiro-status/') && method === 'GET') {
-      try {
-        const requestId = pathname.substring(17); // Remove '/api/kiro-status/'
-        const { getKiroRequest } = await import('./kiro-queue.js');
-        const request = await getKiroRequest(requestId);
-        
-        if (!request) {
-          sendJson(res, 404, { message: 'Request not found' });
-          return;
-        }
-        
-        sendJson(res, 200, {
-          requestId: request.requestId,
-          status: request.status,
-          result: request.result || null,
-          error: request.error || null
-        });
-      } catch (error) {
-        console.error('Failed to get Kiro status:', error);
-        sendJson(res, 500, { message: error.message });
-      }
+      sendJson(res, 404, { message: 'Legacy endpoint - using local Kiro workers' });
       return;
     }
 
