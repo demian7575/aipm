@@ -8,6 +8,8 @@ import { analyzeInvestWithKiro, generateStoryDraftWithKiro, generateAcceptanceTe
 import { generateInvestCompliantStory, generateAcceptanceTest } from './story-generator.js';
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
+
+console.log('e2e-test-1765731964540');
 import { spawnSync, spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
