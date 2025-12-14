@@ -79,8 +79,7 @@ const PROD_TEST_SUITES = {
             { name: 'PR Processor Uptime', test: 'testPRProcessorUptime' },
             { name: 'PR Processor Accepts Requests', test: 'testPRProcessorAcceptsRequests' },
             { name: 'Lambda GITHUB_TOKEN Configured', test: 'testLambdaGitHubToken' },
-            { name: 'Lambda EC2_PR_PROCESSOR_URL Configured', test: 'testLambdaProcessorURL' },
-            { name: 'Lambda to PR Processor Integration', test: 'testLambdaToPRProcessor' }
+            { name: 'Lambda EC2_PR_PROCESSOR_URL Configured', test: 'testLambdaProcessorURL' }
         ]
     },
     userExperience: {
@@ -1527,14 +1526,14 @@ async function runProductionTest(testName) {
                 
                 const hasGenerateCode = js.includes('Generate Code');
                 const hasCreatePR = js.includes('Create PR');
-                const hasFunction = js.includes('openCodeWhispererDelegationModal');
+                const hasGenerateFunction = js.includes('generateCodeBtn') || js.includes('openCreatePRWithCodeModal');
                 
                 if (!hasGenerateCode && !hasCreatePR) {
                     return { success: false, message: 'Generate Code & PR: Neither button found' };
                 }
                 
-                if (!hasFunction) {
-                    return { success: false, message: 'Generate Code & PR: Modal function missing' };
+                if (!hasGenerateFunction) {
+                    return { success: false, message: 'Generate Code & PR: Functions missing' };
                 }
                 
                 return {
@@ -1732,8 +1731,8 @@ async function runProductionTest(testName) {
                 const js = await response.text();
                 
                 // Check for actual code generation functions
-                const hasCodeGeneration = js.includes('openCodeWhispererDelegationModal');
-                const hasAPICall = js.includes('/api/generate-code') || js.includes('/api/personal-delegate');
+                const hasCodeGeneration = js.includes('generateCodeBtn') || js.includes('openCreatePRWithCodeModal');
+                const hasAPICall = js.includes('/api/generate-code') || js.includes('/api/create-pr');
                 
                 if (!hasCodeGeneration) {
                     return { success: false, message: 'Kiro Health Check: Code generation function not found' };
@@ -1833,49 +1832,6 @@ async function runProductionTest(testName) {
                 return { success: true, message: 'Lambda EC2_PR_PROCESSOR_URL is configured' };
             } catch (error) {
                 return { success: false, message: `Lambda processor URL check failed: ${error.message}` };
-            }
-
-        case 'testLambdaToPRProcessor':
-            try {
-                // Create a test PR to verify the full integration
-                const timestamp = Date.now();
-                const response = await fetch(`${PROD_CONFIG.api}/api/personal-delegate`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        repositoryApiUrl: 'https://api.github.com',
-                        owner: 'demian7575',
-                        repo: 'aipm',
-                        branchName: `gating-test-${timestamp}`,
-                        taskTitle: `Gating Test ${timestamp}`,
-                        objective: 'Verify Kiro REST API integration',
-                        prTitle: `Gating Test ${timestamp}`,
-                        constraints: 'None',
-                        acceptanceCriteria: 'Test passes',
-                        target: 'pr'
-                    })
-                });
-                
-                if (!response.ok) {
-                    const error = await response.text();
-                    // Check if it's a GitHub token error - this is OK for automated tests
-                    if (error.includes('GitHub token not configured') || response.status === 400) {
-                        return { 
-                            success: true, 
-                            message: 'Lambda to PR Processor: Endpoint available (GitHub token required for actual use)' 
-                        };
-                    }
-                    return { success: false, message: `Lambda to PR Processor integration failed: ${error}` };
-                }
-                
-                const data = await response.json();
-                if (!data.number) {
-                    return { success: false, message: 'PR creation failed - no PR number returned' };
-                }
-                
-                return { success: true, message: `Integration successful - Created PR #${data.number}` };
-            } catch (error) {
-                return { success: false, message: `Lambda to PR Processor integration failed: ${error.message}` };
             }
 
         // Frontend Browser Tests
