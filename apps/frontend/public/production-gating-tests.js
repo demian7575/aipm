@@ -52,7 +52,6 @@ const PROD_TEST_SUITES = {
             { name: 'Story Data Structure', test: 'testStoryDataStructure' },
             { name: 'No Circular References', test: 'testNoCircularReferences' },
             { name: 'Create PR Feature', test: 'testRunInStagingButton' },
-            { name: 'ECS PR Creation Workflow', test: 'testRunInStagingWorkflow' },
             { name: 'Task Card Objective Display', test: 'testTaskCardObjective' },
             { name: 'Create PR Endpoint', test: 'testCreatePREndpoint' },
             { name: 'Auto Root Story Function', test: 'testAutoRootStoryFunction' },
@@ -84,15 +83,6 @@ const PROD_TEST_SUITES = {
             { name: 'Lambda to PR Processor Integration', test: 'testLambdaToPRProcessor' }
         ]
     },
-    stagingWorkflow: {
-        name: 'ECS Infrastructure Validation',
-        tests: [
-            { name: 'ECS Cluster Status', test: 'testGitHubWorkflowFile' },
-            { name: 'ECS Task Definition', test: 'testWorkflowInputFormat' },
-            { name: 'Lambda ECS Permissions', test: 'testLambdaPermissions' },
-            { name: 'Content-Length Header', test: 'testContentLengthHeader' }
-        ]
-    },
     userExperience: {
         name: 'User Experience Validation',
         tests: [
@@ -114,7 +104,6 @@ const PROD_TEST_SUITES = {
         name: 'Backend Script Tests',
         tests: [
             { name: 'Code Generation E2E', test: 'testCodeGenerationE2E' },
-            { name: 'ECS Worker Gating', test: 'testECSWorkerGating' },
             { name: 'Deployment Prerequisites', test: 'testDeploymentPrerequisites' },
             { name: 'Deployment Config Gating', test: 'testDeploymentConfigGating' },
             { name: 'Code Generation Workflow', test: 'testCodeGenerationWorkflow' },
@@ -1275,10 +1264,6 @@ async function runProductionTest(testName) {
                 return { success: false, message: `Workflow test failed with error: ${error.message}` };
             }
 
-        case 'testRunInStagingWorkflow':
-            // ECS architecture was replaced with local Kiro workers
-            return { success: true, message: 'ECS PR Creation: Legacy architecture - now using local Kiro workers' };
-
         case 'testRunInStagingButton':
             // Test Create PR button in PR cards (ECS-based)
             try {
@@ -1441,7 +1426,6 @@ async function runProductionTest(testName) {
                 }
                 
                 // If stories endpoint works, Lambda has basic permissions
-                // ECS permissions are validated by the ECS PR Creation test
                 return {
                     success: true,
                     message: 'Lambda: API accessible, ECS permissions configured'
