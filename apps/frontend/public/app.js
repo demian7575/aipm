@@ -1870,6 +1870,8 @@ function renderCodeWhispererSectionList(container, story) {
     generateCodeBtn.className = 'button secondary';
     generateCodeBtn.textContent = 'Generate Code';
     generateCodeBtn.addEventListener('click', async () => {
+      console.log('🔘 Generate Code button clicked for story:', story?.id);
+      console.log('🔘 Entry data passed to button:', entry);
       openUpdatePRWithCodeModal(story, entry);
     });
     actions.appendChild(generateCodeBtn);
@@ -7372,17 +7374,29 @@ function openCreateIssueModal(story, taskEntry = null) {
 }
 
 function openUpdatePRWithCodeModal(story, taskEntry = null) {
-  if (!taskEntry || !taskEntry.number) {
+  console.log('🔍 Generate Code button clicked');
+  console.log('📊 Story data:', story);
+  console.log('📊 TaskEntry data:', taskEntry);
+  console.log('📊 TaskEntry type:', typeof taskEntry);
+  console.log('📊 TaskEntry keys:', taskEntry ? Object.keys(taskEntry) : 'null');
+  console.log('📊 TaskEntry.number:', taskEntry?.number);
+  console.log('📊 TaskEntry.targetNumber:', taskEntry?.targetNumber);
+  
+  if (!taskEntry || (!taskEntry.number && !taskEntry.targetNumber)) {
+    console.error('❌ No PR found - taskEntry missing or no number/targetNumber');
     showToast('No PR found to update', 'error');
     return;
   }
+
+  const prNumber = taskEntry.number || taskEntry.targetNumber;
+  console.log('✅ Found PR number:', prNumber);
 
   const form = document.createElement('form');
   form.className = 'modal-form';
   form.innerHTML = `
     <div class="field">
       <label>PR to Update</label>
-      <p><strong>PR #${taskEntry.number}</strong> - ${escapeHtml(taskEntry.taskTitle || 'Development Task')}</p>
+      <p><strong>PR #${prNumber}</strong> - ${escapeHtml(taskEntry.taskTitle || 'Development Task')}</p>
     </div>
     <div class="field">
       <label for="prompt">Code Generation Prompt</label>
@@ -7394,6 +7408,7 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
   let submitButton = null;
 
   const updateProgress = (message) => {
+    console.log('📝 Progress update:', message);
     const progressDiv = form.querySelector('.progress-status') || document.createElement('div');
     progressDiv.className = 'progress-status';
     progressDiv.textContent = message;
@@ -7406,6 +7421,8 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
     if (isGenerating) return;
     isGenerating = true;
     
+    console.log('🚀 Starting code generation...');
+    
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.textContent = 'Generating...';
@@ -7413,6 +7430,8 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
 
     const formData = new FormData(form);
     const values = Object.fromEntries(formData.entries());
+    
+    console.log('📤 Sending request with prompt:', values.prompt);
     
     try {
       updateProgress('Generating code...');
@@ -7425,8 +7444,13 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
         }),
       });
 
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response ok:', response.ok);
+
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Generation result:', result);
+        
         if (result.success) {
           updateProgress('Code generated successfully!');
           
@@ -7436,21 +7460,24 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
           codeDisplay.innerHTML = `
             <h4>Generated Code:</h4>
             <pre><code>${escapeHtml(result.code)}</code></pre>
-            <p><em>Note: Code has been generated. You may need to manually commit it to PR #${taskEntry.number}</em></p>
+            <p><em>Note: Code has been generated. You may need to manually commit it to PR #${prNumber}</em></p>
           `;
           form.appendChild(codeDisplay);
           
           showToast('Code generated successfully', 'success');
         } else {
+          console.error('❌ Generation failed - success=false');
           updateProgress('Code generation failed');
           showToast('Code generation failed', 'error');
         }
       } else {
         const error = await response.text();
+        console.error('❌ HTTP error:', error);
         updateProgress(`Failed: ${error}`);
         showToast('Code generation failed', 'error');
       }
     } catch (error) {
+      console.error('❌ Exception during generation:', error);
       updateProgress(`Error: ${error.message}`);
       showToast('Error during code generation', 'error');
     } finally {
@@ -7459,6 +7486,7 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
         submitButton.disabled = false;
         submitButton.textContent = 'Generate Code';
       }
+      console.log('🏁 Code generation process completed');
     }
   };
 
