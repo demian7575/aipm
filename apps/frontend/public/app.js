@@ -7444,7 +7444,9 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: values.prompt
+          prompt: values.prompt,
+          prNumber: prNumber,
+          branchName: taskEntry.branchName
         }),
       });
 
