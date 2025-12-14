@@ -1,11 +1,12 @@
+// Development Environment Configuration
 window.CONFIG = {
-  API_BASE_URL: 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod',
-  apiEndpoint: 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod',
-  ENVIRONMENT: 'production',
-  environment: 'production',
-  stage: 'prod',
-  region: 'us-east-1',
-  storiesTable: 'aipm-backend-prod-stories',
-  acceptanceTestsTable: 'aipm-backend-prod-acceptance-tests',
-  DEBUG: false
+    API_BASE_URL: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
+    apiEndpoint: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
+    ENVIRONMENT: 'development',
+    environment: 'development',
+    stage: 'dev',
+    region: 'us-east-1',
+    storiesTable: 'aipm-backend-dev-stories',
+    acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
+    DEBUG: true
 };
