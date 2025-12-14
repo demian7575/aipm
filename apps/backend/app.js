@@ -2604,6 +2604,66 @@ async function handleMergePR(req, res) {
 
 
 
+async function handleGenerateCodeRequest(req, res) {
+  try {
+    const payload = await parseJson(req);
+    const prompt = String(payload.prompt ?? '').trim();
+    
+    if (!prompt) {
+      sendJson(res, 400, { message: 'Prompt is required' });
+      return;
+    }
+
+    // Call EC2 Kiro API directly
+    const response = await fetch('http://44.220.45.57:8081/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ prompt })
+    });
+
+    if (!response.ok) {
+      throw new Error(`EC2 Kiro API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      // Clean ANSI codes and extract actual code
+      let cleanOutput = result.output
+        .replace(/\x1b\[[0-9;]*[mGKHJ]/g, '') // Remove ANSI escape codes
+        .replace(/\r/g, '') // Remove carriage returns
+        .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, '') // Remove spinner characters
+        .replace(/Thinking\.\.\./g, '') // Remove "Thinking..." text
+        .replace(/\?25[lh]/g, '') // Remove cursor show/hide codes
+        .replace(/\?2004[lh]/g, ''); // Remove bracketed paste mode codes
+      
+      // Extract the actual code from the output
+      const codeMatch = cleanOutput.match(/\+\s*\d+:\s*(.+)/g);
+      if (codeMatch) {
+        const code = codeMatch.map(line => line.replace(/\+\s*\d+:\s*/, '')).join('\n');
+        sendJson(res, 200, { 
+          success: true, 
+          code: code,
+          source: 'ec2-kiro'
+        });
+      } else {
+        sendJson(res, 200, { 
+          success: true, 
+          code: cleanOutput,
+          source: 'ec2-kiro'
+        });
+      }
+    } else {
+      sendJson(res, 500, { message: 'Code generation failed' });
+    }
+  } catch (error) {
+    console.error('Generate code error:', error);
+    sendJson(res, 500, { message: error.message || 'Failed to generate code' });
+  }
+}
+
 async function handleCreatePRRequest(req, res) {
   try {
     let body = '';
@@ -5586,6 +5646,11 @@ export async function createApp() {
 
     if (pathname === '/api/create-pr' && method === 'POST') {
       await handleCreatePRRequest(req, res);
+      return;
+    }
+
+    if (pathname === '/api/generate-code' && method === 'POST') {
+      await handleGenerateCodeRequest(req, res);
       return;
     }
 
