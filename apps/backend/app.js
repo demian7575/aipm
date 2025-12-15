@@ -5776,14 +5776,8 @@ async function handleFileUpload(req, res, url) {
 
 async function enhanceStoryWithKiro(idea, heuristicDraft, parent) {
   try {
-    // Check if we're in Lambda environment (no kiro-cli available)
-    if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
-      console.log('Lambda environment detected, skipping Kiro enhancement');
-      return { ...heuristicDraft, source: 'heuristic-lambda' };
-    }
-
-    // Direct Kiro CLI call for immediate enhancement (only on EC2)
-    const { spawn } = await import('child_process');
+    // Call EC2 Kiro API server for enhancement
+    const EC2_KIRO_API = 'http://44.220.45.57:8081';
     
     const prompt = `Enhance this user story:
 Idea: ${idea}
@@ -5792,40 +5786,31 @@ Parent context: ${parent ? parent.title : 'None'}
 
 Please provide an enhanced version with better title, description, and acceptance criteria.`;
 
-    return new Promise((resolve, reject) => {
-      const kiro = spawn('kiro-cli', ['chat'], {
-        cwd: '/home/ec2-user/aipm',
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-
-      let output = '';
-      kiro.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      kiro.on('close', (code) => {
-        if (code === 0 && output.trim()) {
-          // Parse Kiro response and enhance the draft
-          const enhanced = { ...heuristicDraft, source: 'kiro-enhanced' };
-          resolve(enhanced);
-        } else {
-          // Fallback to heuristic if Kiro fails
-          resolve({ ...heuristicDraft, source: 'heuristic-fallback' });
-        }
-      });
-
-      kiro.stdin.write(prompt);
-      kiro.stdin.end();
-
-      // Timeout after 30 seconds
-      setTimeout(() => {
-        kiro.kill();
-        resolve({ ...heuristicDraft, source: 'heuristic-timeout' });
-      }, 30000);
+    console.log('🔄 Calling EC2 Kiro API for story enhancement...');
+    
+    const response = await fetch(`${EC2_KIRO_API}/kiro/enhance-story`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idea,
+        draft: heuristicDraft,
+        parent: parent ? { id: parent.id, title: parent.title, asA: parent.asA } : null,
+        prompt
+      }),
+      signal: AbortSignal.timeout(30000) // 30 second timeout
     });
+
+    if (response.ok) {
+      const enhanced = await response.json();
+      console.log('✅ Kiro enhancement successful');
+      return { ...heuristicDraft, ...enhanced, source: 'kiro-enhanced' };
+    } else {
+      console.warn('⚠️ Kiro API returned error:', response.status);
+      return { ...heuristicDraft, source: 'heuristic-kiro-error' };
+    }
   } catch (error) {
-    console.error('Kiro enhancement failed:', error);
-    return { ...heuristicDraft, source: 'heuristic-error' };
+    console.error('❌ Kiro enhancement failed:', error.message);
+    return { ...heuristicDraft, source: 'heuristic-fallback' };
   }
 }
 

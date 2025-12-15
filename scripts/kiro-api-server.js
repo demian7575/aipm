@@ -26,6 +26,42 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.url === '/kiro/enhance-story' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { idea, draft, parent, prompt } = JSON.parse(body);
+        
+        console.log('📝 Enhancing story with Kiro CLI:', idea);
+        
+        const result = await generateCodeWithKiroCLI(prompt, `story-enhancement-${Date.now()}`);
+        
+        // For now, return enhanced version of the draft
+        // TODO: Parse Kiro's actual response to extract enhanced fields
+        const enhanced = {
+          title: draft.title,
+          description: `Enhanced: ${draft.description}`,
+          asA: draft.asA,
+          iWant: draft.iWant,
+          soThat: `${draft.soThat} (Enhanced by Kiro)`,
+          acceptanceCriteria: [
+            ...draft.acceptanceCriteria,
+            'Enhanced with Kiro CLI feedback'
+          ]
+        };
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(enhanced));
+      } catch (error) {
+        console.error('Story enhancement error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
   if (req.url === '/kiro/generate-code' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
