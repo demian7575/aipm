@@ -142,16 +142,16 @@ async function callKiroCLI(prompt, taskId) {
     kiro.stdin.write(prompt);
     kiro.stdin.end();
 
-    // Timeout after 60 seconds
+    // Timeout after 20 seconds (well under Lambda's 30s limit)
     setTimeout(() => {
       kiro.kill();
       resolve({
         success: false,
         output: output.trim(),
-        error: 'Timeout after 60 seconds',
+        error: 'Timeout after 20 seconds',
         exitCode: -1
       });
-    }, 60000);
+    }, 20000);
   });
 }
 
