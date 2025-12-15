@@ -256,23 +256,13 @@ Return in JSON format:
 }
 
 function generateCodePrompt(payload) {
-  const { prompt, prNumber, branchName } = payload;
+  const { prompt } = payload;
   
-  return `You are working in the AIPM repository at /home/ec2-user/aipm.
+  return `Generate JavaScript code for: ${prompt}
 
-TASK: ${prompt}
+Please provide clean, working JavaScript code that implements the requested functionality.
 
-INSTRUCTIONS:
-1. Generate appropriate JavaScript code for this task
-2. Create a file called "generated-code.js" with the code
-3. Use git commands to commit it directly to branch "${branchName}" for PR #${prNumber}
-4. Execute these commands:
-   - Create the file with your generated code
-   - git add generated-code.js
-   - git commit -m "Add generated code: ${prompt}"
-   - git push origin ${branchName}
-
-Please execute these git commands to commit the code to the GitHub branch.`;
+Return only the JavaScript code without any markdown formatting or explanations.`;
   ],
   "instructions": "Implementation instructions",
   "tests": "Test code or testing instructions"
@@ -351,41 +341,66 @@ function parseCodeGenerationResponse(result, payload) {
     return { error: result.error, generated: false };
   }
   
-  // Check if git commands were executed successfully
-  const output = result.output.toLowerCase();
-  const hasGitCommit = output.includes('git commit') || output.includes('committed') || output.includes('push');
-  const hasSuccess = output.includes('success') || output.includes('created') || output.includes('added');
+  let output = result.output;
   
-  if (hasGitCommit || hasSuccess) {
-    return {
-      generated: true,
-      committed: true,
-      source: 'kiro-git-direct',
-      message: 'Code generated and committed directly by Kiro CLI',
-      output: result.output
-    };
-  }
+  // Clean ANSI codes and control characters
+  output = output
+    .replace(/\x1b\[[0-9;]*[mGKHJ]/g, '') // Remove ANSI escape codes
+    .replace(/\r/g, '') // Remove carriage returns
+    .replace(/⠋|⠙|⠹|⠸|⠼|⠴|⠦|⠧|⠇|⠏/g, '') // Remove spinner characters
+    .replace(/Thinking\.\.\./g, '') // Remove "Thinking..." text
+    .replace(/\?25[lh]/g, '') // Remove cursor show/hide codes
+    .replace(/\?2004[lh]/g, '') // Remove bracketed paste mode codes
+    .trim();
   
-  // Fallback: extract any code blocks from the output
-  const codeBlocks = result.output.match(/```(?:javascript|js)?\n([\s\S]*?)\n```/g);
-  if (codeBlocks) {
+  // Extract JavaScript code blocks
+  const codeBlocks = output.match(/```(?:javascript|js)?\n([\s\S]*?)\n```/g);
+  if (codeBlocks && codeBlocks.length > 0) {
     const code = codeBlocks.map(block => 
       block.replace(/```(?:javascript|js)?\n/, '').replace(/\n```/, '')
     ).join('\n\n');
     
     return {
       generated: true,
-      committed: false,
-      source: 'kiro-code-extracted',
       code: code,
+      source: 'kiro-code-extracted',
       message: 'Code extracted from Kiro CLI output'
     };
   }
   
+  // If no code blocks, try to extract code after ">" prompt
+  const lines = output.split('\n');
+  let codeStartIndex = -1;
+  
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('>') && (lines[i].includes('function') || lines[i].includes('const') || lines[i].includes('let'))) {
+      codeStartIndex = i;
+      break;
+    }
+  }
+  
+  if (codeStartIndex >= 0) {
+    const codeLines = lines.slice(codeStartIndex)
+      .map(line => line.replace(/^.*?>\s*/, '')) // Remove prompt markers
+      .filter(line => line.trim().length > 0)
+      .slice(0, 20); // Limit to reasonable number of lines
+    
+    const code = codeLines.join('\n');
+    
+    return {
+      generated: true,
+      code: code,
+      source: 'kiro-code-parsed',
+      message: 'Code parsed from Kiro CLI output'
+    };
+  }
+  
+  // Fallback: return cleaned output
   return {
-    generated: false,
-    error: 'No code or git commands found in output',
-    output: result.output
+    generated: true,
+    code: output,
+    source: 'kiro-raw-output',
+    message: 'Raw output from Kiro CLI'
   };
 }
 
