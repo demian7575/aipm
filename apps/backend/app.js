@@ -2754,10 +2754,31 @@ async function handleGenerateCodeRequest(req, res) {
     if (!response || !response.ok) {
       console.warn(`⚠️ EC2 Kiro API unavailable, using fallback`);
       
+      const fallbackCode = `// Generated code placeholder
+// Prompt: ${prompt}
+
+function generatedFunction() {
+  console.log('Hello World!');
+  return 'Generated successfully';
+}
+
+module.exports = generatedFunction;`;
+
+      // If PR info provided, commit the fallback code to the branch
+      if (prNumber && branchName) {
+        try {
+          await commitGeneratedCodeToPR(fallbackCode, prNumber, branchName, prompt);
+          console.log(`✅ Fallback code committed to PR #${prNumber}`);
+        } catch (commitError) {
+          console.error('Failed to commit fallback code:', commitError);
+          // Don't fail the whole request if commit fails
+        }
+      }
+      
       // Fallback response when Kiro API is not available
       sendJson(res, 200, { 
         success: true, 
-        code: `// Generated code placeholder\n// Prompt: ${prompt}\n\nfunction generatedFunction() {\n  console.log('Hello World!');\n  return 'Generated successfully';\n}\n\nmodule.exports = generatedFunction;`,
+        code: fallbackCode,
         source: 'fallback',
         message: 'Code generated using fallback (Kiro API unavailable)'
       });
