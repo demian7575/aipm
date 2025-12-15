@@ -3,7 +3,9 @@
  */
 export class TerminalController {
   constructor(config = {}) {
-    this.baseUrl = this.normalizeBaseUrl(config.baseUrl || window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080');
+    this.baseUrl = this.normalizeBaseUrl(
+      config.baseUrl || window.CONFIG?.EC2_TERMINAL_URL || this.deriveDefaultBaseUrl()
+    );
     this.httpBase = this.toHttpUrl(this.baseUrl);
     this.wsBase = this.toWsUrl(this.baseUrl);
     this.token = config.token || null;
@@ -17,6 +19,27 @@ export class TerminalController {
 
   normalizeBaseUrl(url) {
     return url.replace(/\/$/, '');
+  }
+
+  deriveDefaultBaseUrl() {
+    const apiBase = window.CONFIG?.API_BASE_URL || window.CONFIG?.apiEndpoint;
+
+    if (apiBase) {
+      try {
+        const apiUrl = new URL(apiBase);
+        const protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${protocol}//${apiUrl.host}`;
+      } catch (error) {
+        console.warn('Unable to derive terminal URL from API base', error);
+      }
+    }
+
+    if (typeof window !== 'undefined' && window.location?.host) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${protocol}//${window.location.host}`;
+    }
+
+    return 'wss://localhost:8080';
   }
 
   toHttpUrl(url) {

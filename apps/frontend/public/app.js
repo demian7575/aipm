@@ -3413,7 +3413,34 @@ function buildDeployToDevModalContent(prEntry = null) {
 }
 
 function getEc2TerminalBaseUrl() {
-  return window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080';
+  const normalizeWsProtocol = (url) => {
+    if (!url) return '';
+    if (url.startsWith('ws://') || url.startsWith('wss://')) return url;
+    if (url.startsWith('https://')) return `wss://${url.slice(8)}`;
+    if (url.startsWith('http://')) return `ws://${url.slice(7)}`;
+    return `wss://${url.replace(/^\/+/, '')}`;
+  };
+
+  const configured = normalizeWsProtocol(window.CONFIG?.EC2_TERMINAL_URL);
+  if (configured) return configured.replace(/\/$/, '');
+
+  const apiBase = window.CONFIG?.API_BASE_URL || window.CONFIG?.apiEndpoint;
+  if (apiBase) {
+    try {
+      const apiUrl = new URL(apiBase);
+      const protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${protocol}//${apiUrl.host}`;
+    } catch (error) {
+      console.warn('Unable to derive terminal URL from API base', error);
+    }
+  }
+
+  if (typeof window !== 'undefined' && window.location?.host) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}`;
+  }
+
+  return 'wss://localhost:8080';
 }
 
 function toHttpTerminalUrl(baseUrl) {
