@@ -3585,11 +3585,8 @@ async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
   };
   
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'output') {
-        terminal.write(data.data);
-      }
+      // Handle raw text from terminal server
+      terminal.write(event.data);
     };
     
     socket.onerror = (error) => {
@@ -3605,8 +3602,8 @@ async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
     terminal.onData((data) => {
       console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
       if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log('Sending to WebSocket:', { type: 'input', data });
-        socket.send(JSON.stringify({ type: 'input', data }));
+        console.log('Sending raw data to WebSocket:', data);
+        socket.send(data);
       } else {
         console.warn('Socket not ready, state:', socket?.readyState);
       }
