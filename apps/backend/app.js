@@ -5776,7 +5776,13 @@ async function handleFileUpload(req, res, url) {
 
 async function enhanceStoryWithKiro(idea, heuristicDraft, parent) {
   try {
-    // Direct Kiro CLI call for immediate enhancement
+    // Check if we're in Lambda environment (no kiro-cli available)
+    if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      console.log('Lambda environment detected, skipping Kiro enhancement');
+      return { ...heuristicDraft, source: 'heuristic-lambda' };
+    }
+
+    // Direct Kiro CLI call for immediate enhancement (only on EC2)
     const { spawn } = await import('child_process');
     
     const prompt = `Enhance this user story:
