@@ -113,7 +113,7 @@ async function callKiroCLI(prompt, taskId) {
   return new Promise((resolve, reject) => {
     console.log(`🔄 Calling Kiro CLI for ${taskId}`);
     
-    const kiro = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat'], {
+    const kiro = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools', '--no-interactive'], {
       cwd: '/home/ec2-user/aipm',
       stdio: ['pipe', 'pipe', 'pipe']
     });
@@ -263,10 +263,6 @@ function generateCodePrompt(payload) {
 Please provide clean, working JavaScript code that implements the requested functionality.
 
 Return only the JavaScript code without any markdown formatting or explanations.`;
-  ],
-  "instructions": "Implementation instructions",
-  "tests": "Test code or testing instructions"
-}`;
 }
 
 // Response Parsers
