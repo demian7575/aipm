@@ -7208,22 +7208,17 @@ function initialize() {
     }
 
     // Prepare Kiro context and open terminal modal
-    try {
-      const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
-      const modalContent = await buildKiroTerminalModalContent({ 
-        storyId: story.id, 
-        taskTitle: story.title 
-      }, kiroContext);
-      
-      openModal({
-        title: 'Refine with Kiro',
-        content: modalContent,
-        size: 'large'
-      });
-    } catch (error) {
-      console.error('Failed to open Kiro terminal:', error);
-      showToast('Terminal server unavailable. Please try again later.', 'error');
-    }
+    const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
+    const modalContent = await buildKiroTerminalModalContent({ 
+      storyId: story.id, 
+      taskTitle: story.title 
+    }, kiroContext);
+    
+    openModal({
+      title: 'Refine with Kiro',
+      content: modalContent,
+      size: 'large'
+    });
   });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
