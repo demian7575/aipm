@@ -256,28 +256,23 @@ Return in JSON format:
 }
 
 function generateCodePrompt(payload) {
-  const { taskTitle, objective, constraints, acceptanceCriteria, context } = payload;
-  return `Generate code for this task:
+  const { prompt, prNumber, branchName } = payload;
+  
+  return `You are working in the AIPM repository at /home/ec2-user/aipm.
 
-Title: ${taskTitle}
-Objective: ${objective}
-Constraints: ${constraints || 'None'}
-Context: ${context || 'AIPM vanilla JavaScript project'}
+TASK: ${prompt}
 
-Acceptance Criteria:
-${acceptanceCriteria?.map(c => `- ${c}`).join('\n') || 'None specified'}
+INSTRUCTIONS:
+1. Generate appropriate JavaScript code for this task
+2. Create a file called "generated-code.js" with the code
+3. Use git commands to commit it directly to branch "${branchName}" for PR #${prNumber}
+4. Execute these commands:
+   - Create the file with your generated code
+   - git add generated-code.js
+   - git commit -m "Add generated code: ${prompt}"
+   - git push origin ${branchName}
 
-Generate minimal, working code that:
-1. Meets all acceptance criteria
-2. Follows best practices
-3. Includes necessary error handling
-4. Is production-ready
-
-Return in JSON format:
-{
-  "files": [
-    {"path": "file1.js", "content": "code content"},
-    {"path": "file2.js", "content": "code content"}
+Please execute these git commands to commit the code to the GitHub branch.`;
   ],
   "instructions": "Implementation instructions",
   "tests": "Test code or testing instructions"
@@ -356,17 +351,42 @@ function parseCodeGenerationResponse(result, payload) {
     return { error: result.error, generated: false };
   }
   
-  try {
-    const code = JSON.parse(result.output);
-    return { ...code, generated: true, source: 'kiro-code' };
-  } catch (error) {
+  // Check if git commands were executed successfully
+  const output = result.output.toLowerCase();
+  const hasGitCommit = output.includes('git commit') || output.includes('committed') || output.includes('push');
+  const hasSuccess = output.includes('success') || output.includes('created') || output.includes('added');
+  
+  if (hasGitCommit || hasSuccess) {
     return {
-      files: [{ path: 'generated.js', content: result.output }],
-      instructions: 'Review and integrate the generated code',
       generated: true,
-      source: 'kiro-code-fallback'
+      committed: true,
+      source: 'kiro-git-direct',
+      message: 'Code generated and committed directly by Kiro CLI',
+      output: result.output
     };
   }
+  
+  // Fallback: extract any code blocks from the output
+  const codeBlocks = result.output.match(/```(?:javascript|js)?\n([\s\S]*?)\n```/g);
+  if (codeBlocks) {
+    const code = codeBlocks.map(block => 
+      block.replace(/```(?:javascript|js)?\n/, '').replace(/\n```/, '')
+    ).join('\n\n');
+    
+    return {
+      generated: true,
+      committed: false,
+      source: 'kiro-code-extracted',
+      code: code,
+      message: 'Code extracted from Kiro CLI output'
+    };
+  }
+  
+  return {
+    generated: false,
+    error: 'No code or git commands found in output',
+    output: result.output
+  };
 }
 
 const PORT = 8081;
