@@ -3518,6 +3518,28 @@ async function prepareKiroTerminalContext(prEntry = {}) {
   return context;
 }
 
+function openKiroTerminalWindow(options = {}) {
+  const { branch = 'main', storyId, storyTitle } = options;
+
+  const url = new URL('/terminal/', window.location.origin);
+  if (branch) url.searchParams.set('branch', branch);
+  if (storyId) url.searchParams.set('storyId', storyId);
+  if (storyTitle) url.searchParams.set('storyTitle', storyTitle);
+
+  const win = window.open(url.toString(), '_blank', 'noopener,noreferrer');
+
+  if (!win) {
+    showToast('Unable to open terminal window. Please allow pop-ups and try again.', 'error');
+    return false;
+  }
+
+  if (typeof win.focus === 'function') {
+    win.focus();
+  }
+
+  return true;
+}
+
 async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
   const container = document.createElement('div');
   container.className = 'run-staging-modal';
@@ -7231,19 +7253,10 @@ function initialize() {
       return;
     }
 
-    // Use existing terminal modal with story context
-    const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
-    const modalResult = await buildKiroTerminalModalContent({ 
-      storyId: story.id, 
-      taskTitle: `Refine: ${story.title}`,
-      branch: 'main'
-    }, kiroContext);
-    
-    openModal({
-      title: 'Refine with Kiro',
-      content: modalResult.element,
-      size: 'xlarge',
-      onClose: modalResult.onClose
+    openKiroTerminalWindow({
+      storyId: story.id,
+      storyTitle: story.title,
+      branch: story.branchName || 'main'
     });
   });
 
