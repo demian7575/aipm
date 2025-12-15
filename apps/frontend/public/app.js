@@ -7207,8 +7207,14 @@ function initialize() {
       return;
     }
 
-    // Terminal functionality removed - show message
-    showToast('Terminal functionality has been removed', 'info');
+    // Prepare Kiro context and open terminal modal
+    const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
+    const modalContent = await buildKiroTerminalModalContent({ 
+      storyId: story.id, 
+      taskTitle: story.title 
+    }, kiroContext);
+    
+    openModal('Refine with Kiro', modalContent);
   });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
