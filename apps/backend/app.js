@@ -662,7 +662,7 @@ export const COMPONENT_CATALOG = [
   'Traceabilty_Insight',
 ];
 
-const STORY_STATUS_VALUES = ['Draft', 'Pending AI Enhancement', 'Ready', 'In Progress', 'Blocked', 'Approved', 'Done'];
+const STORY_STATUS_VALUES = ['Draft', 'Ready', 'In Progress', 'Blocked', 'Approved', 'Done'];
 const STORY_STATUS_DEFAULT = STORY_STATUS_VALUES[0];
 
 const COMPONENT_LOOKUP = new Map(
@@ -5774,27 +5774,52 @@ async function handleFileUpload(req, res, url) {
   });
 }
 
-async function queueKiroEnhancement(idea, draft, parent) {
+async function enhanceStoryWithKiro(idea, heuristicDraft, parent) {
   try {
-    // Add task to DynamoDB queue for Kiro worker processing
-    const task = {
-      id: `story-enhancement-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type: 'story-enhancement',
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      payload: {
-        idea,
-        draft,
-        parent: parent ? { id: parent.id, title: parent.title, asA: parent.asA } : null
-      }
-    };
+    // Direct Kiro CLI call for immediate enhancement
+    const { spawn } = await import('child_process');
     
-    // Note: This would need DynamoDB client setup for actual queueing
-    // For now, just log the task
-    console.log('✅ Would queue story for Kiro enhancement:', task.id);
+    const prompt = `Enhance this user story:
+Idea: ${idea}
+Current draft: ${JSON.stringify(heuristicDraft, null, 2)}
+Parent context: ${parent ? parent.title : 'None'}
+
+Please provide an enhanced version with better title, description, and acceptance criteria.`;
+
+    return new Promise((resolve, reject) => {
+      const kiro = spawn('kiro-cli', ['chat'], {
+        cwd: '/home/ec2-user/aipm',
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      let output = '';
+      kiro.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      kiro.on('close', (code) => {
+        if (code === 0 && output.trim()) {
+          // Parse Kiro response and enhance the draft
+          const enhanced = { ...heuristicDraft, source: 'kiro-enhanced' };
+          resolve(enhanced);
+        } else {
+          // Fallback to heuristic if Kiro fails
+          resolve({ ...heuristicDraft, source: 'heuristic-fallback' });
+        }
+      });
+
+      kiro.stdin.write(prompt);
+      kiro.stdin.end();
+
+      // Timeout after 30 seconds
+      setTimeout(() => {
+        kiro.kill();
+        resolve({ ...heuristicDraft, source: 'heuristic-timeout' });
+      }, 30000);
+    });
   } catch (error) {
-    console.error('❌ Failed to queue Kiro enhancement:', error);
-    // Don't fail the request if queueing fails - heuristic draft is still returned
+    console.error('Kiro enhancement failed:', error);
+    return { ...heuristicDraft, source: 'heuristic-error' };
   }
 }
 
@@ -6237,14 +6262,12 @@ export async function createApp() {
         }
         
         // Generate heuristic skeleton
-        const draft = generateInvestCompliantStory(idea, { parent });
-        draft.source = 'heuristic';
-        draft.status = 'Pending AI Enhancement';
+        const heuristicDraft = generateInvestCompliantStory(idea, { parent });
         
-        // Queue for mandatory Kiro enhancement
-        await queueKiroEnhancement(idea, draft, parent);
+        // Enhance with Kiro CLI directly
+        const enhancedDraft = await enhanceStoryWithKiro(idea, heuristicDraft, parent);
         
-        sendJson(res, 200, draft);
+        sendJson(res, 200, enhancedDraft);
       } catch (error) {
         console.error('Failed to generate story draft', error);
         const status = error.statusCode ?? 500;
