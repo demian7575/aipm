@@ -33,7 +33,9 @@ const server = http.createServer((req, res) => {
 
 // Handle WebSocket upgrade using native Node.js
 server.on('upgrade', (request, socket, head) => {
-  if (request.url !== '/terminal') {
+  const url = new URL(request.url, `http://${request.headers.host}`);
+  
+  if (url.pathname !== '/terminal') {
     socket.end('HTTP/1.1 404 Not Found\r\n\r\n');
     return;
   }
