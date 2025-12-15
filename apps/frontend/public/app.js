@@ -7218,7 +7218,7 @@ function initialize() {
     openModal({
       title: 'Refine with Kiro',
       content: modalResult.element,
-      size: 'large',
+      size: 'xlarge',
       onClose: modalResult.onClose
     });
   });
