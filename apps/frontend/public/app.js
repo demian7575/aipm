@@ -7209,15 +7209,16 @@ function initialize() {
 
     // Prepare Kiro context and open terminal modal
     const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
-    const modalContent = await buildKiroTerminalModalContent({ 
+    const modalResult = await buildKiroTerminalModalContent({ 
       storyId: story.id, 
       taskTitle: story.title 
     }, kiroContext);
     
     openModal({
       title: 'Refine with Kiro',
-      content: modalContent,
-      size: 'large'
+      content: modalResult.element,
+      size: 'large',
+      onClose: modalResult.onClose
     });
   });
 
