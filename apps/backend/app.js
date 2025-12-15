@@ -2738,17 +2738,21 @@ async function handleGenerateCodeRequest(req, res) {
       return;
     }
 
-    // Call EC2 Kiro API directly
+    // Call EC2 Kiro API directly with short timeout
     const response = await fetch('http://44.220.45.57:8081/kiro/generate-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify({ prompt }),
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    }).catch(error => {
+      console.warn(`⚠️ EC2 Kiro API failed: ${error.message}, using fallback`);
+      return null;
     });
 
-    if (!response.ok) {
-      console.warn(`⚠️ EC2 Kiro API returned ${response.status}, using fallback`);
+    if (!response || !response.ok) {
+      console.warn(`⚠️ EC2 Kiro API unavailable, using fallback`);
       
       // Fallback response when Kiro API is not available
       sendJson(res, 200, { 
