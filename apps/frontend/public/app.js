@@ -3521,7 +3521,7 @@ async function prepareKiroTerminalContext(prEntry = {}) {
 function openKiroTerminalWindow(options = {}) {
   const { branch = 'main', storyId, storyTitle } = options;
 
-  const url = new URL('/terminal/', window.location.origin);
+  const url = new URL('/terminal/index.html', window.location.origin);
   if (branch) url.searchParams.set('branch', branch);
   if (storyId) url.searchParams.set('storyId', storyId);
   if (storyTitle) url.searchParams.set('storyTitle', storyTitle);
@@ -3529,8 +3529,9 @@ function openKiroTerminalWindow(options = {}) {
   const win = window.open(url.toString(), '_blank', 'noopener,noreferrer');
 
   if (!win) {
-    showToast('Unable to open terminal window. Please allow pop-ups and try again.', 'error');
-    return false;
+    showToast('Opening terminal in current tab (pop-up blocked).', 'warning');
+    window.location.href = url.toString();
+    return true;
   }
 
   if (typeof win.focus === 'function') {
