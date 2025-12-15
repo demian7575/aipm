@@ -7207,11 +7207,12 @@ function initialize() {
       return;
     }
 
-    // Prepare Kiro context and open terminal modal
+    // Use existing terminal modal with story context
     const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
     const modalResult = await buildKiroTerminalModalContent({ 
       storyId: story.id, 
-      taskTitle: story.title 
+      taskTitle: `Refine: ${story.title}`,
+      branch: 'main'
     }, kiroContext);
     
     openModal({
