@@ -7207,35 +7207,23 @@ function initialize() {
       return;
     }
 
-    // Show Kiro refinement instructions
-    const modalContent = document.createElement('div');
-    modalContent.innerHTML = `
-      <div class="kiro-refinement-info">
-        <h3>Refine Story with Kiro</h3>
-        <p><strong>Selected Story:</strong> ${story.title}</p>
-        <div class="refinement-steps">
-          <h4>To refine this story with Kiro:</h4>
-          <ol>
-            <li>Create a PR using the "Generate Code & PR" button</li>
-            <li>The Kiro worker will automatically pick up the task</li>
-            <li>Kiro will generate code and push changes to the PR branch</li>
-            <li>Review and merge the PR when ready</li>
-          </ol>
-        </div>
-        <div class="story-context">
-          <h4>Story Context:</h4>
-          <p><strong>Description:</strong> ${story.description || 'No description'}</p>
-          <p><strong>Status:</strong> ${story.status || 'Draft'}</p>
-          <p><strong>Story Points:</strong> ${story.storyPoint || 'Not set'}</p>
-        </div>
-      </div>
-    `;
-    
-    openModal({
-      title: 'Refine with Kiro',
-      content: modalContent,
-      size: 'default'
-    });
+    // Prepare Kiro context and open terminal modal
+    try {
+      const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
+      const modalContent = await buildKiroTerminalModalContent({ 
+        storyId: story.id, 
+        taskTitle: story.title 
+      }, kiroContext);
+      
+      openModal({
+        title: 'Refine with Kiro',
+        content: modalContent,
+        size: 'large'
+      });
+    } catch (error) {
+      console.error('Failed to open Kiro terminal:', error);
+      showToast('Terminal server unavailable. Please try again later.', 'error');
+    }
   });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));

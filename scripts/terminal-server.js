@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import http from 'http';
+import { WebSocketServer } from 'ws';
+import { spawn } from 'child_process';
 
 const server = http.createServer((req, res) => {
   // Enable CORS
@@ -20,7 +22,8 @@ const server = http.createServer((req, res) => {
       status: 'running',
       service: 'terminal-server',
       port: 8080,
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      websocket: 'enabled'
     }));
     return;
   }
@@ -29,9 +32,54 @@ const server = http.createServer((req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
+// WebSocket server for terminal connections
+const wss = new WebSocketServer({ 
+  server,
+  path: '/terminal'
+});
+
+wss.on('connection', (ws, req) => {
+  console.log('New terminal connection');
+  
+  // Send welcome message
+  ws.send('🔌 Connected to Kiro CLI terminal\r\n');
+  ws.send('💬 Start chatting with Kiro to refine your code!\r\n\r\n');
+  
+  // Spawn kiro-cli chat process
+  const kiro = spawn('kiro-cli', ['chat'], {
+    cwd: '/home/ec2-user/aipm',
+    env: { ...process.env, TERM: 'xterm-256color' }
+  });
+  
+  // Forward terminal output to WebSocket
+  kiro.stdout.on('data', (data) => {
+    ws.send(data.toString());
+  });
+  
+  kiro.stderr.on('data', (data) => {
+    ws.send(data.toString());
+  });
+  
+  // Forward WebSocket input to terminal
+  ws.on('message', (data) => {
+    kiro.stdin.write(data);
+  });
+  
+  // Handle connection close
+  ws.on('close', () => {
+    console.log('Terminal connection closed');
+    kiro.kill();
+  });
+  
+  kiro.on('exit', (code) => {
+    console.log(`Kiro CLI exited with code ${code}`);
+    ws.close();
+  });
+});
+
 const PORT = 8080;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Terminal Server running on port ${PORT}`);
+  console.log(`Terminal Server with WebSocket running on port ${PORT}`);
 });
 
 process.on('SIGTERM', () => {
