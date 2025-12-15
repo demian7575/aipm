@@ -1,10 +1,3 @@
-import {
-  readAmazonAiConfig,
-  requestInvestAnalysisFromAmazonAi,
-  requestDocumentFromAmazonAi,
-  requestAcceptanceTestDraftFromAmazonAi
-} from './amazon-ai.js';
-import { analyzeInvestWithKiro, generateStoryDraftWithKiro, generateAcceptanceTestWithKiro } from './kiro-ai.js';
 import { generateInvestCompliantStory, generateAcceptanceTest } from './story-generator.js';
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
@@ -2430,10 +2423,6 @@ function baselineInvestWarnings(story, options = {}) {
   return warnings;
 }
 
-function readAiConfig() {
-  return readAmazonAiConfig();
-}
-
 function extractJsonObject(content) {
   if (!content) return null;
   const trimmed = String(content).trim();
@@ -4345,26 +4334,11 @@ function buildComponentSummary(flatStories) {
   });
 }
 
-async function requestDocumentFromAi(type, context, config) {
-  return await requestDocumentFromAmazonAi(type, context, config);
-}
 
 async function generateDocumentFile(type, context = {}) {
-  const config = readAiConfig();
-  if (config.enabled) {
-    try {
-      const aiDocument = await requestDocumentFromAi(type, context, config);
-      if (aiDocument && aiDocument.content) {
-        return { ...aiDocument, source: 'amazon-ai' };
-      }
-    } catch (error) {
-      console.error('Amazon AI document generation failed', error);
-    }
-  }
-
-  const fallbackDocument = generateDocumentPayload(type, context);
-  const source = config.enabled ? 'fallback' : 'baseline';
-  return { ...fallbackDocument, source };
+  // Use heuristic generation - Kiro CLI can enhance via terminal interaction
+  const document = generateDocumentPayload(type, context);
+  return { ...document, source: 'heuristic' };
 }
 
 function generateDocumentPayload(type, context = {}) {
@@ -4800,25 +4774,10 @@ function normalizeGeneratedSteps(value) {
     .filter((entry) => entry && entry.length > 0);
 }
 
-async function requestAcceptanceTestDraftFromAi(story, ordinal, reason, config, { idea = '' } = {}) {
-  return await requestAcceptanceTestDraftFromAmazonAi(story, ordinal, reason, config, { idea });
-}
+
 
 async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' } = {}) {
-  const config = readAiConfig();
-  if (!config.enabled) {
-    return defaultAcceptanceTestDraft(story, ordinal, reason, idea);
-  }
-
-  try {
-    const aiDraft = await requestAcceptanceTestDraftFromAi(story, ordinal, reason, config, { idea });
-    if (aiDraft) {
-      return aiDraft;
-    }
-  } catch (error) {
-    console.error('Amazon AI acceptance test draft generation failed', error);
-  }
-
+  // Use heuristic generation - Kiro CLI can enhance via terminal interaction
   return defaultAcceptanceTestDraft(story, ordinal, reason, idea);
 }
 
