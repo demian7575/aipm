@@ -113,7 +113,7 @@ async function callKiroCLI(prompt, taskId) {
   return new Promise((resolve, reject) => {
     console.log(`🔄 Calling Kiro CLI for ${taskId}`);
     
-    const kiro = spawn('kiro-cli', ['chat'], {
+    const kiro = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat'], {
       cwd: '/home/ec2-user/aipm',
       stdio: ['pipe', 'pipe', 'pipe']
     });
