@@ -662,7 +662,7 @@ export const COMPONENT_CATALOG = [
   'Traceabilty_Insight',
 ];
 
-const STORY_STATUS_VALUES = ['Draft', 'Ready', 'In Progress', 'Blocked', 'Approved', 'Done'];
+const STORY_STATUS_VALUES = ['Draft', 'Pending AI Enhancement', 'Ready', 'In Progress', 'Blocked', 'Approved', 'Done'];
 const STORY_STATUS_DEFAULT = STORY_STATUS_VALUES[0];
 
 const COMPONENT_LOOKUP = new Map(
@@ -4781,7 +4781,33 @@ async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' }
   return defaultAcceptanceTestDraft(story, ordinal, reason, idea);
 }
 
-async function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingCount = null } = {}) {
+async function queueKiroEnhancement(idea, draft, parent) {
+  try {
+    // Add task to DynamoDB queue for Kiro worker processing
+    const task = {
+      id: `story-enhancement-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'story-enhancement',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      payload: {
+        idea,
+        draft,
+        parent: parent ? { id: parent.id, title: parent.title, asA: parent.asA } : null
+      }
+    };
+    
+    await db.put({
+      TableName: 'aipm-amazon-q-queue',
+      Item: task
+    }).promise();
+    
+    console.log('✅ Queued story for Kiro enhancement:', task.id);
+  } catch (error) {
+    console.error('❌ Failed to queue Kiro enhancement:', error);
+    // Don't fail the request if queueing fails - heuristic draft is still returned
+  }
+}
+
   try {
     const countRow =
       existingCount != null
@@ -6212,12 +6238,13 @@ export async function createApp() {
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
         
-        // Use fallback immediately - Kiro will enhance it later via callback
+        // Generate heuristic skeleton
         const draft = generateInvestCompliantStory(idea, { parent });
-        draft.source = 'heuristic'; // Mark as heuristic-generated
+        draft.source = 'heuristic';
+        draft.status = 'Pending AI Enhancement';
         
-        // Note: Kiro integration now uses local workers with browser authentication
-        // No longer using async queue - direct integration through local Kiro CLI
+        // Queue for mandatory Kiro enhancement
+        await queueKiroEnhancement(idea, draft, parent);
         
         sendJson(res, 200, draft);
       } catch (error) {
