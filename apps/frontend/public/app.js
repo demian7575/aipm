@@ -38,6 +38,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 const refineKiroBtn = document.getElementById('refine-kiro-btn');
+const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -3421,6 +3422,19 @@ function toHttpTerminalUrl(baseUrl) {
   if (baseUrl.startsWith('ws://')) return `http://${baseUrl.slice(5)}`;
   if (baseUrl.startsWith('wss://')) return `https://${baseUrl.slice(6)}`;
   return baseUrl;
+}
+
+function buildStandaloneTerminalUrl(story = null) {
+  const params = new URLSearchParams();
+
+  const branch = story?.branchName || story?.branch;
+  if (branch) params.set('branch', branch);
+  if (story?.id) params.set('storyId', story.id);
+  if (story?.title) params.set('storyTitle', story.title);
+
+  const terminalUrl = new URL('terminal/', window.location.href);
+  terminalUrl.search = params.toString();
+  return terminalUrl.toString();
 }
 
 function buildKiroContextSummary(story) {
@@ -7192,6 +7206,12 @@ function initialize() {
   renderMindmap();
   renderDetails();
   fetchVersion();
+
+  openKiroTerminalBtn?.addEventListener('click', () => {
+    const story = state.selectedStoryId ? storyIndex.get(state.selectedStoryId) : null;
+    const terminalUrl = buildStandaloneTerminalUrl(story);
+    window.open(terminalUrl, '_blank', 'noopener');
+  });
 
   refineKiroBtn?.addEventListener('click', async () => {
     if (!state.selectedStoryId) {
