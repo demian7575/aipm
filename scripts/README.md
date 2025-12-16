@@ -55,6 +55,7 @@ Utility scripts for maintenance and operations.
 - `backup-restore.sh` - Database backup and restore
 - `auto-save-conversation.sh` - Auto-save conversation logs
 - `kiro-persistent-session.js` - Posts periodic heartbeats to the EC2 Kiro chat endpoint to keep sessions warm
+- `kiro-service-health.sh` - Quick diagnostics for the EC2 Kiro terminal/heartbeat services (ports, logs, missing scripts)
 - `generate-code-with-q.sh` - Generate code with Amazon Q
 - `add-amazonq-permissions.sh` - Add Amazon Q IAM permissions
 - `update-task-def-runtime-script.sh` - Update ECS task definition
