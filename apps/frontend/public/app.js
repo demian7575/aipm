@@ -3572,10 +3572,10 @@ async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
     }
   };
   
-  resizeTerminal(); // Initial size
-  terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
-  terminal.writeln('');
-  
+    resizeTerminal(); // Initial size
+    terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
+    terminal.writeln('');
+
     // Connect to EC2 WebSocket server
     const EC2_TERMINAL_URL = getEc2TerminalBaseUrl();
 
@@ -3585,51 +3585,51 @@ async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
     }
 
     const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
-  
-  const decodeSocketData = async (data) => {
-    if (typeof data === 'string') return data;
 
-    try {
-      if (data instanceof Blob) {
-        return await data.text();
+    const decodeSocketData = async (data) => {
+      if (typeof data === 'string') return data;
+
+      try {
+        if (data instanceof Blob) {
+          return await data.text();
+        }
+
+        if (data instanceof ArrayBuffer) {
+          return new TextDecoder().decode(data);
+        }
+      } catch (error) {
+        console.warn('Failed to decode terminal data', error);
       }
 
-      if (data instanceof ArrayBuffer) {
-        return new TextDecoder().decode(data);
+      return '';
+    };
+
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      terminal.writeln('✓ Connected to Kiro CLI');
+      if (prEntry?.taskTitle) {
+        terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
       }
-    } catch (error) {
-      console.warn('Failed to decode terminal data', error);
-    }
+      terminal.writeln('');
+      terminal.writeln('💬 Start chatting with Kiro to refine your code!');
+      terminal.writeln('');
+    };
 
-    return '';
-  };
-
-  socket = new WebSocket(wsUrl);
-  
-  socket.onopen = () => {
-    terminal.writeln('✓ Connected to Kiro CLI');
-    if (prEntry?.taskTitle) {
-      terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
-    }
-    terminal.writeln('');
-    terminal.writeln('💬 Start chatting with Kiro to refine your code!');
-    terminal.writeln('');
-  };
-  
     socket.onmessage = async (event) => {
       const text = await decodeSocketData(event.data);
       terminal.write(text);
     };
-    
+
     socket.onerror = (error) => {
       terminal.writeln('\r\n❌ Connection error');
       console.error('WebSocket error:', error);
     };
-    
+
     socket.onclose = () => {
       terminal.writeln('\r\n🔌 Disconnected');
     };
-    
+
     // Send terminal input to EC2
     terminal.onData((data) => {
       console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
@@ -3640,29 +3640,29 @@ async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
         console.warn('Socket not ready, state:', socket?.readyState);
       }
     });
-  
-  // Auto-resize terminal when modal is resized
-  const resizeObserver = new ResizeObserver(() => {
-    if (terminal && terminalContainer) {
-      const width = terminalContainer.clientWidth;
-      const height = terminalContainer.clientHeight;
-      const cols = Math.floor(width / 9);
-      const rows = Math.floor(height / 17);
-      if (cols > 0 && rows > 0) {
-        terminal.resize(cols, rows);
+
+    // Auto-resize terminal when modal is resized
+    const resizeObserver = new ResizeObserver(() => {
+      if (terminal && terminalContainer) {
+        const width = terminalContainer.clientWidth;
+        const height = terminalContainer.clientHeight;
+        const cols = Math.floor(width / 9);
+        const rows = Math.floor(height / 17);
+        if (cols > 0 && rows > 0) {
+          terminal.resize(cols, rows);
+        }
       }
-    }
-  });
-  resizeObserver.observe(terminalContainer);
-  
-  return { 
-    element: container, 
-    onClose: () => {
-      resizeObserver.disconnect();
-      if (socket) socket.close();
-      if (terminal) terminal.dispose();
-    } 
-  };
+    });
+    resizeObserver.observe(terminalContainer);
+
+    return {
+      element: container,
+      onClose: () => {
+        resizeObserver.disconnect();
+        if (socket) socket.close();
+        if (terminal) terminal.dispose();
+      }
+    };
 }
 
 async function bedrockImplementation(prEntry) {
