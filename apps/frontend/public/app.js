@@ -3586,6 +3586,24 @@ async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
 
     const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
   
+  const decodeSocketData = async (data) => {
+    if (typeof data === 'string') return data;
+
+    try {
+      if (data instanceof Blob) {
+        return await data.text();
+      }
+
+      if (data instanceof ArrayBuffer) {
+        return new TextDecoder().decode(data);
+      }
+    } catch (error) {
+      console.warn('Failed to decode terminal data', error);
+    }
+
+    return '';
+  };
+
   socket = new WebSocket(wsUrl);
   
   socket.onopen = () => {
@@ -3598,9 +3616,9 @@ async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
     terminal.writeln('');
   };
   
-    socket.onmessage = (event) => {
-      // Handle raw text from terminal server
-      terminal.write(event.data);
+    socket.onmessage = async (event) => {
+      const text = await decodeSocketData(event.data);
+      terminal.write(text);
     };
     
     socket.onerror = (error) => {

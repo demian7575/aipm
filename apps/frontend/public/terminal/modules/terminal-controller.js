@@ -31,6 +31,24 @@ export class TerminalController {
     return url;
   }
 
+  async normalizeEventData(data) {
+    if (typeof data === 'string') return data;
+
+    try {
+      if (data instanceof Blob) {
+        return await data.text();
+      }
+
+      if (data instanceof ArrayBuffer) {
+        return new TextDecoder().decode(data);
+      }
+    } catch (error) {
+      console.warn('Failed to decode terminal data', error);
+    }
+
+    return '';
+  }
+
   parseMessages(data) {
     if (typeof data !== 'string') return [];
 
@@ -94,11 +112,12 @@ export class TerminalController {
       terminal.writeln('');
     };
 
-    this.socket.onmessage = (event) => {
-      const messages = this.parseMessages(event.data);
+    this.socket.onmessage = async (event) => {
+      const data = await this.normalizeEventData(event.data);
+      const messages = this.parseMessages(data);
 
       if (!messages.length) {
-        terminal.write(typeof event.data === 'string' ? event.data : '');
+        terminal.write(data);
         return;
       }
 
