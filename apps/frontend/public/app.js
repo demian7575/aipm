@@ -37,8 +37,8 @@ const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
-const kiroCliBtn = document.getElementById('kiro-cli-btn');
 const refineKiroBtn = document.getElementById('refine-kiro-btn');
+const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -3424,6 +3424,19 @@ function toHttpTerminalUrl(baseUrl) {
   return baseUrl;
 }
 
+function buildStandaloneTerminalUrl(story = null) {
+  const params = new URLSearchParams();
+
+  const branch = story?.branchName || story?.branch;
+  if (branch) params.set('branch', branch);
+  if (story?.id) params.set('storyId', story.id);
+  if (story?.title) params.set('storyTitle', story.title);
+
+  const terminalUrl = new URL('terminal/simple.html', window.location.href);
+  terminalUrl.search = params.toString();
+  return terminalUrl.toString();
+}
+
 function buildKiroContextSummary(story) {
   if (!story) return '';
 
@@ -3520,78 +3533,136 @@ async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
     <div class="staging-options">
       <h3>Refine PR with Kiro</h3>
       ${contextSummary}
-      <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px; box-sizing: border-box; display: flex; flex-direction: column;">
-        <div id="terminal-output" style="flex: 1; color: #00ff00; font-family: 'Courier New', monospace; font-size: 14px; overflow-y: auto; white-space: pre-wrap; padding: 10px; background: #000;"></div>
-        <div style="display: flex; align-items: center; padding: 5px 10px; background: #111;">
-          <span style="color: #00ff00; margin-right: 5px;">$</span>
-          <input id="terminal-input" type="text" style="flex: 1; background: transparent; border: none; color: #00ff00; font-family: 'Courier New', monospace; font-size: 14px; outline: none;" placeholder="Type your message to Kiro...">
-        </div>
-      </div>
+      <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
     </div>
   `;
   
   const terminalContainer = container.querySelector('#terminal-container');
-  const terminalOutput = container.querySelector('#terminal-output');
-  const terminalInput = container.querySelector('#terminal-input');
   
+  let terminal = null;
   let socket = null;
   
-  // Connect to EC2 WebSocket server
-  const EC2_TERMINAL_URL = getEc2TerminalBaseUrl();
-
-  if (kiroContext?.branchStatus) {
-    terminalOutput.textContent += kiroContext.branchStatus + '\n\n';
+  // Auto-start terminal immediately
+  if (!window.Terminal) {
+    terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
+    return { element: container, onClose: () => {} };
   }
-
-  const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
   
-  terminalOutput.textContent += '🔌 Connecting to Kiro CLI terminal...\n';
-  
-  socket = new WebSocket(wsUrl);
-  
-  socket.onopen = () => {
-    terminalOutput.textContent += '✓ Connected to Kiro CLI\n';
-    if (prEntry?.taskTitle) {
-      terminalOutput.textContent += `📋 PR: ${prEntry.taskTitle}\n`;
-    }
-    terminalOutput.textContent += '\n💬 Start chatting with Kiro to refine your code!\n\n';
-    terminalOutput.scrollTop = terminalOutput.scrollHeight;
-    terminalInput.focus();
-  };
-  
-  socket.onmessage = (event) => {
-    terminalOutput.textContent += event.data;
-    terminalOutput.scrollTop = terminalOutput.scrollHeight;
-  };
-  
-  socket.onerror = (error) => {
-    terminalOutput.textContent += '\n❌ Connection error\n';
-    console.error('WebSocket error:', error);
-  };
-  
-  socket.onclose = () => {
-    terminalOutput.textContent += '\n🔌 Disconnected\n';
-  };
-  
-  // Handle input
-  terminalInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      const message = terminalInput.value;
-      if (message.trim() && socket && socket.readyState === WebSocket.OPEN) {
-        terminalOutput.textContent += `$ ${message}\n`;
-        socket.send(message + '\n');
-        terminalInput.value = '';
-        terminalOutput.scrollTop = terminalOutput.scrollHeight;
-      }
+  // Create xterm terminal
+  terminal = new window.Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+    theme: {
+      background: '#000000',
+      foreground: '#ffffff'
     }
   });
   
-  return { 
-    element: container, 
-    onClose: () => {
-      if (socket) socket.close();
-    } 
+  terminal.open(terminalContainer);
+  
+  // Manual resize function
+  const resizeTerminal = () => {
+    const width = terminalContainer.clientWidth;
+    const height = terminalContainer.clientHeight;
+    const cols = Math.floor(width / 9); // Approximate char width
+    const rows = Math.floor(height / 17); // Approximate line height
+    if (cols > 0 && rows > 0) {
+      terminal.resize(cols, rows);
+    }
   };
+  
+    resizeTerminal(); // Initial size
+    terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
+    terminal.writeln('');
+
+    // Connect to EC2 WebSocket server
+    const EC2_TERMINAL_URL = getEc2TerminalBaseUrl();
+
+    if (kiroContext?.branchStatus) {
+      terminal.writeln(kiroContext.branchStatus);
+      terminal.writeln('');
+    }
+
+    const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
+
+    const decodeSocketData = async (data) => {
+      if (typeof data === 'string') return data;
+
+      try {
+        if (data instanceof Blob) {
+          return await data.text();
+        }
+
+        if (data instanceof ArrayBuffer) {
+          return new TextDecoder().decode(data);
+        }
+      } catch (error) {
+        console.warn('Failed to decode terminal data', error);
+      }
+
+      return '';
+    };
+
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      terminal.writeln('✓ Connected to Kiro CLI');
+      if (prEntry?.taskTitle) {
+        terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
+      }
+      terminal.writeln('');
+      terminal.writeln('💬 Start chatting with Kiro to refine your code!');
+      terminal.writeln('');
+    };
+
+    socket.onmessage = async (event) => {
+      const text = await decodeSocketData(event.data);
+      terminal.write(text);
+    };
+
+    socket.onerror = (error) => {
+      terminal.writeln('\r\n❌ Connection error');
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      terminal.writeln('\r\n🔌 Disconnected');
+    };
+
+    // Send terminal input to EC2
+    terminal.onData((data) => {
+      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        console.log('Sending raw data to WebSocket:', data);
+        socket.send(data);
+      } else {
+        console.warn('Socket not ready, state:', socket?.readyState);
+      }
+    });
+
+    // Auto-resize terminal when modal is resized
+    const resizeObserver = new ResizeObserver(() => {
+      if (terminal && terminalContainer) {
+        const width = terminalContainer.clientWidth;
+        const height = terminalContainer.clientHeight;
+        const cols = Math.floor(width / 9);
+        const rows = Math.floor(height / 17);
+        if (cols > 0 && rows > 0) {
+          terminal.resize(cols, rows);
+        }
+      }
+    });
+    resizeObserver.observe(terminalContainer);
+
+    return {
+      element: container,
+      onClose: () => {
+        resizeObserver.disconnect();
+        if (socket) socket.close();
+        if (terminal) terminal.dispose();
+      }
+    };
 }
 
 async function bedrockImplementation(prEntry) {
@@ -7154,6 +7225,12 @@ function initialize() {
   renderDetails();
   fetchVersion();
 
+  openKiroTerminalBtn?.addEventListener('click', () => {
+    const story = state.selectedStoryId ? storyIndex.get(state.selectedStoryId) : null;
+    const terminalUrl = buildStandaloneTerminalUrl(story);
+    window.open(terminalUrl, '_blank', 'noopener');
+  });
+
   refineKiroBtn?.addEventListener('click', async () => {
     if (!state.selectedStoryId) {
       showToast('Please select a story first', 'warning');
@@ -7165,40 +7242,20 @@ function initialize() {
       return;
     }
 
-    // Open independent terminal window
-    const params = new URLSearchParams({
-      storyId: story.id,
-      storyTitle: story.title || 'Untitled',
+    // Use existing terminal modal with story context
+    const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
+    const modalResult = await buildKiroTerminalModalContent({ 
+      storyId: story.id, 
+      taskTitle: `Refine: ${story.title}`,
       branch: 'main'
+    }, kiroContext);
+    
+    openModal({
+      title: 'Refine with Kiro',
+      content: modalResult.element,
+      size: 'xlarge',
+      onClose: modalResult.onClose
     });
-    
-    const terminalUrl = `terminal/index.html?${params}`;
-    
-    // Try to open in new window, fallback to same tab if blocked
-    const terminalWindow = window.open(terminalUrl, 'kiro-terminal', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-    
-    if (!terminalWindow) {
-      // Popup blocked, open in same tab
-      window.location.href = terminalUrl;
-    }
-  });
-
-  kiroCliBtn?.addEventListener('click', async () => {
-    // Open Kiro CLI terminal without requiring a selected story
-    const params = new URLSearchParams({
-      mode: 'general',
-      branch: 'main'
-    });
-    
-    const terminalUrl = `terminal/index.html?${params}`;
-    
-    // Try to open in new window, fallback to same tab if blocked
-    const terminalWindow = window.open(terminalUrl, 'kiro-cli-terminal', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-    
-    if (!terminalWindow) {
-      // Popup blocked, open in same tab
-      window.location.href = terminalUrl;
-    }
   });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));

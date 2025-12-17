@@ -31,24 +31,49 @@ export class TerminalController {
     return url;
   }
 
+  async normalizeEventData(data) {
+    if (typeof data === 'string') return data;
+
+    try {
+      if (data instanceof Blob) {
+        return await data.text();
+      }
+
+      if (data instanceof ArrayBuffer) {
+        return new TextDecoder().decode(data);
+      }
+    } catch (error) {
+      console.warn('Failed to decode terminal data', error);
+    }
+
+    return '';
+  }
+
   parseMessages(data) {
     if (typeof data !== 'string') return [];
 
-    const segments = data.split(/}(?={)/g).map((segment, index, arr) => {
-      // Re-attach the missing brace except for the last segment
-      return index < arr.length - 1 ? `${segment}}` : segment;
-    });
+    // Only attempt to parse when payload looks like JSON. The EC2 terminal
+    // returns raw PTY output, so treating every chunk as JSON caused the
+    // terminal to simply echo the user's input.
+    const trimmed = data.trim();
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+      return [];
+    }
+
+    const segments = data.split(/}(?={)/g).map((segment, index, arr) =>
+      index < arr.length - 1 ? `${segment}}` : segment
+    );
 
     const messages = [];
 
     segments.forEach((segment) => {
-      const trimmed = segment?.trim();
-      if (!trimmed) return;
+      const normalized = segment?.trim();
+      if (!normalized) return;
 
       try {
-        messages.push(JSON.parse(trimmed));
+        messages.push(JSON.parse(normalized));
       } catch (error) {
-        console.warn('Failed to parse terminal message segment', trimmed, error);
+        console.warn('Failed to parse terminal message segment', normalized, error);
       }
     });
 
@@ -87,11 +112,12 @@ export class TerminalController {
       terminal.writeln('');
     };
 
-    this.socket.onmessage = (event) => {
-      const messages = this.parseMessages(event.data);
+    this.socket.onmessage = async (event) => {
+      const data = await this.normalizeEventData(event.data);
+      const messages = this.parseMessages(data);
 
       if (!messages.length) {
-        terminal.write(typeof event.data === 'string' ? event.data : '');
+        terminal.write(data);
         return;
       }
 
@@ -133,7 +159,8 @@ export class TerminalController {
 
   send(data) {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({ type: 'input', data }));
+      // Send raw terminal data to match the EC2 PTY server expectation.
+      this.socket.send(data);
     }
   }
 

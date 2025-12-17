@@ -8,6 +8,5 @@ window.CONFIG = {
     region: 'us-east-1',
     storiesTable: 'aipm-backend-dev-stories',
     acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
-    DEBUG: true,
-    KIRO_API_URL: 'https://kwn4mp7z5c.execute-api.us-east-1.amazonaws.com/dev'
+    DEBUG: true
 };

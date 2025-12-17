@@ -1,7 +1,16 @@
 #!/usr/bin/env node
 
 import http from 'http';
-import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import KiroQueueManager from './kiro-queue-manager.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Initialize Kiro Queue Manager
+const kiroQueue = new KiroQueueManager();
+kiroQueue.start();
 
 const server = http.createServer(async (req, res) => {
   // CORS headers
@@ -22,6 +31,9 @@ const server = http.createServer(async (req, res) => {
       service: 'kiro-api-server',
       port: 8081,
       uptime: process.uptime(),
+      activeRequests: kiroQueue.processing ? 1 : 0,
+      queuedRequests: kiroQueue.queue.length,
+      maxConcurrent: 1,
       endpoints: [
         'POST /kiro/enhance-story',
         'POST /kiro/generate-acceptance-test', 
@@ -68,7 +80,7 @@ const server = http.createServer(async (req, res) => {
         
         console.log(`📝 Processing ${endpoint} request:`, taskId);
         
-        const result = await callKiroCLI(prompt, taskId);
+        const result = await kiroQueue.sendCommand(prompt);
         
         // Route to specific response parsers
         let response;
@@ -107,53 +119,6 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
 });
-
-// Core Kiro CLI caller
-async function callKiroCLI(prompt, taskId) {
-  return new Promise((resolve, reject) => {
-    console.log(`🔄 Calling Kiro CLI for ${taskId}`);
-    
-    const kiro = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools', '--no-interactive'], {
-      cwd: '/home/ec2-user/aipm',
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-
-    let output = '';
-    let error = '';
-
-    kiro.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-
-    kiro.stderr.on('data', (data) => {
-      error += data.toString();
-    });
-
-    kiro.on('close', (code) => {
-      console.log(`✅ Kiro CLI completed for ${taskId}, code: ${code}`);
-      resolve({
-        success: code === 0,
-        output: output.trim(),
-        error: error.trim(),
-        exitCode: code
-      });
-    });
-
-    kiro.stdin.write(prompt);
-    kiro.stdin.end();
-
-    // Timeout after 60 seconds (well under Lambda's timeout)
-    setTimeout(() => {
-      kiro.kill();
-      resolve({
-        success: false,
-        output: output.trim(),
-        error: 'Timeout after 60 seconds',
-        exitCode: -1
-      });
-    }, 60000);
-  });
-}
 
 // Prompt Generators
 function generateStoryEnhancementPrompt(payload) {
@@ -400,7 +365,7 @@ function parseCodeGenerationResponse(result, payload) {
   };
 }
 
-const PORT = 8081;
+const PORT = process.env.PORT || 8081;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Comprehensive Kiro API Server running on port ${PORT}`);
   console.log('📋 Available endpoints:');
