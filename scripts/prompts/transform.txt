@@ -1,0 +1,11 @@
+{{CONTRACT_DESCRIPTION}}
+
+Input:
+{{INPUT_JSON}}
+
+{{CONTRACT_INSTRUCTIONS}}
+
+Output the result as valid JSON matching this schema:
+{{OUTPUT_SCHEMA}}
+
+Return ONLY the JSON, no explanations.

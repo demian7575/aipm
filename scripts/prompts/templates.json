@@ -1,0 +1,76 @@
+{
+  "enhance-story-v1": {
+    "version": "1.0",
+    "description": "Enhance user story with INVEST principles",
+    "instruction": "Enhance this user story:\n\nOriginal Idea: {{data.idea}}\n\nCurrent Draft:\n- Title: {{data.draft.title}}\n- Description: {{data.draft.description}}\n- As a: {{data.draft.asA}}\n- I want: {{data.draft.iWant}}\n- So that: {{data.draft.soThat}}\n- Story Points: {{data.draft.storyPoint}}\n\nParent Context: {{data.parent.title}}\n\nProvide enhanced version with:\n1. Better, more specific title\n2. Clearer description\n3. More precise 'I want' statement\n4. Better 'So that' with business value\n5. Improved acceptance criteria (3-5 items)",
+    "outputSchema": {
+      "type": "object",
+      "required": ["title", "description", "asA", "iWant", "soThat", "acceptanceCriteria"],
+      "properties": {
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "asA": {"type": "string"},
+        "iWant": {"type": "string"},
+        "soThat": {"type": "string"},
+        "acceptanceCriteria": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  
+  "generate-acceptance-test-v1": {
+    "version": "1.0",
+    "description": "Generate acceptance test for user story",
+    "instruction": "Generate acceptance test:\n\nStory: {{data.story.title}}\nDescription: {{data.story.description}}\nAs a: {{data.story.asA}}\nI want: {{data.story.iWant}}\nSo that: {{data.story.soThat}}\n\nTest Number: {{data.ordinal}}\nReason: {{data.reason}}\nContext: {{data.idea}}\n\nCreate comprehensive test with:\n1. Clear Given conditions (2-3 items)\n2. Specific When actions (2-3 items)\n3. Measurable Then outcomes (2-3 items)",
+    "outputSchema": {
+      "type": "object",
+      "required": ["title", "given", "when", "then"],
+      "properties": {
+        "title": {"type": "string"},
+        "given": {"type": "array", "items": {"type": "string"}},
+        "when": {"type": "array", "items": {"type": "string"}},
+        "then": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  
+  "analyze-invest-v1": {
+    "version": "1.0",
+    "description": "Analyze story against INVEST criteria",
+    "instruction": "Analyze against INVEST:\n\nTitle: {{data.title}}\nAs a: {{data.asA}}\nI want: {{data.iWant}}\nSo that: {{data.soThat}}\nDescription: {{data.description}}\nStory Points: {{data.storyPoint}}\nComponents: {{data.components}}\n\nEvaluate each criterion:\n- Independent: Can be developed independently?\n- Negotiable: Scope flexible?\n- Valuable: Clear business value?\n- Estimable: Effort estimable?\n- Small: Appropriately sized?\n- Testable: Can define acceptance criteria?",
+    "outputSchema": {
+      "type": "object",
+      "required": ["score", "summary", "criteria"],
+      "properties": {
+        "score": {"type": "number"},
+        "summary": {"type": "string"},
+        "warnings": {"type": "array", "items": {"type": "string"}},
+        "suggestions": {"type": "array", "items": {"type": "string"}},
+        "criteria": {
+          "type": "object",
+          "required": ["independent", "negotiable", "valuable", "estimable", "small", "testable"],
+          "properties": {
+            "independent": {"type": "object"},
+            "negotiable": {"type": "object"},
+            "valuable": {"type": "object"},
+            "estimable": {"type": "object"},
+            "small": {"type": "object"},
+            "testable": {"type": "object"}
+          }
+        }
+      }
+    }
+  },
+  
+  "chat-v1": {
+    "version": "1.0",
+    "description": "Generic chat interaction",
+    "instruction": "{{data.prompt}}",
+    "outputSchema": {
+      "type": "object",
+      "required": ["message"],
+      "properties": {
+        "message": {"type": "string"}
+      }
+    }
+  }
+}

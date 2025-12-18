@@ -88,7 +88,7 @@
     <script>
       // Load external config first, then load app.js
       const configScript = document.createElement('script');
-      configScript.src = 'config.js';
+      configScript.src = 'config.js?v=' + Date.now();
       configScript.onload = function() {
         // Config loaded, now load app.js
         console.log('Config loaded:', window.CONFIG);

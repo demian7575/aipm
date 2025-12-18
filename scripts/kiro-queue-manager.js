@@ -11,7 +11,20 @@ class KiroQueueManager extends EventEmitter {
     this.kiroProcess = null;
     this.currentResolver = null;
     this.buffer = '';
+    this.lineBuffer = ''; // Buffer for line-by-line output
+    this.stderrLineBuffer = ''; // Buffer for stderr line-by-line output
     this.responseTimeout = null;
+    this.logBroadcaster = null; // Will be set by API server
+  }
+  
+  setLogBroadcaster(broadcaster) {
+    this.logBroadcaster = broadcaster;
+  }
+  
+  broadcastLog(message) {
+    if (this.logBroadcaster) {
+      this.logBroadcaster(message);
+    }
   }
 
   async start() {
@@ -19,11 +32,12 @@ class KiroQueueManager extends EventEmitter {
     
     console.log('🚀 Starting persistent Kiro CLI session...');
     
-    // Use kiro-cli from PATH in production, specific paths in development
-    const kiroPath = process.env.NODE_ENV === 'production' 
-      ? 'kiro-cli' 
-      : (process.env.USER === 'ec2-user' ? '/home/ec2-user/.local/bin/kiro-cli' : '/home/ebaejun/.local/bin/kiro-cli');
-    const workingDir = process.env.NODE_ENV === 'production' ? '/app' : '/home/ec2-user/aipm';
+    // Determine Kiro CLI path and working directory
+    const kiroPath = process.env.KIRO_CLI_PATH || 'kiro-cli';
+    const workingDir = process.env.KIRO_WORKING_DIR || process.cwd();
+    
+    console.log(`   Kiro CLI: ${kiroPath}`);
+    console.log(`   Working dir: ${workingDir}`);
     
     this.kiroProcess = spawn(kiroPath, ['chat', '--trust-all-tools'], {
       cwd: workingDir,
@@ -31,12 +45,43 @@ class KiroQueueManager extends EventEmitter {
     });
 
     this.kiroProcess.stdout.on('data', (data) => {
-      this.buffer += data.toString();
+      const text = data.toString();
+      this.buffer += text;
+      this.lineBuffer += text;
+      
+      // Broadcast complete lines only
+      const lines = this.lineBuffer.split('\n');
+      if (lines.length > 1) {
+        // Broadcast all complete lines (all but the last incomplete one)
+        for (let i = 0; i < lines.length - 1; i++) {
+          const clean = lines[i].replace(/\x1b\[[0-9;]*[mGKHJ]/g, '').trim();
+          if (clean) {
+            this.broadcastLog(`[Kiro stdout] ${clean}`);
+          }
+        }
+        // Keep the last incomplete line in buffer
+        this.lineBuffer = lines[lines.length - 1];
+      }
+      
       this.checkForResponse();
     });
 
     this.kiroProcess.stderr.on('data', (data) => {
-      console.error('Kiro stderr:', data.toString());
+      const text = data.toString();
+      this.stderrLineBuffer += text;
+      
+      // Broadcast complete lines only
+      const lines = this.stderrLineBuffer.split('\n');
+      if (lines.length > 1) {
+        for (let i = 0; i < lines.length - 1; i++) {
+          const clean = lines[i].replace(/\x1b\[[0-9;]*[mGKHJ]/g, '').trim();
+          if (clean && !clean.match(/^[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]\s*Thinking/)) {
+            this.broadcastLog(`[Kiro stderr] ${clean}`);
+          }
+        }
+        this.stderrLineBuffer = lines[lines.length - 1];
+      }
+      console.error('Kiro stderr:', text);
     });
 
     this.kiroProcess.on('close', () => {
@@ -54,7 +99,7 @@ class KiroQueueManager extends EventEmitter {
     const hasPromptMarker = this.buffer.includes('\x1b[38;5;141m> \x1b[0m');
     
     if (hasPromptMarker && this.currentResolver) {
-      // Wait a bit more to ensure we got the full response
+      // Wait 10 seconds after prompt to ensure Kiro is completely done
       if (this.responseTimeout) clearTimeout(this.responseTimeout);
       
       this.responseTimeout = setTimeout(() => {
@@ -78,7 +123,7 @@ class KiroQueueManager extends EventEmitter {
           this.responseTimeout = null;
           this.processNext();
         }
-      }, 500); // Wait 500ms after seeing prompt to ensure complete response
+      }, 10000); // Wait 10 seconds after purple prompt
     }
   }
 
@@ -101,23 +146,34 @@ class KiroQueueManager extends EventEmitter {
     const { message, resolve } = this.queue.shift();
     this.currentResolver = resolve;
     this.buffer = '';
+    this.lineBuffer = ''; // Clear line buffer for new command
+    this.stderrLineBuffer = ''; // Clear stderr line buffer
 
     console.log(`📤 Sending to Kiro: ${message.substring(0, 50)}...`);
+    console.log(`\n${'='.repeat(80)}`);
+    console.log('EXACT MESSAGE SENT TO KIRO CLI:');
+    console.log(`${'='.repeat(80)}`);
+    console.log(message);
+    console.log(`${'='.repeat(80)}\n`);
+    this.broadcastLog(`📤 Sending to Kiro CLI...`);
     this.kiroProcess.stdin.write(message + '\n');
 
-    // Timeout after 60 seconds
+    // Timeout after 15 minutes
     setTimeout(() => {
       if (this.currentResolver) {
+        this.broadcastLog(`⏱️ Timeout after 15 minutes`);
         this.currentResolver({
           success: false,
           output: this.buffer.trim(),
-          error: 'Timeout after 60s'
+          error: 'Timeout after 15 minutes'
         });
         this.currentResolver = null;
         this.buffer = '';
+        this.lineBuffer = '';
+        this.stderrLineBuffer = '';
         this.processNext();
       }
-    }, 60000);
+    }, 900000); // 15 minutes
   }
 }
 

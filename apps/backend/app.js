@@ -5815,46 +5815,6 @@ async function handleFileUpload(req, res, url) {
   });
 }
 
-async function enhanceStoryWithKiro(idea, heuristicDraft, parent) {
-  try {
-    // Call EC2 Kiro API server for enhancement
-    const EC2_KIRO_API = 'http://44.220.45.57:8081';
-    
-    const prompt = `Enhance this user story:
-Idea: ${idea}
-Current draft: ${JSON.stringify(heuristicDraft, null, 2)}
-Parent context: ${parent ? parent.title : 'None'}
-
-Please provide an enhanced version with better title, description, and acceptance criteria.`;
-
-    console.log('🔄 Calling EC2 Kiro API for story enhancement...');
-    
-    const response = await fetch(`${EC2_KIRO_API}/kiro/enhance-story`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        idea,
-        draft: heuristicDraft,
-        parent: parent ? { id: parent.id, title: parent.title, asA: parent.asA } : null,
-        prompt
-      }),
-      signal: AbortSignal.timeout(30000) // 30 second timeout
-    });
-
-    if (response.ok) {
-      const enhanced = await response.json();
-      console.log('✅ Kiro enhancement successful');
-      return { ...heuristicDraft, ...enhanced, source: 'kiro-enhanced' };
-    } else {
-      console.warn('⚠️ Kiro API returned error:', response.status);
-      return { ...heuristicDraft, source: 'heuristic-kiro-error' };
-    }
-  } catch (error) {
-    console.error('❌ Kiro enhancement failed:', error.message);
-    return { ...heuristicDraft, source: 'heuristic-fallback' };
-  }
-}
-
 export async function createApp() {
   const db = await ensureDatabase();
 
@@ -6293,13 +6253,46 @@ export async function createApp() {
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
         
-        // Generate heuristic skeleton
-        const heuristicDraft = generateInvestCompliantStory(idea, { parent });
+        // Call Kiro API enhance-story endpoint (two-step with curl)
+        try {
+          console.log('🤖 Calling Kiro API enhance-story...');
+          const response = await fetch('http://localhost:8081/kiro/enhance-story', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              idea,
+              draft: {},
+              parent: parent ? { id: parent.id, title: parent.title } : null
+            }),
+            signal: AbortSignal.timeout(900000) // 15 minute timeout
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.source !== 'kiro-timeout') {
+              console.log('✅ Kiro enhancement successful');
+              sendJson(res, 200, result);
+              return;
+            }
+          }
+          console.warn('⚠️ Kiro API returned non-OK response');
+        } catch (kiroError) {
+          console.warn('⚠️ Kiro API error:', kiroError.message);
+        }
         
-        // Enhance with Kiro CLI directly
-        const enhancedDraft = await enhanceStoryWithKiro(idea, heuristicDraft, parent);
+        // Fallback: return minimal draft
+        console.log('📝 Returning basic draft (Kiro unavailable)');
+        const draft = {
+          title: idea,
+          description: '',
+          asA: '',
+          iWant: '',
+          soThat: '',
+          acceptanceCriteria: []
+        };
         
-        sendJson(res, 200, enhancedDraft);
+        sendJson(res, 200, draft);
+        
       } catch (error) {
         console.error('Failed to generate story draft', error);
         const status = error.statusCode ?? 500;
