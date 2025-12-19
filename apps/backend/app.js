@@ -6270,27 +6270,28 @@ export async function createApp() {
             inputJson.parentId = String(parent.id);
           }
           
-          const response = await fetch('http://localhost:8081/kiro/v3/transform', {
+          const response = await fetch('http://localhost:8081/kiro/enhance-story', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contractId: 'enhance-story-v1',
-              inputJson
+              idea: idea,
+              title: idea.substring(0, 100),
+              description: idea
             }),
             signal: AbortSignal.timeout(300000) // 5 minute timeout (proven working time)
           });
 
           if (response.ok) {
             const result = await response.json();
-            if (result.success && result.outputJson) {
-              console.log('✅ Kiro v3 enhancement successful (improved)');
-              sendJson(res, 200, result.outputJson);
+            if (result.success && result.enhanced) {
+              console.log('✅ Kiro enhancement successful');
+              sendJson(res, 200, result.enhanced);
               return;
             }
           }
-          console.warn('⚠️ Kiro API v3 returned non-OK response');
+          console.warn('⚠️ Kiro API returned non-OK response');
         } catch (kiroError) {
-          console.warn('⚠️ Kiro API v3 error:', kiroError.message);
+          console.warn('⚠️ Kiro API error:', kiroError.message);
         }
         
         // Fallback: return minimal draft
