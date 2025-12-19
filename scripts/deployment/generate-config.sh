@@ -8,21 +8,23 @@ set -e
 ENV=${1:-prod}
 
 if [ "$ENV" = "prod" ]; then
-  # Get prod API URL from CloudFormation
-  API_URL=$(aws cloudformation describe-stacks --stack-name aipm-backend-prod --region us-east-1 --query 'Stacks[0].Outputs[?OutputKey==`ServiceEndpoint`].OutputValue' --output text 2>/dev/null || echo "https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod")
+  # Use EC2 endpoint for production (AI flow enabled)
+  API_URL="http://44.220.45.57:4000"
   ENVIRONMENT="production"
   STAGE="prod"
   STORIES_TABLE="aipm-backend-prod-stories"
   TESTS_TABLE="aipm-backend-prod-acceptance-tests"
   DEBUG="false"
+  EC2_TERMINAL_URL="ws://44.220.45.57:8080"
 elif [ "$ENV" = "dev" ]; then
-  # Get dev API URL from CloudFormation
-  API_URL=$(aws cloudformation describe-stacks --stack-name aipm-backend-dev --region us-east-1 --query 'Stacks[0].Outputs[?OutputKey==`ServiceEndpoint`].OutputValue' --output text 2>/dev/null || echo "https://chob6arn1k.execute-api.us-east-1.amazonaws.com/dev")
+  # Use EC2 endpoint for development (AI flow enabled)
+  API_URL="http://44.220.45.57:4000"
   ENVIRONMENT="development"
   STAGE="dev"
   STORIES_TABLE="aipm-backend-dev-stories"
   TESTS_TABLE="aipm-backend-dev-acceptance-tests"
   DEBUG="true"
+  EC2_TERMINAL_URL="ws://44.220.45.57:8080"
 else
   echo "Error: Invalid environment. Use 'prod' or 'dev'"
   exit 1
@@ -31,6 +33,7 @@ fi
 CONFIG_CONTENT="window.CONFIG = {
   API_BASE_URL: '$API_URL',
   apiEndpoint: '$API_URL',
+  EC2_TERMINAL_URL: '$EC2_TERMINAL_URL',
   ENVIRONMENT: '$ENVIRONMENT',
   environment: '$ENVIRONMENT',
   stage: '$STAGE',
