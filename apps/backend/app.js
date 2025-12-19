@@ -6270,7 +6270,7 @@ export async function createApp() {
             inputJson.parentId = String(parent.id);
           }
           
-          const response = await fetch('http://localhost:8081/kiro/v3/transform', {
+          const response = await fetch('http://44.220.45.57:8081/kiro/v3/transform', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
