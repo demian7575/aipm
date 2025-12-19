@@ -6270,21 +6270,29 @@ export async function createApp() {
             inputJson.parentId = String(parent.id);
           }
           
-          const response = await fetch('http://44.220.45.57:8081/kiro/v3/transform', {
+          const response = await fetch('http://44.220.45.57:8081/kiro/enhance-story', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contractId: 'enhance-story-v1',
-              inputJson
+              idea: idea,
+              draft: {
+                title: idea.substring(0, 100),
+                description: idea,
+                asA: 'user',
+                iWant: idea,
+                soThat: 'achieve goal',
+                acceptanceCriteria: []
+              },
+              parent: parent
             }),
             signal: AbortSignal.timeout(900000) // 15 minute timeout to match Kiro API server
           });
 
           if (response.ok) {
             const result = await response.json();
-            if (result.success && result.outputJson) {
-              console.log('✅ Kiro v3 enhancement successful (improved)');
-              sendJson(res, 200, result.outputJson);
+            if (result && (result.title || result.description)) {
+              console.log('✅ Kiro enhance-story successful');
+              sendJson(res, 200, result);
               return;
             }
           }
