@@ -6277,7 +6277,7 @@ export async function createApp() {
               contractId: 'enhance-story-v1',
               inputJson
             }),
-            signal: AbortSignal.timeout(300000) // 5 minute timeout (proven working time)
+            signal: AbortSignal.timeout(900000) // 15 minute timeout to match Kiro API server
           });
 
           if (response.ok) {

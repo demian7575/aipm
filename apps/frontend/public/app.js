@@ -6247,7 +6247,7 @@ function openChildStoryModal(parentId) {
       const draft = await sendJson(resolveApiUrl('/api/stories/draft'), {
         method: 'POST',
         body: { idea, parentId },
-        timeout: 300000 // 5 minutes for Kiro enhancement
+        timeout: 900000 // 15 minutes to match Kiro API server
       });
       if (draft && typeof draft === 'object') {
         const titleInput = container.querySelector('#child-title');
