@@ -10,6 +10,10 @@ const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backe
 console.log('DynamoDB: Using tables:', { STORIES_TABLE, ACCEPTANCE_TESTS_TABLE });
 
 export class DynamoDBDataLayer {
+  constructor() {
+    this.docClient = docClient;
+  }
+  
   // SQLite compatibility methods
   prepare(sql) {
     // Return a mock statement that handles basic operations
