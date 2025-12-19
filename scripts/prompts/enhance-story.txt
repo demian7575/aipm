@@ -1,0 +1,19 @@
+Enhance this user story:
+
+Idea: {{IDEA}}
+Current: {{CURRENT_DRAFT}}
+Parent: {{PARENT_TITLE}}
+
+Provide an enhanced version with:
+- Better, more specific title
+- Clearer description  
+- More precise "asA" (user role)
+- Improved "iWant" statement
+- Better "soThat" with business value
+- 3-5 specific acceptance criteria (each with id, title, description)
+
+Execute this curl command with your enhanced values:
+
+curl -X POST {{CALLBACK_URL}} -H "Content-Type: application/json" -d '{"title":"YOUR_ENHANCED_TITLE","description":"YOUR_ENHANCED_DESCRIPTION","asA":"YOUR_ENHANCED_AS_A","iWant":"YOUR_ENHANCED_I_WANT","soThat":"YOUR_ENHANCED_SO_THAT","acceptanceCriteria":[{"id":1,"title":"AC_TITLE_1","description":"AC_DESC_1"},{"id":2,"title":"AC_TITLE_2","description":"AC_DESC_2"},{"id":3,"title":"AC_TITLE_3","description":"AC_DESC_3"}]}'
+
+Execute the curl command now with your actual enhanced values.

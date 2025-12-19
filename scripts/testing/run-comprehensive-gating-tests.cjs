@@ -9,7 +9,7 @@ const ENVIRONMENTS = {
         frontend: 'http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com'
     },
     development: {
-        api: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
+        api: 'http://44.220.45.57:4000',
         frontend: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'
     }
 };
@@ -50,7 +50,9 @@ async function testEndpoint(url, description, method = 'GET', data = null) {
             resolve({ success: false, error: err.message });
         });
         
-        request.setTimeout(10000, () => {
+        // Use longer timeout for draft generation (5 minutes), shorter for others (10 seconds)
+        const timeout = description.includes('Draft Generation') ? 300000 : 10000;
+        request.setTimeout(timeout, () => {
             console.log(`   ❌ ${description}: Timeout`);
             request.destroy();
             resolve({ success: false, error: 'Timeout' });
@@ -109,6 +111,15 @@ async function testEnvironment(envName, config) {
         { url: `${config.api}/api/stories`, desc: 'API Stories' },
         { url: `${config.api}/api/stories/draft`, desc: 'API Draft Generation', method: 'POST', data: { idea: 'test' } }
     ];
+    
+    // Add AI functionality test for development environment (EC2)
+    if (envName === 'development') {
+        apiTests.push({ 
+            url: 'http://44.220.45.57:8081/health', 
+            desc: 'Kiro API Health', 
+            method: 'GET' 
+        });
+    }
     
     for (const test of apiTests) {
         const result = await testEndpoint(test.url, test.desc, test.method, test.data);

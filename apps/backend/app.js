@@ -5815,46 +5815,6 @@ async function handleFileUpload(req, res, url) {
   });
 }
 
-async function enhanceStoryWithKiro(idea, heuristicDraft, parent) {
-  try {
-    // Call EC2 Kiro API server for enhancement
-    const EC2_KIRO_API = 'http://44.220.45.57:8081';
-    
-    const prompt = `Enhance this user story:
-Idea: ${idea}
-Current draft: ${JSON.stringify(heuristicDraft, null, 2)}
-Parent context: ${parent ? parent.title : 'None'}
-
-Please provide an enhanced version with better title, description, and acceptance criteria.`;
-
-    console.log('🔄 Calling EC2 Kiro API for story enhancement...');
-    
-    const response = await fetch(`${EC2_KIRO_API}/kiro/enhance-story`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        idea,
-        draft: heuristicDraft,
-        parent: parent ? { id: parent.id, title: parent.title, asA: parent.asA } : null,
-        prompt
-      }),
-      signal: AbortSignal.timeout(30000) // 30 second timeout
-    });
-
-    if (response.ok) {
-      const enhanced = await response.json();
-      console.log('✅ Kiro enhancement successful');
-      return { ...heuristicDraft, ...enhanced, source: 'kiro-enhanced' };
-    } else {
-      console.warn('⚠️ Kiro API returned error:', response.status);
-      return { ...heuristicDraft, source: 'heuristic-kiro-error' };
-    }
-  } catch (error) {
-    console.error('❌ Kiro enhancement failed:', error.message);
-    return { ...heuristicDraft, source: 'heuristic-fallback' };
-  }
-}
-
 export async function createApp() {
   const db = await ensureDatabase();
 
@@ -6293,13 +6253,59 @@ export async function createApp() {
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
         
-        // Generate heuristic skeleton
-        const heuristicDraft = generateInvestCompliantStory(idea, { parent });
+        // Call improved Kiro API v3 transform endpoint (proven working - needs 4+ minutes)
+        try {
+          console.log('🤖 Calling Kiro API v3 transform (improved)...');
+          const storyId = `story-${Date.now()}`;
+          const inputJson = {
+            storyId,
+            title: idea.substring(0, 100),
+            description: idea,
+            asA: 'user',
+            iWant: idea,
+            soThat: 'achieve goal',
+            idea: idea // Add idea field for simple prompt builder
+          };
+          if (parent) {
+            inputJson.parentId = String(parent.id);
+          }
+          
+          const response = await fetch('http://localhost:8081/kiro/v3/transform', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contractId: 'enhance-story-v1',
+              inputJson
+            }),
+            signal: AbortSignal.timeout(300000) // 5 minute timeout (proven working time)
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.outputJson) {
+              console.log('✅ Kiro v3 enhancement successful (improved)');
+              sendJson(res, 200, result.outputJson);
+              return;
+            }
+          }
+          console.warn('⚠️ Kiro API v3 returned non-OK response');
+        } catch (kiroError) {
+          console.warn('⚠️ Kiro API v3 error:', kiroError.message);
+        }
         
-        // Enhance with Kiro CLI directly
-        const enhancedDraft = await enhanceStoryWithKiro(idea, heuristicDraft, parent);
+        // Fallback: return minimal draft
+        console.log('📝 Returning basic draft (Kiro unavailable)');
+        const draft = {
+          title: idea,
+          description: '',
+          asA: '',
+          iWant: '',
+          soThat: '',
+          acceptanceCriteria: []
+        };
         
-        sendJson(res, 200, enhancedDraft);
+        sendJson(res, 200, draft);
+        
       } catch (error) {
         console.error('Failed to generate story draft', error);
         const status = error.statusCode ?? 500;

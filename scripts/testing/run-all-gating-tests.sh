@@ -1,5 +1,5 @@
 #!/bin/bash
-# Unified Gating Test Runner - All Environments + Kiro API
+# Unified Gating Test Runner - All Environments + Kiro API + AI Functionality
 
 set -e
 
@@ -68,10 +68,35 @@ fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# 5. Run AI Functionality Tests (NEW)
+if curl -s -m 2 http://44.220.45.57:8081/health > /dev/null 2>&1 && curl -s -m 2 http://44.220.45.57:4000/api/stories > /dev/null 2>&1; then
+    echo "🧠 Running AI Functionality Tests..."
+    if bash scripts/testing/test-ai-gating-simple.sh; then
+        echo "✅ AI functionality tests passed"
+        TOTAL_PASSED=$((TOTAL_PASSED + 1))
+    else
+        echo "❌ AI functionality tests failed"
+        TOTAL_FAILED=$((TOTAL_FAILED + 1))
+    fi
+else
+    echo "⏭️  Skipping AI functionality tests (Kiro API or Backend not available)"
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📊 COMPLETE GATING TEST SUMMARY"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ Test Suites Passed: $TOTAL_PASSED"
 echo "❌ Test Suites Failed: $TOTAL_FAILED"
+echo ""
+echo "📋 Test Coverage:"
+echo "   • Environment Tests (Frontend + Backend)"
+echo "   • Browser Tests (98 automated tests)"
+echo "   • Deployment Configuration"
+echo "   • Kiro API Integration"
+echo "   • AI Functionality (Enhancement + Performance)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if [ $TOTAL_FAILED -eq 0 ]; then

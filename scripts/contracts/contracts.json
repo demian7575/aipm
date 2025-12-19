@@ -1,0 +1,220 @@
+{
+  "enhance-story-v1": {
+    "version": "1.0",
+    "description": "Enhance user story with INVEST principles",
+    "inputSchema": {
+      "type": "object",
+      "required": ["storyId", "title", "description", "asA", "iWant", "soThat"],
+      "properties": {
+        "storyId": {"type": "string"},
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "asA": {"type": "string"},
+        "iWant": {"type": "string"},
+        "soThat": {"type": "string"},
+        "storyPoint": {"type": "number"},
+        "parentId": {"type": "string"},
+        "components": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": ["storyId", "title", "description", "asA", "iWant", "soThat", "acceptanceCriteria", "enhanced"],
+      "properties": {
+        "storyId": {"type": "string"},
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "asA": {"type": "string"},
+        "iWant": {"type": "string"},
+        "soThat": {"type": "string"},
+        "storyPoint": {"type": "number"},
+        "acceptanceCriteria": {"type": "array", "items": {"type": "string"}, "minItems": 3, "maxItems": 5},
+        "enhanced": {"type": "boolean"},
+        "enhancedAt": {"type": "string"}
+      }
+    },
+    "transformationRules": [
+      "Preserve storyId exactly as provided",
+      "Enhance title to be specific and actionable",
+      "Expand description with technical details",
+      "Refine asA to specify user role precisely",
+      "Improve iWant to describe specific functionality",
+      "Enhance soThat to articulate clear business value",
+      "Generate 3-5 acceptance criteria",
+      "Set enhanced=true",
+      "Set enhancedAt to current ISO8601 timestamp"
+    ],
+    "promptTemplate": "You are a JSON transformation service. Transform the input JSON to output JSON following these rules:\n\nINPUT JSON:\n{{inputJson}}\n\nTRANSFORMATION RULES:\n{{#each transformationRules}}\n{{@index}}. {{this}}\n{{/each}}\n\nOUTPUT SCHEMA:\n{{outputSchema}}\n\nCRITICAL: Return ONLY valid JSON matching the output schema. No markdown, no explanations, no additional text. Start with { and end with }.",
+    "dynamodbMapping": {
+      "table": "aipm-backend-prod-stories",
+      "partitionKey": "id",
+      "inputFields": ["id", "title", "description", "asA", "iWant", "soThat", "storyPoint", "parentId", "components"],
+      "outputFields": ["id", "title", "description", "asA", "iWant", "soThat", "storyPoint", "acceptanceCriteria", "enhanced", "enhancedAt", "updatedAt"]
+    }
+  },
+  
+  "generate-acceptance-test-v1": {
+    "version": "1.0",
+    "description": "Generate acceptance test for user story",
+    "inputSchema": {
+      "type": "object",
+      "required": ["testId", "storyId", "ordinal"],
+      "properties": {
+        "testId": {"type": "string"},
+        "storyId": {"type": "string"},
+        "ordinal": {"type": "number"},
+        "reason": {"type": "string"},
+        "context": {"type": "string"},
+        "story": {
+          "type": "object",
+          "properties": {
+            "title": {"type": "string"},
+            "description": {"type": "string"},
+            "asA": {"type": "string"},
+            "iWant": {"type": "string"},
+            "soThat": {"type": "string"}
+          }
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": ["testId", "storyId", "ordinal", "title", "given", "when", "then", "status"],
+      "properties": {
+        "testId": {"type": "string"},
+        "storyId": {"type": "string"},
+        "ordinal": {"type": "number"},
+        "title": {"type": "string"},
+        "given": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 3},
+        "when": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 3},
+        "then": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 3},
+        "status": {"type": "string", "enum": ["Draft"]},
+        "createdAt": {"type": "string"}
+      }
+    },
+    "transformationRules": [
+      "Preserve testId exactly as provided",
+      "Preserve storyId exactly as provided",
+      "Preserve ordinal exactly as provided",
+      "Generate descriptive title based on reason and story context",
+      "Create 2-3 Given conditions (preconditions)",
+      "Create 2-3 When actions (user actions)",
+      "Create 2-3 Then outcomes (expected results)",
+      "Set status='Draft'",
+      "Set createdAt to current ISO8601 timestamp"
+    ],
+    "promptTemplate": "You are a JSON transformation service. Transform the input JSON to output JSON following these rules:\n\nINPUT JSON:\n{{inputJson}}\n\nTRANSFORMATION RULES:\n{{#each transformationRules}}\n{{@index}}. {{this}}\n{{/each}}\n\nOUTPUT SCHEMA:\n{{outputSchema}}\n\nCRITICAL: Return ONLY valid JSON matching the output schema. No markdown, no explanations, no additional text. Start with { and end with }.",
+    "dynamodbMapping": {
+      "table": "aipm-backend-prod-acceptance-tests",
+      "partitionKey": "id",
+      "inputFields": ["id", "storyId", "ordinal", "reason", "context"],
+      "outputFields": ["id", "storyId", "ordinal", "title", "given", "when", "then", "status", "createdAt", "updatedAt"]
+    }
+  },
+  
+  "analyze-invest-v1": {
+    "version": "1.0",
+    "description": "Analyze story against INVEST criteria",
+    "inputSchema": {
+      "type": "object",
+      "required": ["storyId", "title", "asA", "iWant", "soThat"],
+      "properties": {
+        "storyId": {"type": "string"},
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "asA": {"type": "string"},
+        "iWant": {"type": "string"},
+        "soThat": {"type": "string"},
+        "storyPoint": {"type": "number"},
+        "components": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": ["storyId", "score", "summary", "criteria"],
+      "properties": {
+        "storyId": {"type": "string"},
+        "score": {"type": "number", "minimum": 0, "maximum": 100},
+        "summary": {"type": "string"},
+        "warnings": {"type": "array", "items": {"type": "string"}},
+        "suggestions": {"type": "array", "items": {"type": "string"}},
+        "criteria": {
+          "type": "object",
+          "required": ["independent", "negotiable", "valuable", "estimable", "small", "testable"],
+          "properties": {
+            "independent": {
+              "type": "object",
+              "required": ["pass", "feedback"],
+              "properties": {
+                "pass": {"type": "boolean"},
+                "feedback": {"type": "string"}
+              }
+            },
+            "negotiable": {
+              "type": "object",
+              "required": ["pass", "feedback"],
+              "properties": {
+                "pass": {"type": "boolean"},
+                "feedback": {"type": "string"}
+              }
+            },
+            "valuable": {
+              "type": "object",
+              "required": ["pass", "feedback"],
+              "properties": {
+                "pass": {"type": "boolean"},
+                "feedback": {"type": "string"}
+              }
+            },
+            "estimable": {
+              "type": "object",
+              "required": ["pass", "feedback"],
+              "properties": {
+                "pass": {"type": "boolean"},
+                "feedback": {"type": "string"}
+              }
+            },
+            "small": {
+              "type": "object",
+              "required": ["pass", "feedback"],
+              "properties": {
+                "pass": {"type": "boolean"},
+                "feedback": {"type": "string"}
+              }
+            },
+            "testable": {
+              "type": "object",
+              "required": ["pass", "feedback"],
+              "properties": {
+                "pass": {"type": "boolean"},
+                "feedback": {"type": "string"}
+              }
+            }
+          }
+        },
+        "analyzedAt": {"type": "string"}
+      }
+    },
+    "transformationRules": [
+      "Preserve storyId exactly as provided",
+      "Analyze Independent: Can be developed without dependencies?",
+      "Analyze Negotiable: Implementation details flexible?",
+      "Analyze Valuable: Provides clear user/business value?",
+      "Analyze Estimable: Effort can be reasonably estimated?",
+      "Analyze Small: Fits in single sprint (1-2 weeks)?",
+      "Analyze Testable: Can define clear acceptance criteria?",
+      "Calculate score (0-100) based on criteria passing",
+      "Generate summary (1-2 sentences)",
+      "List warnings for failed criteria",
+      "List suggestions for improvements",
+      "Set analyzedAt to current ISO8601 timestamp"
+    ],
+    "promptTemplate": "You are a JSON transformation service. Transform the input JSON to output JSON following these rules:\n\nINPUT JSON:\n{{inputJson}}\n\nTRANSFORMATION RULES:\n{{#each transformationRules}}\n{{@index}}. {{this}}\n{{/each}}\n\nOUTPUT SCHEMA:\n{{outputSchema}}\n\nCRITICAL: Return ONLY valid JSON matching the output schema. No markdown, no explanations, no additional text. Start with { and end with }.",
+    "dynamodbMapping": {
+      "table": "aipm-invest-analysis",
+      "partitionKey": "storyId",
+      "inputFields": ["storyId", "title", "description", "asA", "iWant", "soThat", "storyPoint", "components"],
+      "outputFields": ["storyId", "score", "summary", "warnings", "suggestions", "criteria", "analyzedAt"]
+    }
+  }
+}

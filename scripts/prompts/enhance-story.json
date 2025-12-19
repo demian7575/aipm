@@ -1,0 +1,24 @@
+{
+  "title": "{{ENHANCED_TITLE}}",
+  "description": "{{ENHANCED_DESCRIPTION}}",
+  "asA": "{{ENHANCED_AS_A}}",
+  "iWant": "{{ENHANCED_I_WANT}}",
+  "soThat": "{{ENHANCED_SO_THAT}}",
+  "acceptanceCriteria": [
+    {
+      "id": 1,
+      "title": "{{AC_1_TITLE}}",
+      "description": "{{AC_1_DESCRIPTION}}"
+    },
+    {
+      "id": 2,
+      "title": "{{AC_2_TITLE}}",
+      "description": "{{AC_2_DESCRIPTION}}"
+    },
+    {
+      "id": 3,
+      "title": "{{AC_3_TITLE}}",
+      "description": "{{AC_3_DESCRIPTION}}"
+    }
+  ]
+}
