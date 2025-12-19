@@ -70,14 +70,16 @@ if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$EC2_HOST" "echo 'SSH OK
     
     # Deploy Terminal Server
     if sudo systemctl list-unit-files | grep -q aipm-terminal-server; then
-      echo "  🔄 Restarting terminal server..."
+      echo "  🔄 Enabling and restarting terminal server..."
+      sudo systemctl enable aipm-terminal-server
       sudo systemctl restart aipm-terminal-server
       sleep 2
       
       if sudo systemctl is-active --quiet aipm-terminal-server; then
         echo "  ✅ Terminal server restarted"
       else
-        echo "  ⚠️  Terminal server failed to start"
+        echo "  ❌ Terminal server failed to start - DEPLOYMENT FAILED"
+        exit 1
       fi
     else
       echo "  ⚠️  Terminal server not configured"
@@ -85,14 +87,16 @@ if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$EC2_HOST" "echo 'SSH OK
     
     # Deploy Kiro API Server
     if sudo systemctl list-unit-files | grep -q kiro-api-server; then
-      echo "  🔄 Restarting Kiro API server..."
+      echo "  🔄 Enabling and restarting Kiro API server..."
+      sudo systemctl enable kiro-api-server
       sudo systemctl restart kiro-api-server
       sleep 2
       
       if sudo systemctl is-active --quiet kiro-api-server; then
         echo "  ✅ Kiro API server restarted"
       else
-        echo "  ⚠️  Kiro API server failed to start"
+        echo "  ❌ Kiro API server failed to start - DEPLOYMENT FAILED"
+        exit 1
       fi
     else
       echo "  🔧 Setting up Kiro API server..."
@@ -107,13 +111,15 @@ ENDSSH
   if curl -s -o /dev/null -w "%{http_code}" http://44.220.45.57:8080/health | grep -q "200"; then
     echo "  ✅ Terminal server health check passed"
   else
-    echo "  ⚠️  Terminal server health check failed"
+    echo "  ❌ Terminal server health check failed - DEPLOYMENT FAILED"
+    exit 1
   fi
   
   if curl -s -o /dev/null -w "%{http_code}" http://44.220.45.57:8081/health | grep -q "200"; then
     echo "  ✅ Kiro API health check passed"
   else
-    echo "  ⚠️  Kiro API health check failed"
+    echo "  ❌ Kiro API health check failed - DEPLOYMENT FAILED"
+    exit 1
   fi
 else
   echo "  ⚠️  SSH connection failed - EC2 services not updated"

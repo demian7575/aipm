@@ -1850,6 +1850,8 @@ git push origin <branch> --force
 3. **Trust user experience** - Manual browser testing is mandatory
 4. **Complete environment isolation** - Dev and prod are completely separate
 5. **Development first, production after** - Always test in dev before prod
+6. **Fail fast, fail loud** - Silent failures waste hours of troubleshooting
+7. **Enable services explicitly** - Disabled systemd services cause silent deployment failures
 
 ### Essential Checklist Before Any Change
 - [ ] Read ENTIRE file you're modifying
@@ -1860,6 +1862,8 @@ git push origin <branch> --force
 - [ ] Verify no regressions
 - [ ] Deploy to dev first
 - [ ] Verify in production
+- [ ] Check all services are enabled and running
+- [ ] Validate health checks pass
 
 ---
 
@@ -1868,3 +1872,26 @@ git push origin <branch> --force
 **Remember: If you don't understand it, DON'T CHANGE IT.**
 
 **Remember: Working code is better than "simple" broken code.**
+
+## Recent Lessons Learned (December 2019)
+
+### Timeout Configuration Issues
+- **Problem**: Frontend (5min), backend (5min), and Kiro API (15min) timeout mismatches caused premature failures
+- **Solution**: Aligned all timeouts to 15 minutes to accommodate AI processing time
+- **Lesson**: Timeout mismatches cause failures even when services can complete requests
+
+### Silent Service Failures
+- **Problem**: Systemd services were disabled, causing "successful" deployments with broken functionality
+- **Root Cause**: Deployment script assumed services were enabled, only restarted them
+- **Solution**: Added `systemctl enable` and fail-fast health checks to deployment
+- **Lesson**: Silent failures waste hours - make deployments fail loudly on service issues
+
+### Kiro API Request Queue Issues
+- **Problem**: Stuck requests (1 active, 3 queued) blocked new processing
+- **Solution**: Restart Kiro API server to clear request queue
+- **Lesson**: Long-running AI processes can accumulate stuck requests requiring periodic cleanup
+
+### Backend Process Termination
+- **Problem**: Backend service stopped unexpectedly during troubleshooting
+- **Root Cause**: Process termination during investigation, not application errors
+- **Lesson**: Distinguish between investigation-caused issues vs actual application bugs
