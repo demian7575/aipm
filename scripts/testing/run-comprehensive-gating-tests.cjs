@@ -5,7 +5,7 @@ const http = require('http');
 
 const ENVIRONMENTS = {
     production: {
-        api: 'https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod',
+        api: 'http://44.220.45.57:4000',
         frontend: 'http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com'
     },
     development: {
