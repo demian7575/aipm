@@ -257,11 +257,17 @@ const server = http.createServer(async (req, res) => {
         const prompt = buildSimpleTransformPrompt(contract, inputJson, callbackUrl);
         broadcastLog(`📝 Simple prompt: ${prompt.length} chars`);
         
-        // Send to Kiro CLI
+        // Send to Kiro CLI and wait for result
         broadcastLog(`📤 Sending simple prompt to Kiro CLI...`);
-        kiroQueue.sendCommand(prompt).catch(err => {
+        try {
+          const kiroResult = await kiroQueue.sendCommand(prompt);
+          if (!kiroResult.success) {
+            throw new Error(`Kiro CLI failed: ${kiroResult.error}`);
+          }
+        } catch (err) {
           broadcastLog(`⚠️ Kiro command error: ${err.message}`);
-        });
+          throw err;
+        }
         
         // Wait for callback
         try {
