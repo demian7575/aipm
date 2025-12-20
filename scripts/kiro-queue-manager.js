@@ -133,22 +133,63 @@ class KiroQueueManager extends EventEmitter {
 
   async sendCommand(message) {
     return new Promise((resolve) => {
-      this.queue.push({ message, resolve });
+      const timestamp = new Date().toISOString();
+      const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      const caller = this.getCallerInfo();
+      
+      // Log queue addition with detailed info
+      this.broadcastLog(`📥 QUEUE ADD [${requestId}] at ${timestamp}`);
+      this.broadcastLog(`   Caller: ${caller}`);
+      this.broadcastLog(`   Message: ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`);
+      this.broadcastLog(`   Queue size before: ${this.queue.length}`);
+      
+      this.queue.push({ message, resolve, requestId, timestamp, caller });
+      
+      this.broadcastLog(`   Queue size after: ${this.queue.length}`);
+      
       if (!this.processing) {
         this.processNext();
       }
     });
   }
 
+  getCallerInfo() {
+    const stack = new Error().stack;
+    const lines = stack.split('\n');
+    // Find the first line that's not from this file
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i];
+      if (line && !line.includes('kiro-queue-manager.js')) {
+        const match = line.match(/at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)/);
+        if (match) {
+          const [, func, file, lineNum] = match;
+          const fileName = file.split('/').pop();
+          return `${func} (${fileName}:${lineNum})`;
+        }
+      }
+    }
+    return 'unknown';
+  }
+
   processNext() {
     if (this.queue.length === 0) {
       this.processing = false;
+      this.broadcastLog(`📤 QUEUE EMPTY - Processing stopped`);
       return;
     }
 
     this.processing = true;
-    const { message, resolve } = this.queue.shift();
+    const item = this.queue.shift();
+    const { message, resolve, requestId, timestamp, caller } = item;
+    
+    // Log queue processing with detailed info
+    this.broadcastLog(`🔄 QUEUE PROCESS [${requestId || 'unknown'}] started`);
+    this.broadcastLog(`   Added at: ${timestamp || 'unknown'}`);
+    this.broadcastLog(`   Caller: ${caller || 'unknown'}`);
+    this.broadcastLog(`   Remaining in queue: ${this.queue.length}`);
+    
     this.currentResolver = resolve;
+    this.currentRequestId = requestId;
     this.buffer = '';
     this.lineBuffer = ''; // Clear line buffer for new command
     this.stderrLineBuffer = ''; // Clear stderr line buffer
@@ -165,13 +206,14 @@ class KiroQueueManager extends EventEmitter {
     // Timeout after 15 minutes
     setTimeout(() => {
       if (this.currentResolver) {
-        this.broadcastLog(`⏱️ Timeout after 15 minutes`);
+        this.broadcastLog(`⏱️ TIMEOUT [${this.currentRequestId || 'unknown'}] after 15 minutes`);
         this.currentResolver({
           success: false,
           output: this.buffer.trim(),
           error: 'Timeout after 15 minutes'
         });
         this.currentResolver = null;
+        this.currentRequestId = null;
         this.buffer = '';
         this.lineBuffer = '';
         this.stderrLineBuffer = '';
