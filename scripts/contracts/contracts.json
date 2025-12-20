@@ -43,14 +43,7 @@
       "Generate 3-5 acceptance criteria",
       "Set enhanced=true",
       "Set enhancedAt to current ISO8601 timestamp"
-    ],
-    "promptTemplate": "You are a JSON transformation service. Transform the input JSON to output JSON following these rules:\n\nINPUT JSON:\n{{inputJson}}\n\nTRANSFORMATION RULES:\n{{#each transformationRules}}\n{{@index}}. {{this}}\n{{/each}}\n\nOUTPUT SCHEMA:\n{{outputSchema}}\n\nCRITICAL: Return ONLY valid JSON matching the output schema. No markdown, no explanations, no additional text. Start with { and end with }.",
-    "dynamodbMapping": {
-      "table": "aipm-backend-prod-stories",
-      "partitionKey": "id",
-      "inputFields": ["id", "title", "description", "asA", "iWant", "soThat", "storyPoint", "parentId", "components"],
-      "outputFields": ["id", "title", "description", "asA", "iWant", "soThat", "storyPoint", "acceptanceCriteria", "enhanced", "enhancedAt", "updatedAt"]
-    }
+    ]
   },
   
   "generate-acceptance-test-v1": {
@@ -102,14 +95,7 @@
       "Create 2-3 Then outcomes (expected results)",
       "Set status='Draft'",
       "Set createdAt to current ISO8601 timestamp"
-    ],
-    "promptTemplate": "You are a JSON transformation service. Transform the input JSON to output JSON following these rules:\n\nINPUT JSON:\n{{inputJson}}\n\nTRANSFORMATION RULES:\n{{#each transformationRules}}\n{{@index}}. {{this}}\n{{/each}}\n\nOUTPUT SCHEMA:\n{{outputSchema}}\n\nCRITICAL: Return ONLY valid JSON matching the output schema. No markdown, no explanations, no additional text. Start with { and end with }.",
-    "dynamodbMapping": {
-      "table": "aipm-backend-prod-acceptance-tests",
-      "partitionKey": "id",
-      "inputFields": ["id", "storyId", "ordinal", "reason", "context"],
-      "outputFields": ["id", "storyId", "ordinal", "title", "given", "when", "then", "status", "createdAt", "updatedAt"]
-    }
+    ]
   },
   
   "analyze-invest-v1": {
@@ -208,13 +194,57 @@
       "List warnings for failed criteria",
       "List suggestions for improvements",
       "Set analyzedAt to current ISO8601 timestamp"
-    ],
-    "promptTemplate": "You are a JSON transformation service. Transform the input JSON to output JSON following these rules:\n\nINPUT JSON:\n{{inputJson}}\n\nTRANSFORMATION RULES:\n{{#each transformationRules}}\n{{@index}}. {{this}}\n{{/each}}\n\nOUTPUT SCHEMA:\n{{outputSchema}}\n\nCRITICAL: Return ONLY valid JSON matching the output schema. No markdown, no explanations, no additional text. Start with { and end with }.",
-    "dynamodbMapping": {
-      "table": "aipm-invest-analysis",
-      "partitionKey": "storyId",
-      "inputFields": ["storyId", "title", "description", "asA", "iWant", "soThat", "storyPoint", "components"],
-      "outputFields": ["storyId", "score", "summary", "warnings", "suggestions", "criteria", "analyzedAt"]
-    }
+    ]
+  },
+
+  "generate-code-v1": {
+    "version": "1.0",
+    "description": "Generate code for GitHub PR development tasks",
+    "inputSchema": {
+      "type": "object",
+      "required": ["taskId", "prompt", "prNumber", "branchName"],
+      "properties": {
+        "taskId": {"type": "string"},
+        "prompt": {"type": "string"},
+        "prNumber": {"type": "number"},
+        "branchName": {"type": "string"},
+        "taskTitle": {"type": "string"},
+        "acceptanceCriteria": {"type": "array", "items": {"type": "string"}},
+        "codebaseContext": {"type": "string"}
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": ["files", "commitMessage", "committed"],
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "content"],
+            "properties": {
+              "path": {"type": "string"},
+              "content": {"type": "string"},
+              "action": {"type": "string", "enum": ["create", "update", "delete"]}
+            }
+          }
+        },
+        "commitMessage": {"type": "string"},
+        "committed": {"type": "boolean"},
+        "prUrl": {"type": "string"},
+        "summary": {"type": "string"}
+      }
+    },
+    "transformationRules": [
+      "Analyze the full codebase context to understand project structure",
+      "Generate production-ready code that follows project patterns",
+      "Create multiple files if needed for complete implementation",
+      "Include proper error handling and documentation",
+      "Follow existing code style and conventions",
+      "Implement all acceptance criteria requirements",
+      "Generate meaningful commit message describing changes",
+      "Automatically commit code to the specified PR branch",
+      "Return GitHub PR URL for review"
+    ]
   }
 }
