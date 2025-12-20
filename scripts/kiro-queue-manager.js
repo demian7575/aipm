@@ -23,7 +23,11 @@ class KiroQueueManager extends EventEmitter {
   
   broadcastLog(message) {
     if (this.logBroadcaster) {
-      this.logBroadcaster(message);
+      // Filter out binary data and control characters
+      const cleanMessage = message.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '').trim();
+      if (cleanMessage && cleanMessage.length > 0) {
+        this.logBroadcaster(cleanMessage);
+      }
     }
   }
 
