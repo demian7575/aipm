@@ -358,18 +358,26 @@ async function generateCodeWithKiro(taskTitle, objective, constraints, acceptanc
   try {
     console.log(`🤖 Using EC2 Kiro API for code generation`);
     
-    const prompt = `Generate complete working JavaScript code for: ${taskTitle}
+    const prompt = `You are a senior JavaScript developer working on AIPM (AI Project Manager), a vanilla JavaScript project with Express backend.
 
-Objective: ${objective}
-Constraints: ${constraints}
-Acceptance Criteria: ${acceptanceCriteria?.join(', ') || 'None specified'}
+TASK: ${taskTitle}
+OBJECTIVE: ${objective}
+CONSTRAINTS: ${constraints}
+ACCEPTANCE CRITERIA: ${acceptanceCriteria?.join('\n- ') || 'None specified'}
 
-Project context: AIPM is a vanilla JavaScript project with Express backend. Include proper error handling and JSDoc comments. Return only the code, no explanations.`;
+Generate complete, working, production-ready JavaScript code that:
+1. Implements the specific task requirements
+2. Follows AIPM project patterns and conventions
+3. Includes proper error handling and JSDoc comments
+4. Uses vanilla JavaScript/Node.js (no external frameworks except Express)
+5. Integrates with existing AIPM architecture
 
-    const response = await fetch('http://44.220.45.57:8081/execute', {
+Return ONLY the code implementation, no explanations or markdown formatting.`;
+
+    const response = await fetch('http://44.220.45.57:8081/kiro/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ message: prompt }),
       signal: AbortSignal.timeout(30000)
     });
 
