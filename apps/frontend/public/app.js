@@ -6284,35 +6284,9 @@ function openChildStoryModal(parentId) {
           refreshChildComponents();
         }
         
-        const source = draft.source || 'unknown';
-        if (source === 'heuristic' && draft.kiroRequestId) {
-          showToast('Draft generated (AI enhancement in progress...)', 'info');
-          // Poll for Kiro result
-          pollKiroResult(draft.kiroRequestId, (enhancedDraft) => {
-            if (titleInput) titleInput.value = enhancedDraft.title || draft.title;
-            autoResizeTitle();
-            if (pointInput) pointInput.value = enhancedDraft.storyPoint != null ? enhancedDraft.storyPoint : draft.storyPoint;
-            if (asADisplay) {
-              asADisplay.value = enhancedDraft.asA || draft.asA;
-              asADisplay.style.height = 'auto';
-              asADisplay.style.height = asADisplay.scrollHeight + 'px';
-            }
-            if (iWantDisplay) {
-              iWantDisplay.value = enhancedDraft.iWant || draft.iWant;
-              iWantDisplay.style.height = 'auto';
-              iWantDisplay.style.height = iWantDisplay.scrollHeight + 'px';
-            }
-            if (soThatDisplay) {
-              soThatDisplay.value = enhancedDraft.soThat || draft.soThat;
-              soThatDisplay.style.height = 'auto';
-              soThatDisplay.style.height = soThatDisplay.scrollHeight + 'px';
-            }
-            if (Array.isArray(enhancedDraft.components)) {
-              childComponents = normalizeComponentSelection(enhancedDraft.components);
-              refreshChildComponents();
-            }
-            showToast('✨ AI-enhanced story ready!', 'success');
-          });
+        // Check if this is an enhanced story (from Kiro API)
+        if (draft.enhanced || draft.source === 'kiro-enhanced') {
+          showToast('✨ AI-enhanced story ready!', 'success');
         } else {
           showToast('Draft story generated', 'success');
         }
