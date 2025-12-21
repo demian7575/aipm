@@ -1,5 +1,5 @@
-// Cache refresh: 1765548890
-// Removed Codex/CodeWhisperer imports - now using automatic PR creation
+// Cache refresh: 1734700777
+// Simplified architecture - removed Worker, using API server internal queue only
 
 function getApiBaseUrl() {
   console.log('getApiBaseUrl - window.CONFIG:', window.CONFIG);
@@ -6244,11 +6244,24 @@ function openChildStoryModal(parentId) {
     generateBtn.textContent = 'Generating…';
     generateBtn.disabled = true;
     try {
-      const draft = await sendJson(resolveApiUrl('/api/stories/draft'), {
+      // Call Kiro API directly for story enhancement with longer timeout
+      const response = await fetch('http://44.220.45.57:8081/kiro/enhance-story', {
         method: 'POST',
-        body: { idea, parentId },
-        timeout: 900000 // 15 minutes to match Kiro API server
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          idea: idea,
+          parentId: parentId
+        }),
+        signal: AbortSignal.timeout(900000) // 15 minute timeout to match Kiro API server
       });
+      
+      if (!response.ok) {
+        throw new Error(`Kiro API error: ${response.status}`);
+      }
+      
+      const draft = await response.json();
       if (draft && typeof draft === 'object') {
         const titleInput = container.querySelector('#child-title');
         const pointInput = container.querySelector('#child-point');
@@ -6285,7 +6298,7 @@ function openChildStoryModal(parentId) {
         }
         
         // Check if this is an enhanced story (from Kiro API)
-        if (draft.enhanced || draft.source === 'kiro-enhanced') {
+        if (draft.enhanced || draft.source === 'kiro-enhanced' || draft.title) {
           showToast('✨ AI-enhanced story ready!', 'success');
         } else {
           showToast('Draft story generated', 'success');
@@ -7462,14 +7475,21 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
     try {
       updateProgress('Generating code...');
       
-      const response = await fetch(resolveApiUrl('/api/generate-code'), {
+      // Call Kiro API directly for code generation with longer timeout
+      const response = await fetch('http://44.220.45.57:8081/kiro/v3/transform', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: values.prompt,
-          prNumber: prNumber,
-          branchName: taskEntry.branchName
+          contract: "generate-code-v1",
+          input: {
+            prompt: values.prompt,
+            prNumber: prNumber,
+            branchName: taskEntry.branchName,
+            storyId: story?.id,
+            storyTitle: story?.title
+          }
         }),
+        signal: AbortSignal.timeout(900000) // 15 minute timeout to match Kiro API server
       });
 
       console.log('📥 Response status:', response.status);

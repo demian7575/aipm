@@ -1,0 +1,4 @@
+Story: {{IDEA}}
+
+Make it better. Execute:
+curl -X POST {{CALLBACK_URL}} -H "Content-Type: application/json" -d '{"title":"BETTER_TITLE","description":"BETTER_DESCRIPTION","asA":"user","iWant":"{{IDEA}}","soThat":"achieve goal"}'

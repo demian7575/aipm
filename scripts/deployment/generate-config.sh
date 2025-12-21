@@ -8,8 +8,8 @@ set -e
 ENV=${1:-prod}
 
 if [ "$ENV" = "prod" ]; then
-  # Use EC2 endpoint for production (AI flow enabled)
-  API_URL="http://44.220.45.57:4000"
+  # Use API Gateway endpoint for production (DynamoDB backend)
+  API_URL="https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod"
   ENVIRONMENT="production"
   STAGE="prod"
   STORIES_TABLE="aipm-backend-prod-stories"

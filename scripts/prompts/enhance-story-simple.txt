@@ -1,0 +1,10 @@
+Enhance this story idea: {{IDEA}}
+
+Create a better user story with:
+- Clear title (max 50 chars)
+- Brief description (max 100 chars)  
+- User role (asA)
+- What they want (iWant)
+- Why they want it (soThat)
+
+Execute: curl -X POST {{CALLBACK_URL}} -H "Content-Type: application/json" -d '{"title":"YOUR_TITLE","description":"YOUR_DESC","asA":"YOUR_ROLE","iWant":"YOUR_WANT","soThat":"YOUR_REASON"}'

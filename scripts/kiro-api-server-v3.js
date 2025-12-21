@@ -18,7 +18,7 @@ console.log('📋 Loaded contracts:', Object.keys(CONTRACTS));
 
 // Load prompt templates
 const PROMPTS = {
-  enhanceStory: readFileSync(join(__dirname, 'prompts/enhance-story.txt'), 'utf-8'),
+  enhanceStory: readFileSync(join(__dirname, 'prompts/enhance-story-minimal.txt'), 'utf-8'),
   enhanceStoryJson: readFileSync(join(__dirname, 'prompts/enhance-story.json'), 'utf-8'),
   chat: readFileSync(join(__dirname, 'prompts/chat.txt'), 'utf-8'),
   transform: readFileSync(join(__dirname, 'prompts/transform.txt'), 'utf-8')
@@ -72,9 +72,61 @@ const server = http.createServer(async (req, res) => {
         'POST /kiro/v3/transform (primary)',
         'POST /kiro/enhance-story (legacy → redirects to v3/transform)',
         'POST /kiro/chat',
-        'POST /kiro/callback/:id'
+        'POST /kiro/callback/:id',
+        'POST /kiro/v3/cli-live-check',
+        'POST /kiro/v3/queue/cleanup'
       ]
     }));
+    return;
+  }
+
+  // CLI Live Check endpoint
+  if (req.url === '/kiro/v3/cli-live-check' && req.method === 'POST') {
+    const startTime = Date.now();
+    try {
+      broadcastLog('🔍 CLI Live Check requested');
+      
+      // Test basic CLI communication with simple echo
+      const result = await kiroQueue.sendCommand('echo "live-check-test"');
+      const duration = Date.now() - startTime;
+      
+      if (result.success && result.output && typeof result.output === 'string') {
+        broadcastLog(`✅ CLI Live Check passed in ${duration}ms`);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: 'healthy',
+          cli_responsive: true,
+          response_time_ms: duration,
+          test_response: result.output.substring(0, 100),
+          output_type: typeof result.output,
+          timestamp: new Date().toISOString()
+        }));
+      } else {
+        broadcastLog(`❌ CLI Live Check failed: ${JSON.stringify(result)}`);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: 'unhealthy',
+          cli_responsive: false,
+          response_time_ms: duration,
+          test_response: result.output,
+          output_type: typeof result.output,
+          error: 'CLI returned non-string or empty response',
+          result: result,
+          timestamp: new Date().toISOString()
+        }));
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      broadcastLog(`❌ CLI Live Check error: ${error.message}`);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'error',
+        cli_responsive: false,
+        response_time_ms: duration,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }));
+    }
     return;
   }
 
@@ -315,6 +367,54 @@ const server = http.createServer(async (req, res) => {
         }));
       }
     });
+    return;
+  }
+
+  // Queue cleanup endpoint
+  if (req.url === '/kiro/v3/queue/cleanup' && req.method === 'POST') {
+    try {
+      broadcastLog('🧹 Queue cleanup requested');
+      
+      const queueSize = kiroQueue.queue.length;
+      const wasProcessing = kiroQueue.processing;
+      
+      // Clear the queue
+      kiroQueue.queue.length = 0;
+      
+      // Clear pending callbacks
+      const pendingCount = pendingCallbacks.size;
+      for (const [callbackId, { reject }] of pendingCallbacks) {
+        reject(new Error('Queue cleanup - request cancelled'));
+      }
+      pendingCallbacks.clear();
+      
+      // Reset processing state if needed
+      if (kiroQueue.processing) {
+        kiroQueue.processing = false;
+      }
+      
+      broadcastLog(`✅ Queue cleanup completed: ${queueSize} queued items, ${pendingCount} pending callbacks cleared`);
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        message: 'Queue cleanup completed',
+        cleared: {
+          queuedItems: queueSize,
+          pendingCallbacks: pendingCount,
+          wasProcessing: wasProcessing
+        },
+        timestamp: new Date().toISOString()
+      }));
+      
+    } catch (error) {
+      broadcastLog(`❌ Queue cleanup error: ${error.message}`);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        success: false,
+        error: error.message 
+      }));
+    }
     return;
   }
 

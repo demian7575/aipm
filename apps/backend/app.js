@@ -2728,109 +2728,20 @@ ${generatedCode}`;
 
 async function handleGenerateCodeRequest(req, res) {
   try {
-    const payload = await parseJson(req);
-    const prompt = String(payload.prompt ?? '').trim();
-    const prNumber = payload.prNumber;
-    const branchName = payload.branchName;
-    
-    if (!prompt) {
-      sendJson(res, 400, { message: 'Prompt is required' });
-      return;
-    }
-
-    if (!prNumber || !branchName) {
-      sendJson(res, 400, { message: 'PR number and branch name are required' });
-      return;
-    }
-
-    console.log(`🤖 Generating code for PR #${prNumber} on branch ${branchName}`);
-
-    // Get full codebase context
-    const codebaseContext = await getCodebaseContext();
-    
-    // Prepare input for generate-code-v1 contract
-    const inputJson = {
-      taskId: `code-gen-${Date.now()}`,
-      prompt: prompt,
-      prNumber: prNumber,
-      branchName: branchName,
-      taskTitle: payload.taskTitle || 'Code Generation Task',
-      acceptanceCriteria: payload.acceptanceCriteria || [],
-      codebaseContext: codebaseContext
-    };
-
-    // Call Kiro API V3 with generate-code-v1 contract
-    const response = await fetch('http://44.220.45.57:8081/kiro/v3/transform', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contractId: 'generate-code-v1',
-        inputJson: inputJson
-      }),
-      signal: AbortSignal.timeout(300000) // 5 minutes for code generation
+    // Code generation is not available in serverless environment
+    // The Kiro API server is not accessible from Lambda
+    sendJson(res, 503, { 
+      success: false,
+      error: 'Code generation is not available in the serverless environment. Please use the local development environment for AI code generation features.',
+      message: 'Service temporarily unavailable'
     });
-
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success && result.outputJson) {
-        console.log('✅ Code generation successful');
-        sendJson(res, 200, {
-          success: true,
-          files: result.outputJson.files,
-          commitMessage: result.outputJson.commitMessage,
-          committed: result.outputJson.committed,
-          prUrl: result.outputJson.prUrl,
-          summary: result.outputJson.summary,
-          source: 'kiro-v3'
-        });
-        return;
-      }
-    }
-
-    console.warn('⚠️ Kiro API V3 code generation failed, using fallback');
-    
-    // Fallback to basic code generation
-    const fallbackCode = `// Generated code for: ${prompt}
-// PR: #${prNumber}
-// Branch: ${branchName}
-
-/**
- * Implementation for: ${payload.taskTitle || 'Development Task'}
- * Generated at: ${new Date().toISOString()}
- */
-
-// TODO: Implement the following requirements:
-// ${prompt}
-
-function implementTask() {
-  // Add your implementation here
-  console.log('Task implementation needed');
-  return {
-    status: 'pending',
-    message: 'Implementation required'
-  };
-}
-
-module.exports = implementTask;`;
-
-    sendJson(res, 200, { 
-      success: true, 
-      files: [{
-        path: `generated-${Date.now()}.js`,
-        content: fallbackCode,
-        action: 'create'
-      }],
-      commitMessage: `Add generated code for: ${prompt}`,
-      committed: false,
-      source: 'fallback',
-      summary: 'Basic code template generated (Kiro V3 unavailable)'
-    });
-
+    return;
   } catch (error) {
-    console.error('❌ Code generation error:', error);
+    console.error('Generate code error:', error);
     sendJson(res, 500, { 
       success: false,
-      error: error.message 
+      error: error.message,
+      message: 'Internal server error'
     });
   }
 }
