@@ -4,8 +4,8 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCo
 const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const STORIES_TABLE = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+const STORIES_TABLE = process.env.STORIES_TABLE || 'aipm-backend-dev-stories';
+const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-dev-acceptance-tests';
 
 console.log('DynamoDB: Using tables:', { STORIES_TABLE, ACCEPTANCE_TESTS_TABLE });
 
@@ -13,150 +13,46 @@ export class DynamoDBDataLayer {
   constructor() {
     this.docClient = docClient;
   }
-  
-  // SQLite compatibility methods
-  prepare(sql) {
-    // Return a mock statement that handles basic operations
-    return {
-      run: async (...params) => {
-        if (sql.includes('INSERT INTO user_stories')) {
-          // Extract values and create story
-          const story = this._parseInsertParams(params);
-          const result = await this.createStory(story);
-          return { lastInsertRowid: result.id };
-        }
-        if (sql.includes('UPDATE user_stories')) {
-          // UPDATE user_stories SET ... WHERE id = ?
-          const id = params[params.length - 1]; // Last param is the ID
-          const updates = this._parseUpdateParams(sql, params);
-          await this.updateStory(id, updates);
-          return { changes: 1 };
-        }
-        if (sql.includes('DELETE FROM user_stories WHERE id = ?')) {
-          // Delete story by ID
-          const id = params[0];
-          await this.deleteStory(id);
-          return { changes: 1 };
-        }
-        return { changes: 1 };
-      },
-      get: async (...params) => {
-        if (sql.includes('SELECT') && sql.includes('user_stories')) {
-          const id = params[0];
-          return await this.getStoryById(id);
-        }
-        return null;
-      },
-      all: async (...params) => {
-        if (sql.includes('SELECT') && sql.includes('user_stories')) {
-          return await this.getAllStories();
-        }
-        return [];
-      }
-    };
-  }
 
-  // Add safeSelectAll method for SQLite compatibility
+  // Add safeSelectAll method for compatibility
   async safeSelectAll(sql) {
-    console.log('DynamoDB: safeSelectAll called with:', sql.substring(0, 50) + '...');
-    
     if (sql.includes('user_stories')) {
-      const stories = await this.getAllStories();
-      console.log('DynamoDB: Returning', stories.length, 'stories');
-      return stories;
+      return await this.getAllStories();
     }
-    
-    // For other tables, query the appropriate DynamoDB tables
     if (sql.includes('acceptance_tests')) {
-      const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
-      try {
-        const result = await this.docClient.send(new ScanCommand({
-          TableName: tableName
-        }));
-        const tests = (result.Items || []).map(item => ({
-          id: item.id,
-          story_id: item.story_id,
-          title: item.title || '',
-          given: item.given,
-          when_step: item.when_step,
-          then_step: item.then_step,
-          status: item.status,
-          created_at: item.created_at,
-          updated_at: item.updated_at
-        }));
-        console.log('DynamoDB: Returning', tests.length, 'acceptance tests');
-        return tests;
-      } catch (error) {
-        console.error('DynamoDB: Error querying acceptance tests:', error);
-        return [];
-      }
+      return await this.getAllAcceptanceTests();
     }
-    if (sql.includes('reference_documents')) {
-      return [];
-    }
-    if (sql.includes('tasks')) {
-      return [];
-    }
-    if (sql.includes('story_dependencies')) {
-      return [];
-    }
-    
-    console.log('DynamoDB: Unknown table in query, returning empty array');
     return [];
   }
 
   exec(sql) {
-    // Mock exec for schema creation - not needed in DynamoDB
-    console.log('DynamoDB: Ignoring SQL exec:', sql.substring(0, 50) + '...');
+    // No-op for DynamoDB
   }
 
   close() {
     // No-op for DynamoDB
   }
 
-  _parseInsertParams(params) {
-    // Parameter parsing for story creation - SQL has mr_id as first param (hardcoded to 1)
-    // SQL: INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at)
-    // But params array doesn't include mr_id since it's hardcoded, so params are:
-    // [parentId, title, description, asA, iWant, soThat, components, storyPoint, assigneeEmail, status, createdAt, updatedAt]
-    const [parentId, title, description, asA, iWant, soThat, components, storyPoint, assigneeEmail, status, createdAt, updatedAt] = params;
-    return {
-      parentId: parentId || null,
-      title: title || '',
-      description: description || '',
-      asA: asA || '',
-      iWant: iWant || '',
-      soThat: soThat || '',
-      components: components || '[]',
-      storyPoint: storyPoint || 0,
-      assigneeEmail: assigneeEmail || '',
-      status: status || 'Draft',
-      createdAt: createdAt || new Date().toISOString(),
-      updatedAt: updatedAt || new Date().toISOString()
-    };
-  }
-
-  _parseUpdateParams(sql, params) {
-    // UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?
-    const [title, description, components, storyPoint, assigneeEmail, asA, iWant, soThat, status, updatedAt, investWarnings, investAnalysis] = params;
-    const updates = {
-      title,
-      description,
-      components,
-      assigneeEmail,
-      asA,
-      iWant,
-      soThat,
-      status,
-      updatedAt,
-      investWarnings,
-      investAnalysis
-    };
-    // Only include storyPoint if it's not null/undefined
-    if (storyPoint != null) {
-      updates.storyPoint = storyPoint;
+  async getAllAcceptanceTests() {
+    try {
+      const result = await docClient.send(new ScanCommand({
+        TableName: ACCEPTANCE_TESTS_TABLE
+      }));
+      return (result.Items || []).map(item => ({
+        id: item.id,
+        story_id: item.storyId,
+        title: item.title || '',
+        given: item.given,
+        when_step: item.when_step,
+        then_step: item.then_step,
+        status: item.status,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
+    } catch (error) {
+      console.error('DynamoDB: Error getting acceptance tests:', error);
+      return [];
     }
-    return updates;
   }
 
   // Stories operations
@@ -166,7 +62,37 @@ export class DynamoDBDataLayer {
         TableName: STORIES_TABLE
       }));
       console.log('DynamoDB: getAllStories result:', result.Items?.length || 0, 'items');
-      return result.Items || [];
+      
+      // DynamoDB DocumentClient already converts types, so we just need to map field names
+      const stories = (result.Items || []).map(item => ({
+        // DynamoDB format (camelCase)
+        id: item.id,
+        parentId: item.parentId,
+        title: item.title || '',
+        description: item.description || '',
+        asA: item.asA || '',
+        iWant: item.iWant || '',
+        soThat: item.soThat || '',
+        components: item.components || '[]',
+        storyPoint: item.storyPoint || 0,
+        assigneeEmail: item.assigneeEmail || '',
+        status: item.status || 'Draft',
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        // SQLite format (snake_case) for compatibility
+        parent_id: item.parentId,
+        as_a: item.asA || '',
+        i_want: item.iWant || '',
+        so_that: item.soThat || '',
+        story_point: item.storyPoint || 0,
+        assignee_email: item.assigneeEmail || '',
+        created_at: item.createdAt,
+        updated_at: item.updatedAt,
+        mr_id: 1, // Default value
+        prs: JSON.stringify(item.prs || []) // Convert array to JSON string
+      }));
+      
+      return stories;
     } catch (error) {
       console.error('DynamoDB: Error getting all stories:', error);
       return [];

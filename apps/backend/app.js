@@ -4983,167 +4983,8 @@ async function removeUploadIfLocal(urlPath) {
 }
 
 async function ensureDatabase() {
-  // Use DynamoDB in production (Lambda environment)
-  if (process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === 'production') {
-    console.log('🔧 Using DynamoDB for production environment');
-    console.log('Environment check:', {
-      AWS_LAMBDA_FUNCTION_NAME: !!process.env.AWS_LAMBDA_FUNCTION_NAME,
-      NODE_ENV: process.env.NODE_ENV,
-      STORIES_TABLE: process.env.STORIES_TABLE
-    });
-    return new DynamoDBDataLayer();
-  }
-  
-  // Use SQLite for local development
-  console.log('🔧 Using SQLite for local development');
-  await Promise.all([mkdir(DATA_DIR, { recursive: true }), mkdir(UPLOAD_DIR, { recursive: true })]);
-  const db = await openDatabase(DATABASE_PATH);
-  db.exec(`
-    PRAGMA journal_mode = WAL;
-    PRAGMA foreign_keys = ON;
-    CREATE TABLE IF NOT EXISTS user_stories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      mr_id INTEGER DEFAULT 1,
-      parent_id INTEGER,
-      title TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      as_a TEXT DEFAULT '',
-      i_want TEXT DEFAULT '',
-      so_that TEXT DEFAULT '',
-      components TEXT DEFAULT '[]',
-      story_point INTEGER,
-      assignee_email TEXT DEFAULT '',
-      status TEXT DEFAULT 'Draft',
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      FOREIGN KEY(parent_id) REFERENCES user_stories(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS acceptance_tests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      story_id INTEGER NOT NULL,
-      given TEXT NOT NULL,
-      when_step TEXT NOT NULL,
-      then_step TEXT NOT NULL,
-      status TEXT DEFAULT 'Draft',
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS reference_documents (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      story_id INTEGER NOT NULL,
-      name TEXT NOT NULL,
-      url TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS tasks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      story_id INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      status TEXT DEFAULT 'Not Started',
-      assignee_email TEXT NOT NULL,
-      estimation_hours REAL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS story_dependencies (
-      story_id INTEGER NOT NULL,
-      depends_on_story_id INTEGER NOT NULL,
-      relationship TEXT DEFAULT 'depends',
-      PRIMARY KEY (story_id, depends_on_story_id),
-      FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE,
-      FOREIGN KEY(depends_on_story_id) REFERENCES user_stories(id) ON DELETE CASCADE
-    );
-  `);
-
-  ensureColumn(db, 'user_stories', 'mr_id', 'mr_id INTEGER DEFAULT 1');
-  ensureColumn(db, 'user_stories', 'parent_id', 'parent_id INTEGER');
-  ensureColumn(db, 'user_stories', 'description', "description TEXT DEFAULT ''");
-  ensureColumn(db, 'user_stories', 'as_a', "as_a TEXT DEFAULT ''");
-  ensureColumn(db, 'user_stories', 'i_want', "i_want TEXT DEFAULT ''");
-  ensureColumn(db, 'user_stories', 'so_that', "so_that TEXT DEFAULT ''");
-  ensureColumn(db, 'user_stories', 'components', "components TEXT DEFAULT '[]'");
-  ensureColumn(db, 'user_stories', 'story_point', 'story_point INTEGER');
-  ensureColumn(db, 'user_stories', 'assignee_email', "assignee_email TEXT DEFAULT ''");
-  ensureColumn(db, 'user_stories', 'status', "status TEXT DEFAULT 'Draft'");
-  ensureColumn(db, 'user_stories', 'created_at', 'created_at TEXT');
-  ensureColumn(db, 'user_stories', 'updated_at', 'updated_at TEXT');
-  ensureColumn(db, 'user_stories', 'prs', "prs TEXT DEFAULT '[]'");
-
-  ensureColumn(db, 'acceptance_tests', 'given', "given TEXT NOT NULL DEFAULT '[]'");
-  ensureColumn(db, 'acceptance_tests', 'when_step', "when_step TEXT NOT NULL DEFAULT '[]'");
-  ensureColumn(db, 'acceptance_tests', 'then_step', "then_step TEXT NOT NULL DEFAULT '[]'");
-  ensureColumn(db, 'acceptance_tests', 'status', "status TEXT DEFAULT 'Draft'");
-  ensureColumn(db, 'acceptance_tests', 'created_at', 'created_at TEXT');
-  ensureColumn(db, 'acceptance_tests', 'updated_at', 'updated_at TEXT');
-
-  ensureColumn(db, 'reference_documents', 'name', "name TEXT NOT NULL DEFAULT ''");
-  ensureColumn(db, 'reference_documents', 'url', "url TEXT NOT NULL DEFAULT ''");
-  ensureColumn(db, 'reference_documents', 'created_at', 'created_at TEXT');
-  ensureColumn(db, 'reference_documents', 'updated_at', 'updated_at TEXT');
-
-  ensureColumn(db, 'tasks', 'description', "description TEXT DEFAULT ''");
-  ensureColumn(db, 'tasks', 'status', "status TEXT DEFAULT 'Not Started'");
-  ensureColumn(db, 'tasks', 'assignee_email', "assignee_email TEXT DEFAULT ''");
-  ensureColumn(db, 'tasks', 'estimation_hours', 'estimation_hours REAL');
-  ensureColumn(db, 'tasks', 'created_at', 'created_at TEXT');
-  ensureColumn(db, 'tasks', 'updated_at', 'updated_at TEXT');
-
-  db.exec(`
-    UPDATE tasks
-    SET assignee_email = COALESCE(assignee_email, '')
-  `);
-  db.exec(`
-    UPDATE tasks
-    SET assignee_email = (
-      SELECT assignee_email FROM user_stories WHERE user_stories.id = tasks.story_id
-    )
-    WHERE (assignee_email IS NULL OR TRIM(assignee_email) = '')
-      AND EXISTS (
-        SELECT 1 FROM user_stories WHERE user_stories.id = tasks.story_id
-      );
-  `);
-  db.exec(`
-    UPDATE tasks
-    SET assignee_email = 'owner@example.com'
-    WHERE assignee_email IS NULL OR TRIM(assignee_email) = '';
-  `);
-
-  const actualColumns = tableColumns(db, 'acceptance_tests');
-  acceptanceTestsHasTitleColumn = actualColumns.some((column) => column.name === 'title');
-  if (acceptanceTestsHasTitleColumn) {
-    db.exec("UPDATE acceptance_tests SET title = COALESCE(title, '')");
-  }
-
-  ensureNotNullDefaults(db);
-
-  const countStmt = db.prepare('SELECT COUNT(*) as count FROM user_stories');
-  const { count } = countStmt.get();
-  if (count === 0) {
-    const timestamp = now();
-    const insertStory = db.prepare(
-      'INSERT INTO user_stories (title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
-    );
-    insertStory.run(
-      'Root',
-      'Seeds the workspace with an AI Project Manager baseline story focused on AIPM component coverage.',
-      'AI project manager',
-      'coordinate autonomous planning across AIPM components',
-      'teams can deliver measurable outcomes with shared context',
-      JSON.stringify(['WorkModel', 'Orchestration_Engagement']),
-      5,
-      'owner@example.com',
-      'Ready',
-      timestamp,
-      timestamp
-    );
-  }
-
-  return db;
+  console.log('🔧 Using DynamoDB');
+  return new DynamoDBDataLayer();
 }
 
 function attachChildren(stories) {
@@ -6196,6 +6037,16 @@ export async function createApp() {
       return;
     }
 
+    // Configuration endpoint - return EC2 endpoints without proxying
+    if (pathname === '/api/config/endpoints' && method === 'GET') {
+      sendJson(res, 200, {
+        ec2Backend: 'http://44.220.45.57:4000',
+        kiroApi: 'http://44.220.45.57:8081',
+        terminal: 'ws://44.220.45.57:8080'
+      });
+      return;
+    }
+
     if (pathname === '/api/stories/draft' && method === 'POST') {
       try {
         const payload = await parseJson(req);
@@ -6211,9 +6062,9 @@ export async function createApp() {
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
         
-        // Call improved Kiro API v3 transform endpoint (proven working - needs 4+ minutes)
+        // Proxy to Kiro API v3 transform endpoint
         try {
-          console.log('🤖 Calling Kiro API v3 transform (improved)...');
+          console.log('🤖 Proxying to Kiro API v3 transform...');
           const storyId = `story-${Date.now()}`;
           const inputJson = {
             storyId,
@@ -6222,35 +6073,27 @@ export async function createApp() {
             asA: 'user',
             iWant: idea,
             soThat: 'achieve goal',
-            idea: idea // Add idea field for simple prompt builder
+            idea: idea
           };
           if (parent) {
             inputJson.parentId = String(parent.id);
           }
           
-          const response = await fetch('http://44.220.45.57:8081/kiro/enhance-story', {
+          const response = await fetch('http://44.220.45.57:8081/kiro/v3/transform', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              idea: idea,
-              draft: {
-                title: idea.substring(0, 100),
-                description: idea,
-                asA: 'user',
-                iWant: idea,
-                soThat: 'achieve goal',
-                acceptanceCriteria: []
-              },
-              parent: parent
+              contractId: 'enhance-story-v1',
+              inputJson: inputJson
             }),
-            signal: AbortSignal.timeout(900000) // 15 minute timeout to match Kiro API server
+            signal: AbortSignal.timeout(840000) // 14 minute timeout
           });
 
           if (response.ok) {
             const result = await response.json();
-            if (result && (result.title || result.description)) {
-              console.log('✅ Kiro enhance-story successful');
-              sendJson(res, 200, result);
+            if (result && result.success && result.outputJson) {
+              console.log('✅ Kiro v3 transform successful');
+              sendJson(res, 200, result.outputJson);
               return;
             }
           }
@@ -6269,6 +6112,8 @@ export async function createApp() {
           soThat: '',
           acceptanceCriteria: []
         };
+        
+        sendJson(res, 200, draft);
         
         sendJson(res, 200, draft);
         
