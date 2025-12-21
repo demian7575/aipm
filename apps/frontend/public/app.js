@@ -6244,20 +6244,33 @@ function openChildStoryModal(parentId) {
     generateBtn.textContent = 'Generating…';
     generateBtn.disabled = true;
     try {
+      // Show progress indicator
+      generateBtn.textContent = 'Generating… (this may take up to 30 minutes)';
+      
       // Call Kiro API directly for story enhancement with longer timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1800000); // 30 minute timeout
+      
       const response = await fetch('http://44.220.45.57:8081/kiro/enhance-story', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Connection': 'keep-alive'
         },
         body: JSON.stringify({
           idea: idea,
           parentId: parentId
         }),
-        signal: AbortSignal.timeout(900000) // 15 minute timeout to match Kiro API server
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
+        // If we get a timeout or server error, provide helpful message
+        if (response.status === 500 || response.status === 504) {
+          throw new Error(`Story generation is taking longer than expected. The request may still be processing in the background. You can try cleaning up the queue and retrying.`);
+        }
         throw new Error(`Kiro API error: ${response.status}`);
       }
       
@@ -7654,3 +7667,26 @@ function openCreatePRModal(story, taskEntry = null) {
 }
 
 initialize();
+
+// Global function to clean up Kiro API queue (accessible from browser console)
+window.cleanupKiroQueue = async function() {
+  try {
+    const response = await fetch('http://44.220.45.57:8081/kiro/v3/queue/cleanup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('Queue cleanup result:', result);
+      showToast(`Queue cleanup completed. Cleared ${result.cleared.queuedItems} queued items and ${result.cleared.pendingCallbacks} pending callbacks.`, 'success');
+      return result;
+    } else {
+      throw new Error(`Cleanup failed: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Queue cleanup error:', error);
+    showToast(`Queue cleanup failed: ${error.message}`, 'error');
+    throw error;
+  }
+};
