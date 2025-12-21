@@ -14,7 +14,37 @@ export class DynamoDBDataLayer {
     this.docClient = docClient;
   }
 
-  // Add safeSelectAll method for compatibility
+  // SQLite compatibility methods
+  prepare(sql) {
+    return {
+      run: async (...params) => {
+        if (sql.includes('DELETE FROM user_stories WHERE id = ?')) {
+          const id = params[0];
+          await this.deleteStory(id);
+          return { changes: 1 };
+        }
+        if (sql.includes('DELETE FROM acceptance_tests WHERE id = ?')) {
+          const id = params[0];
+          await this.deleteAcceptanceTest(id);
+          return { changes: 1 };
+        }
+        return { changes: 1 };
+      },
+      get: async (...params) => {
+        if (sql.includes('SELECT') && sql.includes('user_stories')) {
+          const id = params[0];
+          return await this.getStoryById(id);
+        }
+        return null;
+      },
+      all: async (...params) => {
+        if (sql.includes('SELECT') && sql.includes('user_stories')) {
+          return await this.getAllStories();
+        }
+        return [];
+      }
+    };
+  }
   async safeSelectAll(sql) {
     if (sql.includes('user_stories')) {
       return await this.getAllStories();
