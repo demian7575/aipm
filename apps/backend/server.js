@@ -289,7 +289,7 @@ createApp()
 
       server.once('listening', handleListening);
       server.once('error', handleError);
-      server.listen(portToUse);
+      server.listen(portToUse, '0.0.0.0');
     };
 
     listen(desiredPort, allowDynamicFallback);
