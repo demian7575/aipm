@@ -6125,8 +6125,6 @@ export async function createApp() {
         
         sendJson(res, 200, draft);
         
-        sendJson(res, 200, draft);
-        
       } catch (error) {
         console.error('Failed to generate story draft', error);
         const status = error.statusCode ?? 500;
