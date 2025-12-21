@@ -6072,27 +6072,58 @@ export async function createApp() {
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
         
-        // Generate enhanced draft without Kiro API
-        console.log('📝 Generating enhanced draft locally...');
+        // Proxy to Kiro API v3 transform endpoint
+        try {
+          console.log('🤖 Proxying to Kiro API v3 transform...');
+          const storyId = `story-${Date.now()}`;
+          const inputJson = {
+            storyId,
+            title: idea.substring(0, 100),
+            description: idea,
+            asA: 'user',
+            iWant: idea,
+            soThat: 'achieve goal',
+            idea: idea
+          };
+          if (parent) {
+            inputJson.parentId = String(parent.id);
+          }
+          
+          const response = await fetch('http://44.220.45.57:8081/kiro/v3/transform', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contractId: 'enhance-story-v1',
+              inputJson: inputJson
+            }),
+            signal: AbortSignal.timeout(840000) // 14 minute timeout
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result && result.success && result.outputJson) {
+              console.log('✅ Kiro v3 transform successful');
+              sendJson(res, 200, result.outputJson);
+              return;
+            }
+          }
+          console.warn('⚠️ Kiro API v3 returned non-OK response');
+        } catch (kiroError) {
+          console.warn('⚠️ Kiro API v3 error:', kiroError.message);
+        }
         
-        const enhancedDraft = {
-          storyId: `story-${Date.now()}`,
-          title: idea.charAt(0).toUpperCase() + idea.slice(1),
-          description: `Implement ${idea.toLowerCase()} functionality to improve user experience and system capabilities.`,
-          asA: parent ? `user of ${parent.title}` : 'system user',
-          iWant: `to ${idea.toLowerCase()}`,
-          soThat: 'I can accomplish my goals more effectively',
-          acceptanceCriteria: [
-            `System successfully implements ${idea.toLowerCase()}`,
-            'User interface is intuitive and responsive',
-            'All edge cases are handled gracefully',
-            'Performance meets acceptable standards'
-          ],
-          enhanced: true,
-          enhancedAt: new Date().toISOString()
+        // Fallback: return minimal draft
+        console.log('📝 Returning basic draft (Kiro unavailable)');
+        const draft = {
+          title: idea,
+          description: '',
+          asA: '',
+          iWant: '',
+          soThat: '',
+          acceptanceCriteria: []
         };
         
-        sendJson(res, 200, enhancedDraft);
+        sendJson(res, 200, draft);
         
       } catch (error) {
         console.error('Failed to generate story draft', error);
