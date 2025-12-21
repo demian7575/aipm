@@ -6047,6 +6047,16 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/stories/draft' && method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      });
+      res.end();
+      return;
+    }
+
     if (pathname === '/api/stories/draft' && method === 'POST') {
       try {
         const payload = await parseJson(req);
