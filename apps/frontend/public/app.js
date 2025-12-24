@@ -1615,36 +1615,6 @@ async function mergePR(prEntry) {
   }
 }
 
-async function rebaseCodeWhispererPR(entry) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/codewhisperer-rebase`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        repo: entry.repo,
-        number: entry.number,
-        branchName: entry.branchName
-      })
-    });
-    
-    if (!response.ok) {
-      entry.lastError = `Rebase failed: ${response.status}`;
-      return false;
-    }
-    
-    const data = await response.json();
-    entry.lastError = null;
-    entry.lastCheckedAt = new Date().toISOString();
-    persistCodeWhispererDelegations();
-    return true;
-  } catch (error) {
-    entry.lastError = `Rebase error: ${error.message}`;
-    entry.lastCheckedAt = new Date().toISOString();
-    persistCodeWhispererDelegations();
-    return false;
-  }
-}
-
 function formatCodeWhispererTargetLabel(entry) {
   if (!entry) {
     return '';
@@ -1877,57 +1847,7 @@ function renderCodeWhispererSectionList(container, story) {
     });
     actions.appendChild(generateCodeBtn);
 
-    const taskUrl = entry.taskUrl || entry.htmlUrl;
-    const threadUrl = entry.threadUrl || entry.htmlUrl;
-
-    if (threadUrl && (!taskUrl || threadUrl !== taskUrl)) {
-      const threadLink = document.createElement('a');
-      threadLink.href = threadUrl;
-      threadLink.className = 'link-button';
-      threadLink.target = '_blank';
-      threadLink.rel = 'noreferrer noopener';
-      threadLink.textContent = 'View conversation';
-      actions.appendChild(threadLink);
-    }
-
-    if (entry.latestStatus && entry.latestStatus.htmlUrl) {
-      const updateLink = document.createElement('a');
-      updateLink.href = entry.latestStatus.htmlUrl;
-      updateLink.className = 'link-button';
-      updateLink.target = '_blank';
-      updateLink.rel = 'noreferrer noopener';
-      updateLink.textContent = 'View latest update';
-      actions.appendChild(updateLink);
-    } else if (entry.latestStatus && Array.isArray(entry.latestStatus.links) && entry.latestStatus.links.length) {
-      const extraLink = document.createElement('a');
-      extraLink.href = entry.latestStatus.links[0];
-      extraLink.className = 'link-button';
-      extraLink.target = '_blank';
-      extraLink.rel = 'noreferrer noopener';
-      extraLink.textContent = 'Latest link';
-      actions.appendChild(extraLink);
-    }
-
     if (entry.createTrackingCard !== false) {
-      const rebaseBtn = document.createElement('button');
-      rebaseBtn.type = 'button';
-      rebaseBtn.className = 'link-button codewhisperer-rebase';
-      rebaseBtn.textContent = 'Rebase';
-      rebaseBtn.addEventListener('click', async () => {
-        if (rebaseBtn.disabled) return;
-        const original = rebaseBtn.textContent;
-        rebaseBtn.disabled = true;
-        rebaseBtn.textContent = 'Rebasing…';
-        const success = await rebaseCodeWhispererPR(entry);
-        if (!success) {
-          showToast(entry.lastError || 'Failed to rebase PR', 'error');
-        } else {
-          showToast('PR rebased successfully', 'success');
-        }
-        rebaseBtn.disabled = false;
-        rebaseBtn.textContent = original;
-      });
-      actions.appendChild(rebaseBtn);
 
       const runInStagingBtn = document.createElement('button');
       runInStagingBtn.type = 'button';
