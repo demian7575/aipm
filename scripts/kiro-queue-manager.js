@@ -99,36 +99,58 @@ class KiroQueueManager extends EventEmitter {
   }
 
   checkForResponse() {
-    // Wait for Kiro's purple prompt ("> ") as completion marker
+    // Look for multiple completion indicators
     const hasPromptMarker = this.buffer.includes('\x1b[38;5;141m> \x1b[0m');
+    const hasTimeMarker = this.buffer.includes('▸ Time:');
+    const hasExitMessage = this.buffer.includes('To exit the CLI');
     
-    if (hasPromptMarker && this.currentResolver) {
-      // Wait 10 seconds after prompt to ensure Kiro is completely done
+    // More aggressive completion detection
+    const isComplete = hasPromptMarker || (hasTimeMarker && hasExitMessage);
+    
+    if (isComplete && this.currentResolver) {
+      // Immediate response without waiting
       if (this.responseTimeout) clearTimeout(this.responseTimeout);
       
-      this.responseTimeout = setTimeout(() => {
-        const cleanBuffer = this.buffer.replace(/\x1b\[[0-9;]*[mGKHJ]/g, '').trim();
-        
-        // Extract response, removing markers
-        let response = cleanBuffer
-          .split('▸ Time:')[0]
-          .split('To exit the CLI')[0]
-          .replace(/^>\s*/, '')
-          .trim();
-        
-        if (this.currentResolver) {
-          this.currentResolver({
-            success: true,
-            output: response,
-            error: ''
-          });
-          this.currentResolver = null;
-          this.buffer = '';
-          this.responseTimeout = null;
-          this.processNext();
-        }
-      }, 10000); // Wait 10 seconds after purple prompt
+      const cleanBuffer = this.buffer.replace(/\x1b\[[0-9;]*[mGKHJ]/g, '').trim();
+      
+      // Extract response, removing markers - don't cut at Time marker
+      let response = cleanBuffer
+        .split('To exit the CLI')[0]  // Only cut at exit message
+        .replace(/^>\s*/, '')
+        .trim();
+      
+      // If response is too short, wait a bit more
+      if (response.length < 10 && !hasTimeMarker) {
+        this.responseTimeout = setTimeout(() => {
+          this.completeResponse();
+        }, 2000); // Wait only 2 seconds
+        return;
+      }
+      
+      this.completeResponse();
     }
+  }
+  
+  completeResponse() {
+    if (!this.currentResolver) return;
+    
+    const cleanBuffer = this.buffer.replace(/\x1b\[[0-9;]*[mGKHJ]/g, '').trim();
+    
+    // Don't cut off at "▸ Time:" - the JSON comes before it
+    let response = cleanBuffer
+      .split('To exit the CLI')[0]  // Only cut at exit message
+      .replace(/^>\s*/, '')  // Remove "> " prompt
+      .trim();
+    
+    this.currentResolver({
+      success: true,
+      output: response,
+      error: ''
+    });
+    this.currentResolver = null;
+    this.buffer = '';
+    this.responseTimeout = null;
+    this.processNext();
   }
 
   async sendCommand(message) {

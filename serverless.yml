@@ -8,7 +8,12 @@ provider:
   region: us-east-1
   stage: ${opt:stage, 'prod'}
   memorySize: 512
-  timeout: 30
+  timeout: 900
+  vpc:
+    securityGroupIds:
+      - sg-02f23dc345006410d
+    subnetIds:
+      - subnet-07b0e3f8154039744
   environment:
     NODE_ENV: production
     STAGE: ${self:provider.stage}

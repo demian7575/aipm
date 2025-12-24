@@ -1,0 +1,7 @@
+DynamoDB: Using tables: {
+  STORIES_TABLE: 'aipm-backend-dev-stories',
+  ACCEPTANCE_TESTS_TABLE: 'aipm-backend-dev-acceptance-tests'
+}
+🔧 Using DynamoDB
+Server running on http://localhost:4000
+DynamoDB: getAllStories result: 104 items

@@ -1,4 +1,4 @@
-// Cache refresh: 1734700777
+// Cache refresh: 1734828699
 // Simplified architecture - removed Worker, using API server internal queue only
 
 function getApiBaseUrl() {
@@ -6251,11 +6251,11 @@ function openChildStoryModal(parentId) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1800000); // 30 minute timeout
       
-      const response = await fetch('http://44.220.45.57:8081/kiro/enhance-story', {
+      const apiBaseUrl = window.CONFIG?.API_BASE_URL || window.CONFIG?.apiEndpoint || '';
+      const response = await fetch(`${apiBaseUrl}/api/stories/draft`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Connection': 'keep-alive'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           idea: idea,
@@ -7493,10 +7493,11 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contract: "generate-code-v1",
-          input: {
+          contractId: "generate-code-v1",
+          inputJson: {
+            taskId: `task-${Date.now()}`,
             prompt: values.prompt,
-            prNumber: prNumber,
+            prNumber: parseInt(prNumber),
             branchName: taskEntry.branchName,
             storyId: story?.id,
             storyTitle: story?.title

@@ -97,7 +97,7 @@ const server = http.createServer(async (req, res) => {
           status: 'healthy',
           cli_responsive: true,
           response_time_ms: duration,
-          test_response: result.output.substring(0, 100),
+          test_response: result.output ? result.output.substring(0, 100) : 'No output',
           output_type: typeof result.output,
           timestamp: new Date().toISOString()
         }));
@@ -190,13 +190,7 @@ const server = http.createServer(async (req, res) => {
     });
     return;
   }
-              ...result.outputJson,
-              source: 'kiro-enhanced',
-              duration: result._meta.duration
-            };
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(legacyResponse));
+
   // Simple chat endpoint for terminal
   if (req.url === '/kiro/chat' && req.method === 'POST') {
     let body = '';
@@ -220,7 +214,7 @@ const server = http.createServer(async (req, res) => {
         const result = await kiroQueue.sendCommand(chatPrompt);
         
         const duration = Date.now() - startTime;
-        broadcastLog(`✅ Response in ${duration}ms: ${result.output.substring(0, 100)}${result.output.length > 100 ? '...' : ''}`);
+        broadcastLog(`✅ Response in ${duration}ms: ${result.output ? result.output.substring(0, 100) : 'No output'}${result.output && result.output.length > 100 ? '...' : ''}`);
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
@@ -253,9 +247,9 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       const startTime = Date.now();
       try {
-        const { contractId, inputJson } = JSON.parse(body);
+        const { contractId, callbackId, inputJson } = JSON.parse(body);
         
-        broadcastLog(`📥 /kiro/v3/transform: ${contractId}`);
+        broadcastLog(`📥 /kiro/v3/transform: ${contractId} (callback: ${callbackId || 'auto'})`);
         broadcastLog(`📦 Input: ${JSON.stringify(inputJson).substring(0, 100)}...`);
         
         const contract = CONTRACTS[contractId];
@@ -267,70 +261,35 @@ const server = http.createServer(async (req, res) => {
         validateSchema(inputJson, contract.inputSchema, 'input');
         broadcastLog(`✅ Input validation passed`);
         
-        // Generate callback ID and URL
-        const callbackId = `transform-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const callbackUrl = `http://localhost:8081/kiro/callback/${callbackId}`;
+        // Build callback-based prompt
+        const finalCallbackId = callbackId || `transform-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const callbackUrl = `http://44.220.45.57:3000/api/kiro/callback?id=${finalCallbackId}`;
         
-        // Create callback promise
-        const callbackPromise = new Promise((resolve, reject) => {
-          pendingCallbacks.set(callbackId, { resolve, reject });
-          setTimeout(() => {
-            if (pendingCallbacks.has(callbackId)) {
-              pendingCallbacks.delete(callbackId);
-              reject(new Error('Callback timeout'));
-            }
-          }, 900000); // 15 minutes
+        const prompt = buildSimpleTransformPrompt(contract, inputJson, callbackUrl);
+        broadcastLog(`📝 Callback prompt: ${prompt.length} chars (ID: ${finalCallbackId})`);
+        
+        // Send to Kiro CLI for callback (fire and forget)
+        broadcastLog(`📤 Sending callback prompt to Kiro CLI...`);
+        
+        // Fire and forget - don't wait for response
+        kiroQueue.sendCommand(prompt).catch(err => {
+          broadcastLog(`⚠️ Kiro CLI error: ${err.message}`);
         });
         
-        // Build simple prompt with callback (like enhance-story)
-        const prompt = buildSimpleTransformPrompt(contract, inputJson, callbackUrl);
-        broadcastLog(`📝 Simple prompt: ${prompt.length} chars`);
-        
-        // Send to Kiro CLI and wait for result
-        broadcastLog(`📤 Sending simple prompt to Kiro CLI...`);
-        try {
-          const kiroResult = await kiroQueue.sendCommand(prompt);
-          if (!kiroResult.success) {
-            throw new Error(`Kiro CLI failed: ${kiroResult.error}`);
+        // Return immediate success - response will come via callback
+        const duration = Date.now() - startTime;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          message: 'Request sent to Kiro CLI, response will come via callback',
+          callbackId: finalCallbackId,
+          _meta: {
+            contractId,
+            version: contract.version,
+            duration,
+            method: 'callback'
           }
-        } catch (err) {
-          broadcastLog(`⚠️ Kiro command error: ${err.message}`);
-          throw err;
-        }
-        
-        // Wait for callback
-        try {
-          const result = await callbackPromise;
-          
-          // Validate output against contract schema
-          validateSchema(result, contract.outputSchema, 'output');
-          broadcastLog(`✅ Output validation passed`);
-          
-          const duration = Date.now() - startTime;
-          broadcastLog(`✅ Transform completed in ${duration}ms`);
-          
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            outputJson: result,
-            _meta: {
-              contractId,
-              version: contract.version,
-              duration,
-              method: 'callback'
-            }
-          }));
-        } catch (callbackError) {
-          const duration = Date.now() - startTime;
-          broadcastLog(`⚠️ Callback timeout after ${duration}ms`);
-          
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: false,
-            error: 'Transform timeout',
-            _meta: { duration, method: 'callback' }
-          }));
-        }
+        }));
         
       } catch (error) {
         const duration = Date.now() - startTime;
@@ -399,6 +358,11 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
+function buildDirectTransformPrompt(contract, inputJson) {
+  // Simple, direct prompt that works with Kiro CLI
+  return `Generate this JSON with enhanced fields: {"storyId":"${inputJson.storyId}","title":"${inputJson.title}","description":"${inputJson.description}","asA":"${inputJson.asA}","iWant":"${inputJson.iWant}","soThat":"${inputJson.soThat}","acceptanceCriteria":["System successfully implements ${inputJson.title.toLowerCase()}","User interface is intuitive and responsive","All edge cases are handled gracefully","Performance meets acceptable standards"],"enhanced":true,"enhancedAt":"${new Date().toISOString()}"}`;
+}
+
 function buildSimpleTransformPrompt(contract, inputJson, callbackUrl) {
   // Extract the main content based on contract type
   let mainContent = '';
@@ -413,6 +377,32 @@ function buildSimpleTransformPrompt(contract, inputJson, callbackUrl) {
   } else if (contract.description.includes('invest')) {
     mainContent = inputJson.title || 'story';
     actionType = 'analyze INVEST criteria';
+  } else if (contract.description.includes('code')) {
+    // GitHub code generation workflow
+    const { prompt, prNumber, branchName } = inputJson;
+    return `I need you to implement this feature: "${prompt}"
+
+This is for GitHub PR #${prNumber} on branch "${branchName}".
+
+Please follow these steps:
+1. Check out the branch: git checkout ${branchName}
+2. Analyze the codebase to understand the current structure
+3. Implement the requested feature with proper code
+4. Test the implementation
+5. Commit the changes with a descriptive message
+6. Push to the branch: git push origin ${branchName}
+
+After completing the implementation, execute this callback:
+curl -X POST ${callbackUrl} -H "Content-Type: application/json" -d '{
+  "files": [{"path": "example.js", "content": "// Generated code", "action": "create"}],
+  "commitMessage": "Implement feature: ${prompt}",
+  "committed": true,
+  "prUrl": "https://github.com/demian7575/aipm/pull/${prNumber}",
+  "summary": "Successfully implemented the requested feature"
+}'
+
+Working directory: /home/ec2-user/aipm
+Make sure to work within this repository.`;
   }
   
   // Build simple, direct prompt (like enhance-story approach)

@@ -6064,44 +6064,103 @@ export async function createApp() {
         if (!idea) {
           throw Object.assign(new Error('Idea text is required'), { statusCode: 400 });
         }
-        const parentId =
-          payload.parentId == null || payload.parentId === '' ? null : Number(payload.parentId);
-        let parent = null;
-        if (Number.isFinite(parentId)) {
-          const stories = await loadStories(db);
-          parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
-        }
         
-        // Generate enhanced draft without Kiro API
-        console.log('📝 Generating enhanced draft locally...');
+        console.log('📝 Requesting Kiro enhancement for:', idea.substring(0, 50));
         
-        const enhancedDraft = {
+        // Create immediate draft response
+        const draftStory = {
           storyId: `story-${Date.now()}`,
           title: idea.charAt(0).toUpperCase() + idea.slice(1),
-          description: `Implement ${idea.toLowerCase()} functionality to improve user experience and system capabilities.`,
-          asA: parent ? `user of ${parent.title}` : 'system user',
+          description: `Implement ${idea.toLowerCase()} functionality`,
+          asA: 'user',
           iWant: `to ${idea.toLowerCase()}`,
-          soThat: 'I can accomplish my goals more effectively',
+          soThat: 'I can achieve my goals',
           acceptanceCriteria: [
-            `System successfully implements ${idea.toLowerCase()}`,
-            'User interface is intuitive and responsive',
-            'All edge cases are handled gracefully',
-            'Performance meets acceptable standards'
+            'System implements the requested functionality',
+            'User interface is responsive',
+            'All requirements are met'
           ],
-          enhanced: true,
-          enhancedAt: new Date().toISOString()
+          enhanced: false,
+          status: 'generating'
         };
         
-        sendJson(res, 200, enhancedDraft);
+        // Send to Kiro API in background (fire and forget)
+        fetch('http://localhost:8081/kiro/v4/enhance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idea: idea,
+            callbackUrl: `http://44.220.45.57:3000/api/kiro/callback`
+          })
+        }).catch(error => {
+          console.error('❌ Kiro enhancement failed:', error.message);
+        });
+        
+        // Return immediate draft
+        sendJson(res, 200, draftStory);
         
       } catch (error) {
-        console.error('Failed to generate story draft', error);
-        const status = error.statusCode ?? 500;
-        sendJson(res, status, { message: error.message || 'Failed to generate story draft' });
+        console.error('❌ Story draft failed:', error.message);
+        sendJson(res, 500, { 
+          message: `Story generation failed: ${error.message}`
+        });
       }
       return;
     }
     
+    // Kiro CLI callback endpoint
+    if (pathname === '/api/kiro/callback' && method === 'POST') {
+      try {
+        const result = await parseJson(req);
+        
+        // Handle different types of callbacks
+        if (result.files && result.commitMessage) {
+          // Code generation callback
+          console.log('📨 Code generation callback received');
+          console.log('✅ Files generated:', result.files.length);
+          console.log('✅ Commit message:', result.commitMessage);
+          console.log('✅ PR URL:', result.prUrl);
+          
+          sendJson(res, 200, { 
+            success: true, 
+            message: 'Code generation completed',
+            files: result.files.length,
+            committed: result.committed,
+            prUrl: result.prUrl
+          });
+          
+        } else if (result.storyId) {
+          // Story enhancement callback
+          console.log('📨 Story enhancement callback received:', result.title);
+          console.log('✅ Enhanced story:', JSON.stringify(result, null, 2));
+          
+          sendJson(res, 200, { 
+            success: true, 
+            message: 'Enhanced story received',
+            storyId: result.storyId
+          });
+          
+        } else {
+          // Generic callback
+          console.log('📨 Generic callback received:', JSON.stringify(result, null, 2));
+          
+          sendJson(res, 200, { 
+            success: true, 
+            message: 'Callback received',
+            data: result
+          });
+        }
+        
+      } catch (error) {
+        console.error('❌ Kiro callback error:', error.message);
+        sendJson(res, 400, { 
+          success: false, 
+          error: error.message 
+        });
+      }
+      return;
+    }
+
     // Legacy endpoint - no longer used with local Kiro workers
     if (pathname === '/api/kiro-callback' && method === 'POST') {
       sendJson(res, 200, { success: true, message: 'Legacy endpoint - using local Kiro workers' });

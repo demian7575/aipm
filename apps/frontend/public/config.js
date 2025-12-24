@@ -6,5 +6,6 @@ window.CONFIG = {
   environment: 'production',
   stage: 'prod',
   region: 'us-east-1',
-  DEBUG: false
+  DEBUG: false,
+  CACHE_BUST: '20251222-011348'
 };
