@@ -1,0 +1,49 @@
+{
+  "id": "story-kiro-cli-responsiveness",
+  "title": "Test if Kiro CLI is responsive",
+  "description": "As a developer using Kiro CLI, I want to verify that the CLI responds promptly to commands so that I can maintain productive workflows without delays.",
+  "status": "Draft",
+  "priority": "Medium",
+  "storyPoints": 3,
+  "assignee": "qa-engineer@company.com",
+  "components": ["Testing", "Performance"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1",
+      "description": "CLI responds to help command within 2 seconds",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-2", 
+      "description": "Chat command initialization completes within 5 seconds",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-3",
+      "description": "File operations complete within reasonable time based on file size",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "description": "Set up performance testing environment",
+      "assignee": "qa-engineer@company.com",
+      "status": "Pending"
+    },
+    {
+      "id": "task-2",
+      "description": "Create automated response time tests",
+      "assignee": "qa-engineer@company.com", 
+      "status": "Pending"
+    },
+    {
+      "id": "task-3",
+      "description": "Execute performance benchmarks",
+      "assignee": "qa-engineer@company.com",
+      "status": "Pending"
+    }
+  ],
+  "createdAt": "2025-12-26T16:12:53.851Z",
+  "updatedAt": "2025-12-26T16:12:53.851Z"
+}

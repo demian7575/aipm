@@ -1,0 +1,50 @@
+{
+  "id": "story-test-after-fix",
+  "title": "Test after fix",
+  "description": "As a developer, I want to run comprehensive tests after implementing a fix so that I can verify the issue is resolved and no regressions were introduced.",
+  "status": "Draft",
+  "storyPoints": 3,
+  "assignee": "developer@example.com",
+  "components": ["Test Automation", "Run & Verify"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1",
+      "description": "Given a fix has been implemented, when I run the existing test suite, then all previously passing tests should continue to pass",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-2", 
+      "description": "Given a fix addresses a specific bug, when I run tests that reproduce the original issue, then those tests should now pass",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-3",
+      "description": "Given the fix is complete, when I run regression tests, then no new failures should be introduced in related functionality",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "description": "Execute full test suite",
+      "assignee": "developer@example.com",
+      "status": "Pending"
+    },
+    {
+      "id": "task-2", 
+      "description": "Run specific tests for the fixed issue",
+      "assignee": "developer@example.com",
+      "status": "Pending"
+    },
+    {
+      "id": "task-3",
+      "description": "Perform regression testing",
+      "assignee": "qa@example.com", 
+      "status": "Pending"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "createdAt": "2025-12-26T16:21:33.038Z",
+  "updatedAt": "2025-12-26T16:21:33.038Z"
+}

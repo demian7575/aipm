@@ -1,0 +1,70 @@
+{
+  "title": "Display GitHub PR Link in Development Tasks Card",
+  "description": "As a project manager, I want to see a direct link to the GitHub pull request in the Development Tasks card when 'Create PR' action is triggered, so that I can quickly navigate to review the code changes and track development progress.",
+  "status": "Draft",
+  "priority": "Medium",
+  "storyPoints": 3,
+  "assignee": "frontend-developer@company.com",
+  "components": ["User Interface", "GitHub Integration"],
+  "parentStory": "User Interface",
+  "acceptanceCriteria": [
+    {
+      "id": 1,
+      "description": "Given a user story with 'Create PR' action completed, when viewing the Development Tasks card, then a clickable GitHub PR link should be visible",
+      "status": "Draft"
+    },
+    {
+      "id": 2,
+      "description": "Given the GitHub PR link is displayed, when clicked, then it should open the PR in a new browser tab/window",
+      "status": "Draft"
+    },
+    {
+      "id": 3,
+      "description": "Given no PR has been created yet, when viewing the Development Tasks card, then no PR link should be displayed",
+      "status": "Draft"
+    },
+    {
+      "id": 4,
+      "description": "Given the PR link is displayed, when the PR is merged or closed, then the link status should be visually indicated (e.g., different color or icon)",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "description": "Update Development Tasks card component to display PR link when available",
+      "assignee": "frontend-developer@company.com",
+      "status": "Not Started"
+    },
+    {
+      "id": 2,
+      "description": "Implement API endpoint to retrieve PR URL from backend",
+      "assignee": "backend-developer@company.com",
+      "status": "Not Started"
+    },
+    {
+      "id": 3,
+      "description": "Add PR status tracking (open/merged/closed) to display appropriate visual indicators",
+      "assignee": "frontend-developer@company.com",
+      "status": "Not Started"
+    },
+    {
+      "id": 4,
+      "description": "Test PR link functionality across different browsers",
+      "assignee": "qa-engineer@company.com",
+      "status": "Not Started"
+    }
+  ],
+  "investAnalysis": {
+    "independent": true,
+    "negotiable": true,
+    "valuable": true,
+    "estimable": true,
+    "small": true,
+    "testable": true,
+    "overallScore": "Pass",
+    "feedback": "Story meets INVEST criteria with clear value proposition and testable acceptance criteria"
+  },
+  "createdAt": "2025-12-26T15:24:07.441Z",
+  "updatedAt": "2025-12-26T15:24:07.441Z"
+}

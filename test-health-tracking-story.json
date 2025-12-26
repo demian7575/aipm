@@ -1,0 +1,93 @@
+{
+  "id": "story-health-tracking-001",
+  "title": "Test health tracking",
+  "description": "As a user, I want to track my health metrics so that I can monitor my wellness progress over time",
+  "status": "Draft",
+  "priority": "High",
+  "storyPoints": 8,
+  "assignee": "developer@example.com",
+  "components": ["System (S/S)", "DocumentIntelligence (DI)", "Review & Governance (RG)"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-001",
+      "description": "User can input daily health metrics including weight, blood pressure, and heart rate",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-002", 
+      "description": "System displays health trends over configurable time periods (weekly, monthly, yearly)",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-003",
+      "description": "User receives alerts when metrics exceed predefined thresholds",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-004",
+      "description": "Health data is encrypted and stored securely with HIPAA compliance",
+      "status": "Draft",
+      "verifiable": true
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Design health metrics input interface",
+      "assignee": "ux-designer@example.com",
+      "status": "Pending"
+    },
+    {
+      "id": "task-002",
+      "description": "Implement secure data storage with encryption",
+      "assignee": "backend-dev@example.com", 
+      "status": "Pending"
+    },
+    {
+      "id": "task-003",
+      "description": "Create trend visualization components",
+      "assignee": "frontend-dev@example.com",
+      "status": "Pending"
+    },
+    {
+      "id": "task-004",
+      "description": "Implement threshold alerting system",
+      "assignee": "backend-dev@example.com",
+      "status": "Pending"
+    }
+  ],
+  "referenceDocuments": [
+    {
+      "id": "ref-001",
+      "title": "HIPAA Compliance Requirements",
+      "url": "/uploads/hipaa-requirements.pdf",
+      "type": "Compliance"
+    },
+    {
+      "id": "ref-002",
+      "title": "Health Metrics API Specification",
+      "url": "/uploads/health-api-spec.md",
+      "type": "Technical"
+    }
+  ],
+  "parentId": null,
+  "childIds": [
+    "story-health-tracking-002",
+    "story-health-tracking-003"
+  ],
+  "createdAt": "2025-12-26T15:03:15.049Z",
+  "updatedAt": "2025-12-26T15:03:15.049Z",
+  "investAnalysis": {
+    "independent": true,
+    "negotiable": true,
+    "valuable": true,
+    "estimable": true,
+    "small": false,
+    "testable": true,
+    "warnings": ["Story may be too large - consider breaking into smaller stories"],
+    "aiAnalysis": "Story provides clear user value for health monitoring. Consider splitting into separate stories for data input, visualization, and alerting features."
+  }
+}
