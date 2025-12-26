@@ -1,0 +1,23 @@
+{
+  "files": [
+    {
+      "path": "src/components/TaskManager.js",
+      "content": "import React, { useState } from 'react';\n\nconst TaskManager = () => {\n  const [tasks, setTasks] = useState([]);\n  \n  const addTask = (task) => {\n    setTasks([...tasks, { id: Date.now(), ...task }]);\n  };\n  \n  return (\n    <div className=\"task-manager\">\n      <h2>Task Manager</h2>\n      {tasks.map(task => (\n        <div key={task.id} className=\"task-item\">\n          {task.title}\n        </div>\n      ))}\n    </div>\n  );\n};\n\nexport default TaskManager;",
+      "action": "create"
+    },
+    {
+      "path": "src/hooks/useApi.js",
+      "content": "import { useState, useEffect } from 'react';\n\nexport const useApi = (url) => {\n  const [data, setData] = useState(null);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState(null);\n  \n  useEffect(() => {\n    fetch(url)\n      .then(res => res.json())\n      .then(setData)\n      .catch(setError)\n      .finally(() => setLoading(false));\n  }, [url]);\n  \n  return { data, loading, error };\n};",
+      "action": "create"
+    },
+    {
+      "path": "package.json",
+      "content": "{\n  \"name\": \"enhanced-aipm\",\n  \"version\": \"1.1.0\",\n  \"dependencies\": {\n    \"react\": \"^18.0.0\",\n    \"react-dom\": \"^18.0.0\"\n  },\n  \"scripts\": {\n    \"start\": \"react-scripts start\",\n    \"build\": \"react-scripts build\",\n    \"test\": \"react-scripts test\"\n  }\n}",
+      "action": "update"
+    }
+  ],
+  "commitMessage": "Add TaskManager component and useApi hook with package updates",
+  "committed": true,
+  "prUrl": "https://github.com/user/aipm/pull/456",
+  "summary": "Enhanced AIPM with TaskManager component for better task handling and custom useApi hook for data fetching"
+}

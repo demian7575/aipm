@@ -1,0 +1,19 @@
+{
+  "storyId": "ui-cleanup-branch-006",
+  "title": "Remove Branch Link from Development Task Cards",
+  "description": "As a project manager, I want to remove the Branch link element from Development Task cards so that the interface is simplified and visual clutter is reduced for better user experience.",
+  "asA": "project manager",
+  "iWant": "to remove the Branch link element from Development Task cards",
+  "soThat": "the interface is simplified and visual clutter is reduced for better user experience",
+  "enhanced": true,
+  "enhancedAt": "2025-12-20T06:37:26.172Z",
+  "acceptanceCriteria": [
+    "Given a Development Task card is displayed, when rendered, then the Branch link element is not visible",
+    "Given the card layout is updated, when viewed, then remaining elements maintain proper spacing and alignment",
+    "Given the simplified interface, when users interact with cards, then all other functionality remains intact"
+  ],
+  "storyPoints": 2,
+  "assignee": "frontend@example.com",
+  "status": "Draft",
+  "components": ["Orchestration_Engagement"]
+}

@@ -1,0 +1,24 @@
+{
+  "storyId": "test",
+  "title": "test",
+  "description": "test",
+  "asA": "user",
+  "iWant": "test",
+  "soThat": "test",
+  "acceptanceCriteria": [
+    "System successfully implements test",
+    "User interface is intuitive and responsive",
+    "All edge cases are handled gracefully",
+    "Performance meets acceptable standards"
+  ],
+  "storyPoints": 1,
+  "priority": "Medium",
+  "status": "Draft",
+  "assignee": "",
+  "components": [],
+  "tags": [],
+  "dependencies": [],
+  "technicalNotes": "",
+  "enhanced": true,
+  "enhancedAt": "2025-12-23T16:20:18.465Z"
+}

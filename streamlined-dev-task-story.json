@@ -1,0 +1,9 @@
+{
+  "title": "Streamline Development Task cards by removing clutter",
+  "description": "As a project manager, I want Development Task cards to display only essential information so that I can quickly identify actionable items without visual distractions.",
+  "storyPoints": 2,
+  "assignee": "frontend-dev@example.com",
+  "status": "Ready",
+  "components": ["WorkModel"],
+  "acceptWarnings": true
+}

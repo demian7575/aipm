@@ -1,0 +1,12 @@
+DynamoDB: Using tables: {
+  STORIES_TABLE: 'aipm-backend-prod-stories',
+  ACCEPTANCE_TESTS_TABLE: 'aipm-backend-prod-acceptance-tests'
+}
+(node:330398) Warning: NodeDeprecationWarning: The AWS SDK for JavaScript (v3) will
+no longer support Node.js v18.20.8 in January 2026.
+
+To continue receiving updates to AWS services, bug fixes, and security
+updates please upgrade to a supported Node.js LTS version.
+
+More information can be found at: https://a.co/c895JFp
+(Use `node --trace-warnings ...` to show where the warning was created)

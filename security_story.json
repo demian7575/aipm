@@ -1,0 +1,13 @@
+{
+  "storyId": 78,
+  "title": "Implement security vulnerability scanning",
+  "description": "As a security engineer, I want to run automated security scans on the codebase so that vulnerabilities are detected before deployment.",
+  "asA": "security engineer",
+  "iWant": "to run automated security scans on the codebase",
+  "soThat": "vulnerabilities are detected before deployment",
+  "components": ["Run_Verify"],
+  "storyPoint": 3,
+  "assigneeEmail": "security@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

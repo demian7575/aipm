@@ -1,0 +1,16 @@
+{
+  "title": "Simplify Development Task UI by removing clutter",
+  "description": "Remove Branch display, PR status text, and Rebase button from Development Task cards to create a cleaner, more focused interface that highlights essential information",
+  "asA": "project manager using the AIPM workspace",
+  "iWant": "simplified Development Task cards with only essential elements",
+  "soThat": "I can focus on core task details without visual distractions and improve workflow efficiency",
+  "storyPoint": 2,
+  "status": "Draft",
+  "components": ["WorkModel"],
+  "acceptanceCriteria": [
+    "Branch name paragraph is not rendered in task cards",
+    "Default 'PR created and ready for development' status text is removed",
+    "Rebase button is hidden from task actions",
+    "Essential elements remain visible: assignee input and Generate Code button"
+  ]
+}

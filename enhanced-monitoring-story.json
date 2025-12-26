@@ -1,0 +1,9 @@
+{
+  "title": "Implement performance monitoring system",
+  "description": "As a system administrator, I want to implement real-time performance monitoring so that I can proactively identify and resolve system bottlenecks.",
+  "storyPoints": 8,
+  "assignee": "sysadmin@example.com",
+  "status": "Ready",
+  "components": ["Traceabilty_Insight"],
+  "acceptWarnings": true
+}

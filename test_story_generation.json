@@ -1,0 +1,28 @@
+{
+  "storyId": "story-1766507914550",
+  "title": "Test story generation",
+  "description": "Implement automated test story generation functionality to create sample user stories for testing, demos, and development purposes",
+  "asA": "developer",
+  "iWant": "to generate test stories automatically for testing and demonstration purposes",
+  "soThat": "I can quickly populate the system with realistic sample data for development and QA workflows",
+  "acceptanceCriteria": [
+    "System generates realistic test stories with valid INVEST criteria",
+    "Generated stories include proper hierarchy with parent-child relationships",
+    "Test data includes acceptance criteria, story points, and component assignments",
+    "Generation supports configurable parameters for story count and complexity",
+    "Generated stories follow consistent naming and formatting conventions",
+    "User interface provides simple controls for triggering story generation",
+    "System handles bulk generation without performance degradation",
+    "Generated test data can be easily cleared or reset when needed"
+  ],
+  "storyPoints": 3,
+  "priority": "Low",
+  "status": "Draft",
+  "assignee": "dev-team@company.com",
+  "components": ["System", "WorkModel"],
+  "tags": ["testing", "data-generation", "development", "automation"],
+  "dependencies": ["story-api", "database-layer"],
+  "technicalNotes": "Consider using templates or AI assistance for generating realistic story content. Include cleanup utilities for test data management.",
+  "enhanced": true,
+  "enhancedAt": "2025-12-23T16:38:34.553Z"
+}

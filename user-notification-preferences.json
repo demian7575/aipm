@@ -1,0 +1,112 @@
+{
+  "id": "story-notification-prefs-001",
+  "title": "User Notification Preferences Management",
+  "description": "As a user, I want to customize my notification preferences so that I receive relevant updates through my preferred channels without being overwhelmed by unnecessary alerts.",
+  "status": "Ready",
+  "priority": "High",
+  "storyPoints": 8,
+  "assignee": "product-team@company.com",
+  "components": ["System (S/S)", "WorkModel (WM)", "Orchestration & Engagement (OE)"],
+  "tags": ["notifications", "user-experience", "preferences", "settings"],
+  "parentId": null,
+  "createdAt": "2025-12-26T03:45:07.813Z",
+  "updatedAt": "2025-12-26T03:45:07.813Z",
+  "acceptanceCriteria": [
+    {
+      "id": "ac-001",
+      "description": "User can access notification settings from account menu",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-002", 
+      "description": "User can toggle email notifications on/off for each category",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-003",
+      "description": "User can set notification frequency (immediate, daily digest, weekly)",
+      "status": "Draft", 
+      "verifiable": true
+    },
+    {
+      "id": "ac-004",
+      "description": "User can choose notification channels (email, SMS, push, in-app)",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-005",
+      "description": "Changes are saved automatically and confirmed with success message",
+      "status": "Draft",
+      "verifiable": true
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Design notification preferences UI mockups",
+      "assignee": "ux-designer@company.com",
+      "status": "Draft"
+    },
+    {
+      "id": "task-002", 
+      "description": "Implement backend notification preference API endpoints",
+      "assignee": "backend-dev@company.com",
+      "status": "Draft"
+    },
+    {
+      "id": "task-003",
+      "description": "Build frontend notification settings component",
+      "assignee": "frontend-dev@company.com", 
+      "status": "Draft"
+    },
+    {
+      "id": "task-004",
+      "description": "Integrate with notification delivery service",
+      "assignee": "backend-dev@company.com",
+      "status": "Draft"
+    }
+  ],
+  "referenceDocuments": [
+    {
+      "id": "ref-001",
+      "title": "Notification Categories Specification",
+      "url": "/docs/notification-categories.md",
+      "type": "specification"
+    },
+    {
+      "id": "ref-002", 
+      "title": "User Experience Guidelines for Settings",
+      "url": "/docs/ux-settings-guidelines.md",
+      "type": "guidelines"
+    }
+  ],
+  "childStories": [
+    {
+      "id": "story-notification-prefs-002",
+      "title": "Email Notification Templates",
+      "description": "As a user, I want to receive well-formatted email notifications so that I can quickly understand and act on important updates.",
+      "status": "Draft",
+      "storyPoints": 3
+    },
+    {
+      "id": "story-notification-prefs-003", 
+      "title": "Push Notification Integration",
+      "description": "As a mobile user, I want to receive push notifications so that I stay informed even when not actively using the app.",
+      "status": "Draft",
+      "storyPoints": 5
+    }
+  ],
+  "investAnalysis": {
+    "independent": true,
+    "negotiable": true, 
+    "valuable": true,
+    "estimable": true,
+    "small": true,
+    "testable": true,
+    "overallScore": "Pass",
+    "feedback": "Story meets all INVEST criteria with clear value proposition and testable acceptance criteria."
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "storyId": "DEPLOY-008",
+  "title": "Run deployment tests",
+  "description": "As a release manager, I want to execute deployment validation tests so that releases are stable.",
+  "asA": "release manager",
+  "iWant": "to execute deployment validation tests",
+  "soThat": "releases are stable",
+  "acceptanceCriteria": [
+    "Deployment scripts execute without errors",
+    "Service health checks pass after deployment",
+    "Rollback procedures are validated",
+    "Zero-downtime deployment is confirmed"
+  ],
+  "enhanced": true,
+  "components": ["Run_Verify"],
+  "storyPoint": 3,
+  "assigneeEmail": "release@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

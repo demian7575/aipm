@@ -1,0 +1,28 @@
+{
+  "storyId": "story-1766507277171",
+  "title": "Debug kiro integration",
+  "description": "Implement debugging tools and monitoring for Kiro CLI integration to troubleshoot code generation tasks, worker processes, and DynamoDB queue operations",
+  "asA": "developer",
+  "iWant": "to debug and monitor Kiro integration issues in the AIPM workflow",
+  "soThat": "I can quickly identify and resolve problems with automated code generation and PR workflows",
+  "acceptanceCriteria": [
+    "System provides detailed logging for Kiro worker task processing and status updates",
+    "Debug interface shows real-time status of DynamoDB queue and pending tasks",
+    "Error handling captures and displays Kiro CLI authentication and execution failures",
+    "Monitoring dashboard tracks task completion rates and processing times",
+    "Debug tools allow manual task retry and queue management operations",
+    "User interface displays clear error messages and troubleshooting guidance",
+    "System handles worker disconnections and restarts gracefully",
+    "Performance monitoring identifies bottlenecks in the code generation pipeline"
+  ],
+  "storyPoints": 5,
+  "priority": "High",
+  "status": "Ready",
+  "assignee": "dev-team@company.com",
+  "components": ["System", "Orchestration & Engagement", "Traceability & Insight"],
+  "tags": ["debugging", "monitoring", "kiro", "integration", "troubleshooting"],
+  "dependencies": ["kiro-worker", "dynamodb-queue", "github-integration"],
+  "technicalNotes": "Focus on worker process monitoring, DynamoDB queue visibility, and Kiro CLI error handling. Consider adding health check endpoints and log aggregation.",
+  "enhanced": true,
+  "enhancedAt": "2025-12-23T16:27:57.202Z"
+}

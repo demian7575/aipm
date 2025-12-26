@@ -1,0 +1,26 @@
+{
+  "storyId": "story-1735059909627",
+  "title": "Callback mode test - should wait for Kiro CLI response",
+  "description": "Implement comprehensive test suite for callback-based Kiro CLI integration to validate asynchronous response handling, timeout behavior, and proper cleanup of pending callbacks during system operations",
+  "asA": "QA engineer",
+  "iWant": "to test callback mode functionality that properly waits for Kiro CLI responses",
+  "soThat": "I can ensure the system handles asynchronous operations correctly and maintains data integrity during callback-driven workflows",
+  "acceptanceCriteria": [
+    "Test validates callback registration and storage in pendingCallbacks Map",
+    "System properly waits for Kiro CLI response before proceeding",
+    "Timeout handling prevents indefinite waiting for callback responses",
+    "Callback cleanup occurs when responses are received or timeouts expire",
+    "Error scenarios are handled gracefully with proper callback rejection",
+    "Test suite covers concurrent callback scenarios and race conditions"
+  ],
+  "storyPoints": 3,
+  "priority": "High",
+  "status": "Draft",
+  "assignee": "qa-team@company.com",
+  "components": ["Run_Verify"],
+  "tags": ["testing", "callbacks", "async", "kiro-cli", "integration"],
+  "dependencies": ["kiro-api-server", "callback-endpoint"],
+  "technicalNotes": "Focus on testing the pendingCallbacks Map lifecycle, callback URL generation, and proper cleanup in /kiro/v3/queue/cleanup endpoint. Validate timeout behavior and error handling paths.",
+  "enhanced": true,
+  "enhancedAt": "2025-12-23T17:25:09.627Z"
+}

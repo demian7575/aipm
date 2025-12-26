@@ -1,0 +1,1 @@
+{"files":[{"path":"apps/frontend/public/app.js","content":"Remove branch management links from Development Task UI - View conversation, View latest update, Latest link, and Rebase button eliminated","action":"update"}],"commitMessage":"Remove branch management links to simplify development task interface","committed":true}

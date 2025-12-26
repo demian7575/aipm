@@ -1,0 +1,30 @@
+{
+  "title": "Real-time notifications for story status changes",
+  "description": "As a project manager, I want to receive real-time notifications when user stories change status so that I can immediately respond to blockers and keep stakeholders informed",
+  "storyPoints": 5,
+  "status": "Draft",
+  "assignee": "project.manager@company.com",
+  "component": "Orchestration & Engagement (OE)",
+  "acceptanceTests": [
+    {
+      "title": "Status Change Notifications",
+      "description": "Given a user story status changes from any state to \"Blocked\", when the change is saved, then all project stakeholders receive a real-time notification within 5 seconds",
+      "status": "Draft"
+    },
+    {
+      "title": "Notification Delivery Methods", 
+      "description": "Given a notification is triggered, when the system processes the event, then notifications are delivered via WebSocket to active browser sessions and email notifications are sent to offline users",
+      "status": "Draft"
+    },
+    {
+      "title": "Notification Content",
+      "description": "Given a status change notification is sent, when the user receives it, then the notification includes story title, old status, new status, and assignee and includes a direct link to the story details",
+      "status": "Draft"
+    },
+    {
+      "title": "User Preferences",
+      "description": "Given a user wants to customize notifications, when they access notification settings, then they can enable/disable notifications by story component and choose between immediate, hourly digest, or daily digest delivery",
+      "status": "Draft"
+    }
+  ]
+}

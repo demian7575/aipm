@@ -1,0 +1,83 @@
+{
+  "type": "object",
+  "required": [
+    "storyId",
+    "title",
+    "description",
+    "asA",
+    "iWant",
+    "soThat",
+    "acceptanceCriteria",
+    "enhanced"
+  ],
+  "properties": {
+    "storyId": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "asA": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "iWant": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "soThat": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "acceptanceCriteria": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 150
+      },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "enhanced": {
+      "type": "boolean",
+      "default": false
+    },
+    "enhancedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "storyPoint": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 13
+    },
+    "assigneeEmail": {
+      "type": "string",
+      "format": "email"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["Draft", "Ready", "In Progress", "Blocked", "Approved", "Done"]
+    },
+    "acceptWarnings": {
+      "type": "boolean"
+    }
+  }
+}

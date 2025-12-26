@@ -1,0 +1,24 @@
+{
+  "files": [
+    {
+      "name": "feature.js",
+      "path": "/src/feature.js",
+      "content": "// New feature implementation"
+    }
+  ],
+  "commitMessage": "feat: add enhanced file management with validation",
+  "storyId": "STORY-1735050539",
+  "title": "Git Integration Enhancement",
+  "description": "Add commit message validation and file tracking",
+  "asA": "developer",
+  "iWant": "to track changes with proper commit messages",
+  "soThat": "code history remains clear and traceable",
+  "storyPoint": 5,
+  "acceptanceCriteria": [
+    "Commit messages follow conventional format",
+    "Files are tracked in version control",
+    "Changes are properly documented"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-24T14:28:59.450Z"
+}

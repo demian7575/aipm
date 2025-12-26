@@ -1,0 +1,30 @@
+DynamoDB: Using tables: {
+  STORIES_TABLE: 'aipm-backend-prod-stories',
+  ACCEPTANCE_TESTS_TABLE: 'aipm-backend-prod-acceptance-tests'
+}
+🔧 Using DynamoDB
+Server running on http://localhost:4000
+DynamoDB: getAllStories result: 50 items
+DynamoDB: getAllStories result: 50 items
+DynamoDB: getAllStories result: 50 items
+DynamoDB: getAllStories result: 50 items
+DynamoDB: getAllStories result: 50 items
+DynamoDB: getAllStories result: 50 items
+DynamoDB: getAllStories result: 50 items
+DynamoDB: getAllStories result: 50 items
+DynamoDB: getAllStories result: 10 items
+DynamoDB: getAllStories result: 10 items
+DynamoDB: getAllStories result: 10 items
+DynamoDB: getAllStories result: 40 items
+DynamoDB: getAllStories result: 40 items
+DynamoDB: getAllStories result: 40 items
+DynamoDB: getAllStories result: 4 items
+DynamoDB: getAllStories result: 49 items
+DynamoDB: getAllStories result: 49 items
+DynamoDB: getAllStories result: 49 items
+DynamoDB: getAllStories result: 49 items
+DynamoDB: getAllStories result: 49 items
+DynamoDB: getAllStories result: 51 items
+DynamoDB: getAllStories result: 51 items
+DynamoDB: getAllStories result: 51 items
+DynamoDB: getAllStories result: 51 items

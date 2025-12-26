@@ -1,0 +1,23 @@
+{
+  "title": "Simple And Clean User Story (child)",
+  "description": "As a user, I want a streamlined interface so that I can complete tasks efficiently.",
+  "status": "Draft",
+  "storyPoints": 3,
+  "assignee": "developer@example.com",
+  "components": ["System"],
+  "acceptanceTests": [
+    {
+      "id": 1,
+      "description": "Given a clean interface, when I navigate to the main page, then I should see only essential elements",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "description": "Implement clean UI layout",
+      "assignee": "developer@example.com",
+      "status": "Todo"
+    }
+  ]
+}

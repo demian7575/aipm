@@ -1,0 +1,19 @@
+{
+  "storyId": "BASIC-012",
+  "title": "Run basic health checks",
+  "description": "As a site reliability engineer, I want to execute basic system health checks so that issues are detected.",
+  "asA": "site reliability engineer",
+  "iWant": "to execute basic system health checks",
+  "soThat": "issues are detected",
+  "acceptanceCriteria": [
+    "All critical services respond to health checks",
+    "System resources are within normal ranges",
+    "No critical errors in system logs"
+  ],
+  "enhanced": false,
+  "components": ["Run_Verify"],
+  "storyPoint": 1,
+  "assigneeEmail": "sre@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

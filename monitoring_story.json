@@ -1,0 +1,20 @@
+{
+  "storyId": "MON-006",
+  "title": "Run monitoring checks",
+  "description": "As a DevOps engineer, I want to execute system monitoring validation tests so that alerts work correctly.",
+  "asA": "DevOps engineer",
+  "iWant": "to execute system monitoring validation tests",
+  "soThat": "alerts work correctly and system health is tracked",
+  "acceptanceCriteria": [
+    "CPU threshold alerts trigger at 80% usage",
+    "Memory alerts activate at 90% capacity",
+    "Disk space warnings appear at 85% full",
+    "Network connectivity monitoring functions properly"
+  ],
+  "enhanced": true,
+  "components": ["Run_Verify"],
+  "storyPoint": 2,
+  "assigneeEmail": "devops-mon@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

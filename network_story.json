@@ -1,0 +1,21 @@
+{
+  "storyId": "NETWORK-011",
+  "title": "Run network connectivity tests",
+  "description": "As a network engineer, I want to execute network validation tests so that connectivity is reliable.",
+  "asA": "network engineer",
+  "iWant": "to execute network validation tests",
+  "soThat": "connectivity is reliable",
+  "acceptanceCriteria": [
+    "All network endpoints are reachable",
+    "Latency remains under acceptable thresholds",
+    "Bandwidth utilization is within limits",
+    "Failover mechanisms work correctly",
+    "Network security policies are enforced"
+  ],
+  "enhanced": true,
+  "components": ["Run_Verify"],
+  "storyPoint": 4,
+  "assigneeEmail": "network@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

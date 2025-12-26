@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "required": [
+    "storyId",
+    "title",
+    "description",
+    "asA",
+    "iWant",
+    "soThat",
+    "acceptanceCriteria",
+    "components",
+    "storyPoints",
+    "assignee",
+    "status"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "idea": "Object items schema",
+  "files": [
+    { "path": "src/main.js", "content": "console.log('hello');" },
+    { "path": "config.json" }
+  ],
+  "commitMessage": "feat: add object items",
+  "committed": false
+}

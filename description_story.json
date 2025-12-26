@@ -1,0 +1,12 @@
+{
+  "storyId": 75,
+  "title": "Optimize database query performance",
+  "description": "As a database administrator, I want to analyze and optimize slow-running queries so that application response times improve and user experience is enhanced through faster data retrieval and reduced system load.",
+  "asA": "database administrator",
+  "iWant": "to analyze and optimize slow-running queries",
+  "soThat": "application response times improve and user experience is enhanced",
+  "components": ["Run_Verify"],
+  "storyPoint": 8,
+  "assigneeEmail": "dba@example.com",
+  "acceptWarnings": true
+}

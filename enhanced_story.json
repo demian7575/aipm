@@ -1,0 +1,28 @@
+{
+  "storyId": "story-1766506792180",
+  "title": "AI recommendation engine",
+  "description": "Implement AI recommendation engine that analyzes user behavior patterns and preferences to deliver personalized content suggestions with real-time learning capabilities",
+  "asA": "platform user",
+  "iWant": "to receive personalized AI-powered recommendations based on my behavior and preferences",
+  "soThat": "I can discover relevant content efficiently and improve my overall platform experience",
+  "acceptanceCriteria": [
+    "System analyzes user interaction patterns and generates personalized recommendations",
+    "Recommendation accuracy improves over time through machine learning feedback loops",
+    "API responds with recommendations within 200ms for optimal user experience",
+    "System handles cold start scenarios for new users with default recommendation strategies",
+    "Recommendation engine supports A/B testing for algorithm optimization",
+    "User interface displays recommendations with clear relevance indicators",
+    "System gracefully degrades when ML services are unavailable",
+    "Privacy controls allow users to opt-out of behavioral tracking"
+  ],
+  "storyPoints": 8,
+  "priority": "High",
+  "status": "Ready",
+  "assignee": "ml-team@company.com",
+  "components": ["System", "WorkModel", "DocumentIntelligence"],
+  "tags": ["ai", "machine-learning", "personalization", "recommendations"],
+  "dependencies": ["user-analytics-service", "content-metadata-api"],
+  "technicalNotes": "Requires integration with existing user analytics pipeline and content classification system. Consider using collaborative filtering combined with content-based approaches.",
+  "enhanced": true,
+  "enhancedAt": "2025-12-23T16:19:52.211Z"
+}

@@ -1,0 +1,9 @@
+{
+  "title": "Execute system validation tests",
+  "description": "As a QA engineer, I want to run comprehensive system tests so that I can verify functionality meets requirements and identify defects early.",
+  "storyPoints": 3,
+  "assignee": "qa-engineer@example.com",
+  "status": "Ready",
+  "components": ["Run_Verify"],
+  "acceptWarnings": true
+}

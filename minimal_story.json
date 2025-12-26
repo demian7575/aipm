@@ -1,0 +1,12 @@
+{
+  "storyId": 73,
+  "title": "Enhanced test validation",
+  "description": "As a developer, I want to validate system components so that quality is maintained.",
+  "asA": "developer",
+  "iWant": "to validate system components",
+  "soThat": "quality is maintained",
+  "components": ["Run_Verify"],
+  "storyPoint": 2,
+  "assigneeEmail": "dev@example.com",
+  "acceptWarnings": true
+}

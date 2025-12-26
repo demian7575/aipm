@@ -1,0 +1,33 @@
+📋 Loaded contracts: [
+  'enhance-story-v1',
+  'generate-acceptance-test-v1',
+  'analyze-invest-v1'
+]
+📝 Loaded prompt templates: [ 'enhanceStory', 'enhanceStoryJson', 'chat', 'transform' ]
+🚀 Starting persistent Kiro CLI session...
+   Kiro CLI: kiro-cli
+   Working dir: /home/ec2-user/aipm
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8081
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at file:///home/ec2-user/aipm/scripts/kiro-api-server-v3.js:454:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:106:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 8081
+}
+
+Node.js v18.20.8

@@ -1,0 +1,51 @@
+{
+  "type": "object",
+  "required": [
+    "storyId",
+    "title",
+    "description",
+    "asA",
+    "iWant",
+    "soThat",
+    "acceptanceCriteria",
+    "enhanced"
+  ],
+  "properties": {
+    "storyId": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "asA": {
+      "type": "string"
+    },
+    "iWant": {
+      "type": "string"
+    },
+    "soThat": {
+      "type": "string"
+    },
+    "storyPoint": {
+      "type": "number"
+    },
+    "acceptanceCriteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "enhanced": {
+      "type": "boolean"
+    },
+    "enhancedAt": {
+      "type": "string"
+    }
+  }
+}
+}

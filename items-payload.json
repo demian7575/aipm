@@ -1,0 +1,6 @@
+{
+  "idea": "Items validation schema",
+  "files": ["src/items.js", "types/schema.ts", "docs/api.md"],
+  "commitMessage": "feat: add items validation",
+  "committed": true
+}

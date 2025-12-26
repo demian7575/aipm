@@ -1,0 +1,52 @@
+{
+  "id": "story-login-test-001",
+  "title": "Test login system authentication flows",
+  "description": "As a QA engineer, I want to verify the login system handles valid credentials, invalid attempts, and edge cases correctly so that users can securely access the application.",
+  "status": "Ready",
+  "priority": "High",
+  "storyPoints": 5,
+  "assignee": "qa-engineer@company.com",
+  "components": ["Authentication", "Security"],
+  "acceptanceTests": [
+    {
+      "id": "at-login-001",
+      "description": "Valid user credentials authenticate successfully",
+      "status": "Not Started",
+      "verifiable": true
+    },
+    {
+      "id": "at-login-002", 
+      "description": "Invalid credentials are rejected with appropriate error message",
+      "status": "Not Started",
+      "verifiable": true
+    },
+    {
+      "id": "at-login-003",
+      "description": "Account lockout occurs after 3 failed attempts",
+      "status": "Not Started", 
+      "verifiable": true
+    },
+    {
+      "id": "at-login-004",
+      "description": "Session expires after configured timeout period",
+      "status": "Not Started",
+      "verifiable": true
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Set up test data with valid user accounts",
+      "assignee": "qa-engineer@company.com",
+      "status": "Not Started"
+    },
+    {
+      "id": "task-002", 
+      "description": "Create automated test scripts for authentication flows",
+      "assignee": "qa-engineer@company.com",
+      "status": "Not Started"
+    }
+  ],
+  "createdAt": "2025-12-23T14:01:39.745Z",
+  "updatedAt": "2025-12-23T14:01:39.745Z"
+}

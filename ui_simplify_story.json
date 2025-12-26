@@ -1,0 +1,20 @@
+{
+  "storyId": "UI-026",
+  "title": "Simplify Development Task interface",
+  "description": "As a developer, I want to remove Branch link, PR created text, and Rebase link from Development Task so that the interface is clean and focused.",
+  "asA": "developer",
+  "iWant": "to remove Branch link, PR created text, and Rebase link from Development Task",
+  "soThat": "the interface is clean and focused",
+  "acceptanceCriteria": [
+    "Branch link is removed from Development Task UI",
+    "PR created and ready for development text is hidden",
+    "Rebase link is removed from the interface"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-21T05:39:18.000Z",
+  "storyPoint": 2,
+  "components": ["WorkModel"],
+  "assigneeEmail": "ui-dev@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

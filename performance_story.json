@@ -1,0 +1,13 @@
+{
+  "storyId": 77,
+  "title": "Validate system performance metrics",
+  "description": "As a performance engineer, I want to monitor and validate system performance metrics during load testing so that performance requirements are met and bottlenecks are identified early.",
+  "asA": "performance engineer",
+  "iWant": "to monitor and validate system performance metrics during load testing",
+  "soThat": "performance requirements are met and bottlenecks are identified early",
+  "components": ["Run_Verify"],
+  "storyPoint": 5,
+  "assigneeEmail": "perf@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

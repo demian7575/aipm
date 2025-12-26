@@ -1,0 +1,50 @@
+{
+  "type": "object",
+  "required": [
+    "files",
+    "commitMessage",
+    "committed"
+  ],
+  "properties": {
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "content"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update",
+              "delete"
+            ]
+          }
+        }
+      }
+    },
+    "commitMessage": {
+      "type": "string"
+    },
+    "committed": {
+      "type": "boolean"
+    },
+    "prUrl": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    }
+  }
+}
+  }
+}

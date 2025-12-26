@@ -1,0 +1,19 @@
+{
+  "storyId": "auth-test-001",
+  "title": "User Authentication Test",
+  "description": "As a system administrator, I want to verify that user login functionality works correctly so that I can ensure secure access to the application.",
+  "asA": "system administrator",
+  "iWant": "to verify that user login functionality works correctly",
+  "soThat": "I can ensure secure access to the application",
+  "enhanced": true,
+  "enhancedAt": "2025-12-20T08:35:56.700Z",
+  "acceptanceCriteria": [
+    "Given valid credentials, when a user attempts to log in, then they should be granted access to the dashboard",
+    "Given invalid credentials, when a user attempts to log in, then they should see an appropriate error message",
+    "Given a locked account, when a user attempts to log in, then they should be notified of the account status"
+  ],
+  "storyPoints": 3,
+  "assignee": "admin@example.com",
+  "status": "Draft",
+  "components": ["Review_Governance", "Run_Verify"]
+}

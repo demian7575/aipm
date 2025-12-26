@@ -1,0 +1,20 @@
+{
+  "storyId": "ASA-020",
+  "title": "Execute compliance audit tests",
+  "description": "As a compliance officer, I want to run regulatory compliance validation tests so that audit requirements are met.",
+  "asA": "compliance officer",
+  "iWant": "to run regulatory compliance validation tests",
+  "soThat": "audit requirements are met",
+  "acceptanceCriteria": [
+    "All regulatory controls are tested and verified",
+    "Compliance reports are generated automatically",
+    "Audit trail documentation is complete"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-21T05:03:31.000Z",
+  "components": ["Review_Governance"],
+  "storyPoint": 3,
+  "assigneeEmail": "compliance-audit@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

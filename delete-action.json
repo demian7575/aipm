@@ -1,0 +1,1 @@
+{"files":[{"path":"apps/frontend/public/app.js","content":"Remove branch management links from Development Task UI","action":"delete"}],"commitMessage":"Delete branch management links","committed":true}

@@ -1,0 +1,18 @@
+{
+  "storyId": "story-1734598487",
+  "title": "Fix story draft generation timeout at line 7120",
+  "description": "Story draft generation fails with 'Request timeout' error at app.js lines 6321 and 7120:29, blocking users from creating new stories",
+  "asA": "user creating stories in the AIPM workspace",
+  "iWant": "story draft generation to complete without timeout errors",
+  "soThat": "I can successfully create new stories without interruption",
+  "storyPoint": 3,
+  "acceptanceCriteria": [
+    "Story draft generation completes within 30 seconds",
+    "Timeout errors are caught and handled gracefully",
+    "User sees meaningful error message instead of technical details",
+    "Retry button available when generation fails",
+    "Loading state shows progress during generation"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-19T08:54:47.187Z"
+}

@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "required": [
+    "files",
+    "commitMessage",
+    "taskId",
+    "description",
+    "priority"
+  ],
+  "properties": {
+    "taskId": {
+      "type": "string",
+      "example": "task-001"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "example": ["src/components/UserStory.js", "tests/UserStory.test.js"]
+    },
+    "commitMessage": {
+      "type": "string",
+      "example": "feat: implement user story validation logic"
+    },
+    "description": {
+      "type": "string",
+      "example": "Add INVEST validation for user stories with automated testing"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "example": "medium"
+    },
+    "assignee": {
+      "type": "string",
+      "example": "developer@example.com"
+    },
+    "branch": {
+      "type": "string",
+      "example": "feature/user-story-validation"
+    }
+  }
+}
