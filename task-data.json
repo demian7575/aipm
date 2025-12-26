@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "required": [
+    "files",
+    "commitMessage",
+    "committed"
+  ],
+  "properties": {
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "content": { "type": "string" }
+        },
+        "required": ["path"]
+      },
+      "minItems": 1
+    },
+    "commitMessage": {
+      "type": "string"
+    },
+    "committed": {
+      "type": "boolean"
+    }
+  }
+}

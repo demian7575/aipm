@@ -1,0 +1,126 @@
+{
+  "id": "story-001",
+  "title": "User Profile Management",
+  "description": "As a registered user, I want to manage my profile information so that I can keep my account details current and control my privacy settings.",
+  "status": "Ready",
+  "priority": "High",
+  "storyPoints": 8,
+  "assignee": "dev-team@company.com",
+  "components": ["System (S/S)", "WorkModel (WM)"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-001",
+      "description": "User can view their current profile information",
+      "status": "Pass",
+      "verifiable": true
+    },
+    {
+      "id": "ac-002", 
+      "description": "User can edit basic profile fields (name, email, phone)",
+      "status": "Pass",
+      "verifiable": true
+    },
+    {
+      "id": "ac-003",
+      "description": "User can upload and update profile picture",
+      "status": "Pass", 
+      "verifiable": true
+    },
+    {
+      "id": "ac-004",
+      "description": "User can change password with current password verification",
+      "status": "Pass",
+      "verifiable": true
+    },
+    {
+      "id": "ac-005",
+      "description": "User receives confirmation when profile changes are saved",
+      "status": "Pass",
+      "verifiable": true
+    },
+    {
+      "id": "ac-006",
+      "description": "Invalid email formats are rejected with clear error messages",
+      "status": "Pass",
+      "verifiable": true
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Design profile management UI mockups",
+      "assignee": "designer@company.com",
+      "status": "Done"
+    },
+    {
+      "id": "task-002", 
+      "description": "Implement profile view API endpoint",
+      "assignee": "backend-dev@company.com",
+      "status": "Done"
+    },
+    {
+      "id": "task-003",
+      "description": "Implement profile update API endpoint with validation",
+      "assignee": "backend-dev@company.com", 
+      "status": "Done"
+    },
+    {
+      "id": "task-004",
+      "description": "Build profile management frontend components",
+      "assignee": "frontend-dev@company.com",
+      "status": "Done"
+    },
+    {
+      "id": "task-005",
+      "description": "Add profile picture upload functionality",
+      "assignee": "fullstack-dev@company.com",
+      "status": "Done"
+    },
+    {
+      "id": "task-006",
+      "description": "Write unit tests for profile management",
+      "assignee": "qa-engineer@company.com",
+      "status": "Done"
+    }
+  ],
+  "childStories": [
+    {
+      "id": "story-002",
+      "title": "Privacy Settings Management",
+      "description": "As a user, I want to control my privacy settings so that I can manage who can see my profile information.",
+      "status": "Ready"
+    },
+    {
+      "id": "story-003", 
+      "title": "Account Deactivation",
+      "description": "As a user, I want to deactivate my account so that I can temporarily suspend my profile without losing my data.",
+      "status": "Draft"
+    }
+  ],
+  "referenceDocuments": [
+    {
+      "id": "ref-001",
+      "title": "User Profile API Specification",
+      "url": "/uploads/profile-api-spec.md",
+      "type": "Technical Documentation"
+    },
+    {
+      "id": "ref-002",
+      "title": "Privacy Compliance Guidelines", 
+      "url": "/uploads/privacy-guidelines.pdf",
+      "type": "Compliance"
+    }
+  ],
+  "investAnalysis": {
+    "independent": true,
+    "negotiable": true,
+    "valuable": true,
+    "estimable": true,
+    "small": true,
+    "testable": true,
+    "overallScore": "Pass",
+    "feedback": "Story meets all INVEST criteria with clear acceptance tests and appropriate scope."
+  },
+  "createdAt": "2025-12-26T04:09:13.910Z",
+  "updatedAt": "2025-12-26T04:09:13.910Z"
+}

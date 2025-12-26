@@ -12,19 +12,26 @@
   <body>
     <header class="app-header">
       <div class="title-group">
-        <h1>AI Project Manager Mindmap</h1>
+        <h1>AIPM</h1>
         <span id="version-display" class="version-display"></span>
-        <button id="open-kiro-terminal-btn" class="secondary">Kiro Terminal</button>
-        <button id="refine-kiro-btn" class="secondary">Refine with Kiro</button>
-        <button id="generate-doc-btn" class="secondary">Generate Document</button>
-        <button id="open-heatmap-btn" class="secondary">Employee Heat Map</button>
-        <button id="reference-btn" class="secondary">Reference Documents</button>
-        <button id="dependency-toggle-btn" class="secondary" aria-pressed="false">Dependency</button>
+      </div>
+      <div class="header-actions">
+        <button id="open-kiro-terminal-btn" class="action-btn">Terminal</button>
+        <button id="generate-doc-btn" class="action-btn">Generate</button>
+        <button id="open-heatmap-btn" class="action-btn">Analytics</button>
+        <div class="more-actions">
+          <button id="more-actions-btn" class="action-btn">⋯</button>
+          <div id="more-actions-menu" class="actions-menu hidden">
+            <button id="refine-kiro-btn" class="menu-item">Refine with Kiro</button>
+            <button id="reference-btn" class="menu-item">References</button>
+            <button id="dependency-toggle-btn" class="menu-item" aria-pressed="false">Dependencies</button>
+          </div>
+        </div>
       </div>
       <div class="panel-toggles" role="toolbar" aria-label="Panel visibility">
-        <label><input type="checkbox" id="toggle-outline" checked /> Outline</label>
-        <label><input type="checkbox" id="toggle-mindmap" checked /> Mindmap</label>
-        <label><input type="checkbox" id="toggle-details" checked /> Details</label>
+        <label class="toggle-label"><input type="checkbox" id="toggle-outline" checked /><span>Outline</span></label>
+        <label class="toggle-label"><input type="checkbox" id="toggle-mindmap" checked /><span>Mindmap</span></label>
+        <label class="toggle-label"><input type="checkbox" id="toggle-details" checked /><span>Details</span></label>
       </div>
     </header>
 
@@ -33,8 +40,8 @@
         <div class="panel-header">
           <h2>Outline</h2>
           <div class="panel-actions">
-            <button id="expand-all" class="secondary">Expand All</button>
-            <button id="collapse-all" class="secondary">Collapse All</button>
+            <button id="expand-all" class="panel-btn">Expand</button>
+            <button id="collapse-all" class="panel-btn">Collapse</button>
           </div>
         </div>
         <div id="outline-tree" class="outline-tree" role="tree" aria-label="User story outline"></div>
@@ -44,20 +51,17 @@
         <div class="panel-header">
           <h2>Mindmap</h2>
           <div class="panel-actions">
-            <button id="auto-layout-toggle" class="secondary">Auto Layout</button>
-            <div class="mindmap-zoom-controls" role="group" aria-label="Mindmap zoom">
-              <button id="mindmap-zoom-out" class="secondary" type="button" aria-label="Zoom out">−</button>
-              <span id="mindmap-zoom-display" class="mindmap-zoom-display" aria-live="polite">100%</span>
-              <button id="mindmap-zoom-in" class="secondary" type="button" aria-label="Zoom in">+</button>
+            <button id="auto-layout-toggle" class="panel-btn">Auto Layout</button>
+            <div class="zoom-controls">
+              <button id="mindmap-zoom-out" class="zoom-btn" aria-label="Zoom out">−</button>
+              <span id="mindmap-zoom-display" class="zoom-display">100%</span>
+              <button id="mindmap-zoom-in" class="zoom-btn" aria-label="Zoom in">+</button>
             </div>
           </div>
         </div>
         <div class="mindmap-wrapper">
           <svg id="mindmap-canvas" aria-label="Mindmap" role="presentation"></svg>
         </div>
-        <footer class="mindmap-footer">
-          <span id="layout-status">Auto layout enabled</span>
-        </footer>
       </section>
 
       <section id="details-panel" class="panel details-panel">

@@ -1,0 +1,23 @@
+{
+  "files": [
+    {
+      "path": "src/components/Dashboard.js",
+      "content": "import React from 'react';\nimport { useApi } from '../hooks/useApi';\n\nconst Dashboard = () => {\n  const { data, loading, error } = useApi('/api/stats');\n  \n  if (loading) return <div>Loading...</div>;\n  if (error) return <div>Error: {error.message}</div>;\n  \n  return (\n    <div className=\"dashboard\">\n      <h1>Project Dashboard</h1>\n      <div className=\"stats\">\n        <div className=\"stat-card\">\n          <h3>Total Stories</h3>\n          <p>{data?.totalStories || 0}</p>\n        </div>\n        <div className=\"stat-card\">\n          <h3>Completed</h3>\n          <p>{data?.completed || 0}</p>\n        </div>\n      </div>\n    </div>\n  );\n};\n\nexport default Dashboard;",
+      "action": "create"
+    },
+    {
+      "path": "src/utils/helpers.js",
+      "content": "export const formatDate = (date) => {\n  return new Date(date).toLocaleDateString();\n};\n\nexport const calculateProgress = (completed, total) => {\n  if (total === 0) return 0;\n  return Math.round((completed / total) * 100);\n};\n\nexport const getStatusColor = (status) => {\n  const colors = {\n    'Draft': '#gray',\n    'Ready': '#blue',\n    'In Progress': '#yellow',\n    'Done': '#green',\n    'Blocked': '#red'\n  };\n  return colors[status] || '#gray';\n};",
+      "action": "create"
+    },
+    {
+      "path": "src/styles/dashboard.css",
+      "content": ".dashboard {\n  padding: 20px;\n  max-width: 1200px;\n  margin: 0 auto;\n}\n\n.stats {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));\n  gap: 20px;\n  margin-top: 20px;\n}\n\n.stat-card {\n  background: white;\n  border-radius: 8px;\n  padding: 20px;\n  box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n  text-align: center;\n}\n\n.stat-card h3 {\n  margin: 0 0 10px 0;\n  color: #333;\n}\n\n.stat-card p {\n  font-size: 2em;\n  font-weight: bold;\n  margin: 0;\n  color: #007bff;\n}",
+      "action": "create"
+    }
+  ],
+  "commitMessage": "Add Dashboard component with stats display and utility functions",
+  "committed": true,
+  "prUrl": "https://github.com/user/aipm/pull/789",
+  "summary": "Enhanced AIPM with Dashboard component for project statistics, utility functions for data formatting, and responsive CSS styling"
+}

@@ -1,0 +1,21 @@
+{
+  "storyId": "dev-task-cleanup-1734781519794",
+  "title": "Simplify Development Task Display",
+  "description": "Remove Branch field, PR status message, and Rebase link from Development Task interface to reduce visual clutter and improve developer focus on core task information.",
+  "asA": "Developer",
+  "iWant": "a clean Development Task interface without Branch, PR status, and Rebase elements",
+  "soThat": "I can focus on task essentials without unnecessary UI distractions",
+  "acceptanceCriteria": [
+    "Branch field no longer appears in Development Task view",
+    "PR created and ready for development message is removed",
+    "Rebase link is hidden from task action area",
+    "Task layout remains visually balanced after element removal"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-21T12:05:19.794Z",
+  "components": ["WorkModel", "Orchestration_Engagement"],
+  "storyPoint": 2,
+  "assigneeEmail": "ui-dev@example.com",
+  "status": "Draft",
+  "acceptWarnings": false
+}

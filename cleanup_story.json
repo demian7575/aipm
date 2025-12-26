@@ -1,0 +1,33 @@
+{
+  "title": "Simplify Development Task Interface",
+  "description": "As a project manager, I want to remove clutter from Development Task cards so that I can focus on essential information without visual distractions.",
+  "asA": "project manager",
+  "iWant": "to remove clutter from Development Task cards",
+  "soThat": "I can focus on essential information without visual distractions",
+  "status": "Ready",
+  "storyPoints": 2,
+  "assignee": "frontend@example.com",
+  "components": ["WorkModel"],
+  "acceptanceTests": [
+    {
+      "title": "Remove Branch Link",
+      "description": "Given I view a Development Task card, when I examine the interface, then the Branch link should not be visible",
+      "status": "Draft"
+    },
+    {
+      "title": "Remove PR Status Text",
+      "description": "Given I view a Development Task card, when I examine the interface, then the 'PR created and ready for development' text should not be displayed",
+      "status": "Draft"
+    },
+    {
+      "title": "Remove Rebase Link",
+      "description": "Given I view a Development Task card, when I examine the interface, then the Rebase link should not be visible",
+      "status": "Draft"
+    },
+    {
+      "title": "Clean Interface Verification",
+      "description": "Given I view a Development Task card, when I examine the simplified interface, then only essential task information should be displayed",
+      "status": "Draft"
+    }
+  ]
+}

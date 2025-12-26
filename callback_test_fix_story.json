@@ -1,0 +1,17 @@
+{
+  "title": "Fix callback test implementation for reliable async response handling",
+  "description": "Implement robust callback test functionality that properly handles asynchronous Kiro CLI responses with timeout protection and cleanup mechanisms to ensure system reliability during automated code generation workflows",
+  "asA": "test engineer",
+  "iWant": "to fix the callback test implementation so it properly waits for and handles Kiro CLI responses",
+  "soThat": "the automated testing system can reliably validate callback-driven workflows without hanging or producing false results",
+  "acceptanceCriteria": [
+    "Callback registration stores pending requests with unique identifiers",
+    "System waits for actual Kiro CLI response before marking test complete",
+    "Timeout mechanism prevents indefinite waiting (max 30 seconds)",
+    "Proper cleanup removes completed or expired callbacks from memory"
+  ],
+  "components": ["Run_Verify"],
+  "storyPoints": 2,
+  "assignee": "test-team@company.com",
+  "status": "Draft"
+}

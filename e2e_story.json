@@ -1,0 +1,13 @@
+{
+  "storyId": 80,
+  "title": "Run end-to-end test automation",
+  "description": "As a test automation engineer, I want to execute comprehensive end-to-end test scenarios so that user workflows are validated and system reliability is ensured across all components.",
+  "asA": "test automation engineer",
+  "iWant": "to execute comprehensive end-to-end test scenarios",
+  "soThat": "user workflows are validated and system reliability is ensured across all components",
+  "components": ["Run_Verify"],
+  "storyPoint": 5,
+  "assigneeEmail": "automation@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

@@ -1,0 +1,38 @@
+{
+  "title": "User Login and Registration System",
+  "asA": "web application user",
+  "iWant": "to securely create an account and log in with my credentials",
+  "soThat": "I can access personalized features and my saved data",
+  "description": "",
+  "storyPoints": 5,
+  "status": "Draft",
+  "assignee": "security.engineer@company.com",
+  "component": "System (S/S)",
+  "acceptanceTests": [
+    {
+      "title": "User Registration",
+      "description": "Given a new user visits the registration page, when they provide valid email and password meeting security requirements, then an account is created and verification email is sent",
+      "status": "Draft"
+    },
+    {
+      "title": "Email Verification",
+      "description": "Given a user receives verification email, when they click the verification link, then their account is activated and they can log in",
+      "status": "Draft"
+    },
+    {
+      "title": "Secure Login",
+      "description": "Given a user with verified account, when they enter correct credentials, then they are authenticated and session is created with 24-hour expiry",
+      "status": "Draft"
+    },
+    {
+      "title": "Password Reset",
+      "description": "Given a user forgot their password, when they request reset via email, then they receive secure reset link valid for 1 hour",
+      "status": "Draft"
+    },
+    {
+      "title": "Rate Limiting",
+      "description": "Given a user makes 5 failed login attempts, when they try again, then their IP is rate-limited for 15 minutes",
+      "status": "Draft"
+    }
+  ]
+}

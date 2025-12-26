@@ -1,0 +1,17 @@
+{
+  "storyId": "67",
+  "title": "Streamline Development Task Interface",
+  "description": "As a project manager, I want to remove unnecessary UI elements from Development Task cards so that I can focus on essential task information without visual clutter.",
+  "asA": "project manager",
+  "iWant": "to remove unnecessary UI elements from Development Task cards",
+  "soThat": "I can focus on essential task information without visual clutter",
+  "storyPoint": 2,
+  "acceptanceCriteria": [
+    "Given I view a Development Task card, when I examine the interface, then the Branch link should be hidden from view",
+    "Given I view a Development Task card, when I examine the interface, then the 'PR created and ready for development' status text should be removed",
+    "Given I view a Development Task card, when I examine the interface, then the Rebase link should not be displayed",
+    "Given I view the simplified Development Task card, when I compare it to the original, then only core task details should remain visible"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-21T03:30:50.362Z"
+}

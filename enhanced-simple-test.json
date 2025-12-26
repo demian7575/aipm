@@ -1,0 +1,9 @@
+{
+  "title": "Execute basic functionality test",
+  "description": "As a developer, I want to run simple unit tests so that I can verify core functionality works correctly.",
+  "storyPoints": 1,
+  "assignee": "developer@example.com",
+  "status": "Ready",
+  "components": ["Run_Verify"],
+  "acceptWarnings": true
+}

@@ -1,0 +1,16 @@
+{
+  "storyId": "schema-test-003",
+  "title": "Schema Validation Test",
+  "description": "As a developer, I want to validate the JSON schema implementation so that I can ensure data integrity.",
+  "asA": "developer",
+  "iWant": "to validate the JSON schema implementation",
+  "soThat": "I can ensure data integrity",
+  "storyPoint": 2,
+  "acceptanceCriteria": [
+    "Given a valid JSON payload, when submitted to the API, then it should be accepted",
+    "Given an invalid JSON payload, when submitted to the API, then it should be rejected with validation errors",
+    "Given missing required fields, when submitted to the API, then it should return specific field errors"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-20T08:41:45.236Z"
+}

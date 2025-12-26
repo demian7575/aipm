@@ -1,0 +1,6 @@
+{
+  "idea": "Files array implementation",
+  "files": ["src/utils.js", "tests/utils.test.js"],
+  "commitMessage": "feat: add file utilities",
+  "committed": false
+}

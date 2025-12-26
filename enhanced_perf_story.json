@@ -1,0 +1,20 @@
+{
+  "storyId": "ENHANCED-013",
+  "title": "Run advanced performance tests",
+  "description": "As a performance engineer, I want to execute advanced performance validation tests so that scalability is verified.",
+  "asA": "performance engineer",
+  "iWant": "to execute advanced performance validation tests",
+  "soThat": "scalability is verified",
+  "acceptanceCriteria": [
+    "System handles 10x normal load without degradation",
+    "Response times scale linearly with load increase",
+    "Memory usage remains stable under stress"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-21T04:38:50.000Z",
+  "components": ["Run_Verify"],
+  "storyPoint": 8,
+  "assigneeEmail": "perf-advanced@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

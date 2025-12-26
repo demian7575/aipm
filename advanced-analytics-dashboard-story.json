@@ -1,0 +1,107 @@
+{
+  "id": "story-analytics-dashboard-001",
+  "title": "Advanced User Analytics Dashboard",
+  "description": "As a product manager, I want an advanced user analytics dashboard so that I can track user behavior patterns, engagement metrics, and conversion funnels to make data-driven product decisions.",
+  "status": "Ready",
+  "priority": "High",
+  "storyPoints": 13,
+  "assignee": "analytics-team@company.com",
+  "components": ["System (S/S)", "DocumentIntelligence (DI)", "Traceability & Insight (TI)"],
+  "parentId": null,
+  "createdAt": "2025-12-26T03:55:41.965Z",
+  "updatedAt": "2025-12-26T03:55:41.965Z",
+  "acceptanceCriteria": [
+    {
+      "id": "ac-001",
+      "description": "Dashboard displays real-time user session data with filtering by date range, user segment, and geographic location",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-002", 
+      "description": "Conversion funnel visualization shows drop-off rates at each stage with drill-down capability to individual user journeys",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-003",
+      "description": "Cohort analysis charts track user retention over 1, 7, 30, and 90-day periods with customizable cohort definitions",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-004",
+      "description": "Heat map overlay shows user interaction patterns on key pages with click density and scroll depth metrics",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-005",
+      "description": "Automated alerts trigger when key metrics deviate beyond configurable thresholds with email/Slack notifications",
+      "status": "Draft",
+      "verifiable": true
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Design dashboard wireframes and user interface mockups",
+      "assignee": "ux-designer@company.com",
+      "status": "Ready",
+      "estimatedHours": 16
+    },
+    {
+      "id": "task-002",
+      "description": "Implement real-time data pipeline from user events to analytics database",
+      "assignee": "backend-dev@company.com", 
+      "status": "Ready",
+      "estimatedHours": 24
+    },
+    {
+      "id": "task-003",
+      "description": "Build interactive dashboard frontend with filtering and visualization components",
+      "assignee": "frontend-dev@company.com",
+      "status": "Ready", 
+      "estimatedHours": 32
+    },
+    {
+      "id": "task-004",
+      "description": "Implement cohort analysis and funnel tracking algorithms",
+      "assignee": "data-engineer@company.com",
+      "status": "Ready",
+      "estimatedHours": 20
+    },
+    {
+      "id": "task-005",
+      "description": "Set up automated alerting system with configurable thresholds",
+      "assignee": "devops-engineer@company.com",
+      "status": "Ready",
+      "estimatedHours": 12
+    }
+  ],
+  "referenceDocuments": [
+    {
+      "id": "ref-001",
+      "title": "Analytics Requirements Specification",
+      "url": "/uploads/analytics-requirements.pdf",
+      "uploadedAt": "2025-12-26T03:55:41.965Z"
+    },
+    {
+      "id": "ref-002", 
+      "title": "User Behavior Tracking Standards",
+      "url": "/uploads/tracking-standards.md",
+      "uploadedAt": "2025-12-26T03:55:41.965Z"
+    }
+  ],
+  "investAnalysis": {
+    "independent": true,
+    "negotiable": true,
+    "valuable": true,
+    "estimable": true,
+    "small": false,
+    "testable": true,
+    "overallScore": "Good",
+    "warnings": ["Story may be too large - consider breaking into smaller deliverables"],
+    "suggestions": ["Consider splitting into separate stories for real-time dashboard, funnel analysis, and alerting system"]
+  }
+}

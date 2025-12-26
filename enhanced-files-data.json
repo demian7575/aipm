@@ -1,0 +1,30 @@
+{
+  "files": [
+    {
+      "name": "requirements.md",
+      "path": "/docs/requirements.md",
+      "content": "# Requirements Document\n\nThis document outlines the system requirements."
+    },
+    {
+      "name": "api-spec.json",
+      "path": "/api/spec.json", 
+      "content": "{\"version\": \"1.0\", \"endpoints\": []}"
+    }
+  ],
+  "storyId": "STORY-" + Date.now(),
+  "title": "Enhanced File Management System",
+  "description": "Implement a comprehensive file management system with upload, download, and organization capabilities",
+  "asA": "project manager",
+  "iWant": "to manage project files efficiently",
+  "soThat": "team members can access and collaborate on documents seamlessly",
+  "storyPoint": 8,
+  "acceptanceCriteria": [
+    "Users can upload multiple file types",
+    "Files are organized in a hierarchical structure",
+    "File permissions are properly managed",
+    "Search functionality works across all files",
+    "Version control tracks file changes"
+  ],
+  "enhanced": true,
+  "enhancedAt": new Date().toISOString()
+}

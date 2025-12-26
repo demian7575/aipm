@@ -1,0 +1,10 @@
+{
+  "files": [
+    {"path": "/README.md", "content": "# Project README", "action": "create"},
+    {"path": "/package.json", "content": "{\"name\":\"aipm\"}", "action": "update"}
+  ],
+  "commitMessage": "Update project files",
+  "committed": true,
+  "prUrl": "https://github.com/user/repo/pull/123",
+  "summary": "Added README and updated package.json"
+}

@@ -1,0 +1,6 @@
+{
+  "idea": "Array type validation",
+  "files": ["src/validator.js", "lib/schema.js", "config/rules.json"],
+  "commitMessage": "feat: implement array validation",
+  "committed": true
+}

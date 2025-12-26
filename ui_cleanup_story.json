@@ -1,0 +1,22 @@
+{
+  "storyId": "UI-015",
+  "title": "Simplify Development Task interface",
+  "description": "As a developer, I want to remove unnecessary UI elements from the Development Task interface so that the workflow is streamlined and focused.",
+  "asA": "developer",
+  "iWant": "to remove unnecessary UI elements from the Development Task interface",
+  "soThat": "the workflow is streamlined and focused",
+  "acceptanceCriteria": [
+    "Branch link is removed from Development Task UI",
+    "PR created and ready for development text is hidden",
+    "Rebase link is removed from the interface",
+    "Development Task interface displays only essential elements",
+    "UI remains functional after element removal"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-21T05:02:09.000Z",
+  "components": ["WorkModel"],
+  "storyPoint": 2,
+  "assigneeEmail": "ui-dev@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

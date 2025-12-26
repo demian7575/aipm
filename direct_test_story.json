@@ -1,0 +1,16 @@
+{
+  "storyId": "enhanced-search-story-1735027953392",
+  "title": "Advanced Search Functionality with Filters and Sorting",
+  "description": "Implement comprehensive search capabilities with multi-field filtering, sorting options, and real-time results to help users efficiently locate specific user stories, acceptance tests, and reference documents.",
+  "asA": "Project Manager",
+  "iWant": "advanced search functionality with filtering and sorting capabilities",
+  "soThat": "I can efficiently locate specific stories and documents across large project datasets",
+  "acceptanceCriteria": [
+    "Search supports text queries across story titles, descriptions, and acceptance criteria",
+    "Filter options include status, assignee, components, and story points range",
+    "Results display with sorting by relevance, date created, or story points",
+    "Search executes within 500ms and highlights matching terms in results"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-23T09:12:33.392Z"
+}

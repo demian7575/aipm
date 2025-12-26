@@ -1,0 +1,20 @@
+{
+  "storyId": "QA-002",
+  "title": "Run API load tests",
+  "description": "As a performance tester, I want to execute load tests against API endpoints so that system capacity limits are identified.",
+  "asA": "performance tester",
+  "iWant": "to execute load tests against API endpoints",
+  "soThat": "system capacity limits are identified",
+  "acceptanceCriteria": [
+    "Load tests simulate 1000 concurrent users",
+    "Response times remain under 500ms at peak load",
+    "System handles target throughput without errors",
+    "Performance metrics are captured and reported"
+  ],
+  "enhanced": true,
+  "components": ["Run_Verify"],
+  "storyPoint": 3,
+  "assigneeEmail": "perf-test@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

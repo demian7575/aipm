@@ -1,0 +1,18 @@
+{
+  "files": [
+    {
+      "path": "src/components/UserInterface.js",
+      "content": "import React, { useState } from 'react';\n\nexport const UserInterface = () => {\n  const [data, setData] = useState([]);\n\n  const handleSubmit = (event) => {\n    event.preventDefault();\n    console.log('Form submitted');\n  };\n\n  return (\n    <form onSubmit={handleSubmit}>\n      <input type=\"text\" placeholder=\"Enter data\" />\n      <button type=\"submit\">Submit</button>\n    </form>\n  );\n};",
+      "action": "create"
+    },
+    {
+      "path": "src/api/client.js",
+      "content": "const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:4000';\n\nexport const apiClient = {\n  get: async (endpoint) => {\n    const response = await fetch(`${API_BASE}${endpoint}`);\n    return response.json();\n  },\n  post: async (endpoint, data) => {\n    const response = await fetch(`${API_BASE}${endpoint}`, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(data)\n    });\n    return response.json();\n  }\n};",
+      "action": "update"
+    }
+  ],
+  "commitMessage": "feat: add user interface component and API client utilities",
+  "committed": true,
+  "prUrl": "https://github.com/project/repo/pull/101",
+  "summary": "Implemented React form component with state management and HTTP client for API communication"
+}

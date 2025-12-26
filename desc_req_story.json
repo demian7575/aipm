@@ -1,0 +1,20 @@
+{
+  "storyId": "DESC-030",
+  "title": "Execute security compliance testing",
+  "description": "As a security analyst, I want to run comprehensive security compliance tests so that regulatory requirements are met and vulnerabilities are identified.",
+  "asA": "security analyst",
+  "iWant": "to run comprehensive security compliance tests",
+  "soThat": "regulatory requirements are met and vulnerabilities are identified",
+  "acceptanceCriteria": [
+    "All security controls are tested against compliance standards",
+    "Vulnerability scans complete without critical findings",
+    "Compliance reports are generated automatically"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-21T05:40:23.000Z",
+  "storyPoint": 6,
+  "components": ["Review_Governance"],
+  "assigneeEmail": "security-compliance@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

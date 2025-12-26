@@ -1,0 +1,87 @@
+{
+  "type": "object",
+  "required": [
+    "storyId",
+    "title",
+    "description",
+    "asA",
+    "iWant",
+    "soThat",
+    "acceptanceCriteria",
+    "components",
+    "storyPoint",
+    "assigneeEmail",
+    "status",
+    "enhanced"
+  ],
+  "properties": {
+    "storyId": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "asA": {
+      "type": "string",
+      "minLength": 1
+    },
+    "iWant": {
+      "type": "string",
+      "minLength": 1
+    },
+    "soThat": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptanceCriteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "WorkModel",
+          "Document_Intelligence", 
+          "Review_Governance",
+          "Orchestration_Engagement",
+          "Run_Verify",
+          "Traceabilty_Insight"
+        ]
+      },
+      "minItems": 1
+    },
+    "storyPoint": {
+      "type": "number",
+      "minimum": 1
+    },
+    "assigneeEmail": {
+      "type": "string",
+      "format": "email"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["Draft", "Ready", "In Progress", "Blocked", "Approved", "Done"]
+    },
+    "enhanced": {
+      "type": "boolean"
+    },
+    "enhancedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "acceptWarnings": {
+      "type": "boolean"
+    }
+  }
+}

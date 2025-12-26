@@ -1,0 +1,20 @@
+{
+  "storyId": "SEC-005",
+  "title": "Execute security scans",
+  "description": "As a security analyst, I want to run automated security vulnerability scans so that threats are detected.",
+  "asA": "security analyst",
+  "iWant": "to run automated security vulnerability scans",
+  "soThat": "threats are detected",
+  "acceptanceCriteria": [
+    "OWASP Top 10 vulnerabilities are checked",
+    "SQL injection tests are performed",
+    "XSS vulnerability scanning is completed",
+    "Security report is generated with risk ratings"
+  ],
+  "enhanced": true,
+  "components": ["Run_Verify"],
+  "storyPoint": 3,
+  "assigneeEmail": "security@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

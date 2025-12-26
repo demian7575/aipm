@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "required": ["title", "description", "asA", "iWant", "soThat", "acceptanceCriteria", "components", "storyPoints", "assignee", "status"],
+  "properties": {
+    "title": {"type": "string"},
+    "description": {"type": "string"},
+    "asA": {"type": "string"},
+    "iWant": {"type": "string"},
+    "soThat": {"type": "string"},
+    "acceptanceCriteria": {"type": "array", "items": {"type": "string"}},
+    "components": {"type": "array", "items": {"enum": ["WorkModel", "Document_Intelligence", "Review_Governance", "Orchestration_Engagement", "Run_Verify", "Traceabilty_Insight"]}},
+    "storyPoints": {"type": "integer", "minimum": 1},
+    "assignee": {"type": "string"},
+    "status": {"enum": ["Draft", "Ready", "In Progress", "Blocked", "Approved", "Done"]}
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "story-profile-001",
+  "title": "User Profile Settings Management",
+  "description": "As a registered user, I want to manage my profile settings so that I can customize my account preferences and maintain accurate personal information.",
+  "status": "Ready",
+  "priority": "Medium",
+  "storyPoints": 5,
+  "assignee": "developer@company.com",
+  "components": ["System (S/S)", "WorkModel (WM)"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-001",
+      "description": "User can view current profile information including name, email, and preferences",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-002", 
+      "description": "User can edit and save profile fields with validation feedback",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-003",
+      "description": "User receives confirmation when profile changes are successfully saved",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-004",
+      "description": "User can reset password through profile settings with email verification",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Design profile settings UI mockups",
+      "assignee": "designer@company.com",
+      "status": "Draft"
+    },
+    {
+      "id": "task-002",
+      "description": "Implement profile data model and validation",
+      "assignee": "developer@company.com", 
+      "status": "Draft"
+    },
+    {
+      "id": "task-003",
+      "description": "Build profile settings frontend components",
+      "assignee": "developer@company.com",
+      "status": "Draft"
+    }
+  ],
+  "referenceDocuments": [
+    {
+      "id": "ref-001",
+      "title": "User Authentication Requirements",
+      "url": "/docs/auth-requirements.md"
+    }
+  ],
+  "parentId": null,
+  "childIds": [],
+  "createdAt": "2025-12-26T03:41:36.581Z",
+  "updatedAt": "2025-12-26T03:41:36.581Z"
+}

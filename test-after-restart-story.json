@@ -1,0 +1,37 @@
+{
+  "id": "story-test-restart-001",
+  "title": "Test After Restart",
+  "description": "As a system administrator, I want to verify system functionality after a restart so that I can ensure all services are operating correctly.",
+  "status": "Draft",
+  "storyPoints": 3,
+  "assignee": "admin@example.com",
+  "components": ["System"],
+  "acceptanceTests": [
+    {
+      "id": "test-restart-001",
+      "description": "System boots successfully within expected timeframe",
+      "status": "Draft"
+    },
+    {
+      "id": "test-restart-002", 
+      "description": "All critical services start automatically",
+      "status": "Draft"
+    },
+    {
+      "id": "test-restart-003",
+      "description": "Database connections are restored",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-restart-001",
+      "description": "Create restart test checklist",
+      "assignee": "admin@example.com",
+      "status": "Todo"
+    }
+  ],
+  "parentId": null,
+  "createdAt": "2025-12-23T15:43:17.787Z",
+  "updatedAt": "2025-12-23T15:43:17.787Z"
+}

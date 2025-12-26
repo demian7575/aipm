@@ -1,0 +1,18 @@
+{
+  "title": "Kiro AI Code Generation Integration Testing",
+  "description": "Validate the complete Kiro integration workflow including queue processing, API communication, and automated code generation to ensure reliable AI-assisted development capabilities.",
+  "asA": "Developer",
+  "iWant": "comprehensive testing of the Kiro AI integration workflow",
+  "soThat": "I can confidently use AI code generation features and troubleshoot issues within defined SLA timeouts",
+  "acceptanceCriteria": [
+    "Kiro worker successfully polls DynamoDB queue and processes pending tasks",
+    "API communication between worker and Kiro service handles authentication and transforms",
+    "Generated code is properly committed to PR branches with correct metadata",
+    "Error handling gracefully manages API failures and timeout scenarios",
+    "Integration tests validate end-to-end workflow from UI trigger to code delivery"
+  ],
+  "components": ["WorkModel", "Run_Verify", "Orchestration_Engagement"],
+  "storyPoint": 8,
+  "assigneeEmail": "dev-team@example.com",
+  "status": "Ready"
+}

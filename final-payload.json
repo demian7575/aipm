@@ -1,0 +1,7 @@
+{
+  "idea": "Task with properties schema",
+  "files": ["src/main.js"],
+  "commitMessage": "feat: implement properties",
+  "committed": true,
+  "taskId": "task-001"
+}

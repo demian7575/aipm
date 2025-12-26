@@ -1,0 +1,4 @@
+DynamoDB: Using tables: {
+  STORIES_TABLE: 'aipm-backend-prod-stories',
+  ACCEPTANCE_TESTS_TABLE: 'aipm-backend-prod-acceptance-tests'
+}

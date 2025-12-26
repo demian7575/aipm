@@ -1,0 +1,20 @@
+{
+  "storyId": "ASA-031",
+  "title": "Execute performance regression testing",
+  "description": "As a performance engineer, I want to run performance regression tests so that system performance remains consistent across releases.",
+  "asA": "performance engineer",
+  "iWant": "to run performance regression tests",
+  "soThat": "system performance remains consistent across releases",
+  "acceptanceCriteria": [
+    "Performance benchmarks are compared against baseline metrics",
+    "Regression tests identify performance degradation",
+    "Performance reports highlight any significant changes"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-21T05:40:36.000Z",
+  "storyPoint": 4,
+  "components": ["Run_Verify"],
+  "assigneeEmail": "perf-regression@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

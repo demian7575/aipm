@@ -1,0 +1,19 @@
+{
+  "storyId": "ui-cleanup-comprehensive-007",
+  "title": "Simplify Development Task Cards by Removing Redundant Elements",
+  "description": "As a project manager, I want to remove Branch, PR status, and Rebase links from Development Task cards so that the interface is clean and focused on essential actions.",
+  "asA": "project manager",
+  "iWant": "to remove Branch, PR status, and Rebase links from Development Task cards",
+  "soThat": "the interface is clean and focused on essential actions",
+  "enhanced": true,
+  "enhancedAt": "2025-12-20T06:54:54.137Z",
+  "acceptanceCriteria": [
+    "Given a Development Task card is displayed, when rendered, then Branch link is not visible",
+    "Given the card layout, when viewed, then PR created and ready for development text is removed",
+    "Given task actions, when displayed, then Rebase button is not present"
+  ],
+  "storyPoints": 3,
+  "assignee": "frontend@example.com",
+  "status": "Draft",
+  "components": ["Orchestration_Engagement"]
+}

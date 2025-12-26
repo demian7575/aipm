@@ -1,0 +1,16 @@
+📋 Loaded contracts: [
+  'enhance-story-v1',
+  'generate-acceptance-test-v1',
+  'analyze-invest-v1',
+  'generate-code-v1'
+]
+🚀 Starting Kiro CLI process...
+
+============================================================
+🚀 Kiro API Server V4 (Direct Post)
+📡 Port: 8081
+🔗 Health: http://localhost:8081/health
+🔗 Enhance: POST http://localhost:8081/kiro/v4/enhance
+============================================================
+
+❌ Enhancement error: Missing required fields: idea, callbackUrl

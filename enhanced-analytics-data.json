@@ -1,0 +1,23 @@
+{
+  "files": [
+    {
+      "path": "src/components/Analytics.js",
+      "content": "import React, { useState, useEffect } from 'react';\nimport { formatDate, calculateProgress } from '../utils/helpers';\n\nconst Analytics = () => {\n  const [metrics, setMetrics] = useState(null);\n  const [loading, setLoading] = useState(true);\n  \n  useEffect(() => {\n    fetch('/api/analytics')\n      .then(res => res.json())\n      .then(data => {\n        setMetrics(data);\n        setLoading(false);\n      })\n      .catch(err => {\n        console.error('Analytics error:', err);\n        setLoading(false);\n      });\n  }, []);\n  \n  if (loading) return <div className=\"loading\">Loading analytics...</div>;\n  \n  return (\n    <div className=\"analytics\">\n      <h2>Project Analytics</h2>\n      <div className=\"metrics-grid\">\n        <div className=\"metric\">\n          <h3>Velocity</h3>\n          <p>{metrics?.velocity || 0} points/sprint</p>\n        </div>\n        <div className=\"metric\">\n          <h3>Burndown</h3>\n          <p>{calculateProgress(metrics?.completed, metrics?.total)}% complete</p>\n        </div>\n        <div className=\"metric\">\n          <h3>Quality Score</h3>\n          <p>{metrics?.qualityScore || 0}/100</p>\n        </div>\n      </div>\n    </div>\n  );\n};\n\nexport default Analytics;",
+      "action": "create"
+    },
+    {
+      "path": "src/services/api.js",
+      "content": "const API_BASE = process.env.REACT_APP_API_URL || '/api';\n\nclass ApiService {\n  async request(endpoint, options = {}) {\n    const url = `${API_BASE}${endpoint}`;\n    const config = {\n      headers: {\n        'Content-Type': 'application/json',\n        ...options.headers\n      },\n      ...options\n    };\n    \n    try {\n      const response = await fetch(url, config);\n      if (!response.ok) {\n        throw new Error(`HTTP error! status: ${response.status}`);\n      }\n      return await response.json();\n    } catch (error) {\n      console.error('API request failed:', error);\n      throw error;\n    }\n  }\n  \n  async get(endpoint) {\n    return this.request(endpoint);\n  }\n  \n  async post(endpoint, data) {\n    return this.request(endpoint, {\n      method: 'POST',\n      body: JSON.stringify(data)\n    });\n  }\n  \n  async put(endpoint, data) {\n    return this.request(endpoint, {\n      method: 'PUT',\n      body: JSON.stringify(data)\n    });\n  }\n  \n  async delete(endpoint) {\n    return this.request(endpoint, {\n      method: 'DELETE'\n    });\n  }\n}\n\nexport default new ApiService();",
+      "action": "create"
+    },
+    {
+      "path": "src/styles/analytics.css",
+      "content": ".analytics {\n  padding: 24px;\n  background: #f8f9fa;\n  border-radius: 12px;\n  margin: 20px 0;\n}\n\n.analytics h2 {\n  margin: 0 0 24px 0;\n  color: #2c3e50;\n  font-size: 1.8em;\n  font-weight: 600;\n}\n\n.metrics-grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n  gap: 20px;\n}\n\n.metric {\n  background: white;\n  padding: 24px;\n  border-radius: 8px;\n  box-shadow: 0 2px 8px rgba(0,0,0,0.08);\n  border-left: 4px solid #3498db;\n  transition: transform 0.2s ease;\n}\n\n.metric:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 4px 12px rgba(0,0,0,0.12);\n}\n\n.metric h3 {\n  margin: 0 0 12px 0;\n  color: #34495e;\n  font-size: 1.1em;\n  font-weight: 500;\n}\n\n.metric p {\n  margin: 0;\n  font-size: 2.2em;\n  font-weight: bold;\n  color: #2980b9;\n}\n\n.loading {\n  text-align: center;\n  padding: 40px;\n  color: #7f8c8d;\n  font-size: 1.1em;\n}",
+      "action": "create"
+    }
+  ],
+  "commitMessage": "Add Analytics component with metrics display and API service layer",
+  "committed": true,
+  "prUrl": "https://github.com/user/aipm/pull/1001",
+  "summary": "Enhanced AIPM with Analytics component for project metrics, centralized API service for HTTP requests, and modern CSS styling with hover effects"
+}

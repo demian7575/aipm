@@ -1,0 +1,16 @@
+{
+  "storyId": "test-enhanced-005",
+  "title": "Enhanced Test Story",
+  "description": "As a developer, I want to test the enhanced JSON schema so that I can validate the complete structure works correctly.",
+  "asA": "developer",
+  "iWant": "to test the enhanced JSON schema",
+  "soThat": "I can validate the complete structure works correctly",
+  "storyPoint": 2,
+  "acceptanceCriteria": [
+    "Given a complete JSON schema, when validated against the structure, then all required fields are present",
+    "Given proper data types, when submitted to the API, then validation passes successfully",
+    "Given array constraints, when acceptance criteria are provided, then minItems and maxItems are respected"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-20T08:47:48.047Z"
+}

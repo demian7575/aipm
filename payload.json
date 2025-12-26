@@ -1,0 +1,6 @@
+{
+  "title": "Navigation Enhancement",
+  "files": ["apps/frontend/public/app.js"],
+  "commitMessage": "feat: add navigation enhancements",
+  "committed": true
+}

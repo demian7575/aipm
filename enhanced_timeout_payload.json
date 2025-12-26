@@ -1,0 +1,16 @@
+{
+  "storyId": "story-1735060121450",
+  "title": "Advanced callback timeout handling",
+  "description": "Implement sophisticated timeout mechanisms for callback operations to prevent system hangs and ensure graceful degradation",
+  "asA": "system administrator",
+  "iWant": "to configure callback timeout policies",
+  "soThat": "I can maintain system stability under high load conditions",
+  "storyPoint": 5,
+  "acceptanceCriteria": [
+    "Configurable timeout values for different callback types",
+    "Automatic cleanup of expired callback registrations",
+    "Graceful fallback when callbacks exceed timeout limits"
+  ],
+  "enhanced": true,
+  "enhancedAt": "2025-12-23T17:28:41.450Z"
+}

@@ -1,0 +1,17 @@
+{
+  "title": "Validate API response codes and data integrity",
+  "given": [
+    "Given the API endpoints are deployed and accessible",
+    "And test data is available in the system"
+  ],
+  "when": [
+    "When automated tests execute GET, POST, PUT, and DELETE operations",
+    "And response validation checks are performed"
+  ],
+  "then": [
+    "Then all endpoints return appropriate HTTP status codes",
+    "And response data matches expected schema",
+    "And error handling works correctly for invalid inputs",
+    "And test execution completes within 30 seconds"
+  ]
+}

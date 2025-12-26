@@ -1,0 +1,9 @@
+{
+  "title": "Implement logging infrastructure",
+  "description": "As a DevOps engineer, I want to implement centralized logging so that I can monitor application behavior and troubleshoot issues efficiently.",
+  "storyPoints": 5,
+  "assignee": "devops@example.com",
+  "status": "Ready",
+  "components": ["Traceabilty_Insight"],
+  "acceptWarnings": true
+}

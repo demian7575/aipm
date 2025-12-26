@@ -1,0 +1,55 @@
+{
+  "title": "Streamline Development Task cards by removing clutter",
+  "description": "As a project manager, I want Development Task cards to show only essential information so that I can quickly identify actionable items without visual noise. Remove the Branch field, 'PR created and ready for development' status, and Rebase button while keeping the Generate Code action prominent.",
+  "acceptanceCriteria": [
+    {
+      "id": 1,
+      "description": "Branch field is not displayed in task cards",
+      "status": "Draft"
+    },
+    {
+      "id": 2,
+      "description": "Default 'PR created and ready for development' status text is removed",
+      "status": "Draft"
+    },
+    {
+      "id": 3,
+      "description": "Rebase button is not shown in task actions",
+      "status": "Draft"
+    },
+    {
+      "id": 4,
+      "description": "Generate Code button remains as primary action",
+      "status": "Draft"
+    },
+    {
+      "id": 5,
+      "description": "Task title and assignee are still visible",
+      "status": "Draft"
+    }
+  ],
+  "storyPoints": 2,
+  "assignee": "frontend-dev@example.com",
+  "status": "Ready",
+  "components": ["Frontend"],
+  "tasks": [
+    {
+      "id": 1,
+      "description": "Remove branch display from renderCodeWhispererCard function",
+      "assignee": "frontend-dev@example.com",
+      "status": "Draft"
+    },
+    {
+      "id": 2,
+      "description": "Remove default PR status text from status logic",
+      "assignee": "frontend-dev@example.com",
+      "status": "Draft"
+    },
+    {
+      "id": 3,
+      "description": "Remove Rebase button creation and event handler",
+      "assignee": "frontend-dev@example.com",
+      "status": "Draft"
+    }
+  ]
+}

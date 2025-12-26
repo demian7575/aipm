@@ -1,0 +1,14 @@
+{
+  "storyId": "story-kiro-integration-test",
+  "title": "Test Kiro Integration",
+  "description": "Verify that the Kiro worker can successfully generate code and create pull requests for AI-assisted development workflows in the AIPM system.",
+  "asA": "developer",
+  "iWant": "to verify that the Kiro worker can successfully generate code and create pull requests",
+  "soThat": "AI-assisted development workflows function correctly in the AIPM system",
+  "acceptanceCriteria": [
+    "Given a code generation task in DynamoDB queue, when Kiro worker polls the queue, then it should pick up the task within 1 second",
+    "Given a valid task, when Kiro worker processes it, then it should checkout the correct PR branch and generate appropriate code",
+    "Given generated code, when Kiro worker completes processing, then it should commit changes and update task status to completed"
+  ],
+  "enhanced": true
+}

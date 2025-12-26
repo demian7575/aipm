@@ -1,0 +1,9 @@
+{
+  "title": "Implement database backup automation",
+  "description": "As a database administrator, I want to implement automated database backups so that I can ensure data protection and recovery capabilities.",
+  "storyPoints": 5,
+  "assignee": "dba@example.com",
+  "status": "Ready",
+  "components": ["Run_Verify"],
+  "acceptWarnings": true
+}

@@ -1,0 +1,13 @@
+{
+  "storyId": 76,
+  "title": "Execute automated regression test suite",
+  "description": "As a test engineer, I want to run automated regression tests so that code changes don't break existing functionality.",
+  "asA": "test engineer",
+  "iWant": "to run automated regression tests",
+  "soThat": "code changes don't break existing functionality",
+  "components": ["Run_Verify"],
+  "storyPoint": 2,
+  "assigneeEmail": "test@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}

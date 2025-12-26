@@ -1,0 +1,20 @@
+{
+  "storyId": "PERF-004",
+  "title": "Run database stress tests",
+  "description": "As a DBA, I want to execute database stress tests so that performance bottlenecks are identified.",
+  "asA": "DBA",
+  "iWant": "to execute database stress tests",
+  "soThat": "performance bottlenecks are identified",
+  "acceptanceCriteria": [
+    "Database handles 10,000 concurrent connections",
+    "Query response times remain under 100ms",
+    "Memory usage stays within acceptable limits",
+    "No data corruption occurs during stress testing"
+  ],
+  "enhanced": true,
+  "components": ["Run_Verify"],
+  "storyPoint": 4,
+  "assigneeEmail": "dba@example.com",
+  "status": "Ready",
+  "acceptWarnings": true
+}
