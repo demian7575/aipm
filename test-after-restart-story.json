@@ -1,0 +1,65 @@
+{
+  "id": "story-test-after-restart",
+  "title": "Test after restart",
+  "description": "As a system administrator, I want to verify that all critical system components function correctly after a restart so that I can ensure system reliability and data integrity.",
+  "status": "Ready",
+  "priority": "High",
+  "storyPoints": 5,
+  "assignee": "qa-team@company.com",
+  "components": ["System", "Verification"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1",
+      "description": "All services start automatically after system restart",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-2", 
+      "description": "Database connections are restored within 30 seconds",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-3",
+      "description": "User sessions persist or gracefully redirect to login",
+      "status": "Draft", 
+      "verifiable": true
+    },
+    {
+      "id": "ac-4",
+      "description": "All scheduled jobs resume normal operation",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac-5",
+      "description": "System health checks pass within 2 minutes of restart",
+      "status": "Draft",
+      "verifiable": true
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "description": "Create automated restart test script",
+      "assignee": "devops-team@company.com",
+      "status": "Todo"
+    },
+    {
+      "id": "task-2", 
+      "description": "Define service startup verification checks",
+      "assignee": "qa-team@company.com",
+      "status": "Todo"
+    },
+    {
+      "id": "task-3",
+      "description": "Test database recovery procedures",
+      "assignee": "dba-team@company.com", 
+      "status": "Todo"
+    }
+  ],
+  "children": [],
+  "createdAt": "2025-12-26T17:30:16.113Z",
+  "updatedAt": "2025-12-26T17:30:16.113Z"
+}

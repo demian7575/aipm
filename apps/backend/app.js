@@ -1,3 +1,5 @@
+console.log("hello world");
+
 import { generateInvestCompliantStory, generateAcceptanceTest } from './story-generator.js';
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
