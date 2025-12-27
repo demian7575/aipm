@@ -1,0 +1,49 @@
+{
+  "id": "story-test-live-log",
+  "title": "Test live log",
+  "description": "As a developer, I want to view real-time application logs so that I can monitor system behavior and debug issues as they occur.",
+  "status": "Draft",
+  "priority": "Medium",
+  "storyPoints": 5,
+  "assignee": "developer@example.com",
+  "components": ["System (S/S)", "Run & Verify (RV)"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1",
+      "description": "Given the application is running, when I access the live log viewer, then I should see log entries streaming in real-time",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-2", 
+      "description": "Given log entries are being generated, when I filter by log level (ERROR, WARN, INFO, DEBUG), then only matching entries should be displayed",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-3",
+      "description": "Given the live log is active, when I pause the stream, then new log entries should buffer without displaying until I resume",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "description": "Implement WebSocket connection for real-time log streaming",
+      "assignee": "backend-dev@example.com",
+      "status": "Todo"
+    },
+    {
+      "id": "task-2", 
+      "description": "Create log viewer UI with filtering and pause/resume controls",
+      "assignee": "frontend-dev@example.com",
+      "status": "Todo"
+    },
+    {
+      "id": "task-3",
+      "description": "Add log level filtering and search functionality",
+      "assignee": "frontend-dev@example.com", 
+      "status": "Todo"
+    }
+  ],
+  "createdAt": "2025-12-27T02:03:31.161Z",
+  "updatedAt": "2025-12-27T02:03:31.161Z"
+}

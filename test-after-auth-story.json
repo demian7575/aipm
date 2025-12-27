@@ -1,0 +1,40 @@
+{
+  "id": "story-test-after-auth",
+  "title": "Test after auth",
+  "description": "As a developer, I want to run automated tests after user authentication so that I can verify the system behaves correctly for authenticated users.",
+  "status": "Draft",
+  "storyPoints": 3,
+  "assignee": "developer@example.com",
+  "components": ["Test Automation", "Run & Verify"],
+  "acceptanceTests": [
+    {
+      "id": "test-1",
+      "description": "Given a user is authenticated, when tests are executed, then all authentication-dependent features should be verified",
+      "status": "Draft"
+    },
+    {
+      "id": "test-2", 
+      "description": "Given test suite runs post-authentication, when accessing protected endpoints, then proper authorization should be validated",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "description": "Set up test environment with authenticated user context",
+      "assignee": "developer@example.com",
+      "status": "Pending"
+    },
+    {
+      "id": "task-2",
+      "description": "Create test cases for protected functionality",
+      "assignee": "developer@example.com", 
+      "status": "Pending"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "referenceDocuments": [],
+  "createdAt": "2025-12-27T01:42:03.451Z",
+  "updatedAt": "2025-12-27T01:42:03.451Z"
+}
