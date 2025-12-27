@@ -1758,8 +1758,8 @@ function renderCodeWhispererSectionList(container, story) {
     const prLink = document.createElement('p');
     prLink.className = 'codewhisperer-pr-link';
     
-    if (entry.prUrl || (entry.type === 'pull_request' && entry.html_url)) {
-      const url = entry.prUrl || entry.html_url;
+    if (entry.prUrl || entry.html_url || entry.url) {
+      const url = entry.prUrl || entry.html_url || entry.url;
       const prNumber = entry.number ? `#${entry.number}` : '';
       prLink.innerHTML = `<span>Pull Request:</span> <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">PR ${prNumber}</a>`;
     } else if (entry.taskId) {

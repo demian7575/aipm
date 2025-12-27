@@ -20,6 +20,16 @@
 ### AI Assistant Guidelines
 - **[AI_ASSISTANT_GUIDELINES.md](../AI_ASSISTANT_GUIDELINES.md)** - Guidelines for AI-assisted development
 
+### 🆕 Updated Architecture & Workflows (December 2025)
+- **[ARCHITECTURE_UPDATE_2025.md](../ARCHITECTURE_UPDATE_2025.md)** - Current production architecture analysis
+  - Actual vs documented architecture
+  - Critical findings and recommendations
+  - Updated technical implementation details
+- **[WORKFLOW_UPDATE_2025.md](../WORKFLOW_UPDATE_2025.md)** - Current workflow analysis
+  - Actual vs documented workflows
+  - Performance metrics and pain points
+  - Recommended improvements and tools
+
 ---
 
 ## 🗂️ Documentation Structure
