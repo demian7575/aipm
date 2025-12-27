@@ -5,11 +5,11 @@ const http = require('http');
 
 const ENVIRONMENTS = {
     production: {
-        api: 'http://44.220.45.57:4000',
+        api: 'http://44.220.45.57:8081',
         frontend: 'http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com'
     },
     development: {
-        api: 'http://44.220.45.57:4000',
+        api: 'http://44.220.45.57:8081',
         frontend: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'
     }
 };

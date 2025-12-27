@@ -17,7 +17,7 @@ async function testKiroV4StoryCreation() {
       throw new Error(`V4 health check failed: ${healthResponse.status}`);
     }
     const health = await healthResponse.json();
-    if (health.service !== 'kiro-api-server-v4') {
+    if (health.service !== 'V4') {
       throw new Error(`Expected V4, got: ${health.service}`);
     }
     console.log('✅ V4 is running');

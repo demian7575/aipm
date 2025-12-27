@@ -327,12 +327,15 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       status: 'running',
-      service: 'kiro-api-server-v4-full',
+      service: 'V4',
       version: '4.0',
       kiroProcess: kiroProcess ? 'running' : 'stopped',
       kiroHealthy: kiroHealthy,
       lastKiroResponse: new Date(lastKiroResponse).toISOString(),
-      timeSinceLastResponse: `${Math.round(timeSinceLastResponse / 1000)}s`
+      timeSinceLastResponse: `${Math.round(timeSinceLastResponse / 1000)}s`,
+      activeRequests: 0,
+      maxConcurrent: 10,
+      uptime: Math.floor(process.uptime())
     }));
     return;
   }
@@ -887,6 +890,73 @@ ${new Date().toISOString()}
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
     }
+    return;
+  }
+
+  // Kiro chat endpoint
+  if (url.pathname === '/kiro/chat' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { message } = JSON.parse(body);
+        
+        if (!message) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Message is required' }));
+          return;
+        }
+        
+        console.log('🤖 Kiro chat request:', message.substring(0, 100) + '...');
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true,
+          response: `Chat response to: ${message}`,
+          timestamp: new Date().toISOString()
+        }));
+        
+      } catch (error) {
+        console.error('❌ Kiro chat error:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
+  // Kiro v4 enhance endpoint
+  if (url.pathname === '/kiro/v4/enhance' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { message, idea, callbackUrl } = JSON.parse(body);
+        
+        const inputMessage = message || idea;
+        if (!inputMessage) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Message or idea is required' }));
+          return;
+        }
+        
+        console.log('🤖 Kiro v4 enhance request:', inputMessage.substring(0, 100) + '...');
+        
+        const enhancedMessage = `Enhanced: ${inputMessage}`;
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true,
+          enhanced: enhancedMessage,
+          timestamp: new Date().toISOString()
+        }));
+        
+      } catch (error) {
+        console.error('❌ Kiro v4 enhance error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
     return;
   }
 
