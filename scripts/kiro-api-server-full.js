@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import http from 'http';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { spawn } from 'child_process';
@@ -41,12 +41,32 @@ function startKiroProcess() {
   // Create live log file with tee for both stdout and stderr
   const logFile = '/tmp/kiro-cli-live.log';
   const errorLogFile = '/tmp/kiro-cli-error.log';
+  
+  // Add timestamp and separator to log file
+  const timestamp = new Date().toISOString();
+  appendFileSync(logFile, `\n\n=== Kiro CLI Session Started: ${timestamp} ===\n`);
+  
   const teeProcess = spawn('tee', ['-a', logFile], { stdio: ['pipe', 'inherit', 'inherit'] });
   const teeErrorProcess = spawn('tee', ['-a', errorLogFile], { stdio: ['pipe', 'inherit', 'inherit'] });
   
-  // Pipe Kiro CLI stdout and stderr to log files
-  kiroProcess.stdout.pipe(teeProcess.stdin);
-  kiroProcess.stderr.pipe(teeErrorProcess.stdin);
+  // Pipe Kiro CLI stdout and stderr to log files with line breaks
+  kiroProcess.stdout.on('data', (data) => {
+    const lines = data.toString().split('\n');
+    lines.forEach(line => {
+      if (line.trim()) {
+        teeProcess.stdin.write(line + '\n');
+      }
+    });
+  });
+  
+  kiroProcess.stderr.on('data', (data) => {
+    const lines = data.toString().split('\n');
+    lines.forEach(line => {
+      if (line.trim()) {
+        teeErrorProcess.stdin.write('[ERROR] ' + line + '\n');
+      }
+    });
+  });
   
   kiroProcess.on('close', () => {
     console.log('Kiro process closed, restarting...');
