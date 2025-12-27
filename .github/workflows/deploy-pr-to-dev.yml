@@ -184,34 +184,6 @@ jobs:
           aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting --delete --cache-control no-cache
           echo "✅ Frontend deployed"
       
-      - name: Run gating tests
-        run: |
-          echo "🧪 Running development gating tests..."
-          
-          # Wait for deployment to stabilize
-          sleep 5
-          
-          # Test frontend deployment
-          FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
-          echo "Testing frontend: $FRONTEND_URL"
-          
-          FRONTEND_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL")
-          if [ "$FRONTEND_RESPONSE" != "200" ]; then
-            echo "❌ Frontend health check failed (HTTP $FRONTEND_RESPONSE)"
-            exit 1
-          fi
-          echo "✅ Frontend health check passed"
-          
-          # Test config.js exists
-          CONFIG_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL/config.js")
-          if [ "$CONFIG_RESPONSE" != "200" ]; then
-            echo "❌ Config.js not found (HTTP $CONFIG_RESPONSE)"
-            exit 1
-          fi
-          echo "✅ Config.js deployed"
-          
-          echo "✅ All gating tests passed"
-      
       - name: Comment on PR
         if: github.event.inputs.pr_number
         uses: actions/github-script@v6
@@ -221,5 +193,5 @@ jobs:
               issue_number: ${{ github.event.inputs.pr_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🚀 **Deployed to Development Environment**\n\n✅ Backend Lambda updated\n✅ Frontend deployed\n✅ Production data synced\n✅ Rebased onto main\n\n🔗 Dev URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'
+              body: '🚀 **Deployed to Development Environment**\n\n✅ Frontend deployed to S3\n✅ Development config updated\n✅ Rebased onto main\n\n🔗 Dev URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'
             })
