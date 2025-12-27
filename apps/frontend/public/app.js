@@ -1705,6 +1705,35 @@ function formatRelativeTime(isoString) {
   return new Date(isoString).toLocaleDateString();
 }
 
+// Enhanced GitHub PR data processing
+function enhanceGitHubPRData(entry) {
+  // Extract GitHub PR information from various possible fields
+  const prData = {
+    url: entry.prUrl || entry.html_url || entry.htmlUrl,
+    number: entry.number || entry.pr_number,
+    state: entry.state || 'open',
+    merged: entry.merged || false,
+    merged_at: entry.merged_at,
+    title: entry.title || entry.pr_title,
+    author: entry.user?.login || entry.author,
+    created_at: entry.created_at,
+    updated_at: entry.updated_at
+  };
+
+  // Determine PR status
+  if (prData.merged) {
+    prData.status = 'merged';
+  } else if (prData.state === 'closed') {
+    prData.status = 'closed';
+  } else if (prData.url) {
+    prData.status = 'open';
+  } else {
+    prData.status = 'pending';
+  }
+
+  return { ...entry, prData };
+}
+
 function renderCodeWhispererSectionList(container, story) {
   container.innerHTML = '';
   const entries = getCodeWhispererDelegations(story.id);
@@ -1720,64 +1749,95 @@ function renderCodeWhispererSectionList(container, story) {
   // Queue polling removed - no longer needed
 
   entries.forEach((entry) => {
+    // Enhance entry with GitHub PR data
+    const enhancedEntry = enhanceGitHubPRData(entry);
+    
     const card = document.createElement('article');
     card.className = 'codewhisperer-task-card';
-    card.dataset.localId = entry.localId;
+    card.dataset.localId = enhancedEntry.localId;
 
     const header = document.createElement('header');
     header.className = 'codewhisperer-task-card-header';
 
     const title = document.createElement('h4');
-    title.textContent = entry.taskTitle || 'Development task';
+    title.textContent = enhancedEntry.taskTitle || 'Development task';
     header.appendChild(title);
 
     const badge = document.createElement('span');
     badge.className = 'codewhisperer-target-badge';
-    badge.textContent = formatCodeWhispererTargetLabel(entry);
+    badge.textContent = formatCodeWhispererTargetLabel(enhancedEntry);
     header.appendChild(badge);
 
     card.appendChild(header);
 
-    if (entry.objective) {
+    if (enhancedEntry.objective) {
       const objective = document.createElement('p');
       objective.className = 'codewhisperer-objective';
-      objective.textContent = entry.objective;
+      objective.textContent = enhancedEntry.objective;
       card.appendChild(objective);
     }
 
-    if (entry.confirmationCode) {
+    if (enhancedEntry.confirmationCode) {
       const confirmation = document.createElement('p');
       confirmation.className = 'codewhisperer-confirmation';
       confirmation.innerHTML = `<span>Confirmation:</span> <code>${escapeHtml(
-        entry.confirmationCode
+        enhancedEntry.confirmationCode
       )}</code>`;
       card.appendChild(confirmation);
     }
 
-    // Show PR link - always clickable
-    const prLink = document.createElement('p');
-    prLink.className = 'codewhisperer-pr-link';
+    // Enhanced GitHub PR link integration
+    const prLinkContainer = document.createElement('div');
+    prLinkContainer.className = 'codewhisperer-pr-link-container';
     
-    if (entry.prUrl || (entry.type === 'pull_request' && entry.html_url)) {
-      const url = entry.prUrl || entry.html_url;
-      const prNumber = entry.number ? `#${entry.number}` : '';
-      prLink.innerHTML = `<span>Pull Request:</span> <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">PR ${prNumber}</a>`;
-    } else if (entry.taskId) {
-      prLink.innerHTML = `<span>Pull Request:</span> <a href="#" class="pr-link">View PR</a>`;
-      prLink.querySelector('.pr-link').addEventListener('click', (e) => {
+    if (enhancedEntry.prData.url) {
+      const { url, number, status, merged_at, title } = enhancedEntry.prData;
+      
+      const prLink = document.createElement('p');
+      prLink.className = 'codewhisperer-pr-link';
+      
+      // Add status badge for PR state
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `pr-status-badge pr-status-${status}`;
+      statusBadge.textContent = status.toUpperCase();
+      
+      const prText = number ? `PR #${number}` : 'PR Link';
+      prLink.innerHTML = `<span>Pull Request:</span> <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="github-pr-link" title="${escapeHtml(title || 'GitHub Pull Request')}">
+        ${statusBadge.outerHTML} ${prText}
+      </a>`;
+      
+      // Add merge status if available
+      if (status === 'merged' && merged_at) {
+        const mergeInfo = document.createElement('span');
+        mergeInfo.className = 'pr-merge-info';
+        mergeInfo.textContent = ` • Merged ${formatRelativeTime(merged_at)}`;
+        prLink.appendChild(mergeInfo);
+      }
+      
+      prLinkContainer.appendChild(prLink);
+    } else if (enhancedEntry.taskId || enhancedEntry.branchName) {
+      const prLink = document.createElement('p');
+      prLink.className = 'codewhisperer-pr-link pending';
+      prLink.innerHTML = `<span>Pull Request:</span> <a href="#" class="pr-link-pending">
+        <span class="pr-status-badge pr-status-pending">PENDING</span> Generating PR...
+      </a>`;
+      
+      prLink.querySelector('.pr-link-pending').addEventListener('click', (e) => {
         e.preventDefault();
-        showToast('PR is being generated by Kiro. Please wait...', 'info');
+        showToast('PR is being generated by Kiro. Please check back shortly.', 'info');
       });
+      
+      prLinkContainer.appendChild(prLink);
     }
     
-    if (prLink.innerHTML) {
-      card.appendChild(prLink);
+    if (prLinkContainer.children.length > 0) {
+      card.appendChild(prLinkContainer);
     }
 
-    if (entry.branchName) {
+    if (enhancedEntry.branchName) {
       const branch = document.createElement('p');
       branch.className = 'codewhisperer-branch';
-      branch.innerHTML = `<span>Branch:</span> ${escapeHtml(entry.branchName)}`;
+      branch.innerHTML = `<span>Branch:</span> ${escapeHtml(enhancedEntry.branchName)}`;
       card.appendChild(branch);
     }
 
@@ -1796,7 +1856,7 @@ function renderCodeWhispererSectionList(container, story) {
     
     const assigneeInput = document.createElement('input');
     assigneeInput.type = 'text';
-    assigneeInput.value = entry.assignee || '';
+    assigneeInput.value = enhancedEntry.assignee || '';
     assigneeInput.placeholder = '(not assigned)';
     assigneeInput.style.flex = '1';
     assigneeInput.style.padding = '4px 8px';
@@ -1813,7 +1873,7 @@ function renderCodeWhispererSectionList(container, story) {
     updateAssigneeBtn.addEventListener('click', async () => {
       const newAssignee = assigneeInput.value.trim();
       const updatedEntries = getCodeWhispererDelegations(story.id).map((item) =>
-        item.localId === entry.localId
+        item.localId === enhancedEntry.localId
           ? { ...item, assignee: newAssignee, updatedAt: new Date().toISOString() }
           : item
       );
@@ -1839,26 +1899,26 @@ function renderCodeWhispererSectionList(container, story) {
     const status = document.createElement('p');
     status.className = 'codewhisperer-status-line';
 
-    if (entry.latestStatus) {
-      const actor = entry.latestStatus.author || 'CodeWhisperer';
-      const when = formatRelativeTime(entry.latestStatus.createdAt);
-      const snippet = entry.latestStatus.snippet || summarizeCommentBody(entry.latestStatus.body);
+    if (enhancedEntry.latestStatus) {
+      const actor = enhancedEntry.latestStatus.author || 'CodeWhisperer';
+      const when = formatRelativeTime(enhancedEntry.latestStatus.createdAt);
+      const snippet = enhancedEntry.latestStatus.snippet || summarizeCommentBody(enhancedEntry.latestStatus.body);
       status.innerHTML = `<strong>${escapeHtml(actor)}</strong>${
         when ? ` · ${escapeHtml(when)}` : ''
       } — ${escapeHtml(snippet || 'Update available.')}`;
-    } else if (entry.lastError) {
+    } else if (enhancedEntry.lastError) {
       status.classList.add('is-error');
-      status.textContent = entry.lastError;
+      status.textContent = enhancedEntry.lastError;
     } else {
       status.textContent = 'PR created and ready for development…';
     }
     card.appendChild(status);
 
-    if (entry.lastCheckedAt) {
+    if (enhancedEntry.lastCheckedAt) {
       const meta = document.createElement('p');
       meta.className = 'codewhisperer-status-meta';
-      const label = entry.lastError ? 'Last attempted' : 'Last checked';
-      meta.textContent = `${label} ${formatRelativeTime(entry.lastCheckedAt)}`;
+      const label = enhancedEntry.lastError ? 'Last attempted' : 'Last checked';
+      meta.textContent = `${label} ${formatRelativeTime(enhancedEntry.lastCheckedAt)}`;
       card.appendChild(meta);
     }
 
@@ -1872,13 +1932,13 @@ function renderCodeWhispererSectionList(container, story) {
     generateCodeBtn.textContent = 'Generate Code';
     generateCodeBtn.addEventListener('click', async () => {
       console.log('🔘 Generate Code button clicked for story:', story?.id);
-      console.log('🔘 Entry data passed to button:', entry);
-      openUpdatePRWithCodeModal(story, entry);
+      console.log('🔘 Entry data passed to button:', enhancedEntry);
+      openUpdatePRWithCodeModal(story, enhancedEntry);
     });
     actions.appendChild(generateCodeBtn);
 
-    const taskUrl = entry.taskUrl || entry.htmlUrl;
-    const threadUrl = entry.threadUrl || entry.htmlUrl;
+    const taskUrl = enhancedEntry.taskUrl || enhancedEntry.htmlUrl;
+    const threadUrl = enhancedEntry.threadUrl || enhancedEntry.htmlUrl;
 
     if (threadUrl && (!taskUrl || threadUrl !== taskUrl)) {
       const threadLink = document.createElement('a');
@@ -1890,9 +1950,9 @@ function renderCodeWhispererSectionList(container, story) {
       actions.appendChild(threadLink);
     }
 
-    if (entry.latestStatus && entry.latestStatus.htmlUrl) {
+    if (enhancedEntry.latestStatus && enhancedEntry.latestStatus.htmlUrl) {
       const updateLink = document.createElement('a');
-      updateLink.href = entry.latestStatus.htmlUrl;
+      updateLink.href = enhancedEntry.latestStatus.htmlUrl;
       updateLink.className = 'link-button';
       updateLink.target = '_blank';
       updateLink.rel = 'noreferrer noopener';
