@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AIPM API Test</title>
+</head>
+<body>
+    <h1>AIPM API Test</h1>
+    <button onclick="testPersonalDelegate()">Test Personal Delegate</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testPersonalDelegate() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('http://44.220.45.57:8081/api/personal-delegate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        owner: 'test',
+                        repo: 'test',
+                        storyId: 1,
+                        taskTitle: 'Test Task',
+                        objective: 'Test objective'
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>Response (${response.status}):</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>Error:</h3><pre>${error.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>

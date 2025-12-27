@@ -7,13 +7,8 @@ provider:
   runtime: nodejs18.x
   region: us-east-1
   stage: ${opt:stage, 'prod'}
-  memorySize: 512
-  timeout: 900
-  vpc:
-    securityGroupIds:
-      - sg-02f23dc345006410d
-    subnetIds:
-      - subnet-07b0e3f8154039744
+  memorySize: 1024
+  timeout: 30
   environment:
     NODE_ENV: production
     STAGE: ${self:provider.stage}
@@ -91,8 +86,74 @@ package:
     - package.json
 
 functions:
+  # Microservices approach - separate functions for each operation
+  getStories:
+    handler: apps/backend/microservices.getStories
+    events:
+      - http:
+          path: /api/stories
+          method: get
+          cors: true
+  
+  getStory:
+    handler: apps/backend/microservices.getStory
+    events:
+      - http:
+          path: /api/stories/{id}
+          method: get
+          cors: true
+  
+  createStory:
+    handler: apps/backend/microservices.createStory
+    events:
+      - http:
+          path: /api/stories
+          method: post
+          cors: true
+  
+  generateStoryDraft:
+    handler: apps/backend/microservices.generateStoryDraft
+    events:
+      - http:
+          path: /api/stories/draft
+          method: post
+          cors: true
+
+  handleStoryDraftCallback:
+    handler: apps/backend/microservices.handleStoryDraftCallback
+    events:
+      - http:
+          path: /api/stories/draft/callback
+          method: post
+          cors: true
+  
+  updateStory:
+    handler: apps/backend/microservices.updateStory
+    events:
+      - http:
+          path: /api/stories/{id}
+          method: put
+          cors: true
+  
+  deleteStory:
+    handler: apps/backend/microservices.deleteStory
+    events:
+      - http:
+          path: /api/stories/{id}
+          method: delete
+          cors: true
+  
+  healthCheck:
+    handler: apps/backend/microservices.healthCheck
+    events:
+      - http:
+          path: /health
+          method: get
+          cors: true
+  
+  # Legacy monolithic handler for backward compatibility
   api:
-    handler: apps/backend/handler.handler
+    handler: apps/backend/lambda-handler.handler
     events:
       - http:
           path: /{proxy+}
