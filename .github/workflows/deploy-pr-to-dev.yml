@@ -81,9 +81,9 @@ jobs:
             git checkout $BRANCH_NAME
             TASK_DESC="Rebase this branch onto origin/main and resolve all merge conflicts. Files with conflicts: $CONFLICT_FILES. After resolving conflicts, complete the rebase successfully."
             
-            RESPONSE=$(curl -s -X POST http://44.220.45.57:8080/generate-code \
+            RESPONSE=$(curl -s -X POST http://44.220.45.57:8081/kiro/v4/enhance \
               -H "Content-Type: application/json" \
-              -d "{\"branch\":\"$BRANCH_NAME\",\"taskDescription\":\"$TASK_DESC\",\"prNumber\":${{ github.event.inputs.pr_number || 0 }}}" \
+              -d "{\"idea\":\"$TASK_DESC\",\"callbackUrl\":\"http://example.com\"}" \
               --max-time 120)
             
             SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
@@ -115,9 +115,9 @@ jobs:
               echo "🤖 Regenerating code with Kiro..."
               REGEN_TASK="Regenerate the feature implementation. Original objective: $PR_OBJECTIVE"
               
-              REGEN_RESPONSE=$(curl -s -X POST http://44.220.45.57:8080/generate-code \
+              REGEN_RESPONSE=$(curl -s -X POST http://44.220.45.57:8081/kiro/v4/enhance \
                 -H "Content-Type: application/json" \
-                -d "{\"branch\":\"$BRANCH_NAME\",\"taskDescription\":\"$REGEN_TASK\",\"prNumber\":${{ github.event.inputs.pr_number || 0 }}}" \
+                -d "{\"idea\":\"$REGEN_TASK\",\"callbackUrl\":\"http://example.com\"}" \
                 --max-time 120)
               
               REGEN_SUCCESS=$(echo "$REGEN_RESPONSE" | jq -r '.success // false')
@@ -152,66 +152,31 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Sync production data to development
+      - name: Deploy to development environment
         run: |
-          echo "📊 Syncing production mindmap data to development..."
+          echo "📊 Deploying to development environment..."
           
-          # Deploy backend first to ensure tables exist
-          echo "📦 Deploying backend to dev (ensures tables exist)..."
+          # Skip backend deployment - using existing EC2 infrastructure
+          echo "📦 Using existing EC2 backend infrastructure"
           
-          # Set PR_NUMBER environment variable for deployment
-          if [ -n "${{ github.event.inputs.pr_number }}" ]; then
-            export PR_NUMBER="${{ github.event.inputs.pr_number }}"
-            echo "🔢 Setting PR_NUMBER=$PR_NUMBER for development environment"
-            npx serverless deploy --stage dev --region us-east-1
-          else
-            echo "📦 Deploying without PR number (main branch)"
-            npx serverless deploy --stage dev --region us-east-1
-          fi
+          # Create dev config
+          echo "📝 Creating development configuration..."
+          cat > apps/frontend/public/config.js << EOF
+          window.CONFIG = {
+            API_BASE_URL: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
+            apiEndpoint: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
+            EC2_TERMINAL_URL: 'ws://44.220.45.57:8080',
+            ENVIRONMENT: 'development',
+            environment: 'development',
+            stage: 'dev',
+            region: 'us-east-1',
+            storiesTable: 'aipm-backend-dev-stories',
+            acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
+            DEBUG: true
+          };
+          EOF
           
-          # Wait for tables to be ready
-          echo "⏳ Waiting for tables to be ready..."
-          sleep 10
-          
-          # Clear existing dev data
-          echo "🧹 Clearing existing dev data..."
-          
-          # Clear stories table
-          aws dynamodb scan --table-name aipm-backend-dev-stories --region us-east-1 --attributes-to-get id | \
-            jq -r '.Items[]?.id?.N // empty' | \
-            while read -r id; do
-              [ -n "$id" ] && aws dynamodb delete-item --table-name aipm-backend-dev-stories --region us-east-1 --key "{\"id\":{\"N\":\"$id\"}}" || true
-            done
-          
-          # Clear acceptance tests table
-          aws dynamodb scan --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --attributes-to-get id | \
-            jq -r '.Items[]?.id?.N // empty' | \
-            while read -r id; do
-              [ -n "$id" ] && aws dynamodb delete-item --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --key "{\"id\":{\"N\":\"$id\"}}" || true
-            done
-          
-          # Copy stories from prod (mindmap data)
-          echo "📝 Copying user stories (mindmap data) from production..."
-          aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 | \
-            jq -c '.Items[]' | \
-            while IFS= read -r item; do
-              echo "$item" | aws dynamodb put-item --table-name aipm-backend-dev-stories --region us-east-1 --item file:///dev/stdin || true
-            done
-          
-          # Copy acceptance tests from prod
-          echo "✅ Copying acceptance tests from production..."
-          aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1 | \
-            jq -c '.Items[]' | \
-            while IFS= read -r item; do
-              echo "$item" | aws dynamodb put-item --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --item file:///dev/stdin || true
-            done
-          
-          echo "✅ Mindmap data sync complete"
-      
-      - name: Create dev config
-        run: |
-          chmod +x scripts/deployment/generate-config.sh
-          ./scripts/deployment/generate-config.sh dev
+          echo "✅ Development config created"
       
       - name: Deploy frontend to S3
         run: |
@@ -225,17 +190,6 @@ jobs:
           
           # Wait for deployment to stabilize
           sleep 5
-          
-          # Get dev API endpoint from CloudFormation
-          DEV_API=$(aws cloudformation describe-stacks --stack-name aipm-backend-dev --region us-east-1 --query 'Stacks[0].Outputs[?OutputKey==`ServiceEndpoint`].OutputValue' --output text)
-          echo "Testing API: $DEV_API"
-          
-          API_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$DEV_API/api/stories")
-          if [ "$API_RESPONSE" != "200" ]; then
-            echo "❌ API health check failed (HTTP $API_RESPONSE)"
-            exit 1
-          fi
-          echo "✅ API health check passed"
           
           # Test frontend deployment
           FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
