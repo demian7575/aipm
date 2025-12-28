@@ -5781,7 +5781,13 @@ ${new Date().toISOString()}: 🔄 Log updates automatically every second
           logContent = fs.readFileSync(logPath, 'utf8');
         }
         
-        sendJson(res, 200, { content: logContent });
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        });
+        res.end(JSON.stringify({ content: logContent }));
       } catch (error) {
         console.error('Error reading kiro live log:', error);
         // Return sample content even if file operations fail
@@ -5789,7 +5795,13 @@ ${new Date().toISOString()}: 🔄 Log updates automatically every second
 ${new Date().toISOString()}: ⚠️ Could not access log file: ${error.message}
 ${new Date().toISOString()}: 📝 This is sample content for demonstration
 `;
-        sendJson(res, 200, { content: fallbackContent });
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        });
+        res.end(JSON.stringify({ content: fallbackContent }));
       }
       return;
     }
