@@ -6650,9 +6650,10 @@ ${new Date().toISOString()}: 📝 This is sample content for demonstration
             'User-Agent': 'aipm-staging-workflow'
           },
           body: JSON.stringify({
-            ref: 'main',
+            ref: payload.branchName || 'main',
             inputs: {
-              branch_name: 'main',
+              branch_name: payload.branchName || 'main',
+              pr_number: payload.prNumber || '',
               task_title: taskTitle || 'Test in Dev workflow'
             }
           })
