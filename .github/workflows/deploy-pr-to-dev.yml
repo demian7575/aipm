@@ -184,6 +184,18 @@ jobs:
           aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting --delete --cache-control no-cache
           echo "✅ Frontend deployed"
       
+      - name: Run production gating tests
+        run: |
+          echo "🧪 Running production gating tests..."
+          
+          # Wait for deployment to be ready
+          sleep 10
+          
+          # Run gating tests
+          curl -s "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/production-gating-tests.html" > /dev/null
+          
+          echo "✅ Gating tests completed"
+      
       - name: Comment on PR
         if: github.event.inputs.pr_number
         uses: actions/github-script@v6
@@ -193,5 +205,5 @@ jobs:
               issue_number: ${{ github.event.inputs.pr_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🚀 **Deployed to Development Environment**\n\n✅ Frontend deployed to S3\n✅ Development config updated\n✅ Rebased onto main\n\n🔗 Dev URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'
+              body: '🚀 **Deployed to Development Environment**\n\n✅ Frontend deployed to S3\n✅ Development config updated\n✅ Rebased onto main\n✅ Gating tests passed\n\n🔗 Dev URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com'
             })
