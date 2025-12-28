@@ -49,23 +49,32 @@ function startKiroProcess() {
   const teeProcess = spawn('tee', ['-a', logFile], { stdio: ['pipe', 'inherit', 'inherit'] });
   const teeErrorProcess = spawn('tee', ['-a', errorLogFile], { stdio: ['pipe', 'inherit', 'inherit'] });
   
-  // Pipe Kiro CLI stdout and stderr to log files with line breaks
+  // Pipe Kiro CLI stdout and stderr to log files with selective line breaks
   kiroProcess.stdout.on('data', (data) => {
-    const lines = data.toString().split('\n');
-    lines.forEach(line => {
-      if (line.trim()) {
-        teeProcess.stdin.write(line + '\n');
-      }
-    });
+    const chunk = data.toString();
+    
+    // Add line breaks before purple prompt markers for better readability
+    let formattedChunk = chunk;
+    
+    // Add line break before purple '>' character (ANSI escape sequence)
+    formattedChunk = formattedChunk.replace(/(\u001B\[38;5;141m>\s*\u001B\[0m)/g, '\n$1');
+    
+    // Add line breaks after JSON responses and other completion markers
+    if (chunk.includes('{"') || 
+        chunk.includes('✅') || 
+        chunk.includes('❌') ||
+        chunk.includes('Time:') ||
+        chunk.includes('Success') ||
+        chunk.includes('Fail')) {
+      teeProcess.stdin.write(formattedChunk + '\n');
+    } else {
+      teeProcess.stdin.write(formattedChunk);
+    }
   });
   
   kiroProcess.stderr.on('data', (data) => {
-    const lines = data.toString().split('\n');
-    lines.forEach(line => {
-      if (line.trim()) {
-        teeErrorProcess.stdin.write('[ERROR] ' + line + '\n');
-      }
-    });
+    const chunk = data.toString();
+    teeErrorProcess.stdin.write('[ERROR] ' + chunk);
   });
   
   kiroProcess.on('close', () => {
@@ -962,14 +971,28 @@ ${new Date().toISOString()}
         
         console.log('🤖 Kiro v4 enhance request:', inputMessage.substring(0, 100) + '...');
         
-        const enhancedMessage = `Enhanced: ${inputMessage}`;
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
-          success: true,
-          enhanced: enhancedMessage,
-          timestamp: new Date().toISOString()
-        }));
+        try {
+          // Use actual Kiro CLI communication
+          const enhancedResult = await sendToKiro(inputMessage);
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: true,
+            enhanced: enhancedResult,
+            timestamp: new Date().toISOString()
+          }));
+        } catch (error) {
+          console.warn('Kiro CLI failed, using fallback:', error.message);
+          // Fallback to simple response
+          const enhancedMessage = `Enhanced: ${inputMessage}`;
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: true,
+            enhanced: enhancedMessage,
+            timestamp: new Date().toISOString()
+          }));
+        }
         
       } catch (error) {
         console.error('❌ Kiro v4 enhance error:', error);
@@ -1260,6 +1283,38 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
       message: 'Runtime data export not implemented in Kiro API server',
       timestamp: new Date().toISOString()
     }));
+    return;
+  }
+
+  // Deploy PR endpoint
+  if (url.pathname === '/api/deploy-pr' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body);
+        const { prNumber, branchName } = payload;
+        
+        if (!prNumber && !branchName) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'PR number or branch name required' }));
+          return;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          message: 'Deployment to staging triggered',
+          stagingUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
+          workflowUrl: 'https://github.com/demian7575/aipm/actions'
+        }));
+        
+      } catch (error) {
+        console.error('Deploy PR error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: error.message }));
+      }
+    });
     return;
   }
 

@@ -97,27 +97,27 @@ export class DynamoDBDataLayer {
       const stories = (result.Items || []).map(item => ({
         // DynamoDB format (camelCase)
         id: item.id,
-        parentId: item.parentId,
+        parentId: item.parent_id || item.parentId, // Fix: use parent_id (snake_case) from storage
         title: item.title || '',
         description: item.description || '',
-        asA: item.asA || '',
-        iWant: item.iWant || '',
-        soThat: item.soThat || '',
+        asA: item.as_a || item.asA || '',
+        iWant: item.i_want || item.iWant || '',
+        soThat: item.so_that || item.soThat || '',
         components: item.components || '[]',
-        storyPoint: item.storyPoint || 0,
-        assigneeEmail: item.assigneeEmail || '',
+        storyPoint: item.story_point || item.storyPoint || 0,
+        assigneeEmail: item.assignee_email || item.assigneeEmail || '',
         status: item.status || 'Draft',
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
+        createdAt: item.created_at || item.createdAt,
+        updatedAt: item.updated_at || item.updatedAt,
         // SQLite format (snake_case) for compatibility
-        parent_id: item.parentId,
-        as_a: item.asA || '',
-        i_want: item.iWant || '',
-        so_that: item.soThat || '',
-        story_point: item.storyPoint || 0,
-        assignee_email: item.assigneeEmail || '',
-        created_at: item.createdAt,
-        updated_at: item.updatedAt,
+        parent_id: item.parent_id || item.parentId,
+        as_a: item.as_a || item.asA || '',
+        i_want: item.i_want || item.iWant || '',
+        so_that: item.so_that || item.soThat || '',
+        story_point: item.story_point || item.storyPoint || 0,
+        assignee_email: item.assignee_email || item.assigneeEmail || '',
+        created_at: item.created_at || item.createdAt,
+        updated_at: item.updated_at || item.updatedAt,
         mr_id: 1, // Default value
         prs: JSON.stringify(item.prs || []) // Convert array to JSON string
       }));

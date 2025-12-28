@@ -5459,7 +5459,7 @@ function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   });
   res.end(body);
@@ -5625,7 +5625,7 @@ export async function createApp() {
     if (method === 'OPTIONS') {
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       });
       res.end();
@@ -5850,34 +5850,88 @@ export async function createApp() {
           return;
         }
         const timestamp = now();
-        const statement = db.prepare(
-          'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at, invest_warnings, invest_analysis) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
-        );
-        const { lastInsertRowid } = await statement.run(
-          parentId,
-          title,
-          description,
-          asA,
-          iWant,
-          soThat,
-          serializeComponents(components),
-          storyPoint,
-          assigneeEmail,
-          'Draft',
-          timestamp,
-          timestamp,
-          JSON.stringify(warnings),
-          JSON.stringify({
-            source: analysis.source,
-            summary: analysis.summary,
-            aiSummary: analysis.ai?.summary || '',
-            aiModel: analysis.ai?.model || null,
-            usedFallback: analysis.usedFallback,
-            error: analysis.ai?.error || null,
-            fallbackWarnings: analysis.fallbackWarnings || [],
-          })
-        );
-        const newStoryId = Number(lastInsertRowid);
+        
+        // Check if using DynamoDB or SQLite
+        const db = await ensureDatabase();
+        let newStoryId;
+        
+        if (db.constructor.name === 'DynamoDBDataLayer') {
+          // DynamoDB implementation
+          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+          
+          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const docClient = DynamoDBDocumentClient.from(client);
+          const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          
+          newStoryId = Date.now(); // Generate unique ID
+          
+          const dynamoItem = {
+            id: newStoryId,
+            mr_id: 1,
+            title,
+            description,
+            as_a: asA,
+            i_want: iWant,
+            so_that: soThat,
+            components: serializeComponents(components),
+            story_point: storyPoint,
+            assignee_email: assigneeEmail,
+            status: 'Draft',
+            created_at: timestamp,
+            updated_at: timestamp,
+            invest_warnings: JSON.stringify(warnings),
+            invest_analysis: JSON.stringify({
+              source: analysis.source,
+              summary: analysis.summary,
+              aiSummary: analysis.ai?.summary || '',
+              aiModel: analysis.ai?.model || null,
+              usedFallback: analysis.usedFallback,
+              error: analysis.ai?.error || null,
+              fallbackWarnings: analysis.fallbackWarnings || [],
+            })
+          };
+          
+          // Only add parent_id if it's not null (DynamoDB doesn't store null values well)
+          if (parentId !== null && parentId !== undefined) {
+            dynamoItem.parent_id = parentId;
+          }
+          
+          await docClient.send(new PutCommand({
+            TableName: tableName,
+            Item: dynamoItem
+          }));
+        } else {
+          // SQLite implementation
+          const statement = db.prepare(
+            'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at, invest_warnings, invest_analysis) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+          );
+          const { lastInsertRowid } = await statement.run(
+            parentId,
+            title,
+            description,
+            asA,
+            iWant,
+            soThat,
+            serializeComponents(components),
+            storyPoint,
+            assigneeEmail,
+            'Draft',
+            timestamp,
+            timestamp,
+            JSON.stringify(warnings),
+            JSON.stringify({
+              source: analysis.source,
+              summary: analysis.summary,
+              aiSummary: analysis.ai?.summary || '',
+              aiModel: analysis.ai?.model || null,
+              usedFallback: analysis.usedFallback,
+              error: analysis.ai?.error || null,
+              fallbackWarnings: analysis.fallbackWarnings || [],
+            })
+          );
+          newStoryId = Number(lastInsertRowid);
+        }
         
         // Try to create automatic acceptance test, but don't fail story creation if it fails
         try {
@@ -5967,25 +6021,61 @@ export async function createApp() {
             return;
           }
           
+          // Build update expression dynamically to handle missing fields
+          const updateExpressions = [];
+          const expressionAttributeNames = {};
+          const expressionAttributeValues = {};
+          
+          if (payload.title !== undefined) {
+            updateExpressions.push('title = :title');
+            expressionAttributeValues[':title'] = payload.title;
+          }
+          if (payload.asA !== undefined) {
+            updateExpressions.push('as_a = :asA');
+            expressionAttributeValues[':asA'] = payload.asA;
+          }
+          if (payload.iWant !== undefined) {
+            updateExpressions.push('i_want = :iWant');
+            expressionAttributeValues[':iWant'] = payload.iWant;
+          }
+          if (payload.soThat !== undefined) {
+            updateExpressions.push('so_that = :soThat');
+            expressionAttributeValues[':soThat'] = payload.soThat;
+          }
+          if (payload.description !== undefined) {
+            updateExpressions.push('description = :description');
+            expressionAttributeValues[':description'] = payload.description;
+          }
+          if (payload.storyPoint !== undefined) {
+            updateExpressions.push('story_point = :storyPoint');
+            expressionAttributeValues[':storyPoint'] = payload.storyPoint;
+          }
+          if (payload.assigneeEmail !== undefined) {
+            updateExpressions.push('assignee_email = :assigneeEmail');
+            expressionAttributeValues[':assigneeEmail'] = payload.assigneeEmail;
+          }
+          if (payload.status !== undefined) {
+            updateExpressions.push('#status = :status');
+            expressionAttributeNames['#status'] = 'status';
+            expressionAttributeValues[':status'] = payload.status;
+          }
+          if (payload.components !== undefined) {
+            updateExpressions.push('components = :components');
+            expressionAttributeValues[':components'] = JSON.stringify(payload.components || []);
+          }
+          
+          if (updateExpressions.length === 0) {
+            sendJson(res, 400, { message: 'No fields to update' });
+            return;
+          }
+          
           // Update story
           await docClient.send(new UpdateCommand({
             TableName: tableName,
             Key: { id: storyId },
-            UpdateExpression: 'SET title = :title, asA = :asA, iWant = :iWant, soThat = :soThat, description = :description, storyPoints = :storyPoints, assigneeEmail = :assigneeEmail, #status = :status, components = :components',
-            ExpressionAttributeNames: {
-              '#status': 'status'
-            },
-            ExpressionAttributeValues: {
-              ':title': payload.title ?? getResult.Item.title,
-              ':asA': payload.asA ?? getResult.Item.asA,
-              ':iWant': payload.iWant ?? getResult.Item.iWant,
-              ':soThat': payload.soThat ?? getResult.Item.soThat,
-              ':description': payload.description ?? getResult.Item.description,
-              ':storyPoints': payload.storyPoints ?? getResult.Item.storyPoints,
-              ':assigneeEmail': payload.assigneeEmail ?? getResult.Item.assigneeEmail,
-              ':status': payload.status ?? getResult.Item.status,
-              ':components': payload.components ?? getResult.Item.components
-            }
+            UpdateExpression: 'SET ' + updateExpressions.join(', '),
+            ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+            ExpressionAttributeValues: expressionAttributeValues
           }));
         } else {
           // SQLite update
