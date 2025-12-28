@@ -6577,16 +6577,63 @@ ${new Date().toISOString()}: 📝 This is sample content for demonstration
           throw new Error('GitHub token not configured');
         }
         
-        // Step 1: Copy production data to development environment
+        // Step 1: Copy production data to development environment (EC2 to EC2)
         console.log('Copying production data to development environment...');
         
         try {
-          // Simple data copy using existing database functions
-          const prodStories = await loadStories(db, 'aipm-backend-prod-stories');
-          const prodTests = await loadAcceptanceTests(db, 'aipm-backend-prod-acceptance-tests');
-          
-          // Clear development tables and copy production data
-          await clearAndCopyData(db, prodStories, prodTests);
+          // Fetch production stories
+          const prodResponse = await fetch('http://44.220.45.57/api/stories');
+          if (prodResponse.ok) {
+            const prodStories = await prodResponse.json();
+            console.log(`Found ${prodStories.length} top-level stories in production`);
+            
+            // Clear development data first
+            await fetch('http://44.222.168.46/api/stories', {
+              method: 'DELETE'
+            }).catch(console.error);
+            
+            // Function to extract all stories from nested structure
+            function extractAllStories(stories, extracted = []) {
+              for (const story of stories) {
+                extracted.push(story);
+                if (story.children && story.children.length > 0) {
+                  extractAllStories(story.children, extracted);
+                }
+              }
+              return extracted;
+            }
+            
+            const allStories = extractAllStories(prodStories);
+            console.log(`Extracted ${allStories.length} total stories from hierarchy`);
+            
+            // Copy each story to development
+            let copiedCount = 0;
+            for (const story of allStories) {
+              try {
+                await fetch('http://44.222.168.46/api/stories', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: story.title,
+                    description: story.description,
+                    asA: story.asA,
+                    iWant: story.iWant,
+                    soThat: story.soThat,
+                    components: story.components || [],
+                    storyPoint: story.storyPoint || 0,
+                    assigneeEmail: story.assigneeEmail || '',
+                    status: story.status || 'Draft',
+                    parentId: story.parentId || null
+                  })
+                });
+                copiedCount++;
+              } catch (error) {
+                console.error(`Failed to copy story: ${story.title}`, error);
+              }
+            }
+            
+            console.log(`✅ Copied ${copiedCount} stories to development`);
+          }
           
         } catch (dataError) {
           console.error('Data sync error:', dataError);
