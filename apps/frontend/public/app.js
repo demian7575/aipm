@@ -4488,6 +4488,12 @@ function renderDetails() {
   const markDoneBtn = form.querySelector('#mark-done-btn');
   markDoneBtn?.addEventListener('click', async (event) => {
     event.preventDefault();
+    
+    // Disable button and show loading state
+    markDoneBtn.disabled = true;
+    const originalText = markDoneBtn.textContent;
+    markDoneBtn.textContent = 'Processing...';
+    
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/stories/${story.id}`, {
         method: 'PATCH',
@@ -4502,11 +4508,27 @@ function renderDetails() {
         await loadStories();
         showToast('Story marked as Done', 'success');
       } else {
-        const errorText = await response.text();
-        showToast(`Failed to mark story as Done: ${errorText}`, 'error');
+        const errorData = await response.json().catch(() => null);
+        if (errorData && errorData.code === 'STORY_STATUS_BLOCKED') {
+          let errorMessage = 'Cannot mark story as Done:\n';
+          if (errorData.details.incompleteChildren.length > 0) {
+            errorMessage += `\n• ${errorData.details.incompleteChildren.length} child stories are not Done`;
+          }
+          if (errorData.details.failingTests.length > 0) {
+            errorMessage += `\n• ${errorData.details.failingTests.length} acceptance tests have not passed`;
+          }
+          showToast(errorMessage, 'error');
+        } else {
+          const errorText = errorData?.message || await response.text();
+          showToast(`Failed to mark story as Done: ${errorText}`, 'error');
+        }
       }
     } catch (error) {
       showToast(`Error: ${error.message}`, 'error');
+    } finally {
+      // Re-enable button and restore original text
+      markDoneBtn.disabled = false;
+      markDoneBtn.textContent = originalText;
     }
   });
 
