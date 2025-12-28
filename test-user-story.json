@@ -1,0 +1,28 @@
+{
+  "id": "story-test-001",
+  "title": "Test Story",
+  "description": "As a user, I want to test the system functionality so that I can verify it works correctly.",
+  "status": "Draft",
+  "storyPoints": 3,
+  "assignee": "test@example.com",
+  "components": ["System"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-001",
+      "description": "Given a test scenario, when I execute the test, then I should see expected results",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Create test cases",
+      "assignee": "test@example.com",
+      "status": "Todo"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "createdAt": "2025-12-27T14:29:52.964Z",
+  "updatedAt": "2025-12-27T14:29:52.964Z"
+}

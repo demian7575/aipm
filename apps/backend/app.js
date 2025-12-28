@@ -5691,6 +5691,97 @@ export async function createApp() {
 
 
 
+    if (pathname === '/api/pr-status' && method === 'POST') {
+      // Enhanced GitHub PR status endpoint with metadata and review status
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', async () => {
+        try {
+          const { url, number, repo } = JSON.parse(body);
+          
+          if (!url && !number) {
+            sendJson(res, 400, { error: 'PR URL or number required' });
+            return;
+          }
+          
+          // Extract owner/repo from URL if not provided
+          let owner, repoName;
+          if (repo) {
+            [owner, repoName] = repo.split('/');
+          } else if (url) {
+            const urlMatch = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
+            if (urlMatch) {
+              owner = urlMatch[1];
+              repoName = urlMatch[2];
+            }
+          }
+          
+          if (!owner || !repoName) {
+            sendJson(res, 400, { error: 'Could not determine repository from URL' });
+            return;
+          }
+          
+          // Fetch PR data from GitHub API
+          const prData = await githubRequest(`/repos/${owner}/${repoName}/pulls/${number}`);
+          
+          // Fetch review status
+          const reviews = await githubRequest(`/repos/${owner}/${repoName}/pulls/${number}/reviews`);
+          const latestReview = reviews.length > 0 ? reviews[reviews.length - 1] : null;
+          
+          // Fetch check runs status
+          let checksStatus = null;
+          try {
+            const checks = await githubRequest(`/repos/${owner}/${repoName}/commits/${prData.head.sha}/check-runs`);
+            if (checks.check_runs && checks.check_runs.length > 0) {
+              const conclusions = checks.check_runs.map(run => run.conclusion);
+              if (conclusions.some(c => c === 'failure')) {
+                checksStatus = 'failure';
+              } else if (conclusions.every(c => c === 'success')) {
+                checksStatus = 'success';
+              } else {
+                checksStatus = 'pending';
+              }
+            }
+          } catch (error) {
+            console.warn('Could not fetch check runs:', error.message);
+          }
+          
+          // Format response with enhanced metadata
+          const response = {
+            number: prData.number,
+            title: prData.title,
+            state: prData.state,
+            draft: prData.draft,
+            merged: prData.merged,
+            html_url: prData.html_url,
+            author: prData.user.login,
+            created_at: prData.created_at,
+            updated_at: prData.updated_at,
+            merged_at: prData.merged_at,
+            review_status: latestReview ? latestReview.state.toLowerCase() : 'pending',
+            checks_status: checksStatus,
+            additions: prData.additions,
+            deletions: prData.deletions,
+            changed_files: prData.changed_files,
+            commits: prData.commits,
+            head_sha: prData.head.sha,
+            base_ref: prData.base.ref,
+            head_ref: prData.head.ref
+          };
+          
+          sendJson(res, 200, response);
+          
+        } catch (error) {
+          console.error('PR status fetch error:', error);
+          sendJson(res, 500, { 
+            error: 'Failed to fetch PR status',
+            message: error.message 
+          });
+        }
+      });
+      return;
+    }
+
     if (pathname === '/api/codewhisperer-status' && method === 'POST') {
       await handleCodeWhispererStatusRequest(req, res);
       return;

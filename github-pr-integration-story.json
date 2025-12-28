@@ -1,0 +1,103 @@
+{
+  "id": "story_github_pr_integration",
+  "title": "Integrate GitHub pull request links directly into the Development Tasks card interface",
+  "description": "As a project manager, I want to see GitHub pull request links and status indicators directly in the Development Tasks card interface so that I can seamlessly navigate between project management and code review workflows without switching contexts.",
+  "status": "Draft",
+  "priority": "High",
+  "storyPoints": 8,
+  "assignee": "dev-team@company.com",
+  "parentId": "story_user_interface",
+  "components": ["User Interface", "Integration"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac_pr_link_display",
+      "description": "Development Tasks cards display associated GitHub PR links with clickable URLs",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac_status_indicators",
+      "description": "Real-time status indicators show PR state (open, merged, closed, draft) with color coding",
+      "status": "Draft", 
+      "verifiable": true
+    },
+    {
+      "id": "ac_seamless_navigation",
+      "description": "Clicking PR links opens GitHub in new tab without disrupting current workflow",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac_multiple_pr_support",
+      "description": "Tasks can display multiple PR links when feature spans multiple pull requests",
+      "status": "Draft",
+      "verifiable": true
+    },
+    {
+      "id": "ac_pr_metadata",
+      "description": "Display PR metadata including author, creation date, and review status",
+      "status": "Draft",
+      "verifiable": true
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_api_github_integration",
+      "description": "Implement GitHub API integration for fetching PR data",
+      "assignee": "backend-dev@company.com",
+      "status": "Not Started",
+      "estimatedHours": 16
+    },
+    {
+      "id": "task_ui_pr_display",
+      "description": "Design and implement PR link display component in Development Tasks cards",
+      "assignee": "frontend-dev@company.com", 
+      "status": "Not Started",
+      "estimatedHours": 12
+    },
+    {
+      "id": "task_status_indicators",
+      "description": "Create real-time status indicator system with color coding",
+      "assignee": "frontend-dev@company.com",
+      "status": "Not Started",
+      "estimatedHours": 8
+    },
+    {
+      "id": "task_pr_metadata_display",
+      "description": "Implement PR metadata display (author, date, reviews)",
+      "assignee": "frontend-dev@company.com",
+      "status": "Not Started", 
+      "estimatedHours": 6
+    }
+  ],
+  "referenceDocuments": [
+    {
+      "id": "ref_github_api_docs",
+      "title": "GitHub REST API Documentation",
+      "url": "https://docs.github.com/en/rest",
+      "type": "External Documentation"
+    },
+    {
+      "id": "ref_ui_design_system",
+      "title": "Development Tasks UI Design System",
+      "type": "Design Specification"
+    }
+  ],
+  "investAnalysis": {
+    "independent": true,
+    "negotiable": true,
+    "valuable": true,
+    "estimable": true,
+    "small": false,
+    "testable": true,
+    "overallScore": "Good",
+    "warnings": ["Story may be too large - consider splitting into smaller increments"],
+    "suggestions": [
+      "Consider splitting into: 1) Basic PR link display, 2) Status indicators, 3) Metadata display",
+      "Define specific GitHub API rate limiting strategy",
+      "Specify error handling for GitHub API failures"
+    ]
+  },
+  "createdAt": "2025-12-28T00:40:32.438Z",
+  "updatedAt": "2025-12-28T00:40:32.438Z"
+}

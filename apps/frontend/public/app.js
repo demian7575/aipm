@@ -1670,6 +1670,136 @@ function formatCodeWhispererTargetLabel(entry) {
   return hasNumber ? `Item #${number}` : 'Tracked Item';
 }
 
+async function refreshPRStatus(entry, prContainer) {
+  try {
+    const response = await fetch(resolveApiUrl(`/api/pr-status`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: entry.prUrl || entry.html_url || entry.url,
+        number: entry.number,
+        repo: entry.repo
+      })
+    });
+    
+    if (response.ok) {
+      const prData = await response.json();
+      
+      // Update entry with fresh data
+      Object.assign(entry, prData);
+      
+      // Re-render the PR container with updated data
+      const story = storyIndex.get(entry.storyId);
+      if (story) {
+        const newContainer = document.createElement('div');
+        newContainer.className = 'github-pr-container';
+        
+        // Rebuild PR display with updated data
+        renderPRContainer(newContainer, entry);
+        
+        // Replace old container
+        prContainer.parentNode.replaceChild(newContainer, prContainer);
+        
+        // Schedule next refresh if still open
+        if (prData.state === 'open' || prData.state === 'draft') {
+          setTimeout(() => refreshPRStatus(entry, newContainer), 30000);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to refresh PR status:', error);
+  }
+}
+
+function renderPRContainer(container, entry) {
+  const url = entry.prUrl || entry.html_url || entry.url;
+  const prNumber = entry.number ? `#${entry.number}` : '';
+  
+  // Determine PR status
+  let status = 'open';
+  let statusIcon = '●';
+  let statusText = 'Open';
+  
+  if (entry.merged || entry.state === 'merged') {
+    status = 'merged';
+    statusIcon = '✓';
+    statusText = 'Merged';
+  } else if (entry.state === 'closed') {
+    status = 'closed';
+    statusIcon = '✕';
+    statusText = 'Closed';
+  } else if (entry.draft || entry.state === 'draft') {
+    status = 'draft';
+    statusIcon = '◐';
+    statusText = 'Draft';
+  }
+  
+  // Main PR link
+  const prLink = document.createElement('p');
+  prLink.className = 'codewhisperer-pr-link';
+  prLink.innerHTML = `
+    <span>Pull Request:</span> 
+    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="github-pr-link">
+      <span class="pr-status-icon pr-status-${status}">${statusIcon}</span>
+      <span class="pr-status-badge pr-status-${status}">${statusText}</span>
+      PR ${prNumber}
+    </a>
+  `;
+  container.appendChild(prLink);
+  
+  // PR metadata
+  if (entry.author || entry.created_at || entry.updated_at) {
+    const metadata = document.createElement('div');
+    metadata.className = 'pr-metadata';
+    
+    const metadataItems = [];
+    if (entry.author) {
+      metadataItems.push(`<span class="pr-author">by ${escapeHtml(entry.author)}</span>`);
+    }
+    if (entry.created_at) {
+      const createdDate = new Date(entry.created_at).toLocaleDateString();
+      metadataItems.push(`<span class="pr-date">created ${createdDate}</span>`);
+    }
+    if (entry.updated_at && entry.updated_at !== entry.created_at) {
+      const updatedDate = new Date(entry.updated_at).toLocaleDateString();
+      metadataItems.push(`<span class="pr-date">updated ${updatedDate}</span>`);
+    }
+    
+    if (metadataItems.length > 0) {
+      metadata.innerHTML = metadataItems.join(' • ');
+      container.appendChild(metadata);
+    }
+  }
+  
+  // Review status indicators
+  if (entry.review_status || entry.checks_status) {
+    const statusIndicators = document.createElement('div');
+    statusIndicators.className = 'pr-status-indicators';
+    
+    if (entry.review_status) {
+      const reviewBadge = document.createElement('span');
+      reviewBadge.className = `pr-review-badge pr-review-${entry.review_status}`;
+      reviewBadge.textContent = entry.review_status === 'approved' ? '✓ Approved' : 
+                               entry.review_status === 'changes_requested' ? '⚠ Changes Requested' : 
+                               '⏳ Review Pending';
+      statusIndicators.appendChild(reviewBadge);
+    }
+    
+    if (entry.checks_status) {
+      const checksBadge = document.createElement('span');
+      checksBadge.className = `pr-checks-badge pr-checks-${entry.checks_status}`;
+      checksBadge.textContent = entry.checks_status === 'success' ? '✓ Checks Passed' : 
+                               entry.checks_status === 'failure' ? '✕ Checks Failed' : 
+                               '⏳ Checks Running';
+      statusIndicators.appendChild(checksBadge);
+    }
+    
+    if (statusIndicators.children.length > 0) {
+      container.appendChild(statusIndicators);
+    }
+  }
+}
+
 function formatRelativeTime(isoString) {
   if (!isoString) {
     return '';
@@ -1754,33 +1884,20 @@ function renderCodeWhispererSectionList(container, story) {
       card.appendChild(confirmation);
     }
 
-    // Enhanced GitHub PR link with visual status indicators
+    // Enhanced GitHub PR link with visual status indicators and metadata
     if (entry.prUrl || entry.html_url || entry.url) {
-      const url = entry.prUrl || entry.html_url || entry.url;
-      const prNumber = entry.number ? `#${entry.number}` : '';
+      const prContainer = document.createElement('div');
+      prContainer.className = 'github-pr-container';
       
-      // Determine PR status from available data
-      let status = 'open';
-      let statusIcon = '●';
-      if (entry.merged || entry.state === 'merged') {
-        status = 'merged';
-        statusIcon = '✓';
-      } else if (entry.state === 'closed') {
-        status = 'closed';
-        statusIcon = '✕';
+      // Use the helper function to render PR container
+      renderPRContainer(prContainer, entry);
+      card.appendChild(prContainer);
+      
+      // Auto-refresh PR status every 30 seconds for open PRs
+      const status = entry.state || 'open';
+      if (status === 'open' || status === 'draft') {
+        setTimeout(() => refreshPRStatus(entry, prContainer), 30000);
       }
-      
-      const prLink = document.createElement('p');
-      prLink.className = 'codewhisperer-pr-link';
-      prLink.innerHTML = `
-        <span>Pull Request:</span> 
-        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="github-pr-link">
-          <span class="pr-status-icon pr-status-${status}">${statusIcon}</span>
-          <span class="pr-status-badge pr-status-${status}">${status.toUpperCase()}</span>
-          PR ${prNumber}
-        </a>
-      `;
-      card.appendChild(prLink);
     }
 
     if (entry.branchName) {
