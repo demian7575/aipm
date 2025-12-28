@@ -5817,7 +5817,7 @@ export async function createApp() {
           for (const story of allStories) {
             try {
               const dynamoItem = {
-                id: Date.now() + Math.random(), // Generate unique ID
+                id: story.id, // Keep original ID to preserve relationships
                 mr_id: 1,
                 title: story.title || '',
                 description: story.description || '',
@@ -5829,8 +5829,8 @@ export async function createApp() {
                 assignee_email: story.assigneeEmail || '',
                 status: story.status || 'Draft',
                 parent_id: story.parentId || null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                created_at: story.createdAt || new Date().toISOString(),
+                updated_at: story.updatedAt || new Date().toISOString()
               };
               
               await docClient.send(new PutCommand({
