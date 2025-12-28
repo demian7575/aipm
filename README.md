@@ -52,6 +52,13 @@ frontend:
 
 For detailed deployment instructions and troubleshooting, see the [Development Guide](DevelopmentBackground.md).
 
+## 📚 Additional Documentation
+
+- **[🎓 Lessons Learned](LESSONS_LEARNED.md)** - Critical development lessons and best practices
+- **[🏗️ Current Architecture](ARCHITECTURE_CURRENT_2025.md)** - Dual EC2 architecture overview
+- **[🚀 Deployment Guide](DEPLOYMENT_GUIDE_2025.md)** - Updated deployment procedures
+- **[📁 Code Structure](CODE_STRUCTURE_2025.md)** - Comprehensive code analysis
+
 ## Requirements
 
 - Node.js 18 or newer
