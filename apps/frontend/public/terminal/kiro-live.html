@@ -32,11 +32,17 @@
     let autoRefresh = true;
     let interval;
 
+    const getBackendUrl = () => {
+      if (window.CONFIG?.BACKEND_URL) {
+        return window.CONFIG.BACKEND_URL;
+      }
+      // Default to the current host (assumes backend exposed on port 4000)
+      return `${window.location.protocol}//${window.location.hostname}:4000`;
+    };
+
     async function fetchLog() {
       try {
-        // Use the backend URL from config or fallback to EC2
-        const backendUrl = window.CONFIG?.BACKEND_URL || 'http://44.220.45.57:4000';
-        const response = await fetch(`${backendUrl}/api/kiro-live-log`);
+        const response = await fetch(`${getBackendUrl()}/api/kiro-live-log`);
         const data = await response.json();
         logsEl.textContent = data.content || 'Log file is empty';
         logsEl.scrollTop = logsEl.scrollHeight;
