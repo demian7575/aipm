@@ -81,7 +81,7 @@ jobs:
             git checkout $BRANCH_NAME
             TASK_DESC="Rebase this branch onto origin/main and resolve all merge conflicts. Files with conflicts: $CONFLICT_FILES. After resolving conflicts, complete the rebase successfully."
             
-            RESPONSE=$(curl -s -X POST http://44.220.45.57:8081/kiro/v4/enhance \
+            RESPONSE=$(curl -s -X POST http://44.222.168.46:8081/kiro/v4/enhance \
               -H "Content-Type: application/json" \
               -d "{\"idea\":\"$TASK_DESC\",\"callbackUrl\":\"http://example.com\"}" \
               --max-time 120)
@@ -115,7 +115,7 @@ jobs:
               echo "🤖 Regenerating code with Kiro..."
               REGEN_TASK="Regenerate the feature implementation. Original objective: $PR_OBJECTIVE"
               
-              REGEN_RESPONSE=$(curl -s -X POST http://44.220.45.57:8081/kiro/v4/enhance \
+              REGEN_RESPONSE=$(curl -s -X POST http://44.222.168.46:8081/kiro/v4/enhance \
                 -H "Content-Type: application/json" \
                 -d "{\"idea\":\"$REGEN_TASK\",\"callbackUrl\":\"http://example.com\"}" \
                 --max-time 120)
@@ -176,6 +176,13 @@ jobs:
             sudo systemctl restart aipm-dev-backend
             echo "✅ Backend updated and restarted"
           EOF
+          
+          # Wait for backend to start
+          sleep 5
+          
+          # Trigger data mirroring from production to development
+          echo "🔄 Mirroring production data to development..."
+          curl -X POST http://44.222.168.46/api/sync-data || echo "⚠️ Data sync failed, continuing..."
           
           # Create dev config pointing to EC2
           echo "📝 Creating development configuration..."
