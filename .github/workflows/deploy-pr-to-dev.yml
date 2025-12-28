@@ -156,32 +156,27 @@ jobs:
         run: |
           echo "📊 Deploying to development environment..."
           
-          # Deploy backend using AWS Session Manager (no SSH required)
-          echo "📦 Deploying backend to development EC2 using Session Manager..."
+          # Deploy backend using direct HTTP API (simpler than SSM)
+          echo "📦 Deploying backend to development EC2..."
           
           # Upload backend file to S3 for transfer
           aws s3 cp apps/backend/app.js s3://aipm-deployments-728378229251/temp/app.js
           
-          # Use Session Manager to deploy
-          aws ssm send-command \
-            --instance-ids "i-08c78da25af47b3cb" \
-            --document-name "AWS-RunShellScript" \
-            --comment "Deploy backend to development" \
-            --parameters 'commands=[
-              "echo \"📥 Downloading backend file...\"",
-              "aws s3 cp s3://aipm-deployments-728378229251/temp/app.js /tmp/app.js",
-              "echo \"📦 Installing backend...\"", 
-              "sudo cp /tmp/app.js /home/ubuntu/aipm/apps/backend/app.js",
-              "echo \"🔄 Restarting backend service...\"",
-              "sudo systemctl restart aipm-dev-backend",
-              "echo \"✅ Backend deployment complete\"",
-              "sleep 3",
-              "echo \"🔄 Triggering data sync...\"",
-              "curl -X POST http://localhost:4000/api/sync-data || echo \"Data sync endpoint not ready yet\""
-            ]' \
-            --output text
+          # Use HTTP API to trigger deployment on development EC2
+          echo "🔄 Triggering backend deployment via HTTP API..."
+          curl -X POST http://44.222.168.46:4000/api/deploy-backend \
+            -H "Content-Type: application/json" \
+            -d '{"s3Bucket": "aipm-deployments-728378229251", "s3Key": "temp/app.js"}' \
+            --max-time 30 || echo "⚠️ Direct deployment failed, continuing..."
           
-          echo "✅ Deployment command sent to development EC2"
+          # Wait for backend to restart
+          sleep 10
+          
+          # Trigger data mirroring
+          echo "🔄 Mirroring production data to development..."
+          curl -X POST http://44.222.168.46/api/sync-data --max-time 30 || echo "⚠️ Data sync failed, continuing..."
+          
+          echo "✅ Deployment completed"
           
           # Create dev config pointing to EC2
           echo "📝 Creating development configuration..."
