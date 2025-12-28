@@ -152,40 +152,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Setup SSH key for EC2 deployment
-        run: |
-          mkdir -p ~/.ssh
-          # Get SSH key from production EC2 and use it for development
-          echo "🔑 Copying SSH configuration from production to development..."
-          
-          # Use AWS CLI to get the key from production instance metadata
-          # Both instances use the same aipm-builder-key, so we can mirror the setup
-          
-          # For now, create a temporary key setup that mirrors production
-          # This assumes both instances have the same key configuration
-          cat > ~/.ssh/config << EOF
-          Host 44.222.168.46
-            HostName 44.222.168.46
-            User ubuntu
-            IdentitiesOnly yes
-            StrictHostKeyChecking no
-          EOF
-          
-          # Try to use the same key that works for production
-          if [ -n "${{ secrets.EC2_SSH_KEY }}" ]; then
-            echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-            chmod 600 ~/.ssh/id_rsa
-          else
-            echo "⚠️ No SSH key provided - attempting alternative deployment"
-            exit 1
-          fi
-          
-          # Add known hosts
-          ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
-          
-          # Test SSH connection
-          ssh -o ConnectTimeout=10 ubuntu@44.222.168.46 'echo "SSH connection successful"'
-      
       - name: Deploy to development environment
         run: |
           echo "📊 Deploying to development environment..."
