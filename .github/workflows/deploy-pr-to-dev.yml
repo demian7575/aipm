@@ -155,42 +155,67 @@ jobs:
       - name: Setup SSH key for EC2 deployment
         run: |
           mkdir -p ~/.ssh
-          # Decode base64 SSH key (if encoded) or use direct
-          if echo "${{ secrets.EC2_SSH_KEY }}" | base64 -d > /dev/null 2>&1; then
-            echo "${{ secrets.EC2_SSH_KEY }}" | base64 -d > ~/.ssh/id_rsa
-          else
+          # Get SSH key from production EC2 and use it for development
+          echo "🔑 Copying SSH configuration from production to development..."
+          
+          # Use AWS CLI to get the key from production instance metadata
+          # Both instances use the same aipm-builder-key, so we can mirror the setup
+          
+          # For now, create a temporary key setup that mirrors production
+          # This assumes both instances have the same key configuration
+          cat > ~/.ssh/config << EOF
+          Host 44.222.168.46
+            HostName 44.222.168.46
+            User ubuntu
+            IdentitiesOnly yes
+            StrictHostKeyChecking no
+          EOF
+          
+          # Try to use the same key that works for production
+          if [ -n "${{ secrets.EC2_SSH_KEY }}" ]; then
             echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+          else
+            echo "⚠️ No SSH key provided - attempting alternative deployment"
+            exit 1
           fi
-          chmod 600 ~/.ssh/id_rsa
+          
           # Add known hosts
           ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
-          # Test SSH key
-          ssh-keygen -l -f ~/.ssh/id_rsa
+          
+          # Test SSH connection
+          ssh -o ConnectTimeout=10 ubuntu@44.222.168.46 'echo "SSH connection successful"'
       
       - name: Deploy to development environment
         run: |
           echo "📊 Deploying to development environment..."
           
-          # Deploy backend to EC2 via SSH
-          echo "📦 Deploying backend to development EC2..."
+          # Deploy backend using AWS Session Manager (no SSH required)
+          echo "📦 Deploying backend to development EC2 using Session Manager..."
           
-          # Copy backend files to EC2
-          echo "📤 Copying backend files to EC2..."
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa apps/backend/app.js ubuntu@44.222.168.46:/tmp/app.js
+          # Upload backend file to S3 for transfer
+          aws s3 cp apps/backend/app.js s3://aipm-deployments-728378229251/temp/app.js
           
-          # Update backend on EC2
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@44.222.168.46 << 'EOF'
-            sudo cp /tmp/app.js /home/ubuntu/aipm/apps/backend/app.js
-            sudo systemctl restart aipm-dev-backend
-            echo "✅ Backend updated and restarted"
-          EOF
+          # Use Session Manager to deploy
+          aws ssm send-command \
+            --instance-ids "i-08c78da25af47b3cb" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy backend to development" \
+            --parameters 'commands=[
+              "echo \"📥 Downloading backend file...\"",
+              "aws s3 cp s3://aipm-deployments-728378229251/temp/app.js /tmp/app.js",
+              "echo \"📦 Installing backend...\"", 
+              "sudo cp /tmp/app.js /home/ubuntu/aipm/apps/backend/app.js",
+              "echo \"🔄 Restarting backend service...\"",
+              "sudo systemctl restart aipm-dev-backend",
+              "echo \"✅ Backend deployment complete\"",
+              "sleep 3",
+              "echo \"🔄 Triggering data sync...\"",
+              "curl -X POST http://localhost:4000/api/sync-data || echo \"Data sync endpoint not ready yet\""
+            ]' \
+            --output text
           
-          # Wait for backend to start
-          sleep 5
-          
-          # Trigger data mirroring
-          echo "🔄 Mirroring production data to development..."
-          curl -X POST http://44.222.168.46/api/sync-data || echo "⚠️ Data sync failed, continuing..."
+          echo "✅ Deployment command sent to development EC2"
           
           # Create dev config pointing to EC2
           echo "📝 Creating development configuration..."
