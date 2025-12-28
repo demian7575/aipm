@@ -30,7 +30,7 @@ fi
 
 if [ -z "$API_ENDPOINT" ]; then
   echo "⚠️  Using known prod API endpoint..."
-  API_ENDPOINT="https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod"
+  API_ENDPOINT="http://44.220.45.57"
 fi
 
 echo "✅ Backend deployed: $API_ENDPOINT"
