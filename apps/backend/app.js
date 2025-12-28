@@ -5760,7 +5760,7 @@ export async function createApp() {
       return;
     }
 
-    if (pathname === '/api/kiro-live-log' && method === 'GET') {
+    if (pathname === '/api/sync-data' && method === 'POST') {
       const fs = require('fs');
       const logPath = '/tmp/kiro-cli-live.log';
       
@@ -5802,6 +5802,44 @@ ${new Date().toISOString()}: 📝 This is sample content for demonstration
           'Access-Control-Allow-Headers': 'Content-Type'
         });
         res.end(JSON.stringify({ content: fallbackContent }));
+      }
+      return;
+    }
+
+    if (pathname === '/api/deploy-backend' && method === 'POST') {
+      try {
+        const payload = await parseJson(req);
+        const { s3Bucket, s3Key } = payload;
+        
+        if (!s3Bucket || !s3Key) {
+          sendJson(res, 400, { error: 'Missing s3Bucket or s3Key' });
+          return;
+        }
+        
+        console.log(`📥 Deploying backend from s3://${s3Bucket}/${s3Key}`);
+        
+        // Download from S3 and deploy
+        const { exec } = require('child_process');
+        const deployCommand = `
+          aws s3 cp s3://${s3Bucket}/${s3Key} /tmp/new-app.js &&
+          sudo cp /tmp/new-app.js /home/ubuntu/aipm/apps/backend/app.js &&
+          sudo systemctl restart aipm-dev-backend &&
+          echo "Backend deployed successfully"
+        `;
+        
+        exec(deployCommand, (error, stdout, stderr) => {
+          if (error) {
+            console.error('Deployment error:', error);
+            sendJson(res, 500, { error: 'Deployment failed', details: error.message });
+          } else {
+            console.log('Deployment output:', stdout);
+            sendJson(res, 200, { success: true, message: 'Backend deployed successfully' });
+          }
+        });
+        
+      } catch (error) {
+        console.error('Deploy backend error:', error);
+        sendJson(res, 500, { error: 'Failed to deploy backend' });
       }
       return;
     }
