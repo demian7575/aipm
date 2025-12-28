@@ -1759,13 +1759,15 @@ function renderCodeWhispererSectionList(container, story) {
       const url = entry.prUrl || entry.html_url || entry.url;
       const prNumber = entry.number ? `#${entry.number}` : '';
       
-      // Determine PR status from available data
+      // Determine PR status from available data (handle both 'state' and 'status' fields)
       let status = 'open';
       let statusIcon = '●';
-      if (entry.merged || entry.state === 'merged') {
+      const prStatus = entry.status || entry.state || 'open';
+      
+      if (entry.merged || prStatus === 'merged') {
         status = 'merged';
         statusIcon = '✓';
-      } else if (entry.state === 'closed') {
+      } else if (prStatus === 'closed') {
         status = 'closed';
         statusIcon = '✕';
       }
