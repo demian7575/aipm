@@ -158,36 +158,43 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
+          # Test SSH connection
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@44.222.168.46 'echo "SSH connection successful"'
       
       - name: Deploy to development environment
         run: |
           echo "📊 Deploying to development environment..."
           
-          # Try EC2 deployment if SSH key is available
-          if [ -n "${{ secrets.EC2_SSH_KEY }}" ]; then
-            echo "📦 Deploying backend to development EC2..."
-            
-            # Copy backend files to EC2
-            echo "📤 Copying backend files to EC2..."
-            scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa apps/backend/app.js ubuntu@44.222.168.46:/tmp/app.js
-            
-            # Update backend on EC2
-            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@44.222.168.46 << 'EOF'
-              sudo cp /tmp/app.js /home/ubuntu/aipm/apps/backend/app.js
-              sudo systemctl restart aipm-dev-backend
-              echo "✅ Backend updated and restarted"
-          EOF
-            
-            # Wait for backend to start
-            sleep 5
-            
-            # Trigger data mirroring from production to development
-            echo "🔄 Mirroring production data to development..."
-            curl -X POST http://44.222.168.46/api/sync-data || echo "⚠️ Data sync failed, continuing..."
-          else
-            echo "⚠️ SSH key not available - skipping backend deployment"
-            echo "📝 Backend deployment requires EC2_SSH_KEY secret to be configured"
-          fi
+          # Deploy backend using AWS Systems Manager (no SSH required)
+          echo "📦 Deploying backend to development EC2 using AWS SSM..."
+          
+          # Upload backend file to S3 first
+          aws s3 cp apps/backend/app.js s3://aipm-deployments-728378229251/dev/app.js
+          
+          # Use AWS Systems Manager to deploy to EC2
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-08c78da25af47b3cb" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=["aws s3 cp s3://aipm-deployments-728378229251/dev/app.js /tmp/app.js","sudo cp /tmp/app.js /home/ubuntu/aipm/apps/backend/app.js","sudo systemctl restart aipm-dev-backend","echo \"✅ Backend updated and restarted\""]' \
+            --query 'Command.CommandId' \
+            --output text)
+          
+          echo "📤 Deployment command sent: $COMMAND_ID"
+          
+          # Wait for command to complete
+          sleep 10
+          
+          # Check command status
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-08c78da25af47b3cb" \
+            --query 'Status' \
+            --output text
+          
+          # Trigger data mirroring
+          echo "🔄 Mirroring production data to development..."
+          sleep 5
+          curl -X POST http://44.222.168.46/api/sync-data || echo "⚠️ Data sync failed, continuing..."
           
           # Create dev config pointing to EC2
           echo "📝 Creating development configuration..."
