@@ -5822,20 +5822,10 @@ ${new Date().toISOString()}: 📝 This is sample content for demonstration
         const { exec } = require('child_process');
         const deployCommand = `
           aws s3 cp s3://${s3Bucket}/${s3Key} /tmp/new-app.js &&
-          sudo cp /tmp/new-app.js /home/ubuntu/aipm/apps/backend/app.js &&
+          sudo cp /tmp/new-app.js /home/ec2-user/aipm/apps/backend/app.js &&
           sudo systemctl restart aipm-dev-backend &&
           echo "Backend deployed successfully"
         `;
-        
-        exec(deployCommand, (error, stdout, stderr) => {
-          if (error) {
-            console.error('Deployment error:', error);
-            sendJson(res, 500, { error: 'Deployment failed', details: error.message });
-          } else {
-            console.log('Deployment output:', stdout);
-            sendJson(res, 200, { success: true, message: 'Backend deployed successfully' });
-          }
-        });
         
       } catch (error) {
         console.error('Deploy backend error:', error);
