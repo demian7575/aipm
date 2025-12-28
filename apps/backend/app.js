@@ -5787,52 +5787,73 @@ export async function createApp() {
         const allStories = extractAllStories(prodStories);
         console.log(`Extracted ${allStories.length} total stories from hierarchy`);
         
-        // Clear development data first
-        try {
-          const stories = await loadStories(db);
-          for (const story of stories) {
-            await safeRun(db, 'DELETE FROM user_stories WHERE id = ?', [story.id]);
-          }
-          console.log('✅ Cleared development stories');
-        } catch (error) {
-          console.error('Error clearing development data:', error);
-        }
-        
-        // Copy each story to development
         let copiedCount = 0;
-        for (const story of allStories) {
+        
+        // Check if using DynamoDB or SQLite
+        if (db.constructor.name === 'DynamoDBDataLayer') {
+          // DynamoDB implementation
+          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, ScanCommand, DeleteCommand, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+          
+          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const docClient = DynamoDBDocumentClient.from(client);
+          const tableName = process.env.STORIES_TABLE || 'aipm-backend-dev-stories';
+          
+          // Clear development data first
           try {
-            const result = await safeRun(db, `
-              INSERT INTO user_stories (
-                title, description, as_a, i_want, so_that, components, 
-                story_point, assignee_email, status, parent_id, created_at, updated_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-              story.title || '',
-              story.description || '',
-              story.asA || '',
-              story.iWant || '',
-              story.soThat || '',
-              JSON.stringify(story.components || []),
-              story.storyPoint || 0,
-              story.assigneeEmail || '',
-              story.status || 'Draft',
-              story.parentId || null,
-              new Date().toISOString(),
-              new Date().toISOString()
-            ]);
-            copiedCount++;
+            const scanResult = await docClient.send(new ScanCommand({ TableName: tableName }));
+            for (const item of scanResult.Items || []) {
+              await docClient.send(new DeleteCommand({
+                TableName: tableName,
+                Key: { id: item.id }
+              }));
+            }
+            console.log(`✅ Cleared ${scanResult.Items?.length || 0} development stories`);
           } catch (error) {
-            console.error(`Failed to copy story: ${story.title}`, error);
+            console.error('Error clearing development data:', error);
           }
+          
+          // Copy each story to development
+          for (const story of allStories) {
+            try {
+              const dynamoItem = {
+                id: Date.now() + Math.random(), // Generate unique ID
+                mr_id: 1,
+                title: story.title || '',
+                description: story.description || '',
+                as_a: story.asA || '',
+                i_want: story.iWant || '',
+                so_that: story.soThat || '',
+                components: JSON.stringify(story.components || []),
+                story_point: story.storyPoint || 0,
+                assignee_email: story.assigneeEmail || '',
+                status: story.status || 'Draft',
+                parent_id: story.parentId || null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              };
+              
+              await docClient.send(new PutCommand({
+                TableName: tableName,
+                Item: dynamoItem
+              }));
+              copiedCount++;
+            } catch (error) {
+              console.error(`Failed to copy story: ${story.title}`, error);
+            }
+          }
+          
+          console.log(`✅ Copied ${copiedCount} stories to development DynamoDB`);
+        } else {
+          // SQLite implementation (fallback)
+          console.log('Using SQLite - not implemented yet');
         }
         
-        console.log(`✅ Copied ${copiedCount} stories to development`);
         sendJson(res, 200, {
           success: true,
-          message: `Data sync completed: ${copiedCount} stories copied`,
+          message: `Data sync completed: ${copiedCount || 0} stories copied`,
           productionStories: allStories.length,
-          copiedStories: copiedCount
+          copiedStories: copiedCount || 0
         });
         
       } catch (error) {
