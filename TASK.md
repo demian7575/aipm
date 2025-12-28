@@ -1,50 +1,34 @@
-# Divide the existing "Generate Code & PR" button into two separate buttons: "Generate Code" and "Create PR". And the functionality should be separated accordingly.
+# Task: Hide User Story when the User Story is "Done" status
 
-Title: Divide the existing "Generate Code & PR" button into two separate buttons: "Generate Code" and "Create PR". And the functionality should be separated accordingly.
+## User Story
+As a project manager, I want to hide user stories with "Done" status from the main interface so that I can focus on active work and reduce visual clutter in the mindmap and outline views.
 
-As a: User
-I want: Divide the existing "Generate Code & PR" button into two separate buttons: "Generate Code" and "Create PR". And the functionality should be separated accordingly.
-So that: I can accomplish my goals more effectively. This work supports the parent story "AI Module Development"
+## Acceptance Criteria
+1. Given a user story with status "Done", when viewing the mindmap, then the story node should not be visible by default
+2. Given a user story with status "Done", when viewing the outline tree, then the story should not appear in the hierarchy by default  
+3. Given a "Hide Completed" toggle control in the header, when clicked, then all "Done" stories should become visible/hidden accordingly
+4. Given child stories under a "Done" parent, when the parent is hidden, then active child stories should remain visible to prevent losing track of ongoing work
+5. Given the hide/show preference, when set by the user, then the setting should persist across browser sessions using localStorage
 
-Description: As a User, I want to Divide the existing "Generate Code & PR" button into two separate buttons: "Generate Code" and "Create PR".. This ensures i can accomplish my goals more effectively. this work supports the parent story "ai module development".
+## Implementation Summary
 
-Story Points: 3
+### Files Modified
+- `apps/frontend/public/index.html` - Added "Hide Completed" button to header
+- `apps/frontend/public/app.js` - Added complete hide completed functionality
 
-Constraints: 
+### Key Changes
+1. **State Management**: Added `hideCompleted` boolean to application state
+2. **UI Controls**: Added toggle button in header with proper ARIA attributes
+3. **Filtering Logic**: 
+   - `getVisibleStories()` - Filters outline stories based on hideCompleted state
+   - `getVisibleMindmapStories()` - Updated to respect hideCompleted for mindmap rendering
+4. **Persistence**: Added localStorage support for user preference
+5. **Event Handling**: Toggle button updates state and re-renders views
 
-Acceptance Criteria:
-- The feature works as described
-- The implementation matches the requirement: Divide the existing "Generate Code & PR" button into two separate buttons: "Generate Code" and "Create PR". And the functionality should be separated accordingly.
-- The changes are properly tested
+### Technical Details
+- Button uses `aria-pressed` for accessibility
+- Filtering preserves active child stories even when parent is Done
+- State persists across browser sessions
+- Minimal code changes following existing patterns
 
----
-✅ Implementation Complete
-
-## Feature Implementation Summary
-
-Successfully divided the "Generate Code & PR" button into two separate buttons with separated functionality:
-
-### Changes Made:
-
-1. **Button Separation**:
-   - Replaced single "Generate Code & PR" button with two separate buttons
-   - "Generate Code" button - handles code generation tasks
-   - "Create PR" button - handles pull request creation
-
-2. **Functionality Separation**:
-   - `openGenerateCodeModal()` - Focuses on code generation with task title, objective, constraints, and acceptance criteria
-   - `openCreatePRModal()` - Focuses on PR creation with repository URL, branch name, PR title, and description
-   - Each modal has its own specific form fields and submission logic
-
-3. **API Endpoints**:
-   - Generate Code calls `/api/generate-code`
-   - Create PR calls `/api/create-pr`
-
-### Implementation Details:
-- ✅ Two separate buttons created in the UI
-- ✅ Separate modal functions implemented
-- ✅ Functionality properly separated between code generation and PR creation
-- ✅ Each button has appropriate form fields for its specific purpose
-- ✅ Proper error handling and user feedback for both actions
-
-**Final Result:** The feature works as described - users can now separately generate code or create PRs, providing more granular control over the development workflow.
+The implementation provides a clean toggle to hide/show completed work while maintaining focus on active stories.

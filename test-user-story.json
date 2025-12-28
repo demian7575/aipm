@@ -9,12 +9,20 @@
   "acceptanceCriteria": [
     {
       "id": "ac-001",
-      "description": "Given a test scenario, when I execute the test, then I should see expected results",
+      "description": "Given a test scenario, when I execute the test, then the system should respond correctly",
       "status": "Draft"
     }
   ],
-  "children": [],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Create test cases",
+      "assignee": "test@example.com",
+      "status": "Todo"
+    }
+  ],
   "parentId": null,
-  "createdAt": "2025-12-28T17:13:53.900Z",
-  "updatedAt": "2025-12-28T17:13:53.900Z"
+  "children": [],
+  "createdAt": "2025-12-28T19:06:31.297Z",
+  "updatedAt": "2025-12-28T19:06:31.297Z"
 }

@@ -1,0 +1,61 @@
+{
+  "title": "Hide User Story when the User Story is \"Done\" status",
+  "description": "As a project manager, I want to hide user stories with \"Done\" status from the main interface so that I can focus on active work and reduce visual clutter in the mindmap and outline views.",
+  "status": "Draft",
+  "priority": "Medium",
+  "storyPoints": 3,
+  "assignee": "frontend-dev@company.com",
+  "components": ["User Interface", "Frontend"],
+  "parentId": "user-interface-parent-story-id",
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1",
+      "description": "Given a user story with status \"Done\", when viewing the mindmap, then the story node should not be visible",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-2", 
+      "description": "Given a user story with status \"Done\", when viewing the outline tree, then the story should not appear in the hierarchy",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-3",
+      "description": "Given a toggle control for \"Show Completed Stories\", when enabled, then all \"Done\" stories should become visible again",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-4",
+      "description": "Given child stories under a \"Done\" parent, when the parent is hidden, then child stories should remain visible if they are not \"Done\"",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "description": "Add filter logic to exclude Done stories from mindmap rendering",
+      "assignee": "frontend-dev@company.com",
+      "status": "Not Started"
+    },
+    {
+      "id": "task-2", 
+      "description": "Update outline tree to filter out Done stories",
+      "assignee": "frontend-dev@company.com",
+      "status": "Not Started"
+    },
+    {
+      "id": "task-3",
+      "description": "Implement toggle control for showing/hiding completed stories",
+      "assignee": "frontend-dev@company.com", 
+      "status": "Not Started"
+    },
+    {
+      "id": "task-4",
+      "description": "Add localStorage persistence for hide/show preference",
+      "assignee": "frontend-dev@company.com",
+      "status": "Not Started"
+    }
+  ],
+  "referenceDocuments": [],
+  "createdAt": "2025-12-28T22:12:59.299Z",
+  "updatedAt": "2025-12-28T22:12:59.299Z"
+}

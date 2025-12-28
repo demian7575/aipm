@@ -55,6 +55,7 @@ const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
 const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
+const hideCompletedBtn = document.getElementById('hide-completed-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -73,6 +74,7 @@ const STORAGE_KEYS = {
   version: 'aiPm.version',
   stories: 'aiPm.stories',
   lastBackup: 'aiPm.lastBackup',
+  hideCompleted: 'aiPm.hideCompleted',
 };
 
 const AIPM_VERSION = '1.0.0'; // Update this when making breaking changes
@@ -246,7 +248,7 @@ for (const [alias, canonical] of COMPONENT_SYNONYMS.entries()) {
 function getVisibleMindmapStories(stories) {
   const filterDoneStories = (entries) => {
     return entries
-      .filter((story) => story && story.status !== 'Done')
+      .filter((story) => story && (!state.hideCompleted || story.status !== 'Done'))
       .map((story) => ({
         ...story,
         children: story.children ? filterDoneStories(story.children) : [],
@@ -376,6 +378,7 @@ const state = {
   manualPositions: {},
   autoLayout: true,
   showDependencies: false,
+  hideCompleted: false,
   mindmapZoom: 1,
   panelVisibility: {
     outline: true,
@@ -576,6 +579,17 @@ function syncDependencyOverlayControls() {
   });
 }
 
+function syncHideCompletedControls() {
+  if (hideCompletedBtn) {
+    hideCompletedBtn.classList.toggle('is-active', state.hideCompleted);
+    hideCompletedBtn.setAttribute('aria-pressed', state.hideCompleted ? 'true' : 'false');
+    hideCompletedBtn.setAttribute(
+      'title',
+      state.hideCompleted ? 'Show completed stories' : 'Hide completed stories'
+    );
+  }
+}
+
 function setDependencyOverlayVisible(visible) {
   const next = Boolean(visible);
   if (state.showDependencies === next) {
@@ -604,6 +618,16 @@ if (referenceBtn) {
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
+  });
+}
+
+if (hideCompletedBtn) {
+  hideCompletedBtn.addEventListener('click', () => {
+    state.hideCompleted = !state.hideCompleted;
+    syncHideCompletedControls();
+    persistHideCompleted();
+    renderOutline();
+    renderMindmap();
   });
 }
 
@@ -1119,6 +1143,15 @@ function loadPreferences() {
   }
 
   try {
+    const hideCompletedRaw = localStorage.getItem(STORAGE_KEYS.hideCompleted);
+    if (hideCompletedRaw) {
+      state.hideCompleted = JSON.parse(hideCompletedRaw);
+    }
+  } catch (error) {
+    console.error('Failed to load hide completed preference', error);
+  }
+
+  try {
     const selectionRaw = localStorage.getItem(STORAGE_KEYS.selection);
     if (selectionRaw) {
       state.selectedStoryId = Number(selectionRaw);
@@ -1168,6 +1201,10 @@ function persistMindmap() {
 
 function persistPanels() {
   localStorage.setItem(STORAGE_KEYS.panels, JSON.stringify(state.panelVisibility));
+}
+
+function persistHideCompleted() {
+  localStorage.setItem(STORAGE_KEYS.hideCompleted, JSON.stringify(state.hideCompleted));
 }
 
 function codewhispererEntryShape(entry, storyId) {
@@ -2366,6 +2403,11 @@ function updateWorkspaceColumns() {
   workspaceEl.style.gridTemplateColumns = columns.join(' ');
 }
 
+function getVisibleStories() {
+  if (!state.hideCompleted) return state.stories;
+  return state.stories.filter(story => story.status !== 'Done');
+}
+
 function renderOutline() {
   outlineTreeEl.innerHTML = '';
   const list = document.createDocumentFragment();
@@ -2412,11 +2454,13 @@ function renderOutline() {
     list.appendChild(row);
 
     if (story.children && story.children.length > 0 && state.expanded.has(story.id)) {
-      story.children.forEach((child) => renderNode(child, depth + 1));
+      const visibleChildren = state.hideCompleted ? story.children.filter(child => child.status !== 'Done') : story.children;
+      visibleChildren.forEach((child) => renderNode(child, depth + 1));
     }
   }
 
-  state.stories.forEach((story) => renderNode(story, 0));
+  const visibleStories = getVisibleStories();
+  visibleStories.forEach((story) => renderNode(story, 0));
   outlineTreeEl.appendChild(list);
 }
 
@@ -7129,6 +7173,7 @@ function initialize() {
   localStorage.setItem('aipm_environment', currentEnv);
   
   loadPreferences();
+  syncHideCompletedControls();
   initializeCodeWhispererDelegations();
   updateWorkspaceColumns();
   renderOutline();
