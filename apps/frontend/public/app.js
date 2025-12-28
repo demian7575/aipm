@@ -1650,7 +1650,13 @@ function formatCodeWhispererTargetLabel(entry) {
     return '';
   }
   
-  // Simplified label without git-specific terminology
+  // Show PR information when available
+  if (entry.type === 'pull_request' || entry.prUrl || entry.html_url || entry.url) {
+    const number = entry.number || Number(entry.targetNumber);
+    return Number.isFinite(number) ? `PR #${number}` : 'PR';
+  }
+  
+  // Fallback to generic label
   return 'Development Task';
 }
 
@@ -1738,7 +1744,15 @@ function renderCodeWhispererSectionList(container, story) {
       card.appendChild(confirmation);
     }
 
-    // Git-related fields removed for streamlined interface
+    // Restore GitHub PR link functionality
+    if (entry.prUrl || entry.html_url || entry.url) {
+      const prLink = document.createElement('p');
+      prLink.className = 'codewhisperer-pr-link';
+      const url = entry.prUrl || entry.html_url || entry.url;
+      const prNumber = entry.number ? `#${entry.number}` : '';
+      prLink.innerHTML = `<span>Pull Request:</span> <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">PR ${prNumber}</a>`;
+      card.appendChild(prLink);
+    }
 
     // Assignee with editable text box and Update button
     const assigneeRow = document.createElement('div');
