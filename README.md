@@ -23,7 +23,7 @@ Deploy the complete AIPM web service with comprehensive testing:
 ```
 
 This single command handles:
-- ✅ Backend infrastructure (Lambda + API Gateway + DynamoDB)
+- ✅ Backend infrastructure (EC2 + DynamoDB)
 - ✅ Frontend deployment (S3 static hosting)
 - ✅ Configuration updates
 - ✅ Health checks
@@ -31,7 +31,10 @@ This single command handles:
 - ✅ Deployment verification
 
 **Live Demo**: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
-**API Endpoint**: https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod
+**API Endpoint**: http://44.220.45.57 (EC2 Backend)
+
+**Development Environment**: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
+**Dev API Endpoint**: http://44.222.168.46 (EC2 Backend)
 
 ### Configuration
 

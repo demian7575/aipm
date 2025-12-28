@@ -5042,9 +5042,7 @@ function showToast(message, type = 'info') {
 }
 
 function closeModal() {
-  if (modal.open) {
-    modal.close();
-  }
+  modal.style.display = 'none';
   delete modal.dataset.size;
   modal.style.width = '';
   modal.style.maxWidth = '';
@@ -5067,7 +5065,7 @@ function openModal({
   size = 'default',
   onClose = null,
 }) {
-  if (modal.open || typeof modalTeardown === 'function') {
+  if (modal.style.display !== 'none' || typeof modalTeardown === 'function') {
     closeModal();
   }
   modalTitle.textContent = title;
@@ -5119,7 +5117,7 @@ function openModal({
     modalTeardown = null;
   };
 
-  modal.showModal();
+  modal.style.display = 'flex';
 }
 
 // Automatic PR creation function
