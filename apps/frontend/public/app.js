@@ -4603,7 +4603,6 @@ function renderDetails() {
   const normalizedDependencies = normalizeDependencyEntries(story.dependencies);
   const blockedByEntries = normalizedDependencies.filter((entry) => entry.relationship === 'blocks');
   const supportingDependencies = normalizedDependencies.filter((entry) => entry.relationship !== 'blocks');
-  const dependentEntries = normalizeDependencyEntries(story.dependents);
 
   const dependencyGroups = [
     {
@@ -4621,13 +4620,6 @@ function renderDetails() {
       empty: 'No upstream dependencies recorded.',
       context: 'upstream',
       allowAdd: true,
-    },
-    {
-      key: 'downstream',
-      title: 'Dependents',
-      items: dependentEntries,
-      empty: 'No stories depend on this one yet.',
-      context: 'downstream',
     },
   ];
 
