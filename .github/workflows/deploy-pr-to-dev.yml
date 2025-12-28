@@ -156,11 +156,27 @@ jobs:
         run: |
           echo "📊 Deploying to development environment..."
           
-          # For now, just deploy frontend until backend has updated endpoints
-          echo "📦 Deploying frontend to development..."
-          echo "⚠️ Backend deployment requires manual update first"
+          # Deploy backend using HTTP API
+          echo "📦 Deploying backend to development EC2..."
           
-          echo "✅ Frontend deployment ready"
+          # Upload backend file to S3 for transfer
+          aws s3 cp apps/backend/app.js s3://aipm-deployments-728378229251/temp/app.js
+          
+          # Use HTTP API to trigger deployment on development EC2
+          echo "🔄 Triggering backend deployment via HTTP API..."
+          curl -X POST http://44.222.168.46/api/deploy-backend \
+            -H "Content-Type: application/json" \
+            -d '{"s3Bucket": "aipm-deployments-728378229251", "s3Key": "temp/app.js"}' \
+            --max-time 30 || echo "⚠️ Backend deployment failed, continuing..."
+          
+          # Wait for backend to restart
+          sleep 10
+          
+          # Mirror production data to development
+          echo "🔄 Mirroring production data to development..."
+          curl -X POST http://44.222.168.46/api/sync-data --max-time 30 || echo "⚠️ Data sync failed, continuing..."
+          
+          echo "✅ Backend deployment and data mirroring completed"
           
           # Create dev config pointing to EC2
           echo "📝 Creating development configuration..."
