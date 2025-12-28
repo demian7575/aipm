@@ -5761,47 +5761,86 @@ export async function createApp() {
     }
 
     if (pathname === '/api/sync-data' && method === 'POST') {
-      const fs = require('fs');
-      const logPath = '/tmp/kiro-cli-live.log';
-      
       try {
-        let logContent = '';
+        console.log('🔄 Starting data sync from production to development...');
         
-        // Create log file if it doesn't exist with sample content
-        if (!fs.existsSync(logPath)) {
-          const sampleContent = `${new Date().toISOString()}: Kiro CLI Live Log initialized
-${new Date().toISOString()}: ✅ Backend endpoint ready
-${new Date().toISOString()}: 📋 Waiting for Kiro CLI activity...
-${new Date().toISOString()}: 💬 Use this terminal to see live Kiro CLI logs
-${new Date().toISOString()}: 🔄 Log updates automatically every second
-`;
-          fs.writeFileSync(logPath, sampleContent);
-          logContent = sampleContent;
-        } else {
-          logContent = fs.readFileSync(logPath, 'utf8');
+        // Fetch production stories
+        const prodResponse = await fetch('http://44.220.45.57/api/stories');
+        if (!prodResponse.ok) {
+          throw new Error(`Production API error: ${prodResponse.status}`);
         }
         
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET',
-          'Access-Control-Allow-Headers': 'Content-Type'
+        const prodStories = await prodResponse.json();
+        console.log(`Found ${prodStories.length} top-level stories in production`);
+        
+        // Function to extract all stories from nested structure
+        function extractAllStories(stories, extracted = []) {
+          for (const story of stories) {
+            extracted.push(story);
+            if (story.children && story.children.length > 0) {
+              extractAllStories(story.children, extracted);
+            }
+          }
+          return extracted;
+        }
+        
+        const allStories = extractAllStories(prodStories);
+        console.log(`Extracted ${allStories.length} total stories from hierarchy`);
+        
+        // Clear development data first
+        try {
+          const stories = await loadStories(db);
+          for (const story of stories) {
+            await safeRun(db, 'DELETE FROM user_stories WHERE id = ?', [story.id]);
+          }
+          console.log('✅ Cleared development stories');
+        } catch (error) {
+          console.error('Error clearing development data:', error);
+        }
+        
+        // Copy each story to development
+        let copiedCount = 0;
+        for (const story of allStories) {
+          try {
+            const result = await safeRun(db, `
+              INSERT INTO user_stories (
+                title, description, as_a, i_want, so_that, components, 
+                story_point, assignee_email, status, parent_id, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+              story.title || '',
+              story.description || '',
+              story.asA || '',
+              story.iWant || '',
+              story.soThat || '',
+              JSON.stringify(story.components || []),
+              story.storyPoint || 0,
+              story.assigneeEmail || '',
+              story.status || 'Draft',
+              story.parentId || null,
+              new Date().toISOString(),
+              new Date().toISOString()
+            ]);
+            copiedCount++;
+          } catch (error) {
+            console.error(`Failed to copy story: ${story.title}`, error);
+          }
+        }
+        
+        console.log(`✅ Copied ${copiedCount} stories to development`);
+        sendJson(res, 200, {
+          success: true,
+          message: `Data sync completed: ${copiedCount} stories copied`,
+          productionStories: allStories.length,
+          copiedStories: copiedCount
         });
-        res.end(JSON.stringify({ content: logContent }));
+        
       } catch (error) {
-        console.error('Error reading kiro live log:', error);
-        // Return sample content even if file operations fail
-        const fallbackContent = `${new Date().toISOString()}: Kiro CLI Live Log (fallback mode)
-${new Date().toISOString()}: ⚠️ Could not access log file: ${error.message}
-${new Date().toISOString()}: 📝 This is sample content for demonstration
-`;
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET',
-          'Access-Control-Allow-Headers': 'Content-Type'
+        console.error('Data sync error:', error);
+        sendJson(res, 500, {
+          success: false,
+          error: error.message
         });
-        res.end(JSON.stringify({ content: fallbackContent }));
       }
       return;
     }
