@@ -6641,7 +6641,7 @@ ${new Date().toISOString()}: 📝 This is sample content for demonstration
         }
         
         // Step 2: Trigger GitHub Action workflow with kiro-cli
-        const workflowResponse = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/run-in-staging.yml/dispatches', {
+        const workflowResponse = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
           method: 'POST',
           headers: {
             'Accept': 'application/vnd.github+json',
@@ -6650,10 +6650,10 @@ ${new Date().toISOString()}: 📝 This is sample content for demonstration
             'User-Agent': 'aipm-staging-workflow'
           },
           body: JSON.stringify({
-            ref: 'develop',
+            ref: 'main',
             inputs: {
-              task_title: taskTitle || 'Run in Staging workflow',
-              task_details: payload.taskDetails || ''
+              branch_name: 'main',
+              task_title: taskTitle || 'Test in Dev workflow'
             }
           })
         });
