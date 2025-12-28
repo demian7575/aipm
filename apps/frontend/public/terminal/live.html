@@ -18,9 +18,8 @@
     .log-entry.success { color: #0f0; }
     .log-entry.error { color: #f00; }
     .log-entry.warning { color: #ff0; }
-    .input-area { display: flex; padding: 10px; background: #111; border-top: 1px solid #333; }
-    input { flex: 1; background: #000; color: #0f0; border: 1px solid #333; padding: 10px; font-family: 'Courier New', monospace; font-size: 14px; }
-    button { background: #333; color: #0f0; border: 1px solid #555; padding: 10px 20px; margin-left: 10px; cursor: pointer; font-family: 'Courier New', monospace; }
+    .controls { display: flex; padding: 10px; background: #111; border-top: 1px solid #333; gap: 10px; }
+    button { background: #333; color: #0f0; border: 1px solid #555; padding: 10px 20px; cursor: pointer; font-family: 'Courier New', monospace; }
     button:hover { background: #555; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
@@ -28,28 +27,34 @@
 <body>
   <div class="header">
     <h2>🤖 Kiro Live Terminal</h2>
-    <div class="status" id="status">⏳ Connecting...</div>
+    <div class="status" id="status">⏳ Loading...</div>
   </div>
   
   <div class="logs" id="logs"></div>
   
-  <div class="input-area">
-    <input type="text" id="input" placeholder="Type message to /kiro/chat..." disabled />
-    <button id="send" onclick="sendMessage()" disabled>Send</button>
-    <button onclick="clearLogs()">Clear</button>
+  <div class="controls">
+    <button onclick="refreshLogs()">🔄 Refresh</button>
+    <button onclick="clearLogs()">🗑️ Clear</button>
+    <button onclick="toggleAutoRefresh()" id="autoRefreshBtn">⏸️ Stop Auto-refresh</button>
   </div>
 
   <script>
     const logsEl = document.getElementById('logs');
-    const inputEl = document.getElementById('input');
-    const sendBtn = document.getElementById('send');
     const statusEl = document.getElementById('status');
+    const autoRefreshBtn = document.getElementById('autoRefreshBtn');
     
-    const KIRO_API = 'http://44.220.45.57:8081';
-    const WS_URL = 'ws://44.220.45.57:8081/logs';
+    // Get backend URL from config
+    const getBackendUrl = () => {
+      if (window.CONFIG?.BACKEND_URL) {
+        return window.CONFIG.BACKEND_URL;
+      }
+      // Fallback to current host
+      return `${window.location.protocol}//${window.location.hostname}:4000`;
+    };
     
-    let ws = null;
-    let isConnected = false;
+    let autoRefreshInterval = null;
+    let isAutoRefreshing = true;
+    let lastLogContent = '';
     
     function addLog(message, type = 'info') {
       const entry = document.createElement('div');
@@ -64,119 +69,94 @@
       addLog('🗑️  Logs cleared', 'info');
     }
     
-    function updateStatus(connected) {
-      isConnected = connected;
-      if (connected) {
-        statusEl.textContent = '✅ Connected to Kiro API';
-        statusEl.className = 'status connected';
-        inputEl.disabled = false;
-        sendBtn.disabled = false;
-      } else {
-        statusEl.textContent = '❌ Disconnected';
-        statusEl.className = 'status disconnected';
-        inputEl.disabled = true;
-        sendBtn.disabled = true;
-      }
+    function updateStatus(message, connected = true) {
+      statusEl.textContent = message;
+      statusEl.className = connected ? 'status connected' : 'status disconnected';
     }
     
-    function connectWebSocket() {
-      addLog('🔌 Connecting to Kiro API log stream...', 'info');
-      
-      ws = new WebSocket(WS_URL);
-      
-      ws.onopen = () => {
-        addLog('✅ Connected to live log stream', 'success');
-        updateStatus(true);
-      };
-      
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'log') {
-            // Determine log type from message content
-            let type = 'info';
-            if (data.message.includes('✅')) type = 'success';
-            else if (data.message.includes('❌')) type = 'error';
-            else if (data.message.includes('⚠️')) type = 'warning';
-            
-            addLog(data.message, type);
-          }
-        } catch (error) {
-          addLog(event.data, 'info');
-        }
-      };
-      
-      ws.onerror = (error) => {
-        addLog('❌ WebSocket error', 'error');
-        updateStatus(false);
-      };
-      
-      ws.onclose = () => {
-        addLog('🔌 Disconnected from log stream', 'warning');
-        updateStatus(false);
-        
-        // Reconnect after 3 seconds
-        setTimeout(() => {
-          addLog('🔄 Reconnecting...', 'info');
-          connectWebSocket();
-        }, 3000);
-      };
-    }
-    
-    async function sendMessage() {
-      const message = inputEl.value.trim();
-      if (!message) return;
-      
-      inputEl.value = '';
-      inputEl.disabled = true;
-      sendBtn.disabled = true;
-      
-      addLog(`> ${message}`, 'info');
-      
+    async function fetchLogs() {
       try {
-        const response = await fetch(`${KIRO_API}/kiro/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message })
-        });
+        const response = await fetch(`${getBackendUrl()}/api/kiro-live-log`);
+        const data = await response.json();
         
-        const result = await response.json();
-        
-        if (result.success) {
-          // Response will appear in logs via WebSocket
-          // But also show it directly in case WebSocket is slow
-          if (result.message) {
-            addLog(`📨 ${result.message}`, 'success');
+        if (response.ok && data.content !== undefined) {
+          // Only update if content changed
+          if (data.content !== lastLogContent) {
+            lastLogContent = data.content;
+            displayLogContent(data.content);
           }
+          updateStatus('✅ Connected - Live log streaming', true);
         } else {
-          addLog(`❌ Error: ${result.error}`, 'error');
+          updateStatus('❌ Error fetching logs', false);
+          addLog(`❌ Error: ${data.error || 'Unknown error'}`, 'error');
         }
       } catch (error) {
-        addLog(`❌ Request failed: ${error.message}`, 'error');
-      } finally {
-        inputEl.disabled = false;
-        sendBtn.disabled = false;
-        inputEl.focus();
+        updateStatus('❌ Connection failed', false);
+        addLog(`❌ Connection error: ${error.message}`, 'error');
       }
     }
     
-    inputEl.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && !inputEl.disabled) {
-        sendMessage();
+    function displayLogContent(content) {
+      logsEl.innerHTML = '';
+      
+      if (!content.trim()) {
+        addLog('📝 Log file is empty', 'info');
+        return;
       }
-    });
+      
+      const lines = content.split('\n');
+      lines.forEach(line => {
+        if (line.trim()) {
+          // Determine log type from line content
+          let type = 'info';
+          if (line.includes('✅') || line.includes('SUCCESS')) type = 'success';
+          else if (line.includes('❌') || line.includes('ERROR')) type = 'error';
+          else if (line.includes('⚠️') || line.includes('WARNING')) type = 'warning';
+          
+          const entry = document.createElement('div');
+          entry.className = `log-entry ${type}`;
+          entry.textContent = line;
+          logsEl.appendChild(entry);
+        }
+      });
+      
+      logsEl.scrollTop = logsEl.scrollHeight;
+    }
+    
+    function refreshLogs() {
+      fetchLogs();
+    }
+    
+    function toggleAutoRefresh() {
+      if (isAutoRefreshing) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+        isAutoRefreshing = false;
+        autoRefreshBtn.textContent = '▶️ Start Auto-refresh';
+        updateStatus('⏸️ Auto-refresh paused', true);
+      } else {
+        startAutoRefresh();
+        isAutoRefreshing = true;
+        autoRefreshBtn.textContent = '⏸️ Stop Auto-refresh';
+      }
+    }
+    
+    function startAutoRefresh() {
+      autoRefreshInterval = setInterval(fetchLogs, 1000); // Refresh every second
+    }
     
     // Initialize
     addLog('🚀 Kiro Live Terminal', 'success');
-    addLog('📡 Connecting to Kiro API...', 'info');
+    addLog('📡 Connecting to backend...', 'info');
     addLog('', 'info');
-    addLog('This terminal shows live logs from:', 'info');
-    addLog('  • POST /kiro/chat', 'info');
-    addLog('  • POST /kiro/v3/transform', 'info');
-    addLog('  • All Kiro API activity', 'info');
+    addLog('This terminal shows live content from:', 'info');
+    addLog('  • /tmp/kiro-cli-live.log', 'info');
+    addLog('  • Updates every 1 second', 'info');
     addLog('', 'info');
     
-    connectWebSocket();
+    // Start fetching logs
+    fetchLogs();
+    startAutoRefresh();
   </script>
 </body>
 </html>

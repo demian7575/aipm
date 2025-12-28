@@ -7123,9 +7123,8 @@ function initialize() {
   fetchVersion();
 
   openKiroTerminalBtn?.addEventListener('click', () => {
-    const story = state.selectedStoryId ? storyIndex.get(state.selectedStoryId) : null;
-    const terminalUrl = buildStandaloneTerminalUrl(story);
-    window.open(terminalUrl, '_blank', 'noopener');
+    const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
+    window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
 
   refineKiroBtn?.addEventListener('click', async () => {

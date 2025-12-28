@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kiro Live Log</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Courier New', monospace; background: #000; color: #0f0; height: 100vh; display: flex; flex-direction: column; }
+    .header { background: #111; padding: 10px 15px; border-bottom: 1px solid #333; }
+    .logs { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+    .controls { padding: 10px; background: #111; border-top: 1px solid #333; }
+    button { background: #333; color: #0f0; border: 1px solid #555; padding: 8px 16px; margin-right: 10px; cursor: pointer; }
+    button:hover { background: #555; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>🤖 Kiro Live Log - /tmp/kiro-cli-live.log</h2>
+  </div>
+  
+  <div class="logs" id="logs">Loading...</div>
+  
+  <div class="controls">
+    <button onclick="refreshLog()">🔄 Refresh</button>
+    <button onclick="toggleAutoRefresh()" id="toggleBtn">⏸️ Pause</button>
+  </div>
+
+  <script>
+    const logsEl = document.getElementById('logs');
+    const toggleBtn = document.getElementById('toggleBtn');
+    let autoRefresh = true;
+    let interval;
+
+    async function fetchLog() {
+      try {
+        // Use the backend URL from config or fallback to EC2
+        const backendUrl = window.CONFIG?.BACKEND_URL || 'http://44.220.45.57:4000';
+        const response = await fetch(`${backendUrl}/api/kiro-live-log`);
+        const data = await response.json();
+        logsEl.textContent = data.content || 'Log file is empty';
+        logsEl.scrollTop = logsEl.scrollHeight;
+      } catch (error) {
+        logsEl.textContent = `Error: ${error.message}`;
+      }
+    }
+
+    function refreshLog() {
+      fetchLog();
+    }
+
+    function toggleAutoRefresh() {
+      if (autoRefresh) {
+        clearInterval(interval);
+        toggleBtn.textContent = '▶️ Resume';
+        autoRefresh = false;
+      } else {
+        startAutoRefresh();
+        toggleBtn.textContent = '⏸️ Pause';
+        autoRefresh = true;
+      }
+    }
+
+    function startAutoRefresh() {
+      interval = setInterval(fetchLog, 1000);
+    }
+
+    // Initialize
+    fetchLog();
+    startAutoRefresh();
+  </script>
+</body>
+</html>

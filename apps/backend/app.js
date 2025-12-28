@@ -5760,6 +5760,40 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/kiro-live-log' && method === 'GET') {
+      const fs = require('fs');
+      const logPath = '/tmp/kiro-cli-live.log';
+      
+      try {
+        let logContent = '';
+        
+        // Create log file if it doesn't exist with sample content
+        if (!fs.existsSync(logPath)) {
+          const sampleContent = `${new Date().toISOString()}: Kiro CLI Live Log initialized
+${new Date().toISOString()}: ✅ Backend endpoint ready
+${new Date().toISOString()}: 📋 Waiting for Kiro CLI activity...
+${new Date().toISOString()}: 💬 Use this terminal to see live Kiro CLI logs
+${new Date().toISOString()}: 🔄 Log updates automatically every second
+`;
+          fs.writeFileSync(logPath, sampleContent);
+          logContent = sampleContent;
+        } else {
+          logContent = fs.readFileSync(logPath, 'utf8');
+        }
+        
+        sendJson(res, 200, { content: logContent });
+      } catch (error) {
+        console.error('Error reading kiro live log:', error);
+        // Return sample content even if file operations fail
+        const fallbackContent = `${new Date().toISOString()}: Kiro CLI Live Log (fallback mode)
+${new Date().toISOString()}: ⚠️ Could not access log file: ${error.message}
+${new Date().toISOString()}: 📝 This is sample content for demonstration
+`;
+        sendJson(res, 200, { content: fallbackContent });
+      }
+      return;
+    }
+
     // System status endpoints for gating tests
     if (pathname === '/api/system/node-version' && method === 'GET') {
       sendJson(res, 200, { version: process.version });
