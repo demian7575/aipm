@@ -152,20 +152,38 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
+      - name: Setup SSH key for EC2 deployment
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
+      
       - name: Deploy to development environment
         run: |
           echo "📊 Deploying to development environment..."
           
-          # Skip backend deployment - using existing EC2 infrastructure
-          echo "📦 Using existing EC2 backend infrastructure"
+          # Deploy backend to EC2
+          echo "📦 Deploying backend to development EC2..."
           
-          # Create dev config
+          # Copy backend files to EC2
+          echo "📤 Copying backend files to EC2..."
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa apps/backend/app.js ubuntu@44.222.168.46:/tmp/app.js
+          
+          # Update backend on EC2
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@44.222.168.46 << 'EOF'
+            sudo cp /tmp/app.js /home/ubuntu/aipm/apps/backend/app.js
+            sudo systemctl restart aipm-dev-backend
+            echo "✅ Backend updated and restarted"
+          EOF
+          
+          # Create dev config pointing to EC2
           echo "📝 Creating development configuration..."
           cat > apps/frontend/public/config.js << EOF
           window.CONFIG = {
-            API_BASE_URL: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
-            apiEndpoint: 'https://eppae4ae82.execute-api.us-east-1.amazonaws.com/dev',
-            EC2_TERMINAL_URL: 'ws://44.220.45.57:8080',
+            API_BASE_URL: 'http://44.222.168.46',
+            apiEndpoint: 'http://44.222.168.46',
+            EC2_TERMINAL_URL: 'ws://44.222.168.46:8080',
             ENVIRONMENT: 'development',
             environment: 'development',
             stage: 'dev',
