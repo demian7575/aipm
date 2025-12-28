@@ -1,0 +1,30 @@
+{
+  "id": 1735395170830,
+  "title": "Test Feature Implementation",
+  "asA": "Developer",
+  "iWant": "A test feature",
+  "soThat": "I can verify system functionality",
+  "description": "Implement a test feature to validate system behavior and ensure quality assurance processes are working correctly.",
+  "acceptanceCriteria": [
+    "Test feature executes successfully",
+    "System responds with expected results",
+    "Error handling works properly"
+  ],
+  "storyPoints": 2,
+  "status": "Draft",
+  "assignee": "",
+  "components": ["Testing"],
+  "acceptanceTests": [
+    {
+      "id": 1,
+      "title": "Basic test execution",
+      "given": "System is running",
+      "when": "Test is executed",
+      "then": "Expected results are returned",
+      "status": "Draft"
+    }
+  ],
+  "children": [],
+  "createdAt": "2025-12-28T14:32:50.830Z",
+  "updatedAt": "2025-12-28T14:32:50.830Z"
+}

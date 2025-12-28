@@ -1,0 +1,34 @@
+{
+  "id": "story-test-001",
+  "title": "Test Story Generation",
+  "description": "As a developer, I want to generate test stories automatically so that I can validate the story creation workflow and data structure.",
+  "status": "Draft",
+  "priority": "Medium",
+  "storyPoints": 3,
+  "assignee": "developer@example.com",
+  "components": ["System (S/S)", "Test Automation"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-001",
+      "description": "Given a story title, when I generate a test story, then it should include all required INVEST fields",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-002", 
+      "description": "Given the generated story, when I validate the structure, then it should pass INVEST criteria checks",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Create story JSON structure",
+      "assignee": "developer@example.com",
+      "status": "Pending"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "createdAt": "2025-12-28T09:43:15.739Z",
+  "updatedAt": "2025-12-28T09:43:15.739Z"
+}
