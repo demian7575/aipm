@@ -5454,6 +5454,38 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   return story;
 }
 
+function readKiroLiveLogContent() {
+  const logPath = '/tmp/kiro-cli-live.log';
+  const timestamp = () => new Date().toISOString();
+
+  try {
+    let logContent = '';
+
+    if (!existsSync(logPath)) {
+      const sampleContent = `${timestamp()}: Kiro CLI Live Log initialized
+${timestamp()}: ✅ Backend endpoint ready
+${timestamp()}: 📋 Waiting for Kiro CLI activity...
+${timestamp()}: 💬 Use this terminal to see live Kiro CLI logs
+${timestamp()}: 🔄 Log updates automatically every second
+`;
+      writeFileSync(logPath, sampleContent);
+      logContent = sampleContent;
+    } else {
+      logContent = readFileSync(logPath, 'utf8');
+    }
+
+    return { content: logContent };
+  } catch (error) {
+    console.error('Error reading kiro live log:', error);
+    const fallbackContent = `${timestamp()}: Kiro CLI Live Log (fallback mode)
+${timestamp()}: ⚠️ Could not access log file: ${error.message}
+${timestamp()}: 📝 This is sample content for demonstration
+`;
+
+    return { content: fallbackContent };
+  }
+}
+
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
@@ -5760,49 +5792,27 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/kiro-live-log' && method === 'GET') {
+      const { content } = readKiroLiveLogContent();
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      });
+      res.end(JSON.stringify({ content }));
+      return;
+    }
+
     if (pathname === '/api/sync-data' && method === 'POST') {
-      const fs = require('fs');
-      const logPath = '/tmp/kiro-cli-live.log';
-      
-      try {
-        let logContent = '';
-        
-        // Create log file if it doesn't exist with sample content
-        if (!fs.existsSync(logPath)) {
-          const sampleContent = `${new Date().toISOString()}: Kiro CLI Live Log initialized
-${new Date().toISOString()}: ✅ Backend endpoint ready
-${new Date().toISOString()}: 📋 Waiting for Kiro CLI activity...
-${new Date().toISOString()}: 💬 Use this terminal to see live Kiro CLI logs
-${new Date().toISOString()}: 🔄 Log updates automatically every second
-`;
-          fs.writeFileSync(logPath, sampleContent);
-          logContent = sampleContent;
-        } else {
-          logContent = fs.readFileSync(logPath, 'utf8');
-        }
-        
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        });
-        res.end(JSON.stringify({ content: logContent }));
-      } catch (error) {
-        console.error('Error reading kiro live log:', error);
-        // Return sample content even if file operations fail
-        const fallbackContent = `${new Date().toISOString()}: Kiro CLI Live Log (fallback mode)
-${new Date().toISOString()}: ⚠️ Could not access log file: ${error.message}
-${new Date().toISOString()}: 📝 This is sample content for demonstration
-`;
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        });
-        res.end(JSON.stringify({ content: fallbackContent }));
-      }
+      const { content } = readKiroLiveLogContent();
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      });
+      res.end(JSON.stringify({ content }));
       return;
     }
 
