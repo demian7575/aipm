@@ -1,0 +1,139 @@
+/* Advanced GitHub Integration Command Center Styles */
+.github-command-center {
+  background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%);
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.pr-command-item {
+  margin-bottom: 8px;
+  transition: transform 0.2s ease;
+}
+
+.pr-command-item:hover {
+  transform: translateY(-1px);
+}
+
+.pr-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pr-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.pr-status-dot.status-open { background: #28a745; }
+.pr-status-dot.status-draft { background: #6a737d; }
+.pr-status-dot.status-merged { background: #6f42c1; }
+.pr-status-dot.status-closed { background: #d73a49; }
+
+.pr-title {
+  flex: 1;
+  color: #24292e;
+  font-weight: 500;
+}
+
+.pr-number {
+  color: #586069;
+  font-family: monospace;
+}
+
+.pr-link {
+  display: block;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.pr-link:hover {
+  border-color: #0366d6;
+  box-shadow: 0 2px 8px rgba(3,102,214,0.15);
+  background: #f1f8ff;
+}
+
+.pr-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.pr-author {
+  color: #586069;
+  font-weight: 500;
+}
+
+.pr-status-badge {
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.pr-status-badge.status-open {
+  background: rgba(40,167,69,0.1);
+  color: #28a745;
+  border: 1px solid #28a745;
+}
+
+.pr-status-badge.status-draft {
+  background: rgba(106,115,125,0.1);
+  color: #6a737d;
+  border: 1px solid #6a737d;
+}
+
+.pr-status-badge.status-merged {
+  background: rgba(111,66,193,0.1);
+  color: #6f42c1;
+  border: 1px solid #6f42c1;
+}
+
+.pr-status-badge.status-closed {
+  background: rgba(215,58,73,0.1);
+  color: #d73a49;
+  border: 1px solid #d73a49;
+}
+
+.pr-preview {
+  position: absolute;
+  background: #2d3748;
+  color: white;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  max-width: 280px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.preview-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #e2e8f0;
+}
+
+.preview-meta div {
+  margin-bottom: 3px;
+  color: #cbd5e0;
+}
+
+.preview-meta div:last-child {
+  margin-bottom: 0;
+}

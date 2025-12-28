@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub PR Visual Command Center Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Enhanced GitHub PR Visual Command Center Styles */
+        .github-pr-command-center {
+            margin: 8px 0;
+            padding: 12px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .pr-link-container {
+            margin-bottom: 8px;
+        }
+
+        .pr-link-container:last-child {
+            margin-bottom: 0;
+        }
+
+        .pr-link-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .pr-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .pr-status-indicator {
+            font-weight: bold;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid currentColor;
+        }
+
+        .enhanced-pr-link {
+            display: block;
+            padding: 8px 12px;
+            background: #ffffff;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #0366d6;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .enhanced-pr-link:hover {
+            border-color: #0366d6;
+            background: #f1f8ff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(3, 102, 214, 0.15);
+        }
+
+        .pr-link-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pr-number {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .pr-status-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Enhanced status colors */
+        .pr-status-draft .pr-status-badge {
+            background-color: rgba(106, 115, 125, 0.1);
+            border: 1px solid #6a737d;
+            color: #6a737d;
+        }
+
+        .pr-status-open .pr-status-badge {
+            background-color: rgba(40, 167, 69, 0.1);
+            border: 1px solid #28a745;
+            color: #28a745;
+        }
+
+        .pr-status-approved .pr-status-badge {
+            background-color: rgba(40, 167, 69, 0.2);
+            border: 1px solid #28a745;
+            color: #1e7e34;
+        }
+
+        .pr-status-merged .pr-status-badge {
+            background-color: rgba(111, 66, 193, 0.1);
+            border: 1px solid #6f42c1;
+            color: #6f42c1;
+        }
+
+        .pr-status-closed .pr-status-badge {
+            background-color: rgba(215, 58, 73, 0.1);
+            border: 1px solid #d73a49;
+            color: #d73a49;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>GitHub PR Visual Command Center</h1>
+        <p>Interactive Link Dashboard with Real-Time Status Intelligence</p>
+        
+        <h3>Single PR Example</h3>
+        <div class="github-pr-command-center">
+            <div class="pr-link-container">
+                <div class="pr-link-header">
+                    <span class="pr-label">Pull Request:</span>
+                    <span class="pr-status-indicator pr-status-open" style="color: #28a745">
+                        ● OPEN
+                    </span>
+                </div>
+                <a href="https://github.com/demian7575/aipm/pull/897" target="_blank" rel="noopener noreferrer" 
+                   class="github-pr-link enhanced-pr-link" 
+                   data-pr-url="https://github.com/demian7575/aipm/pull/897"
+                   data-pr-status="open"
+                   title="Click to open PR #897 in GitHub">
+                    <div class="pr-link-content">
+                        <span class="pr-number">PR #897</span>
+                        <span class="pr-status-badge pr-status-open">open</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <h3>Multiple PR Example</h3>
+        <div class="github-pr-command-center">
+            <div class="pr-link-container">
+                <div class="pr-link-header">
+                    <span class="pr-label">Pull Request:</span>
+                    <span class="pr-status-indicator pr-status-approved" style="color: #1e7e34">
+                        ✓ APPROVED
+                    </span>
+                </div>
+                <a href="https://github.com/demian7575/aipm/pull/895" target="_blank" rel="noopener noreferrer" 
+                   class="github-pr-link enhanced-pr-link" 
+                   data-pr-status="approved"
+                   title="Click to open PR #895 in GitHub">
+                    <div class="pr-link-content">
+                        <span class="pr-number">PR #895</span>
+                        <span class="pr-status-badge pr-status-approved">approved</span>
+                    </div>
+                </a>
+            </div>
+            <div class="pr-link-container">
+                <div class="pr-link-header">
+                    <span class="pr-label">Pull Request:</span>
+                    <span class="pr-status-indicator pr-status-merged" style="color: #6f42c1">
+                        ✓ MERGED
+                    </span>
+                </div>
+                <a href="https://github.com/demian7575/aipm/pull/896" target="_blank" rel="noopener noreferrer" 
+                   class="github-pr-link enhanced-pr-link" 
+                   data-pr-status="merged"
+                   title="Click to open PR #896 in GitHub">
+                    <div class="pr-link-content">
+                        <span class="pr-number">PR #896</span>
+                        <span class="pr-status-badge pr-status-merged">merged</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <h3>All Status Types</h3>
+        <div class="github-pr-command-center">
+            <div class="pr-link-container">
+                <div class="pr-link-header">
+                    <span class="pr-label">Draft PR:</span>
+                    <span class="pr-status-indicator pr-status-draft" style="color: #6a737d">
+                        ◐ DRAFT
+                    </span>
+                </div>
+                <a href="#" class="github-pr-link enhanced-pr-link" data-pr-status="draft">
+                    <div class="pr-link-content">
+                        <span class="pr-number">PR #890</span>
+                        <span class="pr-status-badge pr-status-draft">draft</span>
+                    </div>
+                </a>
+            </div>
+            <div class="pr-link-container">
+                <div class="pr-link-header">
+                    <span class="pr-label">Closed PR:</span>
+                    <span class="pr-status-indicator pr-status-closed" style="color: #d73a49">
+                        ✕ CLOSED
+                    </span>
+                </div>
+                <a href="#" class="github-pr-link enhanced-pr-link" data-pr-status="closed">
+                    <div class="pr-link-content">
+                        <span class="pr-number">PR #891</span>
+                        <span class="pr-status-badge pr-status-closed">closed</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

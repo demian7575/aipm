@@ -1700,9 +1700,9 @@ async function refreshPRStatus(entry, prContainer) {
         // Replace old container
         prContainer.parentNode.replaceChild(newContainer, prContainer);
         
-        // Schedule next refresh if still open
+        // Schedule next refresh if still open (faster 15-second updates for real-time intelligence)
         if (prData.state === 'open' || prData.state === 'draft') {
-          setTimeout(() => refreshPRStatus(entry, newContainer), 30000);
+          setTimeout(() => refreshPRStatus(entry, newContainer), 15000);
         }
       }
     }
@@ -1734,18 +1734,33 @@ function renderPRContainer(container, entry) {
     statusText = 'Draft';
   }
   
-  // Main PR link
-  const prLink = document.createElement('p');
-  prLink.className = 'codewhisperer-pr-link';
-  prLink.innerHTML = `
-    <span>Pull Request:</span> 
-    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="github-pr-link">
-      <span class="pr-status-icon pr-status-${status}">${statusIcon}</span>
-      <span class="pr-status-badge pr-status-${status}">${statusText}</span>
-      PR ${prNumber}
+  // Enhanced GitHub PR Visual Command Center
+  const commandCenter = document.createElement('div');
+  commandCenter.className = 'github-command-center';
+  
+  const prElement = document.createElement('div');
+  prElement.className = 'pr-command-item';
+  prElement.innerHTML = `
+    <div class="pr-header">
+      <span class="pr-status-dot status-${status}"></span>
+      <span class="pr-title">${escapeHtml(entry.taskTitle || entry.title || 'Pull Request')}</span>
+      <span class="pr-number">${prNumber}</span>
+    </div>
+    <a href="${escapeHtml(url)}" target="_blank" class="pr-link" data-pr-id="${entry.id}">
+      <div class="pr-meta">
+        <span class="pr-author">${escapeHtml(entry.assignee || entry.author || 'Unknown')}</span>
+        <span class="pr-status-badge status-${status}">${statusText}</span>
+      </div>
     </a>
   `;
-  container.appendChild(prLink);
+  
+  // Add interactive hover preview
+  const link = prElement.querySelector('.pr-link');
+  link.addEventListener('mouseenter', (e) => showPRPreview(e, entry));
+  link.addEventListener('mouseleave', hidePRPreview);
+  
+  commandCenter.appendChild(prElement);
+  container.appendChild(commandCenter);
   
   // PR metadata
   if (entry.author || entry.created_at || entry.updated_at) {
@@ -1798,6 +1813,37 @@ function renderPRContainer(container, entry) {
       container.appendChild(statusIndicators);
     }
   }
+}
+
+// Enhanced PR preview functionality
+function showPRPreview(event, entry) {
+  const preview = document.createElement('div');
+  preview.className = 'pr-preview';
+  preview.innerHTML = `
+    <div class="preview-header">${escapeHtml(entry.taskTitle || entry.title || 'Pull Request')}</div>
+    <div class="preview-meta">
+      <div>Author: ${escapeHtml(entry.assignee || entry.author || 'Unknown')}</div>
+      <div>Created: ${entry.created_at ? new Date(entry.created_at).toLocaleDateString() : 'Unknown'}</div>
+      <div>Status: ${escapeHtml(entry.state || entry.status || 'open')}</div>
+      <div>Branch: ${escapeHtml(entry.branchName || 'main')}</div>
+    </div>
+  `;
+  
+  preview.style.position = 'absolute';
+  preview.style.zIndex = '1000';
+  preview.style.left = event.pageX + 10 + 'px';
+  preview.style.top = event.pageY - 10 + 'px';
+  
+  document.body.appendChild(preview);
+  event.target.prPreview = preview;
+}
+
+function hidePRPreview(event) {
+  if (event.target.prPreview) {
+    document.body.removeChild(event.target.prPreview);
+    delete event.target.prPreview;
+  }
+}
 }
 
 function formatRelativeTime(isoString) {
@@ -1893,10 +1939,10 @@ function renderCodeWhispererSectionList(container, story) {
       renderPRContainer(prContainer, entry);
       card.appendChild(prContainer);
       
-      // Auto-refresh PR status every 30 seconds for open PRs
+      // Auto-refresh PR status every 15 seconds for open PRs (real-time intelligence)
       const status = entry.state || 'open';
       if (status === 'open' || status === 'draft') {
-        setTimeout(() => refreshPRStatus(entry, prContainer), 30000);
+        setTimeout(() => refreshPRStatus(entry, prContainer), 15000);
       }
     }
 
