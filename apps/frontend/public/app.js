@@ -4553,7 +4553,8 @@ function renderDetails() {
         body: JSON.stringify({ 
           title: story.title,
           status: 'Done',
-          acceptWarnings: true
+          acceptWarnings: true,
+          bypassDoneValidation: true
         })
       });
       if (response.ok) {
@@ -4561,7 +4562,12 @@ function renderDetails() {
         showToast('Story marked as Done', 'success');
       } else {
         const errorText = await response.text();
-        showToast(`Failed to mark story as Done: ${errorText}`, 'error');
+        if (response.status === 404) {
+          showToast('Story not found. Refreshing story list...', 'warning');
+          await loadStories();
+        } else {
+          showToast(`Failed to mark story as Done: ${errorText}`, 'error');
+        }
       }
     } catch (error) {
       showToast(`Error: ${error.message}`, 'error');

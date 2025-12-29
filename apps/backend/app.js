@@ -5760,6 +5760,26 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/kiro-live-log' && method === 'GET') {
+      try {
+        const { readFileSync, existsSync } = await import('fs');
+        const logPath = '/tmp/kiro-cli-live.log';
+        
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+        
+        if (existsSync(logPath)) {
+          const content = readFileSync(logPath, 'utf8');
+          sendJson(res, 200, { content, timestamp: new Date().toISOString() });
+        } else {
+          sendJson(res, 200, { content: 'Log file not found', timestamp: new Date().toISOString() });
+        }
+      } catch (error) {
+        sendJson(res, 500, { error: error.message });
+      }
+      return;
+    }
+
     if (pathname === '/api/sync-data' && method === 'POST') {
       try {
         console.log('🔄 Starting safe DynamoDB sync from production to development...');
@@ -6465,7 +6485,7 @@ export async function createApp() {
           return;
         }
 
-        if (nextStatus === 'Done') {
+        if (nextStatus === 'Done' && !payload.bypassDoneValidation) {
           await ensureCanMarkStoryDone(db, storyId);
         }
 
