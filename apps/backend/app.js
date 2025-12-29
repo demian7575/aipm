@@ -2945,26 +2945,44 @@ async function createGitHubPR({ token, owner, repo, branchName, prTitle, prBody,
     const branchData = await branchResponse.json();
     const baseSha = branchData.object.sha;
     
-    // Create new branch
-    const createBranchResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/git/refs`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        ref: `refs/heads/${branchName}`,
-        sha: baseSha
-      })
-    });
+    // Create new branch (check if exists first)
+    let finalBranchName = branchName;
+    let attempt = 0;
     
-    if (!createBranchResponse.ok) {
+    while (attempt < 5) {
+      const createBranchResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/git/refs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ref: `refs/heads/${finalBranchName}`,
+          sha: baseSha
+        })
+      });
+      
+      if (createBranchResponse.ok) {
+        break; // Branch created successfully
+      }
+      
       const errorText = await createBranchResponse.text();
+      if (createBranchResponse.status === 422 && errorText.includes('already exists')) {
+        // Branch exists, try with a suffix
+        attempt++;
+        finalBranchName = `${branchName}-${attempt}`;
+        continue;
+      }
+      
       throw new Error(`Failed to create branch: ${createBranchResponse.statusText} - ${errorText}`);
     }
     
-    // Create a placeholder file to make the branch have content
+    if (attempt >= 5) {
+      throw new Error('Failed to create unique branch name after 5 attempts');
+    }
+    
+    // Create a placeholder file to make the branch have content (with unique filename)
     const placeholderContent = `# Story ${storyId} Implementation
 
 This branch was created automatically for implementing story ${storyId}.
@@ -2979,7 +2997,9 @@ This branch was created automatically for implementing story ${storyId}.
 ${prBody}
 `;
     
-    const createFileResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/contents/story-${storyId}-implementation.md`, {
+    // Use unique filename to avoid conflicts
+    const fileName = `TASK-${storyId}-${Date.now()}.md`;
+    const createFileResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/contents/${fileName}`, {
       method: 'PUT',
       headers: {
         'Authorization': `token ${token}`,
@@ -2987,17 +3007,19 @@ ${prBody}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message: `Add implementation placeholder for story ${storyId}`,
+        message: `Add task file for story ${storyId}`,
         content: Buffer.from(placeholderContent).toString('base64'),
-        branch: branchName
+        branch: finalBranchName
       })
     });
     
     if (!createFileResponse.ok) {
       const errorText = await createFileResponse.text();
-      console.warn(`Failed to create placeholder file: ${createFileResponse.statusText} - ${errorText}`);
-      // Continue anyway, as this is not critical
+      console.error(`Failed to create placeholder file: ${createFileResponse.statusText} - ${errorText}`);
+      throw new Error(`Failed to create initial commit: ${createFileResponse.statusText}`);
     }
+    
+    console.log(`Created placeholder file ${fileName} on branch ${finalBranchName}`);
     
     // Create pull request
     const createPRResponse = await fetch(`${baseUrl}/repos/${owner}/${repo}/pulls`, {
@@ -3010,7 +3032,7 @@ ${prBody}
       body: JSON.stringify({
         title: prTitle,
         body: prBody,
-        head: branchName,
+        head: finalBranchName,
         base: defaultBranch
       })
     });
@@ -3026,7 +3048,7 @@ ${prBody}
       success: true,
       prNumber: prData.number,
       prUrl: prData.html_url,
-      branchName: branchName,
+      branchName: finalBranchName,
       message: `PR #${prData.number} created successfully`
     };
     
@@ -5780,6 +5802,116 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/generate-code-branch' && method === 'POST') {
+      try {
+        const payload = await parseJson(req);
+        const { storyId, prNumber, prompt, originalBranch } = payload;
+        
+        if (!storyId || !prNumber || !prompt) {
+          sendJson(res, 400, { success: false, error: 'Missing required fields' });
+          return;
+        }
+
+        const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+        const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
+        const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+        
+        if (!GITHUB_TOKEN) {
+          sendJson(res, 400, { success: false, error: 'GitHub token not configured' });
+          return;
+        }
+
+        // Create generation branch name
+        const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '');
+        const baseBranch = originalBranch || `feature-story-${storyId}`;
+        const generationBranch = `${baseBranch}-gen-${timestamp}`;
+
+        // Get main branch SHA
+        const mainResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/main`, {
+          headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        
+        if (!mainResponse.ok) {
+          throw new Error(`Failed to get main branch: ${mainResponse.statusText}`);
+        }
+        
+        const mainData = await mainResponse.json();
+        const mainSha = mainData.object.sha;
+
+        // Create generation branch from main
+        const createBranchResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs`, {
+          method: 'POST',
+          headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref: `refs/heads/${generationBranch}`, sha: mainSha })
+        });
+
+        if (!createBranchResponse.ok) {
+          throw new Error(`Failed to create branch: ${createBranchResponse.statusText}`);
+        }
+
+        // Call Kiro API for code generation (with shorter timeout for testing)
+        const kiroResponse = await fetch('http://44.220.45.57:8081/kiro/v4/enhance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idea: prompt, callbackUrl: 'http://example.com' }),
+          signal: AbortSignal.timeout(30000) // 30 second timeout
+        });
+
+        if (!kiroResponse.ok) {
+          throw new Error(`Kiro API failed: ${kiroResponse.statusText}`);
+        }
+
+        const kiroResult = await kiroResponse.json();
+        
+        // Create commit with generated code
+        const commitMessage = `Generated code for story #${storyId}\n\n${prompt}`;
+        const fileContent = kiroResult.enhanced || kiroResult.code || 'Generated code placeholder';
+        
+        // Create file in generation branch
+        const createFileResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/generated-code-${storyId}.md`, {
+          method: 'PUT',
+          headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: commitMessage,
+            content: Buffer.from(fileContent).toString('base64'),
+            branch: generationBranch
+          })
+        });
+
+        if (!createFileResponse.ok) {
+          throw new Error(`Failed to create file: ${createFileResponse.statusText}`);
+        }
+
+        const fileData = await createFileResponse.json();
+
+        // Update PR to point to generation branch
+        const updatePRResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${prNumber}`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ head: generationBranch })
+        });
+
+        if (!updatePRResponse.ok) {
+          console.warn(`Failed to update PR branch: ${updatePRResponse.statusText}`);
+        }
+
+        const prData = updatePRResponse.ok ? await updatePRResponse.json() : null;
+
+        sendJson(res, 200, {
+          success: true,
+          generationBranch,
+          commitSha: fileData.commit.sha,
+          prUrl: prData?.html_url || `https://github.com/${REPO_OWNER}/${REPO_NAME}/pull/${prNumber}`,
+          generatedCode: fileContent
+        });
+
+      } catch (error) {
+        console.error('Generate code branch error:', error);
+        sendJson(res, 500, { success: false, error: error.message });
+      }
+      return;
+    }
+
     if (pathname === '/api/sync-data' && method === 'POST') {
       try {
         console.log('🔄 Starting safe DynamoDB sync from production to development...');
@@ -6510,6 +6642,30 @@ export async function createApp() {
           iWantChanged ||
           soThatChanged ||
           componentsChanged;
+
+        // For DynamoDB, use direct update to ensure status change works
+        if (process.env.NODE_ENV !== 'test' && (process.env.STORIES_TABLE || process.env.AWS_REGION)) {
+          // Direct DynamoDB update for status change
+          const { DynamoDBClient, UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
+          const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          
+          try {
+            await dynamoClient.send(new UpdateItemCommand({
+              TableName: process.env.STORIES_TABLE || 'aipm-backend-dev-stories',
+              Key: { id: { N: String(storyId) } },
+              UpdateExpression: 'SET #status = :status, updated_at = :updatedAt',
+              ExpressionAttributeNames: { '#status': 'status' },
+              ExpressionAttributeValues: {
+                ':status': { S: nextStatus },
+                ':updatedAt': { S: now() }
+              }
+            }));
+            console.log(`✅ DynamoDB status updated to ${nextStatus} for story ${storyId}`);
+          } catch (dynamoError) {
+            console.error('❌ DynamoDB direct update failed:', dynamoError);
+            // Fall back to SQLite emulation
+          }
+        }
 
         const update = db.prepare(
           'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore

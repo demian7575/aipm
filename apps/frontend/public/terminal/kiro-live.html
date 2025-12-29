@@ -48,11 +48,61 @@
         const response = await fetch('http://44.220.45.57/api/kiro-live-log');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        logsEl.textContent = data.content || 'Log file is empty';
+        
+        // Convert ANSI codes to HTML
+        const coloredContent = convertAnsiToHtml(data.content || 'Log file is empty');
+        
+        logsEl.innerHTML = coloredContent;
         logsEl.scrollTop = logsEl.scrollHeight;
       } catch (error) {
         logsEl.textContent = `Error fetching log: ${error.message}\n\nFallback content:\n[${new Date().toISOString()}] Kiro CLI live log viewer\n[${new Date().toISOString()}] Waiting for log updates...`;
       }
+    }
+
+    function convertAnsiToHtml(text) {
+      // ANSI color map
+      const colors = {
+        '0': 'reset',
+        '1': 'bold',
+        '30': '#000', '31': '#f00', '32': '#0f0', '33': '#ff0',
+        '34': '#00f', '35': '#f0f', '36': '#0ff', '37': '#fff',
+        '90': '#666', '91': '#f66', '92': '#6f6', '93': '#ff6',
+        '94': '#66f', '95': '#f6f', '96': '#6ff', '97': '#fff'
+      };
+      
+      // 256-color support (38;5;n format)
+      const get256Color = (n) => {
+        if (n < 16) return colors[n] || '#fff';
+        if (n < 232) {
+          const r = Math.floor((n - 16) / 36) * 51;
+          const g = Math.floor(((n - 16) % 36) / 6) * 51;
+          const b = ((n - 16) % 6) * 51;
+          return `rgb(${r},${g},${b})`;
+        }
+        const gray = 8 + (n - 232) * 10;
+        return `rgb(${gray},${gray},${gray})`;
+      };
+      
+      let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+      
+      // Convert ANSI codes to HTML spans
+      html = html
+        .replace(/\x1b\[0m/g, '</span>')
+        .replace(/\x1b\[1m/g, '<span style="font-weight:bold">')
+        .replace(/\x1b\[38;5;(\d+)m/g, (match, n) => `<span style="color:${get256Color(parseInt(n))}">`)
+        .replace(/\x1b\[(\d+)m/g, (match, code) => {
+          const color = colors[code];
+          if (color === 'reset') return '</span>';
+          if (color === 'bold') return '<span style="font-weight:bold">';
+          if (color) return `<span style="color:${color}">`;
+          return '';
+        });
+      
+      return html;
     }
 
     async function sendCommand() {

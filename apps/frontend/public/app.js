@@ -1869,7 +1869,56 @@ function renderCodeWhispererSectionList(container, story) {
     generateCodeBtn.addEventListener('click', async () => {
       console.log('🔘 Generate Code button clicked for story:', story?.id);
       console.log('🔘 Entry data passed to button:', entry);
-      openUpdatePRWithCodeModal(story, entry);
+      
+      // Generate code directly without modal
+      generateCodeBtn.disabled = true;
+      generateCodeBtn.textContent = 'Generating...';
+      
+      try {
+        const prNumber = entry?.number || entry?.targetNumber || entry?.prNumber;
+        if (!entry || !prNumber) {
+          showToast('No PR found to update. Create a PR first.', 'error');
+          return;
+        }
+        
+        // Use story description as default prompt
+        const prompt = story?.description || story?.title || 'Generate code for this story';
+        
+        console.log('🚀 Starting fresh branch code generation...');
+        console.log('📤 Using prompt:', prompt);
+        
+        const response = await fetch(resolveApiUrl('/api/generate-code-branch'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storyId: story?.id,
+            prNumber: parseInt(prNumber),
+            prompt: prompt,
+            originalBranch: entry.branchName
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Generation result:', result);
+          
+          if (result.success) {
+            showToast(`Code generated on branch: ${result.generationBranch}`, 'success');
+          } else {
+            showToast('Code generation failed', 'error');
+          }
+        } else {
+          const error = await response.text();
+          console.error('❌ HTTP error:', error);
+          showToast('Code generation failed', 'error');
+        }
+      } catch (error) {
+        console.error('❌ Exception during generation:', error);
+        showToast('Error during code generation', 'error');
+      } finally {
+        generateCodeBtn.disabled = false;
+        generateCodeBtn.textContent = 'Generate Code';
+      }
     });
     actions.appendChild(generateCodeBtn);
 
@@ -1994,7 +2043,89 @@ function buildCodeWhispererSection(story) {
   createPRBtn.className = 'secondary';
   createPRBtn.textContent = 'Create PR';
   createPRBtn.addEventListener('click', async () => {
-    openCreatePRModal(story);
+    // Create PR directly without modal
+    createPRBtn.disabled = true;
+    createPRBtn.textContent = 'Creating...';
+    
+    try {
+      console.log('🚀 Creating PR for story:', story);
+      const defaults = createDefaultCodeWhispererForm(story);
+      console.log('📋 Default values:', defaults);
+      
+      const payload = {
+        storyId: story.id,
+        branchName: defaults.branchName,
+        prTitle: defaults.prTitle,
+        prBody: defaults.objective,
+        story: story
+      };
+      
+      console.log('📤 Sending payload:', payload);
+      
+      const response = await fetch(resolveApiUrl('/api/create-pr'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response ok:', response.ok);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ PR creation result:', result);
+        showToast(result.message || 'Pull request created', 'success');
+        
+        // Immediately add PR entry to story data for instant availability
+        if (result.success && result.prEntry) {
+          console.log('📝 Adding PR entry to story:', result.prEntry);
+          const currentStory = storyIndex.get(story.id);
+          console.log('📊 Current story before adding PR:', currentStory);
+          if (currentStory) {
+            if (!currentStory.prs) {
+              currentStory.prs = [];
+            }
+            currentStory.prs.push(result.prEntry);
+            console.log('📊 Story PRs after adding:', currentStory.prs);
+            
+            // Force immediate refresh of Development Tasks section
+            const devTasksSection = document.querySelector(`[data-role="codewhisperer-section"][data-story-id="${story.id}"]`);
+            console.log('🔍 Found dev tasks section:', devTasksSection);
+            if (devTasksSection) {
+              const taskList = devTasksSection.querySelector('.codewhisperer-task-list');
+              console.log('🔍 Found task list:', taskList);
+              if (taskList) {
+                console.log('🔄 Refreshing task list with story:', currentStory);
+                renderCodeWhispererSectionList(taskList, currentStory);
+                console.log('✅ Task list refreshed');
+              }
+            }
+          } else {
+            console.error('❌ Story not found in storyIndex:', story.id);
+            console.log('Available story IDs:', Array.from(storyIndex.keys()));
+          }
+        }
+        
+        // Refresh the story to show the new PR
+        if (result.success) {
+          console.log('🔄 Loading stories...');
+          await loadStories();
+          if (state.selectedStoryId === story.id) {
+            renderDetails();
+          }
+        }
+      } else {
+        const error = await response.json();
+        console.error('❌ PR creation failed:', error);
+        showToast(error.error || 'Failed to create pull request', 'error');
+      }
+    } catch (error) {
+      console.error('❌ Create PR exception:', error);
+      showToast('Error creating pull request', 'error');
+    } finally {
+      createPRBtn.disabled = false;
+      createPRBtn.textContent = 'Create PR';
+    }
   });
   heading.appendChild(createPRBtn);
 
@@ -7433,11 +7564,11 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
     if (isGenerating) return;
     isGenerating = true;
     
-    console.log('🚀 Starting code generation...');
+    console.log('🚀 Starting fresh branch code generation...');
     
     if (submitButton) {
       submitButton.disabled = true;
-      submitButton.textContent = 'Generating...';
+      submitButton.textContent = 'Creating Branch & Generating...';
     }
 
     const formData = new FormData(form);
@@ -7446,47 +7577,46 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
     console.log('📤 Sending request with prompt:', values.prompt);
     
     try {
-      updateProgress('Generating code...');
+      updateProgress('Creating fresh branch from main...');
       
-      // Call Kiro API directly for code generation with longer timeout
-      const response = await fetch('http://44.220.45.57:8081/kiro/v3/transform', {
+      // Use new fresh branch API
+      const response = await fetch(resolveApiUrl('/api/generate-code-branch'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contractId: "generate-code-v1",
-          inputJson: {
-            taskId: `task-${Date.now()}`,
-            prompt: values.prompt,
-            prNumber: parseInt(prNumber),
-            branchName: taskEntry.branchName,
-            storyId: story?.id,
-            storyTitle: story?.title
-          }
-        }),
-        signal: AbortSignal.timeout(900000) // 15 minute timeout to match Kiro API server
+          storyId: story?.id,
+          prNumber: parseInt(prNumber),
+          prompt: values.prompt,
+          originalBranch: taskEntry.branchName
+        })
       });
 
       console.log('📥 Response status:', response.status);
-      console.log('📥 Response ok:', response.ok);
 
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Generation result:', result);
         
         if (result.success) {
-          updateProgress('Code generated successfully!');
+          updateProgress('Code generated and committed to fresh branch!');
           
-          // Display the generated code
+          // Display the generated code and branch info
           const codeDisplay = document.createElement('div');
           codeDisplay.className = 'generated-code';
           codeDisplay.innerHTML = `
-            <h4>Generated Code:</h4>
-            <pre><code>${escapeHtml(result.code)}</code></pre>
-            <p><em>Note: Code has been generated. You may need to manually commit it to PR #${prNumber}</em></p>
+            <h4>✅ Code Generated Successfully!</h4>
+            <p><strong>New Branch:</strong> <code>${escapeHtml(result.generationBranch)}</code></p>
+            <p><strong>Commit:</strong> <code>${escapeHtml(result.commitSha?.substring(0, 7) || 'N/A')}</code></p>
+            <p><strong>PR Updated:</strong> <a href="${escapeHtml(result.prUrl)}" target="_blank">View PR #${prNumber}</a></p>
+            <details>
+              <summary>Generated Code Preview</summary>
+              <pre><code>${escapeHtml(result.generatedCode || 'Code generated successfully')}</code></pre>
+            </details>
+            <p><em>✨ Fresh branch created from latest main with generated code committed automatically!</em></p>
           `;
           form.appendChild(codeDisplay);
           
-          showToast('Code generated successfully', 'success');
+          showToast('Code generated on fresh branch!', 'success');
         } else {
           console.error('❌ Generation failed - success=false');
           updateProgress('Code generation failed');
@@ -7508,7 +7638,7 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
         submitButton.disabled = false;
         submitButton.textContent = 'Generate Code';
       }
-      console.log('🏁 Code generation process completed');
+      console.log('🏁 Fresh branch code generation completed');
     }
   };
 
@@ -7598,6 +7728,15 @@ function openCreatePRModal(story, taskEntry = null) {
             }
             currentStory.prs.push(result.prEntry);
             console.log('Added PR entry to story immediately:', result.prEntry);
+            
+            // Force immediate refresh of Development Tasks section
+            const devTasksSection = document.querySelector(`[data-role="codewhisperer-section"][data-story-id="${story.id}"]`);
+            if (devTasksSection) {
+              const taskList = devTasksSection.querySelector('.codewhisperer-task-list');
+              if (taskList) {
+                renderCodeWhispererSectionList(taskList, currentStory);
+              }
+            }
           }
         }
         
