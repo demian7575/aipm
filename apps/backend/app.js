@@ -5149,7 +5149,6 @@ async function loadStories(db, options = {}) {
       tasks: [],
       prs: parseJsonArray(row.prs),
       dependencies: [],
-      dependents: [],
       blockedBy: [],
       blocking: [],
     };
@@ -5184,7 +5183,6 @@ async function loadStories(db, options = {}) {
       status: dependent.status,
       relationship,
     };
-    dependency.dependents.push(dependentEntry);
     if (relationship === 'blocks') {
       dependency.blocking.push(dependentEntry);
     }
@@ -5198,7 +5196,6 @@ async function loadStories(db, options = {}) {
   };
   stories.forEach((story) => {
     story.dependencies.sort(sortByStoryId);
-    story.dependents.sort(sortByStoryId);
     story.blockedBy.sort(sortByStoryId);
     story.blocking.sort(sortByStoryId);
   });
@@ -5310,7 +5307,6 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     tasks: [],
     children: [],
     dependencies: [],
-    dependents: [],
     blockedBy: [],
     blocking: [],
   };
@@ -5421,7 +5417,6 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
             status: dependent.status,
             relationship,
           };
-          story.dependents.push(dependentEntry);
           if (relationship === 'blocks') {
             story.blocking.push(dependentEntry);
           }
@@ -5436,7 +5431,6 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       return a.storyId - b.storyId;
     };
     story.dependencies.sort(sortByStoryId);
-    story.dependents.sort(sortByStoryId);
     story.blockedBy.sort(sortByStoryId);
     story.blocking.sort(sortByStoryId);
   }
@@ -6042,7 +6036,6 @@ ${new Date().toISOString()}: 📝 This is sample content for demonstration
             referenceDocuments: [],
             tasks: [],
             dependencies: [],
-            dependents: [],
             blockedBy: [],
             blocking: [],
             children: [],
