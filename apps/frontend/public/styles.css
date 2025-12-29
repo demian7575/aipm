@@ -1218,6 +1218,44 @@ body.is-mindmap-panning {
   min-width: 0;
 }
 
+.dependency-list-simple {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dependency-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dependency-item:hover {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.18);
+}
+
+.dependency-id {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.dependency-title {
+  flex: 1;
+  color: #111827;
+  font-size: 0.875rem;
+}
+
+.dependency-status {
+  font-size: 0.75rem;
+}
+
 .dependency-groups {
   display: flex;
   flex-direction: column;
