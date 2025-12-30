@@ -37,8 +37,7 @@ const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
-const refineKiroBtn = document.getElementById('refine-kiro-btn');
-const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -1834,9 +1833,9 @@ function renderCodeWhispererSectionList(container, story) {
         showToast('Assignee updated', 'success');
         renderCodeWhispererSectionList(container, story);
 
-        // Show notification if assignee is "Kiro"
+        // Show notification if assignee is "Kiro" (legacy functionality)
         if (newAssignee.toLowerCase() === 'kiro') {
-          showToast('✨ Kiro assigned! This task is ready for AI code generation.', 'success');
+          showToast('⚠️ Kiro functionality has been removed. Please assign to a human developer.', 'warning');
         }
       } else {
         showToast('Failed to update assignee. Please try again.', 'error');
@@ -3522,234 +3521,6 @@ function buildStandaloneTerminalUrl(story = null) {
   const terminalUrl = new URL('terminal/simple.html', window.location.href);
   terminalUrl.search = params.toString();
   return terminalUrl.toString();
-}
-
-function buildKiroContextSummary(story) {
-  if (!story) return '';
-
-  const parts = [];
-  parts.push(`Story: ${story.title || 'Untitled story'}`);
-
-  if (story.description) {
-    parts.push(`Description:\n${story.description}`);
-  }
-
-  const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
-  if (tests.length) {
-    const formatted = tests
-      .map((test, index) => {
-        const title = test.title || `Acceptance Test ${index + 1}`;
-        const status = test.status || 'Draft';
-        const given = test.given || '';
-        const when = test.when || '';
-        const then = test.then || '';
-        return [`• ${title} (${status})`, given && `  Given ${given}`, when && `  When ${when}`, then && `  Then ${then}`]
-          .filter(Boolean)
-          .join('\n');
-      })
-      .join('\n');
-    parts.push(`Acceptance Tests:\n${formatted}`);
-  }
-
-  const components = Array.isArray(story.components) ? story.components : [];
-  if (components.length) {
-    parts.push(`Components: ${components.map(formatComponentLabel).join(', ')}`);
-  }
-
-  return parts.filter(Boolean).join('\n\n');
-}
-
-async function prepareKiroTerminalContext(prEntry = {}) {
-  const context = { summary: '', branchStatus: '' };
-
-  if (prEntry.storyId && storyIndex.has(prEntry.storyId)) {
-    context.summary = buildKiroContextSummary(storyIndex.get(prEntry.storyId));
-  }
-
-  const baseUrl = getEc2TerminalBaseUrl();
-  const httpBase = toHttpTerminalUrl(baseUrl);
-
-  if (prEntry?.branchName && httpBase) {
-    try {
-      const response = await fetch(`${httpBase}/checkout-branch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branch: prEntry.branchName })
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        context.branchStatus = `✓ Branch ${prEntry.branchName} ready`;
-      } else {
-        context.branchStatus = `⚠️  Branch checkout warning: ${result.message}`;
-      }
-    } catch (error) {
-      context.branchStatus = `⚠️  Could not pre-checkout branch: ${error.message}`;
-    }
-  }
-
-  return context;
-}
-
-async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
-  const container = document.createElement('div');
-  container.className = 'run-staging-modal';
-  
-  console.log('🔍 PR Entry:', prEntry);
-  
-  const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
-  const branchName = prEntry?.branchName || 'main';
-  
-  const prInfo = prEntry ? `
-    <div class="pr-info">
-      <h4>PR Information</h4>
-      <p><strong>PR ID:</strong> ${prId}</p>
-      <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
-      ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
-      <p><strong>Branch:</strong> ${escapeHtml(branchName)}</p>
-    </div>
-  ` : '';
-  
-  const contextSummary = kiroContext?.summary
-    ? `<div class="kiro-context"><h4>Loaded context</h4><pre>${escapeHtml(kiroContext.summary)}</pre></div>`
-    : '';
-
-  container.innerHTML = `
-    ${prInfo}
-    <div class="staging-options">
-      <h3>Refine PR with Kiro</h3>
-      ${contextSummary}
-      <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
-    </div>
-  `;
-  
-  const terminalContainer = container.querySelector('#terminal-container');
-  
-  let terminal = null;
-  let socket = null;
-  
-  // Auto-start terminal immediately
-  if (!window.Terminal) {
-    terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
-    return { element: container, onClose: () => {} };
-  }
-  
-  // Create xterm terminal
-  terminal = new window.Terminal({
-    cursorBlink: true,
-    fontSize: 14,
-    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-    theme: {
-      background: '#000000',
-      foreground: '#ffffff'
-    }
-  });
-  
-  terminal.open(terminalContainer);
-  
-  // Manual resize function
-  const resizeTerminal = () => {
-    const width = terminalContainer.clientWidth;
-    const height = terminalContainer.clientHeight;
-    const cols = Math.floor(width / 9); // Approximate char width
-    const rows = Math.floor(height / 17); // Approximate line height
-    if (cols > 0 && rows > 0) {
-      terminal.resize(cols, rows);
-    }
-  };
-  
-    resizeTerminal(); // Initial size
-    terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
-    terminal.writeln('');
-
-    // Connect to EC2 WebSocket server
-    const EC2_TERMINAL_URL = getEc2TerminalBaseUrl();
-
-    if (kiroContext?.branchStatus) {
-      terminal.writeln(kiroContext.branchStatus);
-      terminal.writeln('');
-    }
-
-    const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
-
-    const decodeSocketData = async (data) => {
-      if (typeof data === 'string') return data;
-
-      try {
-        if (data instanceof Blob) {
-          return await data.text();
-        }
-
-        if (data instanceof ArrayBuffer) {
-          return new TextDecoder().decode(data);
-        }
-      } catch (error) {
-        console.warn('Failed to decode terminal data', error);
-      }
-
-      return '';
-    };
-
-    socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-      terminal.writeln('✓ Connected to Kiro CLI');
-      if (prEntry?.taskTitle) {
-        terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
-      }
-      terminal.writeln('');
-      terminal.writeln('💬 Start chatting with Kiro to refine your code!');
-      terminal.writeln('');
-    };
-
-    socket.onmessage = async (event) => {
-      const text = await decodeSocketData(event.data);
-      terminal.write(text);
-    };
-
-    socket.onerror = (error) => {
-      terminal.writeln('\r\n❌ Connection error');
-      console.error('WebSocket error:', error);
-    };
-
-    socket.onclose = () => {
-      terminal.writeln('\r\n🔌 Disconnected');
-    };
-
-    // Send terminal input to EC2
-    terminal.onData((data) => {
-      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log('Sending raw data to WebSocket:', data);
-        socket.send(data);
-      } else {
-        console.warn('Socket not ready, state:', socket?.readyState);
-      }
-    });
-
-    // Auto-resize terminal when modal is resized
-    const resizeObserver = new ResizeObserver(() => {
-      if (terminal && terminalContainer) {
-        const width = terminalContainer.clientWidth;
-        const height = terminalContainer.clientHeight;
-        const cols = Math.floor(width / 9);
-        const rows = Math.floor(height / 17);
-        if (cols > 0 && rows > 0) {
-          terminal.resize(cols, rows);
-        }
-      }
-    });
-    resizeObserver.observe(terminalContainer);
-
-    return {
-      element: container,
-      onClose: () => {
-        resizeObserver.disconnect();
-        if (socket) socket.close();
-        if (terminal) terminal.dispose();
-      }
-    };
 }
 
 async function bedrockImplementation(prEntry) {
@@ -6245,13 +6016,6 @@ function openChildStoryModal(parentId) {
   const container = document.createElement('div');
   container.className = 'modal-form child-story-form';
   container.innerHTML = `
-    <div class="child-story-generator">
-      <label>Idea<textarea id="child-idea" placeholder="Describe the user story idea"></textarea></label>
-      <div class="child-story-generator-actions">
-        <button type="button" class="secondary" id="child-generate-btn">Generate</button>
-        <p class="form-hint">Use your idea to draft the story details automatically.</p>
-      </div>
-    </div>
     <label>Title<textarea id="child-title" rows="1" style="resize: none; overflow: hidden;"></textarea></label>
     <label>Story Point<input id="child-point" type="number" min="0" step="1" placeholder="Estimate" /></label>
     <label>Assignee Email<input id="child-assignee" type="email" placeholder="name@example.com" /></label>
@@ -6285,8 +6049,6 @@ function openChildStoryModal(parentId) {
   let childComponents = [];
   const childComponentsDisplay = container.querySelector('#child-components-display');
   const childComponentsButton = container.querySelector('#child-components-btn');
-  const ideaInput = container.querySelector('#child-idea');
-  const generateBtn = container.querySelector('#child-generate-btn');
   const titleInput = container.querySelector('#child-title');
 
   // Auto-resize title textarea
@@ -6320,100 +6082,6 @@ function openChildStoryModal(parentId) {
     if (Array.isArray(picked)) {
       childComponents = picked;
       refreshChildComponents();
-    }
-  });
-
-  generateBtn?.addEventListener('click', async () => {
-    const idea = ideaInput?.value.trim();
-    if (!idea) {
-      showToast('Describe your idea before generating a draft', 'error');
-      ideaInput?.focus();
-      return;
-    }
-
-    const restore = { text: generateBtn.textContent, disabled: generateBtn.disabled };
-    generateBtn.textContent = 'Generating…';
-    generateBtn.disabled = true;
-    try {
-      // Show progress indicator
-      generateBtn.textContent = 'Generating… (this may take up to 30 minutes)';
-      
-      // Call Kiro API directly for story enhancement with longer timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1800000); // 30 minute timeout
-      
-      const apiBaseUrl = window.CONFIG?.API_BASE_URL || window.CONFIG?.apiEndpoint || '';
-      const response = await fetch(`${apiBaseUrl}/api/stories/draft`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          idea: idea,
-          parentId: parentId
-        }),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        // If we get a timeout or server error, provide helpful message
-        if (response.status === 500 || response.status === 504) {
-          throw new Error(`Story generation is taking longer than expected. The request may still be processing in the background. You can try cleaning up the queue and retrying.`);
-        }
-        throw new Error(`Kiro API error: ${response.status}`);
-      }
-      
-      const draft = await response.json();
-      if (draft && typeof draft === 'object') {
-        const titleInput = container.querySelector('#child-title');
-        const pointInput = container.querySelector('#child-point');
-        const assigneeInput = container.querySelector('#child-assignee');
-        const descriptionInput = container.querySelector('#child-description');
-        const asADisplay = container.querySelector('#child-asa-display');
-        const iWantDisplay = container.querySelector('#child-iwant-display');
-        const soThatDisplay = container.querySelector('#child-sothat-display');
-
-        if (titleInput) titleInput.value = draft.title || '';
-        autoResizeTitle();
-        if (pointInput) pointInput.value = draft.storyPoint != null ? draft.storyPoint : '';
-        if (assigneeInput) assigneeInput.value = draft.assigneeEmail || '';
-        if (descriptionInput) descriptionInput.value = draft.description || '';
-        if (asADisplay) {
-          asADisplay.value = draft.asA || '';
-          asADisplay.style.height = 'auto';
-          asADisplay.style.height = asADisplay.scrollHeight + 'px';
-        }
-        if (iWantDisplay) {
-          iWantDisplay.value = draft.iWant || '';
-          iWantDisplay.style.height = 'auto';
-          iWantDisplay.style.height = iWantDisplay.scrollHeight + 'px';
-        }
-        if (soThatDisplay) {
-          soThatDisplay.value = draft.soThat || '';
-          soThatDisplay.style.height = 'auto';
-          soThatDisplay.style.height = soThatDisplay.scrollHeight + 'px';
-        }
-
-        if (Array.isArray(draft.components)) {
-          childComponents = normalizeComponentSelection(draft.components);
-          refreshChildComponents();
-        }
-        
-        // Check if this is an enhanced story (from Kiro API)
-        if (draft.enhanced || draft.source === 'kiro-enhanced' || draft.title) {
-          showToast('✨ AI-enhanced story ready!', 'success');
-        } else {
-          showToast('Draft story generated', 'success');
-        }
-      }
-    } catch (error) {
-      console.error('Story draft generation failed', error);
-      showToast(error.message || 'Failed to generate story draft', 'error');
-    } finally {
-      generateBtn.textContent = restore.text;
-      generateBtn.disabled = restore.disabled;
     }
   });
 
@@ -7240,40 +6908,10 @@ async function sendJson(url, options = {}) {
   return data;
 }
 
+// Legacy polling function - no longer used
 function pollKiroResult(requestId, onComplete, maxAttempts = 60) {
-  let attempts = 0;
-  
-  const poll = async () => {
-    attempts++;
-    
-    try {
-      const status = await sendJson(resolveApiUrl(`/api/kiro-status/${requestId}`));
-      
-      if (status.status === 'completed' && status.result) {
-        console.log('✨ Kiro enhancement completed:', status.result);
-        onComplete(status.result);
-        return;
-      }
-      
-      if (status.status === 'failed') {
-        console.error('❌ Kiro enhancement failed:', status.error);
-        return;
-      }
-      
-      // Still pending or processing, poll again
-      if (attempts < maxAttempts) {
-        setTimeout(poll, 5000); // Poll every 5 seconds
-      } else {
-        console.warn('⏰ Kiro polling timeout after', maxAttempts * 5, 'seconds');
-      }
-    } catch (error) {
-      console.error('Kiro polling error:', error);
-      // Don't retry on error
-    }
-  };
-  
-  // Start polling after 5 seconds (give Kiro time to start)
-  setTimeout(poll, 5000);
+  console.warn('pollKiroResult is deprecated and no longer functional');
+  // Function kept for compatibility but does nothing
 }
 
 function splitLines(value) {
@@ -7318,37 +6956,7 @@ function initialize() {
   renderDetails();
   fetchVersion();
 
-  openKiroTerminalBtn?.addEventListener('click', () => {
-    const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
-    window.open(terminalUrl.toString(), '_blank', 'noopener');
-  });
 
-  refineKiroBtn?.addEventListener('click', async () => {
-    if (!state.selectedStoryId) {
-      showToast('Please select a story first', 'warning');
-      return;
-    }
-    const story = storyIndex.get(state.selectedStoryId);
-    if (!story) {
-      showToast('Story not found', 'error');
-      return;
-    }
-
-    // Use existing terminal modal with story context
-    const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
-    const modalResult = await buildKiroTerminalModalContent({ 
-      storyId: story.id, 
-      taskTitle: `Refine: ${story.title}`,
-      branch: 'main'
-    }, kiroContext);
-    
-    openModal({
-      title: 'Refine with Kiro',
-      content: modalResult.element,
-      size: 'xlarge',
-      onClose: modalResult.onClose
-    });
-  });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
@@ -7768,25 +7376,8 @@ function openCreatePRModal(story, taskEntry = null) {
 
 initialize();
 
-// Global function to clean up Kiro API queue (accessible from browser console)
+// Legacy function to clean up queue (accessible from browser console)
 window.cleanupKiroQueue = async function() {
-  try {
-    const response = await fetch('http://44.220.45.57:8081/kiro/v3/queue/cleanup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    
-    if (response.ok) {
-      const result = await response.json();
-      console.log('Queue cleanup result:', result);
-      showToast(`Queue cleanup completed. Cleared ${result.cleared.queuedItems} queued items and ${result.cleared.pendingCallbacks} pending callbacks.`, 'success');
-      return result;
-    } else {
-      throw new Error(`Cleanup failed: ${response.status}`);
-    }
-  } catch (error) {
-    console.error('Queue cleanup error:', error);
-    showToast(`Queue cleanup failed: ${error.message}`, 'error');
-    throw error;
-  }
+  console.warn('cleanupKiroQueue is deprecated - Kiro functionality has been removed');
+  return { success: false, message: 'Kiro functionality has been removed' };
 };

@@ -67,8 +67,8 @@ server.on('upgrade', (request, socket, head) => {
     try {
       const message = parseWebSocketFrame(buffer);
       if (message) {
-        // Echo back the message (simulate Kiro response)
-        const response = `Kiro: I received "${message.trim()}". How can I help you refine this story?\r\n`;
+        // Echo back the message (simulate terminal response)
+        const response = `Terminal: I received "${message.trim()}".\r\n`;
         const responseFrame = createWebSocketFrame(response);
         socket.write(responseFrame);
       }

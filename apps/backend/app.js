@@ -370,7 +370,7 @@ Project context: AIPM is a vanilla JavaScript project with Express backend. Incl
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt }),
-      signal: AbortSignal.timeout(30000)
+      signal: AbortSignal.timeout(600000) // 10 minute timeout
     });
 
     if (!response.ok) {
@@ -5488,14 +5488,29 @@ function sendJson(res, statusCode, payload) {
 }
 
 async function parseJson(req) {
+  // Check if body is already parsed
+  if (req.body && typeof req.body === 'object') {
+    return req.body;
+  }
+  
   const chunks = [];
   for await (const chunk of req) {
-    chunks.push(chunk);
+    // Ensure chunk is a Buffer
+    if (Buffer.isBuffer(chunk)) {
+      chunks.push(chunk);
+    } else if (typeof chunk === 'string') {
+      chunks.push(Buffer.from(chunk, 'utf8'));
+    } else {
+      console.error('Invalid chunk type:', typeof chunk, chunk);
+      throw Object.assign(new Error('Invalid request body format'), { statusCode: 400 });
+    }
   }
   if (chunks.length === 0) return {};
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
-  } catch {
+    const body = Buffer.concat(chunks).toString('utf8');
+    return JSON.parse(body);
+  } catch (error) {
+    console.error('JSON parse error:', error.message);
     throw Object.assign(new Error('Invalid JSON body'), { statusCode: 400 });
   }
 }
@@ -5782,20 +5797,67 @@ export async function createApp() {
       return;
     }
 
-    if (pathname === '/api/kiro-live-log' && method === 'GET') {
+    if (pathname === '/api/kiro-live-stream' && method === 'GET') {
       try {
-        const { readFileSync, existsSync } = await import('fs');
+        const { createReadStream, existsSync, statSync, watchFile, readFileSync, openSync, readSync, closeSync, unwatchFile } = await import('fs');
         const logPath = '/tmp/kiro-cli-live.log';
         
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Content-Type', 'application/json');
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Cache-Control'
+        });
         
+        let lastSize = 0;
+        
+        const sendUpdate = () => {
+          if (existsSync(logPath)) {
+            const stats = statSync(logPath);
+            if (stats.size > lastSize) {
+              const stream = createReadStream(logPath, { start: lastSize });
+              let chunk = '';
+              stream.on('data', (data) => chunk += data.toString());
+              stream.on('end', () => {
+                if (chunk) {
+                  res.write(`data: ${JSON.stringify({ type: 'append', content: chunk })}\n\n`);
+                }
+                lastSize = stats.size;
+              });
+            }
+          }
+        };
+        
+        // Send initial content
         if (existsSync(logPath)) {
-          const content = readFileSync(logPath, 'utf8');
-          sendJson(res, 200, { content, timestamp: new Date().toISOString() });
-        } else {
-          sendJson(res, 200, { content: 'Log file not found', timestamp: new Date().toISOString() });
+          const maxSize = 50 * 1024; // 50KB limit for initial load
+          const stats = statSync(logPath);
+          let content;
+          
+          if (stats.size > maxSize) {
+            const buffer = Buffer.alloc(maxSize);
+            const fd = openSync(logPath, 'r');
+            readSync(fd, buffer, 0, maxSize, stats.size - maxSize);
+            closeSync(fd);
+            content = '...(truncated)\n' + buffer.toString('utf8');
+            lastSize = stats.size;
+          } else {
+            content = readFileSync(logPath, 'utf8');
+            lastSize = stats.size;
+          }
+          
+          res.write(`data: ${JSON.stringify({ type: 'full', content })}\n\n`);
         }
+        
+        // Watch for changes
+        const watcher = watchFile(logPath, { interval: 1000 }, sendUpdate);
+        
+        req.on('close', () => {
+          unwatchFile(logPath, sendUpdate);
+        });
+        
+        return;
       } catch (error) {
         sendJson(res, 500, { error: error.message });
       }
@@ -5804,11 +5866,19 @@ export async function createApp() {
 
     if (pathname === '/api/generate-code-branch' && method === 'POST') {
       try {
-        const payload = await parseJson(req);
+        let payload;
+        try {
+          payload = await parseJson(req);
+        } catch (parseError) {
+          console.error('Parse error in generate-code-branch:', parseError.message);
+          sendJson(res, 400, { success: false, error: 'Invalid JSON payload' });
+          return;
+        }
+
         const { storyId, prNumber, prompt, originalBranch } = payload;
         
         if (!storyId || !prNumber || !prompt) {
-          sendJson(res, 400, { success: false, error: 'Missing required fields' });
+          sendJson(res, 400, { success: false, error: 'Missing required fields: storyId, prNumber, prompt' });
           return;
         }
 
@@ -5854,7 +5924,7 @@ export async function createApp() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idea: prompt, callbackUrl: 'http://example.com' }),
-          signal: AbortSignal.timeout(30000) // 30 second timeout
+          signal: AbortSignal.timeout(600000) // 10 minute timeout
         });
 
         if (!kiroResponse.ok) {
