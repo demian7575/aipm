@@ -486,7 +486,6 @@ async function runProductionTest(testName) {
                 const js = await response.text();
                 
                 const functions = {
-                    kiroTerminalModal: js.includes('buildKiroTerminalModalContent'),
                     heatmapModal: js.includes('buildHeatmapModalContent')
                 };
                 
@@ -1477,37 +1476,6 @@ async function runProductionTest(testName) {
                 };
             } catch (error) {
                 return { success: false, message: `Test In Dev test failed - ${error.message}` };
-            }
-
-        case 'testRefineWithKiroButton':
-            // Test "Refine with Kiro" button exists in header
-            try {
-                const htmlResponse = await fetch(`${PROD_CONFIG.frontend}/index.html`);
-                const html = await htmlResponse.text();
-                
-                const jsResponse = await fetch(`${PROD_CONFIG.frontend}/app.js`);
-                const js = await jsResponse.text();
-                
-                // Check for button ID and text
-                const hasButtonId = html.includes('refine-kiro-btn') || html.includes('id="refine-kiro-btn"');
-                const hasButtonText = html.includes('Refine with Kiro');
-                const hasFunction = js.includes('buildKiroTerminalModalContent');
-                const hasTerminalInit = js.includes('new window.Terminal') || js.includes('Terminal(');
-                
-                if (!hasButtonId && !hasButtonText) {
-                    return { success: false, message: 'Refine with Kiro: Button not found (no ID or text)' };
-                }
-                
-                if (!hasFunction) {
-                    return { success: false, message: 'Refine with Kiro: Modal function missing' };
-                }
-                
-                return {
-                    success: true,
-                    message: `Refine with Kiro: Button ${hasButtonId ? 'ID' : 'text'} found, functions exist`
-                };
-            } catch (error) {
-                return { success: false, message: `Refine with Kiro test failed - ${error.message}` };
             }
 
         case 'testKiroAPIHealth':

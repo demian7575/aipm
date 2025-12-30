@@ -8,6 +8,102 @@ import { spawn } from 'child_process';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 
+// Git sync function
+async function syncToBranch(branchName) {
+  const execCommand = (cmd) => {
+    return new Promise((resolve, reject) => {
+      const [command, ...args] = cmd.split(' ');
+      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      
+      let output = '';
+      proc.stdout.on('data', (data) => output += data.toString());
+      proc.stderr.on('data', (data) => output += data.toString());
+      
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          reject(new Error(`Command failed: ${cmd}\n${output}`));
+        }
+      });
+    });
+  };
+
+  try {
+    console.log('🧹 Cleaning up repository...');
+    await execCommand('git reset --hard HEAD');
+    await execCommand('git clean -fd');
+    
+    console.log('🔄 Fetching latest changes...');
+    await execCommand('git fetch origin');
+    
+    console.log(`🌿 Checking out branch: ${branchName}`);
+    await execCommand(`git checkout ${branchName}`);
+    
+    console.log('🔄 Pulling latest changes...');
+    await execCommand(`git pull origin ${branchName}`);
+    
+    console.log('✅ Branch sync completed with clean state');
+  } catch (error) {
+    console.error('❌ Branch sync failed:', error.message);
+    throw error;
+  }
+}
+
+// Commit and push generated code
+async function commitAndPush(generatedCode, storyId, branch) {
+  const execCommand = (cmd) => {
+    return new Promise((resolve, reject) => {
+      const [command, ...args] = cmd.split(' ');
+      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      
+      let output = '';
+      proc.stdout.on('data', (data) => output += data.toString());
+      proc.stderr.on('data', (data) => output += data.toString());
+      
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          reject(new Error(`Command failed: ${cmd}\n${output}`));
+        }
+      });
+    });
+  };
+
+  try {
+    console.log('📋 Checking git status before commit...');
+    const gitStatus = await execCommand('git status --porcelain');
+    
+    if (!gitStatus.trim()) {
+      console.log('⚠️ No changes detected in git. Kiro CLI may not have modified files.');
+      // Still create a summary file for reference
+      const fileName = `kiro-generation-summary-${storyId}.md`;
+      const filePath = `/home/ec2-user/aipm/${fileName}`;
+      const cleanCode = generatedCode.replace(/\x1b\[[0-9;]*m/g, '').replace(/\u001B\[[0-9;]*[mGK]/g, '');
+      writeFileSync(filePath, `# Code Generation Summary for Story #${storyId}\n\n${cleanCode}`);
+      await execCommand(`git add ${fileName}`);
+      console.log(`📝 Created summary file: ${fileName}`);
+    } else {
+      console.log('✅ Changes detected:', gitStatus.trim());
+      // Add all modified files
+      await execCommand('git add -A');
+      console.log('✅ Added all changes to git');
+    }
+    
+    const commitMessage = `Generated code for story #${storyId} - Implemented via Kiro CLI`;
+    await execCommand(`git commit -m "${commitMessage}"`);
+    console.log('✅ Committed changes');
+    
+    await execCommand(`git push origin ${branch}`);
+    console.log('✅ Pushed to GitHub - PR should be updated automatically');
+    
+  } catch (error) {
+    console.error('❌ Commit and push failed:', error.message);
+    throw error;
+  }
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -51,14 +147,16 @@ function startKiroProcess() {
   
   // Pipe Kiro CLI stdout and stderr to log files with selective line breaks
   kiroProcess.stdout.on('data', (data) => {
-    const chunk = data.toString();
+    let chunk = data.toString();
+    
+    // Add line break before purple '>' prompt
+    chunk = chunk.replace(/(\x1b\[38;5;141m>\s*)/g, '\n$1');
     
     // Add line breaks only at appropriate points:
     // - After JSON responses
     // - After command completions
-    // - After prompts (>)
+    // - NOT after prompts (>) since we want prompts on their own line
     if (chunk.includes('{"') || 
-        chunk.includes('> ') || 
         chunk.includes('✅') || 
         chunk.includes('❌') ||
         chunk.includes('Time:') ||
@@ -186,72 +284,28 @@ function sendToKiro(prompt) {
         console.log('📥 Kiro CLI output chunk:', chunk.substring(0, 100));
       }
       
-      // Try to find complete JSON objects in the buffer
-      // Look for patterns like {"storyId":"story-123456789",...}
-      const jsonMatches = responseBuffer.match(/\{[^{}]*"storyId"[^{}]*"enhanced"[^{}]*\}/g);
-      if (jsonMatches) {
-        for (const match of jsonMatches) {
-          try {
-            const jsonResponse = JSON.parse(match);
-            if ((jsonResponse.storyId || jsonResponse.id) && 
-                (jsonResponse.enhanced !== undefined || jsonResponse.title)) {
-              console.log('✅ Found valid JSON response:', jsonResponse.storyId || jsonResponse.id);
-              clearTimeout(timeout);
-              kiroProcess.stdout.removeListener('data', onData);
-              jsonFound = true;
-              
-              // Normalize response format
-              if (jsonResponse.id && !jsonResponse.storyId) {
-                jsonResponse.storyId = jsonResponse.id;
-              }
-              if (jsonResponse.enhanced === undefined) {
-                jsonResponse.enhanced = true;
-                jsonResponse.enhancedAt = new Date().toISOString();
-              }
-              
-              resolve(jsonResponse);
-              return;
-            }
-          } catch (e) {
-            // Continue looking for valid JSON
-          }
-        }
-      }
-      
-      // Also try line-by-line parsing for complete JSON objects
-      const lines = responseBuffer.split('\n');
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('{') && trimmed.endsWith('}') && trimmed.length > 50) {
-          try {
-            const jsonResponse = JSON.parse(trimmed);
-            if ((jsonResponse.storyId || jsonResponse.id) && 
-                (jsonResponse.enhanced !== undefined || jsonResponse.title)) {
-              console.log('✅ Found valid JSON response (line):', jsonResponse.storyId || jsonResponse.id);
-              clearTimeout(timeout);
-              kiroProcess.stdout.removeListener('data', onData);
-              jsonFound = true;
-              
-              // Normalize response format
-              if (jsonResponse.id && !jsonResponse.storyId) {
-                jsonResponse.storyId = jsonResponse.id;
-              }
-              if (jsonResponse.enhanced === undefined) {
-                jsonResponse.enhanced = true;
-                jsonResponse.enhancedAt = new Date().toISOString();
-              }
-              
-              resolve(jsonResponse);
-              return;
-            }
-          } catch (e) {
-            // Continue looking for valid JSON
-          }
-        }
+      // Check if we have a complete response (look for "Time:" indicator)
+      if (responseBuffer.includes('Time:') && responseBuffer.length > 50) {
+        clearTimeout(timeout);
+        kiroProcess.stdout.removeListener('data', onData);
+        kiroProcess.stderr.removeListener('data', onData);
+        
+        // Extract the actual response (remove ANSI codes and formatting)
+        const cleanResponse = responseBuffer
+          .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI color codes
+          .replace(/\u001B\[[0-9;]*[mGK]/g, '') // Remove more ANSI codes
+          .replace(/.*?> /, '') // Remove prompt
+          .replace(/▸ Time:.*$/m, '') // Remove timing info
+          .trim();
+        
+        resolve(cleanResponse || responseBuffer.trim());
+        jsonFound = true;
+        return;
       }
     };
     
     kiroProcess.stdout.on('data', onData);
+    kiroProcess.stderr.on('data', onData);
     
     console.log('📤 Sending prompt to Kiro CLI');
     kiroProcess.stdin.write(prompt + '\n');
@@ -958,7 +1012,7 @@ ${new Date().toISOString()}
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const { message, idea, callbackUrl } = JSON.parse(body);
+        const { message, idea, callbackUrl, branch, storyId, syncToOrigin } = JSON.parse(body);
         
         const inputMessage = message || idea;
         if (!inputMessage) {
@@ -968,10 +1022,23 @@ ${new Date().toISOString()}
         }
         
         console.log('🤖 Kiro v4 enhance request:', inputMessage.substring(0, 100) + '...');
+        if (branch) console.log('🌿 Target branch:', branch);
         
         try {
+          // Sync to branch if specified
+          if (branch && syncToOrigin) {
+            console.log('🔄 Syncing to branch:', branch);
+            await syncToBranch(branch);
+          }
+          
           // Use actual Kiro CLI communication
           const enhancedResult = await sendToKiro(inputMessage);
+          
+          // Commit and push generated code if we have a branch
+          if (branch && enhancedResult) {
+            console.log('💾 Committing generated code...');
+            await commitAndPush(enhancedResult, storyId, branch);
+          }
           
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ 
