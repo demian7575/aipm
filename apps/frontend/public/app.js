@@ -37,7 +37,7 @@ const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
-const refineKiroBtn = document.getElementById('refine-kiro-btn');
+
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -7361,32 +7361,7 @@ function initialize() {
     window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
 
-  refineKiroBtn?.addEventListener('click', async () => {
-    if (!state.selectedStoryId) {
-      showToast('Please select a story first', 'warning');
-      return;
-    }
-    const story = storyIndex.get(state.selectedStoryId);
-    if (!story) {
-      showToast('Story not found', 'error');
-      return;
-    }
 
-    // Use existing terminal modal with story context
-    const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
-    const modalResult = await buildKiroTerminalModalContent({ 
-      storyId: story.id, 
-      taskTitle: `Refine: ${story.title}`,
-      branch: 'main'
-    }, kiroContext);
-    
-    openModal({
-      title: 'Refine with Kiro',
-      content: modalResult.element,
-      size: 'xlarge',
-      onClose: modalResult.onClose
-    });
-  });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
