@@ -1,12 +1,12 @@
 // Production environment configuration - Updated for EC2 architecture
 const PROD_CONFIG = {
-    api: 'http://44.220.45.57',
-    devApi: 'http://44.222.168.46',
+    api: 'http://44.220.45.57:3000',
+    devApi: 'http://44.222.168.46:3000',
     frontend: window.location.origin,
     environment: window.location.hostname.includes('aipm-static-hosting-demo') ? 'production' : 'development',
     s3Bucket: window.location.hostname.includes('aipm-static-hosting-demo') ? 'aipm-static-hosting-demo' : 'aipm-dev-frontend-hosting',
-    expectedProdApi: 'http://44.220.45.57',
-    expectedDevApi: 'http://44.222.168.46',
+    expectedProdApi: 'http://44.220.45.57:3000',
+    expectedDevApi: 'http://44.222.168.46:3000',
     dynamoTables: {
         stories: 'aipm-backend-prod-stories',
         acceptanceTests: 'aipm-backend-prod-acceptance-tests'
