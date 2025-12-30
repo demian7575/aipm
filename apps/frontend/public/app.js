@@ -37,6 +37,7 @@ const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
+const refineKiroBtn = document.getElementById('refine-kiro-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -1880,8 +1881,46 @@ function renderCodeWhispererSectionList(container, story) {
           return;
         }
         
-        // Use story description as default prompt
-        const prompt = story?.description || story?.title || 'Generate code for this story';
+        // Create code-focused prompt from story details
+        const storyTitle = story?.title || 'Untitled Story';
+        const storyDesc = story?.description || '';
+        const asA = story?.asA || '';
+        const iWant = story?.iWant || '';
+        const soThat = story?.soThat || '';
+        
+        // Build a code implementation prompt that forces file modifications
+        let prompt = `You must IMPLEMENT this feature by directly modifying the code files. Do not just analyze or suggest - make the actual changes.\n\n`;
+        prompt += `**Feature to implement**: ${storyTitle}\n\n`;
+        
+        if (asA && iWant && soThat) {
+          prompt += `**Requirements**:\n`;
+          prompt += `- User: ${asA}\n`;
+          prompt += `- Wants: ${iWant}\n`;
+          prompt += `- So that: ${soThat}\n\n`;
+        } else if (storyDesc) {
+          prompt += `**Description**: ${storyDesc}\n\n`;
+        }
+        
+        prompt += `**MANDATORY ACTIONS - You MUST do these**:\n`;
+        prompt += `1. Open and modify the actual files in apps/frontend/public/ or apps/backend/\n`;
+        prompt += `2. Write the code changes directly to the files\n`;
+        prompt += `3. Save all modified files\n`;
+        prompt += `4. Do NOT just provide suggestions or analysis\n`;
+        prompt += `5. Make working, functional code changes\n\n`;
+        prompt += `**Files you can modify**:\n`;
+        prompt += `- apps/frontend/public/app.js (main frontend logic)\n`;
+        prompt += `- apps/frontend/public/index.html (HTML structure)\n`;
+        prompt += `- apps/frontend/public/styles.css (styling)\n`;
+        prompt += `- apps/backend/app.js (backend API)\n\n`;
+        prompt += `Start implementing now by opening and modifying the appropriate files.`;
+        
+        // Add acceptance criteria if available
+        if (story?.acceptanceTests && story.acceptanceTests.length > 0) {
+          prompt += `\n\n**Acceptance Criteria to implement**:\n`;
+          story.acceptanceTests.forEach((test, index) => {
+            prompt += `${index + 1}. ${test.given?.join(' ') || ''} ${test.when?.join(' ') || ''} ${test.then?.join(' ') || ''}\n`;
+          });
+        }
         
         console.log('🚀 Starting fresh branch code generation...');
         console.log('📤 Using prompt:', prompt);
@@ -3521,6 +3560,234 @@ function buildStandaloneTerminalUrl(story = null) {
   const terminalUrl = new URL('terminal/simple.html', window.location.href);
   terminalUrl.search = params.toString();
   return terminalUrl.toString();
+}
+
+function buildKiroContextSummary(story) {
+  if (!story) return '';
+
+  const parts = [];
+  parts.push(`Story: ${story.title || 'Untitled story'}`);
+
+  if (story.description) {
+    parts.push(`Description:\n${story.description}`);
+  }
+
+  const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
+  if (tests.length) {
+    const formatted = tests
+      .map((test, index) => {
+        const title = test.title || `Acceptance Test ${index + 1}`;
+        const status = test.status || 'Draft';
+        const given = test.given || '';
+        const when = test.when || '';
+        const then = test.then || '';
+        return [`• ${title} (${status})`, given && `  Given ${given}`, when && `  When ${when}`, then && `  Then ${then}`]
+          .filter(Boolean)
+          .join('\n');
+      })
+      .join('\n');
+    parts.push(`Acceptance Tests:\n${formatted}`);
+  }
+
+  const components = Array.isArray(story.components) ? story.components : [];
+  if (components.length) {
+    parts.push(`Components: ${components.map(formatComponentLabel).join(', ')}`);
+  }
+
+  return parts.filter(Boolean).join('\n\n');
+}
+
+async function prepareKiroTerminalContext(prEntry = {}) {
+  const context = { summary: '', branchStatus: '' };
+
+  if (prEntry.storyId && storyIndex.has(prEntry.storyId)) {
+    context.summary = buildKiroContextSummary(storyIndex.get(prEntry.storyId));
+  }
+
+  const baseUrl = getEc2TerminalBaseUrl();
+  const httpBase = toHttpTerminalUrl(baseUrl);
+
+  if (prEntry?.branchName && httpBase) {
+    try {
+      const response = await fetch(`${httpBase}/checkout-branch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch: prEntry.branchName })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        context.branchStatus = `✓ Branch ${prEntry.branchName} ready`;
+      } else {
+        context.branchStatus = `⚠️  Branch checkout warning: ${result.message}`;
+      }
+    } catch (error) {
+      context.branchStatus = `⚠️  Could not pre-checkout branch: ${error.message}`;
+    }
+  }
+
+  return context;
+}
+
+async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
+  const container = document.createElement('div');
+  container.className = 'run-staging-modal';
+  
+  console.log('🔍 PR Entry:', prEntry);
+  
+  const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
+  const branchName = prEntry?.branchName || 'main';
+  
+  const prInfo = prEntry ? `
+    <div class="pr-info">
+      <h4>PR Information</h4>
+      <p><strong>PR ID:</strong> ${prId}</p>
+      <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
+      ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
+      <p><strong>Branch:</strong> ${escapeHtml(branchName)}</p>
+    </div>
+  ` : '';
+  
+  const contextSummary = kiroContext?.summary
+    ? `<div class="kiro-context"><h4>Loaded context</h4><pre>${escapeHtml(kiroContext.summary)}</pre></div>`
+    : '';
+
+  container.innerHTML = `
+    ${prInfo}
+    <div class="staging-options">
+      <h3>Refine PR with Kiro</h3>
+      ${contextSummary}
+      <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
+    </div>
+  `;
+  
+  const terminalContainer = container.querySelector('#terminal-container');
+  
+  let terminal = null;
+  let socket = null;
+  
+  // Auto-start terminal immediately
+  if (!window.Terminal) {
+    terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
+    return { element: container, onClose: () => {} };
+  }
+  
+  // Create xterm terminal
+  terminal = new window.Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+    theme: {
+      background: '#000000',
+      foreground: '#ffffff'
+    }
+  });
+  
+  terminal.open(terminalContainer);
+  
+  // Manual resize function
+  const resizeTerminal = () => {
+    const width = terminalContainer.clientWidth;
+    const height = terminalContainer.clientHeight;
+    const cols = Math.floor(width / 9); // Approximate char width
+    const rows = Math.floor(height / 17); // Approximate line height
+    if (cols > 0 && rows > 0) {
+      terminal.resize(cols, rows);
+    }
+  };
+  
+    resizeTerminal(); // Initial size
+    terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
+    terminal.writeln('');
+
+    // Connect to EC2 WebSocket server
+    const EC2_TERMINAL_URL = getEc2TerminalBaseUrl();
+
+    if (kiroContext?.branchStatus) {
+      terminal.writeln(kiroContext.branchStatus);
+      terminal.writeln('');
+    }
+
+    const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
+
+    const decodeSocketData = async (data) => {
+      if (typeof data === 'string') return data;
+
+      try {
+        if (data instanceof Blob) {
+          return await data.text();
+        }
+
+        if (data instanceof ArrayBuffer) {
+          return new TextDecoder().decode(data);
+        }
+      } catch (error) {
+        console.warn('Failed to decode terminal data', error);
+      }
+
+      return '';
+    };
+
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      terminal.writeln('✓ Connected to Kiro CLI');
+      if (prEntry?.taskTitle) {
+        terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
+      }
+      terminal.writeln('');
+      terminal.writeln('💬 Start chatting with Kiro to refine your code!');
+      terminal.writeln('');
+    };
+
+    socket.onmessage = async (event) => {
+      const text = await decodeSocketData(event.data);
+      terminal.write(text);
+    };
+
+    socket.onerror = (error) => {
+      terminal.writeln('\r\n❌ Connection error');
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      terminal.writeln('\r\n🔌 Disconnected');
+    };
+
+    // Send terminal input to EC2
+    terminal.onData((data) => {
+      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        console.log('Sending raw data to WebSocket:', data);
+        socket.send(data);
+      } else {
+        console.warn('Socket not ready, state:', socket?.readyState);
+      }
+    });
+
+    // Auto-resize terminal when modal is resized
+    const resizeObserver = new ResizeObserver(() => {
+      if (terminal && terminalContainer) {
+        const width = terminalContainer.clientWidth;
+        const height = terminalContainer.clientHeight;
+        const cols = Math.floor(width / 9);
+        const rows = Math.floor(height / 17);
+        if (cols > 0 && rows > 0) {
+          terminal.resize(cols, rows);
+        }
+      }
+    });
+    resizeObserver.observe(terminalContainer);
+
+    return {
+      element: container,
+      onClose: () => {
+        resizeObserver.disconnect();
+        if (socket) socket.close();
+        if (terminal) terminal.dispose();
+      }
+    };
 }
 
 async function bedrockImplementation(prEntry) {
@@ -7094,6 +7361,33 @@ function initialize() {
     window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
 
+  refineKiroBtn?.addEventListener('click', async () => {
+    if (!state.selectedStoryId) {
+      showToast('Please select a story first', 'warning');
+      return;
+    }
+    const story = storyIndex.get(state.selectedStoryId);
+    if (!story) {
+      showToast('Story not found', 'error');
+      return;
+    }
+
+    // Use existing terminal modal with story context
+    const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
+    const modalResult = await buildKiroTerminalModalContent({ 
+      storyId: story.id, 
+      taskTitle: `Refine: ${story.title}`,
+      branch: 'main'
+    }, kiroContext);
+    
+    openModal({
+      title: 'Refine with Kiro',
+      content: modalResult.element,
+      size: 'xlarge',
+      onClose: modalResult.onClose
+    });
+  });
+
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
 
@@ -7278,6 +7572,35 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
   
   console.log('✅ PR validation passed - PR number:', prNumber, 'PR URL:', prUrl);
 
+  // Create code-focused prompt from story details
+  const storyTitle = story?.title || 'Untitled Story';
+  const storyDesc = story?.description || '';
+  const asA = story?.asA || '';
+  const iWant = story?.iWant || '';
+  const soThat = story?.soThat || '';
+  
+  // Build a code implementation prompt
+  let defaultPrompt = `IMPLEMENT the following feature by modifying the existing AIPM codebase files:\n\n`;
+  defaultPrompt += `**Feature**: ${storyTitle}\n\n`;
+  
+  if (asA && iWant && soThat) {
+    defaultPrompt += `**Requirements**:\n`;
+    defaultPrompt += `- User: ${asA}\n`;
+    defaultPrompt += `- Wants: ${iWant}\n`;
+    defaultPrompt += `- So that: ${soThat}\n\n`;
+  } else if (storyDesc) {
+    defaultPrompt += `**Description**: ${storyDesc}\n\n`;
+  }
+  
+  defaultPrompt += `**CRITICAL INSTRUCTIONS**:\n`;
+  defaultPrompt += `- MODIFY the actual code files in the repository\n`;
+  defaultPrompt += `- DO NOT just provide suggestions - make the actual changes\n`;
+  defaultPrompt += `- Update existing files in apps/frontend/public/ and apps/backend/ as needed\n`;
+  defaultPrompt += `- Follow existing code patterns and architecture\n`;
+  defaultPrompt += `- Make minimal but complete changes to implement the feature\n`;
+  defaultPrompt += `- Ensure the implementation works correctly\n`;
+  defaultPrompt += `- Save all changes to the files`;
+
   const form = document.createElement('form');
   form.className = 'modal-form';
   form.innerHTML = `
@@ -7287,7 +7610,7 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
     </div>
     <div class="field">
       <label for="prompt">Code Generation Prompt</label>
-      <textarea id="prompt" name="prompt" rows="4" required placeholder="Describe what code to generate...">${escapeHtml(story?.description || '')}</textarea>
+      <textarea id="prompt" name="prompt" rows="8" required placeholder="Describe what code to generate...">${escapeHtml(defaultPrompt)}</textarea>
     </div>
   `;
 

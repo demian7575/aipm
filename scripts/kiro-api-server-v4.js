@@ -82,7 +82,7 @@ async function commitAndPush(generatedCode, storyId, branch) {
       const filePath = `/home/ec2-user/aipm/${fileName}`;
       const cleanCode = generatedCode.replace(/\x1b\[[0-9;]*m/g, '').replace(/\u001B\[[0-9;]*[mGK]/g, '');
       writeFileSync(filePath, `# Code Generation Summary for Story #${storyId}\n\n${cleanCode}`);
-      await execCommand(`git add ${fileName}`);
+      await execCommand('git add ' + fileName);
       console.log(`📝 Created summary file: ${fileName}`);
     } else {
       console.log('✅ Changes detected:', gitStatus.trim());
@@ -91,11 +91,11 @@ async function commitAndPush(generatedCode, storyId, branch) {
       console.log('✅ Added all changes to git');
     }
     
-    const commitMessage = `Generated code for story #${storyId} - Implemented via Kiro CLI`;
-    await execCommand(`git commit -m "${commitMessage}"`);
+    const commitMessage = `Generated code for story ${storyId}`;
+    await execCommand('git commit -m "' + commitMessage + '"');
     console.log('✅ Committed changes');
     
-    await execCommand(`git push origin ${branch}`);
+    await execCommand('git push origin ' + branch);
     console.log('✅ Pushed to GitHub - PR should be updated automatically');
     
   } catch (error) {
