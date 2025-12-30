@@ -37,7 +37,7 @@ const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
-const refineKiroBtn = document.getElementById('refine-kiro-btn');
+
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -1881,8 +1881,38 @@ function renderCodeWhispererSectionList(container, story) {
           return;
         }
         
-        // Use story description as default prompt
-        const prompt = story?.description || story?.title || 'Generate code for this story';
+        // Create code-focused prompt from story details
+        const storyTitle = story?.title || 'Untitled Story';
+        const storyDesc = story?.description || '';
+        const asA = story?.asA || '';
+        const iWant = story?.iWant || '';
+        const soThat = story?.soThat || '';
+        
+        // Build a code implementation prompt that forces file modifications
+        let prompt = `You must IMPLEMENT this feature by directly modifying the code files. Do not just analyze or suggest - make the actual changes.\n\n`;
+        prompt += `**Feature to implement**: ${storyTitle}\n\n`;
+        
+        if (asA && iWant && soThat) {
+          prompt += `**Requirements**:\n`;
+          prompt += `- User: ${asA}\n`;
+          prompt += `- Wants: ${iWant}\n`;
+          prompt += `- So that: ${soThat}\n\n`;
+        } else if (storyDesc) {
+          prompt += `**Description**: ${storyDesc}\n\n`;
+        }
+        
+        prompt += `**MANDATORY ACTIONS - You MUST do these**:\n`;
+        prompt += `1. Open and modify the actual files in apps/frontend/public/ or apps/backend/\n`;
+        prompt += `2. Write the code changes directly to the files\n`;
+        prompt += `3. Save all modified files\n`;
+        prompt += `4. Do NOT just provide suggestions or analysis\n`;
+        prompt += `5. Make working, functional code changes\n\n`;
+        prompt += `**Files you can modify**:\n`;
+        prompt += `- apps/frontend/public/app.js (main frontend logic)\n`;
+        prompt += `- apps/frontend/public/index.html (HTML structure)\n`;
+        prompt += `- apps/frontend/public/styles.css (styling)\n`;
+        prompt += `- apps/backend/app.js (backend API)\n\n`;
+        prompt += `Start implementing now by opening and modifying the appropriate files.`;
         
         console.log('🚀 Starting fresh branch code generation...');
         console.log('📤 Using prompt:', prompt);
@@ -7323,32 +7353,7 @@ function initialize() {
     window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
 
-  refineKiroBtn?.addEventListener('click', async () => {
-    if (!state.selectedStoryId) {
-      showToast('Please select a story first', 'warning');
-      return;
-    }
-    const story = storyIndex.get(state.selectedStoryId);
-    if (!story) {
-      showToast('Story not found', 'error');
-      return;
-    }
 
-    // Use existing terminal modal with story context
-    const kiroContext = await prepareKiroTerminalContext({ storyId: story.id });
-    const modalResult = await buildKiroTerminalModalContent({ 
-      storyId: story.id, 
-      taskTitle: `Refine: ${story.title}`,
-      branch: 'main'
-    }, kiroContext);
-    
-    openModal({
-      title: 'Refine with Kiro',
-      content: modalResult.element,
-      size: 'xlarge',
-      onClose: modalResult.onClose
-    });
-  });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
@@ -7534,6 +7539,35 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
   
   console.log('✅ PR validation passed - PR number:', prNumber, 'PR URL:', prUrl);
 
+  // Create code-focused prompt from story details
+  const storyTitle = story?.title || 'Untitled Story';
+  const storyDesc = story?.description || '';
+  const asA = story?.asA || '';
+  const iWant = story?.iWant || '';
+  const soThat = story?.soThat || '';
+  
+  // Build a code implementation prompt
+  let defaultPrompt = `IMPLEMENT the following feature by modifying the existing AIPM codebase files:\n\n`;
+  defaultPrompt += `**Feature**: ${storyTitle}\n\n`;
+  
+  if (asA && iWant && soThat) {
+    defaultPrompt += `**Requirements**:\n`;
+    defaultPrompt += `- User: ${asA}\n`;
+    defaultPrompt += `- Wants: ${iWant}\n`;
+    defaultPrompt += `- So that: ${soThat}\n\n`;
+  } else if (storyDesc) {
+    defaultPrompt += `**Description**: ${storyDesc}\n\n`;
+  }
+  
+  defaultPrompt += `**CRITICAL INSTRUCTIONS**:\n`;
+  defaultPrompt += `- MODIFY the actual code files in the repository\n`;
+  defaultPrompt += `- DO NOT just provide suggestions - make the actual changes\n`;
+  defaultPrompt += `- Update existing files in apps/frontend/public/ and apps/backend/ as needed\n`;
+  defaultPrompt += `- Follow existing code patterns and architecture\n`;
+  defaultPrompt += `- Make minimal but complete changes to implement the feature\n`;
+  defaultPrompt += `- Ensure the implementation works correctly\n`;
+  defaultPrompt += `- Save all changes to the files`;
+
   const form = document.createElement('form');
   form.className = 'modal-form';
   form.innerHTML = `
@@ -7543,7 +7577,7 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
     </div>
     <div class="field">
       <label for="prompt">Code Generation Prompt</label>
-      <textarea id="prompt" name="prompt" rows="4" required placeholder="Describe what code to generate...">${escapeHtml(story?.description || '')}</textarea>
+      <textarea id="prompt" name="prompt" rows="8" required placeholder="Describe what code to generate...">${escapeHtml(defaultPrompt)}</textarea>
     </div>
   `;
 

@@ -6440,7 +6440,7 @@ export async function createApp() {
           throw Object.assign(new Error('Idea text is required'), { statusCode: 400 });
         }
         
-        console.log('📝 Generating enhanced draft locally for:', idea.substring(0, 50));
+        console.log('🤖 Generating enhanced draft with Kiro CLI for:', idea.substring(0, 50));
         
         // Get parent story context if provided
         let parent = null;
@@ -6449,25 +6449,138 @@ export async function createApp() {
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
         
-        // Generate enhanced draft without Kiro API
-        const enhancedDraft = {
-          storyId: `story-${Date.now()}`,
-          title: idea.charAt(0).toUpperCase() + idea.slice(1),
-          description: `Implement ${idea.toLowerCase()} functionality to improve user experience and system capabilities.`,
-          asA: parent ? `user of ${parent.title}` : 'system user',
-          iWant: `to ${idea.toLowerCase()}`,
-          soThat: 'I can accomplish my goals more effectively',
-          acceptanceCriteria: [
-            `System successfully implements ${idea.toLowerCase()}`,
-            'User interface is intuitive and responsive',
-            'All edge cases are handled gracefully',
-            'Performance meets acceptable standards'
-          ],
-          enhanced: true,
-          enhancedAt: new Date().toISOString()
-        };
+        // Build context-aware prompt for Kiro CLI
+        let prompt = `You are a user story expert. Create a detailed user story for: "${idea}"\n\n`;
         
-        sendJson(res, 200, enhancedDraft);
+        if (parent) {
+          prompt += `CONTEXT: This is a child story of "${parent.title}"\n`;
+          prompt += `Parent story: ${parent.description}\n\n`;
+        }
+        
+        prompt += `REQUIREMENTS:\n`;
+        prompt += `1. Create a clear, actionable title\n`;
+        prompt += `2. Write a detailed description explaining what needs to be implemented\n`;
+        prompt += `3. Fill out the user story format: "As a [role], I want [goal], So that [benefit]"\n`;
+        prompt += `4. Select relevant components from: System (S/S), WorkModel (WM), DocumentIntelligence (DI), Review & Governance (RG), Orchestration & Engagement (OE), Run & Verify (RV), Traceability & Insight (TI)\n`;
+        prompt += `5. Estimate story points (1-13 scale)\n\n`;
+        prompt += `CRITICAL: You MUST respond with ONLY this exact JSON format, no other text:\n\n`;
+        prompt += `{\n`;
+        prompt += `  "title": "Clear actionable title here",\n`;
+        prompt += `  "description": "Detailed implementation description here",\n`;
+        prompt += `  "asA": "specific user role here",\n`;
+        prompt += `  "iWant": "specific goal or capability here",\n`;
+        prompt += `  "soThat": "clear business benefit here",\n`;
+        prompt += `  "components": ["Component1", "Component2"],\n`;
+        prompt += `  "storyPoint": 5\n`;
+        prompt += `}\n\n`;
+        prompt += `Remember: Return ONLY the JSON object above, nothing else.`;
+        
+        console.log('🤖 Sending prompt to Kiro CLI:', prompt.substring(0, 200) + '...');
+        
+        try {
+          // Call Kiro API for enhanced story generation
+          const kiroResponse = await fetch('http://localhost:8081/kiro/v4/enhance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              idea: prompt,
+              storyId: `draft-${Date.now()}`
+            }),
+            signal: AbortSignal.timeout(600000) // 10 minute timeout
+          });
+
+          if (!kiroResponse.ok) {
+            throw new Error(`Kiro API failed: ${kiroResponse.statusText}`);
+          }
+
+          const kiroResult = await kiroResponse.json();
+          let enhancedDraft;
+          
+          try {
+            // Try to parse Kiro's response as JSON
+            const kiroText = kiroResult.enhanced || kiroResult.code || '';
+            
+            // Clean ANSI codes and formatting
+            let cleanText = kiroText
+              .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI color codes
+              .replace(/\u001B\[[0-9;]*[mGK]/g, '') // Remove more ANSI codes
+              .replace(/```json\n?|\n?```/g, '') // Remove code blocks
+              .trim();
+            
+            // Try to find and extract JSON object
+            const jsonStart = cleanText.indexOf('{');
+            const jsonEnd = cleanText.lastIndexOf('}');
+            
+            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+              const jsonStr = cleanText.substring(jsonStart, jsonEnd + 1);
+              console.log('🔍 Extracted JSON:', jsonStr.substring(0, 200) + '...');
+              
+              const parsed = JSON.parse(jsonStr);
+              
+              enhancedDraft = {
+                storyId: `story-${Date.now()}`,
+                title: parsed.title || idea.charAt(0).toUpperCase() + idea.slice(1),
+                description: parsed.description || `Implement ${idea.toLowerCase()} functionality.`,
+                asA: parsed.asA || (parent ? `user of ${parent.title}` : 'system user'),
+                iWant: parsed.iWant || `to ${idea.toLowerCase()}`,
+                soThat: parsed.soThat || 'I can accomplish my goals effectively',
+                components: Array.isArray(parsed.components) ? parsed.components : [],
+                storyPoint: parsed.storyPoint || 3,
+                enhanced: true,
+                enhancedAt: new Date().toISOString(),
+                source: 'kiro-enhanced'
+              };
+              
+              console.log('✅ Successfully parsed Kiro response');
+            } else {
+              throw new Error('No valid JSON found in Kiro response');
+            }
+          } catch (parseError) {
+            console.warn('Could not parse Kiro response as JSON, using fallback');
+            // Fallback if Kiro doesn't return valid JSON
+            enhancedDraft = {
+              storyId: `story-${Date.now()}`,
+              title: idea.charAt(0).toUpperCase() + idea.slice(1),
+              description: kiroResult.enhanced || `Implement ${idea.toLowerCase()} functionality.`,
+              asA: parent ? `user of ${parent.title}` : 'system user',
+              iWant: `to ${idea.toLowerCase()}`,
+              soThat: 'I can accomplish my goals effectively',
+              components: [],
+              storyPoint: 3,
+              enhanced: true,
+              enhancedAt: new Date().toISOString(),
+              source: 'kiro-enhanced'
+            };
+          }
+          
+          sendJson(res, 200, enhancedDraft);
+          
+        } catch (kiroError) {
+          console.warn('Kiro API failed, using local fallback:', kiroError.message);
+          
+          // Fallback to local generation if Kiro fails
+          const enhancedDraft = {
+            storyId: `story-${Date.now()}`,
+            title: idea.charAt(0).toUpperCase() + idea.slice(1),
+            description: `Implement ${idea.toLowerCase()} functionality to improve user experience and system capabilities.`,
+            asA: parent ? `user of ${parent.title}` : 'system user',
+            iWant: `to ${idea.toLowerCase()}`,
+            soThat: 'I can accomplish my goals more effectively',
+            acceptanceCriteria: [
+              `System successfully implements ${idea.toLowerCase()}`,
+              'User interface is intuitive and responsive',
+              'All edge cases are handled gracefully',
+              'Performance meets acceptable standards'
+            ],
+            components: [],
+            storyPoint: 3,
+            enhanced: false,
+            enhancedAt: new Date().toISOString(),
+            source: 'local-fallback'
+          };
+          
+          sendJson(res, 200, enhancedDraft);
+        }
         
       } catch (error) {
         console.error('Failed to generate story draft', error);
