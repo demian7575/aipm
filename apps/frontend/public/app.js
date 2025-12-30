@@ -1914,14 +1914,6 @@ function renderCodeWhispererSectionList(container, story) {
         prompt += `- apps/backend/app.js (backend API)\n\n`;
         prompt += `Start implementing now by opening and modifying the appropriate files.`;
         
-        // Add acceptance criteria if available
-        if (story?.acceptanceTests && story.acceptanceTests.length > 0) {
-          prompt += `\n\n**Acceptance Criteria to implement**:\n`;
-          story.acceptanceTests.forEach((test, index) => {
-            prompt += `${index + 1}. ${test.given?.join(' ') || ''} ${test.when?.join(' ') || ''} ${test.then?.join(' ') || ''}\n`;
-          });
-        }
-        
         console.log('🚀 Starting fresh branch code generation...');
         console.log('📤 Using prompt:', prompt);
         
