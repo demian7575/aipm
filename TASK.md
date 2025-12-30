@@ -1,34 +1,70 @@
-# Task: Hide User Story when the User Story is "Done" status
+# Streamline Dependencies Section Interface
 
-## User Story
-As a project manager, I want to hide user stories with "Done" status from the main interface so that I can focus on active work and reduce visual clutter in the mindmap and outline views.
+Title: Streamline Dependencies Section Interface
 
-## Acceptance Criteria
-1. Given a user story with status "Done", when viewing the mindmap, then the story node should not be visible by default
-2. Given a user story with status "Done", when viewing the outline tree, then the story should not appear in the hierarchy by default  
-3. Given a "Hide Completed" toggle control in the header, when clicked, then all "Done" stories should become visible/hidden accordingly
-4. Given child stories under a "Done" parent, when the parent is hidden, then active child stories should remain visible to prevent losing track of ongoing work
-5. Given the hide/show preference, when set by the user, then the setting should persist across browser sessions using localStorage
+As a: User
+I want: A simplified and clean dependencies section interface without dependents field
+So that: I can quickly view and navigate story dependencies without visual clutter or confusion between dependencies and dependents
 
-## Implementation Summary
+Description: Streamline the Dependencies Section Interface by removing complex grouping, overlay controls, detailed tables, and the dependents field in favor of a clean, simple list view that maintains core functionality.
 
-### Files Modified
-- `apps/frontend/public/index.html` - Added "Hide Completed" button to header
-- `apps/frontend/public/app.js` - Added complete hide completed functionality
+Story Points: 2
 
-### Key Changes
-1. **State Management**: Added `hideCompleted` boolean to application state
-2. **UI Controls**: Added toggle button in header with proper ARIA attributes
-3. **Filtering Logic**: 
-   - `getVisibleStories()` - Filters outline stories based on hideCompleted state
-   - `getVisibleMindmapStories()` - Updated to respect hideCompleted for mindmap rendering
-4. **Persistence**: Added localStorage support for user preference
-5. **Event Handling**: Toggle button updates state and re-renders views
+Constraints: 
+- Maintain ability to click and navigate to dependency stories
+- Preserve essential dependency information (ID, title, status)
+- Keep the interface clean and minimal
+- Remove confusion between dependencies and dependents
 
-### Technical Details
-- Button uses `aria-pressed` for accessibility
-- Filtering preserves active child stories even when parent is Done
-- State persists across browser sessions
-- Minimal code changes following existing patterns
+Acceptance Criteria:
+- Dependencies are displayed in a single, simple list
+- Complex grouping (Blocked by, Dependencies) is removed
+- Overlay toggle functionality is removed
+- Detailed dependency tables are replaced with clean items
+- Dependents field is completely removed from the system
+- Users can still click to navigate to dependency stories
+- The interface is visually cleaner and less cluttered
+- No confusion between dependencies and dependents
 
-The implementation provides a clean toggle to hide/show completed work while maintaining focus on active stories.
+---
+✅ Implementation Complete
+
+## Feature Implementation Summary
+
+Successfully streamlined the Dependencies Section Interface:
+
+### Changes Made:
+
+1. **Simplified Structure**:
+   - Removed complex dependency grouping (Blocked by, Dependencies)
+   - Eliminated overlay toggle functionality
+   - Replaced detailed tables with simple list items
+
+2. **Clean Interface**:
+   - Single list view for all dependencies
+   - Minimal visual elements: ID, title, status
+   - Consistent styling with hover effects
+   - Maintained clickable navigation to dependency stories
+
+3. **Removed Dependents Field**:
+   - Eliminated dependents field from backend story objects
+   - Removed logic that populated reverse dependency relationships
+   - Simplified data model to focus only on forward dependencies
+   - Prevents confusion between dependencies and dependents
+
+4. **Code Reduction**:
+   - Removed ~100 lines of complex dependency management code
+   - Simplified CSS with focused styling for new simple items
+   - Eliminated unnecessary DOM manipulation and event handlers
+   - Removed 7 lines of dependents-related backend logic
+
+### Implementation Details:
+- ✅ Simplified dependency section structure
+- ✅ Created `createSimpleDependencyItem()` function for clean items
+- ✅ Added CSS styles for `.dependency-list-simple` and `.dependency-item`
+- ✅ Maintained core functionality: click to navigate to stories
+- ✅ Reduced visual complexity while preserving essential information
+- ✅ Completely removed dependents field from backend and data model
+- ✅ Eliminated potential confusion between dependencies and dependents
+
+**Final Result:** The Dependencies Section is now clean, minimal, and intuitive with no confusion between dependencies and dependents, while maintaining all essential functionality for viewing and navigating story dependencies.

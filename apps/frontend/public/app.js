@@ -815,6 +815,31 @@ function createTableRow(label, value) {
   return row;
 }
 
+function createSimpleDependencyItem(entry) {
+  const item = document.createElement('div');
+  item.className = 'dependency-item';
+  item.dataset.storyId = String(entry.storyId);
+  
+  const title = entry.title || 'Untitled story';
+  const status = entry.status || 'Draft';
+  const relationship = entry.relationship === 'blocks' ? 'Blocks' : 'Depends on';
+  
+  item.innerHTML = `
+    <span class="dependency-id">#${entry.storyId}</span>
+    <span class="dependency-title">${title}</span>
+    <span class="dependency-status status-badge ${getStatusClass(status)}">${status}</span>
+  `;
+  
+  item.addEventListener('click', () => {
+    const targetStory = storyIndex.get(entry.storyId);
+    if (targetStory) {
+      handleStorySelection(targetStory);
+    }
+  });
+  
+  return item;
+}
+
 function createDependencyTable(entry, context) {
   const relationship = normalizeDependencyRelationship(entry.relationship);
   const table = document.createElement('table');
@@ -4494,120 +4519,25 @@ function renderDetails() {
   const dependencyTitle = document.createElement('h3');
   dependencyTitle.textContent = 'Dependencies';
   dependencyHeading.appendChild(dependencyTitle);
-  const dependencyOverlayBtn = document.createElement('button');
-  dependencyOverlayBtn.type = 'button';
-  dependencyOverlayBtn.className = 'secondary dependency-overlay-toggle';
-  dependencyOverlayBtn.dataset.role = 'dependency-overlay-toggle';
-  dependencyOverlayBtn.textContent = state.showDependencies ? 'Hide Mindmap Overlay' : 'Show Mindmap Overlay';
-  dependencyOverlayBtn.classList.toggle('is-active', state.showDependencies);
-  dependencyOverlayBtn.setAttribute('aria-pressed', state.showDependencies ? 'true' : 'false');
-  dependencyHeading.appendChild(dependencyOverlayBtn);
   dependencySection.appendChild(dependencyHeading);
 
-  const dependencyGroupsContainer = document.createElement('div');
-  dependencyGroupsContainer.className = 'dependency-groups';
-  dependencySection.appendChild(dependencyGroupsContainer);
-
   const normalizedDependencies = normalizeDependencyEntries(story.dependencies);
-  const blockedByEntries = normalizedDependencies.filter((entry) => entry.relationship === 'blocks');
-  const supportingDependencies = normalizedDependencies.filter((entry) => entry.relationship !== 'blocks');
-  const dependentEntries = normalizeDependencyEntries(story.dependents);
+  const allDependencies = [...normalizedDependencies];
 
-  const dependencyGroups = [
-    {
-      key: 'blocked-by',
-      title: 'Blocked by',
-      items: blockedByEntries,
-      empty: 'This story is not blocked by other stories.',
-      context: 'blocked-by',
-      allowAdd: true,
-    },
-    {
-      key: 'upstream',
-      title: 'Dependencies',
-      items: supportingDependencies,
-      empty: 'No upstream dependencies recorded.',
-      context: 'upstream',
-      allowAdd: true,
-    },
-    {
-      key: 'downstream',
-      title: 'Dependents',
-      items: dependentEntries,
-      empty: 'No stories depend on this one yet.',
-      context: 'downstream',
-    },
-  ];
-
-  dependencyGroups.forEach((group) => {
-    const groupEl = document.createElement('article');
-    groupEl.className = 'dependency-group';
-    const groupHeader = document.createElement('div');
-    groupHeader.className = 'dependency-group-header';
-    const groupHeading = document.createElement('h4');
-    groupHeading.textContent = group.title;
-    groupHeader.appendChild(groupHeading);
-
-    if (group.allowAdd) {
-      const addBtn = document.createElement('button');
-      addBtn.type = 'button';
-      addBtn.className = 'secondary dependency-add-btn';
-      addBtn.textContent = group.context === 'blocked-by' ? 'Add blocker' : 'Add dependency';
-      addBtn.addEventListener('click', () => {
-        openDependencyPicker(story, group.context);
-      });
-      groupHeader.appendChild(addBtn);
-    }
-
-    groupEl.appendChild(groupHeader);
-
-    if (!group.items.length) {
-      const empty = document.createElement('p');
-      empty.className = 'empty-state';
-      empty.textContent = group.empty;
-      groupEl.appendChild(empty);
-    } else {
-      const list = document.createElement('div');
-      list.className = 'record-list dependency-list';
-      group.items.forEach((entry) => {
-        const table = createDependencyTable(entry, group.context);
-        list.appendChild(table);
-      });
-      groupEl.appendChild(list);
-    }
-
-    dependencyGroupsContainer.appendChild(groupEl);
-  });
-
-  dependencyOverlayBtn.addEventListener('click', () => {
-    toggleDependencyOverlay();
-  });
-
-  const activateDependencyTarget = (table) => {
-    const targetId = Number(table.dataset.storyId);
-    if (!Number.isFinite(targetId)) {
-      return;
-    }
-    const targetStory = storyIndex.get(targetId);
-    if (targetStory) {
-      handleStorySelection(targetStory);
-    }
-  };
-
-  dependencySection.querySelectorAll('.dependency-table').forEach((table) => {
-    table.addEventListener('click', (event) => {
-      event.preventDefault();
-      activateDependencyTarget(table);
+  if (allDependencies.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-state';
+    empty.textContent = 'No dependencies';
+    dependencySection.appendChild(empty);
+  } else {
+    const list = document.createElement('div');
+    list.className = 'dependency-list-simple';
+    allDependencies.forEach((entry) => {
+      const item = createSimpleDependencyItem(entry);
+      list.appendChild(item);
     });
-    table.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        activateDependencyTarget(table);
-      }
-    });
-  });
-
-  syncDependencyOverlayControls();
+    dependencySection.appendChild(list);
+  }
 
   detailsContent.appendChild(dependencySection);
 
