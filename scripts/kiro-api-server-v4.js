@@ -1137,8 +1137,8 @@ ${new Date().toISOString()}
             const outputKey = value.slice(9, -2);
             replacement = JSON.stringify(template.output[outputKey], null, 2);
           } else if (value.includes('{{#if') && value.includes('input.parentId')) {
-            if (input.parentId && context.parent) {
-              replacement = `This is a child story of: ${context.parent.title}\n\n`;
+            if (input.parentId) {
+              replacement = `\nParent Story ID: ${input.parentId}`;
             } else {
               replacement = '';
             }
@@ -1176,26 +1176,11 @@ ${new Date().toISOString()}
           console.warn('Could not parse story data from Kiro response:', e.message);
         }
         
-        // Post story to backend if extraction successful
+        // Post story to backend if extraction successful (disabled - Kiro CLI posts directly)
         let postResult = null;
-        if (storyData && (templateId === 'user-story-generation' || templateId === 'test-simple')) {
-          try {
-            const postResponse = await fetch('http://localhost:3000/api/story-created', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(storyData)
-            });
-            
-            if (postResponse.ok) {
-              postResult = await postResponse.json();
-              console.log('✅ Posted story to backend:', postResult.id);
-            } else {
-              console.error('❌ Failed to post story:', postResponse.status);
-            }
-          } catch (postError) {
-            console.error('❌ Error posting story:', postError.message);
-          }
-        }
+        // if (storyData && (templateId === 'user-story-generation' || templateId === 'test-simple')) {
+        //   // Direct posting disabled - Kiro CLI handles this via curl command
+        // }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 

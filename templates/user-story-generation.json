@@ -60,9 +60,10 @@
   },
 
   "prompt": {
-    "template": "Create a user story for: {{idea}}\n\nReturn JSON in this exact format:\n{{output.example}}",
+    "template": "Create a user story for: {{idea}}{{parentContext}}\n\nGenerate JSON in this format:\n{{output.example}}\n\nThen execute this curl command to post it:\ncurl -X POST http://localhost:3000/api/story-created -H \"Content-Type: application/json\" -d '[the JSON you generated]'",
     "variables": {
       "idea": "{{input.idea}}",
+      "parentContext": "{{#if input.parentId}}\nParent Story ID: {{input.parentId}}{{/if}}",
       "output.example": "{{output.example}}"
     }
   }
