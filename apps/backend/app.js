@@ -6450,7 +6450,7 @@ export async function createApp() {
         }
         
         prompt += `DO NOT generate acceptance tests, acceptance criteria, tasks, or INVEST analysis. We have separate buttons for those.\n\n`;
-        prompt += `Return ONLY this JSON format:\n`;
+        prompt += `STRICTLY follow this EXACT JSON template. Do NOT add any extra fields:\n`;
         prompt += `{\n`;
         prompt += `  "title": "Simple title",\n`;
         prompt += `  "description": "Brief description",\n`;

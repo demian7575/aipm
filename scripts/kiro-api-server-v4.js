@@ -543,7 +543,8 @@ const server = http.createServer(async (req, res) => {
 
 DO NOT generate acceptance tests, acceptance criteria, tasks, or INVEST analysis. We have separate buttons for those.
 
-Return ONLY this JSON format:
+STRICTLY follow this EXACT JSON template. Do NOT add any extra fields:
+
 {"storyId":"story-${Date.now()}","title":"Simple title","description":"Brief description","asA":"user role","iWant":"goal","soThat":"benefit","enhanced":true,"enhancedAt":"${new Date().toISOString()}"}`;
         
         // Get AI-enhanced story
