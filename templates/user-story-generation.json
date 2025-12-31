@@ -83,7 +83,7 @@
     "variables": {
       "idea": "{{input.idea}}",
       "parentContext": "{{#if input.parentId}}Child of: {{parent.title}}\n\n{{/if}}",
-      "frontendUrl": "{{input.frontendUrl || 'http://localhost:3000'}}"
+      "frontendUrl": "{{input.frontendUrl || 'http://44.220.45.57:3000'}}"
     },
     "instructions": [
       "Complete this task in ONE execution cycle",
