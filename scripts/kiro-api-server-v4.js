@@ -541,14 +541,7 @@ const server = http.createServer(async (req, res) => {
         // Build simple prompt for AI enhancement
         const prompt = `Create basic user story for: "${idea}${parentContext}"
 
-First, generate these fields:
-- title: (simple title)
-- description: (brief description)
-- asA: (user role)
-- iWant: (goal)
-- soThat: (benefit)
-
-Then place them into this EXACT template:
+Generate the fields and immediately place them into this JSON template:
 {"storyId":"story-${Date.now()}","title":"[title]","description":"[description]","asA":"[asA]","iWant":"[iWant]","soThat":"[soThat]","enhanced":true,"enhancedAt":"${new Date().toISOString()}"}`;
         
         // Get AI-enhanced story

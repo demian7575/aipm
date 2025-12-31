@@ -6449,15 +6449,7 @@ export async function createApp() {
           prompt += `This is a child story of: ${parent.title}\n\n`;
         }
         
-        prompt += `First, generate these fields:\n`;
-        prompt += `- title: (simple title)\n`;
-        prompt += `- description: (brief description)\n`;
-        prompt += `- asA: (user role)\n`;
-        prompt += `- iWant: (goal)\n`;
-        prompt += `- soThat: (benefit)\n`;
-        prompt += `- components: (array like ["System"])\n`;
-        prompt += `- storyPoint: (number like 3)\n\n`;
-        prompt += `Then place them into this EXACT template:\n`;
+        prompt += `Generate the fields and immediately place them into this JSON template:\n`;
         prompt += `{\n`;
         prompt += `  "title": "[title]",\n`;
         prompt += `  "description": "[description]",\n`;
