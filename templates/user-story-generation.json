@@ -96,19 +96,20 @@
   },
 
   "prompt": {
-    "template": "Create a user story for: \"{idea}\"\n\n{parentContext}\n\nGenerate ONLY this JSON format:\n{outputTemplate}",
+    "template": "Create a user story for: \"{{idea}}\"\n\n{{parentContext}}\nGenerate ONLY this JSON format:\n{{outputTemplate}}",
     "variables": {
       "idea": "{{input.idea}}",
       "parentContext": "{{#if input.parentId}}This is a child story of: {{parent.title}}\n\n{{/if}}",
-      "outputTemplate": "{{output.example}}"
+      "outputTemplate": "{\n  \"storyId\": \"story-[timestamp]\",\n  \"title\": \"[concise title]\",\n  \"description\": \"As a [role], I want [goal] so that [benefit]\",\n  \"asA\": \"[user role]\",\n  \"iWant\": \"[specific goal]\",\n  \"soThat\": \"[clear benefit]\",\n  \"components\": [\"[component1]\", \"[component2]\"],\n  \"storyPoint\": [1-13],\n  \"enhanced\": true,\n  \"enhancedAt\": \"[current timestamp]\"\n}"
     },
     "instructions": [
-      "Use the exact JSON format provided",
-      "Fill in realistic values for all required fields", 
-      "Keep title concise and actionable",
-      "Write description in user story format: 'As a [role], I want [goal] so that [benefit]'",
-      "Estimate story points based on complexity (1=trivial, 13=epic)",
-      "Select appropriate components from: System, UI, API, Database, Search, Auth"
+      "Replace ALL placeholder values with actual content",
+      "Use realistic story points (1=trivial, 3=small, 5=medium, 8=large, 13=epic)",
+      "Select components from: System, UI, API, Database, Search, Auth, Backend, Frontend",
+      "Write clear, actionable titles",
+      "Follow user story format: 'As a [role], I want [goal] so that [benefit]'",
+      "Generate current timestamp for enhancedAt field",
+      "Return ONLY the JSON, no explanations"
     ]
   }
 }
