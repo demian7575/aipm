@@ -6364,9 +6364,29 @@ function openChildStoryModal(parentId) {
     const restore = { text: generateBtn.textContent, disabled: generateBtn.disabled };
     generateBtn.textContent = 'Generating…';
     generateBtn.disabled = true;
+    
+    // Start polling for new stories
+    const initialStoryCount = state.stories.length;
+    let pollInterval;
+    
+    const startPolling = () => {
+      pollInterval = setInterval(async () => {
+        try {
+          await loadStories(false);
+          if (state.stories.length > initialStoryCount) {
+            clearInterval(pollInterval);
+            showToast('✨ AI-generated story created!', 'success');
+          }
+        } catch (error) {
+          console.error('Polling error:', error);
+        }
+      }, 3000); // Poll every 3 seconds
+    };
+    
     try {
       // Show progress indicator
       generateBtn.textContent = 'Generating… (this may take up to 30 minutes)';
+      startPolling();
       
       // Call Kiro API directly for story enhancement with longer timeout
       const controller = new AbortController();
@@ -6442,6 +6462,7 @@ function openChildStoryModal(parentId) {
       console.error('Story draft generation failed', error);
       showToast(error.message || 'Failed to generate story draft', 'error');
     } finally {
+      if (pollInterval) clearInterval(pollInterval);
       generateBtn.textContent = restore.text;
       generateBtn.disabled = restore.disabled;
     }
