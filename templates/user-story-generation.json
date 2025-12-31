@@ -79,19 +79,9 @@
   },
 
   "prompt": {
-    "template": "STRICT TASK: Create user story for '{{idea}}' and return JSON data.\n\n{{parentContext}}REQUIRED STEPS:\n1. Generate story with these exact fields:\n   - storyId: story-[current timestamp]\n   - title: [descriptive title for {{idea}}]\n   - description: As a [role], I want [goal] so that [benefit]\n   - asA: [role from description]\n   - iWant: [goal from description]\n   - soThat: [benefit from description]\n   - components: [\"WorkModel\"] (use valid component)\n   - storyPoint: [1-8 number]\n   - enhanced: true\n   - enhancedAt: [current ISO timestamp]\n   - source: \"kiro-direct\"\n\n2. EXECUTE EXACTLY: curl -X POST {{frontendUrl}}/api/story-created -H \"Content-Type: application/json\" -d '[the JSON from step 1]'\n\n3. RETURN ONLY the JSON from step 1 (no other text)",
+    "template": "Create a user story for: {{idea}}\n\nReturn the story data as JSON with these fields: storyId, title, description, asA, iWant, soThat, components, storyPoint, enhanced, enhancedAt, source",
     "variables": {
-      "idea": "{{input.idea}}",
-      "parentContext": "{{#if input.parentId}}Parent: {{parent.title}}\n{{/if}}",
-      "frontendUrl": "{{input.frontendUrl || 'http://44.220.45.57:3000'}}"
-    },
-    "instructions": [
-      "Follow steps 1-3 exactly in order",
-      "Do NOT deviate from the format",
-      "Use WorkModel as component (it's valid)",
-      "Return ONLY the JSON object, nothing else",
-      "Execute curl command with the exact JSON",
-      "Do not explain or add commentary"
-    ]
+      "idea": "{{input.idea}}"
+    }
   }
 }

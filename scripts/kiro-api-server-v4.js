@@ -1150,21 +1150,39 @@ ${new Date().toISOString()}
             .replace(/[\r\n]*[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]\s*Thinking\.\.\.[\r\n]*/g, '') // Remove spinners
             .trim();
           
-          // Look for JSON object with storyId
-          const jsonMatch = cleanResponse.match(/\{[^}]*"storyId"[^}]*"source"[^}]*\}/);
+          // Look for JSON object with storyId or id
+          const jsonMatch = cleanResponse.match(/\{[\s\S]*?("storyId"|"id")[\s\S]*?\}/);
           if (jsonMatch) {
             storyData = JSON.parse(jsonMatch[0]);
-            console.log('✅ Extracted story data:', storyData.title);
-          } else {
-            // Try broader JSON match
-            const broadMatch = cleanResponse.match(/\{[^}]*"storyId"[^}]*\}/);
-            if (broadMatch) {
-              storyData = JSON.parse(broadMatch[0]);
-              console.log('✅ Extracted basic story data:', storyData.title);
+            // Normalize id to storyId if needed
+            if (storyData.id && !storyData.storyId) {
+              storyData.storyId = storyData.id;
             }
+            console.log('✅ Extracted story data:', storyData.title);
           }
         } catch (e) {
           console.warn('Could not parse story data from Kiro response:', e.message);
+        }
+        
+        // Post story to backend if extraction successful
+        let postResult = null;
+        if (storyData && (templateId === 'user-story-generation' || templateId === 'test-simple')) {
+          try {
+            const postResponse = await fetch('http://localhost:3000/api/story-created', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(storyData)
+            });
+            
+            if (postResponse.ok) {
+              postResult = await postResponse.json();
+              console.log('✅ Posted story to backend:', postResult.id);
+            } else {
+              console.error('❌ Failed to post story:', postResponse.status);
+            }
+          } catch (postError) {
+            console.error('❌ Error posting story:', postError.message);
+          }
         }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1173,6 +1191,7 @@ ${new Date().toISOString()}
           templateId,
           enhanced: enhancedResult,
           storyData: storyData, // Include parsed story data for frontend
+          postResult: postResult, // Include backend posting result
           timestamp: new Date().toISOString()
         }));
         

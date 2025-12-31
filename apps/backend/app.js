@@ -5699,7 +5699,40 @@ export async function createApp() {
         const db = await ensureDatabase();
         let newStoryId;
         
-        if (db.isJsonMode) {
+        if (db.constructor.name === 'DynamoDBDataLayer') {
+          // DynamoDB implementation
+          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+          
+          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const docClient = DynamoDBDocumentClient.from(client);
+          const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          
+          newStoryId = Date.now(); // Generate unique ID
+          const timestamp = new Date().toISOString();
+          
+          const dynamoItem = {
+            id: newStoryId,
+            mr_id: 1,
+            title: storyTitle,
+            description: storyDescription,
+            as_a: asA || 'user',
+            i_want: iWant || 'functionality',
+            so_that: soThat || 'goals can be achieved',
+            components: serializeComponents(normalizedComponents),
+            story_point: normalizedStoryPoint,
+            assignee_email: '',
+            status: 'Draft',
+            created_at: timestamp,
+            updated_at: timestamp,
+            source: source || 'kiro-direct'
+          };
+          
+          await docClient.send(new PutCommand({
+            TableName: tableName,
+            Item: dynamoItem
+          }));
+        } else if (db.isJsonMode) {
           // JSON mode
           const newStory = {
             id: db.sequences.user_stories + 1,
