@@ -1,0 +1,114 @@
+{
+  "templateId": "user-story-generation",
+  "version": "1.0",
+  "description": "Generate user stories from simple ideas",
+  
+  "input": {
+    "schema": {
+      "type": "object",
+      "required": ["idea"],
+      "properties": {
+        "idea": {
+          "type": "string",
+          "description": "User's story idea or requirement"
+        },
+        "parentId": {
+          "type": "string", 
+          "description": "Optional parent story ID for child stories"
+        },
+        "context": {
+          "type": "object",
+          "description": "Additional context information"
+        }
+      }
+    },
+    "example": {
+      "idea": "I want to add a search feature",
+      "parentId": "story-123",
+      "context": {
+        "project": "AIPM",
+        "priority": "high"
+      }
+    }
+  },
+
+  "output": {
+    "schema": {
+      "type": "object",
+      "required": ["storyId", "title", "description", "asA", "iWant", "soThat"],
+      "properties": {
+        "storyId": {
+          "type": "string",
+          "description": "Generated unique story ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Concise story title"
+        },
+        "description": {
+          "type": "string", 
+          "description": "Full user story description"
+        },
+        "asA": {
+          "type": "string",
+          "description": "User role (As a...)"
+        },
+        "iWant": {
+          "type": "string",
+          "description": "User goal (I want...)"
+        },
+        "soThat": {
+          "type": "string",
+          "description": "User benefit (So that...)"
+        },
+        "components": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "System components involved"
+        },
+        "storyPoint": {
+          "type": "number",
+          "description": "Effort estimation (1-13)"
+        },
+        "enhanced": {
+          "type": "boolean",
+          "description": "Whether AI enhanced the story"
+        },
+        "enhancedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Enhancement timestamp"
+        }
+      }
+    },
+    "example": {
+      "storyId": "story-1735632132469",
+      "title": "Add Search Feature",
+      "description": "As a user, I want to search for content so that I can quickly find what I need",
+      "asA": "user",
+      "iWant": "to search for content",
+      "soThat": "I can quickly find what I need",
+      "components": ["Search", "UI"],
+      "storyPoint": 5,
+      "enhanced": true,
+      "enhancedAt": "2025-12-31T05:02:12.469Z"
+    }
+  },
+
+  "prompt": {
+    "template": "Create a user story for: \"{idea}\"\n\n{parentContext}\n\nGenerate ONLY this JSON format:\n{outputTemplate}",
+    "variables": {
+      "idea": "{{input.idea}}",
+      "parentContext": "{{#if input.parentId}}This is a child story of: {{parent.title}}\n\n{{/if}}",
+      "outputTemplate": "{{output.example}}"
+    },
+    "instructions": [
+      "Use the exact JSON format provided",
+      "Fill in realistic values for all required fields", 
+      "Keep title concise and actionable",
+      "Write description in user story format: 'As a [role], I want [goal] so that [benefit]'",
+      "Estimate story points based on complexity (1=trivial, 13=epic)",
+      "Select appropriate components from: System, UI, API, Database, Search, Auth"
+    ]
+  }
+}

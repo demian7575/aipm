@@ -1048,7 +1048,116 @@ ${new Date().toISOString()}
     return;
   }
 
-  // Kiro v4 enhance endpoint
+  // Get available templates
+  if (url.pathname === '/api/templates' && req.method === 'GET') {
+    try {
+      const templates = [];
+      const templateFiles = ['user-story-generation.json', 'acceptance-test-generation.json', 'code-generation.json'];
+      
+      for (const file of templateFiles) {
+        try {
+          const templateContent = readFileSync(`./templates/${file}`, 'utf8');
+          const template = JSON.parse(templateContent);
+          templates.push({
+            templateId: template.templateId,
+            version: template.version,
+            description: template.description,
+            inputSchema: template.input.schema,
+            outputSchema: template.output.schema
+          });
+        } catch (error) {
+          console.warn(`Could not load template ${file}:`, error.message);
+        }
+      }
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ templates }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Flexible enhance endpoint with template support
+  if (url.pathname === '/api/enhance' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { templateId = 'user-story-generation', input, context = {} } = JSON.parse(body);
+        
+        // Load template
+        const templatePath = `./templates/${templateId}.json`;
+        let template;
+        try {
+          const templateContent = readFileSync(templatePath, 'utf8');
+          template = JSON.parse(templateContent);
+        } catch (error) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: `Template not found: ${templateId}` }));
+          return;
+        }
+
+        // Validate input
+        const required = template.input.schema.required || [];
+        for (const field of required) {
+          if (!(field in input)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: `Missing required field: ${field}` }));
+            return;
+          }
+        }
+
+        // Build prompt from template
+        let prompt = template.prompt.template;
+        
+        // Replace variables
+        const variables = template.prompt.variables || {};
+        for (const [key, value] of Object.entries(variables)) {
+          const placeholder = `{{${key}}}`;
+          let replacement = value;
+          
+          if (value.startsWith('{{input.')) {
+            const inputKey = value.slice(8, -2);
+            replacement = input[inputKey] || '';
+          } else if (value.startsWith('{{output.')) {
+            const outputKey = value.slice(9, -2);
+            replacement = JSON.stringify(template.output[outputKey], null, 2);
+          } else if (value.includes('{{#if') && value.includes('input.parentId')) {
+            if (input.parentId && context.parent) {
+              replacement = `This is a child story of: ${context.parent.title}\n\n`;
+            } else {
+              replacement = '';
+            }
+          }
+          
+          prompt = prompt.replace(placeholder, replacement);
+        }
+
+        console.log(`🤖 Template: ${templateId}, Input:`, Object.keys(input));
+        
+        // Send to Kiro CLI
+        const enhancedResult = await sendToKiro(prompt);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true,
+          templateId,
+          enhanced: enhancedResult,
+          timestamp: new Date().toISOString()
+        }));
+        
+      } catch (error) {
+        console.error('❌ Template enhance error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
+  // Legacy Kiro v4 enhance endpoint
   if (url.pathname === '/kiro/v4/enhance' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
