@@ -1137,14 +1137,27 @@ ${new Date().toISOString()}
 
         console.log(`🤖 Template: ${templateId}, Input:`, Object.keys(input));
         
-        // Send to Kiro CLI
+        // Send to Kiro CLI and wait for completion
         const enhancedResult = await sendToKiro(prompt);
+        
+        // Parse the response to extract story data
+        let storyData = null;
+        try {
+          // Look for JSON in the response
+          const jsonMatch = enhancedResult.match(/\{[^}]*"success"[^}]*\}/);
+          if (jsonMatch) {
+            storyData = JSON.parse(jsonMatch[0]);
+          }
+        } catch (e) {
+          console.warn('Could not parse Kiro response for story data');
+        }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: true,
           templateId,
           enhanced: enhancedResult,
+          storyData: storyData, // Include parsed story data
           timestamp: new Date().toISOString()
         }));
         
