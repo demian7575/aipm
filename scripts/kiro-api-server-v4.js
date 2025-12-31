@@ -266,18 +266,64 @@ function sendToKiro(prompt) {
     }
     
     const timeout = setTimeout(() => {
+      console.log('⏰ Kiro CLI timeout after 600 seconds, restarting...');
+      restartKiroProcess();
       reject(new Error('Kiro CLI timeout after 600 seconds'));
     }, 600000); // 10 minutes timeout
     
     let responseBuffer = '';
     let jsonFound = false;
+    let lastOutputTime = Date.now();
+    let promptSeen = false;
+    let operationInProgress = false;
+    
+    // Stuck detection: no output during operation > 1 min = restart
+    const stuckCheckInterval = setInterval(() => {
+      const timeSinceLastOutput = Date.now() - lastOutputTime;
+      
+      if (operationInProgress && timeSinceLastOutput > 60000) { // 1 minute
+        console.log('🚨 Kiro CLI stuck detected (no output for 1 min during operation), restarting...');
+        clearTimeout(timeout);
+        clearInterval(stuckCheckInterval);
+        clearInterval(heartbeatInterval);
+        kiroProcess.stdout.removeListener('data', onData);
+        kiroProcess.stderr.removeListener('data', onData);
+        restartKiroProcess();
+        reject(new Error('Kiro CLI stuck - no output during operation'));
+        return;
+      }
+    }, 10000); // Check every 10 seconds
+    
+    // Heartbeat: send every 1 minute when idle (after prompt, no operation)
+    const heartbeatInterval = setInterval(() => {
+      if (promptSeen && !operationInProgress) {
+        console.log('💓 Sending heartbeat to idle Kiro CLI');
+        // Send empty line as heartbeat
+        if (kiroProcess && kiroProcess.stdin.writable) {
+          kiroProcess.stdin.write('\n');
+        }
+      }
+    }, 60000); // Every 1 minute
     
     const onData = (data) => {
       const chunk = data.toString();
       responseBuffer += chunk;
+      lastOutputTime = Date.now();
       
-      // Update health tracking - Kiro CLI is responding
+      // Update health tracking
       lastKiroResponse = Date.now();
+      
+      // Detect purple prompt '>' to know when operation starts/ends
+      if (chunk.includes('\x1b[38;5;141m>')) {
+        promptSeen = true;
+        operationInProgress = false;
+        console.log('🟣 Prompt detected - operation finished or ready');
+      }
+      
+      // Detect operation in progress (output after prompt)
+      if (promptSeen && chunk.length > 0 && !chunk.includes('\x1b[38;5;141m>')) {
+        operationInProgress = true;
+      }
       
       // Only log significant chunks to reduce noise
       if (chunk.length > 10) {
@@ -287,6 +333,8 @@ function sendToKiro(prompt) {
       // Check if we have a complete response (look for "Time:" indicator)
       if (responseBuffer.includes('Time:') && responseBuffer.length > 50) {
         clearTimeout(timeout);
+        clearInterval(stuckCheckInterval);
+        clearInterval(heartbeatInterval);
         kiroProcess.stdout.removeListener('data', onData);
         kiroProcess.stderr.removeListener('data', onData);
         
@@ -314,6 +362,8 @@ function sendToKiro(prompt) {
     setTimeout(() => {
       if (!jsonFound) {
         clearTimeout(timeout);
+        clearInterval(stuckCheckInterval);
+        clearInterval(heartbeatInterval);
         kiroProcess.stdout.removeListener('data', onData);
         reject(new Error('No valid JSON response received'));
       }
