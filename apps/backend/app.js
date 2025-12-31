@@ -1,4 +1,6 @@
-import { generateInvestCompliantStory, generateAcceptanceTest } from './story-generator.js';
+// Removed unused imports:
+// - generateInvestCompliantStory (not used anywhere)
+// - generateAcceptanceTest (not used anywhere)
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
 import { spawnSync, spawn } from 'node:child_process';
@@ -3061,10 +3063,7 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
   
-  // Skip Kiro API for INVEST analysis - it's too slow for synchronous requests
-  // Use fast heuristics instead
-  // TODO: Make INVEST analysis async via queue like story generation
-  
+  // Removed TODO comment about async INVEST analysis
   // Use heuristics (works in all environments)
   return {
     warnings: baseline,
