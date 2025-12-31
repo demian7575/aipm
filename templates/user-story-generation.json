@@ -79,18 +79,20 @@
   },
 
   "prompt": {
-    "template": "Create a user story for: {{idea}}\n\n{{parentContext}}After generating the story, POST it directly to the frontend using this command:\n\ncurl -X POST {{frontendUrl}}/api/story-created \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"storyId\":\"[generated-id]\",\"title\":\"[title]\",\"description\":\"[description]\",\"asA\":\"[role]\",\"iWant\":\"[goal]\",\"soThat\":\"[benefit]\",\"components\":[\"[components]\"],\"storyPoint\":[points],\"enhanced\":true,\"enhancedAt\":\"[timestamp]\",\"source\":\"kiro-direct\"}'\n\nThen return this confirmation JSON:\n{\"success\":true,\"action\":\"posted-to-frontend\",\"storyId\":\"[same-id]\",\"timestamp\":\"[timestamp]\"}",
+    "template": "Create a user story for: {{idea}}\n\n{{parentContext}}After generating the story, POST it directly to the frontend:\n\ncurl -X POST {{frontendUrl}}/api/story-created \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"storyId\":\"[generated-id]\",\"title\":\"[title]\",\"description\":\"[description]\",\"asA\":\"[role]\",\"iWant\":\"[goal]\",\"soThat\":\"[benefit]\",\"components\":[\"[components]\"],\"storyPoint\":[points],\"enhanced\":true,\"enhancedAt\":\"[timestamp]\",\"source\":\"kiro-direct\"}'\n\nThen show a notification to the user:\necho \"✅ Story '[title]' created successfully! Please refresh your browser to see the new story.\"\n\nReturn this confirmation JSON:\n{\"success\":true,\"action\":\"posted-to-frontend\",\"storyId\":\"[same-id]\",\"title\":\"[title]\",\"message\":\"Story created - please refresh browser\",\"timestamp\":\"[timestamp]\"}",
     "variables": {
       "idea": "{{input.idea}}",
       "parentContext": "{{#if input.parentId}}Child of: {{parent.title}}\n\n{{/if}}",
-      "frontendUrl": "{{input.frontendUrl || 'http://44.220.45.57:3000'}}"
+      "frontendUrl": "{{input.frontendUrl || 'http://localhost:3000'}}"
     },
     "instructions": [
       "Generate a complete user story with all required fields",
       "Execute the curl command to POST directly to frontend",
+      "Show a clear success message with the story title",
+      "Include instruction to refresh browser in the response",
       "Use the same storyId in both the POST and confirmation response",
       "Replace ALL placeholder values with actual generated content",
-      "Return only the confirmation JSON after posting"
+      "Return the confirmation JSON with user-friendly message"
     ]
   }
 }

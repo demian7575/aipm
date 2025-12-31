@@ -5697,6 +5697,7 @@ export async function createApp() {
         
         // Create story using existing database logic
         const db = await ensureDatabase();
+        let newStoryId;
         
         if (db.isJsonMode) {
           // JSON mode
@@ -5720,13 +5721,7 @@ export async function createApp() {
           db.tables.user_stories.push(newStory);
           db.sequences.user_stories++;
           db.save();
-          
-          sendJson(res, 201, { 
-            status: 'created', 
-            id: newStory.id,
-            storyId: storyId,
-            message: 'Story created successfully from Kiro CLI'
-          });
+          newStoryId = newStory.id;
         } else {
           // SQLite mode
           const statement = db.prepare(`
@@ -5748,17 +5743,45 @@ export async function createApp() {
             new Date().toISOString(),
             new Date().toISOString()
           );
-          
-          sendJson(res, 201, { 
-            status: 'created', 
-            id: result.lastInsertRowid,
-            storyId: storyId,
-            message: 'Story created successfully from Kiro CLI'
-          });
+          newStoryId = result.lastInsertRowid;
         }
+        
+        // Send success response
+        const response = { 
+          status: 'created', 
+          id: newStoryId,
+          storyId: storyId,
+          message: 'Story created successfully from Kiro CLI',
+          title: storyTitle,
+          refresh: true  // Signal frontend to refresh
+        };
+        
+        sendJson(res, 201, response);
+        
+        // Log for debugging
+        console.log('✅ Story created via direct posting:', { id: newStoryId, title: storyTitle });
         
       } catch (error) {
         console.error('Direct story creation error:', error);
+        sendJson(res, 500, { message: error.message });
+      }
+      return;
+    }
+
+    // Frontend refresh trigger endpoint
+    if (pathname === '/api/refresh-stories' && method === 'POST') {
+      try {
+        console.log('🔄 Frontend refresh triggered by Kiro CLI');
+        
+        // Send a simple success response
+        sendJson(res, 200, { 
+          status: 'refresh-triggered',
+          message: 'Frontend should refresh story list',
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (error) {
+        console.error('Refresh trigger error:', error);
         sendJson(res, 500, { message: error.message });
       }
       return;
