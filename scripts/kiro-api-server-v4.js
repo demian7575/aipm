@@ -541,6 +541,8 @@ const server = http.createServer(async (req, res) => {
         // Build simple prompt for AI enhancement
         const prompt = `Create basic user story for: "${idea}${parentContext}"
 
+DO NOT generate acceptance tests, acceptance criteria, tasks, or INVEST analysis. We have separate buttons for those.
+
 Return ONLY this JSON format:
 {"storyId":"story-${Date.now()}","title":"Simple title","description":"Brief description","asA":"user role","iWant":"goal","soThat":"benefit","enhanced":true,"enhancedAt":"${new Date().toISOString()}"}`;
         

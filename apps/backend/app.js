@@ -6449,6 +6449,7 @@ export async function createApp() {
           prompt += `This is a child story of: ${parent.title}\n\n`;
         }
         
+        prompt += `DO NOT generate acceptance tests, acceptance criteria, tasks, or INVEST analysis. We have separate buttons for those.\n\n`;
         prompt += `Return ONLY this JSON format:\n`;
         prompt += `{\n`;
         prompt += `  "title": "Simple title",\n`;
