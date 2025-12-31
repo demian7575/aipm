@@ -5667,15 +5667,11 @@ export async function createApp() {
       return;
     }
 
-    if (pathname === '/api/personal-delegate' && method === 'POST') {
-      await handleCreatePRWithCodeRequest(req, res);
-      return;
-    }
-
-    if (pathname === '/api/personal-delegate/status' && method === 'GET') {
-      await handlePersonalDelegateStatusRequest(req, res, url);
-      return;
-    }
+    // Removed broken endpoints that depend on external services:
+    // - /api/personal-delegate (complex GitHub integration)
+    // - /api/personal-delegate/status (external service dependency)
+    // - /api/codewhisperer-status (external service)
+    // - /api/codewhisperer-rebase (external service)
 
     if (pathname === '/api/run-staging' && method === 'POST') {
       // Staging deployment endpoint - returns 500 for automated tests as expected
@@ -5705,16 +5701,6 @@ export async function createApp() {
     }
 
 
-
-    if (pathname === '/api/codewhisperer-status' && method === 'POST') {
-      await handleCodeWhispererStatusRequest(req, res);
-      return;
-    }
-
-    if (pathname === '/api/codewhisperer-rebase' && method === 'POST') {
-      await handleCodeWhispererRebaseRequest(req, res);
-      return;
-    }
 
     if (pathname === '/' && method === 'GET') {
       sendJson(res, 200, { status: 'ok', message: 'AIPM Backend API' });
