@@ -6449,16 +6449,23 @@ export async function createApp() {
           prompt += `This is a child story of: ${parent.title}\n\n`;
         }
         
-        prompt += `DO NOT generate acceptance tests, acceptance criteria, tasks, or INVEST analysis. We have separate buttons for those.\n\n`;
-        prompt += `STRICTLY follow this EXACT JSON template. Do NOT add any extra fields:\n`;
+        prompt += `First, generate these fields:\n`;
+        prompt += `- title: (simple title)\n`;
+        prompt += `- description: (brief description)\n`;
+        prompt += `- asA: (user role)\n`;
+        prompt += `- iWant: (goal)\n`;
+        prompt += `- soThat: (benefit)\n`;
+        prompt += `- components: (array like ["System"])\n`;
+        prompt += `- storyPoint: (number like 3)\n\n`;
+        prompt += `Then place them into this EXACT template:\n`;
         prompt += `{\n`;
-        prompt += `  "title": "Simple title",\n`;
-        prompt += `  "description": "Brief description",\n`;
-        prompt += `  "asA": "user role",\n`;
-        prompt += `  "iWant": "goal",\n`;
-        prompt += `  "soThat": "benefit",\n`;
-        prompt += `  "components": ["System"],\n`;
-        prompt += `  "storyPoint": 3\n`;
+        prompt += `  "title": "[title]",\n`;
+        prompt += `  "description": "[description]",\n`;
+        prompt += `  "asA": "[asA]",\n`;
+        prompt += `  "iWant": "[iWant]",\n`;
+        prompt += `  "soThat": "[soThat]",\n`;
+        prompt += `  "components": [components],\n`;
+        prompt += `  "storyPoint": [storyPoint]\n`;
         prompt += `}`;
         
         console.log('🤖 Sending prompt to Kiro CLI:', prompt.substring(0, 200) + '...');

@@ -541,11 +541,15 @@ const server = http.createServer(async (req, res) => {
         // Build simple prompt for AI enhancement
         const prompt = `Create basic user story for: "${idea}${parentContext}"
 
-DO NOT generate acceptance tests, acceptance criteria, tasks, or INVEST analysis. We have separate buttons for those.
+First, generate these fields:
+- title: (simple title)
+- description: (brief description)
+- asA: (user role)
+- iWant: (goal)
+- soThat: (benefit)
 
-STRICTLY follow this EXACT JSON template. Do NOT add any extra fields:
-
-{"storyId":"story-${Date.now()}","title":"Simple title","description":"Brief description","asA":"user role","iWant":"goal","soThat":"benefit","enhanced":true,"enhancedAt":"${new Date().toISOString()}"}`;
+Then place them into this EXACT template:
+{"storyId":"story-${Date.now()}","title":"[title]","description":"[description]","asA":"[asA]","iWant":"[iWant]","soThat":"[soThat]","enhanced":true,"enhancedAt":"${new Date().toISOString()}"}`;
         
         // Get AI-enhanced story
         const enhancedStory = await sendToKiro(prompt);
