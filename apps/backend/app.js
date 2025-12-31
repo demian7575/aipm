@@ -5681,6 +5681,49 @@ export async function createApp() {
       return;
     }
 
+    // Direct story creation from Kiro CLI
+    if (pathname === '/api/story-created' && method === 'POST') {
+      try {
+        const payload = await parseJson(req);
+        const { storyId, title, description, asA, iWant, soThat, components, storyPoint, source } = payload;
+        
+        console.log('📨 Direct story creation from Kiro CLI:', storyId);
+        
+        // Create story in database
+        const story = {
+          id: storyId,
+          title: title || 'Untitled Story',
+          description: description || 'No description provided',
+          asA: asA || 'user',
+          iWant: iWant || 'functionality',
+          soThat: soThat || 'goals can be achieved',
+          status: 'Draft',
+          storyPoints: storyPoint || 3,
+          assignee: '',
+          components: Array.isArray(components) ? components : ['System'],
+          parentId: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          source: source || 'kiro-direct'
+        };
+        
+        // Save to database
+        const db = await ensureDatabase();
+        await createStory(db, story);
+        
+        sendJson(res, 201, { 
+          status: 'created', 
+          id: storyId,
+          message: 'Story created successfully from Kiro CLI'
+        });
+        
+      } catch (error) {
+        console.error('Direct story creation error:', error);
+        sendJson(res, 500, { message: error.message });
+      }
+      return;
+    }
+
     if (pathname === '/api/version' && method === 'GET') {
       const { readFile } = await import('fs/promises');
       const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));

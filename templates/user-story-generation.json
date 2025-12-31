@@ -16,6 +16,11 @@
           "type": "string", 
           "description": "Optional parent story ID for child stories"
         },
+        "frontendUrl": {
+          "type": "string",
+          "default": "http://44.220.45.57:3000",
+          "description": "Frontend URL for direct posting"
+        },
         "context": {
           "type": "object",
           "description": "Additional context information"
@@ -25,6 +30,7 @@
     "example": {
       "idea": "I want to add a search feature",
       "parentId": "story-123",
+      "frontendUrl": "http://44.220.45.57:3000",
       "context": {
         "project": "AIPM",
         "priority": "high"
@@ -35,81 +41,56 @@
   "output": {
     "schema": {
       "type": "object",
-      "required": ["storyId", "title", "description", "asA", "iWant", "soThat"],
+      "required": ["success", "action", "storyId", "timestamp"],
       "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Whether the story was successfully posted to frontend"
+        },
+        "action": {
+          "type": "string",
+          "description": "Action performed (posted-to-frontend)"
+        },
         "storyId": {
           "type": "string",
           "description": "Generated unique story ID"
         },
-        "title": {
-          "type": "string",
-          "description": "Concise story title"
-        },
-        "description": {
-          "type": "string", 
-          "description": "Full user story description"
-        },
-        "asA": {
-          "type": "string",
-          "description": "User role (As a...)"
-        },
-        "iWant": {
-          "type": "string",
-          "description": "User goal (I want...)"
-        },
-        "soThat": {
-          "type": "string",
-          "description": "User benefit (So that...)"
-        },
-        "components": {
-          "type": "array",
-          "items": {"type": "string"},
-          "description": "System components involved"
-        },
-        "storyPoint": {
-          "type": "number",
-          "description": "Effort estimation (1-13)"
-        },
-        "enhanced": {
-          "type": "boolean",
-          "description": "Whether AI enhanced the story"
-        },
-        "enhancedAt": {
+        "timestamp": {
           "type": "string",
           "format": "date-time",
-          "description": "Enhancement timestamp"
+          "description": "When the action was completed"
+        },
+        "frontendResponse": {
+          "type": "object",
+          "description": "Optional response from frontend API"
         }
       }
     },
     "example": {
+      "success": true,
+      "action": "posted-to-frontend",
       "storyId": "story-1735632132469",
-      "title": "Add Search Feature",
-      "description": "As a user, I want to search for content so that I can quickly find what I need",
-      "asA": "user",
-      "iWant": "to search for content",
-      "soThat": "I can quickly find what I need",
-      "components": ["Search", "UI"],
-      "storyPoint": 5,
-      "enhanced": true,
-      "enhancedAt": "2025-12-31T05:02:12.469Z"
+      "timestamp": "2025-12-31T05:16:28.517Z",
+      "frontendResponse": {
+        "status": "created",
+        "id": "story-1735632132469"
+      }
     }
   },
 
   "prompt": {
-    "template": "Create a user story for: \"{{idea}}\"\n\n{{parentContext}}\nGenerate ONLY this JSON format:\n{{outputTemplate}}",
+    "template": "Create a user story for: {{idea}}\n\n{{parentContext}}After generating the story, POST it directly to the frontend using this command:\n\ncurl -X POST {{frontendUrl}}/api/story-created \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"storyId\":\"[generated-id]\",\"title\":\"[title]\",\"description\":\"[description]\",\"asA\":\"[role]\",\"iWant\":\"[goal]\",\"soThat\":\"[benefit]\",\"components\":[\"[components]\"],\"storyPoint\":[points],\"enhanced\":true,\"enhancedAt\":\"[timestamp]\",\"source\":\"kiro-direct\"}'\n\nThen return this confirmation JSON:\n{\"success\":true,\"action\":\"posted-to-frontend\",\"storyId\":\"[same-id]\",\"timestamp\":\"[timestamp]\"}",
     "variables": {
       "idea": "{{input.idea}}",
-      "parentContext": "{{#if input.parentId}}This is a child story of: {{parent.title}}\n\n{{/if}}",
-      "outputTemplate": "{\n  \"storyId\": \"story-[timestamp]\",\n  \"title\": \"[concise title]\",\n  \"description\": \"As a [role], I want [goal] so that [benefit]\",\n  \"asA\": \"[user role]\",\n  \"iWant\": \"[specific goal]\",\n  \"soThat\": \"[clear benefit]\",\n  \"components\": [\"[component1]\", \"[component2]\"],\n  \"storyPoint\": [1-13],\n  \"enhanced\": true,\n  \"enhancedAt\": \"[current timestamp]\"\n}"
+      "parentContext": "{{#if input.parentId}}Child of: {{parent.title}}\n\n{{/if}}",
+      "frontendUrl": "{{input.frontendUrl || 'http://44.220.45.57:3000'}}"
     },
     "instructions": [
-      "Replace ALL placeholder values with actual content",
-      "Use realistic story points (1=trivial, 3=small, 5=medium, 8=large, 13=epic)",
-      "Select components from: System, UI, API, Database, Search, Auth, Backend, Frontend",
-      "Write clear, actionable titles",
-      "Follow user story format: 'As a [role], I want [goal] so that [benefit]'",
-      "Generate current timestamp for enhancedAt field",
-      "Return ONLY the JSON, no explanations"
+      "Generate a complete user story with all required fields",
+      "Execute the curl command to POST directly to frontend",
+      "Use the same storyId in both the POST and confirmation response",
+      "Replace ALL placeholder values with actual generated content",
+      "Return only the confirmation JSON after posting"
     ]
   }
 }
