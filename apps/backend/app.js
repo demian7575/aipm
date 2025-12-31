@@ -6449,31 +6449,23 @@ export async function createApp() {
           parent = flattenStories(stories).find((story) => story.id === parentId) ?? null;
         }
         
-        // Build context-aware prompt for Kiro CLI
-        let prompt = `You are a user story expert. Create a detailed user story for: "${idea}"\n\n`;
+        // Build simple prompt for Kiro CLI
+        let prompt = `Create a basic user story for: "${idea}"\n\n`;
         
         if (parent) {
-          prompt += `CONTEXT: This is a child story of "${parent.title}"\n`;
-          prompt += `Parent story: ${parent.description}\n\n`;
+          prompt += `This is a child story of: ${parent.title}\n\n`;
         }
         
-        prompt += `REQUIREMENTS:\n`;
-        prompt += `1. Create a clear, actionable title\n`;
-        prompt += `2. Write a detailed description explaining what needs to be implemented\n`;
-        prompt += `3. Fill out the user story format: "As a [role], I want [goal], So that [benefit]"\n`;
-        prompt += `4. Select relevant components from: System (S/S), WorkModel (WM), DocumentIntelligence (DI), Review & Governance (RG), Orchestration & Engagement (OE), Run & Verify (RV), Traceability & Insight (TI)\n`;
-        prompt += `5. Estimate story points (1-13 scale)\n\n`;
-        prompt += `CRITICAL: You MUST respond with ONLY this exact JSON format, no other text:\n\n`;
+        prompt += `Return ONLY this JSON format:\n`;
         prompt += `{\n`;
-        prompt += `  "title": "Clear actionable title here",\n`;
-        prompt += `  "description": "Detailed implementation description here",\n`;
-        prompt += `  "asA": "specific user role here",\n`;
-        prompt += `  "iWant": "specific goal or capability here",\n`;
-        prompt += `  "soThat": "clear business benefit here",\n`;
-        prompt += `  "components": ["Component1", "Component2"],\n`;
-        prompt += `  "storyPoint": 5\n`;
-        prompt += `}\n\n`;
-        prompt += `Remember: Return ONLY the JSON object above, nothing else.`;
+        prompt += `  "title": "Simple title",\n`;
+        prompt += `  "description": "Brief description",\n`;
+        prompt += `  "asA": "user role",\n`;
+        prompt += `  "iWant": "goal",\n`;
+        prompt += `  "soThat": "benefit",\n`;
+        prompt += `  "components": ["System"],\n`;
+        prompt += `  "storyPoint": 3\n`;
+        prompt += `}`;
         
         console.log('🤖 Sending prompt to Kiro CLI:', prompt.substring(0, 200) + '...');
         

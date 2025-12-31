@@ -538,19 +538,11 @@ const server = http.createServer(async (req, res) => {
           }
         }
         
-        // Build prompt for AI enhancement
-        const prompt = `Generate enhanced user story JSON for: "${idea}${parentContext}"
+        // Build simple prompt for AI enhancement
+        const prompt = `Create basic user story for: "${idea}${parentContext}"
 
-IMPORTANT: Return ONLY a single JSON object on one line, no other text.
-
-Required JSON format:
-{"storyId":"story-${Date.now()}","title":"Enhanced title","description":"Detailed description","asA":"user role","iWant":"specific functionality","soThat":"business value","acceptanceCriteria":["criterion 1","criterion 2","criterion 3"],"enhanced":true,"enhancedAt":"${new Date().toISOString()}"}
-
-Requirements:
-- Use the exact storyId format: story-${Date.now()}
-- Create compelling title and description
-- Generate 3-5 acceptance criteria
-- Return only the JSON object, no markdown, no explanation, no additional text`;
+Return ONLY this JSON format:
+{"storyId":"story-${Date.now()}","title":"Simple title","description":"Brief description","asA":"user role","iWant":"goal","soThat":"benefit","enhanced":true,"enhancedAt":"${new Date().toISOString()}"}`;
         
         // Get AI-enhanced story
         const enhancedStory = await sendToKiro(prompt);
