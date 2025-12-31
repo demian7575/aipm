@@ -6614,18 +6614,6 @@ export async function createApp() {
       return;
     }
 
-    // Legacy endpoint - no longer used with local Kiro workers
-    if (pathname === '/api/kiro-callback' && method === 'POST') {
-      sendJson(res, 200, { success: true, message: 'Legacy endpoint - using local Kiro workers' });
-      return;
-    }
-    
-    // Legacy endpoint - no longer used with local Kiro workers  
-    if (pathname.startsWith('/api/kiro-status/') && method === 'GET') {
-      sendJson(res, 404, { message: 'Legacy endpoint - using local Kiro workers' });
-      return;
-    }
-
     const storyIdMatch = pathname.match(/^\/api\/stories\/(\d+)$/);
     if (storyIdMatch && method === 'GET') {
       const storyId = Number(storyIdMatch[1]);
