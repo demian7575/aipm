@@ -79,20 +79,19 @@
   },
 
   "prompt": {
-    "template": "Create a user story for: {{idea}}\n\n{{parentContext}}After generating the story, POST it directly to the frontend:\n\ncurl -X POST {{frontendUrl}}/api/story-created \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"storyId\":\"[generated-id]\",\"title\":\"[title]\",\"description\":\"[description]\",\"asA\":\"[role]\",\"iWant\":\"[goal]\",\"soThat\":\"[benefit]\",\"components\":[\"[components]\"],\"storyPoint\":[points],\"enhanced\":true,\"enhancedAt\":\"[timestamp]\",\"source\":\"kiro-direct\"}'\n\nThen show a notification to the user:\necho \"✅ Story '[title]' created successfully! Please refresh your browser to see the new story.\"\n\nReturn this confirmation JSON:\n{\"success\":true,\"action\":\"posted-to-frontend\",\"storyId\":\"[same-id]\",\"title\":\"[title]\",\"message\":\"Story created - please refresh browser\",\"timestamp\":\"[timestamp]\"}",
+    "template": "Create a user story for: {{idea}}\n\n{{parentContext}}TASK: Generate story data, post it once, then stop.\n\n1. Generate story fields:\n   - storyId: story-[timestamp]\n   - title: [concise title]\n   - description: As a [role], I want [goal] so that [benefit]\n   - asA, iWant, soThat: [extract from description]\n   - components: [relevant components]\n   - storyPoint: [1-13 based on complexity]\n\n2. Execute this command ONCE:\ncurl -X POST {{frontendUrl}}/api/story-created -H \"Content-Type: application/json\" -d '[JSON with generated data]'\n\n3. Return final result:\n{\"success\":true,\"action\":\"completed\",\"storyId\":\"[generated-id]\",\"title\":\"[generated-title]\",\"message\":\"Story created successfully\"}",
     "variables": {
       "idea": "{{input.idea}}",
       "parentContext": "{{#if input.parentId}}Child of: {{parent.title}}\n\n{{/if}}",
       "frontendUrl": "{{input.frontendUrl || 'http://localhost:3000'}}"
     },
     "instructions": [
-      "Generate a complete user story with all required fields",
-      "Execute the curl command to POST directly to frontend",
-      "Show a clear success message with the story title",
-      "Include instruction to refresh browser in the response",
-      "Use the same storyId in both the POST and confirmation response",
-      "Replace ALL placeholder values with actual generated content",
-      "Return the confirmation JSON with user-friendly message"
+      "Complete this task in ONE execution cycle",
+      "Generate story data, post it once, then return final result",
+      "Do NOT repeat or loop the process",
+      "Use realistic values for all fields",
+      "Execute curl command exactly once",
+      "Return completion confirmation and stop"
     ]
   }
 }
