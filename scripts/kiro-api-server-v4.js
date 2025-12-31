@@ -1140,16 +1140,31 @@ ${new Date().toISOString()}
         // Send to Kiro CLI and wait for completion
         const enhancedResult = await sendToKiro(prompt);
         
-        // Parse the response to extract story data
+        // Extract story data from Kiro CLI response
         let storyData = null;
         try {
-          // Look for JSON in the response
-          const jsonMatch = enhancedResult.match(/\{[^}]*"success"[^}]*\}/);
+          // Clean the response first
+          const cleanResponse = enhancedResult
+            .replace(/\u001B\[[\d;]*[mGKH]/g, '') // Remove ANSI codes
+            .replace(/\u001B\[\?25[lh]/g, '')     // Remove cursor codes
+            .replace(/[\r\n]*[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]\s*Thinking\.\.\.[\r\n]*/g, '') // Remove spinners
+            .trim();
+          
+          // Look for JSON object with storyId
+          const jsonMatch = cleanResponse.match(/\{[^}]*"storyId"[^}]*"source"[^}]*\}/);
           if (jsonMatch) {
             storyData = JSON.parse(jsonMatch[0]);
+            console.log('✅ Extracted story data:', storyData.title);
+          } else {
+            // Try broader JSON match
+            const broadMatch = cleanResponse.match(/\{[^}]*"storyId"[^}]*\}/);
+            if (broadMatch) {
+              storyData = JSON.parse(broadMatch[0]);
+              console.log('✅ Extracted basic story data:', storyData.title);
+            }
           }
         } catch (e) {
-          console.warn('Could not parse Kiro response for story data');
+          console.warn('Could not parse story data from Kiro response:', e.message);
         }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1157,7 +1172,7 @@ ${new Date().toISOString()}
           success: true,
           templateId,
           enhanced: enhancedResult,
-          storyData: storyData, // Include parsed story data
+          storyData: storyData, // Include parsed story data for frontend
           timestamp: new Date().toISOString()
         }));
         

@@ -79,19 +79,19 @@
   },
 
   "prompt": {
-    "template": "Create a user story for: {{idea}}\n\n{{parentContext}}TASK: Generate story data and return it as JSON.\n\n1. Generate story fields:\n   - storyId: story-[timestamp]\n   - title: [concise title]\n   - description: As a [role], I want [goal] so that [benefit]\n   - asA, iWant, soThat: [extract from description]\n   - components: [relevant components]\n   - storyPoint: [1-13 based on complexity]\n\n2. Also post to backend:\ncurl -X POST {{frontendUrl}}/api/story-created -H \"Content-Type: application/json\" -d '[JSON with generated data]'\n\n3. Return the story data as JSON:\n{\"storyId\":\"[generated-id]\",\"title\":\"[title]\",\"description\":\"[description]\",\"asA\":\"[role]\",\"iWant\":\"[goal]\",\"soThat\":\"[benefit]\",\"components\":[\"[components]\"],\"storyPoint\":[points],\"enhanced\":true,\"enhancedAt\":\"[timestamp]\",\"source\":\"kiro-direct\"}",
+    "template": "STRICT TASK: Create user story for '{{idea}}' and return JSON data.\n\n{{parentContext}}REQUIRED STEPS:\n1. Generate story with these exact fields:\n   - storyId: story-[current timestamp]\n   - title: [descriptive title for {{idea}}]\n   - description: As a [role], I want [goal] so that [benefit]\n   - asA: [role from description]\n   - iWant: [goal from description]\n   - soThat: [benefit from description]\n   - components: [\"WorkModel\"] (use valid component)\n   - storyPoint: [1-8 number]\n   - enhanced: true\n   - enhancedAt: [current ISO timestamp]\n   - source: \"kiro-direct\"\n\n2. EXECUTE EXACTLY: curl -X POST {{frontendUrl}}/api/story-created -H \"Content-Type: application/json\" -d '[the JSON from step 1]'\n\n3. RETURN ONLY the JSON from step 1 (no other text)",
     "variables": {
       "idea": "{{input.idea}}",
-      "parentContext": "{{#if input.parentId}}Child of: {{parent.title}}\n\n{{/if}}",
+      "parentContext": "{{#if input.parentId}}Parent: {{parent.title}}\n{{/if}}",
       "frontendUrl": "{{input.frontendUrl || 'http://44.220.45.57:3000'}}"
     },
     "instructions": [
-      "Generate complete story data",
-      "Post to backend AND return the same data",
-      "Return the actual story JSON, not a confirmation message",
-      "Use realistic values for all fields",
-      "Execute curl command and return story data",
-      "Frontend will receive the story data immediately"
+      "Follow steps 1-3 exactly in order",
+      "Do NOT deviate from the format",
+      "Use WorkModel as component (it's valid)",
+      "Return ONLY the JSON object, nothing else",
+      "Execute curl command with the exact JSON",
+      "Do not explain or add commentary"
     ]
   }
 }
