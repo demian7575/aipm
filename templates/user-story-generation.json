@@ -79,7 +79,7 @@
   },
 
   "prompt": {
-    "template": "Create a user story for: {{idea}}\n\nReturn the story data as JSON with these fields: storyId, title, description, asA, iWant, soThat, components, storyPoint, enhanced, enhancedAt, source",
+    "template": "Create a user story for: {{idea}}\n\nReturn JSON in this exact format:\n{\n  \"storyId\": \"story-1735639400000\",\n  \"title\": \"Example Story Title\",\n  \"description\": \"As a user, I want something so that I can achieve a goal\",\n  \"asA\": \"user\",\n  \"iWant\": \"something\",\n  \"soThat\": \"I can achieve a goal\",\n  \"components\": [\"System\"],\n  \"storyPoint\": 5,\n  \"enhanced\": true,\n  \"enhancedAt\": \"2025-12-31T10:00:00.000Z\",\n  \"source\": \"kiro-direct\"\n}",
     "variables": {
       "idea": "{{input.idea}}"
     }
