@@ -254,6 +254,12 @@ function sendToKiroWithStatus(prompt) {
     kiroProcess.stdout.on('data', onData);
     
     console.log('📤 Sending prompt to Kiro CLI (expecting status JSON)');
+    
+    // Log the command to live log file
+    const logFile = '/tmp/kiro-cli-live.log';
+    const timestamp = new Date().toISOString();
+    appendFileSync(logFile, `\n[${timestamp}] COMMAND SENT TO KIRO CLI:\n${prompt}\n--- END COMMAND ---\n\n`);
+    
     kiroProcess.stdin.write(prompt + '\n');
   });
 }
@@ -356,6 +362,12 @@ function sendToKiro(prompt) {
     kiroProcess.stderr.on('data', onData);
     
     console.log('📤 Sending prompt to Kiro CLI');
+    
+    // Log the command to live log file
+    const logFile = '/tmp/kiro-cli-live.log';
+    const timestamp = new Date().toISOString();
+    appendFileSync(logFile, `\n[${timestamp}] COMMAND SENT TO KIRO CLI:\n${prompt}\n--- END COMMAND ---\n\n`);
+    
     kiroProcess.stdin.write(prompt + '\n');
     
     // Fallback timeout handler
