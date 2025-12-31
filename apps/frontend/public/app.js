@@ -6368,19 +6368,37 @@ function openChildStoryModal(parentId) {
     // Start polling for new stories
     const initialStoryCount = state.stories.length;
     let pollInterval;
+    let pollTimeout;
     
     const startPolling = () => {
+      let pollCount = 0;
       pollInterval = setInterval(async () => {
         try {
           await loadStories(false);
           if (state.stories.length > initialStoryCount) {
             clearInterval(pollInterval);
+            clearTimeout(pollTimeout);
             showToast('✨ AI-generated story created!', 'success');
+            return;
+          }
+          
+          // Update progress indicator every minute
+          pollCount++;
+          if (pollCount % 20 === 0) { // Every 60 seconds (20 * 3 seconds)
+            const minutes = Math.floor(pollCount * 3 / 60);
+            generateBtn.textContent = `Generating… (${minutes} min elapsed, up to 30 min total)`;
           }
         } catch (error) {
           console.error('Polling error:', error);
         }
       }, 3000); // Poll every 3 seconds
+      
+      // Stop polling after 35 minutes (longer than main request timeout)
+      pollTimeout = setTimeout(() => {
+        clearInterval(pollInterval);
+        showToast('Story generation may still be in progress. Check back in a few minutes.', 'info');
+        console.log('Polling stopped after 35 minutes');
+      }, 35 * 60 * 1000);
     };
     
     try {
@@ -6463,6 +6481,7 @@ function openChildStoryModal(parentId) {
       showToast(error.message || 'Failed to generate story draft', 'error');
     } finally {
       if (pollInterval) clearInterval(pollInterval);
+      if (pollTimeout) clearTimeout(pollTimeout);
       generateBtn.textContent = restore.text;
       generateBtn.disabled = restore.disabled;
     }
