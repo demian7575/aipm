@@ -5689,33 +5689,73 @@ export async function createApp() {
         
         console.log('📨 Direct story creation from Kiro CLI:', storyId);
         
-        // Create story in database
-        const story = {
-          id: storyId,
-          title: title || 'Untitled Story',
-          description: description || 'No description provided',
-          asA: asA || 'user',
-          iWant: iWant || 'functionality',
-          soThat: soThat || 'goals can be achieved',
-          status: 'Draft',
-          storyPoints: storyPoint || 3,
-          assignee: '',
-          components: Array.isArray(components) ? components : ['System'],
-          parentId: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          source: source || 'kiro-direct'
-        };
+        // Prepare story data similar to regular story creation
+        const storyTitle = title || 'Untitled Story';
+        const storyDescription = description || 'No description provided';
+        const normalizedComponents = Array.isArray(components) ? components : ['System'];
+        const normalizedStoryPoint = normalizeStoryPoint(storyPoint || 3);
         
-        // Save to database
+        // Create story using existing database logic
         const db = await ensureDatabase();
-        await createStory(db, story);
         
-        sendJson(res, 201, { 
-          status: 'created', 
-          id: storyId,
-          message: 'Story created successfully from Kiro CLI'
-        });
+        if (db.isJsonMode) {
+          // JSON mode
+          const newStory = {
+            id: db.sequences.user_stories + 1,
+            title: storyTitle,
+            description: storyDescription,
+            asA: asA || 'user',
+            iWant: iWant || 'functionality',
+            soThat: soThat || 'goals can be achieved',
+            status: 'Draft',
+            storyPoints: normalizedStoryPoint,
+            assignee: '',
+            components: normalizedComponents,
+            parentId: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            source: source || 'kiro-direct'
+          };
+          
+          db.tables.user_stories.push(newStory);
+          db.sequences.user_stories++;
+          db.save();
+          
+          sendJson(res, 201, { 
+            status: 'created', 
+            id: newStory.id,
+            storyId: storyId,
+            message: 'Story created successfully from Kiro CLI'
+          });
+        } else {
+          // SQLite mode
+          const statement = db.prepare(`
+            INSERT INTO user_stories (title, description, as_a, i_want, so_that, status, story_points, assignee, components, parent_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `);
+          
+          const result = statement.run(
+            storyTitle,
+            storyDescription,
+            asA || 'user',
+            iWant || 'functionality', 
+            soThat || 'goals can be achieved',
+            'Draft',
+            normalizedStoryPoint,
+            '',
+            JSON.stringify(normalizedComponents),
+            null,
+            new Date().toISOString(),
+            new Date().toISOString()
+          );
+          
+          sendJson(res, 201, { 
+            status: 'created', 
+            id: result.lastInsertRowid,
+            storyId: storyId,
+            message: 'Story created successfully from Kiro CLI'
+          });
+        }
         
       } catch (error) {
         console.error('Direct story creation error:', error);
