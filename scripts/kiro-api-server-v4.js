@@ -1446,25 +1446,21 @@ ${new Date().toISOString()}
           console.log('🤖 Code generation for PR:', prNumber);
           console.log('📝 Prompt:', prompt?.substring(0, 100) + '...');
           
-          // Call Kiro CLI for code generation - let it do the work directly
+          // Use code generation contract
+          const kiroPrompt = `Read and follow the contract file: ./templates/code-generation.md
+
+Task Title: ${storyTitle || 'Code Generation Task'}
+Objective: ${prompt}
+Constraints: GitHub PR #${prNumber} on branch ${branchName}
+PR Number: ${prNumber}
+Branch Name: ${branchName}
+Language: javascript
+
+Execute the contract instructions exactly as written.`;
+
+          console.log('📤 Calling Kiro CLI with code generation contract...');
+          
           try {
-            const kiroPrompt = `/reset
-
-Generate code for GitHub PR #${prNumber} on branch ${branchName}.
-
-Task: ${storyTitle || 'Code Generation Task'}
-Prompt: ${prompt}
-
-Please:
-1. Check out the existing Pull Request branch.
-2. Rebase the branch onto origin/main to ensure it is up to date.
-3. Analyze the current codebase and the AIPM project context, then generate and modify the required code files to implement this feature.
-4. Commit all changes and push the commit to the corresponding GitHub Pull Request branch.
-
-Return: {"status": "Success", "message": "Code generated and pushed successfully"} or {"status": "Fail", "message": "Error description"}`;
-
-            console.log('📤 Calling Kiro CLI for code generation...');
-            
             // Initialize the response object
             const transformResult = {
               success: true,

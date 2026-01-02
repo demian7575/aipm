@@ -66,6 +66,29 @@ async function testEndpoint(url, description, method = 'GET', data = null) {
     });
 }
 
+async function testCodeGenerationWorkflow(apiUrl) {
+    try {
+        console.log('🔧 Running Code Generation Workflow Tests...');
+        
+        const CodeGenerationTester = require('./test-code-generation-workflow.cjs');
+        const tester = new CodeGenerationTester();
+        
+        const success = await tester.runAllTests();
+        
+        return {
+            success: success,
+            message: success ? 'Code generation workflow tests passed' : 'Code generation workflow tests failed',
+            details: 'Complete develop-test-fix loop verified'
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: `Code generation workflow test error: ${error.message}`,
+            details: error.stack
+        };
+    }
+}
+
 async function testUserStoryGeneration(apiUrl) {
     try {
         const testData = {
@@ -193,6 +216,16 @@ async function testEnvironment(envName, config) {
             console.log(`   ✅ Story Generation: ${storyGenResult.message}`);
         } else {
             console.log(`   ❌ Story Generation: ${storyGenResult.message}`);
+        }
+
+        console.log('\n🔧 Testing Code Generation Workflow...');
+        const codeGenResult = await testCodeGenerationWorkflow(config.api);
+        total++;
+        if (codeGenResult.success) {
+            passed++;
+            console.log(`   ✅ Code Generation: ${codeGenResult.message}`);
+        } else {
+            console.log(`   ❌ Code Generation: ${codeGenResult.message}`);
         }
     }
     
