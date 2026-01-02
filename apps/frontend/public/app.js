@@ -1787,10 +1787,10 @@ function renderCodeWhispererSectionList(container, story) {
     }
 
     // Restore GitHub PR link functionality
-    if (entry.prUrl || entry.html_url || entry.url) {
+    if (entry.prUrl || entry.htmlUrl || entry.html_url || entry.url) {
       const prLink = document.createElement('p');
       prLink.className = 'codewhisperer-pr-link';
-      const url = entry.prUrl || entry.html_url || entry.url;
+      const url = entry.prUrl || entry.htmlUrl || entry.html_url || entry.url;
       const prNumber = entry.number ? `#${entry.number}` : '';
       prLink.innerHTML = `<span>Pull Request:</span> <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">PR ${prNumber}</a>`;
       card.appendChild(prLink);
