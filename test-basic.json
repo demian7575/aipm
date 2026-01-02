@@ -1,0 +1,28 @@
+{
+  "id": "story-1735825960536",
+  "title": "Test Validation",
+  "description": "As a developer, I want to run tests so that I can ensure code quality.",
+  "status": "Draft",
+  "storyPoints": 1,
+  "assignee": "dev@example.com",
+  "components": ["System"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1735825960536-001",
+      "description": "Given test suite, when I run tests, then all tests pass",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1735825960536-001",
+      "description": "Execute test suite",
+      "assignee": "dev@example.com",
+      "status": "Todo"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "createdAt": "2026-01-02T13:52:40.536Z",
+  "updatedAt": "2026-01-02T13:52:40.536Z"
+}
