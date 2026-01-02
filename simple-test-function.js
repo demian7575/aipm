@@ -1,0 +1,3 @@
+function simpleTest() {
+  return true;
+}
