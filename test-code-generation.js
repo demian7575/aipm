@@ -1,8 +1,5 @@
-/**
- * Test Code Generation
- */
 function testCodeGeneration() {
-  return "Test code generated successfully";
+  return "Code generation test complete";
 }
 
-module.exports = { testCodeGeneration };
+export { testCodeGeneration };
