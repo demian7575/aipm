@@ -93,6 +93,11 @@
         // Config loaded, now load app.js
         console.log('Config loaded:', window.CONFIG);
         
+        // Load test code generation UI
+        const testGenScript = document.createElement('script');
+        testGenScript.src = 'test-code-generation-ui.js?v=' + Date.now();
+        document.body.appendChild(testGenScript);
+        
         // Load app.js after config is ready
         const appScript = document.createElement('script');
         appScript.type = 'module';
