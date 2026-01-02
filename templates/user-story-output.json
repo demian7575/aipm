@@ -1,0 +1,21 @@
+{
+  "title": "[Generated Title]",
+  "description": "As a [role], I want [goal] so that [benefit]",
+  "asA": "[role]",
+  "iWant": "[goal]",
+  "soThat": "[benefit]",
+  "components": ["WorkModel"],
+  "storyPoint": 5,
+  "assigneeEmail": "",
+  "parentId": null,
+  "acceptWarnings": true,
+  "acceptanceTests": [
+    {
+      "title": "[Test Title]",
+      "given": "[Given condition]",
+      "when": "[When action]",
+      "then": "[Then outcome]",
+      "status": "Draft"
+    }
+  ]
+}
