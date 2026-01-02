@@ -1,0 +1,28 @@
+{
+  "id": "story-1735826912655",
+  "title": "Test Implementation",
+  "description": "As a QA engineer, I want to create comprehensive tests so that I can validate system behavior.",
+  "status": "Draft",
+  "storyPoints": 3,
+  "assignee": "qa@example.com",
+  "components": ["Test Automation", "System"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1735826912655-001",
+      "description": "Given test requirements, when I execute test suite, then all tests pass with detailed reporting",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1735826912655-001",
+      "description": "Design test scenarios",
+      "assignee": "qa@example.com",
+      "status": "Todo"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "createdAt": "2026-01-02T14:08:32.655Z",
+  "updatedAt": "2026-01-02T14:08:32.655Z"
+}

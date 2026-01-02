@@ -1,0 +1,28 @@
+{
+  "id": "story-1735826883924",
+  "title": "Test Functionality",
+  "description": "As a developer, I want to implement test functionality so that I can ensure system reliability.",
+  "status": "Draft",
+  "storyPoints": 2,
+  "assignee": "dev@example.com",
+  "components": ["System", "Test Automation"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1735826883924-001",
+      "description": "Given test scenarios, when I run tests, then all tests pass successfully",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1735826883924-001",
+      "description": "Create test cases",
+      "assignee": "dev@example.com",
+      "status": "Todo"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "createdAt": "2026-01-02T14:08:03.924Z",
+  "updatedAt": "2026-01-02T14:08:03.924Z"
+}
