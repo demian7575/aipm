@@ -866,9 +866,12 @@ Generate the fields and immediately place them into this JSON template:
           const prEntry = {
             number: prNumber,
             title: prTitle,
+            taskTitle: prTitle,
             body: prBody,
             branchName: branchName,
             url: prUrl,
+            prUrl: prUrl,
+            htmlUrl: prUrl,
             status: 'open',
             createdAt: new Date().toISOString(),
             storyId: storyId,
@@ -986,9 +989,12 @@ ${new Date().toISOString()}
           const prEntry = {
             number: prData.number,
             title: prTitle,
+            taskTitle: prTitle,
             body: prBody,
             branchName: branchName,
             url: prData.html_url,
+            prUrl: prData.html_url,
+            htmlUrl: prData.html_url,
             status: 'open',
             createdAt: new Date().toISOString(),
             storyId: storyId
@@ -1035,9 +1041,12 @@ ${new Date().toISOString()}
           const prEntry = {
             number: prNumber,
             title: prTitle,
+            taskTitle: prTitle,
             body: prBody,
             branchName: branchName,
             url: prUrl,
+            prUrl: prUrl,
+            htmlUrl: prUrl,
             status: 'open',
             createdAt: new Date().toISOString(),
             storyId: storyId,
