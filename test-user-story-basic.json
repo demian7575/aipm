@@ -1,0 +1,16 @@
+{
+  "title": "test",
+  "description": "Basic test functionality to verify system operations",
+  "asA": "developer",
+  "iWant": "to run basic tests",
+  "soThat": "I can verify the system is working correctly",
+  "components": ["System"],
+  "storyPoint": 1,
+  "assigneeEmail": "test@example.com",
+  "status": "Draft",
+  "acceptanceCriteria": [
+    "System responds to basic requests",
+    "Test data can be created and retrieved",
+    "Basic validation works as expected"
+  ]
+}
