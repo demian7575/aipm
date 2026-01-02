@@ -1,0 +1,12 @@
+{
+  "title": "Simple Test Implementation",
+  "description": "As a developer, I want to implement a simple test so that I can validate basic functionality",
+  "asA": "developer",
+  "iWant": "to implement a simple test",
+  "soThat": "I can validate basic functionality",
+  "components": ["WorkModel"],
+  "storyPoint": 5,
+  "assigneeEmail": "",
+  "parentId": null,
+  "acceptWarnings": true
+}

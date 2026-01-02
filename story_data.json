@@ -1,0 +1,48 @@
+{
+  "title": "Auto-generate acceptance tests in Create Child Story modal",
+  "description": "When clicking the Generate button on the Create Child Story modal, the system should automatically create acceptance tests for the user story using AI to analyze story content and generate relevant tests in Given-When-Then format. A new Acceptance Tests field should appear below existing modal content to display and allow editing of generated tests before saving.",
+  "status": "Draft",
+  "priority": "Medium",
+  "storyPoints": 5,
+  "assignee": "developer@example.com",
+  "components": ["Frontend", "Backend", "AI Integration"],
+  "acceptanceTests": [
+    {
+      "title": "Generate button creates AI-powered acceptance tests",
+      "description": "Given a user has filled out story details in the Create Child Story modal\nWhen they click the Generate button\nThen the system should analyze the story content using AI\nAnd display generated acceptance tests in Given-When-Then format below the existing modal content",
+      "status": "Draft"
+    },
+    {
+      "title": "Generated tests are editable before saving",
+      "description": "Given acceptance tests have been generated and displayed in the modal\nWhen the user views the Acceptance Tests field\nThen they should be able to edit the generated test content\nAnd modify tests before saving the story",
+      "status": "Draft"
+    },
+    {
+      "title": "Generate button handles AI service failures gracefully",
+      "description": "Given the AI service is unavailable or returns an error\nWhen the user clicks the Generate button\nThen the system should display an appropriate error message\nAnd allow the user to proceed with manual test creation",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Add Generate button to Create Child Story modal",
+      "assignee": "frontend-dev@example.com",
+      "status": "Todo"
+    },
+    {
+      "title": "Create AI service integration for test generation",
+      "assignee": "backend-dev@example.com", 
+      "status": "Todo"
+    },
+    {
+      "title": "Add Acceptance Tests field to modal UI",
+      "assignee": "frontend-dev@example.com",
+      "status": "Todo"
+    },
+    {
+      "title": "Implement editable test content functionality",
+      "assignee": "frontend-dev@example.com",
+      "status": "Todo"
+    }
+  ]
+}

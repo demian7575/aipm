@@ -1,0 +1,25 @@
+{
+  "title": "Add User Profile Avatar Upload Functionality",
+  "description": "Enable users to upload and manage profile avatar images",
+  "asA": "registered user",
+  "iWant": "to upload a custom avatar image",
+  "soThat": "I can personalize my profile",
+  "components": ["System", "User Interface"],
+  "storyPoint": 5,
+  "assigneeEmail": "",
+  "status": "Draft",
+  "acceptanceTests": [
+    {
+      "title": "Upload Avatar",
+      "given": ["User logged in", "Valid image file"],
+      "when": ["User uploads avatar"],
+      "then": ["Avatar displayed in profile"]
+    },
+    {
+      "title": "Invalid File Rejected",
+      "given": ["User logged in"],
+      "when": ["User uploads invalid file"],
+      "then": ["Error message shown"]
+    }
+  ]
+}

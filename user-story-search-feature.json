@@ -1,0 +1,21 @@
+{
+  "title": "Add search feature",
+  "description": "As a user, I want to search for content within the application so that I can quickly find specific information without manually browsing through all available data.",
+  "asA": "user",
+  "iWant": "to search for content within the application",
+  "soThat": "I can quickly find specific information without manually browsing",
+  "components": ["WorkModel", "Document_Intelligence"],
+  "storyPoint": 5,
+  "assigneeEmail": "",
+  "parentId": null,
+  "acceptWarnings": true,
+  "acceptanceTests": [
+    {
+      "title": "Basic search functionality",
+      "given": ["I am on the application main page"],
+      "when": ["I enter a search term in the search box", "I click the search button"],
+      "then": ["I should see relevant results displayed", "The results should appear within 3 seconds"],
+      "status": "Draft"
+    }
+  ]
+}

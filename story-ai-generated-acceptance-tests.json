@@ -1,0 +1,31 @@
+{
+  "storyId": "story-ai-generated-acceptance-tests",
+  "title": "Generate Button for AI Acceptance Tests in Create Child Story Modal",
+  "description": "Add a Generate button to the Create Child Story modal that triggers AI analysis of the story content to automatically create acceptance tests in Given-When-Then format. The generated tests should appear in an editable Acceptance Tests field below the existing modal content.",
+  "asA": "product manager",
+  "iWant": "to click Generate button in Create Child Story modal and have AI automatically create acceptance tests",
+  "soThat": "I can generate structured acceptance tests without manual writing",
+  "storyPoints": 5,
+  "priority": "High",
+  "assignee": "<developer-email>",
+  "components": ["WorkModel", "Document_Intelligence"],
+  "status": "Draft",
+  "parentId": 1766748854306,
+  "acceptanceCriteria": [
+    {
+      "given": "I am in the Create Child Story modal with story content filled",
+      "when": "I click the Generate button",
+      "then": "AI analyzes the story content and generates relevant acceptance tests in Given-When-Then format"
+    },
+    {
+      "given": "AI has generated acceptance tests",
+      "when": "the generation completes",
+      "then": "a new Acceptance Tests field appears below the existing modal content displaying the generated tests"
+    },
+    {
+      "given": "the Acceptance Tests field is displayed",
+      "when": "I review the generated tests",
+      "then": "I can edit the tests before saving the story"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "templateId": "user-story-generation",
+  "version": "1.0",
+  "description": "Generate user stories from simple ideas",
+  
+  "input": {
+    "schema": {
+      "type": "object",
+      "required": ["idea"],
+      "properties": {
+        "idea": {
+          "type": "string",
+          "description": "User's story idea or requirement"
+        },
+        "parentId": {
+          "type": "string", 
+          "description": "Optional parent story ID for child stories"
+        }
+      }
+    },
+    "example": {
+      "idea": "I want to add a search feature",
+      "parentId": "story-123"
+    }
+  },
+
+  "output": {
+    "schema": {
+      "type": "object",
+      "required": ["storyId", "title", "description", "asA", "iWant", "soThat", "components", "storyPoint", "enhanced", "enhancedAt", "source"],
+      "properties": {
+        "storyId": {"type": "string"},
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "asA": {"type": "string"},
+        "iWant": {"type": "string"},
+        "soThat": {"type": "string"},
+        "components": {"type": "array", "items": {"type": "string"}},
+        "storyPoint": {"type": "integer"},
+        "enhanced": {"type": "boolean"},
+        "enhancedAt": {"type": "string"},
+        "source": {"type": "string"},
+        "parentId": {"type": "string", "nullable": true}
+      }
+    },
+    "example": {
+      "storyId": "story-1735639400000",
+      "title": "Example Story Title",
+      "description": "As a user, I want something so that I can achieve a goal",
+      "asA": "user",
+      "iWant": "something",
+      "soThat": "I can achieve a goal",
+      "components": ["System"],
+      "storyPoint": 5,
+      "enhanced": true,
+      "enhancedAt": "2025-12-31T10:00:00.000Z",
+      "source": "kiro-direct",
+      "parentId": null
+    }
+  },
+
+  "prompt": {
+    "template": "Create user story: {{idea}}{{parentContext}}\n\nReturn JSON: {{output.example}}",
+    "variables": {
+      "idea": "{{input.idea}}",
+      "parentContext": "{{#if input.parentId}} (Parent: {{input.parentId}}){{/if}}",
+      "output.example": "{{output.example}}"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "id": "story-test-login",
+  "title": "Test Login Functionality",
+  "description": "As a QA engineer, I want to test the login functionality with various scenarios so that I can ensure the authentication system works correctly and securely for all user types.",
+  "status": "Draft",
+  "storyPoints": 5,
+  "assignee": "qa-team@example.com",
+  "components": ["System", "Review & Governance"],
+  "acceptanceTests": [
+    {
+      "id": "test-valid-login",
+      "description": "Verify successful login with valid credentials displays user dashboard",
+      "status": "Draft"
+    },
+    {
+      "id": "test-invalid-credentials",
+      "description": "Verify appropriate error message for incorrect username/password combinations",
+      "status": "Draft"
+    },
+    {
+      "id": "test-empty-fields",
+      "description": "Verify validation messages when login fields are empty or incomplete",
+      "status": "Draft"
+    },
+    {
+      "id": "test-session-persistence",
+      "description": "Verify user session remains active across browser refresh and navigation",
+      "status": "Draft"
+    },
+    {
+      "id": "test-logout-functionality",
+      "description": "Verify logout properly terminates session and redirects to login page",
+      "status": "Draft"
+    },
+    {
+      "id": "test-security-measures",
+      "description": "Verify rate limiting and account lockout after multiple failed attempts",
+      "status": "Draft"
+    }
+  ],
+  "children": [],
+  "parentId": null
+}

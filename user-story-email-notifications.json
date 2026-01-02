@@ -1,0 +1,35 @@
+{
+  "title": "Add email notifications",
+  "description": "As a project manager, I want to receive email notifications for story status changes and task assignments so that I can stay informed about project progress without constantly checking the application.",
+  "asA": "project manager",
+  "iWant": "to receive email notifications for story status changes and task assignments",
+  "soThat": "I can stay informed about project progress without constantly checking the application",
+  "components": ["Orchestration_Engagement", "System"],
+  "storyPoint": 8,
+  "assigneeEmail": "",
+  "parentId": null,
+  "acceptWarnings": true,
+  "acceptanceTests": [
+    {
+      "title": "Story status change notifications",
+      "given": ["I am subscribed to notifications for a user story"],
+      "when": ["The story status changes from Draft to Ready"],
+      "then": ["I should receive an email notification within 5 minutes", "The email should contain the story title and new status"],
+      "status": "Draft"
+    },
+    {
+      "title": "Task assignment notifications",
+      "given": ["I am assigned to a new task"],
+      "when": ["A task is created with my email as assignee"],
+      "then": ["I should receive an email notification immediately", "The email should contain task details and due date"],
+      "status": "Draft"
+    },
+    {
+      "title": "Email preferences configuration",
+      "given": ["I am logged into the application"],
+      "when": ["I access the notification settings"],
+      "then": ["I should be able to enable/disable different notification types", "My preferences should be saved and applied to future notifications"],
+      "status": "Draft"
+    }
+  ]
+}

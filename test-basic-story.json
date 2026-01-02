@@ -1,0 +1,11 @@
+{
+  "title": "test",
+  "description": "Basic test user story",
+  "asA": "user",
+  "iWant": "to test the system",
+  "soThat": "I can verify functionality",
+  "components": ["WorkModel"],
+  "storyPoint": 1,
+  "assigneeEmail": "",
+  "status": "Draft"
+}

@@ -1,0 +1,27 @@
+{
+  "title": "Auto-Generate Acceptance Tests from Create Button",
+  "description": "As a product manager, I want the system to automatically generate 1-3 acceptance test cards when I click \"Create Acceptance Test\" so that I can quickly start with structured Given-When-Then templates instead of writing from scratch.",
+  "storyPoints": 3,
+  "priority": "Medium",
+  "assignee": "<developer-email>",
+  "components": ["Frontend", "Modal System"],
+  "status": "Draft",
+  "acceptanceCriteria": [
+    {
+      "given": "I am viewing a user story in the details panel",
+      "when": "I click the \"Create Acceptance Test\" button",
+      "then": "a modal opens with 1-3 pre-generated acceptance test cards"
+    },
+    {
+      "given": "the modal displays acceptance test cards",
+      "when": "I view each card",
+      "then": "each card contains separate text inputs for Given, When, and Then statements"
+    },
+    {
+      "given": "an acceptance test card is displayed",
+      "when": "I interact with the card",
+      "then": "I can edit the Given field, When field, and Then field independently"
+    }
+  ],
+  "notes": "Cards should be visually distinct foam-style components. Pre-populate with placeholder text like 'Given [initial state]', 'When [action]', 'Then [expected outcome]'. Maintain existing modal save/cancel functionality."
+}

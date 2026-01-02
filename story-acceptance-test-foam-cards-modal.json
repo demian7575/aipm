@@ -1,0 +1,26 @@
+{
+  "storyId": "story-acceptance-test-foam-cards-modal",
+  "title": "Generate Acceptance Test Foam Cards in Modal",
+  "description": "When clicking \"Create Acceptance Test\" button, 1-3 acceptance test cards are generated in the modal as a list of foam cards with Given-When-Then text inputs",
+  "asA": "product manager",
+  "iWant": "to click \"Create Acceptance Test\" and see 1-3 acceptance test foam cards generated in a modal",
+  "soThat": "I can quickly create structured acceptance tests with Given-When-Then input fields",
+  "storyPoints": 3,
+  "priority": "Medium",
+  "assignee": "<developer-email>",
+  "components": ["Frontend", "User Interface"],
+  "status": "Draft",
+  "parentId": "user-interface",
+  "acceptanceCriteria": [
+    {
+      "given": "I am viewing a user story in the details panel",
+      "when": "I click the \"Create Acceptance Test\" button",
+      "then": "a modal opens displaying 1-3 acceptance test foam cards as a list"
+    },
+    {
+      "given": "the modal shows acceptance test foam cards",
+      "when": "I examine each foam card",
+      "then": "each card contains separate text input fields for Given, When, and Then"
+    }
+  ]
+}

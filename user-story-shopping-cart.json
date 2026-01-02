@@ -1,0 +1,12 @@
+{
+  "title": "Add Shopping Cart",
+  "description": "As a customer, I want to add items to a shopping cart so that I can review and purchase multiple items together",
+  "asA": "customer",
+  "iWant": "to add items to a shopping cart",
+  "soThat": "I can review and purchase multiple items together",
+  "components": ["WorkModel"],
+  "storyPoint": 5,
+  "assigneeEmail": "",
+  "parentId": null,
+  "acceptWarnings": true
+}

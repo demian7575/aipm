@@ -1,0 +1,19 @@
+{
+  "title": "Add User Profile Avatar Upload Functionality",
+  "description": "Allow users to upload profile pictures to personalize their accounts",
+  "asA": "registered user",
+  "iWant": "to upload a profile avatar image",
+  "soThat": "I can personalize my account appearance",
+  "components": ["User Interface"],
+  "storyPoint": 3,
+  "assigneeEmail": "",
+  "status": "Draft",
+  "acceptanceTests": [
+    {
+      "title": "Upload Avatar Image",
+      "given": ["User is logged in", "User has image file"],
+      "when": ["User uploads avatar from profile page"],
+      "then": ["Avatar displays in user profile", "Upload success message shown"]
+    }
+  ]
+}

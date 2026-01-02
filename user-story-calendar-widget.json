@@ -1,0 +1,42 @@
+{
+  "title": "Add calendar widget to dashboard",
+  "description": "As a project manager, I want a calendar widget on the dashboard so that I can view project deadlines, milestones, and scheduled activities at a glance.",
+  "asA": "project manager",
+  "iWant": "a calendar widget on the dashboard",
+  "soThat": "I can view project deadlines, milestones, and scheduled activities at a glance",
+  "components": ["System", "Orchestration_Engagement"],
+  "storyPoint": 5,
+  "assigneeEmail": "",
+  "parentId": null,
+  "acceptWarnings": true,
+  "acceptanceTests": [
+    {
+      "title": "Calendar widget displays current month",
+      "given": ["I am on the dashboard", "The calendar widget is loaded"],
+      "when": ["I view the calendar widget"],
+      "then": ["I should see the current month displayed", "Today's date should be highlighted"],
+      "status": "Draft"
+    },
+    {
+      "title": "Navigate between months",
+      "given": ["The calendar widget is displayed"],
+      "when": ["I click the previous/next month arrows"],
+      "then": ["The calendar should navigate to the previous/next month", "The month and year should update accordingly"],
+      "status": "Draft"
+    },
+    {
+      "title": "Display project events on calendar",
+      "given": ["There are project deadlines and milestones in the system"],
+      "when": ["I view the calendar widget"],
+      "then": ["Project events should appear on their respective dates", "Different event types should have distinct visual indicators"],
+      "status": "Draft"
+    },
+    {
+      "title": "Click on calendar date to view details",
+      "given": ["There are events on a specific date"],
+      "when": ["I click on that date in the calendar"],
+      "then": ["A popup or panel should show event details for that date", "I should be able to see event titles and times"],
+      "status": "Draft"
+    }
+  ]
+}

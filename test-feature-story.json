@@ -1,0 +1,18 @@
+{
+  "id": "story-test-feature",
+  "title": "Test Feature",
+  "description": "As a user, I want to test the feature so that I can verify it works correctly.",
+  "status": "Draft",
+  "storyPoints": 3,
+  "assignee": "developer@example.com",
+  "components": ["System"],
+  "acceptanceTests": [
+    {
+      "id": "test-1",
+      "description": "Feature responds correctly to valid input",
+      "status": "Draft"
+    }
+  ],
+  "children": [],
+  "parentId": null
+}

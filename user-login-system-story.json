@@ -1,0 +1,38 @@
+{
+  "id": "story-user-login-system",
+  "title": "User Login System",
+  "description": "As a user, I want to securely log into the application using my email and password so that I can access my personalized account and protected features.",
+  "status": "Draft",
+  "storyPoints": 8,
+  "assignee": "auth-team@example.com",
+  "components": ["System", "WorkModel"],
+  "acceptanceTests": [
+    {
+      "id": "login-valid-credentials",
+      "description": "User can successfully log in with valid email and password",
+      "status": "Draft"
+    },
+    {
+      "id": "login-invalid-credentials",
+      "description": "System displays appropriate error message for invalid credentials",
+      "status": "Draft"
+    },
+    {
+      "id": "login-session-creation",
+      "description": "System creates secure session after successful authentication",
+      "status": "Draft"
+    },
+    {
+      "id": "login-rate-limiting",
+      "description": "System prevents brute force attacks with rate limiting after failed attempts",
+      "status": "Draft"
+    },
+    {
+      "id": "login-password-security",
+      "description": "Passwords are securely hashed and never stored in plain text",
+      "status": "Draft"
+    }
+  ],
+  "children": [],
+  "parentId": null
+}

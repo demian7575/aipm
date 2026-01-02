@@ -1,0 +1,31 @@
+{
+  "title": "Add User Profile Avatar Upload Functionality",
+  "description": "Enable users to upload and manage their profile avatar images to personalize their account and improve user experience.",
+  "asA": "registered user",
+  "iWant": "to upload and set a custom avatar image for my profile",
+  "soThat": "I can personalize my account and be easily recognized by other users",
+  "components": ["System", "User Interface"],
+  "storyPoint": 5,
+  "assigneeEmail": "",
+  "status": "Draft",
+  "acceptanceTests": [
+    {
+      "title": "Avatar Upload Success",
+      "given": ["User is logged in", "User navigates to profile settings", "User has a valid image file (JPG, PNG, GIF) under 5MB"],
+      "when": ["User clicks 'Upload Avatar' button", "User selects image file from device", "User confirms upload"],
+      "then": ["Avatar image is uploaded successfully", "New avatar is displayed in profile", "Success message is shown", "Avatar appears in navigation bar"]
+    },
+    {
+      "title": "Invalid File Rejection",
+      "given": ["User is logged in", "User navigates to profile settings"],
+      "when": ["User attempts to upload invalid file (wrong format or too large)"],
+      "then": ["Upload is rejected", "Clear error message explains the issue", "Supported formats and size limits are displayed"]
+    },
+    {
+      "title": "Avatar Removal",
+      "given": ["User is logged in", "User has existing avatar"],
+      "when": ["User clicks 'Remove Avatar' button", "User confirms removal"],
+      "then": ["Avatar is removed from profile", "Default avatar placeholder is shown", "Confirmation message is displayed"]
+    }
+  ]
+}

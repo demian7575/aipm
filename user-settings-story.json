@@ -1,0 +1,47 @@
+{
+  "id": "story-user-settings",
+  "title": "Add user settings",
+  "description": "As a user, I want to access and modify my personal settings so that I can customize my experience and preferences.",
+  "status": "Draft",
+  "storyPoints": 5,
+  "assignee": "developer@example.com",
+  "components": ["System"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1",
+      "description": "User can access settings page from main navigation",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-2", 
+      "description": "User can update profile information (name, email)",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-3",
+      "description": "User can change password with validation",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-4",
+      "description": "Settings are persisted and restored on login",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "description": "Create settings page UI",
+      "assignee": "frontend-dev@example.com",
+      "status": "Todo"
+    },
+    {
+      "id": "task-2",
+      "description": "Implement settings API endpoints",
+      "assignee": "backend-dev@example.com", 
+      "status": "Todo"
+    }
+  ],
+  "parentId": null,
+  "children": []
+}
