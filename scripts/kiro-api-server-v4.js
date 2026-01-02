@@ -1815,17 +1815,19 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         
         console.log('🔧 Code generation request for PR:', prNumber);
         
-        // Use code generation contract
+        // Use code generation contract with complete YAML input
         const kiroPrompt = `Read and follow the contract file: ./templates/code-generation.md
 
-Task Title: Code Generation for Story ${storyId}
-Objective: ${prompt}
-Constraints: GitHub PR #${prNumber} on branch ${originalBranch}
-PR Number: ${prNumber}
-Branch Name: ${originalBranch}
-Language: javascript
+COMPLETE INPUT DATA:
 
-Execute the contract instructions exactly as written.`;
+taskTitle: Code Generation for Story ${storyId}
+objective: ${prompt}
+constraints: GitHub PR #${prNumber} on branch ${originalBranch}
+prNumber: ${prNumber}
+branchName: ${originalBranch}
+language: javascript
+
+EXECUTE WORKFLOW IMMEDIATELY - All required parameters provided above.`;
 
         console.log('📤 Calling Kiro CLI with code generation contract...');
         
