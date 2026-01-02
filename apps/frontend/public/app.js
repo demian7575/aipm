@@ -1933,19 +1933,22 @@ function renderCodeWhispererSectionList(container, story) {
           })
         });
 
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response ok:', response.ok);
+
         if (response.ok) {
           const result = await response.json();
           console.log('✅ Generation result:', result);
           
           if (result.success) {
-            showToast(`Code generated on branch: ${result.generationBranch}`, 'success');
+            showToast(`Code generation started for PR #${result.prNumber}`, 'success');
           } else {
             showToast('Code generation failed', 'error');
           }
         } else {
-          const error = await response.text();
-          console.error('❌ HTTP error:', error);
-          showToast('Code generation failed', 'error');
+          const errorText = await response.text();
+          console.error('❌ HTTP error:', response.status, errorText);
+          showToast(`Code generation failed: ${response.status}`, 'error');
         }
       } catch (error) {
         console.error('❌ Exception during generation:', error);
