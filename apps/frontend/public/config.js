@@ -1,14 +1,12 @@
-// Template config - DO NOT MODIFY
-// Use config-prod.js or config-dev.js for environment-specific settings
 window.CONFIG = {
-  API_BASE_URL: 'TEMPLATE_PLACEHOLDER',
-  apiEndpoint: 'TEMPLATE_PLACEHOLDER',
-  EC2_TERMINAL_URL: 'TEMPLATE_PLACEHOLDER',
-  ENVIRONMENT: 'TEMPLATE_PLACEHOLDER',
-  environment: 'TEMPLATE_PLACEHOLDER',
-  stage: 'TEMPLATE_PLACEHOLDER',
+  API_BASE_URL: 'http://44.220.45.57',
+  apiEndpoint: 'http://44.220.45.57',
+  EC2_TERMINAL_URL: 'ws://44.220.45.57:8080',
+  ENVIRONMENT: 'production',
+  environment: 'production',
+  stage: 'prod',
   region: 'us-east-1',
-  storiesTable: 'TEMPLATE_PLACEHOLDER',
-  acceptanceTestsTable: 'TEMPLATE_PLACEHOLDER',
+  storiesTable: 'aipm-backend-prod-stories',
+  acceptanceTestsTable: 'aipm-backend-prod-acceptance-tests',
   DEBUG: false
 };

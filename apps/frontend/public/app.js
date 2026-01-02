@@ -2,8 +2,11 @@
 // Simplified architecture - removed Worker, using API server internal queue only
 
 function getApiBaseUrl() {
-  console.log('getApiBaseUrl - window.CONFIG:', window.CONFIG);
-  const baseUrl = (window.CONFIG?.API_BASE_URL || '').replace(/\/$/, '');
+  if (!window.CONFIG?.API_BASE_URL) {
+    console.error('❌ FATAL: window.CONFIG.API_BASE_URL is required');
+    throw new Error('API_BASE_URL not configured');
+  }
+  const baseUrl = window.CONFIG.API_BASE_URL.replace(/\/$/, '');
   console.log('getApiBaseUrl - returning:', baseUrl);
   return baseUrl;
 }
@@ -1030,6 +1033,8 @@ function loadStoriesFromLocal() {
     }
   } catch (error) {
     console.error('Failed to load stories from local storage', error);
+    // Clear corrupted localStorage data
+    localStorage.removeItem(STORAGE_KEYS.stories);
   }
   console.log('No valid local stories data found');
   return false;
@@ -3221,11 +3226,17 @@ function setupNodeInteraction(group, node) {
   function onMouseMove(event) {
     if (!dragging && state.autoLayout) {
       seedManualPositionsFromAutoLayout();
-      state.autoLayout = false;
     }
     dragging = true;
     const dx = event.clientX - startX;
     const dy = event.clientY - startY;
+    
+    // Only switch to manual mode if user actually moved the story
+    if ((Math.abs(dx) > 5 || Math.abs(dy) > 5) && state.autoLayout) {
+      state.autoLayout = false;
+      syncAutoLayoutControls();
+    }
+    
     state.manualPositions[node.id] = { x: originX + dx, y: originY + dy };
     renderMindmap();
   }
@@ -6310,6 +6321,19 @@ function openChildStoryModal(parentId) {
         </tr>
       </tbody>
     </table>
+    
+    <div class="acceptance-tests-section" id="child-acceptance-tests">
+      <h4>Acceptance Tests</h4>
+      <div class="acceptance-tests-list" id="child-acceptance-tests-list">
+        <div class="acceptance-test-item">
+          <label>Test Title<input type="text" id="child-test-title-1" placeholder="Enter test title"></label>
+          <label>Given<textarea id="child-test-given-1" rows="2" placeholder="Given condition"></textarea></label>
+          <label>When<textarea id="child-test-when-1" rows="2" placeholder="When action"></textarea></label>
+          <label>Then<textarea id="child-test-then-1" rows="2" placeholder="Then expected result"></textarea></label>
+        </div>
+      </div>
+      <button type="button" class="secondary" id="child-add-test-btn">Add Another Test</button>
+    </div>
   `;
 
   let childComponents = [];
@@ -6318,6 +6342,34 @@ function openChildStoryModal(parentId) {
   const ideaInput = container.querySelector('#child-idea');
   const generateBtn = container.querySelector('#child-generate-btn');
   const titleInput = container.querySelector('#child-title');
+  const addTestBtn = container.querySelector('#child-add-test-btn');
+  
+  let testCounter = 1;
+
+  // Add test functionality
+  const addNewTest = () => {
+    testCounter++;
+    const testsList = container.querySelector('#child-acceptance-tests-list');
+    const newTest = document.createElement('div');
+    newTest.className = 'acceptance-test-item';
+    newTest.innerHTML = `
+      <label>Test Title<input type="text" id="child-test-title-${testCounter}" placeholder="Enter test title"></label>
+      <label>Given<textarea id="child-test-given-${testCounter}" rows="2" placeholder="Given condition"></textarea></label>
+      <label>When<textarea id="child-test-when-${testCounter}" rows="2" placeholder="When action"></textarea></label>
+      <label>Then<textarea id="child-test-then-${testCounter}" rows="2" placeholder="Then expected result"></textarea></label>
+      <button type="button" class="danger remove-test-btn">Remove Test</button>
+    `;
+    testsList.appendChild(newTest);
+    
+    // Add remove functionality
+    newTest.querySelector('.remove-test-btn').addEventListener('click', () => {
+      newTest.remove();
+    });
+  };
+
+  if (addTestBtn) {
+    addTestBtn.addEventListener('click', addNewTest);
+  }
 
   // Auto-resize title textarea
   const autoResizeTitle = () => {
@@ -6365,123 +6417,178 @@ function openChildStoryModal(parentId) {
     generateBtn.textContent = 'Generating…';
     generateBtn.disabled = true;
     
-    // Start polling for new stories
-    const initialStoryCount = state.stories.length;
-    let pollInterval;
-    let pollTimeout;
-    
-    const startPolling = () => {
+    try {
+      // Start generation and wait for completion
+      const apiBaseUrl = window.CONFIG.apiEndpoint;
+      
+      // Start polling for new stories
+      const initialStoryCount = state.stories.length;
       let pollCount = 0;
-      pollInterval = setInterval(async () => {
+      let newStory = null;
+      
+      // Generate draft data only (no database save)
+      fetch(`${apiBaseUrl}/api/generate-draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          templateId: 'user-story-generation',
+          feature_description: idea,
+          parentId: String(parentId)
+        })
+      }).then(async response => {
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.draft) {
+            // Use the actual generated story data and populate the form
+            const draftData = result.draft;
+            
+            // Populate form fields
+            const titleInput = container.querySelector('#child-title');
+            const pointInput = container.querySelector('#child-point');
+            const descriptionInput = container.querySelector('#child-description');
+            const asADisplay = container.querySelector('#child-asa-display');
+            const iWantDisplay = container.querySelector('#child-iwant-display');
+            const soThatDisplay = container.querySelector('#child-sothat-display');
+
+            if (titleInput) titleInput.value = draftData.title || '';
+            if (pointInput) pointInput.value = draftData.storyPoint || '';
+            if (descriptionInput) descriptionInput.value = draftData.description || '';
+            if (asADisplay) asADisplay.value = draftData.asA || '';
+            if (iWantDisplay) iWantDisplay.value = draftData.iWant || '';
+            if (soThatDisplay) soThatDisplay.value = draftData.soThat || '';
+            
+            // Update components
+            if (Array.isArray(draftData.components)) {
+              childComponents = normalizeComponentSelection(draftData.components);
+              refreshChildComponents();
+            }
+            
+            // Display acceptance tests in manual input fields
+            if (draftData.acceptanceTests && draftData.acceptanceTests.length > 0) {
+              const testsList = container.querySelector('#child-acceptance-tests-list');
+              
+              // Clear existing tests except the first one
+              const existingTests = testsList.querySelectorAll('.acceptance-test-item');
+              for (let i = 1; i < existingTests.length; i++) {
+                existingTests[i].remove();
+              }
+              
+              // Populate tests
+              draftData.acceptanceTests.forEach((test, index) => {
+                if (index === 0) {
+                  // Populate first test
+                  const titleField = container.querySelector('#child-test-title-1');
+                  const givenField = container.querySelector('#child-test-given-1');
+                  const whenField = container.querySelector('#child-test-when-1');
+                  const thenField = container.querySelector('#child-test-then-1');
+                  
+                  if (titleField) titleField.value = test.title || '';
+                  if (givenField) givenField.value = test.given || '';
+                  if (whenField) whenField.value = test.when || '';
+                  if (thenField) thenField.value = test.then || '';
+                } else {
+                  // Add additional tests
+                  addNewTest();
+                  const titleField = container.querySelector(`#child-test-title-${testCounter}`);
+                  const givenField = container.querySelector(`#child-test-given-${testCounter}`);
+                  const whenField = container.querySelector(`#child-test-when-${testCounter}`);
+                  const thenField = container.querySelector(`#child-test-then-${testCounter}`);
+                  
+                  if (titleField) titleField.value = test.title || '';
+                  if (givenField) givenField.value = test.given || '';
+                  if (whenField) whenField.value = test.when || '';
+                  if (thenField) thenField.value = test.then || '';
+                }
+              });
+              
+              showToast(`✨ Story draft generated with ${draftData.acceptanceTests.length} acceptance test(s)! Review and click Create Story to save.`, 'success');
+            } else {
+              showToast('✨ Story draft generated! Review and click Create Story to save.', 'success');
+            }
+          }
+        } else {
+          throw new Error('Draft generation failed');
+        }
+      }).catch(error => {
+        console.error('Draft generation failed:', error);
+        showToast('Draft generation failed. Please fill manually.', 'error');
+      }).finally(() => {
+        generateBtn.textContent = restore.text;
+        generateBtn.disabled = restore.disabled;
+      });
+      
+      // Poll for new stories and update modal when found
+      const pollInterval = setInterval(async () => {
         try {
           await loadStories(false);
+          
+          // Check if new story was created
           if (state.stories.length > initialStoryCount) {
+            // Find the newest story (likely the generated one)
+            const sortedStories = [...state.stories].sort((a, b) => 
+              new Date(b.createdAt) - new Date(a.createdAt)
+            );
+            newStory = sortedStories[0];
+            
+            // Update modal fields with generated story
+            const titleInput = container.querySelector('#child-title');
+            const pointInput = container.querySelector('#child-point');
+            const assigneeInput = container.querySelector('#child-assignee');
+            const descriptionInput = container.querySelector('#child-description');
+            const asADisplay = container.querySelector('#child-asa-display');
+            const iWantDisplay = container.querySelector('#child-iwant-display');
+            const soThatDisplay = container.querySelector('#child-sothat-display');
+
+            if (titleInput) titleInput.value = newStory.title || '';
+            autoResizeTitle();
+            if (pointInput) pointInput.value = newStory.storyPoint != null ? newStory.storyPoint : '';
+            if (assigneeInput) assigneeInput.value = newStory.assigneeEmail || '';
+            if (descriptionInput) descriptionInput.value = newStory.description || '';
+            if (asADisplay) {
+              asADisplay.value = newStory.asA || '';
+              asADisplay.style.height = 'auto';
+              asADisplay.style.height = asADisplay.scrollHeight + 'px';
+            }
+            if (iWantDisplay) {
+              iWantDisplay.value = newStory.iWant || '';
+              iWantDisplay.style.height = 'auto';
+              iWantDisplay.style.height = iWantDisplay.scrollHeight + 'px';
+            }
+            if (soThatDisplay) {
+              soThatDisplay.value = newStory.soThat || '';
+              soThatDisplay.style.height = 'auto';
+              soThatDisplay.style.height = soThatDisplay.scrollHeight + 'px';
+            }
+
+            if (Array.isArray(newStory.components)) {
+              childComponents = normalizeComponentSelection(newStory.components);
+              refreshChildComponents();
+            }
+            
             clearInterval(pollInterval);
-            clearTimeout(pollTimeout);
-            showToast('✨ AI-generated story created!', 'success');
+            showToast('✨ AI-generated story loaded in modal!', 'success');
             return;
           }
           
-          // Update progress indicator every minute
+          // Show progress updates every 10 seconds
           pollCount++;
-          if (pollCount % 20 === 0) { // Every 60 seconds (20 * 3 seconds)
-            const minutes = Math.floor(pollCount * 3 / 60);
-            generateBtn.textContent = `Generating… (${minutes} min elapsed, up to 30 min total)`;
+          if (pollCount % 4 === 0) { // Every 10 seconds (4 * 3 seconds = 12 seconds)
+            const seconds = pollCount * 3;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes > 0) {
+              generateBtn.textContent = `Generating… (${minutes}m ${seconds % 60}s elapsed)`;
+            } else {
+              generateBtn.textContent = `Generating… (${seconds}s elapsed)`;
+            }
           }
         } catch (error) {
           console.error('Polling error:', error);
         }
       }, 3000); // Poll every 3 seconds
       
-      // Stop polling after 35 minutes (longer than main request timeout)
-      pollTimeout = setTimeout(() => {
-        clearInterval(pollInterval);
-        showToast('Story generation may still be in progress. Check back in a few minutes.', 'info');
-        console.log('Polling stopped after 35 minutes');
-      }, 35 * 60 * 1000);
-    };
-    
-    try {
-      // Show progress indicator
-      generateBtn.textContent = 'Generating… (this may take up to 30 minutes)';
-      startPolling();
-      
-      // Call Kiro API directly for story enhancement with longer timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1800000); // 30 minute timeout
-      
-      const apiBaseUrl = window.CONFIG?.API_BASE_URL || window.CONFIG?.apiEndpoint || '';
-      const response = await fetch(`${apiBaseUrl}/api/stories/draft`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          idea: idea,
-          parentId: parentId
-        }),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        // If we get a timeout or server error, provide helpful message
-        if (response.status === 500 || response.status === 504) {
-          throw new Error(`Story generation is taking longer than expected. The request may still be processing in the background. You can try cleaning up the queue and retrying.`);
-        }
-        throw new Error(`Kiro API error: ${response.status}`);
-      }
-      
-      const draft = await response.json();
-      if (draft && typeof draft === 'object') {
-        const titleInput = container.querySelector('#child-title');
-        const pointInput = container.querySelector('#child-point');
-        const assigneeInput = container.querySelector('#child-assignee');
-        const descriptionInput = container.querySelector('#child-description');
-        const asADisplay = container.querySelector('#child-asa-display');
-        const iWantDisplay = container.querySelector('#child-iwant-display');
-        const soThatDisplay = container.querySelector('#child-sothat-display');
-
-        if (titleInput) titleInput.value = draft.title || '';
-        autoResizeTitle();
-        if (pointInput) pointInput.value = draft.storyPoint != null ? draft.storyPoint : '';
-        if (assigneeInput) assigneeInput.value = draft.assigneeEmail || '';
-        if (descriptionInput) descriptionInput.value = draft.description || '';
-        if (asADisplay) {
-          asADisplay.value = draft.asA || '';
-          asADisplay.style.height = 'auto';
-          asADisplay.style.height = asADisplay.scrollHeight + 'px';
-        }
-        if (iWantDisplay) {
-          iWantDisplay.value = draft.iWant || '';
-          iWantDisplay.style.height = 'auto';
-          iWantDisplay.style.height = iWantDisplay.scrollHeight + 'px';
-        }
-        if (soThatDisplay) {
-          soThatDisplay.value = draft.soThat || '';
-          soThatDisplay.style.height = 'auto';
-          soThatDisplay.style.height = soThatDisplay.scrollHeight + 'px';
-        }
-
-        if (Array.isArray(draft.components)) {
-          childComponents = normalizeComponentSelection(draft.components);
-          refreshChildComponents();
-        }
-        
-        // Check if this is an enhanced story (from Kiro API)
-        if (draft.enhanced || draft.source === 'kiro-enhanced' || draft.title) {
-          showToast('✨ AI-enhanced story ready!', 'success');
-        } else {
-          showToast('Draft story generated', 'success');
-        }
-      }
     } catch (error) {
-      console.error('Story draft generation failed', error);
-      showToast(error.message || 'Failed to generate story draft', 'error');
-    } finally {
-      if (pollInterval) clearInterval(pollInterval);
-      if (pollTimeout) clearTimeout(pollTimeout);
+      console.error('Failed to start story generation:', error);
+      showToast('Failed to start story generation', 'error');
       generateBtn.textContent = restore.text;
       generateBtn.disabled = restore.disabled;
     }
@@ -6500,6 +6607,37 @@ function openChildStoryModal(parentId) {
             showToast('Title is required', 'error');
             return false;
           }
+          
+          // Collect acceptance tests from manual input fields
+          const acceptanceTests = [];
+          const testItems = container.querySelectorAll('.acceptance-test-item');
+          testItems.forEach((item, index) => {
+            const titleField = item.querySelector(`input[id*="test-title"]`);
+            const givenField = item.querySelector(`textarea[id*="test-given"]`);
+            const whenField = item.querySelector(`textarea[id*="test-when"]`);
+            const thenField = item.querySelector(`textarea[id*="test-then"]`);
+            
+            const testTitle = titleField?.value.trim();
+            const given = givenField?.value.trim();
+            const when = whenField?.value.trim();
+            const then = thenField?.value.trim();
+            
+            if (testTitle && given && when && then) {
+              acceptanceTests.push({
+                title: testTitle,
+                given,
+                when,
+                then,
+                status: 'Draft'
+              });
+            }
+          });
+
+          if (acceptanceTests.length === 0) {
+            showToast('At least one complete acceptance test is required', 'error');
+            return false;
+          }
+          
           const storyPointResult = parseStoryPointInput(
             container.querySelector('#child-point').value
           );
@@ -6516,15 +6654,44 @@ function openChildStoryModal(parentId) {
             asA: container.querySelector('#child-asa-display').value.trim(),
             iWant: container.querySelector('#child-iwant-display').value.trim(),
             soThat: container.querySelector('#child-sothat-display').value.trim(),
-            components: childComponents,
+            components: childComponents
           };
           try {
-            const created = await createStory(payload);
-            if (created === null) {
-              return false;
+            const response = await fetch(resolveApiUrl('/api/stories'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(`Failed to create child story: ${response.statusText}`);
             }
-            await loadStories();
-            showToast('Child story created', 'success');
+            
+            // Story created successfully, now create acceptance tests
+            const storyId = result.id;
+            const testCreationPromises = acceptanceTests.map(test => 
+              fetch(resolveApiUrl(`/api/stories/${storyId}/tests`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: test.title,
+                  given: [test.given],
+                  when: [test.when], 
+                  then: [test.then],
+                  status: test.status,
+                  acceptWarnings: true
+                })
+              })
+            );
+            
+            // Wait for all acceptance tests to be created
+            await Promise.all(testCreationPromises);
+            
+            showToast('Child story created successfully with acceptance tests!', 'success');
+            await loadStories(); // Refresh stories list
+            return true; // Close modal
           } catch (error) {
             showToast(error.message || 'Failed to create story', 'error');
             return false;
@@ -7845,7 +8012,8 @@ initialize();
 // Global function to clean up Kiro API queue (accessible from browser console)
 window.cleanupKiroQueue = async function() {
   try {
-    const response = await fetch('http://44.220.45.57:8081/kiro/v3/queue/cleanup', {
+    const apiBaseUrl = window.CONFIG?.API_BASE_URL || window.CONFIG?.apiEndpoint || '';
+    const response = await fetch(`${apiBaseUrl}:8081/kiro/v3/queue/cleanup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });

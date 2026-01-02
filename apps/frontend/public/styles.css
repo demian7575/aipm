@@ -1750,6 +1750,67 @@ dialog[data-size='content'] .modal-shell {
   gap: 0.35rem;
 }
 
+.acceptance-tests-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.acceptance-tests-section h4 {
+  margin: 0 0 0.75rem 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.acceptance-test-item {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+}
+
+.acceptance-test-item:last-child {
+  margin-bottom: 0;
+}
+
+.acceptance-test-item h5 {
+  margin: 0 0 0.5rem 0;
+  color: #2c5aa0;
+  font-size: 0.9rem;
+}
+
+.acceptance-test-item p {
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.acceptance-test-item label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.acceptance-test-item input,
+.acceptance-test-item textarea {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 0.85rem;
+}
+
+.acceptance-test-item .remove-test-btn {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
 .codewhisperer-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

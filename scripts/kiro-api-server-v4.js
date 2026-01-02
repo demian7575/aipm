@@ -111,6 +111,7 @@ const __dirname = dirname(__filename);
 const client = new DynamoDBClient({ region: 'us-east-1' });
 const dynamodb = DynamoDBDocumentClient.from(client);
 const STORIES_TABLE = 'aipm-backend-prod-stories';
+const ACCEPTANCE_TESTS_TABLE = 'aipm-backend-prod-acceptance-tests';
 
 // Load contracts
 const CONTRACTS = JSON.parse(
@@ -123,6 +124,8 @@ console.log('📋 Loaded contracts:', Object.keys(CONTRACTS));
 let kiroProcess = null;
 let lastKiroResponse = Date.now();
 let kiroHealthCheckInterval = null;
+let kiroCommandQueue = [];
+let kiroProcessing = false;
 
 function startKiroProcess() {
   if (kiroProcess) return;
@@ -264,7 +267,34 @@ function sendToKiroWithStatus(prompt) {
   });
 }
 
+async function processKiroQueue() {
+  if (kiroProcessing || kiroCommandQueue.length === 0) {
+    return;
+  }
+  
+  kiroProcessing = true;
+  const { prompt, resolve, reject } = kiroCommandQueue.shift();
+  
+  try {
+    const result = await sendToKiroInternal(prompt);
+    resolve(result);
+  } catch (error) {
+    reject(error);
+  } finally {
+    kiroProcessing = false;
+    // Process next command in queue
+    setTimeout(processKiroQueue, 100);
+  }
+}
+
 function sendToKiro(prompt) {
+  return new Promise((resolve, reject) => {
+    kiroCommandQueue.push({ prompt, resolve, reject });
+    processKiroQueue();
+  });
+}
+
+function sendToKiroInternal(prompt) {
   return new Promise((resolve, reject) => {
     if (!kiroProcess) {
       reject(new Error('Kiro CLI process not available'));
@@ -391,6 +421,25 @@ async function getStories() {
   
   const stories = Items || [];
   
+  // Fetch acceptance tests for all stories
+  const { Items: tests } = await dynamodb.send(new ScanCommand({
+    TableName: ACCEPTANCE_TESTS_TABLE
+  }));
+  
+  // Group tests by storyId
+  const testsByStory = {};
+  (tests || []).forEach(test => {
+    if (!testsByStory[test.storyId]) {
+      testsByStory[test.storyId] = [];
+    }
+    testsByStory[test.storyId].push(test);
+  });
+  
+  // Add acceptance tests to each story
+  stories.forEach(story => {
+    story.acceptanceTests = testsByStory[story.id] || [];
+  });
+  
   // Build hierarchical structure
   return buildHierarchy(stories);
 }
@@ -503,6 +552,74 @@ const server = http.createServer(async (req, res) => {
       } catch (error) {
         console.error('❌ Code generation status error:', error.message);
         res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
+  // Draft response endpoint - receives draft data from KIRO CLI
+  if (url.pathname === '/api/draft-response' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const draftData = JSON.parse(body);
+        // Store draft data temporarily (could use in-memory store or database)
+        global.latestDraft = { success: true, draft: draftData, timestamp: Date.now() };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ received: true }));
+      } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
+  // Generate draft endpoint (for frontend Generate button)
+  if (url.pathname === '/api/generate-draft' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { feature_description = 'user login system', parentId = null } = JSON.parse(body);
+        
+        // Template System: API gives KIRO CLI the filename to read
+        const prompt = `Read and follow the template file: ./templates/user-story-generation.md
+
+Feature description: "${feature_description}"
+Parent ID: ${parentId}
+
+Execute the template instructions exactly as written.`;
+        
+        // Clear any existing draft data
+        global.latestDraft = null;
+        
+        // Execute KIRO CLI and wait for completion
+        const result = await sendToKiro(prompt);
+        
+        // Give KIRO CLI time to post the draft data (it takes ~6-8 seconds)
+        await new Promise(resolve => setTimeout(resolve, 8000));
+        
+        // Check if we received draft data
+        if (global.latestDraft && (Date.now() - global.latestDraft.timestamp) < 30000) {
+          const draftResponse = global.latestDraft;
+          global.latestDraft = null; // Clear after use
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(draftResponse));
+          return;
+        }
+        
+        // Fallback - no draft received
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'No draft data received from KIRO'
+        }));
+        
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
     });
@@ -1099,52 +1216,86 @@ ${new Date().toISOString()}
       try {
         const { templateId = 'user-story-generation', input, context = {} } = JSON.parse(body);
         
-        // Load template
-        const templatePath = `./templates/${templateId}.json`;
+        // Load template (try .md first, then .json)
+        let templatePath = `./templates/${templateId}.md`;
         let template;
+        let isMarkdownTemplate = false;
+        
         try {
           const templateContent = readFileSync(templatePath, 'utf8');
-          template = JSON.parse(templateContent);
+          // For markdown templates, create a simple structure
+          template = {
+            templateId,
+            prompt: {
+              template: templateContent,
+              variables: {
+                inputJson: JSON.stringify(input, null, 2)
+              }
+            }
+          };
+          isMarkdownTemplate = true;
         } catch (error) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `Template not found: ${templateId}` }));
-          return;
-        }
-
-        // Validate input
-        const required = template.input.schema.required || [];
-        for (const field of required) {
-          if (!(field in input)) {
+          // Fallback to JSON template
+          templatePath = `./templates/${templateId}.json`;
+          try {
+            const templateContent = readFileSync(templatePath, 'utf8');
+            template = JSON.parse(templateContent);
+          } catch (jsonError) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: `Missing required field: ${field}` }));
+            res.end(JSON.stringify({ error: `Template not found: ${templateId}` }));
             return;
           }
         }
 
-        // Build prompt from template
-        let prompt = template.prompt.template;
-        
-        // Replace variables
-        const variables = template.prompt.variables || {};
-        for (const [key, value] of Object.entries(variables)) {
-          const placeholder = `{{${key}}}`;
-          let replacement = value;
-          
-          if (value.startsWith('{{input.')) {
-            const inputKey = value.slice(8, -2);
-            replacement = input[inputKey] || '';
-          } else if (value.startsWith('{{output.')) {
-            const outputKey = value.slice(9, -2);
-            replacement = JSON.stringify(template.output[outputKey], null, 2);
-          } else if (value.includes('{{#if') && value.includes('input.parentId')) {
-            if (input.parentId) {
-              replacement = `\nParent Story ID: ${input.parentId}`;
-            } else {
-              replacement = '';
+        // Validate input (skip for markdown templates)
+        if (!isMarkdownTemplate) {
+          const required = template.input.schema.required || [];
+          for (const field of required) {
+            if (!(field in input)) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: `Missing required field: ${field}` }));
+              return;
             }
           }
+        }
+
+        // Build prompt from template
+        let prompt;
+        
+        if (isMarkdownTemplate) {
+          // For markdown templates, simple variable substitution
+          prompt = template.prompt.template;
+          const variables = template.prompt.variables || {};
+          for (const [key, value] of Object.entries(variables)) {
+            const placeholder = `{{${key}}}`;
+            prompt = prompt.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
+          }
+        } else {
+          // Original JSON template processing
+          prompt = template.prompt.template;
           
-          prompt = prompt.replace(placeholder, replacement);
+          // Replace variables
+          const variables = template.prompt.variables || {};
+          for (const [key, value] of Object.entries(variables)) {
+            const placeholder = `{{${key}}}`;
+            let replacement = value;
+            
+            if (value.startsWith('{{input.')) {
+              const inputKey = value.slice(8, -2);
+              replacement = input[inputKey] || '';
+            } else if (value.startsWith('{{output.')) {
+              const outputKey = value.slice(9, -2);
+              replacement = JSON.stringify(template.output[outputKey], null, 2);
+            } else if (value.includes('{{#if') && value.includes('input.parentId')) {
+              if (input.parentId) {
+                replacement = `\nParent Story ID: ${input.parentId}`;
+              } else {
+                replacement = '';
+              }
+            }
+            
+            prompt = prompt.replace(placeholder, replacement);
+          }
         }
 
         console.log(`🤖 Template: ${templateId}, Input:`, Object.keys(input));
@@ -1176,11 +1327,26 @@ ${new Date().toISOString()}
           console.warn('Could not parse story data from Kiro response:', e.message);
         }
         
-        // Post story to backend if extraction successful (disabled - Kiro CLI posts directly)
+        // Post story to backend if extraction successful (disabled for markdown templates - Kiro CLI posts directly)
         let postResult = null;
-        // if (storyData && (templateId === 'user-story-generation' || templateId === 'test-simple')) {
-        //   // Direct posting disabled - Kiro CLI handles this via curl command
-        // }
+        if (!isMarkdownTemplate && storyData && (templateId === 'user-story-generation' || templateId === 'test-simple')) {
+          try {
+            const postResponse = await fetch('http://localhost:3000/api/story-created', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(storyData)
+            });
+            
+            if (postResponse.ok) {
+              postResult = await postResponse.json();
+              console.log('✅ Posted story to backend:', postResult.id);
+            } else {
+              console.error('❌ Failed to post story:', postResponse.status);
+            }
+          } catch (postError) {
+            console.error('❌ Error posting story:', postError.message);
+          }
+        }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
@@ -1516,12 +1682,44 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
 
   // Story tests endpoints
   if (url.pathname.match(/^\/api\/stories\/\d+\/tests$/) && req.method === 'POST') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      success: true, 
-      message: 'Test created successfully',
-      testId: Date.now()
-    }));
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const storyId = parseInt(url.pathname.split('/')[3]);
+        const testData = JSON.parse(body);
+        
+        const testId = Date.now();
+        const acceptanceTest = {
+          id: testId,
+          storyId: storyId,
+          title: testData.title,
+          given: Array.isArray(testData.given) ? testData.given : [testData.given],
+          when: Array.isArray(testData.when) ? testData.when : [testData.when],
+          then: Array.isArray(testData.then) ? testData.then : [testData.then],
+          status: testData.status || 'Draft',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        await dynamodb.send(new PutCommand({
+          TableName: ACCEPTANCE_TESTS_TABLE,
+          Item: acceptanceTest
+        }));
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true, 
+          message: 'Test created successfully',
+          testId: testId,
+          test: acceptanceTest
+        }));
+      } catch (error) {
+        console.error('Error creating acceptance test:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
     return;
   }
 

@@ -62,15 +62,10 @@ For detailed deployment instructions and troubleshooting, see the [Development G
 ## Requirements
 
 - Node.js 18 or newer
-  - Node 22+ unlocks the bundled `node:sqlite` driver.
-  - On older runtimes, install the `sqlite3` CLI to retain full SQLite persistence.
-  - If neither option is available, the server automatically falls back to a JSON-backed emulator so the app still runs (see
-    [Data Storage](#data-storage)).
-- Python 3.8+ with the standard `sqlite3` module (used to emit real SQLite snapshots when the JSON compatibility layer is
-  active).
+- Python 3.8+ (optional, for development tools)
 - macOS, Linux, or WSL shell with Bash-compatible tooling
 
-> No third-party npm dependencies are required; the project relies entirely on Node.js built-ins.
+> The project uses DynamoDB for data storage and relies entirely on Node.js built-ins for the frontend.
 
 ## Installation
 
@@ -192,17 +187,15 @@ tests/
 
 ## Data Storage
 
-Runtime data is stored in [`apps/backend/data/app.sqlite`](apps/backend/data/app.sqlite). A "Runtime Data" button in the application header links directly to `/api/runtime-data`, allowing you to download the current database snapshot at any time. Uploaded reference files are written to `apps/backend/uploads/` and served back at `/uploads/<file>`. When the runtime cannot access a native SQLite driver or CLI, a JSON-backed compatibility layer writes to `apps/backend/data/app.sqlite.json`, then invokes `python3`'s built-in `sqlite3` module to generate a genuine `.sqlite` file for downloads. Delete both files to reset the environment.
+Runtime data is stored in DynamoDB tables:
+- `aipm-backend-prod-stories` - User stories and project data
+- `aipm-backend-prod-acceptance-tests` - Acceptance tests linked to stories
+
+Uploaded reference files are written to `apps/frontend/public/uploads/` and served back at `/uploads/<file>`. The system provides real-time updates and automatic synchronization across all connected clients.
 
 ### Sample dataset
 
-For load testing or demos, generate a SQLite database containing 50 hierarchical user stories (each with a draft acceptance test) by running:
-
-```bash
-npm run generate:sample-db -- docs/examples/app-50-stories.sqlite
-```
-
-The command writes a git-ignored file under `docs/examples/`. Copy the output to `apps/backend/data/app.sqlite` (and remove any accompanying `.json` shadow file) before starting the server to bootstrap the workspace with the larger tree. Pass `--help` to the script for CLI usage details or provide an alternate destination path.
+For load testing or demos, you can import sample data to DynamoDB using the provided import scripts. The system includes sample datasets with hierarchical user stories and acceptance tests for testing purposes.
 
 The development server seeds:
 
@@ -210,7 +203,7 @@ The development server seeds:
 - A child story to demonstrate hierarchy.
 - A reference document entry.
 
-The database file is recreated automatically if missing. Delete the SQLite (and `.json` when using the fallback) files to reset to seed data, or call `DELETE` endpoints to curate stories manually.
+The database is automatically initialized if empty.
 
 ## Feature Highlights
 
@@ -263,4 +256,4 @@ The frontend surfaces whether the feedback came from ChatGPT or the local rule e
 
 ## Support
 
-If the SQLite driver emits an experimental warning, ensure you are running Node 22+. When running on the JSON fallback, remove both `apps/backend/data/app.sqlite` and `apps/backend/data/app.sqlite.json` before restarting the server to trigger a clean seed.
+The system uses DynamoDB for data storage and provides real-time updates across all connected clients.

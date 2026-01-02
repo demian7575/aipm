@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug AIPM Frontend</title>
+</head>
+<body>
+    <div id="debug-output"></div>
+    
+    <script>
+        window.CONFIG = {
+            API_BASE_URL: 'http://44.220.45.57'
+        };
+        
+        function log(message) {
+            console.log(message);
+            document.getElementById('debug-output').innerHTML += '<div>' + message + '</div>';
+        }
+        
+        async function testAPI() {
+            try {
+                log('Testing API connection...');
+                const response = await fetch('http://44.220.45.57/api/stories');
+                log('Response status: ' + response.status);
+                
+                if (!response.ok) {
+                    log('Response not OK: ' + response.statusText);
+                    return;
+                }
+                
+                const data = await response.json();
+                log('Data received, length: ' + data.length);
+                log('First story: ' + JSON.stringify(data[0], null, 2));
+                
+            } catch (error) {
+                log('Error: ' + error.message);
+            }
+        }
+        
+        testAPI();
+    </script>
+</body>
+</html>

@@ -51,7 +51,7 @@ async function testEndpoint(url, description, method = 'GET', data = null) {
         });
         
         // Use longer timeout for draft generation (5 minutes), shorter for others (10 seconds)
-        const timeout = description.includes('Draft Generation') ? 300000 : 10000;
+        const timeout = (description.includes('Draft Generation') || description.includes('Story Generation')) ? 300000 : 10000;
         request.setTimeout(timeout, () => {
             console.log(`   ❌ ${description}: Timeout`);
             request.destroy();
@@ -64,6 +64,62 @@ async function testEndpoint(url, description, method = 'GET', data = null) {
         
         request.end();
     });
+}
+
+async function testUserStoryGeneration(apiUrl) {
+    try {
+        const testData = {
+            feature_description: 'gating test workflow validation',
+            parentId: null
+        };
+        
+        const result = await testEndpoint(
+            `${apiUrl}/api/generate-draft`,
+            'User Story Generation Draft',
+            'POST',
+            testData
+        );
+        
+        if (!result.success) {
+            return { success: false, message: 'API request failed' };
+        }
+        
+        let response;
+        try {
+            response = JSON.parse(result.data);
+        } catch (parseError) {
+            return { success: false, message: 'Invalid JSON response' };
+        }
+        
+        if (!response.success || !response.draft) {
+            return { success: false, message: 'No draft data returned' };
+        }
+        
+        const draft = response.draft;
+        
+        // Validate required fields
+        if (!draft.title || !draft.description || !draft.asA || !draft.iWant || !draft.soThat) {
+            return { success: false, message: 'Missing required story fields' };
+        }
+        
+        // Validate acceptance tests
+        if (!Array.isArray(draft.acceptanceTests) || draft.acceptanceTests.length === 0) {
+            return { success: false, message: 'No acceptance tests generated' };
+        }
+        
+        const test = draft.acceptanceTests[0];
+        if (!test.title || !test.given || !test.when || !test.then) {
+            return { success: false, message: 'Incomplete acceptance test structure' };
+        }
+        
+        return { 
+            success: true, 
+            message: `Generated story "${draft.title}" with ${draft.acceptanceTests.length} acceptance test(s)` 
+        };
+        
+    } catch (error) {
+        return { success: false, message: `Error: ${error.message}` };
+    }
 }
 
 async function testEnvironment(envName, config) {
@@ -125,6 +181,19 @@ async function testEnvironment(envName, config) {
         const result = await testEndpoint(test.url, test.desc, test.method, test.data);
         total++;
         if (result.success) passed++;
+    }
+
+    // Test User Story Generation workflow
+    if (envName === 'development') {
+        console.log('\n🤖 Testing User Story Generation Workflow...');
+        const storyGenResult = await testUserStoryGeneration(config.api);
+        total++;
+        if (storyGenResult.success) {
+            passed++;
+            console.log(`   ✅ Story Generation: ${storyGenResult.message}`);
+        } else {
+            console.log(`   ❌ Story Generation: ${storyGenResult.message}`);
+        }
     }
     
     // Test Kiro Terminal Modal Function (frontend-specific)
