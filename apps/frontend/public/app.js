@@ -2616,7 +2616,7 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    title.textContent = `[${story.id}] ${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
@@ -2729,7 +2729,7 @@ function createMindmapNodeBody(story, options = {}) {
   const title = cleanedTitle.trim().length > 0 ? cleanedTitle : 'Untitled Story';
   const titleEl = createMindmapElement('div', namespace);
   titleEl.className = 'story-title';
-  titleEl.textContent = title;
+  titleEl.textContent = `[${story.id}] ${title}`;
   const header = createMindmapElement('div', namespace);
   header.className = 'mindmap-node-header';
   header.appendChild(titleEl);
@@ -4155,7 +4155,7 @@ function renderDetails() {
     </div>
     <div class="full field-row">
       <label>Title</label>
-      <div class="story-text">${escapeHtml(story.title)}</div>
+      <div class="story-text">[${story.id}] ${escapeHtml(story.title)}</div>
     </div>
     <div class="full field-row">
       <label>Assignee Email</label>
