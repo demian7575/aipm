@@ -1,5 +1,6 @@
 /**
  * Email Validation Utility with Error Handling
+ * Integrated with AIPM project for assignee email validation
  */
 function validateEmail(email) {
   try {
@@ -19,4 +20,16 @@ function validateEmail(email) {
   }
 }
 
-module.exports = { validateEmail };
+/**
+ * Validate assignee email for AIPM stories and tasks
+ * Allows empty emails as they are optional in AIPM
+ */
+function validateAssigneeEmail(email) {
+  if (!email || email.trim() === '') {
+    return { valid: true, email: '' };
+  }
+  
+  return validateEmail(email.trim());
+}
+
+module.exports = { validateEmail, validateAssigneeEmail };
