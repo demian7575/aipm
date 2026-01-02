@@ -1815,19 +1815,18 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         
         console.log('🔧 Code generation request for PR:', prNumber);
         
-        // Use code generation contract with complete YAML input
-        const kiroPrompt = `Read and follow the contract file: ./templates/code-generation.md
+        // Use code generation contract with direct execution command
+        const kiroPrompt = `Execute code generation contract: ./templates/code-generation.md
 
-COMPLETE INPUT DATA:
+IMMEDIATE EXECUTION - All parameters provided:
+- taskTitle: Code Generation for Story ${storyId}
+- objective: ${prompt}
+- constraints: GitHub PR #${prNumber} on branch ${originalBranch}
+- prNumber: ${prNumber}
+- branchName: ${originalBranch}
+- language: javascript
 
-taskTitle: Code Generation for Story ${storyId}
-objective: ${prompt}
-constraints: GitHub PR #${prNumber} on branch ${originalBranch}
-prNumber: ${prNumber}
-branchName: ${originalBranch}
-language: javascript
-
-EXECUTE WORKFLOW IMMEDIATELY - All required parameters provided above.`;
+BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
 
         console.log('📤 Calling Kiro CLI with code generation contract...');
         
