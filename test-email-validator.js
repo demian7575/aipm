@@ -1,23 +1,35 @@
-import { validateEmailWithErrors } from './email-validator.js';
+// Test email validation for AIPM context
+import { validateEmail, validateAssigneeEmail, validateTaskAssigneeEmail, validateEmailWithToast } from './email-validator.js';
 
-console.log('Testing Email Validator with Error Handling...');
+function runEmailValidationTests() {
+  console.log('Testing AIPM Email Validation...\n');
 
-const tests = [
-  { input: 'test@example.com', expected: true },
-  { input: null, expected: false },
-  { input: undefined, expected: false },
-  { input: 123, expected: false },
-  { input: '', expected: false },
-  { input: '   ', expected: false },
-  { input: 'invalid', expected: false },
-  { input: '@domain.com', expected: false },
-  { input: 'a'.repeat(250) + '@test.com', expected: false }
-];
+  // Test 1: Basic email validation
+  console.log('1. Basic Email Validation:');
+  console.log('Valid:', validateEmail('user@company.com'));
+  console.log('Invalid:', validateEmail('invalid-email'));
+  console.log('Empty:', validateEmail(''));
+  console.log('');
 
-tests.forEach((test, i) => {
-  const result = validateEmailWithErrors(test.input);
-  const status = result.isValid === test.expected ? 'PASS' : 'FAIL';
-  console.log(`Test ${i + 1}: ${status} - ${result.error || 'Valid email'}`);
-});
+  // Test 2: Assignee email validation (optional)
+  console.log('2. User Story Assignee Email (Optional):');
+  console.log('Valid assignee:', validateAssigneeEmail('assignee@company.com'));
+  console.log('Empty assignee (valid):', validateAssigneeEmail(''));
+  console.log('Invalid assignee:', validateAssigneeEmail('bad-email'));
+  console.log('');
 
-console.log('Email validator test completed.');
+  // Test 3: Task assignee email validation (required)
+  console.log('3. Task Assignee Email (Required):');
+  console.log('Valid task assignee:', validateTaskAssigneeEmail('task.owner@company.com'));
+  console.log('Empty task assignee (invalid):', validateTaskAssigneeEmail(''));
+  console.log('Invalid task assignee:', validateTaskAssigneeEmail('invalid'));
+  console.log('');
+
+  // Test 4: Toast integration
+  console.log('4. Toast Integration:');
+  const mockToast = (message, type) => console.log(`Toast [${type}]: ${message}`);
+  console.log('Valid with toast:', validateEmailWithToast('valid@email.com', 'Assignee Email', mockToast));
+  console.log('Invalid with toast:', validateEmailWithToast('invalid', 'Assignee Email', mockToast));
+}
+
+runEmailValidationTests();

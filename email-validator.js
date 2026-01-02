@@ -1,3 +1,8 @@
+/**
+ * Email validation utility for AIPM project
+ * Validates assignee emails in user stories and tasks
+ */
+
 function validateEmail(email) {
   try {
     if (!email) {
@@ -24,4 +29,41 @@ function validateEmail(email) {
   }
 }
 
-export { validateEmail };
+/**
+ * Validates assignee email for user stories (optional field)
+ */
+function validateAssigneeEmail(email) {
+  if (!email || !email.trim()) {
+    return { valid: true, email: '', optional: true };
+  }
+  
+  const result = validateEmail(email);
+  return result.valid 
+    ? { ...result, optional: false }
+    : { ...result, message: `Invalid assignee: ${result.error}` };
+}
+
+/**
+ * Validates task assignee email (required field)
+ */
+function validateTaskAssigneeEmail(email) {
+  const result = validateEmail(email);
+  return result.valid
+    ? { ...result, required: true }
+    : { ...result, message: `Task assignee required: ${result.error}` };
+}
+
+/**
+ * AIPM-specific email validation with toast integration
+ */
+function validateEmailWithToast(email, fieldName = 'Email', showToast = null) {
+  const result = validateEmail(email);
+  
+  if (!result.valid && showToast) {
+    showToast(`${fieldName}: ${result.error}`, 'error');
+  }
+  
+  return result;
+}
+
+export { validateEmail, validateAssigneeEmail, validateTaskAssigneeEmail, validateEmailWithToast };
