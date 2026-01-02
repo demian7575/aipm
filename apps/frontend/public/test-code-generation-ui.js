@@ -35,6 +35,7 @@ class TestCodeGenerationUI {
         <div class="form-group">
           <label>Test Type:</label>
           <select id="test-type">
+            <option value="simple">Simple Test</option>
             <option value="function">Function Test</option>
             <option value="api">API Test</option>
             <option value="component">Component Test</option>

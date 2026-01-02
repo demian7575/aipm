@@ -38,6 +38,13 @@ function test${componentName}Component() {
   return element !== null;
 }
 `);
+
+    // Simple test template
+    this.testTemplates.set('simple', (name) => `
+function test${name}() {
+  return true;
+}
+`);
   }
 
   generateTest(type, ...args) {
