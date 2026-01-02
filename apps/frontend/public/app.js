@@ -1,6 +1,9 @@
 // Cache refresh: 1734828699
 // Simplified architecture - removed Worker, using API server internal queue only
 
+// Import story ID display module
+import('./story-id-display.js').catch(console.error);
+
 function getApiBaseUrl() {
   if (!window.CONFIG?.API_BASE_URL) {
     console.error('❌ FATAL: window.CONFIG.API_BASE_URL is required');
