@@ -6965,6 +6965,17 @@ function openTaskModal(storyId, task = null) {
             assigneeInput.focus();
             return false;
           }
+          
+          // Validate email format using EmailValidator
+          if (window.EmailValidator) {
+            const validator = new window.EmailValidator();
+            const validation = validator.validate(assigneeEmail);
+            if (!validation.valid) {
+              showToast(`Invalid email: ${validation.error}`, 'error');
+              assigneeInput.focus();
+              return false;
+            }
+          }
           const estimationResult = parseEstimationHoursInput(estimationInput.value);
           if (estimationResult.error) {
             showToast(estimationResult.error, 'error');
