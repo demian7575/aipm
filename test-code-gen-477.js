@@ -16,7 +16,5 @@ function testCodeGeneration() {
   return testResult;
 }
 
-// Export for testing
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { testCodeGeneration };
-}
+// ES module export
+export { testCodeGeneration };
