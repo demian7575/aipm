@@ -1,0 +1,28 @@
+{
+  "id": "story-1735825981944",
+  "title": "Test Execution",
+  "description": "As a QA engineer, I want to execute tests so that I can validate system behavior.",
+  "status": "Draft",
+  "storyPoints": 2,
+  "assignee": "qa@example.com",
+  "components": ["Test Automation"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1735825981944-001",
+      "description": "Given test cases, when I run them, then results are accurate",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1735825981944-001",
+      "description": "Run test suite",
+      "assignee": "qa@example.com",
+      "status": "Todo"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "createdAt": "2026-01-02T13:53:01.944Z",
+  "updatedAt": "2026-01-02T13:53:01.944Z"
+}

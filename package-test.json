@@ -1,0 +1,19 @@
+{
+  "name": "aipm-test-framework",
+  "version": "1.0.0",
+  "description": "Enhanced test framework for AIPM project",
+  "main": "test-implementation.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test-runner.js",
+    "test:basic": "node -e \"import('./test-implementation.js').then(({AIPMTestFramework}) => new AIPMTestFramework().runBasicTests())\"",
+    "test:integration": "node -e \"import('./test-implementation.js').then(({AIPMTestFramework}) => new AIPMTestFramework().runIntegrationTests())\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  },
+  "keywords": ["testing", "aipm", "dynamodb", "aws"],
+  "author": "AIPM Team",
+  "license": "MIT"
+}
