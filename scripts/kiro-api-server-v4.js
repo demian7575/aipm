@@ -737,8 +737,8 @@ Generate the fields and immediately place them into this JSON template:
     return;
   }
 
-  // Update story
-  if (url.pathname.startsWith('/api/stories/') && req.method === 'PUT') {
+  // Update story (PUT and PATCH)
+  if (url.pathname.startsWith('/api/stories/') && (req.method === 'PUT' || req.method === 'PATCH')) {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
