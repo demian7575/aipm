@@ -1777,6 +1777,25 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
   }
 
   // Catch-all for other missing endpoints
+  // Kiro live log endpoint
+  if (url.pathname === '/api/kiro-live-log' && req.method === 'GET') {
+    try {
+      const logContent = readFileSync('/tmp/kiro-cli-live.log', 'utf8');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        content: logContent,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        content: 'Log file not found or empty',
+        timestamp: new Date().toISOString()
+      }));
+    }
+    return;
+  }
+
   if (url.pathname.startsWith('/api/')) {
     console.log('⚠️ Missing API endpoint:', req.method, url.pathname);
     res.writeHead(501, { 'Content-Type': 'application/json' });

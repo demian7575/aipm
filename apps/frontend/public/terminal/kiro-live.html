@@ -42,6 +42,7 @@
     const sendBtn = document.getElementById('sendBtn');
     let autoRefresh = true;
     let interval;
+    let lastContent = '';
 
     async function fetchLog() {
       try {
@@ -49,8 +50,16 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         
+        // Skip processing if content hasn't changed
+        if (data.content === lastContent) return;
+        lastContent = data.content;
+        
+        // Keep only last 300 lines
+        const lines = (data.content || 'Log file is empty').split('\n');
+        const limitedContent = lines.slice(-300).join('\n');
+        
         // Convert ANSI codes to HTML
-        const coloredContent = convertAnsiToHtml(data.content || 'Log file is empty');
+        const coloredContent = convertAnsiToHtml(limitedContent);
         
         logsEl.innerHTML = coloredContent;
         logsEl.scrollTop = logsEl.scrollHeight;
@@ -159,7 +168,7 @@
     }
 
     function startAutoRefresh() {
-      interval = setInterval(fetchLog, 1000);
+      interval = setInterval(fetchLog, 2000);
     }
 
     // Initialize
