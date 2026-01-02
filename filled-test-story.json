@@ -1,0 +1,10 @@
+{
+  "storyId": "story-1767359250280",
+  "title": "test",
+  "description": "Basic test user story for system verification",
+  "asA": "user",
+  "iWant": "to test the system functionality",
+  "soThat": "I can verify the application works correctly",
+  "enhanced": true,
+  "enhancedAt": "2026-01-02T13:07:30.280Z"
+}
