@@ -1,9 +1,9 @@
 /**
- * Email Validation Service for AIPM Backend
- * Provides server-side email validation with comprehensive error handling
+ * Frontend Email Validator for AIPM
+ * Client-side email validation with comprehensive error handling
  */
 
-export class EmailValidationService {
+class EmailValidator {
   constructor() {
     this.emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     this.domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*$/;
@@ -12,9 +12,9 @@ export class EmailValidationService {
   /**
    * Validate email address
    * @param {string} email - Email to validate
-   * @returns {Object} Validation result
+   * @returns {Object} Validation result with valid boolean and error message
    */
-  validateEmail(email) {
+  validate(email) {
     if (!email) {
       return { valid: false, error: 'Email is required' };
     }
@@ -50,28 +50,15 @@ export class EmailValidationService {
   }
 
   /**
-   * Validate assignee email (optional field for AIPM)
+   * Validate assignee email (optional field)
    * @param {string} assigneeEmail - Assignee email to validate
    * @returns {Object} Validation result
    */
-  validateAssigneeEmail(assigneeEmail) {
+  validateAssignee(assigneeEmail) {
     if (!assigneeEmail || !assigneeEmail.trim()) {
       return { valid: true, email: null };
     }
-    return this.validateEmail(assigneeEmail);
-  }
-
-  /**
-   * Batch validate multiple emails
-   * @param {Array} emails - Array of emails to validate
-   * @returns {Array} Array of validation results
-   */
-  validateEmails(emails) {
-    if (!Array.isArray(emails)) {
-      return [{ valid: false, error: 'Input must be an array' }];
-    }
-
-    return emails.map(email => this.validateEmail(email));
+    return this.validate(assigneeEmail);
   }
 
   /**
@@ -80,10 +67,13 @@ export class EmailValidationService {
    * @returns {string|null} Domain or null if invalid
    */
   extractDomain(email) {
-    const validation = this.validateEmail(email);
+    const validation = this.validate(email);
     if (!validation.valid) {
       return null;
     }
     return validation.email.split('@')[1];
   }
 }
+
+// Make EmailValidator available globally
+window.EmailValidator = EmailValidator;
