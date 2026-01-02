@@ -1,0 +1,28 @@
+{
+  "id": "story-1735825913778",
+  "title": "Test Feature Implementation",
+  "description": "As a developer, I want to implement test functionality so that I can validate system behavior and ensure quality.",
+  "status": "Draft",
+  "storyPoints": 2,
+  "assignee": "developer@example.com",
+  "components": ["System", "Test Automation"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-1735825913778-001",
+      "description": "Given test requirements, when I execute tests, then all tests pass successfully",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1735825913778-001",
+      "description": "Implement test cases",
+      "assignee": "developer@example.com",
+      "status": "Todo"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "createdAt": "2026-01-02T13:51:53.778Z",
+  "updatedAt": "2026-01-02T13:51:53.778Z"
+}

@@ -1,27 +1,62 @@
 # Test Implementation - PR #999
 
 ## Overview
-Basic test functionality implementation for GitHub PR #999.
+Enhanced test framework implementation for AIPM with comprehensive testing capabilities.
 
 ## Features
-- Simple test runner
-- Assertion utilities
-- Test result reporting
+- **AIPM Test Framework**: Complete test framework with DynamoDB integration
+- **API Testing**: Backend API testing utilities
+- **Test Runner**: CLI interface for automated test execution
+- **Reporting**: JSON test reports with detailed results
+
+## Components
+
+### 1. AIPMTestFramework (`test-implementation.js`)
+- Basic assertion methods (`assertEquals`, `assertNotNull`)
+- DynamoDB connection testing
+- Story retrieval validation
+- Comprehensive test reporting
+
+### 2. Test Runner (`test-runner.js`)
+- CLI interface for running tests
+- Automatic report generation
+- Exit codes for CI/CD integration
+
+### 3. Backend Utilities (`apps/backend/utils/testUtils.js`)
+- API test client for HTTP requests
+- Data validation utilities
+- Health check testing
 
 ## Usage
-```javascript
-const { runTest, assertEquals, testSuite } = require('./test-implementation');
 
-// Run individual test
-runTest('My test', () => {
-  assertEquals(actual, expected);
-});
-
-// Run full test suite
-testSuite();
+### Run All Tests
+```bash
+node test-runner.js
 ```
 
-## Implementation Details
-- Minimal test framework
-- Console output for results
-- Error handling for failed tests
+### Use Framework Programmatically
+```javascript
+import { AIPMTestFramework } from './test-implementation.js';
+
+const framework = new AIPMTestFramework();
+const report = await framework.runAllTests();
+```
+
+### API Testing
+```javascript
+import { APITestClient } from './apps/backend/utils/testUtils.js';
+
+const client = new APITestClient();
+const health = await client.testHealthCheck();
+```
+
+## Integration with AIPM
+- Connects to DynamoDB tables (`aipm-backend-prod-stories`)
+- Tests API endpoints (`/api/draft-response`, `/api/stories`)
+- Validates AIPM data structures
+- Generates reports compatible with CI/CD pipelines
+
+## Test Categories
+1. **Basic Tests**: Fundamental functionality validation
+2. **Integration Tests**: DynamoDB and API connectivity
+3. **Validation Tests**: Data structure and format verification
