@@ -98,11 +98,6 @@
         emailValidatorScript.src = 'email-validator.js?v=' + Date.now();
         document.body.appendChild(emailValidatorScript);
         
-        // Load email validator first
-        const emailValidatorScript = document.createElement('script');
-        emailValidatorScript.src = 'email-validator.js?v=' + Date.now();
-        document.body.appendChild(emailValidatorScript);
-        
         // Load app.js after config is ready
         const appScript = document.createElement('script');
         appScript.type = 'module';
