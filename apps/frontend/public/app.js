@@ -6659,6 +6659,17 @@ function openChildStoryModal(parentId) {
             soThat: container.querySelector('#child-sothat-display').value.trim(),
             components: childComponents
           };
+          
+          // Validate assignee email if provided
+          if (payload.assigneeEmail && window.EmailValidator) {
+            const validator = new window.EmailValidator();
+            const validation = validator.validate(payload.assigneeEmail);
+            if (!validation.valid) {
+              showToast(`Invalid assignee email: ${validation.error}`, 'error');
+              container.querySelector('#child-assignee').focus();
+              return false;
+            }
+          }
           try {
             const response = await fetch(resolveApiUrl('/api/stories'), {
               method: 'POST',
@@ -6967,6 +6978,17 @@ function openTaskModal(storyId, task = null) {
             showToast('Task assignee is required', 'error');
             assigneeInput.focus();
             return false;
+          }
+          
+          // Validate email format
+          if (window.EmailValidator) {
+            const validator = new window.EmailValidator();
+            const validation = validator.validate(assigneeEmail);
+            if (!validation.valid) {
+              showToast(`Invalid email: ${validation.error}`, 'error');
+              assigneeInput.focus();
+              return false;
+            }
           }
           const estimationResult = parseEstimationHoursInput(estimationInput.value);
           if (estimationResult.error) {
