@@ -58,6 +58,28 @@ class EmailValidationService {
 
     return emails.map(email => this.validateEmail(email));
   }
+
+  /**
+   * Validate email with domain restrictions
+   * @param {string} email - Email to validate
+   * @param {Array} allowedDomains - Array of allowed domains
+   * @returns {Object} Validation result
+   */
+  validateEmailWithDomains(email, allowedDomains = []) {
+    const basicValidation = this.validateEmail(email);
+    if (!basicValidation.valid) {
+      return basicValidation;
+    }
+
+    if (allowedDomains.length > 0) {
+      const domain = basicValidation.email.split('@')[1];
+      if (!allowedDomains.includes(domain)) {
+        return { valid: false, error: 'Domain not allowed' };
+      }
+    }
+
+    return basicValidation;
+  }
 }
 
 module.exports = { EmailValidationService };

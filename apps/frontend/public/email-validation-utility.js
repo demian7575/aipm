@@ -60,6 +60,18 @@ class EmailValidator {
       inputElement.classList.toggle('valid', result.valid);
     });
   }
+
+  /**
+   * Validate multiple emails at once
+   * @param {Array} emails - Array of emails to validate
+   * @returns {Array} Array of validation results
+   */
+  validateBatch(emails) {
+    if (!Array.isArray(emails)) {
+      return [{ valid: false, error: 'Input must be an array' }];
+    }
+    return emails.map(email => this.validate(email));
+  }
 }
 
 // Export for use in AIPM
