@@ -1880,9 +1880,34 @@ function renderCodeWhispererSectionList(container, story) {
       generateCodeBtn.textContent = 'Generating...';
       
       try {
-        const prNumber = entry?.number || entry?.targetNumber || entry?.prNumber;
-        if (!entry || !prNumber) {
-          showToast('No PR found to update. Create a PR first.', 'error');
+        // Robust PR number extraction with validation
+        console.log('🔍 Entry data for PR extraction:', entry);
+        
+        let prNumber = null;
+        if (entry) {
+          // Try multiple fields in order of preference
+          prNumber = entry.number || entry.targetNumber || entry.prNumber;
+          
+          // Validate PR number is a valid integer
+          if (prNumber && !isNaN(parseInt(prNumber))) {
+            prNumber = parseInt(prNumber);
+          } else {
+            prNumber = null;
+          }
+        }
+        
+        console.log('🔍 Final PR number:', prNumber);
+        
+        if (!entry || !prNumber || prNumber <= 0) {
+          console.error('❌ Invalid PR data. Entry:', entry, 'PR Number:', prNumber);
+          showToast('No valid PR found to update. Create a PR first.', 'error');
+          return;
+        }
+        
+        // Validate branch name exists
+        if (!entry.branchName) {
+          console.error('❌ No branch name found in entry:', entry);
+          showToast('PR missing branch information. Cannot generate code.', 'error');
           return;
         }
         
