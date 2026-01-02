@@ -28,7 +28,19 @@
 
 ---
 
-## Technical Specifications
+## Development Workflow
+
+### WHEN user clicks "Generate Code" from "Development Tasks" card:
+
+1. **Read GitHub PR**: Access the GitHub PR linked to the Development Tasks card
+2. **Checkout PR Branch**: `git checkout BRANCH_NAME`
+3. **Rebase on Main**: `git rebase origin/main`
+4. **Analyze Codebase**: Understand AIPM codebase structure and context
+5. **Read Requirements**: Extract story details from the markdown file in the placeholder commit of the PR (requirements, expectations, scope)
+6. **Implement Code**: Follow requirements exactly as described in the markdown file, strictly following this template procedure
+7. **Implement Acceptance Tests**: Create gating tests and add them under the Component section of the corresponding User Story
+8. **Commit Changes**: `git add . && git commit -m "feat: TASK_TITLE"`
+9. **Push to PR**: `git push origin BRANCH_NAME`
 
 ### Input Schema
 ```yaml
@@ -40,27 +52,12 @@ branchName: string
 language: string (default: javascript)
 ```
 
-### Output Requirements
-- Generate functional code files
-- Create proper commits with descriptive messages
-- Push changes to specified GitHub PR branch
-- Return status JSON response
-
-### Development Workflow
-1. **Checkout PR Branch**: `git checkout BRANCH_NAME`
-2. **Rebase on Main**: `git rebase origin/main`
-3. **Analyze Codebase**: Understand AIPM project structure and context
-4. **Generate Code**: Create/modify files according to objective
-5. **Test Code**: Ensure code compiles and functions correctly
-6. **Commit Changes**: `git add . && git commit -m "feat: TASK_TITLE"`
-7. **Push to PR**: `git push origin BRANCH_NAME`
-
-### Code Quality Standards
-- Follow existing code patterns and conventions
-- Include proper error handling
-- Add JSDoc comments for functions
-- Ensure code is production-ready
-- Test functionality before committing
+### CODE QUALITY REQUIREMENTS (MANDATORY)
+- Follow existing AIPM code patterns and conventions
+- Add proper error handling
+- Add JSDoc comments for all new or modified functions
+- Ensure production-ready code
+- Verify functionality locally before committing
 
 ### Response Format
 ```json
@@ -76,13 +73,16 @@ language: string (default: javascript)
 ### Command Template
 **EXECUTE THIS WORKFLOW IMMEDIATELY**:
 
-1. Check out PR branch: `git checkout BRANCH_NAME`
-2. Rebase: `git rebase origin/main`
-3. Generate code for: TASK_TITLE
-4. Objective: OBJECTIVE_TEXT
-5. Constraints: CONSTRAINTS_TEXT
-6. Commit: `git add . && git commit -m "feat: TASK_TITLE"`
-7. Push: `git push origin BRANCH_NAME`
-8. Return: `{"status": "Success", "message": "Code generated and pushed successfully"}`
+1. Read GitHub PR #PR_NUMBER details and linked markdown requirements
+2. Check out PR branch: `git checkout BRANCH_NAME`
+3. Rebase: `git rebase origin/main`
+4. Analyze AIPM codebase structure and context
+5. Extract requirements from PR markdown file
+6. Implement: TASK_TITLE following OBJECTIVE_TEXT
+7. Apply constraints: CONSTRAINTS_TEXT
+8. Create acceptance tests as gating tests
+9. Commit: `git add . && git commit -m "feat: TASK_TITLE"`
+10. Push: `git push origin BRANCH_NAME`
+11. Return: `{"status": "Success", "message": "Code generated and pushed successfully"}`
 
 **EXECUTE EXACTLY ONCE**: Replace placeholders with actual values and complete the full workflow. Do not retry or execute multiple times.
