@@ -8,4 +8,12 @@ function simpleTest(actual, expected) {
   return actual === expected;
 }
 
-export { simpleTest };
+/**
+ * Test branch validation function
+ * @returns {boolean} Always returns true for basic validation
+ */
+function validateTestBranch() {
+  return true;
+}
+
+export { simpleTest, validateTestBranch };
