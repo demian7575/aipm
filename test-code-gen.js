@@ -2,4 +2,8 @@ function testCodeGeneration() {
   return "Code generation test successful";
 }
 
-export { testCodeGeneration };
+function simpleTest() {
+  return true;
+}
+
+export { testCodeGeneration, simpleTest };
