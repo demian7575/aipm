@@ -2050,21 +2050,33 @@ dialog[data-size='content'] .modal-shell {
 .codewhisperer-pr-link {
   margin: 8px 0;
   font-size: 0.9em;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #0366d6;
 }
 
-.codewhisperer-pr-link span {
+.codewhisperer-pr-link .pr-label {
   font-weight: 500;
   color: #666;
+  margin-right: 8px;
 }
 
-.codewhisperer-pr-link a {
+.codewhisperer-pr-link .pr-link-button {
   color: #0366d6;
   text-decoration: none;
   font-weight: 500;
+  padding: 4px 8px;
+  border: 1px solid #0366d6;
+  border-radius: 3px;
+  background-color: white;
+  transition: all 0.2s ease;
 }
 
-.codewhisperer-pr-link a:hover {
-  text-decoration: underline;
+.codewhisperer-pr-link .pr-link-button:hover {
+  background-color: #0366d6;
+  color: white;
+  text-decoration: none;
 }
 /* Gating Tests Styles */
 #testResults {
