@@ -46,12 +46,13 @@
    - Implement gating tests that validate the requirements
    - Add tests under the Component section of the corresponding User Story
    - Ensure tests cover all acceptance criteria
-7. **Implement Code Changes** (REPEAT UNTIL ALL GATING TESTS PASS):
+7. **Implement Code Changes** (REPEAT UNTIL ALL GATING TESTS PASS - MAX 5 ITERATIONS):
    - Follow requirements exactly as described in the markdown file
    - Implement in appropriate files (app.js, styles.css, backend APIs)
    - Maintain consistency with existing AIPM architecture
    - Run gating tests after each implementation iteration
    - Continue implementing and testing until all gating tests pass
+   - **MAXIMUM 5 ITERATIONS** - if tests still fail after 5 iterations, report failure
 8. **Quality Verification**:
    - Test functionality locally before committing
    - Verify all acceptance tests pass
@@ -111,7 +112,7 @@ apps/
 3. **Analyze**: Review AIPM codebase structure and existing patterns
 4. **Extract**: Parse requirements, acceptance criteria, and constraints from TASK file
 5. **Create Tests**: Implement acceptance tests as gating tests first
-6. **Implement**: Code changes for TASK_TITLE following OBJECTIVE_TEXT (REPEAT UNTIL ALL GATING TESTS PASS)
+6. **Implement**: Code changes for TASK_TITLE following OBJECTIVE_TEXT (REPEAT UNTIL ALL GATING TESTS PASS - MAX 5 ITERATIONS)
 7. **Apply Constraints**: Ensure CONSTRAINTS_TEXT are satisfied
 8. **Verify**: Test functionality locally and ensure quality standards
 9. **Commit**: `git add . && git commit -m "feat: TASK_TITLE"`
