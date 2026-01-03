@@ -245,6 +245,12 @@ textarea {
   font-size: 0.95rem;
 }
 
+.outline-item .story-id {
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
 .outline-item.status-draft {
   border-left-color: #94a3b8;
 }
@@ -618,6 +624,13 @@ body.is-mindmap-panning {
 
 .mindmap-node-header .story-title {
   flex: 1 1 auto;
+}
+
+.mindmap-node .story-id {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-right: 0.5rem;
 }
 
 .mindmap-node-actions {

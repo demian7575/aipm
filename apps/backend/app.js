@@ -5686,6 +5686,40 @@ export async function createApp() {
         return;
       }
 
+      if (pathname === '/api/generate-draft' && method === 'POST') {
+        try {
+          const body = await readRequestBody(req);
+          const { feature_description, parentId } = JSON.parse(body);
+          
+          if (!feature_description) {
+            res.writeHead(400, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            });
+            res.end(JSON.stringify({ success: false, error: 'Feature description required' }));
+            return;
+          }
+
+          // Generate story using the story generator
+          const { generateInvestCompliantStory } = await import('./story-generator.js');
+          const draft = generateInvestCompliantStory(feature_description, parentId);
+          
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          });
+          res.end(JSON.stringify({ success: true, draft }));
+        } catch (error) {
+          console.error('Generate draft error:', error);
+          res.writeHead(500, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          });
+          res.end(JSON.stringify({ success: false, error: 'Generation failed' }));
+        }
+        return;
+      }
+
       if (pathname === '/health' && method === 'GET') {
         res.writeHead(200, {
           'Content-Type': 'application/json',
