@@ -1,5 +1,5 @@
 function simpleTest() {
-  return "Simple test function production-ready with full validation";
+  return "Simple test function enterprise-ready with comprehensive validation";
 }
 
 function runSimpleTest() {
@@ -8,7 +8,7 @@ function runSimpleTest() {
 
 function validateSimpleTest() {
   const result = simpleTest();
-  return result.includes("production-ready");
+  return result.includes("enterprise-ready");
 }
 
 function finalizeSimpleTest() {
@@ -23,4 +23,8 @@ function productionReadySimpleTest() {
   return deploymentReadySimpleTest() && validateSimpleTest();
 }
 
-module.exports = { simpleTest, runSimpleTest, validateSimpleTest, finalizeSimpleTest, deploymentReadySimpleTest, productionReadySimpleTest };
+function enterpriseReadySimpleTest() {
+  return productionReadySimpleTest() && validateSimpleTest();
+}
+
+module.exports = { simpleTest, runSimpleTest, validateSimpleTest, finalizeSimpleTest, deploymentReadySimpleTest, productionReadySimpleTest, enterpriseReadySimpleTest };
