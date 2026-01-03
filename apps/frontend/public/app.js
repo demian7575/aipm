@@ -2641,7 +2641,7 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    title.textContent = `#${story.id} ${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
@@ -4177,6 +4177,10 @@ function renderDetails() {
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
       <button type="button" class="primary" id="mark-done-btn">Done</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
+    </div>
+    <div class="full field-row">
+      <label>Story ID</label>
+      <div class="story-text">#${story.id}</div>
     </div>
     <div class="full field-row">
       <label>Title</label>
