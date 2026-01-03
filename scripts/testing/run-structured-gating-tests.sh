@@ -95,6 +95,16 @@ main() {
         echo "ℹ️  Infrastructure/monitoring issues detected - non-blocking"
     fi
     
+    # Phase 4: End-to-End Workflow Validation
+    log_phase "🔄 PHASE 4: End-to-End Workflow Validation"
+    
+    if ./scripts/testing/phase4-workflow-validation.sh; then
+        phase_summary "Phase 4"
+    else
+        phase_summary "Phase 4"
+        echo "⚠️  Workflow validation issues detected - review workflow implementations"
+    fi
+    
     # Final summary
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
