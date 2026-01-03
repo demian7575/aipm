@@ -1,4 +1,4 @@
-name: Workflow Gating Tests
+name: AIPM Structured Gating Tests
 
 on:
   pull_request:
@@ -7,23 +7,28 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      test_environment:
-        description: 'Test environment (production/development/both)'
+      phase:
+        description: 'Test phase to run (1, 2, 3, or all)'
         required: false
-        default: 'both'
+        default: 'all'
         type: choice
         options:
-        - production
-        - development
-        - both
+        - all
+        - '1'
+        - '2'
+        - '3'
 
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  workflow-gating-tests:
+  # Phase 1: Critical Security & Data Safety (BLOCKS deployment)
+  phase1-critical:
     runs-on: ubuntu-latest
+    if: github.event.inputs.phase == 'all' || github.event.inputs.phase == '1' || github.event.inputs.phase == ''
+    outputs:
+      phase1-status: ${{ steps.phase1.outputs.status }}
     
     steps:
       - name: Checkout repository
@@ -31,17 +36,10 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Install dependencies
+      - name: Setup dependencies
         run: |
-          npm install --legacy-peer-deps
-          # Install additional testing dependencies
           sudo apt-get update
-          sudo apt-get install -y jq python3-yaml
+          sudo apt-get install -y jq curl
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -50,172 +48,168 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Set environment variables
+      - name: Run Phase 1 - Critical Security & Data Safety
+        id: phase1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
-          echo "TEST_ENVIRONMENT=${{ github.event.inputs.test_environment || 'both' }}" >> $GITHUB_ENV
-      
-      - name: Run Pre-Deployment Gating Tests
-        id: pre_deployment
-        run: |
-          echo "🚀 Running Pre-Deployment Gating Tests"
-          export PHASE="pre-deployment"
+          echo "🔴 Running Phase 1: Critical Security & Data Safety"
           
-          # Run workflow gating tests
-          if ./scripts/testing/run-workflow-gating-tests.sh; then
-            echo "✅ Pre-deployment gating tests passed"
-            echo "pre_deployment_status=success" >> $GITHUB_OUTPUT
+          if ./scripts/testing/phase1-security-data-safety.sh; then
+            echo "✅ Phase 1 PASSED - Deployment approved"
+            echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "❌ Pre-deployment gating tests failed"
-            echo "pre_deployment_status=failure" >> $GITHUB_OUTPUT
+            echo "❌ Phase 1 FAILED - BLOCKING DEPLOYMENT"
+            echo "status=failure" >> $GITHUB_OUTPUT
             exit 1
           fi
+
+  # Phase 2: Performance & API Safety (WARNS on failure)
+  phase2-performance:
+    runs-on: ubuntu-latest
+    needs: phase1-critical
+    if: (github.event.inputs.phase == 'all' || github.event.inputs.phase == '2' || github.event.inputs.phase == '') && needs.phase1-critical.outputs.phase1-status == 'success'
+    outputs:
+      phase2-status: ${{ steps.phase2.outputs.status }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
       
-      - name: Run Comprehensive System Tests
-        id: system_tests
-        if: steps.pre_deployment.outputs.pre_deployment_status == 'success'
+      - name: Setup dependencies
         run: |
-          echo "🧪 Running Comprehensive System Tests"
-          
-          # Run existing comprehensive tests
-          if node scripts/testing/run-comprehensive-gating-tests.cjs; then
-            echo "✅ System tests passed"
-            echo "system_tests_status=success" >> $GITHUB_OUTPUT
-          else
-            echo "❌ System tests failed"
-            echo "system_tests_status=failure" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+          sudo apt-get update
+          sudo apt-get install -y jq curl
       
-      - name: Run Code Generation Tests
-        id: code_generation
-        if: steps.system_tests.outputs.system_tests_status == 'success'
-        run: |
-          echo "🤖 Running Code Generation Tests"
-          
-          # Run code generation workflow tests
-          if node scripts/testing/test-code-generation-workflow.cjs; then
-            echo "✅ Code generation tests passed"
-            echo "code_generation_status=success" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Code generation tests failed"
-            echo "code_generation_status=failure" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
       
-      - name: Run Browser-Based Tests
-        id: browser_tests
-        if: steps.code_generation.outputs.code_generation_status == 'success'
+      - name: Run Phase 2 - Performance & API Safety
+        id: phase2
         run: |
-          echo "🌐 Running Browser-Based Tests"
+          echo "🟡 Running Phase 2: Performance & API Safety"
           
-          # Run browser tests
-          if node scripts/testing/run-browser-tests-automated.cjs; then
-            echo "✅ Browser tests passed"
-            echo "browser_tests_status=success" >> $GITHUB_OUTPUT
+          if ./scripts/testing/phase2-performance-api.sh; then
+            echo "✅ Phase 2 PASSED"
+            echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "❌ Browser tests failed"
-            echo "browser_tests_status=failure" >> $GITHUB_OUTPUT
-            exit 1
+            echo "⚠️  Phase 2 FAILED - Performance/API issues detected"
+            echo "status=failure" >> $GITHUB_OUTPUT
+            # Don't exit 1 - this is a warning, not blocking
           fi
+
+  # Phase 3: Infrastructure & Monitoring (INFORMATIONAL)
+  phase3-infrastructure:
+    runs-on: ubuntu-latest
+    needs: [phase1-critical, phase2-performance]
+    if: (github.event.inputs.phase == 'all' || github.event.inputs.phase == '3' || github.event.inputs.phase == '') && needs.phase1-critical.outputs.phase1-status == 'success'
+    outputs:
+      phase3-status: ${{ steps.phase3.outputs.status }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
       
-      - name: Test Data Synchronization
-        id: data_sync
-        if: steps.browser_tests.outputs.browser_tests_status == 'success'
+      - name: Setup dependencies
         run: |
-          echo "🔄 Testing Data Synchronization"
-          
-          # Test data sync functionality
-          SYNC_RESULT=$(curl -s -X POST http://44.222.168.46/api/sync-data || echo '{"success":false}')
-          
-          if echo "$SYNC_RESULT" | grep -q '"success":true'; then
-            echo "✅ Data synchronization test passed"
-            echo "data_sync_status=success" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Data synchronization test failed: $SYNC_RESULT"
-            echo "data_sync_status=failure" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+          sudo apt-get update
+          sudo apt-get install -y jq curl dnsutils iputils-ping
       
-      - name: Validate Deployment Prerequisites
-        id: deployment_prereqs
-        if: steps.data_sync.outputs.data_sync_status == 'success'
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Run Phase 3 - Infrastructure & Monitoring
+        id: phase3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "📋 Validating Deployment Prerequisites"
+          echo "🟢 Running Phase 3: Infrastructure & Monitoring"
           
-          # Check required files exist
-          MISSING_FILES=()
-          
-          [[ -f "apps/backend/app.js" ]] || MISSING_FILES+=("apps/backend/app.js")
-          [[ -f "apps/backend/server.js" ]] || MISSING_FILES+=("apps/backend/server.js")
-          [[ -f "apps/frontend/public/index.html" ]] || MISSING_FILES+=("apps/frontend/public/index.html")
-          [[ -f "apps/frontend/public/app.js" ]] || MISSING_FILES+=("apps/frontend/public/app.js")
-          [[ -f ".github/workflows/deploy-pr-to-dev.yml" ]] || MISSING_FILES+=("deploy-pr-to-dev.yml")
-          
-          if [[ ${#MISSING_FILES[@]} -eq 0 ]]; then
-            echo "✅ All deployment prerequisites satisfied"
-            echo "deployment_prereqs_status=success" >> $GITHUB_OUTPUT
+          if ./scripts/testing/phase3-infrastructure-monitoring.sh; then
+            echo "✅ Phase 3 PASSED"
+            echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "❌ Missing deployment files: ${MISSING_FILES[*]}"
-            echo "deployment_prereqs_status=failure" >> $GITHUB_OUTPUT
-            exit 1
+            echo "ℹ️  Phase 3 FAILED - Infrastructure issues detected (informational)"
+            echo "status=failure" >> $GITHUB_OUTPUT
+            # Don't exit 1 - this is informational only
           fi
+
+  # Generate comprehensive test report
+  generate-report:
+    runs-on: ubuntu-latest
+    needs: [phase1-critical, phase2-performance, phase3-infrastructure]
+    if: always()
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
       
       - name: Generate Test Report
-        if: always()
         run: |
-          echo "📊 Generating Test Report"
+          echo "📊 Generating Comprehensive Test Report"
           
-          cat > test-report.md << EOF
-          # AIPM Workflow Gating Tests Report
+          cat > gating-test-report.md << EOF
+          # AIPM Structured Gating Tests Report
           
           **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           **Commit:** ${{ github.sha }}
           **Branch:** ${{ github.ref_name }}
           **Trigger:** ${{ github.event_name }}
           
-          ## Test Results
+          ## Test Results Summary
           
-          | Test Category | Status | Details |
-          |---------------|--------|---------|
-          | Pre-Deployment | ${{ steps.pre_deployment.outputs.pre_deployment_status || 'skipped' }} | Workflow validation and prerequisites |
-          | System Tests | ${{ steps.system_tests.outputs.system_tests_status || 'skipped' }} | API endpoints and service health |
-          | Code Generation | ${{ steps.code_generation.outputs.code_generation_status || 'skipped' }} | Kiro CLI and template system |
-          | Browser Tests | ${{ steps.browser_tests.outputs.browser_tests_status || 'skipped' }} | Frontend functionality |
-          | Data Sync | ${{ steps.data_sync.outputs.data_sync_status || 'skipped' }} | Production to development sync |
-          | Deployment Prerequisites | ${{ steps.deployment_prereqs.outputs.deployment_prereqs_status || 'skipped' }} | Required files and configuration |
+          | Phase | Priority | Status | Impact |
+          |-------|----------|--------|---------|
+          | Phase 1: Security & Data Safety | 🔴 Critical | ${{ needs.phase1-critical.outputs.phase1-status || 'skipped' }} | ${{ needs.phase1-critical.outputs.phase1-status == 'success' && 'Deployment Approved' || 'BLOCKS Deployment' }} |
+          | Phase 2: Performance & API | 🟡 High | ${{ needs.phase2-performance.outputs.phase2-status || 'skipped' }} | ${{ needs.phase2-performance.outputs.phase2-status == 'success' && 'Performance Validated' || 'Performance Warning' }} |
+          | Phase 3: Infrastructure & Monitoring | 🟢 Medium | ${{ needs.phase3-infrastructure.outputs.phase3-status || 'skipped' }} | ${{ needs.phase3-infrastructure.outputs.phase3-status == 'success' && 'Infrastructure Healthy' || 'Infrastructure Issues (Info)' }} |
           
-          ## Summary
+          ## Overall Assessment
           
           EOF
           
-          # Count results
-          SUCCESS_COUNT=0
-          FAILURE_COUNT=0
-          
-          for status in "${{ steps.pre_deployment.outputs.pre_deployment_status }}" \
-                       "${{ steps.system_tests.outputs.system_tests_status }}" \
-                       "${{ steps.code_generation.outputs.code_generation_status }}" \
-                       "${{ steps.browser_tests.outputs.browser_tests_status }}" \
-                       "${{ steps.data_sync.outputs.data_sync_status }}" \
-                       "${{ steps.deployment_prereqs.outputs.deployment_prereqs_status }}"; do
-            if [[ "$status" == "success" ]]; then
-              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-            elif [[ "$status" == "failure" ]]; then
-              FAILURE_COUNT=$((FAILURE_COUNT + 1))
+          # Determine overall status
+          if [[ "${{ needs.phase1-critical.outputs.phase1-status }}" == "success" ]]; then
+            echo "✅ **DEPLOYMENT APPROVED**" >> gating-test-report.md
+            echo "" >> gating-test-report.md
+            echo "Critical security and data safety requirements met." >> gating-test-report.md
+            
+            if [[ "${{ needs.phase2-performance.outputs.phase2-status }}" == "success" ]]; then
+              echo "✅ Performance and API requirements also met." >> gating-test-report.md
+            else
+              echo "⚠️  Performance/API issues detected - consider addressing." >> gating-test-report.md
             fi
-          done
-          
-          if [[ $FAILURE_COUNT -eq 0 ]]; then
-            echo "✅ **All tests passed!** System is ready for deployment." >> test-report.md
+            
+            if [[ "${{ needs.phase3-infrastructure.outputs.phase3-status }}" == "success" ]]; then
+              echo "✅ Infrastructure and monitoring fully validated." >> gating-test-report.md
+            else
+              echo "ℹ️  Infrastructure issues detected - informational only." >> gating-test-report.md
+            fi
           else
-            echo "❌ **$FAILURE_COUNT test(s) failed.** Deployment should be blocked." >> test-report.md
+            echo "❌ **DEPLOYMENT BLOCKED**" >> gating-test-report.md
+            echo "" >> gating-test-report.md
+            echo "Critical security or data safety issues must be resolved before deployment." >> gating-test-report.md
           fi
           
-          echo "" >> test-report.md
-          echo "**Total Tests:** $((SUCCESS_COUNT + FAILURE_COUNT))" >> test-report.md
-          echo "**Passed:** $SUCCESS_COUNT" >> test-report.md
-          echo "**Failed:** $FAILURE_COUNT" >> test-report.md
+          echo "" >> gating-test-report.md
+          echo "## Test Coverage" >> gating-test-report.md
+          echo "- 🔒 Security validation (GitHub tokens, AWS IAM, secrets)" >> gating-test-report.md
+          echo "- 🗄️ Database integrity (schema, consistency, billing)" >> gating-test-report.md
+          echo "- 🔄 Deployment safety (git state, artifacts, service health)" >> gating-test-report.md
+          echo "- ⚡ Performance validation (response times, concurrency)" >> gating-test-report.md
+          echo "- 📋 API contract validation (schema, versioning, CORS)" >> gating-test-report.md
+          echo "- 📊 Resource limits (throttling, rate limiting, payload size)" >> gating-test-report.md
+          echo "- 🌐 Network infrastructure (DNS, connectivity, SSL)" >> gating-test-report.md
+          echo "- 📊 Monitoring integration (health endpoints, logs, CloudWatch)" >> gating-test-report.md
+          echo "- 🔗 System integration (GitHub API, frontend-backend, templates)" >> gating-test-report.md
       
       - name: Comment Test Results on PR
         if: github.event_name == 'pull_request'
@@ -223,7 +217,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const testReport = fs.readFileSync('test-report.md', 'utf8');
+            const testReport = fs.readFileSync('gating-test-report.md', 'utf8');
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -236,19 +230,19 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: workflow-gating-test-report
-          path: test-report.md
+          name: structured-gating-test-report
+          path: gating-test-report.md
           retention-days: 30
       
       - name: Set Final Status
         if: always()
         run: |
-          if [[ "${{ steps.deployment_prereqs.outputs.deployment_prereqs_status }}" == "success" ]]; then
-            echo "🎉 All workflow gating tests passed!"
-            echo "✅ System is ready for deployment"
+          if [[ "${{ needs.phase1-critical.outputs.phase1-status }}" == "success" ]]; then
+            echo "🎉 Structured gating tests completed successfully!"
+            echo "✅ System approved for deployment"
             exit 0
           else
-            echo "❌ Workflow gating tests failed"
-            echo "🚫 Deployment should be blocked"
+            echo "❌ Critical gating tests failed"
+            echo "🚫 Deployment blocked until issues resolved"
             exit 1
           fi

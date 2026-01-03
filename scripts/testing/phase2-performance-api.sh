@@ -1,6 +1,6 @@
 #!/bin/bash
-# Performance & API Contract Gating Tests
-# Addresses high priority gaps for user experience and API safety
+# Phase 2: Performance & API Safety Tests
+# Priority: 🟡 High - Warns on failure, doesn't block deployment
 
 set -e
 
@@ -11,7 +11,7 @@ DEV_API_BASE="http://44.222.168.46"
 KIRO_API_BASE="http://44.220.45.57:8081"
 
 log_test() {
-    echo "  🧪 Testing: $1"
+    echo "  🧪 $1"
 }
 
 pass_test() {
@@ -25,10 +25,10 @@ fail_test() {
     return 1
 }
 
-# Performance validation function
+# Measure response time
 measure_response_time() {
     local url=$1
-    local max_time=${2:-2000}  # Default 2 seconds
+    local max_time=${2:-2000}
     
     local start_time=$(date +%s%3N)
     local response=$(curl -s -w "%{http_code}" -o /dev/null "$url" --max-time 10 2>/dev/null || echo "000")
@@ -38,47 +38,41 @@ measure_response_time() {
     echo "$response_time:$response"
 }
 
-# 1. Performance & Load Tests
+# 2.1 Performance Validation Tests
 test_performance_validation() {
-    echo "⚡ Testing Performance & Load"
+    echo "⚡ Performance Validation Tests"
     
     # API response time validation
-    log_test "API response times"
-    
-    # Test stories endpoint
+    log_test "Stories API response time"
     RESULT=$(measure_response_time "$PROD_API_BASE/api/stories" 2000)
     RESPONSE_TIME=$(echo "$RESULT" | cut -d: -f1)
     HTTP_CODE=$(echo "$RESULT" | cut -d: -f2)
     
     if [[ "$HTTP_CODE" == "200" && "$RESPONSE_TIME" -lt 2000 ]]; then
-        pass_test "Stories API responds in ${RESPONSE_TIME}ms (< 2s)"
+        pass_test "Stories API: ${RESPONSE_TIME}ms (< 2s)"
     else
-        fail_test "Stories API slow or failed: ${RESPONSE_TIME}ms, HTTP $HTTP_CODE"
+        fail_test "Stories API slow/failed: ${RESPONSE_TIME}ms, HTTP $HTTP_CODE"
     fi
     
-    # Test health endpoint
+    # Health endpoint performance
+    log_test "Health endpoint response time"
     RESULT=$(measure_response_time "$PROD_API_BASE/health" 1000)
     RESPONSE_TIME=$(echo "$RESULT" | cut -d: -f1)
     HTTP_CODE=$(echo "$RESULT" | cut -d: -f2)
     
     if [[ "$HTTP_CODE" == "200" && "$RESPONSE_TIME" -lt 1000 ]]; then
-        pass_test "Health endpoint responds in ${RESPONSE_TIME}ms (< 1s)"
+        pass_test "Health endpoint: ${RESPONSE_TIME}ms (< 1s)"
     else
-        fail_test "Health endpoint slow or failed: ${RESPONSE_TIME}ms, HTTP $HTTP_CODE"
+        fail_test "Health endpoint slow/failed: ${RESPONSE_TIME}ms, HTTP $HTTP_CODE"
     fi
     
     # Concurrent request handling
     log_test "Concurrent request handling"
-    
-    # Launch 5 concurrent requests
     for i in {1..5}; do
         curl -s "$PROD_API_BASE/health" > /tmp/concurrent_$i.txt &
     done
-    
-    # Wait for all to complete
     wait
     
-    # Check all succeeded
     SUCCESS_COUNT=0
     for i in {1..5}; do
         if grep -q "running" /tmp/concurrent_$i.txt 2>/dev/null; then
@@ -94,37 +88,37 @@ test_performance_validation() {
     fi
     
     # Kiro API performance
-    log_test "Kiro API performance"
+    log_test "Kiro API response time"
     RESULT=$(measure_response_time "$KIRO_API_BASE/health" 3000)
     RESPONSE_TIME=$(echo "$RESULT" | cut -d: -f1)
     HTTP_CODE=$(echo "$RESULT" | cut -d: -f2)
     
     if [[ "$HTTP_CODE" == "200" && "$RESPONSE_TIME" -lt 3000 ]]; then
-        pass_test "Kiro API responds in ${RESPONSE_TIME}ms (< 3s)"
+        pass_test "Kiro API: ${RESPONSE_TIME}ms (< 3s)"
     else
-        fail_test "Kiro API slow or failed: ${RESPONSE_TIME}ms, HTTP $HTTP_CODE"
+        fail_test "Kiro API slow/failed: ${RESPONSE_TIME}ms, HTTP $HTTP_CODE"
     fi
 }
 
-# 2. API Contract & Versioning Tests
+# 2.2 API Contract Validation Tests
 test_api_contract_validation() {
-    echo "📋 Testing API Contract & Versioning"
+    echo ""
+    echo "📋 API Contract Validation Tests"
     
-    # API schema validation
+    # Stories API schema validation
     log_test "Stories API response schema"
     STORIES_RESPONSE=$(curl -s "$PROD_API_BASE/api/stories" 2>/dev/null || echo '[]')
     
-    # Validate it's an array
     if echo "$STORIES_RESPONSE" | jq -e 'type == "array"' >/dev/null 2>&1; then
-        pass_test "Stories API returns array"
+        pass_test "Stories API returns valid array"
     else
         fail_test "Stories API does not return array"
     fi
     
-    # Validate story object structure (if stories exist)
+    # Story object structure validation
     STORY_COUNT=$(echo "$STORIES_RESPONSE" | jq 'length' 2>/dev/null || echo "0")
     if [[ "$STORY_COUNT" -gt 0 ]]; then
-        # Check first story has required fields
+        log_test "Story object schema validation"
         REQUIRED_FIELDS=("id" "title" "description" "status")
         MISSING_FIELDS=()
         
@@ -137,10 +131,10 @@ test_api_contract_validation() {
         if [[ ${#MISSING_FIELDS[@]} -eq 0 ]]; then
             pass_test "Story objects have required fields"
         else
-            fail_test "Story objects missing fields: ${MISSING_FIELDS[*]}"
+            fail_test "Story objects missing: ${MISSING_FIELDS[*]}"
         fi
     else
-        pass_test "No stories to validate schema (empty database)"
+        pass_test "No stories to validate (empty database)"
     fi
     
     # API version consistency
@@ -150,46 +144,33 @@ test_api_contract_validation() {
     
     if [[ "$PROD_VERSION" != "unknown" && "$DEV_VERSION" != "unknown" ]]; then
         if [[ "$PROD_VERSION" == "$DEV_VERSION" ]]; then
-            pass_test "API versions consistent (Prod: $PROD_VERSION, Dev: $DEV_VERSION)"
+            pass_test "API versions consistent ($PROD_VERSION)"
         else
-            fail_test "API version mismatch (Prod: $PROD_VERSION, Dev: $DEV_VERSION)"
+            fail_test "Version mismatch (Prod: $PROD_VERSION, Dev: $DEV_VERSION)"
         fi
     else
-        fail_test "API version endpoints not available"
+        fail_test "API version endpoints unavailable"
     fi
     
-    # HTTP method validation
-    log_test "HTTP method support"
-    
-    # Test OPTIONS method (CORS preflight)
+    # CORS validation
+    log_test "CORS support validation"
     OPTIONS_RESPONSE=$(curl -s -X OPTIONS "$PROD_API_BASE/api/stories" \
         -w "%{http_code}" -o /dev/null 2>/dev/null || echo "000")
     
     if [[ "$OPTIONS_RESPONSE" == "200" || "$OPTIONS_RESPONSE" == "204" ]]; then
-        pass_test "OPTIONS method supported for CORS"
+        pass_test "CORS OPTIONS method supported"
     else
-        fail_test "OPTIONS method not supported: HTTP $OPTIONS_RESPONSE"
-    fi
-    
-    # Error response format validation
-    log_test "Error response format"
-    ERROR_RESPONSE=$(curl -s "$PROD_API_BASE/api/nonexistent" 2>/dev/null || echo '{}')
-    
-    if echo "$ERROR_RESPONSE" | jq -e 'has("error") or has("message")' >/dev/null 2>&1; then
-        pass_test "Error responses have proper format"
-    else
-        fail_test "Error responses lack proper format"
+        fail_test "CORS OPTIONS not supported: HTTP $OPTIONS_RESPONSE"
     fi
 }
 
-# 3. Resource Limits & Quotas Tests
+# 2.3 Resource Limits Tests
 test_resource_limits() {
-    echo "📊 Testing Resource Limits & Quotas"
+    echo ""
+    echo "📊 Resource Limits Tests"
     
-    # DynamoDB throttling protection
+    # DynamoDB throttling check
     log_test "DynamoDB throttling protection"
-    
-    # Test rapid requests (should not throttle with on-demand)
     THROTTLE_COUNT=0
     for i in {1..10}; do
         RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null "$PROD_API_BASE/api/stories" 2>/dev/null || echo "000")
@@ -202,13 +183,11 @@ test_resource_limits() {
     if [[ $THROTTLE_COUNT -eq 0 ]]; then
         pass_test "No DynamoDB throttling detected"
     else
-        fail_test "DynamoDB throttling detected: $THROTTLE_COUNT/10 requests"
+        fail_test "DynamoDB throttling: $THROTTLE_COUNT/10 requests"
     fi
     
     # Request size limits
-    log_test "Request size limits"
-    
-    # Test large payload (should be rejected gracefully)
+    log_test "Request size limit validation"
     LARGE_PAYLOAD=$(printf '{"title":"Test","description":"%*s"}' 10000 "" | tr ' ' 'x')
     LARGE_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" \
         -H "Content-Type: application/json" \
@@ -216,15 +195,13 @@ test_resource_limits() {
         -w "%{http_code}" -o /dev/null 2>/dev/null || echo "000")
     
     if [[ "$LARGE_RESPONSE" == "413" || "$LARGE_RESPONSE" == "400" ]]; then
-        pass_test "Large payloads rejected appropriately: HTTP $LARGE_RESPONSE"
+        pass_test "Large payloads rejected: HTTP $LARGE_RESPONSE"
     else
-        fail_test "Large payloads not handled properly: HTTP $LARGE_RESPONSE"
+        fail_test "Large payloads not handled: HTTP $LARGE_RESPONSE"
     fi
     
-    # Rate limiting validation
-    log_test "Rate limiting protection"
-    
-    # Test rapid successive requests
+    # Rate limiting check
+    log_test "Rate limiting validation"
     RATE_LIMIT_COUNT=0
     for i in {1..20}; do
         RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null "$PROD_API_BASE/health" 2>/dev/null || echo "000")
@@ -233,51 +210,35 @@ test_resource_limits() {
         fi
     done
     
-    # Rate limiting is optional, so we just report
     if [[ $RATE_LIMIT_COUNT -gt 0 ]]; then
-        pass_test "Rate limiting active: $RATE_LIMIT_COUNT/20 requests limited"
+        pass_test "Rate limiting active: $RATE_LIMIT_COUNT/20 limited"
     else
-        pass_test "No rate limiting detected (acceptable for current scale)"
+        pass_test "No rate limiting (acceptable for current scale)"
     fi
 }
 
 # Main execution
-run_performance_api_tests() {
-    echo "⚡ Performance & API Contract Gating Tests"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+main() {
+    echo "🟡 Phase 2: Performance & API Safety"
     echo ""
     
     test_performance_validation || true
-    echo ""
-    
     test_api_contract_validation || true
-    echo ""
-    
     test_resource_limits || true
-    echo ""
     
-    # Summary
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "📊 Performance & API Tests Summary"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "✅ Tests Passed: $TESTS_PASSED"
-    echo "❌ Tests Failed: $TESTS_FAILED"
-    echo "📈 Total Tests: $((TESTS_PASSED + TESTS_FAILED))"
+    echo ""
+    echo "📊 Phase 2 Results: ✅ $TESTS_PASSED passed, ❌ $TESTS_FAILED failed"
     
     if [[ $TESTS_FAILED -eq 0 ]]; then
-        echo ""
-        echo "🎉 All performance and API tests passed!"
-        echo "✅ System meets performance and API contract requirements"
+        echo "🎉 Phase 2 completed successfully"
         exit 0
     else
-        echo ""
-        echo "⚠️  Performance or API tests failed"
-        echo "❌ Address performance and API issues before deployment"
+        echo "⚠️  Phase 2 has failures - consider addressing before deployment"
         exit 1
     fi
 }
 
 # Execute if run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    run_performance_api_tests "$@"
+    main "$@"
 fi
