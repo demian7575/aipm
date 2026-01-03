@@ -1926,15 +1926,10 @@ function renderCodeWhispererSectionList(container, story) {
         const branchName = entry.branchName;
         const language = 'javascript';
         
-        // Create template-based prompt with extracted values
+        // Create template-based prompt with one-line parameters
         const prompt = `Read and follow the template file: ./templates/code-generation.md
 
-taskTitle: "${taskTitle}"
-objective: "${objective}"
-constraints: "${constraints}"
-prNumber: ${prNum}
-branchName: "${branchName}"
-language: "${language}"
+taskTitle: "${taskTitle}", objective: "${objective}", constraints: "${constraints}", prNumber: ${prNum}, branchName: "${branchName}", language: "${language}"
 
 Execute the template instructions exactly as written.`;
         
