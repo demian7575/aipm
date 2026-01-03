@@ -30,16 +30,16 @@ test_network_infrastructure() {
     
     # DNS resolution
     log_test "DNS resolution validation"
-    if nslookup aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com >/dev/null 2>&1; then
-        pass_test "Production frontend DNS resolves"
+    if curl -I -s --max-time 5 "http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com" >/dev/null 2>&1; then
+        pass_test "Production frontend accessible"
     else
-        fail_test "Production frontend DNS resolution failed"
+        fail_test "Production frontend not accessible"
     fi
     
-    if nslookup aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com >/dev/null 2>&1; then
-        pass_test "Development frontend DNS resolves"
+    if curl -I -s --max-time 5 "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com" >/dev/null 2>&1; then
+        pass_test "Development frontend accessible"
     else
-        fail_test "Development frontend DNS resolution failed"
+        fail_test "Development frontend not accessible"
     fi
     
     # SSL/TLS validation (for HTTPS endpoints)
@@ -52,13 +52,13 @@ test_network_infrastructure() {
     
     # Network connectivity
     log_test "EC2 instance connectivity"
-    if ping -c 1 -W 5 44.220.45.57 >/dev/null 2>&1; then
+    if curl -I -s --max-time 5 "http://44.220.45.57" >/dev/null 2>&1; then
         pass_test "Production EC2 instance reachable"
     else
         fail_test "Production EC2 instance unreachable"
     fi
     
-    if ping -c 1 -W 5 44.222.168.46 >/dev/null 2>&1; then
+    if curl -I -s --max-time 5 "http://44.222.168.46" >/dev/null 2>&1; then
         pass_test "Development EC2 instance reachable"
     else
         fail_test "Development EC2 instance unreachable"
