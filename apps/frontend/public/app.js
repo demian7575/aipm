@@ -1997,42 +1997,9 @@ Execute the template instructions exactly as written.`;
           }
           
           if (!prNumber) {
-            // If no PR exists, create one first
-            showToast('No PR found. Creating PR first...', 'info');
-            runInStagingBtn.textContent = 'Creating PR...';
-            
-            try {
-              const createPrResponse = await fetch('/api/create-pr', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  storyId: entry.id,
-                  branchName: `test-in-dev-${entry.id}-${Date.now()}`,
-                  prTitle: entry.title,
-                  prBody: `Test in Dev deployment for: ${entry.title}\n\nDescription: ${entry.description}\n\nStory ID: ${entry.id}`,
-                  story: entry
-                })
-              });
-              
-              if (createPrResponse.ok) {
-                const prData = await createPrResponse.json();
-                prNumber = prData.number || prData.prNumber;
-                showToast('PR created successfully', 'success');
-              } else {
-                throw new Error('Failed to create PR');
-              }
-            } catch (createError) {
-              showToast('Failed to create PR: ' + createError.message, 'error');
-              return;
-            }
-          }
-          
-          if (!prNumber) {
-            showToast('Could not determine PR number', 'error');
+            showToast('No PR found for this story. Please create a PR first using "Create PR" button.', 'error');
             return;
           }
-          
-          runInStagingBtn.textContent = 'Triggering Deployment...';
           
           // Trigger GitHub Actions workflow
           const response = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
