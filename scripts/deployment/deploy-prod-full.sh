@@ -70,19 +70,24 @@ if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$EC2_HOST" "echo 'SSH OK
     
     # Deploy Terminal Server
     if sudo systemctl list-unit-files | grep -q aipm-terminal-server; then
-      echo "  🔄 Enabling and restarting terminal server..."
-      sudo systemctl enable aipm-terminal-server
-      sudo systemctl restart aipm-terminal-server
-      sleep 2
-      
-      if sudo systemctl is-active --quiet aipm-terminal-server; then
-        echo "  ✅ Terminal server restarted"
-      else
-        echo "  ❌ Terminal server failed to start - DEPLOYMENT FAILED"
-        exit 1
-      fi
+      echo "  🔄 Stopping terminal server..."
+      sudo systemctl stop aipm-terminal-server || true
+      echo "  ✅ Terminal server stopped"
     else
       echo "  ⚠️  Terminal server not configured"
+    fi
+    
+    # Start main backend server directly
+    echo "  🔄 Starting main backend server..."
+    pkill -f "node.*server.js" || true
+    nohup node apps/backend/server.js > backend.log 2>&1 &
+    sleep 3
+    
+    # Test if backend is responding
+    if curl -s --max-time 5 http://localhost/api/stories > /dev/null; then
+      echo "  ✅ Main backend server started successfully"
+    else
+      echo "  ⚠️  Main backend server may not be responding"
     fi
     
     # Deploy Kiro API Server
