@@ -1,28 +1,65 @@
 /**
- * Email Validation Utility for PR #54
- * Provides email validation functionality for AIPM system
+ * Enhanced Email Validation Utility for PR #54
+ * Comprehensive email validation with proper error handling for AIPM system
  */
 
 function validateEmail(email) {
-  if (!email || typeof email !== 'string') {
-    return { valid: false, error: 'Email must be a string' };
+  try {
+    // Handle null/undefined (allowed in AIPM)
+    if (email === null || email === undefined) {
+      return { valid: true, email: '', error: null };
+    }
+    
+    // Type validation
+    if (typeof email !== 'string') {
+      return { valid: false, error: 'Email must be a string', email: null };
+    }
+    
+    const trimmed = email.trim();
+    
+    // Empty string validation (allowed in AIPM)
+    if (!trimmed) {
+      return { valid: true, email: '', error: null };
+    }
+    
+    // Length validation
+    if (trimmed.length > 254) {
+      return { valid: false, error: 'Email address too long (max 254 characters)', email: trimmed };
+    }
+    
+    // Format validation with enhanced regex
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+    
+    if (!emailRegex.test(trimmed)) {
+      return { valid: false, error: 'Invalid email format', email: trimmed };
+    }
+    
+    return { valid: true, email: trimmed, error: null };
+    
+  } catch (error) {
+    return { 
+      valid: false, 
+      error: `Email validation error: ${error.message}`, 
+      email: null 
+    };
   }
-  
-  const trimmed = email.trim();
-  if (!trimmed) {
-    return { valid: true, email: '' }; // Empty allowed in AIPM
-  }
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(trimmed)) {
-    return { valid: false, error: 'Invalid email format' };
-  }
-  
-  return { valid: true, email: trimmed };
 }
 
 function isValidEmail(email) {
-  return validateEmail(email).valid;
+  try {
+    return validateEmail(email).valid;
+  } catch (error) {
+    return false;
+  }
 }
 
-export { validateEmail, isValidEmail };
+function sanitizeEmail(email) {
+  try {
+    const result = validateEmail(email);
+    return result.valid ? result.email : '';
+  } catch (error) {
+    return '';
+  }
+}
+
+export { validateEmail, isValidEmail, sanitizeEmail };
