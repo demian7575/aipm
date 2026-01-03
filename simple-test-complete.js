@@ -1,8 +1,3 @@
-/**
- * Simple test function implementation
- */
 function simpleTest() {
-  return 'Test passed';
+    return true;
 }
-
-export { simpleTest };
