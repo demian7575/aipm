@@ -1,0 +1,254 @@
+name: Workflow Gating Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      test_environment:
+        description: 'Test environment (production/development/both)'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+        - production
+        - development
+        - both
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  workflow-gating-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: |
+          npm install --legacy-peer-deps
+          # Install additional testing dependencies
+          sudo apt-get update
+          sudo apt-get install -y jq python3-yaml
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Set environment variables
+        run: |
+          echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+          echo "TEST_ENVIRONMENT=${{ github.event.inputs.test_environment || 'both' }}" >> $GITHUB_ENV
+      
+      - name: Run Pre-Deployment Gating Tests
+        id: pre_deployment
+        run: |
+          echo "🚀 Running Pre-Deployment Gating Tests"
+          export PHASE="pre-deployment"
+          
+          # Run workflow gating tests
+          if ./scripts/testing/run-workflow-gating-tests.sh; then
+            echo "✅ Pre-deployment gating tests passed"
+            echo "pre_deployment_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Pre-deployment gating tests failed"
+            echo "pre_deployment_status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Run Comprehensive System Tests
+        id: system_tests
+        if: steps.pre_deployment.outputs.pre_deployment_status == 'success'
+        run: |
+          echo "🧪 Running Comprehensive System Tests"
+          
+          # Run existing comprehensive tests
+          if node scripts/testing/run-comprehensive-gating-tests.cjs; then
+            echo "✅ System tests passed"
+            echo "system_tests_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ System tests failed"
+            echo "system_tests_status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Run Code Generation Tests
+        id: code_generation
+        if: steps.system_tests.outputs.system_tests_status == 'success'
+        run: |
+          echo "🤖 Running Code Generation Tests"
+          
+          # Run code generation workflow tests
+          if node scripts/testing/test-code-generation-workflow.cjs; then
+            echo "✅ Code generation tests passed"
+            echo "code_generation_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Code generation tests failed"
+            echo "code_generation_status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Run Browser-Based Tests
+        id: browser_tests
+        if: steps.code_generation.outputs.code_generation_status == 'success'
+        run: |
+          echo "🌐 Running Browser-Based Tests"
+          
+          # Run browser tests
+          if node scripts/testing/run-browser-tests-automated.cjs; then
+            echo "✅ Browser tests passed"
+            echo "browser_tests_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Browser tests failed"
+            echo "browser_tests_status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Test Data Synchronization
+        id: data_sync
+        if: steps.browser_tests.outputs.browser_tests_status == 'success'
+        run: |
+          echo "🔄 Testing Data Synchronization"
+          
+          # Test data sync functionality
+          SYNC_RESULT=$(curl -s -X POST http://44.222.168.46/api/sync-data || echo '{"success":false}')
+          
+          if echo "$SYNC_RESULT" | grep -q '"success":true'; then
+            echo "✅ Data synchronization test passed"
+            echo "data_sync_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Data synchronization test failed: $SYNC_RESULT"
+            echo "data_sync_status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Validate Deployment Prerequisites
+        id: deployment_prereqs
+        if: steps.data_sync.outputs.data_sync_status == 'success'
+        run: |
+          echo "📋 Validating Deployment Prerequisites"
+          
+          # Check required files exist
+          MISSING_FILES=()
+          
+          [[ -f "apps/backend/app.js" ]] || MISSING_FILES+=("apps/backend/app.js")
+          [[ -f "apps/backend/server.js" ]] || MISSING_FILES+=("apps/backend/server.js")
+          [[ -f "apps/frontend/public/index.html" ]] || MISSING_FILES+=("apps/frontend/public/index.html")
+          [[ -f "apps/frontend/public/app.js" ]] || MISSING_FILES+=("apps/frontend/public/app.js")
+          [[ -f ".github/workflows/deploy-pr-to-dev.yml" ]] || MISSING_FILES+=("deploy-pr-to-dev.yml")
+          
+          if [[ ${#MISSING_FILES[@]} -eq 0 ]]; then
+            echo "✅ All deployment prerequisites satisfied"
+            echo "deployment_prereqs_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Missing deployment files: ${MISSING_FILES[*]}"
+            echo "deployment_prereqs_status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Generate Test Report
+        if: always()
+        run: |
+          echo "📊 Generating Test Report"
+          
+          cat > test-report.md << EOF
+          # AIPM Workflow Gating Tests Report
+          
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref_name }}
+          **Trigger:** ${{ github.event_name }}
+          
+          ## Test Results
+          
+          | Test Category | Status | Details |
+          |---------------|--------|---------|
+          | Pre-Deployment | ${{ steps.pre_deployment.outputs.pre_deployment_status || 'skipped' }} | Workflow validation and prerequisites |
+          | System Tests | ${{ steps.system_tests.outputs.system_tests_status || 'skipped' }} | API endpoints and service health |
+          | Code Generation | ${{ steps.code_generation.outputs.code_generation_status || 'skipped' }} | Kiro CLI and template system |
+          | Browser Tests | ${{ steps.browser_tests.outputs.browser_tests_status || 'skipped' }} | Frontend functionality |
+          | Data Sync | ${{ steps.data_sync.outputs.data_sync_status || 'skipped' }} | Production to development sync |
+          | Deployment Prerequisites | ${{ steps.deployment_prereqs.outputs.deployment_prereqs_status || 'skipped' }} | Required files and configuration |
+          
+          ## Summary
+          
+          EOF
+          
+          # Count results
+          SUCCESS_COUNT=0
+          FAILURE_COUNT=0
+          
+          for status in "${{ steps.pre_deployment.outputs.pre_deployment_status }}" \
+                       "${{ steps.system_tests.outputs.system_tests_status }}" \
+                       "${{ steps.code_generation.outputs.code_generation_status }}" \
+                       "${{ steps.browser_tests.outputs.browser_tests_status }}" \
+                       "${{ steps.data_sync.outputs.data_sync_status }}" \
+                       "${{ steps.deployment_prereqs.outputs.deployment_prereqs_status }}"; do
+            if [[ "$status" == "success" ]]; then
+              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+            elif [[ "$status" == "failure" ]]; then
+              FAILURE_COUNT=$((FAILURE_COUNT + 1))
+            fi
+          done
+          
+          if [[ $FAILURE_COUNT -eq 0 ]]; then
+            echo "✅ **All tests passed!** System is ready for deployment." >> test-report.md
+          else
+            echo "❌ **$FAILURE_COUNT test(s) failed.** Deployment should be blocked." >> test-report.md
+          fi
+          
+          echo "" >> test-report.md
+          echo "**Total Tests:** $((SUCCESS_COUNT + FAILURE_COUNT))" >> test-report.md
+          echo "**Passed:** $SUCCESS_COUNT" >> test-report.md
+          echo "**Failed:** $FAILURE_COUNT" >> test-report.md
+      
+      - name: Comment Test Results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const testReport = fs.readFileSync('test-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: testReport
+            });
+      
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: workflow-gating-test-report
+          path: test-report.md
+          retention-days: 30
+      
+      - name: Set Final Status
+        if: always()
+        run: |
+          if [[ "${{ steps.deployment_prereqs.outputs.deployment_prereqs_status }}" == "success" ]]; then
+            echo "🎉 All workflow gating tests passed!"
+            echo "✅ System is ready for deployment"
+            exit 0
+          else
+            echo "❌ Workflow gating tests failed"
+            echo "🚫 Deployment should be blocked"
+            exit 1
+          fi
