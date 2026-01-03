@@ -1,0 +1,50 @@
+{
+  "id": "story-automated-testing-001",
+  "title": "Automated Testing Framework",
+  "description": "As a developer, I want an automated testing framework so that I can ensure code quality and catch regressions early in the development cycle.",
+  "status": "Draft",
+  "storyPoints": 8,
+  "assignee": "dev@example.com",
+  "components": ["Test Automation"],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-001",
+      "description": "Given a code change, when tests are triggered, then all unit tests execute automatically",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-002", 
+      "description": "Given test failures, when tests complete, then detailed failure reports are generated",
+      "status": "Draft"
+    },
+    {
+      "id": "ac-003",
+      "description": "Given successful tests, when all tests pass, then deployment pipeline can proceed",
+      "status": "Draft"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-001",
+      "description": "Set up test runner configuration",
+      "assignee": "dev@example.com",
+      "status": "Todo"
+    },
+    {
+      "id": "task-002",
+      "description": "Create test automation scripts",
+      "assignee": "dev@example.com", 
+      "status": "Todo"
+    },
+    {
+      "id": "task-003",
+      "description": "Integrate with CI/CD pipeline",
+      "assignee": "dev@example.com",
+      "status": "Todo"
+    }
+  ],
+  "parentId": null,
+  "children": [],
+  "createdAt": "2026-01-03T18:43:39.307Z",
+  "updatedAt": "2026-01-03T18:43:39.307Z"
+}
