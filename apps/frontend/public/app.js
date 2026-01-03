@@ -2641,7 +2641,7 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    title.textContent = `#${story.id} ${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
@@ -2754,7 +2754,7 @@ function createMindmapNodeBody(story, options = {}) {
   const title = cleanedTitle.trim().length > 0 ? cleanedTitle : 'Untitled Story';
   const titleEl = createMindmapElement('div', namespace);
   titleEl.className = 'story-title';
-  titleEl.textContent = title;
+  titleEl.textContent = `#${story.id} ${title}`;
   const header = createMindmapElement('div', namespace);
   header.className = 'mindmap-node-header';
   header.appendChild(titleEl);
@@ -5306,6 +5306,12 @@ function showToast(message, type = 'info') {
 }
 
 function closeModal() {
+  // Clear any active polling intervals
+  if (window.currentPollInterval) {
+    clearInterval(window.currentPollInterval);
+    window.currentPollInterval = null;
+  }
+  
   modal.style.display = 'none';
   delete modal.dataset.size;
   modal.style.width = '';
@@ -6612,7 +6618,10 @@ function openChildStoryModal(parentId) {
         } catch (error) {
           console.error('Polling error:', error);
         }
-      }, 3000); // Poll every 3 seconds
+      }, 10000); // Poll every 10 seconds (reduced frequency)
+      
+      // Store pollInterval globally so it can be cleared when modal closes
+      window.currentPollInterval = pollInterval;
       
     } catch (error) {
       console.error('Failed to start story generation:', error);
