@@ -162,7 +162,7 @@ test_deployment_safety() {
     
     # Service health validation
     log_test "Pre-deployment service health"
-    if curl -s -m 5 "http://44.220.45.57/health" | grep -q "running"; then
+    if curl -s -m 5 "http://44.220.45.57/api/stories" | grep -q "\["; then
         pass_test "Production services healthy"
     else
         fail_test "Production services unhealthy - risky deployment"
