@@ -1985,17 +1985,41 @@ Execute the template instructions exactly as written.`;
       runInStagingBtn.textContent = 'Test in Dev';
       runInStagingBtn.addEventListener('click', async () => {
         runInStagingBtn.disabled = true;
-        runInStagingBtn.textContent = 'Deploying...';
+        runInStagingBtn.textContent = 'Triggering Deployment...';
         
         try {
-          const result = await bedrockImplementation(entry);
-          if (result && result.success) {
-            showToast('Deployed to dev environment', 'success');
+          // Get PR number from the entry
+          const prNumber = entry.prs && entry.prs.length > 0 ? entry.prs[0].number : null;
+          
+          if (!prNumber) {
+            showToast('No PR found for this story', 'error');
+            return;
+          }
+          
+          // Trigger GitHub Actions workflow
+          const response = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
+            method: 'POST',
+            headers: {
+              'Authorization': `token ${window.GITHUB_TOKEN || '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'}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              ref: 'main',
+              inputs: {
+                pr_number: prNumber.toString()
+              }
+            })
+          });
+          
+          if (response.ok) {
+            showToast(`Deployment workflow triggered for PR #${prNumber}. Check GitHub Actions for progress.`, 'success');
           } else {
-            showToast('Deployment failed: ' + (result?.message || 'Unknown error'), 'error');
+            const error = await response.text();
+            showToast(`Failed to trigger deployment: ${error}`, 'error');
           }
         } catch (error) {
-          showToast('Deployment error: ' + error.message, 'error');
+          showToast('Deployment trigger error: ' + error.message, 'error');
         }
         
         runInStagingBtn.disabled = false;
