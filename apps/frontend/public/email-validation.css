@@ -1,0 +1,35 @@
+/* Email Validation Styles */
+.validation-feedback {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.validation-feedback.invalid {
+  color: #dc3545;
+}
+
+.validation-feedback.valid {
+  color: #28a745;
+}
+
+input[type="email"].invalid {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+input[type="email"].valid {
+  border-color: #28a745;
+}
+
+/* Focus states */
+input[type="email"].invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+input[type="email"]:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}

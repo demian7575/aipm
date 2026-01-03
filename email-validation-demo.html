@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Validation Utility Demo</title>
+    <link rel="stylesheet" href="apps/frontend/public/email-validation.css">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="email"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .demo-section { margin-bottom: 30px; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
+        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Email Validation Utility Demo</h1>
+    
+    <div class="demo-section">
+        <h2>Real-time Validation</h2>
+        <p>Try entering different email addresses to see real-time validation:</p>
+        
+        <div class="form-group">
+            <label for="email1">Assignee Email:</label>
+            <input type="email" id="email1" placeholder="Enter email address">
+            <span class="validation-feedback"></span>
+        </div>
+        
+        <div class="form-group">
+            <label for="email2">Contact Email:</label>
+            <input type="email" id="email2" placeholder="Leave empty (allowed in AIPM)">
+            <span class="validation-feedback"></span>
+        </div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Test Cases</h2>
+        <p>Try these examples:</p>
+        <ul>
+            <li><strong>Valid:</strong> user@example.com, test.email@domain.co.uk</li>
+            <li><strong>Invalid:</strong> invalid-email, @domain.com, user@domain</li>
+            <li><strong>Empty:</strong> (allowed in AIPM system)</li>
+        </ul>
+    </div>
+
+    <script type="module">
+        import { attachEmailValidation } from './apps/frontend/public/email-validation-integration.js';
+        
+        // Demo is automatically initialized by the integration script
+        console.log('Email validation demo loaded');
+    </script>
+</body>
+</html>
