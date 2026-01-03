@@ -1,8 +1,6 @@
-// GitHub PR #999 Implementation
-// Branch: test-branch
-
-function implementPR999() {
-  return "PR #999 implementation complete";
+// GitHub PR #999 implementation for test-branch
+function testBranchFeature() {
+  return "PR #999 test implementation";
 }
 
-export { implementPR999 };
+module.exports = { testBranchFeature };
