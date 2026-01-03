@@ -69,6 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: gating-tests
     if: needs.gating-tests.outputs.gating-status == 'success'
+    environment: development  # This creates a deployment environment
     
     steps:
       - name: Checkout repository
