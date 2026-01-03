@@ -106,7 +106,7 @@ export class DynamoDBDataLayer {
         components: item.components || '[]',
         storyPoint: item.story_point || item.storyPoint || 0,
         assigneeEmail: item.assignee_email || item.assigneeEmail || '',
-        status: item.status || 'Draft',
+        status: item.status == null ? 'Draft' : item.status, // Handle null/undefined explicitly
         createdAt: item.created_at || item.createdAt,
         updatedAt: item.updated_at || item.updatedAt,
         // SQLite format (snake_case) for compatibility
