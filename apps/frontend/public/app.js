@@ -4184,7 +4184,7 @@ function renderDetails() {
     </div>
     <div class="full field-row">
       <label>Title</label>
-      <div class="story-text">${escapeHtml(story.title)}</div>
+      <div class="story-text">[${story.id}] ${escapeHtml(story.title)}</div>
     </div>
     <div class="full field-row">
       <label>Assignee Email</label>
