@@ -1,5 +1,9 @@
 function simpleTest() {
-  return "Simple test function executed";
+  return "Simple test function executed successfully";
 }
 
-module.exports = { simpleTest };
+function runSimpleTest() {
+  return simpleTest();
+}
+
+module.exports = { simpleTest, runSimpleTest };
