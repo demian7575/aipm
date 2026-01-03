@@ -1,6 +1,10 @@
 // Test Code Generation
 function testCodeGeneration() {
-  return "Test code generated successfully";
+  return "Test code generation task completed";
 }
 
-module.exports = { testCodeGeneration };
+function runCodeGenerationTest() {
+  return testCodeGeneration();
+}
+
+module.exports = { testCodeGeneration, runCodeGenerationTest };
