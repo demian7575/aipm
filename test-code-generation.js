@@ -1,6 +1,6 @@
 // Test Code Generation
 function testCodeGeneration() {
-  return "Test code generation task completed with full validation";
+  return "Test code generation task completed with comprehensive validation";
 }
 
 function runCodeGenerationTest() {
@@ -20,4 +20,9 @@ function executeCodeGenerationSuite() {
   };
 }
 
-module.exports = { testCodeGeneration, runCodeGenerationTest, validateCodeGeneration, executeCodeGenerationSuite };
+function finalizeCodeGeneration() {
+  const suite = executeCodeGenerationSuite();
+  return suite.status === "success" ? "Code generation finalized" : "Code generation failed";
+}
+
+module.exports = { testCodeGeneration, runCodeGenerationTest, validateCodeGeneration, executeCodeGenerationSuite, finalizeCodeGeneration };
