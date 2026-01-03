@@ -1918,15 +1918,15 @@ function renderCodeWhispererSectionList(container, story) {
         const iWant = story?.iWant || '';
         const soThat = story?.soThat || '';
         
-        // Create template-based prompt matching the expected schema
+        // Create template-based prompt with structured parameters
         const prompt = `Read and follow the template file: ./templates/code-generation.md
 
-Task Title: ${storyTitle}
-Objective: ${iWant || storyDesc || 'Implement the requested feature'}
-Constraints: Follow AIPM patterns and maintain existing functionality
-PR Number: ${prNumber}
-Branch Name: ${entry.branchName}
-Language: javascript
+taskTitle: "${storyTitle}"
+objective: "${iWant || storyDesc || 'Implement the requested feature'}"
+constraints: "Follow AIPM patterns and maintain existing functionality"
+prNumber: ${prNumber}
+branchName: "${entry.branchName}"
+language: "javascript"
 
 Execute the template instructions exactly as written.`;
         
