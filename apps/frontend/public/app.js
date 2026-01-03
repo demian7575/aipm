@@ -1988,13 +1988,49 @@ Execute the template instructions exactly as written.`;
         runInStagingBtn.textContent = 'Triggering Deployment...';
         
         try {
-          // Get PR number from the entry
-          const prNumber = entry.prs && entry.prs.length > 0 ? entry.prs[0].number : null;
+          // Get PR number from the entry - check multiple possible locations
+          let prNumber = null;
+          
+          if (entry.prs && Array.isArray(entry.prs) && entry.prs.length > 0) {
+            // Try to get number from PR object
+            prNumber = entry.prs[0].number || entry.prs[0].targetNumber;
+          }
           
           if (!prNumber) {
-            showToast('No PR found for this story', 'error');
+            // If no PR exists, create one first
+            showToast('No PR found. Creating PR first...', 'info');
+            runInStagingBtn.textContent = 'Creating PR...';
+            
+            try {
+              const createPrResponse = await fetch('/api/create-pr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: entry.title,
+                  description: entry.description,
+                  storyId: entry.id
+                })
+              });
+              
+              if (createPrResponse.ok) {
+                const prData = await createPrResponse.json();
+                prNumber = prData.number || prData.prNumber;
+                showToast('PR created successfully', 'success');
+              } else {
+                throw new Error('Failed to create PR');
+              }
+            } catch (createError) {
+              showToast('Failed to create PR: ' + createError.message, 'error');
+              return;
+            }
+          }
+          
+          if (!prNumber) {
+            showToast('Could not determine PR number', 'error');
             return;
           }
+          
+          runInStagingBtn.textContent = 'Triggering Deployment...';
           
           // Trigger GitHub Actions workflow
           const response = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
