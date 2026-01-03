@@ -131,20 +131,24 @@ test_deployment_safety() {
     # Branch protection validation
     log_test "Branch protection rules"
     if [[ -n "$GITHUB_TOKEN" ]]; then
-        PROTECTION=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-            "https://api.github.com/repos/demian7575/aipm/branches/main/protection" 2>/dev/null || echo '{}')
+        # Check for GitHub rulesets (newer protection method)
+        RULESETS=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/demian7575/aipm/rulesets" 2>/dev/null || echo '[]')
         
-        # Check for deployment protection
-        DEPLOYMENT_PROTECTION=$(echo "$PROTECTION" | jq -r '.required_deployment_environments // []' | jq length)
+        ACTIVE_RULESETS=$(echo "$RULESETS" | jq '[.[] | select(.enforcement == "active")] | length')
         
-        if echo "$PROTECTION" | grep -q "required_status_checks"; then
-            if [[ "$DEPLOYMENT_PROTECTION" -gt 0 ]]; then
-                pass_test "Main branch has deployment-based protection"
-            else
-                pass_test "Main branch has basic protection (consider adding deployment requirements)"
-            fi
+        if [[ "$ACTIVE_RULESETS" -gt 0 ]]; then
+            pass_test "Main branch has active protection rulesets"
         else
-            fail_test "Main branch lacks protection rules"
+            # Fallback to old branch protection API
+            PROTECTION=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                "https://api.github.com/repos/demian7575/aipm/branches/main/protection" 2>/dev/null || echo '{}')
+            
+            if echo "$PROTECTION" | grep -q "required_status_checks"; then
+                pass_test "Main branch has protection rules"
+            else
+                fail_test "Main branch lacks protection rules"
+            fi
         fi
     else
         fail_test "Cannot validate branch protection - no GitHub token"

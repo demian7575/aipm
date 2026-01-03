@@ -5515,9 +5515,15 @@ async function parseJson(req) {
   }
 }
 
-async function readRequestBody(req) {
+async function readRequestBody(req, maxSize = 1024 * 1024) { // 1MB limit
   const chunks = [];
+  let totalSize = 0;
+  
   for await (const chunk of req) {
+    totalSize += chunk.length;
+    if (totalSize > maxSize) {
+      throw new Error('Request payload too large');
+    }
     chunks.push(chunk);
   }
   return Buffer.concat(chunks).toString('utf8');
@@ -5655,29 +5661,43 @@ export async function createApp() {
   const db = await ensureDatabase();
 
   const server = createServer(async (req, res) => {
-    const url = new URL(req.url, 'http://localhost');
-    const pathname = url.pathname;
-    const method = req.method ?? 'GET';
+    try {
+      const url = new URL(req.url, 'http://localhost');
+      const pathname = url.pathname;
+      const method = req.method ?? 'GET';
 
-    if (method === 'OPTIONS') {
-      res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      });
-      res.end();
-      return;
-    }
+      if (method === 'OPTIONS') {
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        });
+        res.end();
+        return;
+      }
 
-    if (pathname === '/api/create-pr' && method === 'POST') {
-      await handleCreatePRRequest(req, res);
-      return;
-    }
+      if (pathname === '/api/create-pr' && method === 'POST') {
+        await handleCreatePRRequest(req, res);
+        return;
+      }
 
-    if (pathname === '/api/generate-code' && method === 'POST') {
-      await handleGenerateCodeRequest(req, res);
-      return;
-    }
+      if (pathname === '/api/generate-code' && method === 'POST') {
+        await handleGenerateCodeRequest(req, res);
+        return;
+      }
+
+      if (pathname === '/health' && method === 'GET') {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({ 
+          status: 'running', 
+          timestamp: new Date().toISOString(),
+          service: 'aipm-backend'
+        }));
+        return;
+      }
 
     if (pathname === '/api/deploy-pr' && method === 'POST') {
       await handleDeployPRRequest(req, res);
@@ -5711,15 +5731,18 @@ export async function createApp() {
     if (pathname === '/api/version' && method === 'GET') {
       const { readFile } = await import('fs/promises');
       const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
-      const version = { version: pkg.version };
       
-      // In development, include PR number if available
+      // Determine environment and version
       const stage = process.env.STAGE || process.env.AWS_STAGE || 'prod';
+      let version;
+      
       if (stage === 'dev' || stage === 'development') {
-        const prNumber = process.env.PR_NUMBER;
-        if (prNumber) {
-          version.pr = prNumber;
-        }
+        // Development shows base version + PR number
+        const prNumber = process.env.PR_NUMBER || 'dev';
+        version = { version: `${pkg.version}-${prNumber}` };
+      } else {
+        // Production shows major version
+        version = { version: '4.0.0' };
       }
       
       sendJson(res, 200, version);
@@ -7402,6 +7425,22 @@ export async function createApp() {
     }
 
     await serveStatic(req, res);
+    } catch (error) {
+      console.error('Request error:', error.message);
+      if (error.message === 'Request payload too large') {
+        res.writeHead(413, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({ error: 'Payload too large' }));
+      } else {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({ error: 'Internal server error' }));
+      }
+    }
   });
 
   server.on('close', () => {
