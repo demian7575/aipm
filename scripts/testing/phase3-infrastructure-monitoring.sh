@@ -86,7 +86,7 @@ test_monitoring_alerting() {
     
     # Health endpoint monitoring
     log_test "Health endpoint availability"
-    HEALTH_ENDPOINTS=("http://44.220.45.57:4000/health" "http://44.222.168.46:4000/health" "http://44.220.45.57:8081/health")
+    HEALTH_ENDPOINTS=("http://44.220.45.57/health" "http://44.222.168.46/health" "http://44.220.45.57:8081/health")
     
     for endpoint in "${HEALTH_ENDPOINTS[@]}"; do
         if curl -s -m 5 "$endpoint" | grep -q "running\|healthy\|ok"; then

@@ -5306,6 +5306,12 @@ function showToast(message, type = 'info') {
 }
 
 function closeModal() {
+  // Clear any active polling intervals
+  if (window.currentPollInterval) {
+    clearInterval(window.currentPollInterval);
+    window.currentPollInterval = null;
+  }
+  
   modal.style.display = 'none';
   delete modal.dataset.size;
   modal.style.width = '';
@@ -6612,7 +6618,10 @@ function openChildStoryModal(parentId) {
         } catch (error) {
           console.error('Polling error:', error);
         }
-      }, 3000); // Poll every 3 seconds
+      }, 10000); // Poll every 10 seconds (reduced frequency)
+      
+      // Store pollInterval globally so it can be cleared when modal closes
+      window.currentPollInterval = pollInterval;
       
     } catch (error) {
       console.error('Failed to start story generation:', error);
