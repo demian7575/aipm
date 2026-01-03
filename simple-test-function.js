@@ -1,5 +1,5 @@
 function simpleTest() {
-  return "Simple test function executed with validation";
+  return "Simple test function executed with complete validation";
 }
 
 function runSimpleTest() {
@@ -11,4 +11,8 @@ function validateSimpleTest() {
   return result.includes("executed");
 }
 
-module.exports = { simpleTest, runSimpleTest, validateSimpleTest };
+function finalizeSimpleTest() {
+  return validateSimpleTest() ? "Simple test finalized" : "Simple test failed";
+}
+
+module.exports = { simpleTest, runSimpleTest, validateSimpleTest, finalizeSimpleTest };
