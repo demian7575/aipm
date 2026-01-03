@@ -1918,20 +1918,28 @@ function renderCodeWhispererSectionList(container, story) {
         const iWant = story?.iWant || '';
         const soThat = story?.soThat || '';
         
-        // Create template-based prompt with structured parameters
+        // Extract values dynamically from frontend data
+        const taskTitle = storyTitle;
+        const objective = iWant || storyDesc || 'Implement the requested feature';
+        const constraints = 'Follow AIPM patterns and maintain existing functionality';
+        const prNum = parseInt(prNumber);
+        const branchName = entry.branchName;
+        const language = 'javascript';
+        
+        // Create template-based prompt with extracted values
         const prompt = `Read and follow the template file: ./templates/code-generation.md
 
-taskTitle: "${storyTitle}"
-objective: "${iWant || storyDesc || 'Implement the requested feature'}"
-constraints: "Follow AIPM patterns and maintain existing functionality"
-prNumber: ${prNumber}
-branchName: "${entry.branchName}"
-language: "javascript"
+taskTitle: "${taskTitle}"
+objective: "${objective}"
+constraints: "${constraints}"
+prNumber: ${prNum}
+branchName: "${branchName}"
+language: "${language}"
 
 Execute the template instructions exactly as written.`;
         
         console.log('🚀 Starting template-based code generation...');
-        console.log('📤 Using template prompt for PR #' + prNumber);
+        console.log('📤 Template values:', { taskTitle, objective, constraints, prNum, branchName, language });
         
         const response = await fetch(resolveApiUrl('/api/generate-code-branch'), {
           method: 'POST',
