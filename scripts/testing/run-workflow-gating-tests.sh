@@ -332,6 +332,23 @@ run_all_workflow_gating_tests() {
     test_cicd_workflow || true
     echo ""
     
+    # Run critical missing tests identified in gap analysis
+    echo "🚨 Running Critical Security & Data Safety Tests"
+    if ./scripts/testing/run-critical-gating-tests.sh; then
+        pass_test "Critical security and data safety tests passed"
+    else
+        fail_test "Critical security and data safety tests failed"
+    fi
+    echo ""
+    
+    echo "⚡ Running Performance & API Contract Tests"
+    if ./scripts/testing/run-performance-api-tests.sh; then
+        pass_test "Performance and API contract tests passed"
+    else
+        fail_test "Performance and API contract tests failed"
+    fi
+    echo ""
+    
     # Summary
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "📊 Test Results Summary"
