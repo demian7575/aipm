@@ -1,5 +1,5 @@
 function simpleTest() {
-  return true;
+  return "Simple test function executed";
 }
 
 module.exports = { simpleTest };
