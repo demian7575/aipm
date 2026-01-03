@@ -5306,12 +5306,6 @@ function showToast(message, type = 'info') {
 }
 
 function closeModal() {
-  // Clear any active polling intervals
-  if (window.currentPollInterval) {
-    clearInterval(window.currentPollInterval);
-    window.currentPollInterval = null;
-  }
-  
   modal.style.display = 'none';
   delete modal.dataset.size;
   modal.style.width = '';
@@ -6452,13 +6446,8 @@ function openChildStoryModal(parentId) {
     generateBtn.disabled = true;
     
     try {
-      // Start generation and wait for completion
+      // Generate draft data only (no database save)
       const apiBaseUrl = window.CONFIG.apiEndpoint;
-      
-      // Start polling for new stories
-      const initialStoryCount = state.stories.length;
-      let pollCount = 0;
-      let newStory = null;
       
       // Generate draft data only (no database save)
       fetch(`${apiBaseUrl}/api/generate-draft`, {
@@ -6550,78 +6539,6 @@ function openChildStoryModal(parentId) {
         generateBtn.textContent = restore.text;
         generateBtn.disabled = restore.disabled;
       });
-      
-      // Poll for new stories and update modal when found
-      const pollInterval = setInterval(async () => {
-        try {
-          await loadStories(false);
-          
-          // Check if new story was created
-          if (state.stories.length > initialStoryCount) {
-            // Find the newest story (likely the generated one)
-            const sortedStories = [...state.stories].sort((a, b) => 
-              new Date(b.createdAt) - new Date(a.createdAt)
-            );
-            newStory = sortedStories[0];
-            
-            // Update modal fields with generated story
-            const titleInput = container.querySelector('#child-title');
-            const pointInput = container.querySelector('#child-point');
-            const assigneeInput = container.querySelector('#child-assignee');
-            const descriptionInput = container.querySelector('#child-description');
-            const asADisplay = container.querySelector('#child-asa-display');
-            const iWantDisplay = container.querySelector('#child-iwant-display');
-            const soThatDisplay = container.querySelector('#child-sothat-display');
-
-            if (titleInput) titleInput.value = newStory.title || '';
-            autoResizeTitle();
-            if (pointInput) pointInput.value = newStory.storyPoint != null ? newStory.storyPoint : '';
-            if (assigneeInput) assigneeInput.value = newStory.assigneeEmail || '';
-            if (descriptionInput) descriptionInput.value = newStory.description || '';
-            if (asADisplay) {
-              asADisplay.value = newStory.asA || '';
-              asADisplay.style.height = 'auto';
-              asADisplay.style.height = asADisplay.scrollHeight + 'px';
-            }
-            if (iWantDisplay) {
-              iWantDisplay.value = newStory.iWant || '';
-              iWantDisplay.style.height = 'auto';
-              iWantDisplay.style.height = iWantDisplay.scrollHeight + 'px';
-            }
-            if (soThatDisplay) {
-              soThatDisplay.value = newStory.soThat || '';
-              soThatDisplay.style.height = 'auto';
-              soThatDisplay.style.height = soThatDisplay.scrollHeight + 'px';
-            }
-
-            if (Array.isArray(newStory.components)) {
-              childComponents = normalizeComponentSelection(newStory.components);
-              refreshChildComponents();
-            }
-            
-            clearInterval(pollInterval);
-            showToast('✨ AI-generated story loaded in modal!', 'success');
-            return;
-          }
-          
-          // Show progress updates every 10 seconds
-          pollCount++;
-          if (pollCount % 4 === 0) { // Every 10 seconds (4 * 3 seconds = 12 seconds)
-            const seconds = pollCount * 3;
-            const minutes = Math.floor(seconds / 60);
-            if (minutes > 0) {
-              generateBtn.textContent = `Generating… (${minutes}m ${seconds % 60}s elapsed)`;
-            } else {
-              generateBtn.textContent = `Generating… (${seconds}s elapsed)`;
-            }
-          }
-        } catch (error) {
-          console.error('Polling error:', error);
-        }
-      }, 10000); // Poll every 10 seconds (reduced frequency)
-      
-      // Store pollInterval globally so it can be cleared when modal closes
-      window.currentPollInterval = pollInterval;
       
     } catch (error) {
       console.error('Failed to start story generation:', error);
