@@ -1,6 +1,6 @@
 window.CONFIG = {
   API_BASE_URL: 'http://44.220.45.57',
-  apiEndpoint: 'http://44.220.45.57',
+  apiEndpoint: 'http://44.220.45.57:8081',
   EC2_TERMINAL_URL: 'ws://44.220.45.57:8080',
   ENVIRONMENT: 'production',
   environment: 'production',

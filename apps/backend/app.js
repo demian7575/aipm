@@ -1,4 +1,3 @@
-import { generateInvestCompliantStory, generateAcceptanceTest } from './story-generator.js';
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
 import { spawnSync, spawn } from 'node:child_process';
@@ -5683,6 +5682,19 @@ export async function createApp() {
 
       if (pathname === '/api/generate-code' && method === 'POST') {
         await handleGenerateCodeRequest(req, res);
+        return;
+      }
+
+      if (pathname === '/api/generate-draft' && method === 'POST') {
+        // Redirect to Kiro API server - this endpoint should not be called on main backend
+        res.writeHead(404, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'Story generation handled by Kiro API server on port 8081' 
+        }));
         return;
       }
 
