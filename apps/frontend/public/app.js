@@ -1918,34 +1918,25 @@ function renderCodeWhispererSectionList(container, story) {
         const iWant = story?.iWant || '';
         const soThat = story?.soThat || '';
         
-        // Build a code implementation prompt that forces file modifications
-        let prompt = `You must IMPLEMENT this feature by directly modifying the code files. Do not just analyze or suggest - make the actual changes.\n\n`;
-        prompt += `**Feature to implement**: ${storyTitle}\n\n`;
+        // Create template-based prompt similar to user story generation
+        const prompt = `Read and follow the template file: ./templates/code-generation.md
+
+Task Title: ${storyTitle}
+Objective: ${iWant || storyDesc || 'Implement the requested feature'}
+Constraints: Follow AIPM patterns and maintain existing functionality
+PR Number: ${prNumber}
+Branch Name: ${entry.branchName}
+Language: javascript
+
+User Story Context:
+- As a: ${asA || 'user'}
+- I want: ${iWant || 'to implement this feature'}
+- So that: ${soThat || 'I can achieve my goals'}
+
+Execute the template instructions exactly as written.`;
         
-        if (asA && iWant && soThat) {
-          prompt += `**Requirements**:\n`;
-          prompt += `- User: ${asA}\n`;
-          prompt += `- Wants: ${iWant}\n`;
-          prompt += `- So that: ${soThat}\n\n`;
-        } else if (storyDesc) {
-          prompt += `**Description**: ${storyDesc}\n\n`;
-        }
-        
-        prompt += `**MANDATORY ACTIONS - You MUST do these**:\n`;
-        prompt += `1. Open and modify the actual files in apps/frontend/public/ or apps/backend/\n`;
-        prompt += `2. Write the code changes directly to the files\n`;
-        prompt += `3. Save all modified files\n`;
-        prompt += `4. Do NOT just provide suggestions or analysis\n`;
-        prompt += `5. Make working, functional code changes\n\n`;
-        prompt += `**Files you can modify**:\n`;
-        prompt += `- apps/frontend/public/app.js (main frontend logic)\n`;
-        prompt += `- apps/frontend/public/index.html (HTML structure)\n`;
-        prompt += `- apps/frontend/public/styles.css (styling)\n`;
-        prompt += `- apps/backend/app.js (backend API)\n\n`;
-        prompt += `Start implementing now by opening and modifying the appropriate files.`;
-        
-        console.log('🚀 Starting fresh branch code generation...');
-        console.log('📤 Using prompt:', prompt);
+        console.log('🚀 Starting template-based code generation...');
+        console.log('📤 Using template prompt for PR #' + prNumber);
         
         const response = await fetch(resolveApiUrl('/api/generate-code-branch'), {
           method: 'POST',
