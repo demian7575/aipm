@@ -2006,9 +2006,11 @@ Execute the template instructions exactly as written.`;
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  title: entry.title,
-                  description: entry.description,
-                  storyId: entry.id
+                  storyId: entry.id,
+                  branchName: `test-in-dev-${entry.id}-${Date.now()}`,
+                  prTitle: entry.title,
+                  prBody: `Test in Dev deployment for: ${entry.title}\n\nDescription: ${entry.description}\n\nStory ID: ${entry.id}`,
+                  story: entry
                 })
               });
               
