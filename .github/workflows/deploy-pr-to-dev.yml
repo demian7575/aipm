@@ -169,13 +169,13 @@ jobs:
           echo "📦 Deploying backend to development EC2..."
           
           # Upload backend file to S3 for transfer
-          aws s3 cp apps/backend/app.js s3://aipm-deployments-728378229251/temp/app.js
+          aws s3 cp scripts/kiro-api-server-v4.js s3://aipm-deployments-728378229251/temp/kiro-api-server-v4.js
           
           # Use HTTP API to trigger deployment on development EC2
           echo "🔄 Triggering backend deployment via HTTP API..."
           curl -X POST http://44.222.168.46/api/deploy-backend \
             -H "Content-Type: application/json" \
-            -d '{"s3Bucket": "aipm-deployments-728378229251", "s3Key": "temp/app.js"}' \
+            -d '{"s3Bucket": "aipm-deployments-728378229251", "s3Key": "temp/kiro-api-server-v4.js"}' \
             --max-time 30 || echo "⚠️ Backend deployment failed, continuing..."
           
           # Wait for backend to restart
