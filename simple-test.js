@@ -1,3 +1,3 @@
-function test() {
+function simpleTest() {
     return true;
 }
