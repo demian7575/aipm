@@ -2017,14 +2017,19 @@ Execute the template instructions exactly as written.`;
           
           console.log('Triggering deployment for PR #' + prNumber);
           
-          // Trigger GitHub Actions workflow via backend API
-          const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/trigger-deployment`, {
+          // Trigger GitHub Actions workflow directly
+          const response = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
             method: 'POST',
             headers: {
+              'Authorization': `token ${window.CONFIG.GITHUB_TOKEN}`,
+              'Accept': 'application/vnd.github.v3+json',
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              pr_number: prNumber.toString()
+              ref: 'main',
+              inputs: {
+                pr_number: prNumber.toString()
+              }
             })
           });
           

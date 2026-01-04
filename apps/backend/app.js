@@ -5800,11 +5800,13 @@ export async function createApp() {
       
       if (stage === 'dev' || stage === 'development') {
         // Development shows base version + PR number
+        const baseVersion = process.env.BASE_VERSION || '0.1.0';
         const prNumber = process.env.PR_NUMBER || 'dev';
-        version = { version: `${pkg.version}-${prNumber}` };
+        version = { version: `${baseVersion}-${prNumber}` };
       } else {
-        // Production shows major version
-        version = { version: '4.0.0' };
+        // Production uses configured version
+        const prodVersion = process.env.PROD_VERSION || '4.0.0';
+        version = { version: prodVersion };
       }
       
       sendJson(res, 200, version);
