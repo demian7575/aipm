@@ -1988,18 +1988,28 @@ Execute the template instructions exactly as written.`;
         runInStagingBtn.textContent = 'Triggering Deployment...';
         
         try {
+          // Debug logging
+          console.log('Story entry:', entry);
+          console.log('Story PRs:', entry.prs);
+          
           // Get PR number from the entry - check multiple possible locations
           let prNumber = null;
           
           if (entry.prs && Array.isArray(entry.prs) && entry.prs.length > 0) {
             // Try to get number from PR object
             prNumber = entry.prs[0].number || entry.prs[0].targetNumber;
+            console.log('Found PR number:', prNumber, 'from PR:', entry.prs[0]);
+          } else {
+            console.log('No PRs found. PRs array:', entry.prs);
           }
           
           if (!prNumber) {
+            console.log('PR detection failed. Available PR data:', entry.prs);
             showToast('No PR found for this story. Please create a PR first using "Create PR" button.', 'error');
             return;
           }
+          
+          console.log('Triggering deployment for PR #' + prNumber);
           
           // Trigger GitHub Actions workflow
           const response = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
@@ -2021,9 +2031,11 @@ Execute the template instructions exactly as written.`;
             showToast(`Deployment workflow triggered for PR #${prNumber}. Check GitHub Actions for progress.`, 'success');
           } else {
             const error = await response.text();
+            console.log('GitHub API error:', error);
             showToast(`Failed to trigger deployment: ${error}`, 'error');
           }
         } catch (error) {
+          console.error('Deployment trigger error:', error);
           showToast('Deployment trigger error: ' + error.message, 'error');
         }
         
