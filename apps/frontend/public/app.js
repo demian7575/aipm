@@ -2015,7 +2015,7 @@ Execute the template instructions exactly as written.`;
           const response = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
             method: 'POST',
             headers: {
-              'Authorization': `token ${window.GITHUB_TOKEN || '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'}`,
+              'Authorization': `token ${window.GITHUB_TOKEN || 'GITHUB_TOKEN_PLACEHOLDER'}`,
               'Accept': 'application/vnd.github.v3+json',
               'Content-Type': 'application/json'
             },
