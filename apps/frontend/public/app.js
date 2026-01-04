@@ -2018,7 +2018,7 @@ Execute the template instructions exactly as written.`;
           console.log('Triggering deployment for PR #' + prNumber);
           
           // Trigger GitHub Actions workflow via backend API
-          const response = await fetch('http://44.220.45.57/api/trigger-deployment', {
+          const response = await fetch(`${window.CONFIG?.API_BASE_URL || 'http://44.220.45.57'}/api/trigger-deployment`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
