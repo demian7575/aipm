@@ -7,6 +7,29 @@ set -e
 
 PHASE_PASSED=0
 PHASE_FAILED=0
+WORKFLOW_STORY_ID=""
+WORKFLOW_TEST_ID=""
+
+# Cleanup function to remove test data
+cleanup_test_data() {
+    echo ""
+    echo "🧹 Cleaning up test data..."
+    
+    if [ -n "$WORKFLOW_STORY_ID" ]; then
+        echo "  🗑️  Removing test story ID: $WORKFLOW_STORY_ID"
+        curl -s -X DELETE "$PROD_API/api/stories/$WORKFLOW_STORY_ID" > /dev/null 2>&1 || true
+    fi
+    
+    if [ -n "$WORKFLOW_TEST_ID" ]; then
+        echo "  🗑️  Removing test acceptance test ID: $WORKFLOW_TEST_ID"
+        curl -s -X DELETE "$PROD_API/api/acceptance-tests/$WORKFLOW_TEST_ID" > /dev/null 2>&1 || true
+    fi
+    
+    echo "  ✅ Test data cleanup completed"
+}
+
+# Set trap to ensure cleanup runs on exit (success or failure)
+trap cleanup_test_data EXIT
 
 # Test utilities
 log_test() {
@@ -189,20 +212,7 @@ else
     fail_test "Cannot retrieve story for persistence test"
 fi
 
-# Cleanup
-echo ""
-echo "🧹 Workflow Test Cleanup"
-
-test_name "Cleanup test data workflow"
-if curl -s -X DELETE "$PROD_API/api/stories/$WORKFLOW_STORY_ID" > /dev/null 2>&1; then
-    if [ -n "$WORKFLOW_TEST_ID" ]; then
-        curl -s -X DELETE "$PROD_API/api/acceptance-tests/$WORKFLOW_TEST_ID" > /dev/null 2>&1
-    fi
-    pass_test "Test data cleanup successful"
-else
-    pass_test "Test data cleanup completed (story may not exist)"
-fi
-
+# Results summary (cleanup handled by trap)
 echo ""
 echo "📊 Phase 4 Results: ✅ $PHASE_PASSED passed, ❌ $PHASE_FAILED failed"
 
