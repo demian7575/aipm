@@ -1604,9 +1604,9 @@ async function checkPRUpToDate(prEntry) {
     const repoPath = prEntry?.repo || 'demian7575/aipm';
     const [owner, repo] = repoPath.split('/');
     
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`);
+    const response = await fetch(resolveApiUrl(`/api/github/repos/${owner}/${repo}/pulls/${prNumber}`));
     if (!response.ok) {
-      throw new Error(`GitHub API returned ${response.status}`);
+      throw new Error(`Backend API returned ${response.status}`);
     }
     
     const prData = await response.json();
@@ -2017,19 +2017,14 @@ Execute the template instructions exactly as written.`;
           
           console.log('Triggering deployment for PR #' + prNumber);
           
-          // Trigger GitHub Actions workflow directly
-          const response = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
+          // Use backend API instead of direct GitHub API call
+          const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/deploy-pr`, {
             method: 'POST',
             headers: {
-              'Authorization': `token ${window.CONFIG.GITHUB_TOKEN}`,
-              'Accept': 'application/vnd.github.v3+json',
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              ref: 'main',
-              inputs: {
-                pr_number: prNumber.toString()
-              }
+              prNumber: prNumber
             })
           });
           
@@ -2542,7 +2537,7 @@ function collectTestsNeedingAttention(story) {
 }
 
 async function loadStories(preserveSelection = true) {
-  console.log('loadStories called, preserveSelection:', preserveSelection);
+  console.log('loadStories called, preserveSelection:', preserveSelection, 'timestamp:', Date.now());
   const previousSelection = preserveSelection ? state.selectedStoryId : null;
   
   // Try to load from local storage first
@@ -2677,7 +2672,7 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    title.textContent = `#${story.id} ${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
@@ -2787,7 +2782,7 @@ function createMindmapNodeBody(story, options = {}) {
 
   const rawTitle = story.title != null ? String(story.title) : '';
   const cleanedTitle = normalizeMindmapText(rawTitle);
-  const title = cleanedTitle.trim().length > 0 ? cleanedTitle : 'Untitled Story';
+  const title = cleanedTitle.trim().length > 0 ? `#${story.id} ${cleanedTitle}` : `#${story.id} Untitled Story`;
   const titleEl = createMindmapElement('div', namespace);
   titleEl.className = 'story-title';
   titleEl.textContent = title;
@@ -4213,6 +4208,10 @@ function renderDetails() {
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
       <button type="button" class="primary" id="mark-done-btn">Done</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
+    </div>
+    <div class="full field-row">
+      <label>Story ID</label>
+      <div class="story-text">#${story.id}</div>
     </div>
     <div class="full field-row">
       <label>Title</label>
@@ -6483,7 +6482,7 @@ function openChildStoryModal(parentId) {
     
     try {
       // Generate draft data only (no database save)
-      const apiBaseUrl = window.CONFIG.apiEndpoint;
+      const apiBaseUrl = window.CONFIG.API_BASE_URL;
       
       // Generate draft data only (no database save)
       fetch(`${apiBaseUrl}/api/generate-draft`, {
