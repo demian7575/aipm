@@ -5675,6 +5675,56 @@ export async function createApp() {
         return;
       }
 
+      if (pathname === '/api/trigger-deployment' && method === 'POST') {
+        try {
+          const payload = await parseJson(req);
+          const { pr_number } = payload;
+          
+          if (!pr_number) {
+            sendJson(res, 400, { success: false, error: 'PR number is required' });
+            return;
+          }
+          
+          const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+          if (!GITHUB_TOKEN) {
+            sendJson(res, 500, { success: false, error: 'GitHub token not configured' });
+            return;
+          }
+          
+          // Trigger GitHub Actions workflow
+          const response = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
+            method: 'POST',
+            headers: {
+              'Authorization': `token ${GITHUB_TOKEN}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              ref: 'main',
+              inputs: {
+                pr_number: pr_number.toString()
+              }
+            })
+          });
+          
+          if (response.ok) {
+            sendJson(res, 200, { 
+              success: true, 
+              message: `Deployment workflow triggered for PR #${pr_number}` 
+            });
+          } else {
+            const error = await response.text();
+            sendJson(res, 500, { 
+              success: false, 
+              error: `GitHub API error: ${error}` 
+            });
+          }
+        } catch (error) {
+          sendJson(res, 500, { success: false, error: error.message });
+        }
+        return;
+      }
+
       if (pathname === '/api/create-pr' && method === 'POST') {
         await handleCreatePRRequest(req, res);
         return;

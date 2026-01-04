@@ -1989,41 +1989,42 @@ Execute the template instructions exactly as written.`;
         
         try {
           // Debug logging
-          console.log('Story entry:', entry);
-          console.log('Story PRs:', entry.prs);
+          console.log('Entry type check:', {
+            hasNumber: !!entry.number,
+            hasStoryId: !!entry.storyId,
+            hasPrs: !!entry.prs,
+            entryKeys: Object.keys(entry)
+          });
           
-          // Get PR number from the entry - check multiple possible locations
           let prNumber = null;
           
-          if (entry.prs && Array.isArray(entry.prs) && entry.prs.length > 0) {
-            // Try to get number from PR object
+          // Check if entry is a PR object (has number and storyId)
+          if (entry.number && entry.storyId) {
+            prNumber = entry.number;
+            console.log('Entry is a PR object, using PR number:', prNumber);
+          }
+          // Check if entry is a story object (has prs array)
+          else if (entry.prs && Array.isArray(entry.prs) && entry.prs.length > 0) {
             prNumber = entry.prs[0].number || entry.prs[0].targetNumber;
-            console.log('Found PR number:', prNumber, 'from PR:', entry.prs[0]);
-          } else {
-            console.log('No PRs found. PRs array:', entry.prs);
+            console.log('Entry is a story object, found PR number:', prNumber, 'from PR:', entry.prs[0]);
           }
           
           if (!prNumber) {
-            console.log('PR detection failed. Available PR data:', entry.prs);
-            showToast('No PR found for this story. Please create a PR first using "Create PR" button.', 'error');
+            console.log('PR detection failed. Entry:', entry);
+            showToast('No PR found for this item. Please create a PR first.', 'error');
             return;
           }
           
           console.log('Triggering deployment for PR #' + prNumber);
           
-          // Trigger GitHub Actions workflow
-          const response = await fetch('https://api.github.com/repos/demian7575/aipm/actions/workflows/deploy-pr-to-dev.yml/dispatches', {
+          // Trigger GitHub Actions workflow via backend API
+          const response = await fetch('/api/trigger-deployment', {
             method: 'POST',
             headers: {
-              'Authorization': `token ${window.GITHUB_TOKEN || 'GITHUB_TOKEN_PLACEHOLDER'}`,
-              'Accept': 'application/vnd.github.v3+json',
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              ref: 'main',
-              inputs: {
-                pr_number: prNumber.toString()
-              }
+              pr_number: prNumber.toString()
             })
           });
           
