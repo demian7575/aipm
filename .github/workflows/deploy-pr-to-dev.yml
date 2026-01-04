@@ -55,7 +55,7 @@ jobs:
           echo "🧪 Running Pre-Deployment Gating Tests"
           export PHASE="pre-deployment"
           
-          if ./scripts/testing/run-workflow-gating-tests.sh; then
+          if ./scripts/testing/run-structured-gating-tests.sh; then
             echo "✅ Gating tests passed - deployment approved"
             echo "status=success" >> $GITHUB_OUTPUT
           else
@@ -309,7 +309,7 @@ jobs:
           fi
           
           # Run post-deployment gating tests
-          if ./scripts/testing/run-workflow-gating-tests.sh; then
+          if ./scripts/testing/run-structured-gating-tests.sh; then
             echo "✅ Post-deployment validation passed"
           else
             echo "❌ Post-deployment validation failed"
