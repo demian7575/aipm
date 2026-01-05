@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Enable debug output for GitHub Actions
+if [[ -n "$GITHUB_ACTIONS" ]]; then
+    set -x
+fi
+
 ENV=$1
 if [[ -z "$ENV" ]]; then
     echo "Usage: $0 <prod|dev>"
@@ -36,17 +41,25 @@ echo "🪣 Frontend: $FRONTEND_BUCKET"
 
 # Deploy backend
 echo "📦 Deploying backend..."
-scp apps/backend/app.js ec2-user@$HOST:aipm/apps/backend/app.js
 
-# Restart backend (try systemd first, fallback to process restart)
-echo "🔄 Restarting backend service..."
-if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
-    echo "✅ Backend restarted via systemd"
-elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
-    echo "✅ Backend restarted via process restart"
+# Check if we're in GitHub Actions environment
+if [[ -n "$GITHUB_ACTIONS" ]]; then
+    echo "⚠️  GitHub Actions environment detected - skipping SSH deployment"
+    echo "Backend deployment requires SSH access which is not available in GitHub Actions"
+    echo "Manual deployment required for backend updates"
 else
-    echo "❌ Failed to restart backend"
-    exit 1
+    scp apps/backend/app.js ec2-user@$HOST:aipm/apps/backend/app.js
+
+    # Restart backend (try systemd first, fallback to process restart)
+    echo "🔄 Restarting backend service..."
+    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
+        echo "✅ Backend restarted via systemd"
+    elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+        echo "✅ Backend restarted via process restart"
+    else
+        echo "❌ Failed to restart backend"
+        exit 1
+    fi
 fi
 
 # Wait for backend to start
