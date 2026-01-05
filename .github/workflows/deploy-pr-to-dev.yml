@@ -174,54 +174,8 @@ jobs:
       
       - name: Deploy to development environment
         run: |
-          echo "📊 Deploying to development environment..."
-          
-          # Deploy backend using HTTP API
-          echo "📦 Deploying backend to development EC2..."
-          
-          # Upload backend file to S3 for transfer
-          aws s3 cp apps/backend/app.js s3://aipm-deployments-728378229251/temp/app.js
-          
-          # Use HTTP API to trigger deployment on development EC2
-          echo "🔄 Triggering backend deployment via HTTP API..."
-          curl -X POST http://44.222.168.46/api/deploy-backend \
-            -H "Content-Type: application/json" \
-            -d '{"s3Bucket": "aipm-deployments-728378229251", "s3Key": "temp/app.js"}' \
-            --max-time 30 || echo "⚠️ Backend deployment failed, continuing..."
-          
-          # Wait for backend to restart
-          sleep 10
-          
-          # Mirror production data to development
-          echo "🔄 Mirroring production data to development..."
-          curl -X POST http://44.222.168.46/api/sync-data --max-time 30 || echo "⚠️ Data sync failed, continuing..."
-          
-          echo "✅ Backend deployment and data mirroring completed"
-          
-          # Create dev config pointing to EC2
-          echo "📝 Creating development configuration..."
-          cat > apps/frontend/public/config.js << EOF
-          window.CONFIG = {
-            API_BASE_URL: 'http://44.222.168.46',
-            apiEndpoint: 'http://44.222.168.46',
-            EC2_TERMINAL_URL: 'ws://44.222.168.46:8080',
-            ENVIRONMENT: 'development',
-            environment: 'development',
-            stage: 'dev',
-            region: 'us-east-1',
-            storiesTable: 'aipm-backend-dev-stories',
-            acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
-            DEBUG: true
-          };
-          EOF
-          
-          echo "✅ Development config created"
-      
-      - name: Deploy frontend to S3
-        run: |
-          echo "📦 Deploying frontend to dev..."
-          aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting --delete --cache-control no-cache
-          echo "✅ Frontend deployed"
+          echo "🚀 Deploying to development environment using unified script..."
+          ./scripts/deploy-to-environment.sh dev
       
       - name: Run production gating tests
         run: |
@@ -239,34 +193,6 @@ jobs:
         run: |
           echo "🔍 Running Post-Deployment Validation"
           export PHASE="post-deployment"
-          
-          # Test development environment health
-          echo "Testing development environment..."
-          
-          # Frontend accessibility
-          if curl -s "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com" | grep -q "AI Project Manager"; then
-            echo "✅ Development frontend accessible"
-          else
-            echo "❌ Development frontend not accessible"
-            exit 1
-          fi
-          
-          # Backend API health
-          if curl -s "http://44.222.168.46/health" | grep -q "running"; then
-            echo "✅ Development backend healthy"
-          else
-            echo "❌ Development backend not healthy"
-            exit 1
-          fi
-          
-          # Data synchronization verification
-          SYNC_RESULT=$(curl -s -X POST "http://44.222.168.46/api/sync-data" || echo '{"success":false}')
-          if echo "$SYNC_RESULT" | grep -q '"success":true'; then
-            echo "✅ Data synchronization working"
-          else
-            echo "❌ Data synchronization failed"
-            exit 1
-          fi
           
           # Run post-deployment gating tests
           if ./scripts/testing/run-structured-gating-tests.sh; then
