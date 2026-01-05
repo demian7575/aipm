@@ -5145,6 +5145,13 @@ async function loadStories(db, options = {}) {
     'SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id'
   );
   const testRows = await safeSelectAll(db, 'SELECT * FROM acceptance_tests ORDER BY story_id, id');
+  console.log('📋 Loaded acceptance tests:', testRows.length);
+  if (testRows.length > 0) {
+    console.log('📋 First test:', testRows[0]);
+    console.log('📋 Tests for story 1767550018420:', testRows.filter(t => t.story_id === 1767550018420).length);
+  console.log('📋 Tests for story "1767550018420" (string):', testRows.filter(t => t.story_id === "1767550018420").length);
+  console.log('📋 Sample story_id types:', testRows.slice(0, 3).map(t => ({id: t.id, story_id: t.story_id, type: typeof t.story_id})));
+  }
   const docRows = await safeSelectAll(db, 'SELECT * FROM reference_documents ORDER BY story_id, id');
   const taskRows = await safeSelectAll(db, 'SELECT * FROM tasks ORDER BY story_id, id');
 
@@ -5178,6 +5185,8 @@ async function loadStories(db, options = {}) {
   });
 
   const { roots, byId } = attachChildren(stories);
+  console.log('📊 Story index size:', byId.size);
+  console.log('📊 Story 1767550018420 in byId:', !!byId.get(1767550018420));
 
   propagateParentProgressStatus(roots);
 
@@ -5226,6 +5235,9 @@ async function loadStories(db, options = {}) {
 
   testRows.forEach((row) => {
     const story = byId.get(row.story_id);
+    if (row.story_id === 1767550018420) {
+      console.log('🔍 Processing test for story 1767550018420:', row.id, 'found story:', !!story);
+    }
     if (!story) return;
     const given = parseJsonArray(row.given);
     const when = parseJsonArray(row.when_step);

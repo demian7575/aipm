@@ -4187,17 +4187,39 @@ function detectStoryActivitiesForHeatmap(story) {
   return Array.from(detected);
 }
 
+let renderDetailsTimeout = null;
+
 function renderDetails() {
+  // Debounce rapid calls
+  if (renderDetailsTimeout) {
+    clearTimeout(renderDetailsTimeout);
+  }
+  renderDetailsTimeout = setTimeout(() => {
+    renderDetailsTimeout = null;
+    _renderDetailsImmediate();
+  }, 10);
+}
+
+function _renderDetailsImmediate() {
+  console.log('🎯 _renderDetailsImmediate called');
   if (!state.panelVisibility.details) {
+    console.log('❌ Details panel not visible');
     return;
   }
   const story = state.selectedStoryId != null ? storyIndex.get(state.selectedStoryId) : null;
+  console.log('📖 Selected story:', story?.id, story?.title);
+  console.log('📊 Story data:', {
+    acceptanceTests: story?.acceptanceTests?.length || 0,
+    prs: story?.prs?.length || 0
+  });
   detailsContent.innerHTML = '';
   if (!story) {
     detailsPlaceholder.classList.remove('hidden');
+    console.log('❌ No story selected');
     return;
   }
 
+  console.log('✅ Story found, rendering details...');
   detailsPlaceholder.classList.add('hidden');
 
   const form = document.createElement('form');
@@ -4819,7 +4841,9 @@ function renderDetails() {
   });
 
   const codewhispererSection = buildCodeWhispererSection(story);
+  console.log('🔧 Development Tasks section created:', !!codewhispererSection);
   detailsContent.appendChild(codewhispererSection);
+  console.log('✅ Development Tasks section appended');
 
   const dependencySection = document.createElement('section');
   dependencySection.className = 'dependencies-section';
@@ -5078,7 +5102,9 @@ function renderDetails() {
   }
 
   acceptanceSection.appendChild(acceptanceList);
+  console.log('🧪 Acceptance Tests section created:', !!acceptanceSection);
   detailsContent.appendChild(acceptanceSection);
+  console.log('✅ Acceptance Tests section appended');
 
   addTestBtn.addEventListener('click', () => openAcceptanceTestModal(story.id));
 

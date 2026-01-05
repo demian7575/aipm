@@ -68,9 +68,10 @@ export class DynamoDBDataLayer {
       const result = await docClient.send(new ScanCommand({
         TableName: ACCEPTANCE_TESTS_TABLE
       }));
-      return (result.Items || []).map(item => ({
+      console.log('DynamoDB: Raw acceptance tests result:', result.Items?.length || 0);
+      const mapped = (result.Items || []).map(item => ({
         id: item.id,
-        story_id: item.storyId,
+        story_id: item.story_id, // Keep as story_id for backend compatibility
         title: item.title || '',
         given: item.given,
         when_step: item.when_step,
@@ -79,6 +80,9 @@ export class DynamoDBDataLayer {
         created_at: item.created_at,
         updated_at: item.updated_at
       }));
+      console.log('DynamoDB: Tests for story 1767550018420:', mapped.filter(t => t.story_id === 1767550018420).length);
+      console.log('DynamoDB: Sample mapped test:', mapped.find(t => t.story_id === 1767550018420));
+      return mapped;
     } catch (error) {
       console.error('DynamoDB: Error getting acceptance tests:', error);
       return [];
@@ -97,7 +101,7 @@ export class DynamoDBDataLayer {
       const stories = (result.Items || []).map(item => ({
         // DynamoDB format (camelCase)
         id: item.id,
-        parentId: item.parent_id || item.parentId, // Fix: use parent_id (snake_case) from storage
+        parentId: item.parent_id || item.parentId, // Convert parent_id to parentId
         title: item.title || '',
         description: item.description || '',
         asA: item.as_a || item.asA || '',
@@ -110,7 +114,7 @@ export class DynamoDBDataLayer {
         createdAt: item.created_at || item.createdAt,
         updatedAt: item.updated_at || item.updatedAt,
         // SQLite format (snake_case) for compatibility
-        parent_id: item.parent_id || item.parentId,
+        parent_id: item.parent_id || item.parentId, // Keep snake_case for backend compatibility
         as_a: item.as_a || item.asA || '',
         i_want: item.i_want || item.iWant || '',
         so_that: item.so_that || item.soThat || '',
@@ -119,7 +123,7 @@ export class DynamoDBDataLayer {
         created_at: item.created_at || item.createdAt,
         updated_at: item.updated_at || item.updatedAt,
         mr_id: 1, // Default value
-        prs: JSON.stringify(item.prs || []) // Convert array to JSON string
+        prs: item.prs || '[]' // Keep as JSON string, don't double-encode
       }));
       
       return stories;
