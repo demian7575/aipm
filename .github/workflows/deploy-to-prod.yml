@@ -122,32 +122,10 @@ jobs:
           
           echo "✅ Production config created"
       
-      - name: Deploy backend to EC2
+      - name: Deploy to production environment
         run: |
-          echo "📦 Deploying backend to production EC2..."
-          
-          # Upload backend file to S3 for transfer
-          aws s3 cp apps/backend/app.js s3://aipm-deployments-728378229251/prod/app.js
-          
-          # Deploy to production EC2 via SSH
-          echo "${{ secrets.EC2_PRIVATE_KEY }}" > /tmp/ec2_key
-          chmod 600 /tmp/ec2_key
-          
-          scp -i /tmp/ec2_key -o StrictHostKeyChecking=no apps/backend/app.js ec2-user@44.220.45.57:~/aipm/apps/backend/app.js
-          
-          # Restart production backend with correct environment variables
-          ssh -i /tmp/ec2_key -o StrictHostKeyChecking=no ec2-user@44.220.45.57 '
-            cd ~/aipm && 
-            pkill -f "node.*app.js" 2>/dev/null || true &&
-            STORIES_TABLE=aipm-backend-prod-stories \
-            ACCEPTANCE_TESTS_TABLE=aipm-backend-prod-acceptance-tests \
-            PROD_VERSION=4.0.0 \
-            STAGE=prod \
-            nohup node apps/backend/app.js > server.log 2>&1 &
-          '
-          
-          # Clean up key
-          rm /tmp/ec2_key
+          echo "🚀 Deploying to production environment using unified script..."
+          ./scripts/deploy-to-environment.sh prod
           
           echo "✅ Backend deployed to production EC2"
       
