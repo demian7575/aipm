@@ -29,6 +29,55 @@ jobs:
         with:
           fetch-depth: 0
       
+      - name: Checkout and rebase PR branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # If no PR number or branch provided, use PR context or main
+          if [ -z "${{ github.event.inputs.pr_number }}" ] && [ -z "${{ github.event.inputs.branch_name }}" ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "📥 Auto-deploying PR #${{ github.event.number }}"
+              git fetch origin ${{ github.head_ref }}
+              git checkout ${{ github.head_ref }}
+              BRANCH_NAME="${{ github.head_ref }}"
+            else
+              echo "📥 No PR specified, using main branch"
+              git checkout main
+              echo "✅ Using main branch"
+              exit 0
+            fi
+          else
+            # Checkout PR branch
+            if [ -n "${{ github.event.inputs.branch_name }}" ]; then
+              echo "📥 Checking out branch: ${{ github.event.inputs.branch_name }}"
+              git fetch origin ${{ github.event.inputs.branch_name }}
+              git checkout ${{ github.event.inputs.branch_name }}
+              BRANCH_NAME="${{ github.event.inputs.branch_name }}"
+            elif [ -n "${{ github.event.inputs.pr_number }}" ]; then
+              echo "📥 Checking out PR #${{ github.event.inputs.pr_number }}"
+              git fetch origin pull/${{ github.event.inputs.pr_number }}/head:pr-${{ github.event.inputs.pr_number }}
+              git checkout pr-${{ github.event.inputs.pr_number }}
+              BRANCH_NAME="pr-${{ github.event.inputs.pr_number }}"
+            fi
+          fi
+          
+          # Rebase PR onto latest main
+          echo "🔄 Rebasing PR onto latest main..."
+          git fetch origin main
+          
+          # Configure git to use non-interactive editor
+          git config core.editor true
+          
+          # Try to rebase
+          if GIT_EDITOR=true git rebase origin/main; then
+            echo "✅ Rebase successful - proceeding with rebased code"
+          else
+            echo "❌ Rebase conflict detected - gating tests will fail"
+            echo "Please resolve conflicts manually and retry deployment"
+            exit 1
+          fi
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -52,7 +101,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🧪 Running Pre-Deployment Gating Tests"
+          echo "🧪 Running Pre-Deployment Gating Tests on rebased code"
           export PHASE="pre-deployment"
           
           if ./scripts/testing/run-structured-gating-tests.sh; then
@@ -77,125 +126,36 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Checkout and rebase PR branch
+      - name: Checkout and use rebased code
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # If no PR number or branch provided, use PR context or main
+          # Checkout the same PR branch and rebase (should be clean since gating passed)
           if [ -z "${{ github.event.inputs.pr_number }}" ] && [ -z "${{ github.event.inputs.branch_name }}" ]; then
             if [ "${{ github.event_name }}" = "pull_request" ]; then
-              echo "📥 Auto-deploying PR #${{ github.event.number }}"
               git fetch origin ${{ github.head_ref }}
               git checkout ${{ github.head_ref }}
-              BRANCH_NAME="${{ github.head_ref }}"
             else
-              echo "📥 No PR specified, deploying main branch to dev"
               git checkout main
-              echo "✅ Using main branch"
               exit 0
             fi
           else
-          
-          # Checkout PR branch
-          if [ -n "${{ github.event.inputs.branch_name }}" ]; then
-            echo "📥 Checking out branch: ${{ github.event.inputs.branch_name }}"
-            git fetch origin ${{ github.event.inputs.branch_name }}
-            git checkout ${{ github.event.inputs.branch_name }}
-            BRANCH_NAME="${{ github.event.inputs.branch_name }}"
-          elif [ -n "${{ github.event.inputs.pr_number }}" ]; then
-            echo "📥 Checking out PR #${{ github.event.inputs.pr_number }}"
-            git fetch origin pull/${{ github.event.inputs.pr_number }}/head:pr-${{ github.event.inputs.pr_number }}
-            git checkout pr-${{ github.event.inputs.pr_number }}
-            BRANCH_NAME="pr-${{ github.event.inputs.pr_number }}"
+            if [ -n "${{ github.event.inputs.branch_name }}" ]; then
+              git fetch origin ${{ github.event.inputs.branch_name }}
+              git checkout ${{ github.event.inputs.branch_name }}
+            elif [ -n "${{ github.event.inputs.pr_number }}" ]; then
+              git fetch origin pull/${{ github.event.inputs.pr_number }}/head:pr-${{ github.event.inputs.pr_number }}
+              git checkout pr-${{ github.event.inputs.pr_number }}
+            fi
           fi
           
-          # Get PR objective from TASK.md if exists
-          PR_OBJECTIVE=""
-          if [ -f "TASK.md" ]; then
-            PR_OBJECTIVE=$(cat TASK.md)
-          fi
-          
-          # Rebase PR onto latest main
-          echo "🔄 Rebasing PR onto latest main..."
+          # Rebase again (should be clean since gating tests passed)
           git fetch origin main
-          
-          # Configure git to use non-interactive editor
           git config core.editor true
+          GIT_EDITOR=true git rebase origin/main
           
-          # Try to rebase
-          if GIT_EDITOR=true git rebase origin/main; then
-            echo "✅ Rebase successful - deploying rebased code"
-          else
-            echo "⚠️  Rebase conflict detected - using Kiro CLI to resolve"
-            
-            # Get conflict files
-            CONFLICT_FILES=$(git diff --name-only --diff-filter=U)
-            echo "📝 Conflicted files: $CONFLICT_FILES"
-            
-            # Abort current rebase
-            git rebase --abort
-            
-            # Try Kiro conflict resolution first
-            echo "🤖 Attempt 1: Asking Kiro to resolve conflicts..."
-            git checkout $BRANCH_NAME
-            TASK_DESC="Rebase this branch onto origin/main and resolve all merge conflicts. Files with conflicts: $CONFLICT_FILES. After resolving conflicts, complete the rebase successfully."
-            
-            RESPONSE=$(curl -s -X POST http://44.222.168.46:8081/kiro/v4/enhance \
-              -H "Content-Type: application/json" \
-              -d "{\"idea\":\"$TASK_DESC\",\"callbackUrl\":\"http://example.com\"}" \
-              --max-time 120)
-            
-            SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
-            
-            if [ "$SUCCESS" = "true" ]; then
-              # Verify rebase worked
-              if GIT_EDITOR=true git rebase origin/main 2>/dev/null; then
-                echo "✅ Conflicts resolved by Kiro - deploying rebased code"
-              else
-                git rebase --abort
-                SUCCESS="false"
-              fi
-            fi
-            
-            # If Kiro failed, regenerate from main
-            if [ "$SUCCESS" != "true" ]; then
-              echo "⚠️  Kiro conflict resolution failed"
-              echo "🔄 Attempt 2: Regenerating code from main branch..."
-              
-              # Reset to main
-              git checkout main
-              git pull origin main
-              
-              # Create new branch or reset existing
-              git branch -D $BRANCH_NAME 2>/dev/null || true
-              git checkout -b $BRANCH_NAME
-              
-              # Regenerate code using Kiro
-              echo "🤖 Regenerating code with Kiro..."
-              REGEN_TASK="Regenerate the feature implementation. Original objective: $PR_OBJECTIVE"
-              
-              REGEN_RESPONSE=$(curl -s -X POST http://44.222.168.46:8081/kiro/v4/enhance \
-                -H "Content-Type: application/json" \
-                -d "{\"idea\":\"$REGEN_TASK\",\"callbackUrl\":\"http://example.com\"}" \
-                --max-time 120)
-              
-              REGEN_SUCCESS=$(echo "$REGEN_RESPONSE" | jq -r '.success // false')
-              
-              if [ "$REGEN_SUCCESS" != "true" ]; then
-                echo "❌ Code regeneration failed"
-                exit 1
-              fi
-              
-              # Push regenerated code to PR branch
-              echo "📤 Pushing regenerated code to PR..."
-              git push -f origin $BRANCH_NAME
-              
-              echo "✅ Code regenerated from main and pushed to PR"
-            fi
-          fi
-          
-          echo "✅ Rebase complete"
+          echo "✅ Using rebased code for deployment"
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
