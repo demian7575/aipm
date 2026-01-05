@@ -6687,11 +6687,24 @@ export async function createApp() {
     if (storyIdMatch && method === 'GET') {
       const storyId = Number(storyIdMatch[1]);
       try {
+        // Get complete story data
+        const stories = await loadStories(db);
+        const flatStories = flattenStories(stories);
+        const story = flatStories.find(s => s.id === storyId);
+        
+        if (!story) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        
+        // Add PRs to the story
         const prs = await getStoryPRs(db, storyId);
-        sendJson(res, 200, { prs });
+        story.prs = prs;
+        
+        sendJson(res, 200, story);
       } catch (error) {
-        console.error(`Failed to load PRs for story ${storyId}:`, error);
-        sendJson(res, 500, { message: 'Failed to load PRs', prs: [] });
+        console.error(`Failed to load story ${storyId}:`, error);
+        sendJson(res, 500, { message: 'Failed to load story' });
       }
       return;
     }

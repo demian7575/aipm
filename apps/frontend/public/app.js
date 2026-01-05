@@ -4203,19 +4203,45 @@ function _renderDetailsImmediate() {
   }
   const story = state.selectedStoryId != null ? storyIndex.get(state.selectedStoryId) : null;
   console.log('📖 Selected story:', story?.id, story?.title);
-  console.log('📊 Story data:', {
-    acceptanceTests: story?.acceptanceTests?.length || 0,
-    prs: story?.prs?.length || 0
-  });
-  detailsContent.innerHTML = '';
+  
   if (!story) {
+    detailsContent.innerHTML = '';
     detailsPlaceholder.classList.remove('hidden');
     console.log('❌ No story selected');
     return;
   }
 
-  console.log('✅ Story found, rendering details...');
+  // Fetch complete story data and update cached story
+  fetch(resolveApiUrl(`/api/stories/${story.id}`))
+    .then(response => response.json())
+    .then(completeStory => {
+      console.log('📊 Complete story data:', {
+        acceptanceTests: completeStory?.acceptanceTests?.length || 0,
+        prs: completeStory?.prs?.length || 0
+      });
+      
+      // Update cached story with complete data
+      Object.assign(story, completeStory);
+      
+      // Continue with rendering
+      renderStoryDetailsWithCompleteData(story);
+    })
+    .catch(error => {
+      console.error('Failed to fetch complete story:', error);
+      console.log('✅ Using cached story data');
+      renderStoryDetailsWithCompleteData(story);
+    });
+}
+
+function renderStoryDetailsWithCompleteData(story) {
+  console.log('📊 Story data:', {
+    acceptanceTests: story?.acceptanceTests?.length || 0,
+    prs: story?.prs?.length || 0
+  });
+  detailsContent.innerHTML = '';
   detailsPlaceholder.classList.add('hidden');
+
+  console.log('✅ Story found, rendering details...');
 
   const form = document.createElement('form');
   form.className = 'story-form';
