@@ -6504,7 +6504,7 @@ function openChildStoryModal(parentId) {
     
     try {
       // Generate draft data only (no database save)
-      const apiBaseUrl = window.CONFIG.apiEndpoint;
+      const apiBaseUrl = window.CONFIG.API_END_POINT;
       
       // Generate draft data only (no database save)
       fetch(`${apiBaseUrl}/api/generate-draft`, {
@@ -8023,7 +8023,7 @@ initialize();
 // Global function to clean up Kiro API queue (accessible from browser console)
 window.cleanupKiroQueue = async function() {
   try {
-    const apiBaseUrl = window.CONFIG?.API_BASE_URL || window.CONFIG?.apiEndpoint || '';
+    const apiBaseUrl = window.CONFIG?.API_BASE_URL || window.CONFIG?.API_END_POINT || '';
     const response = await fetch(`${apiBaseUrl}:8081/kiro/v3/queue/cleanup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }

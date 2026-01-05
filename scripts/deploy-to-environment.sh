@@ -81,22 +81,15 @@ for i in {1..6}; do
     sleep 5
 done
 
-# Create environment-specific frontend config
-echo "📝 Creating $ENV frontend configuration..."
-cat > apps/frontend/public/config.js << EOF
-window.CONFIG = {
-  API_BASE_URL: '$API_URL',
-  apiEndpoint: '$API_URL',
-  EC2_TERMINAL_URL: 'ws://$HOST:8080',
-  ENVIRONMENT: '$ENV',
-  environment: '$ENV',
-  stage: '$ENV',
-  region: 'us-east-1',
-  storiesTable: '$STORIES_TABLE',
-  acceptanceTestsTable: '$TESTS_TABLE',
-  DEBUG: $([ "$ENV" == "dev" ] && echo "true" || echo "false")
-};
-EOF
+# Use environment-specific frontend config
+echo "📝 Using $ENV frontend configuration..."
+if [[ -f "apps/frontend/public/config.$ENV.js" ]]; then
+    cp "apps/frontend/public/config.$ENV.js" "apps/frontend/public/config.js"
+    echo "✅ Copied config.$ENV.js to config.js"
+else
+    echo "❌ Environment config file config.$ENV.js not found"
+    exit 1
+fi
 
 # Deploy frontend
 echo "🌐 Deploying frontend to S3..."
