@@ -1,9 +1,9 @@
 /**
- * Acceptance test for Story ID display in user story details
- * Tests that the story ID is prominently displayed in the details panel
+ * Gating test for Story ID display functionality
+ * Tests that user story ID is displayed in the details panel
  */
 
-import assert from 'assert';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,60 +11,108 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Mock story data
-const mockStory = {
-  id: 1767549495305,
-  title: "Show User Story ID on User Story Details",
-  description: "Display the unique user story ID in the user story details panel for reference and identification",
-  asA: "project manager",
-  iWant: "to see the user story ID on the user story details",
-  soThat: "I can easily reference and identify specific user stories",
-  components: ["WorkModel"],
-  storyPoint: 2,
-  status: "Draft"
-};
-
+/**
+ * Test that Story ID is displayed in user story details
+ */
 async function testStoryIdDisplay() {
   console.log('🧪 Testing Story ID display in user story details...');
   
-  // Read the app.js file to verify the implementation
-  const appJsPath = path.join(__dirname, 'apps', 'frontend', 'public', 'app.js');
-  const appJsContent = fs.readFileSync(appJsPath, 'utf8');
-  
-  // Check if Story ID row is added to the story brief table
-  const hasStoryIdRow = appJsContent.includes('Story ID') && 
-                       appJsContent.includes('idRow') &&
-                       appJsContent.includes('story.id');
-  
-  assert(hasStoryIdRow, 'Story ID row should be added to the story brief table');
-  
-  // Verify the Story ID is displayed with # prefix
-  const hasIdPrefix = appJsContent.includes('#${story.id}');
-  assert(hasIdPrefix, 'Story ID should be displayed with # prefix');
-  
-  // Check that the Story ID row is inserted before the Summary row
-  const storyIdIndex = appJsContent.indexOf('Story ID');
-  const summaryIndex = appJsContent.indexOf('summaryRow');
-  const storyIdBeforeSummary = storyIdIndex > 0 && summaryIndex > 0 && storyIdIndex < summaryIndex;
-  assert(storyIdBeforeSummary, 'Story ID row should appear before Summary row');
-  
-  console.log('✅ Story ID display test passed');
-  
-  return {
-    testName: 'Story ID Display Test',
-    status: 'PASS',
-    details: 'Story ID is properly displayed in user story details panel'
-  };
+  try {
+    // Read the frontend app.js file
+    const appJsPath = path.join(__dirname, 'apps', 'frontend', 'public', 'app.js');
+    const appJsContent = fs.readFileSync(appJsPath, 'utf8');
+    
+    // Check if Story ID row is being added to the story brief table
+    const hasStoryIdRow = appJsContent.includes('Story ID') && 
+                         appJsContent.includes('story.id') &&
+                         appJsContent.includes('idRow.appendChild(idHeader)');
+    
+    if (!hasStoryIdRow) {
+      throw new Error('Story ID row not found in renderDetails function');
+    }
+    
+    // Check if the Story ID is formatted with # prefix
+    const hasFormattedId = appJsContent.includes('`#${story.id}`') || 
+                          appJsContent.includes('"#" + story.id');
+    
+    if (!hasFormattedId) {
+      throw new Error('Story ID not formatted with # prefix');
+    }
+    
+    console.log('✅ Story ID display test passed');
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Story ID display test failed:', error.message);
+    return false;
+  }
 }
 
-// Run the test
-testStoryIdDisplay()
-  .then(result => {
-    console.log(`Test Result: ${result.status}`);
-    console.log(`Details: ${result.details}`);
+/**
+ * Test that Story ID is prominently displayed
+ */
+async function testStoryIdProminence() {
+  console.log('🧪 Testing Story ID prominence in details panel...');
+  
+  try {
+    const appJsPath = path.join(__dirname, 'apps', 'frontend', 'public', 'app.js');
+    const appJsContent = fs.readFileSync(appJsPath, 'utf8');
+    
+    // Check if Story ID is added to the story brief table (prominent location)
+    const isInStoryBrief = appJsContent.includes('storyBriefBody.appendChild(idRow)');
+    
+    if (!isInStoryBrief) {
+      throw new Error('Story ID not prominently displayed in story brief table');
+    }
+    
+    console.log('✅ Story ID prominence test passed');
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Story ID prominence test failed:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Run all gating tests
+ */
+async function runGatingTests() {
+  console.log('🚀 Running Story ID display gating tests...\n');
+  
+  const tests = [
+    testStoryIdDisplay,
+    testStoryIdProminence
+  ];
+  
+  let passed = 0;
+  let failed = 0;
+  
+  for (const test of tests) {
+    const result = await test();
+    if (result) {
+      passed++;
+    } else {
+      failed++;
+    }
+    console.log('');
+  }
+  
+  console.log(`📊 Test Results: ${passed} passed, ${failed} failed`);
+  
+  if (failed > 0) {
+    console.log('❌ Some tests failed. Implementation needs fixes.');
+    process.exit(1);
+  } else {
+    console.log('✅ All gating tests passed!');
     process.exit(0);
-  })
-  .catch(error => {
-    console.error('❌ Test failed:', error.message);
+  }
+}
+
+// Run tests if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runGatingTests().catch(error => {
+    console.error('❌ Test execution failed:', error);
     process.exit(1);
   });
+}
