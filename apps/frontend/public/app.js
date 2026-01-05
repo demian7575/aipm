@@ -4312,6 +4312,18 @@ function renderDetails() {
     }
   });
   if (storyBriefBody) {
+    // Add Story ID row
+    const idRow = document.createElement('tr');
+    const idHeader = document.createElement('th');
+    idHeader.scope = 'row';
+    idHeader.textContent = 'Story ID';
+    const idCell = document.createElement('td');
+    idCell.className = 'story-text';
+    idCell.textContent = `#${story.id}`;
+    idRow.appendChild(idHeader);
+    idRow.appendChild(idCell);
+    storyBriefBody.appendChild(idRow);
+
     const summaryRow = document.createElement('tr');
     summaryRow.className = 'story-meta-row';
     const summaryHeader = document.createElement('th');
