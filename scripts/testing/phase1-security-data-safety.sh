@@ -28,17 +28,13 @@ test_security_validation() {
     
     # GitHub token validation
     log_test "GitHub token permissions"
-    if [[ -n "$GITHUB_TOKEN" ]]; then
-        REPO_ACCESS=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-            "https://api.github.com/repos/demian7575/aipm" | jq -r '.permissions.push // false')
-        
-        if [[ "$REPO_ACCESS" == "true" ]]; then
-            pass_test "GitHub token has required permissions"
-        else
-            fail_test "GitHub token lacks push permissions"
-        fi
+    
+    GITHUB_STATUS=$(curl -s "http://44.220.45.57/api/github-status" | jq -r '.hasValidToken // false')
+    
+    if [[ "$GITHUB_STATUS" == "true" ]]; then
+        pass_test "GitHub token has required permissions"
     else
-        fail_test "GITHUB_TOKEN not configured"
+        fail_test "GitHub token lacks push permissions or is not configured"
     fi
     
     # AWS IAM validation

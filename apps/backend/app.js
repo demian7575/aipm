@@ -5773,6 +5773,33 @@ export async function createApp() {
         return;
       }
 
+      if (pathname === '/api/github-status' && method === 'GET') {
+        try {
+          const token = process.env.GITHUB_TOKEN;
+          if (!token) {
+            sendJson(res, 200, { hasValidToken: false, error: 'Token not configured' });
+            return;
+          }
+
+          const response = await fetch('https://api.github.com/repos/demian7575/aipm', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            sendJson(res, 200, { 
+              hasValidToken: data.permissions?.push === true,
+              permissions: data.permissions 
+            });
+          } else {
+            sendJson(res, 200, { hasValidToken: false, error: 'API call failed' });
+          }
+        } catch (error) {
+          sendJson(res, 200, { hasValidToken: false, error: error.message });
+        }
+        return;
+      }
+
     if (pathname === '/api/deploy-pr' && method === 'POST') {
       await handleDeployPRRequest(req, res);
       return;
