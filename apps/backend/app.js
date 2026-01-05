@@ -6357,19 +6357,7 @@ export async function createApp() {
           newStoryId = Number(lastInsertRowid);
         }
         
-        // Try to create automatic acceptance test, but don't fail story creation if it fails
-        try {
-          await createAutomaticAcceptanceTest(db, {
-            id: newStoryId,
-            title,
-            asA,
-            iWant,
-            soThat,
-            components,
-          });
-        } catch (error) {
-          console.error('Failed to create automatic acceptance test, but story creation continues:', error);
-        }
+        // Automatic acceptance test creation disabled - frontend handles acceptance tests
         
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
         if (created) {
