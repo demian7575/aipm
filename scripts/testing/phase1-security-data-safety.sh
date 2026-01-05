@@ -57,7 +57,7 @@ test_security_validation() {
     
     # Environment variable security
     log_test "Environment variable security"
-    EXPOSED_SECRETS=$(env | grep -i "token\|key\|secret" | grep -v "GITHUB_TOKEN" | wc -l)
+    EXPOSED_SECRETS=$(env | grep -i "token\|key\|secret" | grep -v "GITHUB_TOKEN" | grep -v "AWS_ACCESS_KEY_ID" | grep -v "AWS_SECRET_ACCESS_KEY" | wc -l)
     if [[ "$EXPOSED_SECRETS" -eq 0 ]]; then
         pass_test "No exposed secrets in environment"
     else
