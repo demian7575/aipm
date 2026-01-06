@@ -33,7 +33,7 @@
 
 1. **Access GitHub PR**: Read the GitHub PR #PR_NUMBER linked to the Development Tasks card
 2. **Checkout PR Branch**: Execute `git checkout BRANCH_NAME`
-3. **Update Branch**: Execute `git rebase origin/main` to ensure latest changes
+3. **Update Branch**: Execute `git fetch origin && git checkout main && git pull origin main && git checkout BRANCH_NAME && git rebase origin/main` to ensure latest changes
 4. **Analyze AIPM Codebase**: 
    - Understand project structure (apps/frontend/public/, apps/backend/, scripts/)
    - Review existing code patterns and conventions
@@ -108,7 +108,7 @@ apps/
 **EXECUTE THIS COMPLETE WORKFLOW IMMEDIATELY**:
 
 1. **Access PR**: Read GitHub PR #PR_NUMBER and extract TASK-*.md requirements
-2. **Setup**: `git checkout BRANCH_NAME && git rebase origin/main`
+2. **Setup**: `git fetch origin && git checkout main && git pull origin main && git checkout BRANCH_NAME && git rebase origin/main`
 3. **Analyze**: Review AIPM codebase structure and existing patterns
 4. **Extract**: Parse requirements, acceptance criteria, and constraints from TASK file
 5. **Create Tests**: Implement acceptance tests as gating tests first

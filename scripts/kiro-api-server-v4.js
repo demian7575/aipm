@@ -1465,10 +1465,14 @@ Task: ${storyTitle || 'Code Generation Task'}
 Prompt: ${prompt}
 
 Please:
-1. Check out the existing Pull Request branch.
-2. Rebase the branch onto origin/main to ensure it is up to date.
-3. Analyze the current codebase and the AIPM project context, then generate and modify the required code files to implement this feature.
-4. Commit all changes and push the commit to the corresponding GitHub Pull Request branch.
+1. Fetch the latest changes: git fetch origin
+2. Check out main branch: git checkout main
+3. Pull latest main: git pull origin main
+4. Check out the PR branch: git checkout ${branchName}
+5. Rebase onto latest main: git rebase origin/main
+6. If conflicts exist, resolve them or create a new branch from main
+7. Analyze the current codebase and generate the required code files
+8. Commit all changes and push to the PR branch
 
 Return: {"status": "Success", "message": "Code generated and pushed successfully"} or {"status": "Fail", "message": "Error description"}`;
 
