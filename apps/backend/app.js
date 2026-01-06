@@ -1,5 +1,6 @@
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
+import { generateDeploymentVersion, updateFrontendVersion } from './version-utils.js';
 import { spawnSync, spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
@@ -5775,8 +5776,23 @@ export async function createApp() {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
         });
-        const version = process.env.DEPLOY_VERSION || 'unknown';
+        
+        // Generate version using PR number and commit SHA if available
+        let version = process.env.DEPLOY_VERSION || 'unknown';
         const commitHash = process.env.COMMIT_HASH || 'unknown';
+        
+        // Try to generate PR-based version if in development environment
+        if (process.env.GITHUB_REF && commitHash !== 'unknown') {
+          try {
+            const deploymentVersion = generateDeploymentVersion({
+              commitSha: commitHash
+            });
+            version = deploymentVersion;
+          } catch (error) {
+            console.warn('Could not generate PR-based version:', error.message);
+          }
+        }
+        
         res.end(JSON.stringify({ 
           status: 'running', 
           timestamp: new Date().toISOString(),
@@ -5847,19 +5863,35 @@ export async function createApp() {
       const { readFile } = await import('fs/promises');
       const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
       
-      // Determine environment and version
-      const stage = process.env.STAGE || process.env.AWS_STAGE || 'prod';
+      // Generate version using automatic version numbering system
       let version;
+      const deployVersion = process.env.DEPLOY_VERSION;
+      const commitHash = process.env.COMMIT_HASH;
       
-      if (stage === 'dev' || stage === 'development') {
-        // Development shows base version + PR number
-        const baseVersion = process.env.BASE_VERSION || '0.1.0';
-        const prNumber = process.env.PR_NUMBER || 'dev';
-        version = { version: `${baseVersion}-${prNumber}` };
-      } else {
-        // Production uses configured version
-        const prodVersion = process.env.PROD_VERSION || '4.0.0';
-        version = { version: prodVersion };
+      try {
+        // Try to generate PR-based version
+        const autoVersion = generateDeploymentVersion({
+          commitSha: commitHash
+        });
+        
+        // Extract PR number if version follows PR format
+        const prMatch = autoVersion.match(/^PR(\d+)-/);
+        const prNumber = prMatch ? parseInt(prMatch[1], 10) : null;
+        
+        version = {
+          version: autoVersion,
+          pr: prNumber,
+          commit: commitHash,
+          timestamp: new Date().toISOString()
+        };
+      } catch (error) {
+        // Fallback to environment variables or package version
+        const fallbackVersion = deployVersion || pkg.version || '1.0.0';
+        version = {
+          version: fallbackVersion,
+          commit: commitHash,
+          timestamp: new Date().toISOString()
+        };
       }
       
       sendJson(res, 200, version);

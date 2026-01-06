@@ -54,7 +54,16 @@ else
     # Create environment file with correct table names and version info
     echo "📝 Setting up environment variables..."
     COMMIT_HASH=$(git rev-parse --short HEAD)
-    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+    
+    # Generate PR-based version if in GitHub Actions, otherwise use timestamp
+    if [[ -n "$GITHUB_REF" && "$GITHUB_REF" =~ pull/([0-9]+) ]]; then
+        PR_NUMBER="${BASH_REMATCH[1]}"
+        DEPLOY_VERSION="PR${PR_NUMBER}-${COMMIT_HASH}"
+        echo "🏷️  Generated PR-based version: $DEPLOY_VERSION"
+    else
+        DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+        echo "🏷️  Generated timestamp-based version: $DEPLOY_VERSION"
+    fi
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
@@ -103,8 +112,18 @@ fi
 # Use environment-specific frontend config
 echo "📝 Using $ENV frontend configuration..."
 if [[ -f "apps/frontend/public/config.$ENV.js" ]]; then
-    # Replace version placeholder with actual deployment timestamp
-    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+    # Generate PR-based version if in GitHub Actions, otherwise use timestamp
+    if [[ -n "$GITHUB_REF" && "$GITHUB_REF" =~ pull/([0-9]+) ]]; then
+        PR_NUMBER="${BASH_REMATCH[1]}"
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        DEPLOY_VERSION="PR${PR_NUMBER}-${COMMIT_HASH}"
+        echo "🏷️  Generated PR-based version for frontend: $DEPLOY_VERSION"
+    else
+        DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+        echo "🏷️  Generated timestamp-based version for frontend: $DEPLOY_VERSION"
+    fi
+    
+    # Replace version placeholder with actual deployment version
     sed "s/DEPLOY_TIMESTAMP_PLACEHOLDER/$DEPLOY_VERSION/g" "apps/frontend/public/config.$ENV.js" > "apps/frontend/public/config.js"
     echo "✅ Copied config.$ENV.js to config.js with version $DEPLOY_VERSION"
 else
