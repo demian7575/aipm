@@ -1,5 +1,6 @@
 window.CONFIG = {
   API_BASE_URL: 'http://44.220.45.57',
+  KIRO_API_URL: 'http://44.220.45.57:8081',
   EC2_TERMINAL_URL: 'ws://44.220.45.57:8080',
   ENVIRONMENT: 'prod',
   stage: 'prod',

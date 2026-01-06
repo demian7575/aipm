@@ -6530,15 +6530,16 @@ function openChildStoryModal(parentId) {
     
     try {
       // Generate draft data only (no database save)
-      const apiBaseUrl = getApiBaseUrl();
+      const kiroApiUrl = window.CONFIG.KIRO_API_URL || `${getApiBaseUrl()}:8081`;
       
-      // Generate draft data only (no database save)
-      fetch(`${apiBaseUrl}/api/stories/draft`, {
+      // Generate draft data only (no database save) - use Kiro API server
+      fetch(`${kiroApiUrl}/api/generate-draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          idea: idea,
-          parentId: parentId
+          templateId: 'user-story-generation',
+          feature_description: idea,
+          parentId: String(parentId)
         })
       }).then(async response => {
         if (response.ok) {
