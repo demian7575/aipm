@@ -6533,13 +6533,12 @@ function openChildStoryModal(parentId) {
       const apiBaseUrl = getApiBaseUrl();
       
       // Generate draft data only (no database save)
-      fetch(`${apiBaseUrl}/api/generate-draft`, {
+      fetch(`${apiBaseUrl}/api/stories/draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          templateId: 'user-story-generation',
-          feature_description: idea,
-          parentId: String(parentId)
+          idea: idea,
+          parentId: parentId
         })
       }).then(async response => {
         if (response.ok) {
