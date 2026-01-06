@@ -96,7 +96,17 @@ else
     echo "⚠️  Skipping backend health check in GitHub Actions"
 fi
 
-# Deploy frontend (auto-detecting config)
+# Use environment-specific frontend config
+echo "📝 Using $ENV frontend configuration..."
+if [[ -f "apps/frontend/public/config.$ENV.js" ]]; then
+    cp "apps/frontend/public/config.$ENV.js" "apps/frontend/public/config.js"
+    echo "✅ Copied config.$ENV.js to config.js"
+else
+    echo "❌ Environment config file config.$ENV.js not found"
+    exit 1
+fi
+
+# Deploy frontend
 echo "🌐 Deploying frontend to S3..."
 aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET/ --delete --cache-control no-cache
 

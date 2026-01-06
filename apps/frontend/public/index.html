@@ -87,9 +87,9 @@
     </div>
 
     <script>
-      // Load auto-detecting config
+      // Load external config first, then load app.js
       const configScript = document.createElement('script');
-      configScript.src = 'config.auto.js?v=' + Date.now();
+      configScript.src = 'config.js?v=' + Date.now();
       configScript.onload = function() {
         // Config loaded, now load app.js
         console.log('Config loaded:', window.CONFIG);
