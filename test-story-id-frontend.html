@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Story ID Display Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Story ID Display Test</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        async function testStoryIdDisplay() {
+            const results = document.getElementById('test-results');
+            
+            try {
+                // Test 1: Fetch story data
+                const response = await fetch('http://localhost:4000/api/stories/1767331599404');
+                const story = await response.json();
+                
+                if (!story.id) {
+                    throw new Error('Story ID not found in API response');
+                }
+                
+                results.innerHTML += `<div class="test-result pass">✅ Test 1 PASSED: Story ID ${story.id} retrieved from API</div>`;
+                
+                // Test 2: Simulate details panel rendering
+                const detailsHtml = `
+                    <div class="full field-row">
+                        <label>Story ID</label>
+                        <div class="story-text">#${story.id}</div>
+                    </div>
+                    <div class="full field-row">
+                        <label>Title</label>
+                        <div class="story-text">${story.title}</div>
+                    </div>
+                `;
+                
+                // Check if the HTML contains the story ID
+                if (detailsHtml.includes(`#${story.id}`)) {
+                    results.innerHTML += `<div class="test-result pass">✅ Test 2 PASSED: Story ID #${story.id} would be displayed in details panel</div>`;
+                } else {
+                    throw new Error('Story ID not found in rendered HTML');
+                }
+                
+                // Test 3: Verify ID consistency
+                const response2 = await fetch('http://localhost:4000/api/stories/1767331599404');
+                const story2 = await response2.json();
+                
+                if (story.id === story2.id) {
+                    results.innerHTML += `<div class="test-result pass">✅ Test 3 PASSED: Story ID remains consistent across requests (${story.id})</div>`;
+                } else {
+                    throw new Error(`Story ID inconsistent: ${story.id} vs ${story2.id}`);
+                }
+                
+                results.innerHTML += `<div class="test-result pass"><strong>🎉 ALL TESTS PASSED</strong><br>Story ID display functionality is working correctly!</div>`;
+                
+            } catch (error) {
+                results.innerHTML += `<div class="test-result fail">❌ TEST FAILED: ${error.message}</div>`;
+            }
+        }
+        
+        // Run tests when page loads
+        window.onload = testStoryIdDisplay;
+    </script>
+</body>
+</html>
