@@ -48,13 +48,23 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
     echo "Backend deployment requires SSH access which is not available in GitHub Actions"
     echo "Manual deployment required for backend updates"
 else
+    # Copy backend files
     scp apps/backend/app.js ec2-user@$HOST:aipm/apps/backend/app.js
+    
+    # Create environment file with correct table names
+    echo "📝 Setting up environment variables..."
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
+STORIES_TABLE=$STORIES_TABLE
+ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
+AWS_REGION=us-east-1
+KIRO_API_PORT=8081
+EOF"
 
     # Restart backend (try systemd first, fallback to process restart)
     echo "🔄 Restarting backend service..."
     if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
         echo "✅ Backend restarted via systemd"
-    elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+    elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && nohup node --env-file=.env apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
         echo "✅ Backend restarted via process restart"
     else
         echo "❌ Failed to restart backend"
