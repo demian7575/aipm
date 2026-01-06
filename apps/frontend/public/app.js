@@ -4258,6 +4258,10 @@ function renderStoryDetailsWithCompleteData(story) {
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
     </div>
     <div class="full field-row">
+      <label>Story ID</label>
+      <div class="story-text story-id">#${story.id}</div>
+    </div>
+    <div class="full field-row">
       <label>Title</label>
       <div class="story-text">${escapeHtml(story.title)}</div>
     </div>

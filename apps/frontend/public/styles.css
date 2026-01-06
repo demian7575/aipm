@@ -936,6 +936,16 @@ body.is-mindmap-panning {
   line-height: 1.5;
 }
 
+.story-id {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-weight: 600;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #d1fae5;
+}
+
 .components-display {
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
