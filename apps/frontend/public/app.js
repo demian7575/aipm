@@ -2516,9 +2516,33 @@ function collectTestsNeedingAttention(story) {
   });
 }
 
+/**
+ * Load version information from backend health endpoint
+ */
+async function loadVersionInfo() {
+  try {
+    const response = await fetch(resolveApiUrl('/health'));
+    if (response.ok) {
+      const healthData = await response.json();
+      const versionEl = document.getElementById('version-info');
+      if (versionEl && healthData.version) {
+        versionEl.textContent = `v${healthData.version}`;
+        versionEl.style.display = 'inline';
+      } else if (versionEl) {
+        versionEl.style.display = 'none';
+      }
+    }
+  } catch (error) {
+    console.log('Version info not available:', error.message);
+  }
+}
+
 async function loadStories(preserveSelection = true) {
   console.log('loadStories called, preserveSelection:', preserveSelection);
   const previousSelection = preserveSelection ? state.selectedStoryId : null;
+  
+  // Load version info
+  await loadVersionInfo();
   
   // Load from API only
   try {

@@ -400,6 +400,16 @@ body.is-mindmap-panning {
   border-top: 1px solid #e5e9f5;
   font-size: 0.9rem;
   color: #475569;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.version-info {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  display: none;
 }
 
 .heatmap-table {

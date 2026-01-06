@@ -6,6 +6,19 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
     set -x
 fi
 
+# Generate version number for development environments
+generate_version() {
+    if [[ -n "$GITHUB_PR_NUMBER" && -n "$GITHUB_SHA" ]]; then
+        local short_sha="${GITHUB_SHA:0:7}"
+        echo "PR-${GITHUB_PR_NUMBER}-${short_sha}"
+    elif [[ -n "$PR_NUMBER" && -n "$COMMIT_SHA" ]]; then
+        local short_sha="${COMMIT_SHA:0:7}"
+        echo "PR-${PR_NUMBER}-${short_sha}"
+    else
+        echo "DEV-$(date +%s)"
+    fi
+}
+
 ENV=$1
 if [[ -z "$ENV" ]]; then
     echo "Usage: $0 <prod|dev>"
@@ -35,6 +48,12 @@ else
     exit 1
 fi
 
+# Generate version for development environments
+if [[ "$ENV" == "dev" ]]; then
+    VERSION=$(generate_version)
+    echo "🏷️  Development version: $VERSION"
+fi
+
 echo "🚀 Deploying to $ENV environment..."
 echo "📍 Host: $HOST"
 echo "🪣 Frontend: $FRONTEND_BUCKET"
@@ -53,16 +72,33 @@ else
     
     # Create environment file with correct table names
     echo "📝 Setting up environment variables..."
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
-STORIES_TABLE=$STORIES_TABLE
+    ENV_CONTENT="STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
 AWS_REGION=us-east-1
-KIRO_API_PORT=8081
+KIRO_API_PORT=8081"
+    
+    # Add version for development environments
+    if [[ "$ENV" == "dev" && -n "$VERSION" ]]; then
+        ENV_CONTENT="$ENV_CONTENT
+DEPLOYMENT_VERSION=$VERSION"
+    fi
+    
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
+$ENV_CONTENT
 EOF"
 
     # Restart backend (force process restart to ensure env vars are loaded)
     echo "🔄 Restarting backend service..."
-    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && export STORIES_TABLE=$STORIES_TABLE && export ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE && export AWS_REGION=us-east-1 && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+    RESTART_CMD="pkill -f 'apps/backend/server.js' && cd aipm && export STORIES_TABLE=$STORIES_TABLE && export ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE && export AWS_REGION=us-east-1"
+    
+    # Add version export for development environments
+    if [[ "$ENV" == "dev" && -n "$VERSION" ]]; then
+        RESTART_CMD="$RESTART_CMD && export DEPLOYMENT_VERSION=$VERSION"
+    fi
+    
+    RESTART_CMD="$RESTART_CMD && nohup node apps/backend/server.js > backend.log 2>&1 &"
+    
+    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "$RESTART_CMD" 2>/dev/null; then
         echo "✅ Backend restarted via process restart with environment"
     elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
         echo "✅ Backend restarted via systemd"
