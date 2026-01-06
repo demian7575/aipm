@@ -60,12 +60,12 @@ AWS_REGION=us-east-1
 KIRO_API_PORT=8081
 EOF"
 
-    # Restart backend (try systemd first, fallback to process restart)
+    # Restart backend (force process restart to ensure env vars are loaded)
     echo "🔄 Restarting backend service..."
-    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
+    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && export STORIES_TABLE=$STORIES_TABLE && export ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE && export AWS_REGION=us-east-1 && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+        echo "✅ Backend restarted via process restart with environment"
+    elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
         echo "✅ Backend restarted via systemd"
-    elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && nohup node --env-file=.env apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
-        echo "✅ Backend restarted via process restart"
     else
         echo "❌ Failed to restart backend"
         exit 1
