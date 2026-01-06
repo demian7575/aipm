@@ -4262,6 +4262,10 @@ function renderStoryDetailsWithCompleteData(story) {
       <div class="story-text">${escapeHtml(story.title)}</div>
     </div>
     <div class="full field-row">
+      <label>Story ID</label>
+      <div class="story-text">${story.id}</div>
+    </div>
+    <div class="full field-row">
       <label>Assignee Email</label>
       <div style="display:flex; gap:0.5rem; align-items:center;">
         <span class="story-text">${escapeHtml(story.assigneeEmail || 'Not assigned')}</span>
