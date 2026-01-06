@@ -237,11 +237,14 @@ jobs:
                 repo: context.repo.repo,
                 body: body
               });
-            } else if ('${{ github.event.inputs.pr_number }}') {
-              github.rest.issues.createComment({
-                issue_number: ${{ github.event.inputs.pr_number }},
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: body
-              });
+            } else {
+              const prNumber = '${{ github.event.inputs.pr_number }}';
+              if (prNumber) {
+                github.rest.issues.createComment({
+                  issue_number: parseInt(prNumber),
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: body
+                });
+              }
             }
