@@ -1,0 +1,711 @@
+{
+    "Items": [
+        {
+            "story_id": {
+                "N": "1767549495305"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/968"
+            },
+            "created_at": {
+                "S": "2026-01-05T16:24:13.323Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/968"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/968"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T16:24:13.323Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "968"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767630250813"
+            },
+            "id": {
+                "S": "pr-1767630253323-4ss0dkukx"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767638752789"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/973"
+            },
+            "created_at": {
+                "S": "2026-01-05T19:13:31.821Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/973"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/973"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T19:13:31.821Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "973"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767640409501"
+            },
+            "id": {
+                "S": "pr-1767640411821-nq0c5v4g7"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767331599404"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/970"
+            },
+            "created_at": {
+                "S": "2026-01-05T17:25:24.848Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/970"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/970"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T17:25:24.848Z"
+            },
+            "task_title": {
+                "S": "AI-Engine"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "970"
+            },
+            "branch_name": {
+                "S": "ai-engine-1767633922751"
+            },
+            "id": {
+                "S": "pr-1767633924848-6jr37beqg"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767549495305"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/966"
+            },
+            "created_at": {
+                "S": "2026-01-05T13:41:30.326Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/966"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/966"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T13:41:30.326Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "966"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767620487322"
+            },
+            "id": {
+                "S": "pr-1767620490326-0o4x71hm8"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767639934362"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/972"
+            },
+            "created_at": {
+                "S": "2026-01-05T19:11:24.018Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/972"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/972"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T19:11:24.018Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "972"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767640281887"
+            },
+            "id": {
+                "S": "pr-1767640284018-120sxgr7r"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767549495305"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/964"
+            },
+            "created_at": {
+                "S": "2026-01-05T12:48:07.509Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/964"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/964"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T12:48:07.509Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "964"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767617285342"
+            },
+            "id": {
+                "S": "pr-1767617287509-6wqu80q3n"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767549495305"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/969"
+            },
+            "created_at": {
+                "S": "2026-01-05T16:27:52.903Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/969"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/969"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T16:27:52.903Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "969"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767630470338"
+            },
+            "id": {
+                "S": "pr-1767630472903-exz1kq5x9"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767549495305"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/967"
+            },
+            "created_at": {
+                "S": "2026-01-05T13:51:29.421Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/967"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/967"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T13:51:29.421Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "967"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767621087519"
+            },
+            "id": {
+                "S": "pr-1767621089421-1vmcgzk0j"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767639934362"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/971"
+            },
+            "created_at": {
+                "S": "2026-01-05T19:10:29.993Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/971"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/971"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T19:10:29.993Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "971"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767640227781"
+            },
+            "id": {
+                "S": "pr-1767640229993-ir328ce8e"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767549495305"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/953"
+            },
+            "created_at": {
+                "S": "2026-01-05T00:44:27.343Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/953"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/953"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T00:44:27.343Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "953"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767573863692"
+            },
+            "id": {
+                "S": "pr-1767573867343-dw51ftt5k"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767659765187"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/975"
+            },
+            "created_at": {
+                "S": "2026-01-06T00:36:16.877Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/975"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/975"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-06T00:36:16.877Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "975"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767659774955"
+            },
+            "id": {
+                "S": "pr-1767659776877-kxvltcx10"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767672359275"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/984"
+            },
+            "created_at": {
+                "S": "2026-01-06T04:06:10.512Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/984"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/984"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-06T04:06:10.512Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "984"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767672368612"
+            },
+            "id": {
+                "S": "pr-1767672370512-n91lhqcaf"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767549495305"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/965"
+            },
+            "created_at": {
+                "S": "2026-01-05T12:56:45.220Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/965"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/965"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T12:56:45.220Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "965"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767617803370"
+            },
+            "id": {
+                "S": "pr-1767617805220-zauyklnvr"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1766936301359"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/999"
+            },
+            "created_at": {
+                "S": "2026-01-06T03:25:46.436Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/999"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/999"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-06T03:25:46.436Z"
+            },
+            "task_title": {
+                "S": "Fix Mindmap Position Persistence Bug"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "999"
+            },
+            "branch_name": {
+                "S": "fix-mindmap-position-persistence-bug-test"
+            },
+            "id": {
+                "S": "pr-test-123"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767670944168"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/983"
+            },
+            "created_at": {
+                "S": "2026-01-06T03:42:49.911Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/983"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/983"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-06T03:42:49.911Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "983"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767670968003"
+            },
+            "id": {
+                "S": "pr-1767670969911-cbxk8c34y"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        },
+        {
+            "story_id": {
+                "N": "1767639934362"
+            },
+            "task_url": {
+                "S": "https://github.com/demian7575/aipm/pull/974"
+            },
+            "created_at": {
+                "S": "2026-01-05T19:13:50.130Z"
+            },
+            "assignee": {
+                "S": ""
+            },
+            "pr_url": {
+                "S": "https://github.com/demian7575/aipm/pull/974"
+            },
+            "html_url": {
+                "S": "https://github.com/demian7575/aipm/pull/974"
+            },
+            "repo": {
+                "S": "demian7575/aipm"
+            },
+            "updated_at": {
+                "S": "2026-01-05T19:13:50.130Z"
+            },
+            "task_title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "target": {
+                "S": "pull-request"
+            },
+            "target_number": {
+                "N": "974"
+            },
+            "branch_name": {
+                "S": "show-user-story-id-on-user-story-details-1767640427980"
+            },
+            "id": {
+                "S": "pr-1767640430130-hjd1ug5g5"
+            },
+            "create_tracking_card": {
+                "BOOL": true
+            }
+        }
+    ],
+    "Count": 16,
+    "ScannedCount": 16,
+    "ConsumedCapacity": null
+}

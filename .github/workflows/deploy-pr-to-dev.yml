@@ -96,10 +96,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Sync production data for testing
+      - name: Copy database files
         run: |
-          echo "🔄 Syncing production data for gating tests..."
-          ./scripts/fast-sync-prod-to-dev.sh
+          echo "📁 Copying database files..."
+          ./scripts/simple-copy.sh
       
       - name: Run Workflow Gating Tests
         id: gating
@@ -177,10 +177,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Sync production data to development
+      - name: Copy database files
         run: |
-          echo "🔄 Syncing production data to development..."
-          ./scripts/fast-sync-prod-to-dev.sh
+          echo "📁 Copying database files..."
+          ./scripts/simple-copy.sh
       
       - name: Deploy to development environment
         run: |

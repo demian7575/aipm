@@ -1,0 +1,892 @@
+{
+    "Items": [
+        {
+            "soThat": {
+                "S": "I can easily reference and track specific stories during planning and communication"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "assigneeEmail": {
+                "S": ""
+            },
+            "createdAt": {
+                "S": "2026-01-03T17:08:58.732Z"
+            },
+            "parentId": {
+                "N": "1767331599404"
+            },
+            "acceptWarnings": {
+                "BOOL": true
+            },
+            "components": {
+                "L": [
+                    {
+                        "S": "WorkModel"
+                    }
+                ]
+            },
+            "asA": {
+                "S": "project manager"
+            },
+            "updatedAt": {
+                "S": "2026-01-03T18:57:34.960Z"
+            },
+            "bypassDoneValidation": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Show the unique identifier for each user story in the interface to enable easy reference and tracking"
+            },
+            "id": {
+                "N": "1767460138732"
+            },
+            "iWant": {
+                "S": "to see unique identifiers for each user story in the interface"
+            },
+            "storyPoint": {
+                "N": "2"
+            },
+            "title": {
+                "S": "Display User Story Unique Identifiers"
+            }
+        },
+        {
+            "soThat": {
+                "S": "I can create child stories more efficiently with better visual layout"
+            },
+            "status": {
+                "S": "Draft"
+            },
+            "assigneeEmail": {
+                "S": ""
+            },
+            "createdAt": {
+                "S": "2026-01-02T08:33:51.698Z"
+            },
+            "parentId": {
+                "N": "1"
+            },
+            "components": {
+                "L": [
+                    {
+                        "S": "WorkModel"
+                    }
+                ]
+            },
+            "asA": {
+                "S": "project manager"
+            },
+            "updatedAt": {
+                "S": "2026-01-02T14:15:47.569Z"
+            },
+            "description": {
+                "S": "Increase modal width and move field labels to the left side of input boxes to reduce vertical height and improve user experience"
+            },
+            "id": {
+                "N": "1767342831698"
+            },
+            "iWant": {
+                "S": "a wider Create Child Story modal with left-aligned field labels"
+            },
+            "storyPoint": {
+                "N": "3"
+            },
+            "title": {
+                "S": "Improve Create Child Story Modal Layout"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can manage tasks more efficiently without being distracted by git-specific workflow information that belongs in the development environment"
+            },
+            "i_want": {
+                "S": "the Development Tasks card interface to show only essential task management fields"
+            },
+            "created_at": {
+                "S": "2025-12-28T12:54:35.736Z"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "as_a": {
+                "S": "project manager using the AIPM workspace"
+            },
+            "components": {
+                "S": "[]"
+            },
+            "updated_at": {
+                "S": "2025-12-29T13:30:25.989Z"
+            },
+            "invest_warnings": {
+                "S": "[]"
+            },
+            "story_point": {
+                "NULL": true
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[]}"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "Remove git-specific workflow fields from the Development Tasks card interface to streamline task management and improve user experience by focusing only on essential project management information."
+            },
+            "id": {
+                "N": "1766926475736"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "parent_id": {
+                "N": "1766921743922"
+            },
+            "title": {
+                "S": "Clean up the Development Tasks card interface by removing unnecessary git workflow fields (Branch, PR Status, Rebase) to create a more focused and user-friendly task management experience within the User Interface component"
+            }
+        },
+        {
+            "soThat": {
+                "S": "I can ensure comprehensive test coverage without manual effort"
+            },
+            "status": {
+                "S": "In Progress"
+            },
+            "assigneeEmail": {
+                "S": ""
+            },
+            "createdAt": {
+                "S": "2026-01-02T05:26:39.404Z"
+            },
+            "parentId": {
+                "N": "1767317864762"
+            },
+            "acceptWarnings": {
+                "BOOL": true
+            },
+            "components": {
+                "L": [
+                    {
+                        "S": "WorkModel"
+                    }
+                ]
+            },
+            "asA": {
+                "S": "product manager"
+            },
+            "updatedAt": {
+                "S": "2026-01-02T13:50:52.044Z"
+            },
+            "bypassDoneValidation": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "AI Engine"
+            },
+            "id": {
+                "N": "1767331599404"
+            },
+            "iWant": {
+                "S": "to automatically generate acceptance tests when creating child stories"
+            },
+            "storyPoints": {
+                "N": "0"
+            },
+            "storyPoint": {
+                "N": "5"
+            },
+            "title": {
+                "S": "AI-Engine"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can easily reference and communicate about specific stories with my team"
+            },
+            "i_want": {
+                "S": "to see the user story ID in the details panel"
+            },
+            "created_at": {
+                "S": "2026-01-06T04:05:59.274Z"
+            },
+            "status": {
+                "S": "Draft"
+            },
+            "components": {
+                "S": "[\"WorkModel\"]"
+            },
+            "as_a": {
+                "S": "project manager"
+            },
+            "updated_at": {
+                "S": "2026-01-06T04:05:59.274Z"
+            },
+            "story_point": {
+                "N": "2"
+            },
+            "invest_warnings": {
+                "S": "[]"
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[]}"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "Display the unique identifier for each user story in the details panel to help users reference and track specific stories"
+            },
+            "id": {
+                "N": "1767672359275"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "parent_id": {
+                "N": "1767331599404"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can streamline the workflow without unnecessary modal interruptions"
+            },
+            "i_want": {
+                "S": "To create a PR directly when I click the \"Create PR\" button"
+            },
+            "created_at": {
+                "S": "2025-12-29T05:46:43.792Z"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "as_a": {
+                "S": "Project Manager"
+            },
+            "components": {
+                "S": "[]"
+            },
+            "updated_at": {
+                "S": "2025-12-29T13:29:35.002Z"
+            },
+            "invest_warnings": {
+                "S": "[]"
+            },
+            "story_point": {
+                "NULL": true
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[]}"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "As a project manager, I want to create a PR directly when I click the \"Create PR\" button so that I can streamline the workflow without unnecessary modal interruptions and reduce the number of clicks required to initiate code generation."
+            },
+            "id": {
+                "N": "1766987203793"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "parent_id": {
+                "N": "1766748854306"
+            },
+            "title": {
+                "S": "Create PR directly when click \"Create PR\" button, without opening any modal"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can easily identify and reference specific user stories"
+            },
+            "i_want": {
+                "S": "to see the user story ID in the details panel"
+            },
+            "created_at": {
+                "S": "2026-01-06T03:42:24.168Z"
+            },
+            "status": {
+                "S": "Draft"
+            },
+            "components": {
+                "S": "[\"WorkModel\"]"
+            },
+            "as_a": {
+                "S": "project manager"
+            },
+            "updated_at": {
+                "S": "2026-01-06T03:42:24.168Z"
+            },
+            "story_point": {
+                "N": "2"
+            },
+            "invest_warnings": {
+                "S": "[]"
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[]}"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "Display the unique user story ID in the user story details panel to help users identify and reference specific stories."
+            },
+            "id": {
+                "N": "1767670944168"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "parent_id": {
+                "N": "1767331599404"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can properly update story status and maintain accurate project tracking without encountering system errors"
+            },
+            "i_want": {
+                "S": "The Done button in story Details to work correctly when clicked"
+            },
+            "created_at": {
+                "S": "2025-12-28T15:14:43.807Z"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "as_a": {
+                "S": "Quality Assurance Engineer"
+            },
+            "components": {
+                "S": "[]"
+            },
+            "updated_at": {
+                "S": "2025-12-29T13:30:56.761Z"
+            },
+            "invest_warnings": {
+                "S": "[]"
+            },
+            "story_point": {
+                "NULL": true
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[]}"
+            },
+            "updatedAt": {
+                "S": "2025-12-28T15:15:26.818Z"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "Resolve the issue with the Done button functionality when clicked from the Details panel of a user story to ensure proper status updates and system behavior as part of the Bug Fix initiative"
+            },
+            "id": {
+                "N": "1766934883808"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "parent_id": {
+                "N": "1"
+            },
+            "title": {
+                "S": "Fix Done Button Functionality in Story Details"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can focus on active work"
+            },
+            "i_want": {
+                "S": "to hide user stories with \"Done\" status from the mindmap view"
+            },
+            "created_at": {
+                "S": "2025-12-28T22:13:39.885Z"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "as_a": {
+                "S": "project manager"
+            },
+            "components": {
+                "S": "[]"
+            },
+            "updated_at": {
+                "S": "2025-12-29T13:30:44.649Z"
+            },
+            "invest_warnings": {
+                "S": "[]"
+            },
+            "story_point": {
+                "NULL": true
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[]}"
+            },
+            "updatedAt": {
+                "S": "2025-12-28T22:14:48.647Z"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "As a project manager, I want to hide user stories with \"Done\" status from the mindmap view so that I can focus on active work"
+            },
+            "id": {
+                "N": "1766960019886"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "parent_id": {
+                "N": "1766748854306"
+            },
+            "title": {
+                "S": "Hide User Story when the User Story is \"Done\" status"
+            }
+        },
+        {
+            "so_that": {
+                "S": "users can focus on core task information without git workflow clutter and have a cleaner interface"
+            },
+            "i_want": {
+                "S": "to remove Branch, PR Status, and Rebase fields from the Development Tasks card"
+            },
+            "created_at": {
+                "S": "2025-12-28T11:35:43.922Z"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "as_a": {
+                "S": "product manager"
+            },
+            "components": {
+                "S": "[]"
+            },
+            "updated_at": {
+                "S": "2025-12-29T13:30:36.615Z"
+            },
+            "invest_warnings": {
+                "S": "[]"
+            },
+            "story_point": {
+                "NULL": true
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[]}"
+            },
+            "updatedAt": {
+                "S": "2025-12-28T14:16:23.913Z"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "Clean up the Development Tasks card interface by removing unnecessary git workflow fields (\"Branch(Below Rull Request Link)\", \"PR Status(ex. \"PR created and ready for development…\"), Rebase(Between \"Generate Code\" and \"Test in Dev\" button) to create a more focused and user-friendly task management experience within the User Interface component"
+            },
+            "id": {
+                "N": "1766921743922"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "parent_id": {
+                "N": "1766748854306"
+            },
+            "title": {
+                "S": "Streamline Development Tasks Card by Removing Git-Related Fields"
+            }
+        },
+        {
+            "p_name": {
+                "S": "목동파리공원점"
+            },
+            "updated_at": {
+                "N": "1767666342"
+            },
+            "p_code": {
+                "S": "1y31pcmuj"
+            },
+            "id": {
+                "N": "1"
+            },
+            "access_token": {
+                "S": "OWNmZjIyNGFjNDUwMmE4YmJjNWNkZjk4NmMwYmMyNzY1OGQ5MGI4ZjkzYTlmZGU1MTkyMzJjNDUxYzc2ZDRjZg"
+            },
+            "expires_at": {
+                "N": "1767676530"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can create a cleaner, more intuitive interface that eliminates user confusion between dependencies and dependents"
+            },
+            "i_want": {
+                "S": "To remove the 'Dependents' field from the Dependencies section"
+            },
+            "created_at": {
+                "S": "2025-12-28T15:07:07.131Z"
+            },
+            "status": {
+                "S": "Draft"
+            },
+            "as_a": {
+                "S": "UI/UX Designer"
+            },
+            "components": {
+                "S": "[]"
+            },
+            "updated_at": {
+                "S": "2025-12-28T15:07:07.131Z"
+            },
+            "invest_warnings": {
+                "S": "[{\"criterion\":\"testable\",\"message\":\"Story uses qualitative words that are hard to test.\",\"details\":\"T — Testable stories enable objective verification. Ambiguous words found: “intuitive”.\",\"suggestion\":\"Pair acceptance tests with observable or measurable outcomes (e.g., confirmation messages, status changes, or performance targets) for each Then step.\",\"source\":\"heuristic\"}]"
+            },
+            "story_point": {
+                "NULL": true
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[{\"criterion\":\"testable\",\"message\":\"Story uses qualitative words that are hard to test.\",\"details\":\"T — Testable stories enable objective verification. Ambiguous words found: “intuitive”.\",\"suggestion\":\"Pair acceptance tests with observable or measurable outcomes (e.g., confirmation messages, status changes, or performance targets) for each Then step.\",\"source\":\"heuristic\"}]}"
+            },
+            "updatedAt": {
+                "S": "2025-12-29T03:44:26.214Z"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "Remove the 'Dependents' field from the Dependencies section to simplify the user interface and eliminate confusion between dependencies and dependents, creating a cleaner and more intuitive user experience within the User Interface component"
+            },
+            "id": {
+                "N": "1766934427132"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "parent_id": {
+                "N": "1766748854306"
+            },
+            "title": {
+                "S": "Streamline Dependencies Section Interface"
+            }
+        },
+        {
+            "soThat": {
+                "S": "I can quickly create INVEST-compliant stories without manual formatting"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "assigneeEmail": {
+                "S": ""
+            },
+            "createdAt": {
+                "S": "2026-01-02T14:45:07.499Z"
+            },
+            "parentId": {
+                "N": "1767331599404"
+            },
+            "components": {
+                "L": [
+                    {
+                        "S": "WorkModel"
+                    }
+                ]
+            },
+            "asA": {
+                "S": "project manager"
+            },
+            "updated_at": {
+                "S": "2026-01-05T07:18:37.799Z"
+            },
+            "updatedAt": {
+                "S": "2026-01-03T19:02:33.093Z"
+            },
+            "description": {
+                "S": "Enable project managers to automatically generate well-structured user stories from high-level feature descriptions using AI assistance"
+            },
+            "id": {
+                "N": "1767365107499"
+            },
+            "iWant": {
+                "S": "to generate user stories from feature descriptions"
+            },
+            "storyPoint": {
+                "N": "5"
+            },
+            "title": {
+                "S": "User Story Generation"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can easily reference and communicate about specific user stories with my team"
+            },
+            "i_want": {
+                "S": "to see the user story ID displayed in the details panel"
+            },
+            "created_at": {
+                "S": "2026-01-06T00:36:05.186Z"
+            },
+            "status": {
+                "S": "Draft"
+            },
+            "components": {
+                "S": "[\"WorkModel\"]"
+            },
+            "as_a": {
+                "S": "project manager"
+            },
+            "updated_at": {
+                "S": "2026-01-06T00:36:05.186Z"
+            },
+            "story_point": {
+                "N": "2"
+            },
+            "invest_warnings": {
+                "S": "[]"
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[]}"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "Display the unique identifier for each user story in the details panel to help users reference and track specific stories"
+            },
+            "id": {
+                "N": "1767659765187"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "title": {
+                "S": "Show User Story ID on User Story Details"
+            },
+            "parent_id": {
+                "N": "1767331599404"
+            }
+        },
+        {
+            "soThat": {
+                "S": "I can save time and ensure comprehensive test coverage without manual test writing"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "assigneeEmail": {
+                "S": ""
+            },
+            "createdAt": {
+                "S": "2026-01-02T07:53:40.512Z"
+            },
+            "parentId": {
+                "N": "1767331599404"
+            },
+            "acceptWarnings": {
+                "BOOL": true
+            },
+            "components": {
+                "L": [
+                    {
+                        "S": "WorkModel"
+                    }
+                ]
+            },
+            "asA": {
+                "S": "product manager"
+            },
+            "updatedAt": {
+                "S": "2026-01-02T14:15:25.454Z"
+            },
+            "bypassDoneValidation": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "When clicking the Generate button on the Create Child Story modal, the system should automatically create acceptance tests for the user story using AI to analyze story content and generate relevant tests in Given-When-Then format. A new Acceptance Tests field should appear below existing modal content to display and allow editing of generated tests before saving."
+            },
+            "id": {
+                "N": "1767340420511"
+            },
+            "iWant": {
+                "S": "to automatically generate acceptance tests when creating child stories"
+            },
+            "storyPoint": {
+                "N": "5"
+            },
+            "title": {
+                "S": "Auto-generate acceptance tests in Create Child Story modal"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can ensure manually positioned User Story cards maintain their coordinates and provide consistent mindmap layout behavior"
+            },
+            "i_want": {
+                "S": "To resolve the position persistence issue when Auto Layout is toggled"
+            },
+            "created_at": {
+                "S": "2025-12-28T15:38:21.359Z"
+            },
+            "status": {
+                "S": "Draft"
+            },
+            "components": {
+                "S": "[]"
+            },
+            "as_a": {
+                "S": "Bug Fix Engineer"
+            },
+            "updated_at": {
+                "S": "2025-12-28T15:38:21.359Z"
+            },
+            "story_point": {
+                "NULL": true
+            },
+            "invest_warnings": {
+                "S": "[]"
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[]}"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "Resolve the critical bug where User Story card positions are not maintained when the Auto Layout function is toggled, ensuring that manually positioned cards retain their exact coordinates when Auto Layout is disabled to provide consistent and reliable mindmap layout behavior as part of the Bug Fix initiative"
+            },
+            "id": {
+                "N": "1766936301359"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "title": {
+                "S": "Fix Mindmap Position Persistence Bug"
+            },
+            "parent_id": {
+                "N": "1"
+            }
+        },
+        {
+            "so_that": {
+                "S": "I can access pull request information directly from the task interface and maintain seamless GitHub workflow integration"
+            },
+            "i_want": {
+                "S": "To recover the GitHub PR link in the Development Tasks card"
+            },
+            "created_at": {
+                "S": "2025-12-28T15:11:13.351Z"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "as_a": {
+                "S": "Developer"
+            },
+            "components": {
+                "S": "[]"
+            },
+            "updated_at": {
+                "S": "2025-12-28T15:11:13.351Z"
+            },
+            "invest_warnings": {
+                "S": "[{\"criterion\":\"testable\",\"message\":\"Story uses qualitative words that are hard to test.\",\"details\":\"T — Testable stories enable objective verification. Ambiguous words found: “seamless”.\",\"suggestion\":\"Pair acceptance tests with observable or measurable outcomes (e.g., confirmation messages, status changes, or performance targets) for each Then step.\",\"source\":\"heuristic\"}]"
+            },
+            "story_point": {
+                "NULL": true
+            },
+            "invest_analysis": {
+                "S": "{\"source\":\"heuristic\",\"summary\":\"\",\"aiSummary\":\"\",\"aiModel\":null,\"usedFallback\":true,\"error\":null,\"fallbackWarnings\":[{\"criterion\":\"testable\",\"message\":\"Story uses qualitative words that are hard to test.\",\"details\":\"T — Testable stories enable objective verification. Ambiguous words found: “seamless”.\",\"suggestion\":\"Pair acceptance tests with observable or measurable outcomes (e.g., confirmation messages, status changes, or performance targets) for each Then step.\",\"source\":\"heuristic\"}]}"
+            },
+            "updatedAt": {
+                "S": "2025-12-28T18:38:53.932Z"
+            },
+            "assignee_email": {
+                "S": ""
+            },
+            "description": {
+                "S": "Recover and restore the GitHub PR link functionality to the Development Tasks card to provide users with direct access to pull request information and maintain seamless integration between the AIPM interface and GitHub workflow within the User Interface component"
+            },
+            "id": {
+                "N": "1766934673352"
+            },
+            "mr_id": {
+                "N": "1"
+            },
+            "parent_id": {
+                "N": "1766748854306"
+            },
+            "title": {
+                "S": "Restore GitHub PR Link Integration"
+            }
+        },
+        {
+            "soThat": {
+                "S": "I can quickly access and review the pull request without searching for it"
+            },
+            "status": {
+                "S": "Done"
+            },
+            "assigneeEmail": {
+                "S": ""
+            },
+            "createdAt": {
+                "S": "2026-01-02T08:37:00.857Z"
+            },
+            "parentId": {
+                "N": "1"
+            },
+            "acceptWarnings": {
+                "BOOL": true
+            },
+            "components": {
+                "L": [
+                    {
+                        "S": "WorkModel"
+                    }
+                ]
+            },
+            "asA": {
+                "S": "developer"
+            },
+            "updatedAt": {
+                "S": "2026-01-02T14:14:55.663Z"
+            },
+            "bypassDoneValidation": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Show the GitHub pull request link in the Development Task card after creating a PR to provide direct access to the PR"
+            },
+            "id": {
+                "N": "1767343020856"
+            },
+            "iWant": {
+                "S": "to see the GitHub PR link in the Development Task card after creating a PR"
+            },
+            "storyPoint": {
+                "N": "2"
+            },
+            "title": {
+                "S": "Display GitHub PR Link in Development Task Card"
+            }
+        }
+    ],
+    "Count": 18,
+    "ScannedCount": 18,
+    "ConsumedCapacity": null
+}
