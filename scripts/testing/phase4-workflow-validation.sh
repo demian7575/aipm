@@ -3,8 +3,6 @@
 # Phase 4: End-to-End Workflow Validation
 # Tests each major workflow step-by-step to ensure complete functionality
 
-set -e
-
 PHASE_PASSED=0
 PHASE_FAILED=0
 WORKFLOW_STORY_ID=""
@@ -27,9 +25,6 @@ cleanup_test_data() {
     
     echo "  ✅ Test data cleanup completed"
 }
-
-# Set trap to ensure cleanup runs on exit (success or failure)
-trap cleanup_test_data EXIT
 
 # Test utilities
 log_test() {
@@ -90,7 +85,7 @@ fi
 test_name "Story update workflow"
 if curl -s -X PUT "$PROD_API/api/stories/$WORKFLOW_STORY_ID" \
     -H "Content-Type: application/json" \
-    -d '{"title":"Updated Test Story","status":"Ready"}' | jq -e '.id' > /dev/null 2>&1; then
+    -d '{"title":"Updated Test Story","status":"Ready"}' | jq -e '.success' > /dev/null 2>&1; then
     pass_test "Story update workflow successful"
 else
     fail_test "Story update workflow failed"
@@ -212,7 +207,9 @@ else
     fail_test "Cannot retrieve story for persistence test"
 fi
 
-# Results summary (cleanup handled by trap)
+# Results summary and cleanup
+cleanup_test_data
+
 echo ""
 echo "📊 Phase 4 Results: ✅ $PHASE_PASSED passed, ❌ $PHASE_FAILED failed"
 
