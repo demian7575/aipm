@@ -1018,27 +1018,7 @@ function persistAllData() {
   persistCodeWhispererDelegations();
 }
 
-function loadStoriesFromLocal() {
-  try {
-    const storiesData = localStorage.getItem(STORAGE_KEYS.stories);
-    console.log('Local storage stories data:', storiesData ? 'found' : 'not found');
-    if (storiesData) {
-      const stories = JSON.parse(storiesData);
-      if (Array.isArray(stories) && stories.length > 0) {
-        console.log('Loading', stories.length, 'stories from local storage');
-        state.stories = stories;
-        rebuildStoryIndex();
-        return true;
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load stories from local storage', error);
-    // Clear corrupted localStorage data
-    localStorage.removeItem(STORAGE_KEYS.stories);
-  }
-  console.log('No valid local stories data found');
-  return false;
-}
+
 
 function autoBackupData() {
   try {
@@ -2540,11 +2520,7 @@ async function loadStories(preserveSelection = true) {
   console.log('loadStories called, preserveSelection:', preserveSelection);
   const previousSelection = preserveSelection ? state.selectedStoryId : null;
   
-  // Try to load from local storage first
-  const loadedFromLocal = loadStoriesFromLocal();
-  console.log('Loaded from local:', loadedFromLocal);
-  
-  // Always try to load from API to get latest data
+  // Load from API only
   try {
     const url = resolveApiUrl('/api/stories');
     console.log('Fetching from API:', url);
@@ -2560,29 +2536,23 @@ async function loadStories(preserveSelection = true) {
     const apiStories = normalizeStoryCollection(Array.isArray(data) ? data : []);
     console.log('Normalized stories:', apiStories);
     
-    // Use API data if we have it, or fall back to local data
+    // Use API data or create root story if empty
     if (apiStories.length > 0) {
       state.stories = apiStories;
       rebuildStoryIndex();
       console.log('Stories loaded from API, count:', apiStories.length);
       // Auto-backup after successful API load
       autoBackupData();
-    } else if (!loadedFromLocal) {
-      // No API data and no local data - create root story
-      console.log('No stories found in API or local storage - creating root story');
+    } else {
+      // No API data - create root story
+      console.log('No stories found in API - creating root story');
       await createRootStory();
     }
   } catch (error) {
     console.error('API load failed:', error);
-    if (!loadedFromLocal) {
-      // If both local and API fail, show error
-      showToast('Failed to load stories. Check your connection.', 'error');
-      state.stories = [];
-      rebuildStoryIndex();
-    } else {
-      // We have local data, just show a warning
-      showToast('Using offline data. Check your connection.', 'warning');
-    }
+    showToast('Failed to load stories. Check your connection.', 'error');
+    state.stories = [];
+    rebuildStoryIndex();
   }
   
   console.log('Final stories count:', state.stories.length);
