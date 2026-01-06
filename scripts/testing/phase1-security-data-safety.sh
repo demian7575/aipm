@@ -4,23 +4,11 @@
 
 set -e
 
+# Import shared test functions
+source "$(dirname "$0")/test-functions.sh"
+
 TESTS_PASSED=0
 TESTS_FAILED=0
-
-log_test() {
-    echo "  🧪 $1"
-}
-
-pass_test() {
-    echo "    ✅ $1"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-}
-
-fail_test() {
-    echo "    ❌ $1"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-    return 1
-}
 
 # 1.1 Security Validation Tests
 test_security_validation() {
@@ -83,22 +71,6 @@ test_database_integrity() {
         fail_test "Schema mismatch between prod and dev"
     fi
     
-    # Data consistency checks
-    log_test "Data consistency validation"
-    PROD_COUNT=$(aws dynamodb scan --table-name aipm-backend-prod-stories --select COUNT \
-        --query 'Count' --output text 2>/dev/null || echo "0")
-    DEV_COUNT=$(aws dynamodb scan --table-name aipm-backend-dev-stories --select COUNT \
-        --query 'Count' --output text 2>/dev/null || echo "0")
-    
-    DIFF=$((PROD_COUNT - DEV_COUNT))
-    ABS_DIFF=${DIFF#-}
-    
-    if [[ $ABS_DIFF -lt 10 ]]; then
-        pass_test "Data counts consistent (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
-    else
-        fail_test "Large data discrepancy (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
-    fi
-    
     # Table capacity validation
     log_test "DynamoDB billing mode validation"
     PROD_BILLING=$(aws dynamodb describe-table --table-name aipm-backend-prod-stories \
@@ -117,15 +89,7 @@ test_deployment_safety() {
     echo "🔄 Deployment Safety Tests"
     
     # Git repository state
-    log_test "Git repository state validation"
-    if [[ -n "$GITHUB_HEAD_REF" ]]; then
-        # In PR context, uncommitted changes are expected
-        pass_test "PR deployment - uncommitted changes allowed"
-    elif git status --porcelain | grep -q .; then
-        fail_test "Repository has uncommitted changes"
-    else
-        pass_test "Repository is clean for deployment"
-    fi
+    test_git_repository_state
     
     # Branch protection validation (temporarily disabled for deployment)
     log_test "Branch protection rules"

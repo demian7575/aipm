@@ -212,6 +212,11 @@ jobs:
             exit 1
           fi
       
+      - name: Validate Data Consistency
+        run: |
+          echo "📊 Validating data consistency after deployment..."
+          ./scripts/testing/post-deployment-data-consistency.sh
+      
       - name: Comment on PR
         if: always()
         uses: actions/github-script@v6

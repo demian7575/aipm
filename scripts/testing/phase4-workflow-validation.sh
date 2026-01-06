@@ -3,6 +3,9 @@
 # Phase 4: End-to-End Workflow Validation
 # Tests each major workflow step-by-step to ensure complete functionality
 
+# Import shared test functions
+source "$(dirname "$0")/test-functions.sh"
+
 PHASE_PASSED=0
 PHASE_FAILED=0
 WORKFLOW_STORY_ID=""
@@ -26,25 +29,9 @@ cleanup_test_data() {
     echo "  ✅ Test data cleanup completed"
 }
 
-# Test utilities
-log_test() {
-    echo "  🧪 $1"
-}
-
-pass_test() {
-    echo "    ✅ $1"
-    PHASE_PASSED=$((PHASE_PASSED + 1))
-}
-
 warn_test() {
     echo "    ⚠️  $1"
     PHASE_PASSED=$((PHASE_PASSED + 1))  # Count warnings as passed for gating purposes
-}
-
-fail_test() {
-    echo "    ❌ $1"
-    PHASE_FAILED=$((PHASE_FAILED + 1))
-    return 1
 }
 
 test_name() {

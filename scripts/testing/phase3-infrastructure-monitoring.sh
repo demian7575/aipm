@@ -4,25 +4,13 @@
 
 set -e
 
+# Import shared test functions
+source "$(dirname "$0")/test-functions.sh"
+
 TESTS_PASSED=0
 TESTS_FAILED=0
 PROD_FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
 DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
-
-log_test() {
-    echo "  🧪 $1"
-}
-
-pass_test() {
-    echo "    ✅ $1"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-}
-
-fail_test() {
-    echo "    ❌ $1"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-    return 1
-}
 
 # 3.1 Network & Infrastructure Tests
 test_network_infrastructure() {

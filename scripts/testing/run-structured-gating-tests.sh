@@ -4,6 +4,9 @@
 
 set -e
 
+# Import shared test functions
+source "$(dirname "$0")/test-functions.sh"
+
 # Configuration
 PROD_API_BASE="http://44.220.45.57"
 DEV_API_BASE="http://44.222.168.46"
@@ -27,10 +30,7 @@ log_phase() {
     PHASE_FAILED=0
 }
 
-log_test() {
-    echo "  🧪 $1"
-}
-
+# Override shared functions to use TOTAL counters
 pass_test() {
     echo "    ✅ $1"
     TOTAL_PASSED=$((TOTAL_PASSED + 1))

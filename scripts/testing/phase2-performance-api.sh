@@ -4,30 +4,18 @@
 
 set -e
 
+# Import shared test functions
+source "$(dirname "$0")/test-functions.sh"
+
 TESTS_PASSED=0
 TESTS_FAILED=0
 PROD_API_BASE="http://44.220.45.57"
 DEV_API_BASE="http://44.222.168.46"
 KIRO_API_BASE="http://44.220.45.57:8081"
 
-log_test() {
-    echo "  🧪 $1"
-}
-
-pass_test() {
-    echo "    ✅ $1"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-}
-
 warn_test() {
     echo "    ⚠️  $1"
     TESTS_PASSED=$((TESTS_PASSED + 1))  # Count warnings as passed for gating purposes
-}
-
-fail_test() {
-    echo "    ❌ $1"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-    return 1
 }
 
 # Measure response time
