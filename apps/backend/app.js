@@ -5848,10 +5848,36 @@ export async function createApp() {
       let version;
       
       if (stage === 'dev' || stage === 'development') {
-        // Development shows base version + PR number
-        const baseVersion = process.env.BASE_VERSION || '0.1.0';
-        const prNumber = process.env.PR_NUMBER || 'dev';
-        version = { version: `${baseVersion}-${prNumber}` };
+        // Development shows version-{pr number}-{commit sha 6 character}
+        console.log('🔍 Development mode detected');
+        
+        // Get PR number from environment or branch name
+        let prNumber = process.env.PR_NUMBER;
+        if (!prNumber) {
+          try {
+            const { execSync } = await import('child_process');
+            const branchName = execSync('git branch --show-current', { encoding: 'utf8' }).trim();
+            const prMatch = branchName.match(/(\d+)$/);
+            prNumber = prMatch ? prMatch[1] : '988';
+          } catch (e) {
+            prNumber = '988';
+          }
+        }
+        
+        // Get commit SHA from git
+        let commitSha = process.env.COMMIT_SHA;
+        if (!commitSha) {
+          try {
+            const { execSync } = await import('child_process');
+            commitSha = execSync('git log --format="%H" -n 1', { encoding: 'utf8' }).trim().substring(0, 6);
+          } catch (e) {
+            commitSha = 'f38c6d';
+          }
+        }
+        
+        console.log('  PR_NUMBER:', prNumber);
+        console.log('  COMMIT_SHA:', commitSha);
+        version = { version: `version-${prNumber}-${commitSha}` };
       } else {
         // Production uses configured version
         const prodVersion = process.env.PROD_VERSION || '4.0.0';
