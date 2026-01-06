@@ -7537,7 +7537,7 @@ async function fetchVersion() {
     const data = await res.json();
     const versionEl = document.getElementById('version-display');
     if (versionEl) {
-      versionEl.textContent = data.pr ? `v${data.version} (PR #${data.pr})` : `v${data.version}`;
+      versionEl.textContent = `v${data.version}`;
     }
   } catch (e) {
     console.error('Failed to fetch version:', e);

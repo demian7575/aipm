@@ -19,6 +19,47 @@ const debugLog = (...args) => {
   }
 };
 
+/**
+ * Generate version string using PR number and commit SHA format
+ * @returns {string} Version string in format "PR-{number}-{shortSHA}"
+ */
+function generateVersionString() {
+  try {
+    // Get current commit SHA
+    const result = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' });
+    const commitSHA = result.stdout?.trim() || 'unknown';
+    
+    // Get PR number from branch name or environment
+    const prNumber = process.env.PR_NUMBER || 
+                    process.env.GITHUB_PR_NUMBER || 
+                    getCurrentPRFromBranch() || 
+                    'dev';
+    
+    return `PR-${prNumber}-${commitSHA}`;
+  } catch (error) {
+    debugLog('Error generating version string:', error);
+    return 'dev-unknown';
+  }
+}
+
+/**
+ * Extract PR number from current git branch name
+ * @returns {string|null} PR number or null if not found
+ */
+function getCurrentPRFromBranch() {
+  try {
+    const result = spawnSync('git', ['branch', '--show-current'], { encoding: 'utf8' });
+    const branchName = result.stdout?.trim();
+    
+    // Look for PR number in branch name patterns
+    const prMatch = branchName?.match(/pr-?(\d+)|pull-?(\d+)|(\d+)$/i);
+    return prMatch ? (prMatch[1] || prMatch[2] || prMatch[3]) : null;
+  } catch (error) {
+    debugLog('Error getting PR from branch:', error);
+    return null;
+  }
+}
+
 // Add delegation helper functions
 function ensureGithubToken() {
   const token = process.env.GITHUB_TOKEN;
@@ -5852,10 +5893,8 @@ export async function createApp() {
       let version;
       
       if (stage === 'dev' || stage === 'development') {
-        // Development shows base version + PR number
-        const baseVersion = process.env.BASE_VERSION || '0.1.0';
-        const prNumber = process.env.PR_NUMBER || 'dev';
-        version = { version: `${baseVersion}-${prNumber}` };
+        // Development shows PR-SHA format
+        version = { version: generateVersionString() };
       } else {
         // Production uses configured version
         const prodVersion = process.env.PROD_VERSION || '4.0.0';
