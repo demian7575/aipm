@@ -53,7 +53,7 @@ else
     
     # Create environment file with correct table names and version info
     echo "📝 Setting up environment variables..."
-    COMMIT_HASH=$(git rev-parse --short HEAD)
+    COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
 STORIES_TABLE=$STORIES_TABLE
