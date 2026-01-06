@@ -51,18 +51,22 @@ else
     # Copy backend files
     scp apps/backend/app.js ec2-user@$HOST:aipm/apps/backend/app.js
     
-    # Create environment file with correct table names
+    # Create environment file with correct table names and version info
     echo "📝 Setting up environment variables..."
+    COMMIT_HASH=$(git rev-parse --short HEAD)
+    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
 AWS_REGION=us-east-1
 KIRO_API_PORT=8081
+DEPLOY_VERSION=$DEPLOY_VERSION
+COMMIT_HASH=$COMMIT_HASH
 EOF"
 
     # Restart backend (force process restart to ensure env vars are loaded)
     echo "🔄 Restarting backend service..."
-    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && export STORIES_TABLE=$STORIES_TABLE && export ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE && export AWS_REGION=us-east-1 && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && export STORIES_TABLE=$STORIES_TABLE && export ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE && export AWS_REGION=us-east-1 && export DEPLOY_VERSION=$DEPLOY_VERSION && export COMMIT_HASH=$COMMIT_HASH && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
         echo "✅ Backend restarted via process restart with environment"
     elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
         echo "✅ Backend restarted via systemd"
@@ -99,8 +103,10 @@ fi
 # Use environment-specific frontend config
 echo "📝 Using $ENV frontend configuration..."
 if [[ -f "apps/frontend/public/config.$ENV.js" ]]; then
-    cp "apps/frontend/public/config.$ENV.js" "apps/frontend/public/config.js"
-    echo "✅ Copied config.$ENV.js to config.js"
+    # Replace version placeholder with actual deployment timestamp
+    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+    sed "s/DEPLOY_TIMESTAMP_PLACEHOLDER/$DEPLOY_VERSION/g" "apps/frontend/public/config.$ENV.js" > "apps/frontend/public/config.js"
+    echo "✅ Copied config.$ENV.js to config.js with version $DEPLOY_VERSION"
 else
     echo "❌ Environment config file config.$ENV.js not found"
     exit 1

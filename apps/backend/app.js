@@ -5775,10 +5775,14 @@ export async function createApp() {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
         });
+        const version = process.env.DEPLOY_VERSION || 'unknown';
+        const commitHash = process.env.COMMIT_HASH || 'unknown';
         res.end(JSON.stringify({ 
           status: 'running', 
           timestamp: new Date().toISOString(),
-          service: 'aipm-backend'
+          service: 'aipm-backend',
+          version: version,
+          commit: commitHash
         }));
         return;
       }

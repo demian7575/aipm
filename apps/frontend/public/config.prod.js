@@ -7,5 +7,6 @@ window.CONFIG = {
   region: 'us-east-1',
   storiesTable: 'aipm-backend-prod-stories',
   acceptanceTestsTable: 'aipm-backend-prod-acceptance-tests',
-  DEBUG: false
+  DEBUG: false,
+  VERSION: 'DEPLOY_TIMESTAMP_PLACEHOLDER'
 };
