@@ -43,11 +43,14 @@ echo "🪣 Frontend: $FRONTEND_BUCKET"
 echo "📦 Deploying backend..."
 
 # Check if we're in GitHub Actions environment
+echo "🔍 Debug: GITHUB_ACTIONS='$GITHUB_ACTIONS'"
 if [[ -n "$GITHUB_ACTIONS" ]]; then
     echo "⚠️  GitHub Actions environment detected - skipping SSH deployment"
     echo "Backend deployment requires SSH access which is not available in GitHub Actions"
     echo "Manual deployment required for backend updates"
+    echo "✅ Skipping backend deployment in CI environment"
 else
+    echo "🔧 Local environment detected - proceeding with SSH deployment"
     # Copy backend files
     scp apps/backend/app.js ec2-user@$HOST:aipm/apps/backend/app.js
     
