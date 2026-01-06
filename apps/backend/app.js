@@ -11,6 +11,14 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 // Removed delegation imports - now using direct PR creation
 
+// Debug logging configuration
+const DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const debugLog = (...args) => {
+  if (DEBUG) {
+    console.log('[DEBUG]', new Date().toISOString(), ...args);
+  }
+};
+
 // Add delegation helper functions
 function ensureGithubToken() {
   const token = process.env.GITHUB_TOKEN;
@@ -5677,6 +5685,8 @@ export async function createApp() {
       const pathname = url.pathname;
       const method = req.method ?? 'GET';
 
+      debugLog(`${method} ${pathname}`, url.search ? `query: ${url.search}` : '');
+
       if (method === 'OPTIONS') {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',
@@ -7557,7 +7567,12 @@ export async function createApp() {
 export async function startServer(port = 4000) {
   const app = await createApp();
   return new Promise((resolve, reject) => {
-    app.listen(port, () => resolve(app));
+    app.listen(port, () => {
+      console.log(`🚀 AIPM Backend Server started on port ${port}`);
+      debugLog(`Debug logging enabled: ${DEBUG}`);
+      debugLog(`Environment: ${process.env.NODE_ENV || 'production'}`);
+      resolve(app);
+    });
     app.once('error', reject);
   });
 }
