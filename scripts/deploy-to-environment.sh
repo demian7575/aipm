@@ -71,7 +71,17 @@ EOF"
 
     # Restart backend (force process restart to ensure env vars are loaded)
     echo "🔄 Restarting backend service..."
-    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && export \$(cat .env | xargs) && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+    # Create startup script with environment loading
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && cat > start-backend.sh << 'EOF'
+#!/bin/bash
+cd /home/ec2-user/aipm
+export DEPLOY_VERSION=\$(grep DEPLOY_VERSION .env | cut -d= -f2)
+export STAGE=\$(grep STAGE .env | cut -d= -f2)
+node apps/backend/server.js
+EOF
+chmod +x start-backend.sh"
+
+    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'apps/backend/server.js' && sleep 1 && nohup ./start-backend.sh > backend.log 2>&1 &" 2>/dev/null; then
         echo "✅ Backend restarted via process restart with environment"
     elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
         echo "✅ Backend restarted via systemd"
