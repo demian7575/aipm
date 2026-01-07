@@ -22,6 +22,7 @@ if [[ "$ENV" == "prod" ]]; then
     API_URL="http://44.220.45.57"
     STORIES_TABLE="aipm-backend-prod-stories"
     TESTS_TABLE="aipm-backend-prod-acceptance-tests"
+    PRS_TABLE="aipm-backend-prod-prs"
 elif [[ "$ENV" == "dev" ]]; then
     HOST="44.222.168.46"
     SERVICE="aipm-backend"
@@ -29,6 +30,7 @@ elif [[ "$ENV" == "dev" ]]; then
     API_URL="http://44.222.168.46"
     STORIES_TABLE="aipm-backend-dev-stories"
     TESTS_TABLE="aipm-backend-dev-acceptance-tests"
+    PRS_TABLE="aipm-backend-dev-prs"
 else
     echo "❌ Invalid environment: $ENV"
     echo "Valid environments: prod, dev"
@@ -157,8 +159,13 @@ if [[ "$ENV" == "dev" ]]; then
         aws dynamodb scan --table-name aipm-backend-prod-prs --region us-east-1 --output json > /tmp/prs.json 2>/dev/null
         if [[ -s /tmp/prs.json ]]; then
             jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/prs.json | jq -s --arg table "$PRS_TABLE" '{($table): .}' > /tmp/prs-batch.json 2>/dev/null
-            aws dynamodb batch-write-item --request-items file:///tmp/prs-batch.json --region us-east-1 >/dev/null 2>&1
-            echo "✅ PRs synced"
+            if aws dynamodb batch-write-item --request-items file:///tmp/prs-batch.json --region us-east-1; then
+                echo "✅ PRs synced"
+            else
+                echo "⚠️  PRs sync failed"
+            fi
+        else
+            echo "⚠️  No PRs data to sync"
         fi
     ) &
     

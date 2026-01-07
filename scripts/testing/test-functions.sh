@@ -68,7 +68,7 @@ test_data_consistency() {
     PRS_DIFF=$((PROD_PRS - DEV_PRS))
     PRS_ABS_DIFF=${PRS_DIFF#-}
     
-    if [[ $PRS_ABS_DIFF -lt 30 ]]; then
+    if [[ $PRS_ABS_DIFF -lt 5 ]]; then
         pass_test "PRs data consistent (Prod: $PROD_PRS, Dev: $DEV_PRS)"
     else
         fail_test "PRs data discrepancy (Prod: $PROD_PRS, Dev: $DEV_PRS)"
