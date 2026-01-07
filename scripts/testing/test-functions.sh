@@ -81,10 +81,14 @@ test_git_repository_state() {
         pass_test "Skipping git state check in CI/CD environment"
     elif [[ -n "$GITHUB_HEAD_REF" ]]; then
         pass_test "PR deployment - uncommitted changes allowed"
-    elif git status --porcelain | grep -q .; then
-        fail_test "Repository has uncommitted changes"
     else
-        pass_test "Repository is clean for deployment"
+        # Check for uncommitted changes, but ignore config.js since it's generated during deployment
+        UNCOMMITTED_CHANGES=$(git status --porcelain | grep -v "apps/frontend/public/config.js" || true)
+        if [[ -n "$UNCOMMITTED_CHANGES" ]]; then
+            fail_test "Repository has uncommitted changes (excluding config.js): $UNCOMMITTED_CHANGES"
+        else
+            pass_test "Repository is clean for deployment (config.js changes ignored)"
+        fi
     fi
 }
 
