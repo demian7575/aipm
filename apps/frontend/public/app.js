@@ -7537,7 +7537,13 @@ async function fetchVersion() {
     const data = await res.json();
     const versionEl = document.getElementById('version-display');
     if (versionEl) {
-      versionEl.textContent = `v${data.version}`;
+      if (data.stage === 'dev' || data.stage === 'development') {
+        // Development mode: show PR and SHA beside title
+        versionEl.textContent = `PR#${data.prNumber} (${data.sha})`;
+      } else {
+        // Production mode: show version
+        versionEl.textContent = `v${data.version}`;
+      }
     }
   } catch (e) {
     console.error('Failed to fetch version:', e);
