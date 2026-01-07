@@ -56,7 +56,12 @@ else
     # Create environment file with correct table names and version info
     echo "📝 Setting up environment variables..."
     COMMIT_HASH=$(git rev-parse --short HEAD)
-    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+    
+    # Generate version using automatic version numbering system
+    echo "🏷️  Generating version identifier..."
+    export PR_NUMBER=$(echo "$GITHUB_REF" | sed -n 's/.*pull\/\([0-9]*\).*/\1/p' 2>/dev/null || echo "")
+    VERSION_OUTPUT=$(node ./scripts/version-generator.js)
+    DEPLOY_VERSION=$(echo "$VERSION_OUTPUT" | grep "VERSION=" | cut -d'=' -f2)
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
@@ -111,8 +116,13 @@ else
 fi
 
 if [[ -f "$CONFIG_FILE" ]]; then
+    # Generate version using automatic version numbering system
+    echo "🏷️  Generating version identifier..."
+    VERSION_OUTPUT=$(node ./scripts/version-generator.js)
+    DEPLOY_VERSION=$(echo "$VERSION_OUTPUT" | grep "VERSION=" | cut -d'=' -f2)
+    COMMIT_HASH=$(echo "$VERSION_OUTPUT" | grep "COMMIT_HASH=" | cut -d'=' -f2)
+    
     # Replace version and commit hash placeholders
-    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
     sed -i "s/DEPLOY_VERSION_PLACEHOLDER/$DEPLOY_VERSION/g" "$CONFIG_FILE"
     sed -i "s/COMMIT_HASH_PLACEHOLDER/$COMMIT_HASH/g" "$CONFIG_FILE"
     echo "✅ Updated $CONFIG_FILE with version $DEPLOY_VERSION"
