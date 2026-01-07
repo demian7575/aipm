@@ -57,6 +57,14 @@ else
     echo "📝 Setting up environment variables..."
     COMMIT_HASH=$(git rev-parse --short HEAD)
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+    
+    # Extract PR number from branch name if available
+    BRANCH_NAME=$(git branch --show-current)
+    PR_NUMBER=""
+    if [[ "$BRANCH_NAME" =~ -([0-9]+)$ ]]; then
+        PR_NUMBER="${BASH_REMATCH[1]}"
+    fi
+    
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
@@ -65,11 +73,13 @@ KIRO_API_PORT=8081
 DEPLOY_VERSION=$DEPLOY_VERSION
 COMMIT_HASH=$COMMIT_HASH
 STAGE=$ENV
+PR_NUMBER=$PR_NUMBER
+SHA=$COMMIT_HASH
 EOF"
 
     # Restart backend (force process restart to ensure env vars are loaded)
     echo "🔄 Restarting backend service..."
-    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && export STORIES_TABLE=$STORIES_TABLE && export ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE && export AWS_REGION=us-east-1 && export DEPLOY_VERSION=$DEPLOY_VERSION && export COMMIT_HASH=$COMMIT_HASH && export STAGE=$ENV && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && export STORIES_TABLE=$STORIES_TABLE && export ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE && export AWS_REGION=us-east-1 && export DEPLOY_VERSION=$DEPLOY_VERSION && export COMMIT_HASH=$COMMIT_HASH && export STAGE=$ENV && export PR_NUMBER=$PR_NUMBER && export SHA=$COMMIT_HASH && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
         echo "✅ Backend restarted via process restart with environment"
     elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
         echo "✅ Backend restarted via systemd"
