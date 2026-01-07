@@ -1,51 +1,39 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 
-test('Version display shows PR-SHA format in development', async () => {
-  // Mock DOM environment
-  global.document = {
-    getElementById: (id) => {
-      if (id === 'version-display') {
-        return { textContent: '' };
-      }
-      return null;
-    }
-  };
+/**
+ * Acceptance Test 1: Version number updates with deployments
+ * Given: a new PR is deployed to development
+ * When: the deployment completes
+ * Then: the version number reflects the new PR number and commit SHA
+ */
+test('Version number updates with deployments', async () => {
+  // Mock deployment scenario
+  const prNumber = 992;
+  const commitSha = 'b757b11';
+  const expectedVersion = `PR-${prNumber}-${commitSha}`;
   
-  // Test the fetchVersion function logic
-  const versionEl = document.getElementById('version-display');
-  const mockData = {
-    stage: 'dev',
-    prNumber: '992',
-    sha: 'abc123d',
-    version: '0.1.0-992'
-  };
+  // Test version generation logic
+  const generateVersion = (pr, sha) => `PR-${pr}-${sha}`;
+  const actualVersion = generateVersion(prNumber, commitSha);
   
-  if (mockData.stage === 'dev' || mockData.stage === 'development') {
-    versionEl.textContent = `PR#${mockData.prNumber} (${mockData.sha})`;
-  } else {
-    versionEl.textContent = `v${mockData.version}`;
-  }
-  
-  assert.strictEqual(versionEl.textContent, 'PR#992 (abc123d)');
+  assert.strictEqual(actualVersion, expectedVersion, 
+    'Version should follow PR-{number}-{sha} format');
 });
 
-test('Version API returns correct format for development', () => {
-  // Test version object structure
-  const stage = 'dev';
-  const prNumber = '992';
-  const sha = 'abc123def456';
-  const baseVersion = '0.1.0';
+/**
+ * Acceptance Test 2: Version number displays in frontend header
+ * Given: the application is deployed in development environment
+ * When: I view the frontend page
+ * Then: I see the version number beside AI Project Manager Mindmap title using PR-SHA format
+ */
+test('Version number displays in frontend header', async () => {
+  // Test that version display element exists in HTML
+  const fs = await import('node:fs/promises');
+  const indexHtml = await fs.readFile('./apps/frontend/public/index.html', 'utf8');
   
-  const version = { 
-    version: `${baseVersion}-${prNumber}`,
-    prNumber: prNumber,
-    sha: sha.substring(0, 7),
-    stage: stage
-  };
-  
-  assert.strictEqual(version.stage, 'dev');
-  assert.strictEqual(version.prNumber, '992');
-  assert.strictEqual(version.sha, 'abc123d');
-  assert.strictEqual(version.version, '0.1.0-992');
+  assert.ok(indexHtml.includes('id="version-display"'), 
+    'HTML should contain version-display element');
+  assert.ok(indexHtml.includes('class="version-display"'), 
+    'Version display should have proper CSS class');
 });

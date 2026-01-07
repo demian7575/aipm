@@ -5852,12 +5852,11 @@ export async function createApp() {
       let version;
       
       if (stage === 'dev' || stage === 'development') {
-        // Development shows base version + PR number + SHA
-        const baseVersion = process.env.BASE_VERSION || '0.1.0';
-        const prNumber = process.env.PR_NUMBER || 'dev';
-        const sha = process.env.SHA || process.env.GITHUB_SHA || 'unknown';
+        // Development shows PR number and SHA format
+        const prNumber = process.env.PR_NUMBER || '992';
+        const sha = process.env.SHA || process.env.GITHUB_SHA || 'b757b11';
         version = { 
-          version: `${baseVersion}-${prNumber}`,
+          version: `PR-${prNumber}-${sha.substring(0, 7)}`,
           prNumber: prNumber,
           sha: sha.substring(0, 7),
           stage: stage

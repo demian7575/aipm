@@ -7538,8 +7538,8 @@ async function fetchVersion() {
     const versionEl = document.getElementById('version-display');
     if (versionEl) {
       if (data.stage === 'dev' || data.stage === 'development') {
-        // Development mode: show PR and SHA beside title
-        versionEl.textContent = `PR#${data.prNumber} (${data.sha})`;
+        // Development mode: show PR-SHA format beside title
+        versionEl.textContent = `${data.version}`;
       } else {
         // Production mode: show version
         versionEl.textContent = `v${data.version}`;
