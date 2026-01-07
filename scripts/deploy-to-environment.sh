@@ -125,7 +125,7 @@ fi
 if [[ "$ENV" == "dev" ]]; then
     echo "🔄 Syncing production data to development..."
     
-    # Sync all tables in parallel
+    # Sync stories data
     (
         aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 --output json > /tmp/stories.json
         jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/stories.json | jq -s --arg table "$STORIES_TABLE" '{($table): .}' > /tmp/stories-batch.json
@@ -133,15 +133,26 @@ if [[ "$ENV" == "dev" ]]; then
         echo "✅ Stories synced"
     ) &
     
+    # Sync acceptance tests data in chunks
     (
         aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1 --output json > /tmp/tests.json 2>/dev/null
         if [[ -s /tmp/tests.json ]]; then
-            jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/tests.json | jq -s --arg table "$TESTS_TABLE" '{($table): .}' > /tmp/tests-batch.json 2>/dev/null
-            aws dynamodb batch-write-item --request-items file:///tmp/tests-batch.json --region us-east-1 >/dev/null 2>&1
+            # Process in chunks of 25 items using array slicing
+            total_items=$(jq '.Items | length' /tmp/tests.json)
+            chunk_size=25
+            for ((i=0; i<total_items; i+=chunk_size)); do
+                jq --argjson start $i --argjson size $chunk_size \
+                   '.Items[$start:$start+$size] | map({PutRequest: {Item: .}})' \
+                   /tmp/tests.json | \
+                jq --arg table "$TESTS_TABLE" '{($table): .}' > "/tmp/tests-chunk-$i.json"
+                
+                aws dynamodb batch-write-item --request-items "file:///tmp/tests-chunk-$i.json" --region us-east-1 >/dev/null 2>&1
+            done
             echo "✅ Tests synced"
         fi
     ) &
     
+    # Sync PRs data
     (
         aws dynamodb scan --table-name aipm-backend-prod-prs --region us-east-1 --output json > /tmp/prs.json 2>/dev/null
         if [[ -s /tmp/prs.json ]]; then
@@ -152,7 +163,7 @@ if [[ "$ENV" == "dev" ]]; then
     ) &
     
     wait
-    rm -f /tmp/stories.json /tmp/stories-batch.json /tmp/tests.json /tmp/tests-batch.json /tmp/prs.json /tmp/prs-batch.json
+    rm -f /tmp/stories.json /tmp/stories-batch.json /tmp/tests.json /tmp/tests-chunk-*.json /tmp/prs.json /tmp/prs-batch.json
     echo "🔄 Data sync completed"
 fi
 
