@@ -163,21 +163,43 @@ if [[ "$ENV" == "dev" ]]; then
     fi
     
     if [[ -s /tmp/prod-stories.json ]]; then
+        echo "📋 Processing production data for sync..."
+        
         # Clear dev table first
-        aws dynamodb scan --table-name $STORIES_TABLE --region us-east-1 --output json | \
+        echo "🗑️  Clearing development table..."
+        if aws dynamodb scan --table-name $STORIES_TABLE --region us-east-1 --output json | \
         jq -r '.Items[] | {DeleteRequest: {Key: {id: .id}}}' | \
-        jq -s --arg table "$STORIES_TABLE" '{($table): .}' > /tmp/delete-stories.json
+        jq -s --arg table "$STORIES_TABLE" '{($table): .}' > /tmp/delete-stories.json; then
+            echo "✅ Delete batch prepared"
+        else
+            echo "❌ Failed to prepare delete batch"
+            exit 1
+        fi
         
         if [[ -s /tmp/delete-stories.json ]] && [[ "$(cat /tmp/delete-stories.json)" != "{\"$STORIES_TABLE\":[]}" ]]; then
-            aws dynamodb batch-write-item --request-items file:///tmp/delete-stories.json --region us-east-1 >/dev/null 2>&1
+            if aws dynamodb batch-write-item --request-items file:///tmp/delete-stories.json --region us-east-1 >/dev/null 2>&1; then
+                echo "✅ Development table cleared"
+            else
+                echo "⚠️  Failed to clear development table (may be empty)"
+            fi
         fi
         
         # Copy production data
-        jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/prod-stories.json | \
-        jq -s --arg table "$STORIES_TABLE" '{($table): .}' > /tmp/stories-batch.json
+        echo "📥 Preparing production data for import..."
+        if jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/prod-stories.json | \
+        jq -s --arg table "$STORIES_TABLE" '{($table): .}' > /tmp/stories-batch.json; then
+            echo "✅ Import batch prepared"
+        else
+            echo "❌ Failed to prepare import batch"
+            exit 1
+        fi
         
-        aws dynamodb batch-write-item --request-items file:///tmp/stories-batch.json --region us-east-1
-        echo "✅ Stories data synced"
+        if aws dynamodb batch-write-item --request-items file:///tmp/stories-batch.json --region us-east-1; then
+            echo "✅ Stories data synced"
+        else
+            echo "❌ Failed to sync stories data"
+            exit 1
+        fi
     fi
     
     # Skip acceptance tests sync due to data structure complexity
