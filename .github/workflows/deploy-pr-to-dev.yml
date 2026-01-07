@@ -181,6 +181,8 @@ jobs:
           ./scripts/simple-copy.sh
       
       - name: Deploy to development environment
+        env:
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
           echo "🚀 Deploying to development environment using unified script..."
           ./scripts/deploy-to-environment.sh dev

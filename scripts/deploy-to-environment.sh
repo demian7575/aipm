@@ -46,26 +46,35 @@ echo "📦 Deploying backend..."
 
 # Check if we're in GitHub Actions environment
 if [[ -n "$GITHUB_ACTIONS" ]]; then
-    echo "⚠️  GitHub Actions environment detected - skipping SSH deployment"
-    echo "Backend deployment requires SSH access which is not available in GitHub Actions"
-    echo "Manual deployment required for backend updates"
-else
-    # Copy backend files
-    scp apps/backend/app.js ec2-user@$HOST:aipm/apps/backend/app.js
+    echo "🔧 GitHub Actions environment detected - setting up SSH"
     
-    # Create environment file with correct table names and version info
-    echo "📝 Setting up environment variables..."
-    COMMIT_HASH=$(git rev-parse --short HEAD)
-    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+    # Setup SSH key for GitHub Actions
+    mkdir -p ~/.ssh
+    echo "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+    chmod 600 ~/.ssh/id_ed25519
+    ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
     
-    # Extract PR number from branch name if available
-    BRANCH_NAME=$(git branch --show-current)
-    PR_NUMBER=""
-    if [[ "$BRANCH_NAME" =~ -([0-9]+)$ ]]; then
-        PR_NUMBER="${BASH_REMATCH[1]}"
-    fi
-    
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
+    echo "✅ SSH configured for GitHub Actions"
+fi
+
+# Deploy backend (now works in both local and GitHub Actions)
+echo "📦 Deploying backend files..."
+# Copy backend files
+scp -o StrictHostKeyChecking=no apps/backend/app.js ec2-user@$HOST:aipm/apps/backend/app.js
+
+# Create environment file with correct table names and version info
+echo "📝 Setting up environment variables..."
+COMMIT_HASH=$(git rev-parse --short HEAD)
+DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+
+# Extract PR number from branch name if available
+BRANCH_NAME=$(git branch --show-current)
+PR_NUMBER=""
+if [[ "$BRANCH_NAME" =~ -([0-9]+)$ ]]; then
+    PR_NUMBER="${BASH_REMATCH[1]}"
+fi
+
+ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
 AWS_REGION=us-east-1
@@ -77,41 +86,35 @@ PR_NUMBER=$PR_NUMBER
 SHA=$COMMIT_HASH
 EOF"
 
-    # Restart backend (force process restart to ensure env vars are loaded)
-    echo "🔄 Restarting backend service..."
-    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && export STORIES_TABLE=$STORIES_TABLE && export ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE && export AWS_REGION=us-east-1 && export DEPLOY_VERSION=$DEPLOY_VERSION && export COMMIT_HASH=$COMMIT_HASH && export STAGE=$ENV && export PR_NUMBER=$PR_NUMBER && export SHA=$COMMIT_HASH && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
-        echo "✅ Backend restarted via process restart with environment"
-    elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
-        echo "✅ Backend restarted via systemd"
-    else
-        echo "❌ Failed to restart backend"
+# Restart backend (force process restart to ensure env vars are loaded)
+echo "🔄 Restarting backend service..."
+if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' && cd aipm && export STORIES_TABLE=$STORIES_TABLE && export ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE && export AWS_REGION=us-east-1 && export DEPLOY_VERSION=$DEPLOY_VERSION && export COMMIT_HASH=$COMMIT_HASH && export STAGE=$ENV && export PR_NUMBER=$PR_NUMBER && export SHA=$COMMIT_HASH && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+    echo "✅ Backend restarted via process restart with environment"
+elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
+    echo "✅ Backend restarted via systemd"
+else
+    echo "❌ Failed to restart backend"
+    exit 1
+fi
+
+# Wait for backend to start
+echo "⏳ Waiting for backend to restart..."
+sleep 5
+
+# Verify backend health
+echo "🔍 Verifying backend health..."
+for i in {1..6}; do
+    if curl -s "$API_URL/health" | grep -q "running"; then
+        echo "✅ Backend is healthy"
+        break
+    fi
+    if [[ $i -eq 6 ]]; then
+        echo "❌ Backend health check failed after 30 seconds"
         exit 1
     fi
-fi
-
-# Skip backend health check in GitHub Actions since we can't deploy backend
-if [[ -z "$GITHUB_ACTIONS" ]]; then
-    # Wait for backend to start
-    echo "⏳ Waiting for backend to restart..."
+    echo "⏳ Waiting for backend... ($i/6)"
     sleep 5
-
-    # Verify backend health
-    echo "🔍 Verifying backend health..."
-    for i in {1..6}; do
-        if curl -s "$API_URL/health" | grep -q "running"; then
-            echo "✅ Backend is healthy"
-            break
-        fi
-        if [[ $i -eq 6 ]]; then
-            echo "❌ Backend health check failed after 30 seconds"
-            exit 1
-        fi
-        echo "⏳ Waiting for backend... ($i/6)"
-        sleep 5
-    done
-else
-    echo "⚠️  Skipping backend health check in GitHub Actions"
-fi
+done
 
 # Use environment-specific frontend config
 echo "📝 Using $ENV frontend configuration..."
@@ -203,16 +206,11 @@ else
     exit 1
 fi
 
-# Skip backend API check in GitHub Actions since backend wasn't deployed
-if [[ -z "$GITHUB_ACTIONS" ]]; then
-    if curl -s "$API_URL/api/stories" | grep -q '\['; then
-        echo "✅ Backend API is responding"
-    else
-        echo "❌ Backend API verification failed"
-        exit 1
-    fi
+if curl -s "$API_URL/api/stories" | grep -q '\['; then
+    echo "✅ Backend API is responding"
 else
-    echo "⚠️  Skipping backend API verification in GitHub Actions"
+    echo "❌ Backend API verification failed"
+    exit 1
 fi
 
 echo ""

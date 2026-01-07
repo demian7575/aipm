@@ -123,6 +123,8 @@ jobs:
           echo "✅ Production config created"
       
       - name: Deploy to production environment
+        env:
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
           echo "🚀 Deploying to production environment using unified script..."
           ./scripts/deploy-to-environment.sh prod
