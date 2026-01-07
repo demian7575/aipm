@@ -114,13 +114,19 @@ fi
 
 # Deploy frontend
 echo "🌐 Deploying frontend to S3..."
-aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET/ --delete --cache-control no-cache
+if aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET/ --delete --cache-control no-cache; then
+    echo "✅ Frontend deployment successful"
+else
+    echo "❌ Frontend deployment failed"
+    exit 1
+fi
 
 # Data sync for development environment
 if [[ "$ENV" == "dev" ]]; then
     echo "🔄 Syncing production data to development..."
     
     # Check if dev tables exist, create if not
+    echo "🔍 Checking if development tables exist..."
     aws dynamodb describe-table --table-name $STORIES_TABLE --region us-east-1 >/dev/null 2>&1 || {
         echo "📋 Creating development stories table..."
         aws dynamodb create-table \
@@ -129,7 +135,9 @@ if [[ "$ENV" == "dev" ]]; then
             --key-schema AttributeName=id,KeyType=HASH \
             --billing-mode PAY_PER_REQUEST \
             --region us-east-1
+        echo "⏳ Waiting for stories table to be ready..."
         aws dynamodb wait table-exists --table-name $STORIES_TABLE --region us-east-1
+        echo "✅ Stories table created"
     }
     
     aws dynamodb describe-table --table-name $TESTS_TABLE --region us-east-1 >/dev/null 2>&1 || {
@@ -140,12 +148,19 @@ if [[ "$ENV" == "dev" ]]; then
             --key-schema AttributeName=id,KeyType=HASH \
             --billing-mode PAY_PER_REQUEST \
             --region us-east-1
+        echo "⏳ Waiting for tests table to be ready..."
         aws dynamodb wait table-exists --table-name $TESTS_TABLE --region us-east-1
+        echo "✅ Tests table created"
     }
     
     # Sync stories data (simplified)
     echo "📊 Syncing stories data..."
-    aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 --output json > /tmp/prod-stories.json
+    if aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 --output json > /tmp/prod-stories.json; then
+        echo "✅ Production stories data retrieved"
+    else
+        echo "❌ Failed to retrieve production stories data"
+        exit 1
+    fi
     
     if [[ -s /tmp/prod-stories.json ]]; then
         # Clear dev table first
