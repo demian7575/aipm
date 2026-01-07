@@ -104,13 +104,20 @@ fi
 
 # Use environment-specific frontend config
 echo "📝 Using $ENV frontend configuration..."
-if [[ -f "apps/frontend/public/config.$ENV.js" ]]; then
-    # Replace version placeholder with actual deployment timestamp
-    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
-    sed "s/DEPLOY_TIMESTAMP_PLACEHOLDER/$DEPLOY_VERSION/g" "apps/frontend/public/config.$ENV.js" > "apps/frontend/public/config.js"
-    echo "✅ Copied config.$ENV.js to config.js with version $DEPLOY_VERSION"
+if [[ "$ENV" == "prod" ]]; then
+    CONFIG_FILE="apps/frontend/public/config-prod.js"
 else
-    echo "❌ Environment config file config.$ENV.js not found"
+    CONFIG_FILE="apps/frontend/public/config-dev.js"
+fi
+
+if [[ -f "$CONFIG_FILE" ]]; then
+    # Replace version and commit hash placeholders
+    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+    sed -i "s/DEPLOY_VERSION_PLACEHOLDER/$DEPLOY_VERSION/g" "$CONFIG_FILE"
+    sed -i "s/COMMIT_HASH_PLACEHOLDER/$COMMIT_HASH/g" "$CONFIG_FILE"
+    echo "✅ Updated $CONFIG_FILE with version $DEPLOY_VERSION"
+else
+    echo "❌ Environment config file $CONFIG_FILE not found"
     exit 1
 fi
 

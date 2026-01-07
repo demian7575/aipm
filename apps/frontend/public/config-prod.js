@@ -1,12 +1,8 @@
+// Production configuration
 window.CONFIG = {
   API_BASE_URL: 'http://44.220.45.57',
-  apiEndpoint: 'http://44.220.45.57',
-  EC2_TERMINAL_URL: 'ws://44.220.45.57:8080',
+  KIRO_API_URL: 'http://44.220.45.57:8081',
   ENVIRONMENT: 'production',
-  environment: 'production',
-  stage: 'prod',
-  region: 'us-east-1',
-  storiesTable: 'aipm-backend-prod-stories',
-  acceptanceTestsTable: 'aipm-backend-prod-acceptance-tests',
-  DEBUG: false
+  VERSION: '20260107-161048',
+  COMMIT_HASH: 'c50e1625'
 };

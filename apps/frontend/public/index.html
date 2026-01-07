@@ -87,9 +87,19 @@
     </div>
 
     <script>
+      // Detect environment from URL and load appropriate config
+      const hostname = window.location.hostname;
+      let configFile = 'config.js'; // default
+      
+      if (hostname.includes('aipm-dev-frontend-hosting') || hostname.includes('dev')) {
+        configFile = 'config-dev.js';
+      } else if (hostname.includes('aipm-static-hosting-demo') || hostname.includes('prod')) {
+        configFile = 'config-prod.js';
+      }
+      
       // Load external config first, then load app.js
       const configScript = document.createElement('script');
-      configScript.src = 'config.js?v=' + Date.now();
+      configScript.src = configFile + '?v=' + Date.now();
       configScript.onload = function() {
         // Config loaded, now load app.js
         console.log('Config loaded:', window.CONFIG);
