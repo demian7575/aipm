@@ -4333,7 +4333,7 @@ function renderStoryDetailsWithCompleteData(story) {
     summaryRow.className = 'story-meta-row';
     const summaryHeader = document.createElement('th');
     summaryHeader.scope = 'row';
-    summaryHeader.textContent = 'Summary';
+    summaryHeader.textContent = 'INVEST';
     const summaryCell = document.createElement('td');
     const metaGrid = document.createElement('div');
     metaGrid.className = 'story-meta-grid';
