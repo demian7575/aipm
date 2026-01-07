@@ -125,76 +125,35 @@ fi
 if [[ "$ENV" == "dev" ]]; then
     echo "🔄 Syncing production data to development..."
     
-    # Check if dev tables exist, create if not
-    echo "🔍 Checking if development tables exist..."
-    aws dynamodb describe-table --table-name $STORIES_TABLE --region us-east-1 >/dev/null 2>&1 || {
-        echo "📋 Creating development stories table..."
-        aws dynamodb create-table \
-            --table-name $STORIES_TABLE \
-            --attribute-definitions AttributeName=id,AttributeType=N \
-            --key-schema AttributeName=id,KeyType=HASH \
-            --billing-mode PAY_PER_REQUEST \
-            --region us-east-1
-        echo "⏳ Waiting for stories table to be ready..."
-        aws dynamodb wait table-exists --table-name $STORIES_TABLE --region us-east-1
-        echo "✅ Stories table created"
-    }
-    
-    aws dynamodb describe-table --table-name $TESTS_TABLE --region us-east-1 >/dev/null 2>&1 || {
-        echo "📋 Creating development tests table..."
-        aws dynamodb create-table \
-            --table-name $TESTS_TABLE \
-            --attribute-definitions AttributeName=id,AttributeType=N \
-            --key-schema AttributeName=id,KeyType=HASH \
-            --billing-mode PAY_PER_REQUEST \
-            --region us-east-1
-        echo "⏳ Waiting for tests table to be ready..."
-        aws dynamodb wait table-exists --table-name $TESTS_TABLE --region us-east-1
-        echo "✅ Tests table created"
-    }
-    
-    # Sync stories data
-    echo "📊 Syncing stories data..."
-    aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 --output json > /tmp/prod-stories.json
-    
-    if [[ -s /tmp/prod-stories.json ]]; then
-        # Clear dev table
-        aws dynamodb scan --table-name $STORIES_TABLE --region us-east-1 --output json | \
-        jq -r '.Items[] | {DeleteRequest: {Key: {id: .id}}}' | \
-        jq -s --arg table "$STORIES_TABLE" '{($table): .}' > /tmp/delete-stories.json
-        
-        if [[ -s /tmp/delete-stories.json ]] && [[ "$(cat /tmp/delete-stories.json)" != "{\"$STORIES_TABLE\":[]}" ]]; then
-            aws dynamodb batch-write-item --request-items file:///tmp/delete-stories.json --region us-east-1 >/dev/null 2>&1
-        fi
-        
-        # Copy production data
-        jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/prod-stories.json | \
-        jq -s --arg table "$STORIES_TABLE" '{($table): .}' > /tmp/stories-batch.json
-        
+    # Sync all tables in parallel
+    (
+        aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 --output json > /tmp/stories.json
+        jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/stories.json | jq -s --arg table "$STORIES_TABLE" '{($table): .}' > /tmp/stories-batch.json
         aws dynamodb batch-write-item --request-items file:///tmp/stories-batch.json --region us-east-1
-        echo "✅ Stories data synced"
-    fi
+        echo "✅ Stories synced"
+    ) &
     
-    # Sync acceptance tests data (simplified)
-    echo "📋 Syncing acceptance tests data..."
-    if timeout 30 aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1 --output json > /tmp/prod-tests.json 2>/dev/null; then
-        if [[ -s /tmp/prod-tests.json ]]; then
-            # Simple copy without complex error handling
-            jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/prod-tests.json | \
-            jq -s --arg table "$TESTS_TABLE" '{($table): .}' > /tmp/tests-batch.json 2>/dev/null
-            
-            if timeout 30 aws dynamodb batch-write-item --request-items file:///tmp/tests-batch.json --region us-east-1 >/dev/null 2>&1; then
-                echo "✅ Acceptance tests data synced"
-            else
-                echo "⚠️  Acceptance tests sync skipped (complex data)"
-            fi
+    (
+        aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1 --output json > /tmp/tests.json 2>/dev/null
+        if [[ -s /tmp/tests.json ]]; then
+            jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/tests.json | jq -s --arg table "$TESTS_TABLE" '{($table): .}' > /tmp/tests-batch.json 2>/dev/null
+            aws dynamodb batch-write-item --request-items file:///tmp/tests-batch.json --region us-east-1 >/dev/null 2>&1
+            echo "✅ Tests synced"
         fi
-    else
-        echo "⚠️  Acceptance tests sync skipped (timeout)"
-    fi
+    ) &
     
-    # Cleanup temp files
-    rm -f /tmp/stories-batch.json /tmp/tests-batch.json
+    (
+        aws dynamodb scan --table-name aipm-backend-prod-prs --region us-east-1 --output json > /tmp/prs.json 2>/dev/null
+        if [[ -s /tmp/prs.json ]]; then
+            jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/prs.json | jq -s --arg table "$PRS_TABLE" '{($table): .}' > /tmp/prs-batch.json 2>/dev/null
+            aws dynamodb batch-write-item --request-items file:///tmp/prs-batch.json --region us-east-1 >/dev/null 2>&1
+            echo "✅ PRs synced"
+        fi
+    ) &
+    
+    wait
+    rm -f /tmp/stories.json /tmp/stories-batch.json /tmp/tests.json /tmp/tests-batch.json /tmp/prs.json /tmp/prs-batch.json
+    echo "🔄 Data sync completed"
 fi
 
 # Final verification
