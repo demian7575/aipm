@@ -5937,6 +5937,29 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/kiro-live-log' && method === 'GET') {
+      try {
+        const { readFileSync, existsSync } = await import('fs');
+        const logPath = '/tmp/kiro-cli-live.log';
+        
+        let content = '';
+        if (existsSync(logPath)) {
+          content = readFileSync(logPath, 'utf-8');
+        } else {
+          content = 'Log file not found. Kiro CLI may not be running.';
+        }
+        
+        sendJson(res, 200, { content });
+      } catch (error) {
+        console.error('Error reading Kiro live log:', error);
+        sendJson(res, 500, { 
+          error: 'Failed to read log file',
+          content: 'Error reading log file. Check server logs.'
+        });
+      }
+      return;
+    }
+
     if (pathname === '/api/kiro-live-stream' && method === 'GET') {
       try {
         const { createReadStream, existsSync, statSync, watchFile, readFileSync, openSync, readSync, closeSync, unwatchFile } = await import('fs');
