@@ -5852,11 +5852,11 @@ export async function createApp() {
       let version;
       
       if (stage === 'dev' || stage === 'development') {
-        // Development shows timestamp from deployment
-        version = { version: `${new Date().toISOString().slice(0,19).replace(/[-:]/g,'').replace('T','-')}` };
+        // Development shows base version + PR number + commit hash (replaced during deployment)
+        version = { version: 'DEPLOYMENT_VERSION_PLACEHOLDER' };
       } else {
-        // Production uses timestamp from deployment  
-        version = { version: `${new Date().toISOString().slice(0,19).replace(/[-:]/g,'').replace('T','-')}` };
+        // Production uses deployment timestamp (replaced during deployment)
+        version = { version: 'DEPLOYMENT_VERSION_PLACEHOLDER' };
       }
       
       sendJson(res, 200, version);

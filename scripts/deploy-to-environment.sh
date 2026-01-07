@@ -50,13 +50,59 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
     echo "Backend deployment requires SSH access which is not available in GitHub Actions"
     echo "Manual deployment required for backend updates"
 else
-    # Copy backend files
-    scp apps/backend/app.js ec2-user@$HOST:aipm/apps/backend/app.js
+    # Copy backend files and inject version
+    echo "📝 Injecting version information into backend..."
+    COMMIT_HASH=$(git rev-parse --short HEAD)
+    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+    
+    # Try to detect PR number from branch name or environment
+    PR_NUMBER="dev"
+    if [[ -n "$GITHUB_HEAD_REF" ]]; then
+        # GitHub Actions PR context
+        PR_NUMBER=$(echo "$GITHUB_HEAD_REF" | grep -o '[0-9]\+' | head -1)
+    elif [[ -n "$CI_MERGE_REQUEST_IID" ]]; then
+        # GitLab CI context
+        PR_NUMBER="$CI_MERGE_REQUEST_IID"
+    else
+        # Try to extract from current branch name
+        CURRENT_BRANCH=$(git branch --show-current)
+        if [[ "$CURRENT_BRANCH" =~ [0-9]+ ]]; then
+            PR_NUMBER=$(echo "$CURRENT_BRANCH" | grep -o '[0-9]\+' | head -1)
+        fi
+    fi
+    
+    # Create version string based on environment
+    if [[ "$ENV" == "dev" ]]; then
+        VERSION_STRING="${DEPLOY_VERSION}-${PR_NUMBER}-${COMMIT_HASH}"
+    else
+        VERSION_STRING="${DEPLOY_VERSION}"
+    fi
+    
+    # Replace version placeholder in backend code
+    sed "s/DEPLOYMENT_VERSION_PLACEHOLDER/${VERSION_STRING}/g" apps/backend/app.js > /tmp/app.js
+    scp /tmp/app.js ec2-user@$HOST:aipm/apps/backend/app.js
     
     # Create environment file with correct table names and version info
     echo "📝 Setting up environment variables..."
     COMMIT_HASH=$(git rev-parse --short HEAD)
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
+    
+    # Try to detect PR number from branch name or environment
+    PR_NUMBER="dev"
+    if [[ -n "$GITHUB_HEAD_REF" ]]; then
+        # GitHub Actions PR context
+        PR_NUMBER=$(echo "$GITHUB_HEAD_REF" | grep -o '[0-9]\+' | head -1)
+    elif [[ -n "$CI_MERGE_REQUEST_IID" ]]; then
+        # GitLab CI context
+        PR_NUMBER="$CI_MERGE_REQUEST_IID"
+    else
+        # Try to extract from current branch name
+        CURRENT_BRANCH=$(git branch --show-current)
+        if [[ "$CURRENT_BRANCH" =~ [0-9]+ ]]; then
+            PR_NUMBER=$(echo "$CURRENT_BRANCH" | grep -o '[0-9]\+' | head -1)
+        fi
+    fi
+    
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
@@ -67,22 +113,13 @@ COMMIT_HASH=$COMMIT_HASH
 STAGE=$ENV
 PROD_VERSION=$DEPLOY_VERSION
 BASE_VERSION=$DEPLOY_VERSION
+PR_NUMBER=$PR_NUMBER
 EOF"
 
-    # Restart backend (force process restart to ensure env vars are loaded)
+    # Restart backend (simple process restart)
     echo "🔄 Restarting backend service..."
-    # Create startup script with environment loading
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && cat > start-backend.sh << 'EOF'
-#!/bin/bash
-cd /home/ec2-user/aipm
-export DEPLOY_VERSION=\$(grep DEPLOY_VERSION .env | cut -d= -f2)
-export STAGE=\$(grep STAGE .env | cut -d= -f2)
-node apps/backend/server.js
-EOF
-chmod +x start-backend.sh"
-
-    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'apps/backend/server.js' && sleep 1 && nohup ./start-backend.sh > backend.log 2>&1 &" 2>/dev/null; then
-        echo "✅ Backend restarted via process restart with environment"
+    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'apps/backend/server.js' && sleep 1 && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+        echo "✅ Backend restarted"
     elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
         echo "✅ Backend restarted via systemd"
     else
@@ -174,23 +211,29 @@ if [[ "$ENV" == "dev" ]]; then
         fi
     ) &
     
-    # Sync PRs data
+    # Sync PRs data in chunks
     (
         aws dynamodb scan --table-name aipm-backend-prod-prs --region us-east-1 --output json > /tmp/prs.json 2>/dev/null
         if [[ -s /tmp/prs.json ]]; then
-            jq -r '.Items[] | {PutRequest: {Item: .}}' /tmp/prs.json | jq -s --arg table "$PRS_TABLE" '{($table): .}' > /tmp/prs-batch.json 2>/dev/null
-            if aws dynamodb batch-write-item --request-items file:///tmp/prs-batch.json --region us-east-1; then
-                echo "✅ PRs synced"
-            else
-                echo "⚠️  PRs sync failed"
-            fi
+            # Process in chunks of 25 items using array slicing
+            total_items=$(jq '.Items | length' /tmp/prs.json)
+            chunk_size=25
+            for ((i=0; i<total_items; i+=chunk_size)); do
+                jq --argjson start $i --argjson size $chunk_size \
+                   '.Items[$start:$start+$size] | map({PutRequest: {Item: .}})' \
+                   /tmp/prs.json | \
+                jq --arg table "$PRS_TABLE" '{($table): .}' > "/tmp/prs-chunk-$i.json"
+                
+                aws dynamodb batch-write-item --request-items "file:///tmp/prs-chunk-$i.json" --region us-east-1 >/dev/null 2>&1
+            done
+            echo "✅ PRs synced"
         else
             echo "⚠️  No PRs data to sync"
         fi
     ) &
     
     wait
-    rm -f /tmp/stories.json /tmp/stories-batch.json /tmp/tests.json /tmp/tests-chunk-*.json /tmp/prs.json /tmp/prs-batch.json
+    rm -f /tmp/stories.json /tmp/stories-batch.json /tmp/tests.json /tmp/tests-chunk-*.json /tmp/prs.json /tmp/prs-chunk-*.json
     echo "🔄 Data sync completed"
 fi
 
