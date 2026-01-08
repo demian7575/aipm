@@ -58,7 +58,7 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
         echo "✅ SSH key configured"
     else
         echo "❌ SSH_PRIVATE_KEY not found - cannot deploy backend"
-        echo "Please add SSH private key to GitHub Secrets"
+        echo "Please add EC2_SSH_PRIVATE_KEY to GitHub Secrets"
         exit 1
     fi
 fi
