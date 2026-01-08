@@ -181,8 +181,11 @@ jobs:
           ./scripts/simple-copy.sh
       
       - name: Deploy to development environment
+        env:
+          DEPLOY_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           echo "🚀 Deploying to development environment using unified script..."
+          echo "📍 Deploying branch: $DEPLOY_BRANCH"
           ./scripts/deploy-to-environment.sh dev
       
       - name: Run production gating tests

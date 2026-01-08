@@ -55,7 +55,12 @@ else
     
     # First, update git repository on target server
     echo "🔄 Updating git repository on target server..."
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout main && git reset --hard origin/main"
+    
+    # Use branch from environment variable or default to main
+    TARGET_BRANCH=${DEPLOY_BRANCH:-main}
+    echo "📍 Target branch: $TARGET_BRANCH"
+    
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout $TARGET_BRANCH && git reset --hard origin/$TARGET_BRANCH"
     
     COMMIT_HASH=$(git rev-parse --short HEAD)
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
