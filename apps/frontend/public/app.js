@@ -4687,7 +4687,7 @@ function renderStoryDetailsWithCompleteData(story) {
           </div>
           <div class="form-group">
             <label>Story Points:</label>
-            <input type="number" name="storyPoints" value="${story.storyPoints || 0}" min="0">
+            <input type="number" name="storyPoint" value="${story.storyPoint || 0}" min="0">
           </div>
           <div class="form-group">
             <label>Assignee Email:</label>
@@ -4750,7 +4750,7 @@ function renderStoryDetailsWithCompleteData(story) {
         iWant: formData.get('iWant'),
         soThat: formData.get('soThat'),
         description: formData.get('description'),
-        storyPoints: parseInt(formData.get('storyPoints')) || 0,
+        storyPoint: parseInt(formData.get('storyPoint')) || 0,
         assigneeEmail: formData.get('assigneeEmail'),
         status: formData.get('status'),
         components: modalComponents
@@ -7170,7 +7170,7 @@ async function createRootStory() {
     title: 'Project Root',
     description: 'Welcome to AIPM! This is your root story. Create child stories to build your project hierarchy.',
     status: 'Ready',
-    storyPoints: 0,
+    storyPoint: 0,
     parentId: null,
     assignee: '',
     component: 'System'
