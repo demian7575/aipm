@@ -1,1 +1,1 @@
-gating-tests.sh
+run-structured-gating-tests.sh
