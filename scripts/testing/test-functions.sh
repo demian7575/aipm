@@ -1,6 +1,12 @@
 #!/bin/bash
 # Shared test functions library - define once, use everywhere
 
+# Configuration
+PROD_API_BASE="http://44.220.45.57"
+DEV_API_BASE="http://44.222.168.46"
+PROD_FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
+DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
+
 # Test utilities
 pass_test() {
     echo "    ✅ $1"
@@ -19,6 +25,62 @@ fail_test() {
         TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
     return 1
+}
+
+# Basic endpoint test
+test_endpoint() {
+    local name=$1
+    local url=$2
+    local expected=$3
+    
+    if curl -s -m 10 "$url" | grep -q "$expected"; then
+        pass_test "$name"
+    else
+        fail_test "$name"
+    fi
+}
+
+# API JSON test
+test_api_json() {
+    local name=$1
+    local url=$2
+    
+    if curl -s -m 10 "$url" | jq -e . > /dev/null 2>&1; then
+        pass_test "$name"
+    else
+        fail_test "$name"
+    fi
+}
+
+# Response time test
+test_response_time() {
+    local name=$1
+    local url=$2
+    local max_time=$3
+    
+    local response_time=$(curl -s -w "%{time_total}" -o /dev/null -m 10 "$url" 2>/dev/null || echo "10")
+    local time_check=$(echo "$response_time < $max_time" | bc -l 2>/dev/null || echo "0")
+    
+    if [ "$time_check" = "1" ]; then
+        pass_test "$name (${response_time}s)"
+    else
+        fail_test "$name (${response_time}s > ${max_time}s)"
+    fi
+}
+
+# Draft generation test
+test_draft_generation() {
+    local name=$1
+    local kiro_url=$2
+    
+    if curl -s -X POST "$kiro_url/api/generate-draft" \
+        -H "Content-Type: application/json" \
+        -d '{"templateId": "user-story-generation", "feature_description": "test", "parentId": "1"}' \
+        | jq -e '.success' > /dev/null 2>&1; then
+        pass_test "$name"
+    else
+        fail_test "$name"
+    fi
 }
 
 log_test() {
