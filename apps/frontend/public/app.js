@@ -4386,28 +4386,7 @@ function renderStoryDetailsWithCompleteData(story) {
       const issueCount = document.createElement('span');
       issueCount.className = 'health-issue-count';
       issueCount.textContent = `${investHealth.issues.length} issue${investHealth.issues.length > 1 ? 's' : ''}`;
-      issueCount.addEventListener('click', () => {
-        const issueList = healthItem.querySelector('.health-issue-list');
-        if (issueList) {
-          issueList.style.display = issueList.style.display === 'none' ? 'block' : 'none';
-        }
-      });
       healthItem.appendChild(issueCount);
-
-      const issueList = document.createElement('ul');
-      issueList.className = 'health-issue-list';
-      issueList.style.display = 'none';
-      investHealth.issues.forEach((issue) => {
-        const item = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'health-issue-button';
-        button.textContent = issue.message;
-        button.addEventListener('click', () => openHealthIssueModal('INVEST Issue', issue, analysisInfo));
-        item.appendChild(button);
-        issueList.appendChild(item);
-      });
-      healthItem.appendChild(issueList);
     }
           const item = document.createElement('li');
           const button = document.createElement('button');
