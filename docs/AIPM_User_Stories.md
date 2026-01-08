@@ -56,7 +56,7 @@ This document decomposes AIPM requirements into detailed, testable user stories 
 ## 4. Environment Setup & Tooling
 - **Story D1: Local bootstrap**  
   As a developer, I want to start the stack locally quickly.  
-  **Acceptance Criteria:** `npm install` works; `npm run dev` serves backend+frontend on 4000 (fallback if busy); instructions mention optional `node apps/backend/server.js`.
+  **Acceptance Criteria:** `npm install` works; `node apps/backend/server.js` serves backend+frontend on 4000 (fallback if busy); static assets are served from `apps/frontend/public`.
 - **Story D2: Env vars reference**  
   As a developer, I need a definitive env var list.  
   **Acceptance Criteria:** Core vars (`STAGE`, `AWS_REGION`, `STORIES_TABLE`, `ACCEPTANCE_TESTS_TABLE`, `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`, `EC2_PR_PROCESSOR_URL`, `PR_NUMBER`) and AI vars (`AI_PM_OPENAI_API_KEY`, `AI_PM_OPENAI_API_URL`, `AI_PM_OPENAI_MODEL`, `AI_PM_DISABLE_OPENAI`) are documented with defaults.
@@ -81,7 +81,7 @@ This document decomposes AIPM requirements into detailed, testable user stories 
 ## 6. Testing & Quality Gates
 - **Story F1: Gating suites**  
   As QA, I need scripted gating tests for releases.  
-  **Acceptance Criteria:** Phase scripts (`phase1-security-data-safety.sh` through `phase4-workflow-validation.sh`) and orchestrators (`run-workflow-gating-tests.sh`, `run-structured-gating-tests.sh`) are listed with scope (security, performance, infrastructure, workflow).
+  **Acceptance Criteria:** Phase scripts (`phase1-security-data-safety.sh` through `phase4-workflow-validation.sh`) and orchestrators (`run-workflow-gating-tests.sh`, `run-structured-gating-tests.sh`) are listed with scope (security, performance, infrastructure, workflow). `npm test` is documented to call `scripts/testing/run-all-gating-tests.sh` if present.
 - **Story F2: Browser validation**  
   As QA, I need environment-specific browser tests.  
   **Acceptance Criteria:** Gating HTML pages in `apps/frontend/public/*gating-tests*.html` for prod/dev are documented with URLs.

@@ -25,13 +25,14 @@
 
 ### 2.1 High-Level Architecture
 - **Frontend**: Static assets hosted on S3; rendered entirely in vanilla JS/CSS (`apps/frontend/public`). Served locally by the backend during development.
-- **Backend API**: Node.js HTTP server (`apps/backend/app.js`, started by `apps/backend/server.js`) running on EC2; legacy Serverless/Lambda wrapper (`handler.mjs`) retained for compatibility.
+- **Backend API**: Node.js HTTP server built with the native `http` module (`apps/backend/app.js`, started by `apps/backend/server.js`) running on EC2; legacy Serverless/Lambda wrapper (`handler.mjs`) uses Express only as an adapter.
 - **Data Layer**: DynamoDB tables (`aipm-backend-<stage>-stories`, `aipm-backend-<stage>-acceptance-tests`) with a GSI on `storyId` for acceptance tests.
 - **Code Generation & Delegation**: Kiro API (port 8081) plus terminal server (port 8080) for AI-assisted code workflows and worker pool management.
 - **CI/CD**: GitHub Actions deploys to EC2/S3; workflow dispatch endpoints allow PR-triggered deployments.
 
 ### 2.2 Component Overview
-- **HTTP/API Server**: Handles story CRUD, acceptance-test automation, upload handling, PR/deployment orchestration, health/version endpoints.
+- **HTTP/API Server**: Handles story CRUD, acceptance-test automation, upload handling, PR/deployment orchestration, health/version endpoints (`apps/backend/app.js`), started by `apps/backend/server.js`.
+- **PR Metadata Helpers**: `apps/backend/story-prs.js` stores and retrieves PR links tied to stories.
 - **DynamoDB Data Layer**: `apps/backend/dynamodb.js` wraps AWS SDK DocumentClient to mimic the prior SQLite interface while storing JSON-friendly fields.
 - **Frontend Application**: `apps/frontend/public/app.js` drives outline, mindmap, detail panels, modal flows, and state persistence in `localStorage`.
 - **Kiro Services**: Scripts under `scripts/` start Kiro API servers, queue workers, and terminal server to process AI-generated code and PR updates.
@@ -76,12 +77,11 @@
    ```bash
    npm install
    ```
-2. Start backend + frontend locally (auto port fallback from 4000):  
+2. Start the backend server (auto port fallback from 4000):  
    ```bash
-   npm run dev
+   node apps/backend/server.js
    ```
-3. Access UI at `http://localhost:4000` (or the reported fallback port).
-4. Optional: run only the backend server with `node apps/backend/server.js`; static assets are served from `apps/frontend/public/`.
+3. Access UI at `http://localhost:4000` (or the reported fallback port). The backend serves static assets from `apps/frontend/public/`.
 
 ### 3.3 Environment Variables
 - **Core Backend**
@@ -171,8 +171,7 @@
 ## 5. Development Workflows
 
 ### 5.1 Local Development
-- Start full stack locally with `npm run dev`; backend serves static frontend and exposes API on port 4000 (or fallback).
-- Use `npm run start` as production-mode alias for `node apps/backend/server.js`.
+- Start the stack locally with `node apps/backend/server.js`; backend serves static frontend and exposes API on port 4000 (or fallback).
 - For Lambda testing, deploy with Serverless using `serverless.yml` (ensure AWS credentials and `GITHUB_TOKEN` in SSM).
 
 ### 5.2 Testing Procedures
@@ -180,7 +179,7 @@
   - `phase1-security-data-safety.sh`, `phase2-performance-api.sh`, `phase3-infrastructure-monitoring.sh`, `phase4-workflow-validation.sh` cover security, performance, infrastructure, and workflow checks.
   - `run-workflow-gating-tests.sh` and `run-structured-gating-tests.sh` orchestrate structured gating runs.
 - Browser-based validation pages exist in `apps/frontend/public/*gating-tests*.html` for manual environment verification.
-- Legacy `npm test` expects gating orchestrator; ensure scripts are in place or run phase scripts directly in CI.
+- `npm test` invokes `scripts/testing/run-all-gating-tests.sh` per `package.json`; ensure that script exists in your environment or run the phase scripts directly.
 
 ### 5.3 Code Generation with Kiro CLI
 - Kiro worker scripts (`scripts/kiro-worker-*.js`, `scripts/workers` if present) poll DynamoDB queue `aipm-amazon-q-queue` for tasks initiated via “Generate Code & PR”.
@@ -491,12 +490,12 @@
 
 ### 18.1 Command Reference
 - Install deps: `npm install`
-- Run dev server: `npm run dev`
-- Start production-mode server locally: `node apps/backend/server.js`
+- Run backend locally: `node apps/backend/server.js`
 - Deploy (prod): `scripts/deployment/deploy-prod-full.sh`
 - Deploy (dev): `scripts/deployment/deploy-dev-ec2.sh`
 - Frontend deploy: `scripts/deploy-frontend.sh`
 - Test phases: `scripts/testing/phase1-security-data-safety.sh` … `phase4-workflow-validation.sh`
+- Structured gating: `scripts/testing/run-structured-gating-tests.sh`
 
 ### 18.2 Configuration Templates
 - `deploy-config.yaml` example:  
