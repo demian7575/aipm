@@ -6648,7 +6648,8 @@ function openChildStoryModal(parentId) {
             asA: container.querySelector('#child-asa-display').value.trim(),
             iWant: container.querySelector('#child-iwant-display').value.trim(),
             soThat: container.querySelector('#child-sothat-display').value.trim(),
-            components: childComponents
+            components: childComponents,
+            acceptWarnings: true
           };
           try {
             const response = await fetch(resolveApiUrl('/api/stories'), {
