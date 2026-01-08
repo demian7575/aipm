@@ -6586,12 +6586,6 @@ function openChildStoryModal(parentId) {
         generateBtn.textContent = restore.text;
         generateBtn.disabled = restore.disabled;
       }
-    } catch (error) {
-      console.error('Failed to start story generation:', error);
-      showToast('Failed to start story generation', 'error');
-      generateBtn.textContent = restore.text;
-      generateBtn.disabled = restore.disabled;
-    }
   });
 
   openModal({
