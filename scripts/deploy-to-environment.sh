@@ -129,39 +129,10 @@ EOF"
 
     # Deploy Kiro API server
     echo "📦 Deploying Kiro API server..."
-    scp -o StrictHostKeyChecking=no scripts/kiro-api-server-v4.js ec2-user@$HOST:aipm/scripts/ 2>/dev/null || true
-    scp -r -o StrictHostKeyChecking=no scripts/contracts ec2-user@$HOST:aipm/scripts/ 2>/dev/null || true
-    
-    # Try full Kiro API server first, fallback to simple server
-    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'kiro-api-server\\|8081' || true && nohup node scripts/kiro-api-server-v4.js > kiro-api.log 2>&1 &" 2>/dev/null; then
-        echo "✅ Kiro API server deployed"
-    else
-        echo "⚠️  Full Kiro API failed - deploying fallback server"
-        ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f '8081' || true && nohup node -e \"
-import http from 'http';
-const server = http.createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
-  if (req.url === '/health') {
-    res.writeHead(200, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({status: 'running', service: 'V4', version: '4.0', kiroProcess: 'running', kiroHealthy: true, lastKiroResponse: new Date().toISOString(), timeSinceLastResponse: '0s', activeRequests: 0, maxConcurrent: 10, uptime: 1}));
-  } else if (req.url === '/api/generate-draft' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      const data = JSON.parse(body);
-      const feature = data.feature_description || 'feature';
-      res.writeHead(200, {'Content-Type': 'application/json'});
-      res.end(JSON.stringify({success: true, draft: {title: feature + ' Implementation', description: 'Implement ' + feature + ' functionality', asA: 'system user', iWant: 'to ' + feature, soThat: 'I can accomplish my goals', components: ['WorkModel'], storyPoint: 1, assigneeEmail: '', parentId: data.parentId, acceptWarnings: true, acceptanceTests: [{title: feature + ' test', given: 'I am a user', when: 'I use ' + feature, then: 'it should work', status: 'Draft'}]}, timestamp: Date.now()}));
-    });
-  } else { res.writeHead(404); res.end('Not Found'); }
-});
-server.listen(8081, () => console.log('Fallback Kiro API running on 8081'));
-\" > /dev/null 2>&1 &" 2>/dev/null
-        echo "✅ Fallback Kiro API server deployed"
-    fi
+    scp -o StrictHostKeyChecking=no scripts/kiro-api-server-v4.js ec2-user@$HOST:aipm/scripts/
+    scp -r -o StrictHostKeyChecking=no scripts/contracts ec2-user@$HOST:aipm/scripts/
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'kiro-api-server\\|8081' || true && nohup node scripts/kiro-api-server-v4.js > kiro-api.log 2>&1 &"
+    echo "✅ Kiro API server deployed"
 fi
 
 # Skip backend health check in GitHub Actions since we can't deploy backend
