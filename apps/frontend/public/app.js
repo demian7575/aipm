@@ -6493,7 +6493,7 @@ function openChildStoryModal(parentId) {
       const kiroApiUrl = window.CONFIG.KIRO_API_URL;
       
       // Generate draft data only (no database save) - use Kiro API server
-      fetch(`${kiroApiUrl}/api/generate-draft`, {
+      const response = await fetch(`${kiroApiUrl}/api/generate-draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -6501,12 +6501,17 @@ function openChildStoryModal(parentId) {
           feature_description: idea,
           parentId: String(parentId)
         })
-      }).then(async response => {
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.draft) {
-            // Use the actual generated story data and populate the form
-            const draftData = result.draft;
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.draft) {
+        // Use the actual generated story data and populate the form
+        const draftData = result.draft;
             
             // Populate form fields
             const titleInput = container.querySelector('#child-title');
@@ -6568,22 +6573,19 @@ function openChildStoryModal(parentId) {
               });
               
               showToast(`✨ Story draft generated with ${draftData.acceptanceTests.length} acceptance test(s)! Review and click Create Story to save.`, 'success');
-            } else {
-              showToast('✨ Story draft generated! Review and click Create Story to save.', 'success');
-            }
+          } else {
+            showToast('✨ Story draft generated! Review and click Create Story to save.', 'success');
           }
         } else {
-          throw new Error('Draft generation failed');
+          throw new Error('Draft generation failed - no draft data received');
         }
-      }).catch(error => {
+      } catch (error) {
         console.error('Draft generation failed:', error);
-        showToast('Draft generation failed. Please fill manually.', 'error');
-      }).finally(() => {
+        showToast(`Draft generation failed: ${error.message}`, 'error');
+      } finally {
         generateBtn.textContent = restore.text;
         generateBtn.disabled = restore.disabled;
-      });
-      
-    } catch (error) {
+      }
       console.error('Failed to start story generation:', error);
       showToast('Failed to start story generation', 'error');
       generateBtn.textContent = restore.text;
