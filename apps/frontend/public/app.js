@@ -4386,33 +4386,7 @@ function renderStoryDetailsWithCompleteData(story) {
       const issueCount = document.createElement('span');
       issueCount.className = 'health-issue-count';
       issueCount.textContent = `${investHealth.issues.length} issue${investHealth.issues.length > 1 ? 's' : ''}`;
-      issueCount.addEventListener('click', () => {
-        const issueList = healthItem.querySelector('.health-issue-list');
-        if (issueList) {
-          issueList.style.display = issueList.style.display === 'none' ? 'block' : 'none';
-        }
-      });
       healthItem.appendChild(issueCount);
-
-      const issueList = document.createElement('ul');
-      issueList.className = 'health-issue-list';
-      issueList.style.display = 'none';
-      investHealth.issues.forEach((issue) => {
-        const item = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'link-button health-issue-button';
-        const criterionLabel = formatCriterionLabel(issue.criterion);
-        const originLabel = describeIssueOrigin(issue.source);
-        const parts = [];
-        if (originLabel) parts.push(originLabel);
-        if (criterionLabel) parts.push(criterionLabel);
-        button.textContent = `${parts.length ? `${parts.join(' · ')} – ` : ''}${issue.message}`;
-        button.addEventListener('click', () => openHealthIssueModal('INVEST Issue', issue, analysisInfo));
-        item.appendChild(button);
-        issueList.appendChild(item);
-      });
-      healthItem.appendChild(issueList);
     }
 
     if (analysisInfo) {
