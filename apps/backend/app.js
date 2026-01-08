@@ -6543,7 +6543,7 @@ export async function createApp() {
             iWant: payload.iWant ?? existing.iWant,
             soThat: payload.soThat ?? existing.soThat,
             description: payload.description ?? existing.description,
-            storyPoints: payload.storyPoints ?? existing.storyPoints,
+            storyPoints: payload.storyPoint ?? existing.storyPoint,
             assigneeEmail: payload.assigneeEmail ?? existing.assigneeEmail,
             status: payload.status ?? existing.status,
             components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]'))
@@ -6553,10 +6553,10 @@ export async function createApp() {
             db.run(
               `UPDATE user_stories SET 
                 title = ?, asA = ?, iWant = ?, soThat = ?, description = ?,
-                storyPoints = ?, assigneeEmail = ?, status = ?, components = ?
+                story_point = ?, assigneeEmail = ?, status = ?, components = ?
               WHERE id = ?`,
               [updates.title, updates.asA, updates.iWant, updates.soThat, updates.description,
-               updates.storyPoints, updates.assigneeEmail, updates.status, updates.components, storyId],
+               updates.storyPoint, updates.assigneeEmail, updates.status, updates.components, storyId],
               (err) => {
                 if (err) reject(err);
                 else resolve();
