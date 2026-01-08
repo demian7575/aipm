@@ -6,7 +6,27 @@ source "$(dirname "$0")/test-functions.sh"
 
 echo "🔴 Phase 1: Real Security & Data Safety Tests"
 
-# Test 1: Create a real story and verify it's stored
+# Test 1: Front page loading test
+echo "  🧪 Testing front page loading..."
+PROD_FRONTEND_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/prod_frontend.html "$PROD_FRONTEND_URL")
+DEV_FRONTEND_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/dev_frontend.html "$DEV_FRONTEND_URL")
+
+if [[ "$PROD_FRONTEND_RESPONSE" == "200" ]] && grep -q "AIPM" /tmp/prod_frontend.html; then
+    pass_test "Production front page loads correctly"
+else
+    fail_test "Production front page loading failed - HTTP: $PROD_FRONTEND_RESPONSE"
+fi
+
+if [[ "$DEV_FRONTEND_RESPONSE" == "200" ]] && grep -q "AIPM" /tmp/dev_frontend.html; then
+    pass_test "Development front page loads correctly"
+else
+    fail_test "Development front page loading failed - HTTP: $DEV_FRONTEND_RESPONSE"
+fi
+
+# Cleanup temp files
+rm -f /tmp/prod_frontend.html /tmp/dev_frontend.html
+
+# Test 2: Create a real story and verify it's stored
 echo "  🧪 Testing real story creation workflow..."
 STORY_DATA='{"title":"Test Story","description":"Real test","asA":"user","iWant":"to test","soThat":"it works","storyPoint":1}'
 CREATE_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" -H "Content-Type: application/json" -d "$STORY_DATA")

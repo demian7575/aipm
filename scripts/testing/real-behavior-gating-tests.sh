@@ -49,9 +49,18 @@ PHASE4_PASS=$(echo "$PHASE4_OUTPUT" | grep "✅" | wc -l)
 PHASE4_FAIL=$(echo "$PHASE4_OUTPUT" | grep "❌" | wc -l)
 echo "📊 Phase 4: ✅ $PHASE4_PASS passed, ❌ $PHASE4_FAIL failed"
 
+echo ""
+echo "🔧 PHASE 5: Code Generation & Acceptance Tests Workflow"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+PHASE5_OUTPUT=$(./scripts/testing/real-phase5-tests.sh 2>&1)
+echo "$PHASE5_OUTPUT"
+PHASE5_PASS=$(echo "$PHASE5_OUTPUT" | grep "✅" | wc -l)
+PHASE5_FAIL=$(echo "$PHASE5_OUTPUT" | grep "❌" | wc -l)
+echo "📊 Phase 5: ✅ $PHASE5_PASS passed, ❌ $PHASE5_FAIL failed"
+
 # Calculate totals
-TOTAL_PASS=$((PHASE1_PASS + PHASE2_PASS + PHASE3_PASS + PHASE4_PASS))
-TOTAL_FAIL=$((PHASE1_FAIL + PHASE2_FAIL + PHASE3_FAIL + PHASE4_FAIL))
+TOTAL_PASS=$((PHASE1_PASS + PHASE2_PASS + PHASE3_PASS + PHASE4_PASS + PHASE5_PASS))
+TOTAL_FAIL=$((PHASE1_FAIL + PHASE2_FAIL + PHASE3_FAIL + PHASE4_FAIL + PHASE5_FAIL))
 TOTAL_TESTS=$((TOTAL_PASS + TOTAL_FAIL))
 
 echo ""
@@ -69,6 +78,7 @@ echo "   • Real database persistence and consistency"
 echo "   • Actual API performance under load"
 echo "   • Real frontend-backend integration"
 echo "   • Complete end-to-end workflows"
+echo "   • Code generation and acceptance test creation"
 
 if [ $TOTAL_FAIL -eq 0 ]; then
     echo ""
