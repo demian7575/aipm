@@ -3,24 +3,25 @@
 
 set -e
 
-echo "📊 Validating data consistency after deployment..."
+# Import shared test functions
+source "$(dirname "$0")/test-functions.sh"
 
-# Basic data consistency checks
-PROD_API="http://44.220.45.57"
-DEV_API="http://44.222.168.46"
+PHASE_PASSED=0
+PHASE_FAILED=0
 
-echo "🔍 Checking story count consistency..."
-PROD_COUNT=$(curl -s "$PROD_API/api/stories" | jq 'length')
-DEV_COUNT=$(curl -s "$DEV_API/api/stories" | jq 'length')
+echo "📊 Post-Deployment Data Consistency Validation"
+echo ""
 
-echo "📈 Production stories: $PROD_COUNT"
-echo "📈 Development stories: $DEV_COUNT"
+# Use shared test function
+test_data_consistency
 
-if [[ "$PROD_COUNT" -gt 0 && "$DEV_COUNT" -gt 0 ]]; then
-    echo "✅ Data consistency validated"
-else
-    echo "❌ Data consistency check failed"
+echo ""
+echo "📊 Data Consistency Results: ✅ $PHASE_PASSED passed, ❌ $PHASE_FAILED failed"
+
+if [[ $PHASE_FAILED -gt 0 ]]; then
+    echo "⚠️  Data consistency issues detected - database copy may have failed"
     exit 1
+else
+    echo "🎉 All data consistency checks passed"
+    exit 0
 fi
-
-echo "✅ Post-deployment validation completed"
