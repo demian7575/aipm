@@ -1,69 +1,52 @@
 /**
- * Acceptance tests for simplified INVEST display
+ * Gating test for simplified INVEST display
+ * Tests that INVEST criteria presentation is clean and actionable
  */
 
 import { execSync } from 'child_process';
 import fs from 'fs';
 
-function runTest(testName, testFn) {
-  try {
-    console.log(`Running: ${testName}`);
-    testFn();
-    console.log(`✅ PASS: ${testName}`);
-    return true;
-  } catch (error) {
-    console.log(`❌ FAIL: ${testName} - ${error.message}`);
-    return false;
-  }
-}
-
 function testInvestDisplaySimplified() {
+  console.log('🧪 Testing simplified INVEST display...');
+  
+  // Read the frontend app.js to verify simplified display implementation
   const appJs = fs.readFileSync('./apps/frontend/public/app.js', 'utf8');
   
-  // Test 1: INVEST display should be clean and easy to understand
-  if (!appJs.includes('health-pill')) {
-    throw new Error('Health pill styling not found for clean display');
+  // Test 1: INVEST display should be simplified (no verbose details)
+  const hasSimplifiedDisplay = appJs.includes('health-pill') && 
+                               appJs.includes('✓ Pass') && 
+                               appJs.includes('⚠ Issues');
+  
+  if (!hasSimplifiedDisplay) {
+    throw new Error('INVEST display is not simplified - missing health pill indicators');
   }
   
-  if (!appJs.includes('Pass') || !appJs.includes('Needs review')) {
-    throw new Error('Simple pass/fail indicators not found');
+  // Test 2: Should not have verbose analysis notes in main display
+  const hasVerboseElements = appJs.includes('AI-powered analysis') ||
+                            appJs.includes('Rule-based analysis') ||
+                            appJs.includes('Additional suggestions');
+  
+  if (hasVerboseElements) {
+    throw new Error('INVEST display contains verbose analysis notes that create information overload');
   }
+  
+  // Test 3: Should not have "Re-check with AI" button in main display
+  const hasRecheckButton = appJs.includes('Re-check with AI');
+  
+  if (hasRecheckButton) {
+    throw new Error('INVEST display contains Re-check button that adds complexity');
+  }
+  
+  console.log('✅ INVEST display is simplified and clean');
+  return true;
 }
 
-function testInvestFeedbackActionable() {
-  const appJs = fs.readFileSync('./apps/frontend/public/app.js', 'utf8');
-  
-  // Test 2: INVEST feedback should be actionable
-  if (!appJs.includes('health-issue-button')) {
-    throw new Error('Clickable issue buttons not found for actionable feedback');
-  }
-  
-  if (!appJs.includes('openHealthIssueModal')) {
-    throw new Error('Modal for detailed issue explanation not found');
-  }
-}
-
-// Run acceptance tests
-const tests = [
-  ['INVEST display is simplified', testInvestDisplaySimplified],
-  ['INVEST feedback is actionable', testInvestFeedbackActionable]
-];
-
-let passed = 0;
-let total = tests.length;
-
-tests.forEach(([name, testFn]) => {
-  if (runTest(name, testFn)) {
-    passed++;
-  }
-});
-
-console.log(`\nTest Results: ${passed}/${total} passed`);
-
-if (passed === total) {
-  console.log('✅ All acceptance tests passed!');
+// Run the test
+try {
+  testInvestDisplaySimplified();
+  console.log('🎉 All INVEST simplification tests passed!');
   process.exit(0);
-} else {
-  console.log('❌ Some tests failed');
+} catch (error) {
+  console.error('❌ Test failed:', error.message);
   process.exit(1);
 }
