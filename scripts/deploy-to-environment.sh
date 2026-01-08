@@ -52,7 +52,7 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
     if [[ -n "$SSH_PRIVATE_KEY" ]]; then
         echo "🔑 Setting up SSH key for deployment..."
         mkdir -p ~/.ssh
-        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
         echo "✅ SSH key configured"
@@ -73,6 +73,10 @@ fi
         TARGET_BRANCH="$DEPLOY_BRANCH"
     else
         TARGET_BRANCH=$(git branch --show-current)
+        # If we're in detached HEAD state, get the actual branch name
+        if [[ "$TARGET_BRANCH" == "" ]] || [[ "$TARGET_BRANCH" == "HEAD" ]]; then
+            TARGET_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --abbrev-ref HEAD)
+        fi
     fi
     
     echo "📍 Target branch: $TARGET_BRANCH"
