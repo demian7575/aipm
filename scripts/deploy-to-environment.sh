@@ -46,10 +46,22 @@ echo "📦 Deploying backend..."
 
 # Check if we're in GitHub Actions environment
 if [[ -n "$GITHUB_ACTIONS" ]]; then
-    echo "⚠️  GitHub Actions environment detected - skipping SSH deployment"
-    echo "Backend deployment requires SSH access which is not available in GitHub Actions"
-    echo "Manual deployment required for backend updates"
-else
+    echo "🔧 GitHub Actions environment detected - using alternative deployment method"
+    
+    # Setup SSH key for GitHub Actions
+    if [[ -n "$SSH_PRIVATE_KEY" ]]; then
+        echo "🔑 Setting up SSH key for deployment..."
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
+        echo "✅ SSH key configured"
+    else
+        echo "❌ SSH_PRIVATE_KEY not found - cannot deploy backend"
+        echo "Please add SSH private key to GitHub Secrets"
+        exit 1
+    fi
+fi
     # Copy backend files and inject version
     echo "📝 Injecting version information into backend..."
     
@@ -148,6 +160,7 @@ EOF"
     scp -r -o StrictHostKeyChecking=no scripts/contracts ec2-user@$HOST:aipm/scripts/
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'kiro-api-server\\|8081' || true && nohup node scripts/kiro-api-server-v4.js > kiro-api.log 2>&1 &"
     echo "✅ Kiro API server deployed"
+fi
 fi
 
 # Skip backend health check in GitHub Actions since we can't deploy backend
