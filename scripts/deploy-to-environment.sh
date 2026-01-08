@@ -55,7 +55,7 @@ else
     
     # First, update git repository on target server
     echo "🔄 Updating git repository on target server..."
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout main && git reset --hard origin/main"
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout $TARGET_BRANCH && git reset --hard origin/$TARGET_BRANCH"
     
     COMMIT_HASH=$(git rev-parse --short HEAD)
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
@@ -123,14 +123,7 @@ EOF"
 
     # Restart backend (simple process restart)
     echo "🔄 Restarting backend service..."
-    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'apps/backend/server.js' && sleep 1 && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
-        echo "✅ Backend restarted"
-    elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
-        echo "✅ Backend restarted via systemd"
-    else
-        echo "❌ Failed to restart backend"
-        exit 1
-    fi
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'apps/backend/server.js' || true && sleep 2 && nohup node apps/backend/server.js > backend.log 2>&1 & echo 'Backend started'"
 
     # Deploy Kiro API server
     echo "📦 Deploying Kiro API server..."
