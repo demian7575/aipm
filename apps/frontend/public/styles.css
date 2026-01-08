@@ -1390,11 +1390,12 @@ body.is-mindmap-panning {
 .health-pill {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.75rem;
-  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 500;
   color: #ffffff;
+  margin-left: 0.5rem;
 }
 
 .health-pill.pass {
@@ -1402,51 +1403,66 @@ body.is-mindmap-panning {
 }
 
 .health-pill.fail {
-  background: #d97706;
+  background: #dc2626;
 }
 
 .health-issue-list {
-  margin: 0;
-  padding-left: 1.25rem;
+  margin: 0.5rem 0 0;
+  padding-left: 0;
+  list-style: none;
 }
 
 .health-issue-list li {
-  margin: 0.2rem 0;
+  margin: 0.25rem 0;
+  padding: 0.25rem 0;
+  border-left: 3px solid #e5e7eb;
+  padding-left: 0.75rem;
 }
 
-.link-button {
+.health-issue-button {
   background: none;
   border: none;
   padding: 0;
-  color: #1d4ed8;
+  color: #dc2626;
   cursor: pointer;
-  text-decoration: underline;
-  font-size: 0.9rem;
+  text-decoration: none;
+  font-size: 0.85rem;
+  text-align: left;
+  line-height: 1.4;
 }
 
-.link-button:hover,
-.link-button:focus {
-  color: #1e3a8a;
+.health-issue-button:hover,
+.health-issue-button:focus {
+  color: #991b1b;
+  text-decoration: underline;
   outline: none;
 }
 
 .health-ok {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #047857;
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #16a34a;
+  font-weight: 500;
 }
 
 .health-analysis-note {
-  margin: 0.4rem 0 0;
-  font-size: 0.85rem;
-  color: #475569;
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.health-actions {
+  margin-top: 0.75rem;
 }
 
 .health-subheading {
-  margin: 0.75rem 0 0.25rem;
-  font-size: 0.85rem;
-  color: #1e293b;
+  margin: 1rem 0 0.5rem;
+  font-size: 0.8rem;
+  color: #374151;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .health-issue-list.heuristic-list {
