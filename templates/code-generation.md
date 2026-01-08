@@ -45,6 +45,10 @@
 6. **Create Acceptance Tests**:
    - Implement gating tests that validate the requirements
    - Add tests under the Component section of the corresponding User Story
+   - **CRITICAL**: All acceptance tests created during code generation MUST be added to Phase 5 gating tests
+   - Tests should follow Given-When-Then format for proper validation
+   - Each generated acceptance test becomes part of the automated gating test suite
+   - Verify tests are executable and validate actual behavior, not mocks
    - Ensure tests cover all acceptance criteria
 7. **Implement Code Changes** (REPEAT UNTIL ALL GATING TESTS PASS - MAX 5 ITERATIONS):
    - Follow requirements exactly as described in the markdown file
