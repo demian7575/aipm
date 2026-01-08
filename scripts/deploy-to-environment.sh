@@ -52,6 +52,11 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
 else
     # Copy backend files and inject version
     echo "📝 Injecting version information into backend..."
+    
+    # First, update git repository on target server
+    echo "🔄 Updating git repository on target server..."
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout main && git reset --hard origin/main"
+    
     COMMIT_HASH=$(git rev-parse --short HEAD)
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
     
@@ -80,7 +85,7 @@ else
     
     # Replace version placeholder in backend code
     sed "s/DEPLOYMENT_VERSION_PLACEHOLDER/${VERSION_STRING}/g" apps/backend/app.js > /tmp/app.js
-    scp /tmp/app.js ec2-user@$HOST:aipm/apps/backend/app.js
+    scp -o StrictHostKeyChecking=no /tmp/app.js ec2-user@$HOST:aipm/apps/backend/app.js
     
     # Create environment file with correct table names and version info
     echo "📝 Setting up environment variables..."
