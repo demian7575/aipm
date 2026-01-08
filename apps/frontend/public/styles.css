@@ -1405,9 +1405,22 @@ body.is-mindmap-panning {
   background: #d97706;
 }
 
+.health-issue-count {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  color: #dc2626;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.health-issue-count:hover {
+  color: #991b1b;
+}
+
 .health-issue-list {
-  margin: 0;
-  padding-left: 1.25rem;
+  margin: 0.5rem 0 0;
+  padding-left: 0;
+  list-style: none;
 }
 
 .health-issue-list li {

@@ -4375,16 +4375,28 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.className = 'story-meta-item';
     const healthLabel = document.createElement('span');
     healthLabel.className = 'story-meta-label';
-    healthLabel.textContent = 'Health (INVEST)';
+    healthLabel.textContent = 'INVEST';
     const healthValue = document.createElement('span');
     healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
-    healthValue.textContent = investHealth.satisfied ? 'Pass' : 'Needs review';
+    healthValue.textContent = investHealth.satisfied ? '✓ Pass' : '⚠ Issues';
     healthItem.appendChild(healthLabel);
     healthItem.appendChild(healthValue);
 
     if (investHealth.issues && investHealth.issues.length) {
+      const issueCount = document.createElement('span');
+      issueCount.className = 'health-issue-count';
+      issueCount.textContent = `${investHealth.issues.length} issue${investHealth.issues.length > 1 ? 's' : ''}`;
+      issueCount.addEventListener('click', () => {
+        const issueList = healthItem.querySelector('.health-issue-list');
+        if (issueList) {
+          issueList.style.display = issueList.style.display === 'none' ? 'block' : 'none';
+        }
+      });
+      healthItem.appendChild(issueCount);
+
       const issueList = document.createElement('ul');
       issueList.className = 'health-issue-list';
+      issueList.style.display = 'none';
       investHealth.issues.forEach((issue) => {
         const item = document.createElement('li');
         const button = document.createElement('button');
@@ -4401,11 +4413,6 @@ function renderStoryDetailsWithCompleteData(story) {
         issueList.appendChild(item);
       });
       healthItem.appendChild(issueList);
-    } else {
-      const ok = document.createElement('p');
-      ok.className = 'health-ok';
-      ok.textContent = 'All INVEST checks passed.';
-      healthItem.appendChild(ok);
     }
 
     if (analysisInfo) {
