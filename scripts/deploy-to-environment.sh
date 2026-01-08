@@ -56,8 +56,13 @@ else
     # First, update git repository on target server
     echo "🔄 Updating git repository on target server..."
     
-    # Use branch from environment variable or default to main
-    TARGET_BRANCH=${DEPLOY_BRANCH:-main}
+    # Use branch from environment variable or detect current branch
+    if [[ -n "$DEPLOY_BRANCH" ]]; then
+        TARGET_BRANCH="$DEPLOY_BRANCH"
+    else
+        TARGET_BRANCH=$(git branch --show-current)
+    fi
+    
     echo "📍 Target branch: $TARGET_BRANCH"
     
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout $TARGET_BRANCH && git reset --hard origin/$TARGET_BRANCH"
