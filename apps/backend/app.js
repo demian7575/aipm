@@ -7565,7 +7565,8 @@ export async function createApp() {
     // Deployment notifications API
     if (pathname === '/api/deployment-notifications' && method === 'POST') {
       try {
-        const body = await readRequestBody(req);
+        const bodyStr = await readRequestBody(req);
+        const body = JSON.parse(bodyStr);
         console.log('Notification request body:', body);
         const { type, prNumber, message, timestamp } = body;
         console.log('Parsed fields:', { type, prNumber, message, timestamp });
@@ -7610,7 +7611,8 @@ export async function createApp() {
     
     if (pathname === '/api/deployment-notifications/mark-read' && method === 'POST') {
       try {
-        const body = await readRequestBody(req);
+        const bodyStr = await readRequestBody(req);
+        const body = JSON.parse(bodyStr);
         const { notificationId } = body;
         
         if (global.deploymentNotifications) {
