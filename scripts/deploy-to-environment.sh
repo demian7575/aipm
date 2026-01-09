@@ -81,6 +81,12 @@ fi
     
     echo "📍 Target branch: $TARGET_BRANCH"
     
+    # For PR branches, fetch the specific branch first, then checkout
+    if [[ "$TARGET_BRANCH" != "main" ]]; then
+        echo "🔄 Fetching PR branch from origin..."
+        ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin $TARGET_BRANCH:$TARGET_BRANCH || git fetch origin pull/*/head:$TARGET_BRANCH || true"
+    fi
+    
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout $TARGET_BRANCH && git reset --hard origin/$TARGET_BRANCH"
     
     COMMIT_HASH=$(git rev-parse --short HEAD)
