@@ -8089,21 +8089,9 @@ async function checkDeploymentNotifications() {
           content: contentDiv,
           actions: [
             {
-              label: 'Generate Code & PR',
+              label: 'OK',
               className: 'btn-primary',
               onClick: () => {
-                // Navigate to code generation
-                window.location.hash = '#generate-code';
-                closeModal();
-              }
-            },
-            {
-              label: 'View PR',
-              className: 'btn-secondary',
-              onClick: () => {
-                if (notification.prNumber && notification.prNumber !== 'unknown') {
-                  window.open(`https://github.com/demian7575/aipm/pull/${notification.prNumber}`, '_blank');
-                }
                 closeModal();
               }
             }
