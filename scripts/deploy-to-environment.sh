@@ -123,7 +123,14 @@ EOF"
 
     # Restart backend (simple process restart)
     echo "🔄 Restarting backend service..."
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'apps/backend/server.js' || true && sleep 2 && nohup node apps/backend/server.js > backend.log 2>&1 & echo 'Backend started'"
+    # Stop systemd service first to prevent auto-restart
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl stop aipm-dev-backend.service || true"
+    # Kill any remaining processes
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' || true"
+    sleep 2
+    # Start systemd service
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl start aipm-dev-backend.service"
+    echo "✅ Backend restarted via systemd"
 
     # Deploy Kiro API server
     echo "📦 Deploying Kiro API server..."
