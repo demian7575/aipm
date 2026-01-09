@@ -109,10 +109,6 @@ fi
         VERSION_STRING="${DEPLOY_VERSION}"
     fi
     
-    # Replace version placeholder in backend code
-    sed "s/DEPLOYMENT_VERSION_PLACEHOLDER/${VERSION_STRING}/g" apps/backend/app.js > /tmp/app.js
-    scp -o StrictHostKeyChecking=no /tmp/app.js ec2-user@$HOST:aipm/apps/backend/app.js
-    
     # Create environment file with correct table names and version info
     echo "📝 Setting up environment variables..."
     COMMIT_HASH=$(git rev-parse --short HEAD)

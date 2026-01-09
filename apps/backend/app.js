@@ -5852,11 +5852,16 @@ export async function createApp() {
       let version;
       
       if (stage === 'dev' || stage === 'development') {
-        // Development shows base version + PR number + commit hash (replaced during deployment)
-        version = { version: 'DEPLOYMENT_VERSION_PLACEHOLDER' };
+        // Development shows base version + PR number + commit hash
+        const deployVersion = process.env.DEPLOY_VERSION || 'dev-unknown';
+        const commitHash = process.env.COMMIT_HASH || 'unknown';
+        const prNumber = process.env.PR_NUMBER || 'dev';
+        version = { version: `${deployVersion}-${prNumber}-${commitHash}` };
       } else {
-        // Production uses deployment timestamp (replaced during deployment)
-        version = { version: 'DEPLOYMENT_VERSION_PLACEHOLDER' };
+        // Production uses deployment timestamp
+        const deployVersion = process.env.DEPLOY_VERSION || 'prod-unknown';
+        const commitHash = process.env.COMMIT_HASH || 'unknown';
+        version = { version: `${deployVersion}-${commitHash}` };
       }
       
       sendJson(res, 200, version);
