@@ -130,6 +130,66 @@ fi
         fi
     fi
     
+    # Update systemd service with current deployment info
+    if [[ "$ENV" == "dev" ]]; then
+        ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo tee /etc/systemd/system/aipm-dev-backend.service << 'EOF'
+[Unit]
+Description=AIPM Development Backend
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+ExecStart=/usr/bin/node apps/backend/server.js
+Environment=NODE_ENV=development
+Environment=ENVIRONMENT=development
+Environment=STAGE=dev
+Environment=STORIES_TABLE=$STORIES_TABLE
+Environment=ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
+Environment=PRS_TABLE=$PRS_TABLE
+Environment=GITHUB_TOKEN=\${GITHUB_TOKEN}
+Environment=PORT=4000
+Environment=DEPLOY_VERSION=$DEPLOY_VERSION
+Environment=COMMIT_HASH=$COMMIT_HASH
+Environment=PR_NUMBER=$PR_NUMBER
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+    else
+        ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo tee /etc/systemd/system/aipm-backend.service << 'EOF'
+[Unit]
+Description=AIPM Production Backend
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+ExecStart=/usr/bin/node apps/backend/server.js
+Environment=NODE_ENV=production
+Environment=ENVIRONMENT=production
+Environment=STAGE=prod
+Environment=STORIES_TABLE=$STORIES_TABLE
+Environment=ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
+Environment=PRS_TABLE=$PRS_TABLE
+Environment=PORT=4000
+Environment=DEPLOY_VERSION=$DEPLOY_VERSION
+Environment=COMMIT_HASH=$COMMIT_HASH
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+    fi
+    
+    # Reload systemd and restart service
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl daemon-reload"
+    
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
