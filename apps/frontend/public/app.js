@@ -2222,7 +2222,7 @@ function canDelegateToCodeWhisperer(story) {
   // Check INVEST validation
   const investIssues = story.investIssues || [];
   if (investIssues.length > 0) {
-    reasons.push(`INVEST issues: ${investIssues.join(', ')}`);
+    reasons.push(`Health issues: ${investIssues.join(', ')}`);
   }
   
   // Check acceptance tests
@@ -4333,7 +4333,7 @@ function renderStoryDetailsWithCompleteData(story) {
     summaryRow.className = 'story-meta-row';
     const summaryHeader = document.createElement('th');
     summaryHeader.scope = 'row';
-    summaryHeader.textContent = 'INVEST';
+    summaryHeader.textContent = 'Health';
     const summaryCell = document.createElement('td');
     const metaGrid = document.createElement('div');
     metaGrid.className = 'story-meta-grid';
@@ -4375,7 +4375,7 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.className = 'story-meta-item';
     const healthLabel = document.createElement('span');
     healthLabel.className = 'story-meta-label';
-    healthLabel.textContent = 'Health (INVEST)';
+    healthLabel.textContent = 'Health';
     const healthValue = document.createElement('span');
     healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
     healthValue.textContent = investHealth.satisfied ? 'Pass' : 'Needs review';
@@ -4396,7 +4396,7 @@ function renderStoryDetailsWithCompleteData(story) {
         if (originLabel) parts.push(originLabel);
         if (criterionLabel) parts.push(criterionLabel);
         button.textContent = `${parts.length ? `${parts.join(' · ')} – ` : ''}${issue.message}`;
-        button.addEventListener('click', () => openHealthIssueModal('INVEST Issue', issue, analysisInfo));
+        button.addEventListener('click', () => openHealthIssueModal('Health Issue', issue, analysisInfo));
         item.appendChild(button);
         issueList.appendChild(item);
       });
@@ -4404,7 +4404,7 @@ function renderStoryDetailsWithCompleteData(story) {
     } else {
       const ok = document.createElement('p');
       ok.className = 'health-ok';
-      ok.textContent = 'All INVEST checks passed.';
+      ok.textContent = 'All health checks passed.';
       healthItem.appendChild(ok);
     }
 
@@ -4426,7 +4426,7 @@ function renderStoryDetailsWithCompleteData(story) {
         const detail = analysisInfo.error ? ` (${analysisInfo.error})` : '';
         analysisNote.textContent = `ChatGPT analysis unavailable${detail}; showing local heuristics.`;
       } else {
-        analysisNote.textContent = 'Using local INVEST heuristics.';
+        analysisNote.textContent = 'Using local heuristics.';
       }
       healthItem.appendChild(analysisNote);
     }
@@ -4439,8 +4439,8 @@ function renderStoryDetailsWithCompleteData(story) {
     aiButton.className = 'secondary';
     const aiButtonLabel =
       analysisInfo && analysisInfo.source === 'openai'
-        ? 'Re-run AI INVEST check'
-        : 'Run AI INVEST check';
+        ? 'Re-run AI health check'
+        : 'Run AI health check';
     aiButton.textContent = aiButtonLabel;
     aiButton.addEventListener('click', async () => {
       if (aiButton.disabled) {
@@ -4457,13 +4457,13 @@ function renderStoryDetailsWithCompleteData(story) {
           throw new Error('Story could not be refreshed.');
         }
         persistSelection();
-        showToast('AI INVEST check completed.', 'success');
+        showToast('AI health check completed.', 'success');
       } catch (error) {
-        console.error('Failed to run AI INVEST check', error);
+        console.error('Failed to run AI health check', error);
         const message =
           error && typeof error.message === 'string'
             ? error.message
-            : 'Failed to run AI INVEST check.';
+            : 'Failed to run AI health check.';
         showToast(message, 'error');
       } finally {
         aiButton.disabled = false;
@@ -6145,7 +6145,7 @@ function openHealthIssueModal(title, issue, context = null) {
       const detail = context.error ? ` (${context.error})` : '';
       contextNote.textContent = `ChatGPT analysis unavailable${detail}; showing local guidance.`;
     } else {
-      contextNote.textContent = 'Using local INVEST heuristics for guidance.';
+      contextNote.textContent = 'Using local heuristics for guidance.';
     }
     container.appendChild(contextNote);
   }
