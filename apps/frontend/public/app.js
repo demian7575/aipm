@@ -8064,9 +8064,8 @@ async function checkDeploymentNotifications() {
         });
         
         // Show popup
-        openModal({
-          title: '🚨 Rebase Failure Detected',
-          content: `
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = `
             <div style="margin-bottom: 15px;">
               <p><strong>The PR branch has conflicts with the latest main branch and cannot be automatically rebased.</strong></p>
             </div>
@@ -8083,7 +8082,11 @@ async function checkDeploymentNotifications() {
               <strong>PR:</strong> #${notification.prNumber}<br>
               <strong>Time:</strong> ${new Date(notification.timestamp).toLocaleString()}
             </div>
-          `,
+          `;
+        
+        openModal({
+          title: '🚨 Rebase Failure Detected',
+          content: contentDiv,
           actions: [
             {
               label: 'Generate Code & PR',
