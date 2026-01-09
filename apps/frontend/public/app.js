@@ -4378,50 +4378,38 @@ function renderStoryDetailsWithCompleteData(story) {
     healthLabel.textContent = 'INVEST';
     const healthValue = document.createElement('span');
     healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
-    healthValue.textContent = investHealth.satisfied ? '✓ Pass' : '⚠ Issues';
+    healthValue.textContent = investHealth.satisfied ? '✓ Pass' : `⚠ ${investHealth.issues.length} issue${investHealth.issues.length > 1 ? 's' : ''}`;
     healthItem.appendChild(healthLabel);
     healthItem.appendChild(healthValue);
-
-    if (investHealth.issues && investHealth.issues.length) {
-      const issueCount = document.createElement('span');
-      issueCount.className = 'health-issue-count';
-      issueCount.textContent = `${investHealth.issues.length} issue${investHealth.issues.length > 1 ? 's' : ''}`;
-      healthItem.appendChild(issueCount);
-    }
 
     if (analysisInfo) {
       const analysisNote = document.createElement('p');
       analysisNote.className = 'health-analysis-note';
       if (analysisInfo.source === 'openai') {
-        const model = analysisInfo.aiModel ? ` (model ${analysisInfo.aiModel})` : '';
-        const heuristicsTail = fallbackWarnings.length
-          ? ' Additional heuristic suggestions are listed below.'
-          : '';
+        const model = analysisInfo.aiModel ? ` (${analysisInfo.aiModel})` : '';
         if (analysisInfo.aiSummary) {
-          const suffix = heuristicsTail ? `${heuristicsTail}` : '';
-          analysisNote.textContent = `ChatGPT${model} summary: ${analysisInfo.aiSummary}${suffix}`;
+          analysisNote.textContent = `AI: ${analysisInfo.aiSummary}`;
         } else {
-          analysisNote.textContent = `ChatGPT${model} reviewed this story.${heuristicsTail}`;
+          analysisNote.textContent = `AI reviewed${model}`;
         }
       } else if (analysisInfo.source === 'fallback') {
-        const detail = analysisInfo.error ? ` (${analysisInfo.error})` : '';
-        analysisNote.textContent = `ChatGPT analysis unavailable${detail}; showing local heuristics.`;
+        analysisNote.textContent = 'AI unavailable - using local checks';
       } else {
-        analysisNote.textContent = 'Using local INVEST heuristics.';
+        analysisNote.textContent = 'Using local checks';
       }
       healthItem.appendChild(analysisNote);
     }
 
     const healthActions = document.createElement('div');
     healthActions.className = 'health-actions';
-    healthActions.style.marginTop = '0.75rem';
+    healthActions.style.marginTop = '0.5rem';
     const aiButton = document.createElement('button');
     aiButton.type = 'button';
-    aiButton.className = 'secondary';
+    aiButton.className = 'secondary small';
     const aiButtonLabel =
       analysisInfo && analysisInfo.source === 'openai'
-        ? 'Re-run AI INVEST check'
-        : 'Run AI INVEST check';
+        ? 'Re-run AI check'
+        : 'Run AI check';
     aiButton.textContent = aiButtonLabel;
     aiButton.addEventListener('click', async () => {
       if (aiButton.disabled) {
@@ -4438,13 +4426,13 @@ function renderStoryDetailsWithCompleteData(story) {
           throw new Error('Story could not be refreshed.');
         }
         persistSelection();
-        showToast('AI INVEST check completed.', 'success');
+        showToast('AI check completed.', 'success');
       } catch (error) {
-        console.error('Failed to run AI INVEST check', error);
+        console.error('Failed to run AI check', error);
         const message =
           error && typeof error.message === 'string'
             ? error.message
-            : 'Failed to run AI INVEST check.';
+            : 'Failed to run AI check.';
         showToast(message, 'error');
       } finally {
         aiButton.disabled = false;
@@ -4465,40 +4453,30 @@ function renderStoryDetailsWithCompleteData(story) {
         (issue) => issue && issue.message && !aiMessages.has(issue.message)
       );
 
-      const heuristicsHeading = document.createElement('h4');
-      heuristicsHeading.className = 'health-subheading';
-      heuristicsHeading.textContent = 'Additional rule-check suggestions';
-      healthItem.appendChild(heuristicsHeading);
+      if (heuristicItems.length > 0) {
+        const heuristicsHeading = document.createElement('h4');
+        heuristicsHeading.className = 'health-subheading';
+        heuristicsHeading.textContent = 'Additional suggestions';
+        healthItem.appendChild(heuristicsHeading);
 
-      const heuristicsList = document.createElement('ul');
-      heuristicsList.className = 'health-issue-list heuristic-list';
+        const heuristicsList = document.createElement('ul');
+        heuristicsList.className = 'health-issue-list heuristic-list';
 
-      if (!heuristicItems.length) {
-        const empty = document.createElement('li');
-        empty.textContent = 'No extra suggestions beyond ChatGPT feedback.';
-        heuristicsList.appendChild(empty);
-      } else {
         heuristicItems.forEach((issue) => {
           const item = document.createElement('li');
           const button = document.createElement('button');
           button.type = 'button';
           button.className = 'link-button health-issue-button';
-          const criterionLabel = formatCriterionLabel(issue.criterion);
-          const originLabel = describeIssueOrigin(issue.source);
-          const parts = [];
-          if (originLabel) parts.push(originLabel);
-          if (criterionLabel) parts.push(criterionLabel);
-          const prefix = parts.length ? `${parts.join(' · ')} – ` : '';
-          button.textContent = `${prefix}${issue.message}`;
+          button.textContent = issue.message;
           button.addEventListener('click', () =>
-            openHealthIssueModal('Heuristic Suggestion', issue, analysisInfo)
+            openHealthIssueModal('Suggestion', issue, analysisInfo)
           );
           item.appendChild(button);
           heuristicsList.appendChild(item);
         });
-      }
 
-      healthItem.appendChild(heuristicsList);
+        healthItem.appendChild(heuristicsList);
+      }
     }
 
     metaGrid.appendChild(healthItem);
