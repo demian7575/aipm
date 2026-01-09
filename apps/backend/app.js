@@ -7566,7 +7566,9 @@ export async function createApp() {
     if (pathname === '/api/deployment-notifications' && method === 'POST') {
       try {
         const body = await readRequestBody(req);
+        console.log('Notification request body:', body);
         const { type, prNumber, message, timestamp } = body;
+        console.log('Parsed fields:', { type, prNumber, message, timestamp });
         
         // Store notification in memory (could be extended to use database)
         global.deploymentNotifications = global.deploymentNotifications || [];
