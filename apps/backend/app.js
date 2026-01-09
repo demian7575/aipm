@@ -7557,6 +7557,71 @@ export async function createApp() {
     }
 
     // Handle API 404s before falling back to static files
+    // Deployment notifications API
+    if (pathname === '/api/deployment-notifications' && method === 'POST') {
+      try {
+        const body = await parseBody(req);
+        const { type, prNumber, message, timestamp } = body;
+        
+        // Store notification in memory (could be extended to use database)
+        global.deploymentNotifications = global.deploymentNotifications || [];
+        global.deploymentNotifications.push({
+          id: Date.now(),
+          type,
+          prNumber,
+          message,
+          timestamp: timestamp || new Date().toISOString(),
+          read: false
+        });
+        
+        // Keep only last 10 notifications
+        if (global.deploymentNotifications.length > 10) {
+          global.deploymentNotifications = global.deploymentNotifications.slice(-10);
+        }
+        
+        sendJson(res, 200, { success: true, message: 'Notification stored' });
+        return;
+      } catch (error) {
+        console.error('Error storing deployment notification:', error);
+        sendJson(res, 500, { error: 'Failed to store notification' });
+        return;
+      }
+    }
+    
+    if (pathname === '/api/deployment-notifications' && method === 'GET') {
+      try {
+        const notifications = global.deploymentNotifications || [];
+        const unreadNotifications = notifications.filter(n => !n.read);
+        sendJson(res, 200, { notifications: unreadNotifications });
+        return;
+      } catch (error) {
+        console.error('Error fetching deployment notifications:', error);
+        sendJson(res, 500, { error: 'Failed to fetch notifications' });
+        return;
+      }
+    }
+    
+    if (pathname === '/api/deployment-notifications/mark-read' && method === 'POST') {
+      try {
+        const body = await parseBody(req);
+        const { notificationId } = body;
+        
+        if (global.deploymentNotifications) {
+          const notification = global.deploymentNotifications.find(n => n.id === notificationId);
+          if (notification) {
+            notification.read = true;
+          }
+        }
+        
+        sendJson(res, 200, { success: true });
+        return;
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+        sendJson(res, 500, { error: 'Failed to mark notification as read' });
+        return;
+      }
+    }
+
     if (pathname.startsWith('/api/')) {
       sendJson(res, 404, { message: 'API endpoint not found' });
       return;

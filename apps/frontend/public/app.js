@@ -8041,3 +8041,88 @@ window.cleanupKiroQueue = async function() {
     throw error;
   }
 };
+
+// Check for deployment notifications
+async function checkDeploymentNotifications() {
+  try {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/api/deployment-notifications`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      const notifications = data.notifications || [];
+      
+      // Handle rebase failure notifications
+      const rebaseFailures = notifications.filter(n => n.type === 'rebase_failure');
+      
+      for (const notification of rebaseFailures) {
+        // Mark as read
+        await fetch(`${apiBaseUrl}/api/deployment-notifications/mark-read`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId: notification.id })
+        });
+        
+        // Show popup
+        openModal({
+          title: '🚨 Rebase Failure Detected',
+          content: `
+            <div style="margin-bottom: 15px;">
+              <p><strong>The PR branch has conflicts with the latest main branch and cannot be automatically rebased.</strong></p>
+            </div>
+            <div style="margin-bottom: 15px;">
+              <p><strong>Action Required:</strong></p>
+              <ul style="margin-left: 20px;">
+                <li>Code regeneration is needed to resolve conflicts</li>
+                <li>Please use the "Generate Code & PR" feature to create updated code</li>
+                <li>Or manually resolve conflicts and push updated code</li>
+              </ul>
+            </div>
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+              <strong>Error:</strong> ${notification.message}<br>
+              <strong>PR:</strong> #${notification.prNumber}<br>
+              <strong>Time:</strong> ${new Date(notification.timestamp).toLocaleString()}
+            </div>
+          `,
+          actions: [
+            {
+              label: 'Generate Code & PR',
+              className: 'btn-primary',
+              onClick: () => {
+                // Navigate to code generation
+                window.location.hash = '#generate-code';
+                closeModal();
+              }
+            },
+            {
+              label: 'View PR',
+              className: 'btn-secondary',
+              onClick: () => {
+                if (notification.prNumber && notification.prNumber !== 'unknown') {
+                  window.open(`https://github.com/demian7575/aipm/pull/${notification.prNumber}`, '_blank');
+                }
+                closeModal();
+              }
+            }
+          ],
+          size: 'large'
+        });
+        
+        // Only show one notification at a time
+        break;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to check deployment notifications:', error);
+  }
+}
+
+// Check notifications on page load and periodically
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', checkDeploymentNotifications);
+} else {
+  checkDeploymentNotifications();
+}
+
+// Check for new notifications every 30 seconds
+setInterval(checkDeploymentNotifications, 30000);
