@@ -8041,3 +8041,69 @@ window.cleanupKiroQueue = async function() {
     throw error;
   }
 };
+
+// Check for deployment notifications on page load
+async function checkDeploymentNotifications() {
+  try {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/api/deployment-status`);
+    if (response.ok) {
+      const status = await response.json();
+      if (status.rebaseFailure) {
+        // Clear the status
+        await fetch(`${apiBaseUrl}/api/deployment-status`, { method: 'DELETE' });
+        
+        openModal({
+          title: '🚨 Rebase Failure Detected',
+          content: `
+            <div style="margin-bottom: 15px;">
+              <p><strong>The PR branch has conflicts with the latest main branch and cannot be automatically rebased.</strong></p>
+            </div>
+            <div style="margin-bottom: 15px;">
+              <p><strong>Action Required:</strong></p>
+              <ul style="margin-left: 20px;">
+                <li>Code regeneration is needed to resolve conflicts</li>
+                <li>Please use the "Generate Code & PR" feature to create updated code</li>
+                <li>Or manually resolve conflicts and push updated code</li>
+              </ul>
+            </div>
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+              <strong>Error:</strong> Automatic rebase failed during deployment process for PR #${status.prNumber || 'Unknown'}
+            </div>
+          `,
+          actions: [
+            {
+              label: 'Generate Code & PR',
+              className: 'btn-primary',
+              onClick: () => {
+                // Navigate to code generation or trigger it
+                window.location.hash = '#generate-code';
+                closeModal();
+              }
+            },
+            {
+              label: 'View PR',
+              className: 'btn-secondary', 
+              onClick: () => {
+                if (status.prNumber) {
+                  window.open(`https://github.com/demian7575/aipm/pull/${status.prNumber}`, '_blank');
+                }
+                closeModal();
+              }
+            }
+          ],
+          size: 'large'
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to check deployment notifications:', error);
+  }
+}
+
+// Initialize deployment notification check
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', checkDeploymentNotifications);
+} else {
+  checkDeploymentNotifications();
+}
