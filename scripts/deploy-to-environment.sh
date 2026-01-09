@@ -48,19 +48,13 @@ echo "📦 Deploying backend..."
 if [[ -n "$GITHUB_ACTIONS" ]]; then
     echo "🔧 GitHub Actions environment detected - using alternative deployment method"
     
-    # Setup SSH key for GitHub Actions
-    if [[ -n "$SSH_PRIVATE_KEY" ]]; then
-        echo "🔑 Setting up SSH key for deployment..."
-        mkdir -p ~/.ssh
-        echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
-        echo "✅ SSH key configured"
-    else
-        echo "❌ SSH_PRIVATE_KEY not found - cannot deploy backend"
-        echo "Please add EC2_SSH_PRIVATE_KEY to GitHub Secrets"
+    # SSH key should already be configured by the workflow
+    if [[ ! -f ~/.ssh/id_rsa ]]; then
+        echo "❌ SSH key not found - should be configured by workflow"
         exit 1
     fi
+    
+    echo "✅ Using SSH key configured by workflow"
 fi
     # Copy backend files and inject version
     echo "📝 Injecting version information into backend..."
