@@ -46,15 +46,47 @@ echo "📦 Deploying backend..."
 
 # Check if we're in GitHub Actions environment
 if [[ -n "$GITHUB_ACTIONS" ]]; then
-    echo "⚠️  GitHub Actions environment detected - skipping SSH deployment"
-    echo "Backend deployment requires SSH access which is not available in GitHub Actions"
-    echo "Manual deployment required for backend updates"
-else
+    echo "🔧 GitHub Actions environment detected - using alternative deployment method"
+    
+    # Setup SSH key for GitHub Actions
+    if [[ -n "$SSH_PRIVATE_KEY" ]]; then
+        echo "🔑 Setting up SSH key for deployment..."
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
+        echo "✅ SSH key configured"
+    else
+        echo "❌ SSH_PRIVATE_KEY not found - cannot deploy backend"
+        echo "Please add EC2_SSH_PRIVATE_KEY to GitHub Secrets"
+        exit 1
+    fi
+fi
     # Copy backend files and inject version
     echo "📝 Injecting version information into backend..."
     
     # First, update git repository on target server
     echo "🔄 Updating git repository on target server..."
+    
+    # Use branch from environment variable or detect current branch
+    if [[ -n "$DEPLOY_BRANCH" ]]; then
+        TARGET_BRANCH="$DEPLOY_BRANCH"
+    else
+        TARGET_BRANCH=$(git branch --show-current)
+        # If we're in detached HEAD state, get the actual branch name
+        if [[ "$TARGET_BRANCH" == "" ]] || [[ "$TARGET_BRANCH" == "HEAD" ]]; then
+            TARGET_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --abbrev-ref HEAD)
+        fi
+    fi
+    
+    echo "📍 Target branch: $TARGET_BRANCH"
+    
+    # For PR branches, fetch the specific branch first, then checkout
+    if [[ "$TARGET_BRANCH" != "main" ]]; then
+        echo "🔄 Fetching PR branch from origin..."
+        ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin $TARGET_BRANCH:$TARGET_BRANCH || git fetch origin pull/*/head:$TARGET_BRANCH || true"
+    fi
+    
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout $TARGET_BRANCH && git reset --hard origin/$TARGET_BRANCH"
     
     COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -83,10 +115,6 @@ else
         VERSION_STRING="${DEPLOY_VERSION}"
     fi
     
-    # Replace version placeholder in backend code
-    sed "s/DEPLOYMENT_VERSION_PLACEHOLDER/${VERSION_STRING}/g" apps/backend/app.js > /tmp/app.js
-    scp -o StrictHostKeyChecking=no /tmp/app.js ec2-user@$HOST:aipm/apps/backend/app.js
-    
     # Create environment file with correct table names and version info
     echo "📝 Setting up environment variables..."
     COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -108,6 +136,66 @@ else
         fi
     fi
     
+    # Update systemd service with current deployment info
+    if [[ "$ENV" == "dev" ]]; then
+        ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo tee /etc/systemd/system/aipm-dev-backend.service << 'EOF'
+[Unit]
+Description=AIPM Development Backend
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+ExecStart=/usr/bin/node apps/backend/server.js
+Environment=NODE_ENV=development
+Environment=ENVIRONMENT=development
+Environment=STAGE=dev
+Environment=STORIES_TABLE=$STORIES_TABLE
+Environment=ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
+Environment=PRS_TABLE=$PRS_TABLE
+Environment=GITHUB_TOKEN=\${GITHUB_TOKEN}
+Environment=PORT=4000
+Environment=DEPLOY_VERSION=$DEPLOY_VERSION
+Environment=COMMIT_HASH=$COMMIT_HASH
+Environment=PR_NUMBER=$PR_NUMBER
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+    else
+        ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo tee /etc/systemd/system/aipm-backend.service << 'EOF'
+[Unit]
+Description=AIPM Production Backend
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+ExecStart=/usr/bin/node apps/backend/server.js
+Environment=NODE_ENV=production
+Environment=ENVIRONMENT=production
+Environment=STAGE=prod
+Environment=STORIES_TABLE=$STORIES_TABLE
+Environment=ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
+Environment=PRS_TABLE=$PRS_TABLE
+Environment=PORT=4000
+Environment=DEPLOY_VERSION=$DEPLOY_VERSION
+Environment=COMMIT_HASH=$COMMIT_HASH
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+    fi
+    
+    # Reload systemd and restart service
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl daemon-reload"
+    
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cat > aipm/.env << EOF
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
@@ -123,14 +211,14 @@ EOF"
 
     # Restart backend (simple process restart)
     echo "🔄 Restarting backend service..."
-    # Stop systemd service first to prevent auto-restart
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl stop aipm-dev-backend.service || true"
-    # Kill any remaining processes
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "pkill -f 'apps/backend/server.js' || true"
-    sleep 2
-    # Start systemd service
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl start aipm-dev-backend.service"
-    echo "✅ Backend restarted via systemd"
+    if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'apps/backend/server.js' && sleep 1 && nohup node apps/backend/server.js > backend.log 2>&1 &" 2>/dev/null; then
+        echo "✅ Backend restarted"
+    elif ssh -o StrictHostKeyChecking=no ec2-user@$HOST "sudo systemctl restart $SERVICE" 2>/dev/null; then
+        echo "✅ Backend restarted via systemd"
+    else
+        echo "❌ Failed to restart backend"
+        exit 1
+    fi
 
     # Deploy Kiro API server
     echo "📦 Deploying Kiro API server..."
