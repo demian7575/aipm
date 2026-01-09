@@ -7599,7 +7599,9 @@ export async function createApp() {
     if (pathname === '/api/deployment-notifications' && method === 'GET') {
       try {
         const notifications = global.deploymentNotifications || [];
+        console.log('GET notifications:', notifications);
         const unreadNotifications = notifications.filter(n => !n.read);
+        console.log('Unread notifications:', unreadNotifications);
         sendJson(res, 200, { notifications: unreadNotifications });
         return;
       } catch (error) {
