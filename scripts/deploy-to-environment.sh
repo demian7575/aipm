@@ -165,7 +165,6 @@ EOF"
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && pkill -f 'kiro-api-server\\|8081' || true && nohup node scripts/kiro-api-server-v4.js > kiro-api.log 2>&1 &"
     echo "✅ Kiro API server deployed"
 fi
-fi
 
 # Skip backend health check in GitHub Actions since we can't deploy backend
 if [[ -z "$GITHUB_ACTIONS" ]]; then
