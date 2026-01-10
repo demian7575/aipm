@@ -258,8 +258,15 @@ const __dirname = dirname(__filename);
 // DynamoDB setup
 const client = new DynamoDBClient({ region: 'us-east-1' });
 const dynamodb = DynamoDBDocumentClient.from(client);
-const STORIES_TABLE = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+const STORIES_TABLE = process.env.STORIES_TABLE;
+const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE;
+
+if (!STORIES_TABLE) {
+  throw new Error('STORIES_TABLE environment variable is required');
+}
+if (!ACCEPTANCE_TESTS_TABLE) {
+  throw new Error('ACCEPTANCE_TESTS_TABLE environment variable is required');
+}
 
 // Load contracts
 const CONTRACTS = JSON.parse(
