@@ -258,8 +258,8 @@ const __dirname = dirname(__filename);
 // DynamoDB setup
 const client = new DynamoDBClient({ region: 'us-east-1' });
 const dynamodb = DynamoDBDocumentClient.from(client);
-const STORIES_TABLE = 'aipm-backend-prod-stories';
-const ACCEPTANCE_TESTS_TABLE = 'aipm-backend-prod-acceptance-tests';
+const STORIES_TABLE = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
 
 // Load contracts
 const CONTRACTS = JSON.parse(
