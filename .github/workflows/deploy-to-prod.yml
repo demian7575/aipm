@@ -97,6 +97,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
+      - name: Setup SSH key for deployment
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 44.220.45.57 >> ~/.ssh/known_hosts
+          echo "✅ SSH key configured for production deployment"
+      
       - name: Deploy to production environment
         run: |
           echo "🚀 Deploying to production environment..."
