@@ -70,6 +70,7 @@ main() {
     # Phase 1: Critical Security & Data Safety
     log_phase "🔴 PHASE 1: Critical Security & Data Safety"
     
+    export PHASE_PASSED PHASE_FAILED
     if ./scripts/testing/phase1-security-data-safety.sh; then
         phase_summary "Phase 1"
     else
@@ -81,6 +82,7 @@ main() {
     # Phase 2: Performance & API Safety  
     log_phase "🟡 PHASE 2: Performance & API Safety"
     
+    export PHASE_PASSED PHASE_FAILED
     if ./scripts/testing/phase2-performance-api.sh; then
         phase_summary "Phase 2"
     else
@@ -91,6 +93,7 @@ main() {
     # Phase 3: Infrastructure & Monitoring
     log_phase "🟢 PHASE 3: Infrastructure & Monitoring"
     
+    export PHASE_PASSED PHASE_FAILED
     if ./scripts/testing/phase3-infrastructure-monitoring.sh; then
         phase_summary "Phase 3"
     else
@@ -101,6 +104,7 @@ main() {
     # Phase 4: End-to-End Workflow Validation
     log_phase "🔄 PHASE 4: End-to-End Workflow Validation"
     
+    export PHASE_PASSED PHASE_FAILED
     if ./scripts/testing/phase4-workflow-validation.sh; then
         phase_summary "Phase 4"
     else
