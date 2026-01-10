@@ -11,6 +11,27 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 // Removed delegation imports - now using direct PR creation
 
+// Load environment variables from .env file
+try {
+  const envFile = readFileSync('.env', 'utf8');
+  envFile.split('\n').forEach(line => {
+    const [key, value] = line.split('=');
+    if (key && value) {
+      process.env[key] = value;
+    }
+  });
+} catch (err) {
+  console.log('No .env file found, using system environment variables');
+}
+
+// Require environment variables
+if (!process.env.STORIES_TABLE) {
+  throw new Error('STORIES_TABLE environment variable is required');
+}
+if (!process.env.ACCEPTANCE_TESTS_TABLE) {
+  throw new Error('ACCEPTANCE_TESTS_TABLE environment variable is required');
+}
+
 // Debug logging configuration
 const DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development';
 const debugLog = (...args) => {
@@ -6187,7 +6208,7 @@ export async function createApp() {
         const docClient = DynamoDBDocumentClient.from(client);
         
         const prodTable = 'aipm-backend-prod-stories';
-        const devTable = process.env.STORIES_TABLE || 'aipm-backend-dev-stories';
+        const devTable = process.env.STORIES_TABLE;
         
         console.log(`📥 Exporting from ${prodTable} to ${devTable}`);
         
@@ -6404,7 +6425,7 @@ export async function createApp() {
           
           const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
           const docClient = DynamoDBDocumentClient.from(client);
-          const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          const tableName = process.env.STORIES_TABLE;
           
           newStoryId = Date.now(); // Generate unique ID
           
@@ -6532,7 +6553,7 @@ export async function createApp() {
           const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
           const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
           
-          const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          const tableName = process.env.STORIES_TABLE;
           if (!tableName) {
             throw new Error('STORIES_TABLE environment variable not set');
           }
@@ -6907,14 +6928,14 @@ export async function createApp() {
           componentsChanged;
 
         // For DynamoDB, use direct update to ensure status change works
-        if (process.env.NODE_ENV !== 'test' && (process.env.STORIES_TABLE || process.env.AWS_REGION)) {
+        if (process.env.NODE_ENV !== 'test' && process.env.STORIES_TABLE && process.env.AWS_REGION) {
           // Direct DynamoDB update for status change
           const { DynamoDBClient, UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
           const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
           
           try {
             await dynamoClient.send(new UpdateItemCommand({
-              TableName: process.env.STORIES_TABLE || 'aipm-backend-dev-stories',
+              TableName: process.env.STORIES_TABLE,
               Key: { id: { N: String(storyId) } },
               UpdateExpression: 'SET #status = :status, updated_at = :updatedAt',
               ExpressionAttributeNames: { '#status': 'status' },
