@@ -80,24 +80,26 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
     
     echo "🔄 Simplified deployment to $HOST..."
     
-    # Simplified deployment: pull latest code and restart services
+    # Simplified deployment: fetch and checkout the correct branch
     ssh -o StrictHostKeyChecking=no ec2-user@$HOST "
         cd aipm && 
-        echo '📥 Pulling latest code...' &&
+        echo '📥 Fetching latest code...' &&
         git fetch origin &&
         if [ '$TARGET_BRANCH' != 'main' ]; then
-            echo '🔄 Fetching PR branch...' &&
-            git fetch origin $TARGET_BRANCH:$TARGET_BRANCH 2>/dev/null || true
+            echo '🔄 Fetching PR branch: $TARGET_BRANCH' &&
+            git fetch origin $TARGET_BRANCH:$TARGET_BRANCH
         fi &&
+        echo '🔄 Checking out branch: $TARGET_BRANCH' &&
         git checkout $TARGET_BRANCH &&
         git reset --hard origin/$TARGET_BRANCH &&
-        echo '✅ Code updated successfully'
+        echo '✅ Code updated successfully to branch: $TARGET_BRANCH'
     " 2>/dev/null || {
         echo "⚠️ Git operations had warnings, verifying success..."
-        if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git status" >/dev/null 2>&1; then
-            echo "✅ Git operations completed successfully"
+        CURRENT_BRANCH=\$(ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git branch --show-current" 2>/dev/null)
+        if [[ "\$CURRENT_BRANCH" == "$TARGET_BRANCH" ]]; then
+            echo "✅ Git operations completed successfully - on branch: \$CURRENT_BRANCH"
         else
-            echo "❌ Git operations failed"
+            echo "❌ Git operations failed - expected: $TARGET_BRANCH, actual: \$CURRENT_BRANCH"
             exit 1
         fi
     }
