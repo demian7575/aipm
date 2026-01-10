@@ -4391,24 +4391,6 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.appendChild(healthLabel);
     healthItem.appendChild(healthValue);
 
-    if (analysisInfo) {
-      const analysisNote = document.createElement('p');
-      analysisNote.className = 'health-analysis-note';
-      if (analysisInfo.source === 'openai') {
-        const model = analysisInfo.aiModel ? ` (${analysisInfo.aiModel})` : '';
-        if (analysisInfo.aiSummary) {
-          analysisNote.textContent = `AI: ${analysisInfo.aiSummary}`;
-        } else {
-          analysisNote.textContent = `AI reviewed${model}`;
-        }
-      } else if (analysisInfo.source === 'fallback') {
-        analysisNote.textContent = 'AI unavailable - using local checks';
-      } else {
-        analysisNote.textContent = 'Using local checks';
-      }
-      healthItem.appendChild(analysisNote);
-    }
-
     const healthActions = document.createElement('div');
     healthActions.className = 'health-actions';
     healthActions.style.marginTop = '0.5rem';
@@ -4453,40 +4435,6 @@ function renderStoryDetailsWithCompleteData(story) {
     });
     healthActions.appendChild(aiButton);
     healthItem.appendChild(healthActions);
-
-    if (analysisInfo && analysisInfo.source === 'openai' && fallbackWarnings.length) {
-      const aiMessages = new Set(
-        (investHealth.issues || []).map((issue) => (issue && issue.message ? issue.message : ''))
-      );
-      const heuristicItems = fallbackWarnings.filter(
-        (issue) => issue && issue.message && !aiMessages.has(issue.message)
-      );
-
-      if (heuristicItems.length > 0) {
-        const heuristicsHeading = document.createElement('h4');
-        heuristicsHeading.className = 'health-subheading';
-        heuristicsHeading.textContent = 'Additional suggestions';
-        healthItem.appendChild(heuristicsHeading);
-
-        const heuristicsList = document.createElement('ul');
-        heuristicsList.className = 'health-issue-list heuristic-list';
-
-        heuristicItems.forEach((issue) => {
-          const item = document.createElement('li');
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'link-button health-issue-button';
-          button.textContent = issue.message;
-          button.addEventListener('click', () =>
-            openHealthIssueModal('Suggestion', issue, analysisInfo)
-          );
-          item.appendChild(button);
-          heuristicsList.appendChild(item);
-        });
-
-        healthItem.appendChild(heuristicsList);
-      }
-    }
 
     metaGrid.appendChild(healthItem);
 
