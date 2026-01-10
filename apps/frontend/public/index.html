@@ -89,11 +89,12 @@
     <script>
       // Detect environment from URL and load appropriate config
       const hostname = window.location.hostname;
-      let configFile = 'config.js'; // default
+      let configFile;
       
       if (hostname.includes('aipm-dev-frontend-hosting') || hostname.includes('dev')) {
         configFile = 'config-dev.js';
-      } else if (hostname.includes('aipm-static-hosting-demo') || hostname.includes('prod')) {
+      } else {
+        // Default to production config for all other cases
         configFile = 'config-prod.js';
       }
       
