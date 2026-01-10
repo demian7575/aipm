@@ -1,9 +1,26 @@
 #!/usr/bin/env node
 
+// Load environment variables from .env file
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// Load .env file if it exists
+try {
+  const envFile = readFileSync('.env', 'utf8');
+  envFile.split('\n').forEach(line => {
+    const [key, value] = line.split('=');
+    if (key && value) {
+      process.env[key] = value;
+    }
+  });
+} catch (err) {
+  console.log('No .env file found, using system environment variables');
+}
+
 import http from 'http';
-import { readFileSync, writeFileSync, appendFileSync } from 'fs';
+import { writeFileSync, appendFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 import { spawn } from 'child_process';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
