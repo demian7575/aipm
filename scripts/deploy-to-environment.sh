@@ -81,34 +81,41 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
     echo "🔄 Simplified deployment to $HOST..."
     
     # Simplified deployment: fetch and checkout the correct branch
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "
-        cd aipm && 
-        echo '📥 Fetching latest code...' &&
-        git fetch origin &&
-        if [ '$TARGET_BRANCH' != 'main' ]; then
-            echo '🔄 Fetching PR branch: $TARGET_BRANCH' &&
-            git fetch origin $TARGET_BRANCH:$TARGET_BRANCH
-        fi &&
-        echo '🔄 Checking out branch: $TARGET_BRANCH' &&
-        git checkout $TARGET_BRANCH &&
-        git reset --hard origin/$TARGET_BRANCH &&
-        echo '✅ Code updated successfully to branch: $TARGET_BRANCH'
-    " 2>/dev/null || {
+    # Create deployment script on remote host
+    cat > /tmp/deploy_commands.sh << 'EOF'
+cd aipm
+echo 'Fetching latest code...'
+git fetch origin
+if [ "$1" != "main" ]; then
+    echo "Fetching PR branch: $1"
+    git fetch origin $1:$1
+fi
+echo "Checking out branch: $1"
+git checkout $1
+git reset --hard origin/$1
+echo "Code updated successfully to branch: $1"
+EOF
+    
+    scp -o StrictHostKeyChecking=no /tmp/deploy_commands.sh ec2-user@$HOST:/tmp/
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/deploy_commands.sh $TARGET_BRANCH 2>/dev/null || {
         echo "⚠️ Git operations had warnings, verifying success..."
-        CURRENT_BRANCH=\$(ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git branch --show-current" 2>/dev/null)
-        if [[ "\$CURRENT_BRANCH" == "$TARGET_BRANCH" ]]; then
-            echo "✅ Git operations completed successfully - on branch: \$CURRENT_BRANCH"
+        ssh -o StrictHostKeyChecking=no ec2-user@$HOST 'cd aipm && git branch --show-current' > /tmp/current_branch 2>/dev/null
+        cat /tmp/current_branch 2>/dev/null > /tmp/branch_name || echo "unknown" > /tmp/branch_name
+        read CURRENT_BRANCH < /tmp/branch_name
+        rm -f /tmp/current_branch /tmp/branch_name
+        if [[ "$CURRENT_BRANCH" == "$TARGET_BRANCH" ]]; then
+            echo "✅ Git operations completed successfully - on branch: $CURRENT_BRANCH"
         else
-            echo "❌ Git operations failed - expected: $TARGET_BRANCH, actual: \$CURRENT_BRANCH"
+            echo "❌ Git operations failed - expected: $TARGET_BRANCH, actual: $CURRENT_BRANCH"
             exit 1
         fi
     }
     
     # Update environment configuration
     echo "⚙️ Updating environment configuration..."
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "
-        cd aipm &&
-        cat > .env << EOF
+    cat > /tmp/env_config.sh << EOF
+cd aipm
+cat > .env << 'ENVEOF'
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
 AWS_REGION=us-east-1
@@ -119,24 +126,28 @@ STAGE=$ENV
 PROD_VERSION=$DEPLOY_VERSION
 BASE_VERSION=$DEPLOY_VERSION
 PR_NUMBER=$PR_NUMBER
+ENVEOF
 EOF
-    "
+    scp -o StrictHostKeyChecking=no /tmp/env_config.sh ec2-user@$HOST:/tmp/
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/env_config.sh
     
     # Restart services
     echo "🔄 Restarting services..."
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "
-        cd aipm &&
-        echo '🛑 Stopping existing processes...' &&
-        pkill -f 'apps/backend/server.js' || true &&
-        pkill -f 'kiro-api-server' || true &&
-        sleep 2 &&
-        echo '🚀 Starting backend...' &&
-        nohup node apps/backend/server.js > backend.log 2>&1 & &&
-        echo '🚀 Starting Kiro API...' &&
-        nohup node scripts/kiro-api-server-v4.js > kiro-api.log 2>&1 & &&
-        sleep 3 &&
-        echo '✅ Services restarted'
-    "
+    cat > /tmp/restart_services.sh << 'EOF'
+cd aipm
+echo 'Stopping existing processes...'
+pkill -f 'apps/backend/server.js' || true
+pkill -f 'kiro-api-server' || true
+sleep 2
+echo 'Starting backend...'
+nohup node apps/backend/server.js > backend.log 2>&1 & 
+echo 'Starting Kiro API...'
+nohup node scripts/kiro-api-server-v4.js > kiro-api.log 2>&1 & 
+sleep 3
+echo 'Services restarted'
+EOF
+    scp -o StrictHostKeyChecking=no /tmp/restart_services.sh ec2-user@$HOST:/tmp/
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/restart_services.sh
     
     echo "✅ Backend deployed successfully"
 fi
