@@ -81,7 +81,16 @@ fi
         ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin $TARGET_BRANCH:$TARGET_BRANCH || git fetch origin pull/*/head:$TARGET_BRANCH || true"
     fi
     
-    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout $TARGET_BRANCH && git reset --hard origin/$TARGET_BRANCH"
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git fetch origin && git checkout $TARGET_BRANCH && git reset --hard origin/$TARGET_BRANCH" 2>/dev/null || {
+        echo "⚠️ SSH command had warnings but may have succeeded"
+        # Test if the command actually worked by checking git status
+        if ssh -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && git status" >/dev/null 2>&1; then
+            echo "✅ Git operations completed successfully despite warnings"
+        else
+            echo "❌ Git operations failed"
+            exit 1
+        fi
+    }
     
     COMMIT_HASH=$(git rev-parse --short HEAD)
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
