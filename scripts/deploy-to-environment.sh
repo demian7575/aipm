@@ -143,7 +143,7 @@ fi
 
 # Deploy frontend
 echo "📦 Deploying frontend..."
-aws s3 sync apps/frontend/public/ s3/$FRONTEND_BUCKET --delete --cache-control no-cache
+aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET --delete --cache-control no-cache
 echo "✅ Frontend deployed to S3"
 
 # Verify deployment
