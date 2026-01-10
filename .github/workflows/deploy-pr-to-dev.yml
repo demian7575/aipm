@@ -204,11 +204,11 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
           
-          # Validate SSH key format
-          if ssh-keygen -l -f ~/.ssh/id_rsa; then
-            echo "✅ SSH key is valid"
+          # Validate SSH private key format
+          if ssh-keygen -y -f ~/.ssh/id_rsa > /dev/null 2>&1; then
+            echo "✅ SSH private key is valid"
           else
-            echo "❌ SSH key validation failed"
+            echo "❌ SSH private key validation failed"
             exit 1
           fi
           
