@@ -4390,52 +4390,6 @@ function renderStoryDetailsWithCompleteData(story) {
     healthValue.textContent = investHealth.satisfied ? '✓ Pass' : `⚠ ${investHealth.issues.length} issue${investHealth.issues.length > 1 ? 's' : ''}`;
     healthItem.appendChild(healthLabel);
     healthItem.appendChild(healthValue);
-
-    const healthActions = document.createElement('div');
-    healthActions.className = 'health-actions';
-    healthActions.style.marginTop = '0.5rem';
-    const aiButton = document.createElement('button');
-    aiButton.type = 'button';
-    aiButton.className = 'secondary small';
-    const aiButtonLabel =
-      analysisInfo && analysisInfo.source === 'openai'
-        ? 'Re-run AI check'
-        : 'Run AI check';
-    aiButton.textContent = aiButtonLabel;
-    aiButton.addEventListener('click', async () => {
-      if (aiButton.disabled) {
-        return;
-      }
-      const originalLabel = aiButton.textContent;
-      aiButton.disabled = true;
-      aiButton.textContent = 'Running…';
-      let applied = false;
-      try {
-        const refreshed = await recheckStoryHealth(story.id, { includeAiInvest: true });
-        applied = applyStoryUpdate(refreshed);
-        if (!applied) {
-          throw new Error('Story could not be refreshed.');
-        }
-        persistSelection();
-        showToast('AI check completed.', 'success');
-      } catch (error) {
-        console.error('Failed to run AI check', error);
-        const message =
-          error && typeof error.message === 'string'
-            ? error.message
-            : 'Failed to run AI check.';
-        showToast(message, 'error');
-      } finally {
-        aiButton.disabled = false;
-        aiButton.textContent = originalLabel;
-        if (applied) {
-          renderAll();
-        }
-      }
-    });
-    healthActions.appendChild(aiButton);
-    healthItem.appendChild(healthActions);
-
     metaGrid.appendChild(healthItem);
 
     summaryCell.appendChild(metaGrid);
