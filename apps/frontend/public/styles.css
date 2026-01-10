@@ -1390,12 +1390,12 @@ body.is-mindmap-panning {
 .health-pill {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.2rem;
+  font-size: 0.7rem;
   font-weight: 500;
   color: #ffffff;
-  min-width: 3.5rem;
+  min-width: 3rem;
   justify-content: center;
 }
 
