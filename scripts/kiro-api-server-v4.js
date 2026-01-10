@@ -8,7 +8,7 @@ import { spawn } from 'child_process';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 
-// Git sync function
+// Git sync function with rebase and conflict handling
 async function syncToBranch(branchName) {
   const execCommand = (cmd) => {
     return new Promise((resolve, reject) => {
@@ -40,13 +40,161 @@ async function syncToBranch(branchName) {
     console.log(`🌿 Checking out branch: ${branchName}`);
     await execCommand(`git checkout ${branchName}`);
     
-    console.log('🔄 Pulling latest changes...');
-    await execCommand(`git pull origin ${branchName}`);
+    console.log('🔄 Attempting rebase to latest origin/main...');
+    try {
+      await execCommand('git rebase origin/main');
+      console.log('✅ Rebase successful - branch is up to date with main');
+    } catch (rebaseError) {
+      console.log('⚠️ Rebase failed due to conflicts:', rebaseError.message);
+      
+      // Abort the failed rebase
+      await execCommand('git rebase --abort');
+      
+      // This will trigger creation of new PR in the calling function
+      throw new Error('REBASE_CONFLICT');
+    }
     
     console.log('✅ Branch sync completed with clean state');
   } catch (error) {
+    if (error.message === 'REBASE_CONFLICT') {
+      throw error; // Re-throw to handle in calling function
+    }
     console.error('❌ Branch sync failed:', error.message);
     throw error;
+  }
+}
+
+// Handle PR conflicts by creating new PR and closing old one
+async function handlePRConflict(oldBranchName, taskSpecContent, storyId) {
+  const execCommand = (cmd) => {
+    return new Promise((resolve, reject) => {
+      const [command, ...args] = cmd.split(' ');
+      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      
+      let output = '';
+      proc.stdout.on('data', (data) => output += data.toString());
+      proc.stderr.on('data', (data) => output += data.toString());
+      
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          reject(new Error(`Command failed: ${cmd}\n${output}`));
+        }
+      });
+    });
+  };
+
+  try {
+    console.log('🔄 Creating new PR due to conflicts...');
+    
+    // Generate new branch name
+    const timestamp = Date.now();
+    const newBranchName = `${oldBranchName}-conflict-resolved-${timestamp}`;
+    
+    // Create new branch from latest main
+    console.log('🌿 Creating new branch from latest main...');
+    await execCommand('git checkout main');
+    await execCommand('git pull origin main');
+    await execCommand(`git checkout -b ${newBranchName}`);
+    
+    // Recreate Task Specification file
+    const taskFileName = `TASK-${storyId}-${timestamp}.md`;
+    const fs = await import('fs');
+    fs.writeFileSync(`/home/ec2-user/aipm/${taskFileName}`, taskSpecContent);
+    
+    await execCommand(`git add ${taskFileName}`);
+    await execCommand(`git commit -m "Add task specification for story ${storyId}"`);
+    await execCommand(`git push origin ${newBranchName}`);
+    
+    // Create new PR via GitHub API
+    const newPR = await createGitHubPR(newBranchName, storyId, taskSpecContent);
+    
+    // Close old PR
+    await closeOldPR(oldBranchName);
+    
+    console.log(`✅ Created new PR: ${newPR.html_url}`);
+    return {
+      newBranchName,
+      newPRUrl: newPR.html_url,
+      newPRNumber: newPR.number
+    };
+    
+  } catch (error) {
+    console.error('❌ Failed to handle PR conflict:', error.message);
+    throw error;
+  }
+}
+
+// Create GitHub PR
+async function createGitHubPR(branchName, storyId, taskContent) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    throw new Error('GitHub token not configured');
+  }
+  
+  const response = await fetch('https://api.github.com/repos/demian7575/aipm/pulls', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      title: `Story ${storyId} Implementation (Conflict Resolved)`,
+      body: `Auto-generated PR for story ${storyId} after resolving conflicts.\n\n${taskContent}`,
+      head: branchName,
+      base: 'main'
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+  
+  return await response.json();
+}
+
+// Close old PR
+async function closeOldPR(branchName) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    console.log('⚠️ No GitHub token - cannot close old PR');
+    return;
+  }
+  
+  try {
+    // Find PR by branch name
+    const searchResponse = await fetch(`https://api.github.com/repos/demian7575/aipm/pulls?head=demian7575:${branchName}&state=open`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    
+    if (searchResponse.ok) {
+      const prs = await searchResponse.json();
+      if (prs.length > 0) {
+        const prNumber = prs[0].number;
+        
+        // Close the PR
+        await fetch(`https://api.github.com/repos/demian7575/aipm/pulls/${prNumber}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            state: 'closed'
+          })
+        });
+        
+        console.log(`✅ Closed old PR #${prNumber}`);
+      }
+    }
+  } catch (error) {
+    console.log('⚠️ Failed to close old PR:', error.message);
   }
 }
 
@@ -1819,16 +1967,61 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         
         console.log('🔧 Code generation request for PR:', prNumber);
         
+        // Read existing Task Specification file
+        let taskSpecContent = '';
+        try {
+          const fs = await import('fs');
+          const taskFiles = fs.readdirSync('/home/ec2-user/aipm').filter(f => f.startsWith(`TASK-${storyId}`));
+          if (taskFiles.length > 0) {
+            taskSpecContent = fs.readFileSync(`/home/ec2-user/aipm/${taskFiles[0]}`, 'utf8');
+          }
+        } catch (error) {
+          console.log('⚠️ Could not read Task Specification file:', error.message);
+        }
+        
+        let finalBranch = originalBranch;
+        let finalPRNumber = prNumber;
+        let finalPRUrl = null;
+        
+        try {
+          // Attempt to sync to branch with rebase
+          await syncToBranch(originalBranch);
+          console.log('✅ Successfully rebased to latest main');
+          
+        } catch (error) {
+          if (error.message === 'REBASE_CONFLICT') {
+            console.log('⚠️ Rebase conflicts detected - creating new PR');
+            
+            // Handle conflict by creating new PR
+            const conflictResult = await handlePRConflict(originalBranch, taskSpecContent, storyId);
+            finalBranch = conflictResult.newBranchName;
+            finalPRNumber = conflictResult.newPRNumber;
+            finalPRUrl = conflictResult.newPRUrl;
+            
+            // Notify backend about PR change
+            await notifyBackendPRUpdate(storyId, finalPRNumber, finalPRUrl);
+            
+            console.log(`✅ Created new PR #${finalPRNumber} due to conflicts`);
+          } else {
+            throw error; // Re-throw non-conflict errors
+          }
+        }
+
         // Use code generation contract with direct execution command
         const kiroPrompt = `Execute code generation contract: ./templates/code-generation.md
+
+IMPORTANT: Generate code to satisfy the requirements defined in the Task Specification File from latest origin/main.
 
 IMMEDIATE EXECUTION - All parameters provided:
 - taskTitle: Code Generation for Story ${storyId}
 - objective: ${prompt}
-- constraints: GitHub PR #${prNumber} on branch ${originalBranch}
-- prNumber: ${prNumber}
-- branchName: ${originalBranch}
+- constraints: GitHub PR #${finalPRNumber} on branch ${finalBranch}
+- prNumber: ${finalPRNumber}
+- branchName: ${finalBranch}
 - language: javascript
+
+Task Specification Content:
+${taskSpecContent}
 
 BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
 
@@ -1840,9 +2033,11 @@ BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: true,
-          message: 'Code generation started',
-          prNumber: prNumber,
-          branchName: originalBranch
+          message: finalPRUrl ? 'New PR created due to conflicts, code generation started' : 'Code generation started',
+          prNumber: finalPRNumber,
+          branchName: finalBranch,
+          newPRCreated: !!finalPRUrl,
+          newPRUrl: finalPRUrl
         }));
       } catch (error) {
         console.error('❌ Generate code branch error:', error);
@@ -1851,6 +2046,56 @@ BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
           success: false,
           error: error.message,
           message: 'Code generation failed'
+        }));
+      }
+    });
+    return;
+  }
+
+  // Update Task Specification endpoint
+  if (url.pathname === '/api/update-task-spec' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { storyId, updatedStory } = JSON.parse(body);
+        
+        console.log('📝 Updating Task Specification for story:', storyId);
+        
+        // Find existing Task Specification files
+        const fs = await import('fs');
+        const taskFiles = fs.readdirSync('/home/ec2-user/aipm').filter(f => f.startsWith(`TASK-${storyId}`));
+        
+        if (taskFiles.length > 0) {
+          // Update existing Task Specification file
+          const taskFileName = taskFiles[0];
+          const taskFilePath = `/home/ec2-user/aipm/${taskFileName}`;
+          
+          // Generate updated Task Specification content
+          const updatedContent = generateTaskSpecContent(storyId, updatedStory);
+          
+          // Write updated content
+          fs.writeFileSync(taskFilePath, updatedContent);
+          
+          // Commit the update to git if in a PR branch
+          await commitTaskSpecUpdate(taskFileName, storyId);
+          
+          console.log(`✅ Updated Task Specification file: ${taskFileName}`);
+        }
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true,
+          message: 'Task Specification updated',
+          storyId: storyId
+        }));
+      } catch (error) {
+        console.error('❌ Update Task Specification error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false,
+          error: error.message,
+          message: 'Task Specification update failed'
         }));
       }
     });
@@ -1872,6 +2117,106 @@ BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
 });
+
+// Generate Task Specification content
+function generateTaskSpecContent(storyId, updatedStory) {
+  const timestamp = Date.now();
+  return `# Story ${storyId} Implementation
+
+This branch was created automatically for implementing story ${storyId}.
+
+## Next Steps
+1. Implement the required functionality
+2. Add tests
+3. Update documentation
+4. Request review
+
+## Story Details
+Title: ${updatedStory.title || 'Development Task'}
+
+As a: ${updatedStory.asA || 'user'}
+I want: ${updatedStory.iWant || 'functionality'}
+So that: ${updatedStory.soThat || 'value is provided'}
+
+Description: ${updatedStory.description || 'Implementation details'}
+
+Components: ${updatedStory.components ? updatedStory.components.join(', ') : 'WorkModel'}
+
+Story Points: ${updatedStory.storyPoint || 'TBD'}
+
+${updatedStory.acceptanceTests && updatedStory.acceptanceTests.length > 0 ? 
+  `Acceptance Tests:\n${updatedStory.acceptanceTests.map((test, i) => 
+    `${i + 1}. ${test.title}\n   Given: ${test.given}\n   When: ${test.when}\n   Then: ${test.then}`
+  ).join('\n')}` : 
+  'Acceptance Tests: To be defined'
+}
+
+---
+Updated: ${new Date().toISOString()}
+`;
+}
+
+// Commit Task Specification update
+async function commitTaskSpecUpdate(taskFileName, storyId) {
+  const execCommand = (cmd) => {
+    return new Promise((resolve, reject) => {
+      const [command, ...args] = cmd.split(' ');
+      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      
+      let output = '';
+      proc.stdout.on('data', (data) => output += data.toString());
+      proc.stderr.on('data', (data) => output += data.toString());
+      
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          reject(new Error(`Command failed: ${cmd}\n${output}`));
+        }
+      });
+    });
+  };
+
+  try {
+    // Check if we're in a git repository and on a branch
+    const branchName = await execCommand('git branch --show-current');
+    if (branchName.trim() && branchName.trim() !== 'main') {
+      // Add and commit the updated Task Specification
+      await execCommand(`git add ${taskFileName}`);
+      await execCommand(`git commit -m "Update Task Specification for story ${storyId}"`);
+      await execCommand(`git push origin ${branchName.trim()}`);
+      console.log(`✅ Committed Task Specification update to branch: ${branchName.trim()}`);
+    }
+  } catch (error) {
+    console.log('⚠️ Could not commit Task Specification update:', error.message);
+  }
+}
+
+// Notify backend about PR updates
+async function notifyBackendPRUpdate(storyId, newPRNumber, newPRUrl) {
+  try {
+    const response = await fetch('http://44.220.45.57/api/update-story-pr', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        storyId: storyId,
+        prNumber: newPRNumber,
+        prUrl: newPRUrl,
+        action: 'conflict_resolved'
+      })
+    });
+    
+    if (response.ok) {
+      console.log('✅ Notified backend about PR update');
+    } else {
+      console.log('⚠️ Failed to notify backend about PR update:', response.status);
+    }
+  } catch (error) {
+    console.log('⚠️ Error notifying backend about PR update:', error.message);
+  }
+}
 
 // Start Kiro process
 startKiroProcess();

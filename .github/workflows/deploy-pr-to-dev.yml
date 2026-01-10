@@ -29,74 +29,60 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Checkout and rebase PR branch
+      - name: Checkout and deploy PR branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # If no PR number or branch provided, use PR context or main
-          if [ -z "${{ github.event.inputs.pr_number }}" ] && [ -z "${{ github.event.inputs.branch_name }}" ]; then
+          # Get PR number and branch
+          if [ -z "${{ github.event.inputs.pr_number }}" ]; then
             if [ "${{ github.event_name }}" = "pull_request" ]; then
-              echo "📥 Auto-deploying PR #${{ github.event.number }}"
-              git fetch origin ${{ github.head_ref }}
-              git checkout ${{ github.head_ref }}
+              PR_NUMBER="${{ github.event.number }}"
               BRANCH_NAME="${{ github.head_ref }}"
             else
-              echo "📥 No PR specified, using main branch"
-              git checkout main
-              echo "✅ Using main branch"
-              exit 0
+              echo "❌ No PR specified"
+              exit 1
             fi
           else
-            # Checkout PR branch
-            if [ -n "${{ github.event.inputs.branch_name }}" ]; then
-              echo "📥 Checking out branch: ${{ github.event.inputs.branch_name }}"
-              git fetch origin ${{ github.event.inputs.branch_name }}
-              git checkout ${{ github.event.inputs.branch_name }}
-              BRANCH_NAME="${{ github.event.inputs.branch_name }}"
-            elif [ -n "${{ github.event.inputs.pr_number }}" ]; then
-              echo "📥 Checking out PR #${{ github.event.inputs.pr_number }}"
-              git fetch origin pull/${{ github.event.inputs.pr_number }}/head:pr-${{ github.event.inputs.pr_number }}
-              git checkout pr-${{ github.event.inputs.pr_number }}
-              BRANCH_NAME="pr-${{ github.event.inputs.pr_number }}"
-            fi
+            PR_NUMBER="${{ github.event.inputs.pr_number }}"
+            # Get branch name from PR
+            BRANCH_NAME=$(curl -s "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER" | jq -r '.head.ref')
           fi
           
-          # Rebase PR onto latest main
-          echo "🔄 Rebasing PR onto latest main..."
+          echo "📥 Deploying PR #$PR_NUMBER (branch: $BRANCH_NAME)"
+          
+          # Checkout PR branch directly - no rebase needed for clean PRs
+          git fetch origin $BRANCH_NAME
+          git checkout $BRANCH_NAME
+          
+          # Verify PR is based on recent main (within last 10 commits)
           git fetch origin main
+          MERGE_BASE=$(git merge-base HEAD origin/main)
+          MAIN_COMMITS=$(git rev-list --count $MERGE_BASE..origin/main)
           
-          # Configure git to use non-interactive editor
-          git config core.editor true
-          
-          # Try to rebase
-          if GIT_EDITOR=true git rebase origin/main; then
-            echo "✅ Rebase successful - proceeding with rebased code"
-          else
-            echo "❌ Rebase conflict detected - gating tests will fail"
-            echo "Please resolve conflicts manually and retry deployment"
-            
-            # Get PR number
-            if [ -n "${{ github.event.inputs.pr_number }}" ]; then
-              PR_NUMBER="${{ github.event.inputs.pr_number }}"
-            elif [ "${{ github.event_name }}" = "pull_request" ]; then
-              PR_NUMBER="${{ github.event.number }}"
-            else
-              PR_NUMBER="unknown"
-            fi
-            
-            # Notify AIPM backend about rebase failure
-            curl -X POST "http://44.220.45.57/api/deployment-notifications" \
-              -H "Content-Type: application/json" \
-              -d "{
-                \"type\": \"rebase_failure\",
-                \"prNumber\": \"$PR_NUMBER\",
-                \"message\": \"Rebase conflict detected during deployment. Code regeneration needed.\",
-                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)\"
-              }" || echo "Failed to notify AIPM backend"
-            
+          if [ $MAIN_COMMITS -gt 10 ]; then
+            echo "❌ PR is too far behind main ($MAIN_COMMITS commits). Please regenerate from latest main."
             exit 1
           fi
+          
+      - name: Validate PR quality
+        run: |
+          # Check if PR has too many commits (should be 1-2 for generated code)
+          COMMIT_COUNT=$(git rev-list --count origin/main..HEAD)
+          if [ $COMMIT_COUNT -gt 3 ]; then
+            echo "❌ PR has too many commits ($COMMIT_COUNT). Generated PRs should have 1-2 commits."
+            echo "Please regenerate the PR from latest main."
+            exit 1
+          fi
+          
+          # Check if PR has merge commits (indicates manual merging)
+          if git log --oneline origin/main..HEAD | grep -q "Merge"; then
+            echo "❌ PR contains merge commits. Generated PRs should not have merges."
+            echo "Please regenerate the PR from latest main."
+            exit 1
+          fi
+          
+          echo "✅ PR quality checks passed ($COMMIT_COUNT commits, no merges)"
       
       - name: Setup Node.js
         uses: actions/setup-node@v3

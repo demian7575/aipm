@@ -1437,7 +1437,7 @@ function getCodeWhispererDelegations(storyId) {
   }
   // Get PRs from the story object
   const story = storyIndex.get(key);
-  return (story?.prs || []).map((entry) => ensureCodeWhispererEntryShape(entry, key)).filter(Boolean);
+  return story.prs.map((entry) => ensureCodeWhispererEntryShape(entry, key)).filter(Boolean);
 }
 
 async function setCodeWhispererDelegations(storyId, entries) {
@@ -1935,7 +1935,16 @@ Execute the template instructions exactly as written.`;
           console.log('✅ Generation result:', result);
           
           if (result.success) {
-            showToast(`Code generation started for PR #${result.prNumber}`, 'success');
+            if (result.newPRCreated) {
+              showToast(`🔄 Conflicts resolved! New PR #${result.prNumber} created. Code generation started.`, 'warning');
+              // Update the UI with new PR information
+              if (result.newPRUrl) {
+                // Refresh the story data to show updated PR links
+                await loadStories();
+              }
+            } else {
+              showToast(`Code generation started for PR #${result.prNumber}`, 'success');
+            }
           } else {
             showToast('Code generation failed', 'error');
           }
@@ -2220,13 +2229,13 @@ function canDelegateToCodeWhisperer(story) {
   }
   
   // Check INVEST validation
-  const investIssues = story.investIssues || [];
+  const investIssues = story.investIssues;
   if (investIssues.length > 0) {
     reasons.push(`INVEST issues: ${investIssues.join(', ')}`);
   }
   
   // Check acceptance tests
-  const acceptanceTests = story.acceptanceTests || [];
+  const acceptanceTests = story.acceptanceTests;
   if (acceptanceTests.length === 0) {
     reasons.push('No acceptance tests defined');
   } else {

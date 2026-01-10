@@ -89,29 +89,24 @@ async function githubRequest(path, options = {}) {
 }
 
 async function getAllStories(db) {
-  try {
-    const query = 'SELECT * FROM stories ORDER BY id';
-    const rows = await new Promise((resolve, reject) => {
-      db.all(query, [], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
+  const query = 'SELECT * FROM stories ORDER BY id';
+  const rows = await new Promise((resolve, reject) => {
+    db.all(query, [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows || []);
     });
-    
-    return rows.map(row => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      status: row.status,
-      storyPoints: row.story_points,
-      parentId: row.parent_id,
-      assignee: row.assignee,
-      component: row.component
-    }));
-  } catch (error) {
-    console.error('getAllStories error:', error);
-    return [];
-  }
+  });
+  
+  return rows.map(row => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    storyPoints: row.story_points,
+    parentId: row.parent_id,
+    assignee: row.assignee,
+    component: row.component
+  }));
 }
 
 async function handleCreatePRWithCodeRequest(req, res) {
@@ -195,7 +190,94 @@ async function handlePersonalDelegateStatusRequest(req, res, url) {
   }
 }
 
+async function handleUpdateStoryPRRequest(req, res) {
+  try {
+    const body = await readRequestBody(req);
+    const { storyId, prNumber, prUrl, action } = JSON.parse(body);
+    
+    if (!storyId || !prNumber) {
+      sendJson(res, 400, { message: 'storyId and prNumber are required' });
+      return;
+    }
 
+    const db = await ensureDatabase();
+    
+    // Update story with new PR information
+    const story = await getStoryById(db, storyId);
+    if (!story) {
+      sendJson(res, 404, { message: 'Story not found' });
+      return;
+    }
+
+    // Update PR information in story
+    const updatedPRs = story.prs || [];
+    const existingPRIndex = updatedPRs.findIndex(pr => pr.number === prNumber);
+    
+    const prEntry = {
+      localId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      storyId: storyId,
+      taskTitle: `Development task (${action})`,
+      repo: 'demian7575/aipm',
+      branchName: `story-${storyId}-implementation`,
+      number: prNumber,
+      type: 'pull_request',
+      prUrl: prUrl,
+      htmlUrl: prUrl,
+      taskUrl: prUrl,
+      threadUrl: prUrl,
+      createdAt: new Date().toISOString(),
+      action: action
+    };
+
+    if (existingPRIndex >= 0) {
+      updatedPRs[existingPRIndex] = prEntry;
+    } else {
+      updatedPRs.push(prEntry);
+    }
+
+    // Update story in database
+    await updateStory(db, storyId, { prs: updatedPRs });
+    
+    console.log(`✅ Updated story ${storyId} with PR #${prNumber} (${action})`);
+    
+    sendJson(res, 200, { 
+      success: true, 
+      message: 'Story PR updated successfully',
+      storyId: storyId,
+      prNumber: prNumber,
+      action: action
+    });
+  } catch (error) {
+    console.error('Update story PR request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to update story PR' });
+  }
+}
+
+// Update Task Specification file when User Story changes
+async function updateTaskSpecificationFile(storyId, updatedStory) {
+  try {
+    // Notify Kiro API server to update Task Specification
+    const response = await fetch('http://44.220.45.57:8081/api/update-task-spec', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        storyId: storyId,
+        updatedStory: updatedStory
+      })
+    });
+    
+    if (response.ok) {
+      console.log(`✅ Updated Task Specification for story ${storyId}`);
+    } else {
+      console.log(`⚠️ Failed to update Task Specification for story ${storyId}:`, response.status);
+    }
+  } catch (error) {
+    console.log(`⚠️ Error updating Task Specification for story ${storyId}:`, error.message);
+  }
+}
 
 async function handleCodeWhispererStatusRequest(req, res) {
   try {
@@ -2214,20 +2296,13 @@ function now() {
 }
 
 function ensureArray(value) {
-  if (Array.isArray(value)) return value.map((entry) => String(entry).trim()).filter(Boolean);
-  if (value == null) return [];
-  return [String(value).trim()].filter(Boolean);
+  return value.map((entry) => String(entry).trim()).filter(Boolean);
 }
 
 function parseJsonArray(value) {
   if (!value) return [];
-  if (Array.isArray(value)) return value; // Already an array (from DynamoDB)
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  if (Array.isArray(value)) return value;
+  return JSON.parse(value);
 }
 
 function sanitizeFilename(name) {
@@ -4934,8 +5009,8 @@ function tableColumns(db, table) {
       return db._all(`PRAGMA table_info(${table})`);
     }
   } catch (error) {
-    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
-      return [];
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message)) {
+      throw new Error(`Table not found: ${table}`);
     }
     throw error;
   }
@@ -4945,15 +5020,14 @@ async function safeSelectAll(db, sql, ...params) {
   try {
     // Check if this is DynamoDB adapter
     if (db.safeSelectAll && typeof db.safeSelectAll === 'function') {
-      const result = await db.safeSelectAll(sql, ...params);
-      return Array.isArray(result) ? result : [];
+      return await db.safeSelectAll(sql, ...params);
     }
     
     // SQLite path
     return db.prepare(sql).all(...params);
   } catch (error) {
-    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
-      return [];
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message)) {
+      throw new Error(`Table not found: ${error.message}`);
     }
     throw error;
   }
@@ -5082,8 +5156,8 @@ async function loadDependencyRows(db) {
       .prepare('SELECT story_id, depends_on_story_id, relationship FROM story_dependencies ORDER BY story_id, depends_on_story_id')
       .all();
   } catch (error) {
-    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
-      return [];
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message)) {
+      throw new Error(`Dependencies table not found: ${error.message}`);
     }
     throw error;
   }
@@ -5834,6 +5908,11 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/update-story-pr' && method === 'POST') {
+      await handleUpdateStoryPRRequest(req, res);
+      return;
+    }
+
     if (pathname === '/api/run-staging' && method === 'POST') {
       // Staging deployment endpoint - returns 500 for automated tests as expected
       sendJson(res, 500, { 
@@ -6569,6 +6648,9 @@ export async function createApp() {
             );
           });
         }
+        
+        // Update Task Specification file if story has associated PRs
+        await updateTaskSpecificationFile(storyId, payload);
         
         sendJson(res, 200, { success: true, message: 'Story updated' });
       } catch (err) {
