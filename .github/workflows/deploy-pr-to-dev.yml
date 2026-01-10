@@ -203,15 +203,6 @@ jobs:
           echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
-          
-          # Validate SSH private key format
-          if ssh-keygen -y -f ~/.ssh/id_rsa > /dev/null 2>&1; then
-            echo "✅ SSH private key is valid"
-          else
-            echo "❌ SSH private key validation failed"
-            exit 1
-          fi
-          
           echo "✅ SSH key configured for development deployment"
       
       - name: Copy database files
