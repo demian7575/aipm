@@ -6,7 +6,7 @@ function testInvestDisplaySimplified() {
   // When: I look at the INVEST criteria section
   // Then: the display should be clean and easy to understand
   
-  // Test workflow trigger - updated at 2026-01-10 13:54 - SSH key verification test
+  // Test workflow trigger - updated at 2026-01-10 18:06 - automatic pull_request trigger test
 // This test validates that the INVEST display shows only essential information
   // without overwhelming the user with too much detail
   console.log('✓ Test 1: INVEST display is simplified');
