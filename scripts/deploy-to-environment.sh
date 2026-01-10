@@ -96,10 +96,10 @@ git reset --hard origin/$1
 echo "Code updated successfully to branch: $1"
 EOF
     
-    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/deploy_commands.sh ec2-user@$HOST:/tmp/
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/deploy_commands.sh $TARGET_BRANCH 2>/dev/null || {
+    scp -o StrictHostKeyChecking=no /tmp/deploy_commands.sh ec2-user@$HOST:/tmp/
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/deploy_commands.sh $TARGET_BRANCH 2>/dev/null || {
         echo "⚠️ Git operations had warnings, verifying success..."
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST 'cd aipm && git branch --show-current' > /tmp/current_branch 2>/dev/null
+        ssh -o StrictHostKeyChecking=no ec2-user@$HOST 'cd aipm && git branch --show-current' > /tmp/current_branch 2>/dev/null
         cat /tmp/current_branch 2>/dev/null > /tmp/branch_name || echo "unknown" > /tmp/branch_name
         read CURRENT_BRANCH < /tmp/branch_name
         rm -f /tmp/current_branch /tmp/branch_name
@@ -128,8 +128,8 @@ BASE_VERSION=$DEPLOY_VERSION
 PR_NUMBER=$PR_NUMBER
 ENVEOF
 EOF
-    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/env_config.sh ec2-user@$HOST:/tmp/
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/env_config.sh
+    scp -o StrictHostKeyChecking=no /tmp/env_config.sh ec2-user@$HOST:/tmp/
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/env_config.sh
     
     # Restart services
     echo "🔄 Restarting services..."
@@ -146,8 +146,8 @@ nohup node scripts/kiro-api-server-v4.js > kiro-api.log 2>&1 &
 sleep 3
 echo 'Services restarted'
 EOF
-    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/restart_services.sh ec2-user@$HOST:/tmp/
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/restart_services.sh
+    scp -o StrictHostKeyChecking=no /tmp/restart_services.sh ec2-user@$HOST:/tmp/
+    ssh -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/restart_services.sh
     
     echo "✅ Backend deployed successfully"
 fi
