@@ -4402,7 +4402,6 @@ function renderStoryDetailsWithCompleteData(story) {
     // Simplified actions - move AI button to be less prominent
     const healthActions = document.createElement('div');
     healthActions.className = 'health-actions simplified';
-    healthActions.style.marginTop = '0.25rem';
     const aiButton = document.createElement('button');
     aiButton.type = 'button';
     aiButton.className = 'link-button small';
