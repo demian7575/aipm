@@ -56,9 +56,15 @@ batch_copy() {
                 
                 # Only send if we have valid items
                 if [ "$first" = false ]; then
-                    aws dynamodb batch-write-item \
+                    if ! aws dynamodb batch-write-item \
                         --region "$REGION" \
-                        --request-items file:///tmp/delete_request.json 2>/dev/null || true
+                        --request-items file:///tmp/delete_request.json 2>/dev/null; then
+                        echo "⚠️ Delete batch failed, retrying..."
+                        sleep 1
+                        aws dynamodb batch-write-item \
+                            --region "$REGION" \
+                            --request-items file:///tmp/delete_request.json || echo "⚠️ Delete retry failed"
+                    fi
                 fi
                 rm "$batch_file"
             fi
@@ -88,9 +94,15 @@ batch_copy() {
                 
                 # Only send if we have valid items
                 if [ "$first" = false ]; then
-                    aws dynamodb batch-write-item \
+                    if ! aws dynamodb batch-write-item \
                         --region "$REGION" \
-                        --request-items file:///tmp/insert_request.json 2>/dev/null || true
+                        --request-items file:///tmp/insert_request.json 2>/dev/null; then
+                        echo "⚠️ Insert batch failed, retrying..."
+                        sleep 1
+                        aws dynamodb batch-write-item \
+                            --region "$REGION" \
+                            --request-items file:///tmp/insert_request.json || echo "⚠️ Insert retry failed"
+                    fi
                 fi
                 rm "$batch_file" 2>/dev/null || true
             fi
@@ -104,11 +116,22 @@ batch_copy() {
     echo "✅ Completed: $source_table -> $target_table"
 }
 
-# Process all tables in parallel
+# Process all tables sequentially (not in parallel) to avoid resource contention
 for source_table in "${!TABLE_MAPPINGS[@]}"; do
     target_table="${TABLE_MAPPINGS[$source_table]}"
-    batch_copy "$source_table" "$target_table" &
+    echo "🔄 Processing: $source_table -> $target_table"
+    batch_copy "$source_table" "$target_table"
+    
+    # Verify copy completed successfully
+    PROD_COUNT=$(aws dynamodb scan --table-name "$source_table" --select COUNT --region "$REGION" --query 'Count' --output text)
+    DEV_COUNT=$(aws dynamodb scan --table-name "$target_table" --select COUNT --region "$REGION" --query 'Count' --output text)
+    
+    if [[ "$PROD_COUNT" -eq "$DEV_COUNT" ]]; then
+        echo "✅ Verified: $source_table ($PROD_COUNT) -> $target_table ($DEV_COUNT)"
+    else
+        echo "❌ COPY FAILED: $source_table ($PROD_COUNT) -> $target_table ($DEV_COUNT)"
+        exit 1
+    fi
 done
-wait
 
 echo "🚀 Ultra-fast DynamoDB copy completed!"
