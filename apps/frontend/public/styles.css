@@ -1453,11 +1453,11 @@ body.is-mindmap-panning {
 }
 
 .health-actions.simplified .link-button {
-  font-size: 0.75rem;
-  color: #6b7280;
+  font-size: 0.7rem;
+  color: #9ca3af;
   text-decoration: none;
-  padding: 0.25rem 0.5rem;
-  background: #f9fafb;
+  padding: 0.2rem 0.4rem;
+  background: #fafafa;
   border: 1px solid #e5e7eb;
   border-radius: 0.25rem;
   cursor: pointer;
@@ -1465,9 +1465,9 @@ body.is-mindmap-panning {
 }
 
 .health-actions.simplified .link-button:hover {
-  color: #3b82f6;
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-color: #d1d5db;
 }
 
 .health-issue-count {
