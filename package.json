@@ -15,7 +15,8 @@
     "@aws-sdk/client-dynamodb": "^3.0.0",
     "@aws-sdk/lib-dynamodb": "^3.0.0",
     "@vendia/serverless-express": "^4.12.6",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "jsdom": "^26.1.0"
   },
   "devDependencies": {
     "serverless": "^3.40.0"

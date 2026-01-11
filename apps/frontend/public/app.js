@@ -4395,14 +4395,13 @@ function renderStoryDetailsWithCompleteData(story) {
       const analysisNote = document.createElement('p');
       analysisNote.className = 'health-analysis-note';
       if (analysisInfo.source === 'openai') {
-        const model = analysisInfo.aiModel ? ` (${analysisInfo.aiModel})` : '';
         if (analysisInfo.aiSummary) {
-          analysisNote.textContent = `AI: ${analysisInfo.aiSummary}`;
+          analysisNote.textContent = analysisInfo.aiSummary;
         } else {
-          analysisNote.textContent = `AI reviewed${model}`;
+          analysisNote.textContent = 'AI reviewed';
         }
       } else if (analysisInfo.source === 'fallback') {
-        analysisNote.textContent = 'AI unavailable - using local checks';
+        analysisNote.textContent = 'Using local checks';
       } else {
         analysisNote.textContent = 'Using local checks';
       }
