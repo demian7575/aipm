@@ -1769,12 +1769,28 @@ dialog[data-size='content'] .modal-shell {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  width: 100%;
+  max-width: 800px;
 }
 
 .child-story-form label {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.child-story-form label > span:first-child {
+  min-width: 120px;
+  flex-shrink: 0;
+  font-weight: 500;
+  padding-top: 0.5rem;
+}
+
+.child-story-form input,
+.child-story-form textarea {
+  flex: 1;
 }
 
 .acceptance-tests-section {

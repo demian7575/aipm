@@ -6340,16 +6340,16 @@ function openChildStoryModal(parentId) {
   container.className = 'modal-form child-story-form';
   container.innerHTML = `
     <div class="child-story-generator">
-      <label>Idea<textarea id="child-idea" placeholder="Describe the user story idea"></textarea></label>
+      <label><span>Idea</span><textarea id="child-idea" placeholder="Describe the user story idea"></textarea></label>
       <div class="child-story-generator-actions">
         <button type="button" class="secondary" id="child-generate-btn">Generate</button>
         <p class="form-hint">Use your idea to draft the story details automatically.</p>
       </div>
     </div>
-    <label>Title<textarea id="child-title" rows="1" style="resize: none; overflow: hidden;"></textarea></label>
-    <label>Story Point<input id="child-point" type="number" min="0" step="1" placeholder="Estimate" /></label>
-    <label>Assignee Email<input id="child-assignee" type="email" placeholder="name@example.com" /></label>
-    <label>Description<textarea id="child-description"></textarea></label>
+    <label><span>Title</span><textarea id="child-title" rows="1" style="resize: none; overflow: hidden;"></textarea></label>
+    <label><span>Story Point</span><input id="child-point" type="number" min="0" step="1" placeholder="Estimate" /></label>
+    <label><span>Assignee Email</span><input id="child-assignee" type="email" placeholder="name@example.com" /></label>
+    <label><span>Description</span><textarea id="child-description"></textarea></label>
     <table class="story-brief">
       <tbody>
         <tr>
@@ -6379,10 +6379,10 @@ function openChildStoryModal(parentId) {
       <h4>Acceptance Tests</h4>
       <div class="acceptance-tests-list" id="child-acceptance-tests-list">
         <div class="acceptance-test-item">
-          <label>Test Title<input type="text" id="child-test-title-1" placeholder="Enter test title"></label>
-          <label>Given<textarea id="child-test-given-1" rows="2" placeholder="Given condition"></textarea></label>
-          <label>When<textarea id="child-test-when-1" rows="2" placeholder="When action"></textarea></label>
-          <label>Then<textarea id="child-test-then-1" rows="2" placeholder="Then expected result"></textarea></label>
+          <label><span>Test Title</span><input type="text" id="child-test-title-1" placeholder="Enter test title"></label>
+          <label><span>Given</span><textarea id="child-test-given-1" rows="2" placeholder="Given condition"></textarea></label>
+          <label><span>When</span><textarea id="child-test-when-1" rows="2" placeholder="When action"></textarea></label>
+          <label><span>Then</span><textarea id="child-test-then-1" rows="2" placeholder="Then expected result"></textarea></label>
         </div>
       </div>
       <button type="button" class="secondary" id="child-add-test-btn">Add Another Test</button>
@@ -6406,10 +6406,10 @@ function openChildStoryModal(parentId) {
     const newTest = document.createElement('div');
     newTest.className = 'acceptance-test-item';
     newTest.innerHTML = `
-      <label>Test Title<input type="text" id="child-test-title-${testCounter}" placeholder="Enter test title"></label>
-      <label>Given<textarea id="child-test-given-${testCounter}" rows="2" placeholder="Given condition"></textarea></label>
-      <label>When<textarea id="child-test-when-${testCounter}" rows="2" placeholder="When action"></textarea></label>
-      <label>Then<textarea id="child-test-then-${testCounter}" rows="2" placeholder="Then expected result"></textarea></label>
+      <label><span>Test Title</span><input type="text" id="child-test-title-${testCounter}" placeholder="Enter test title"></label>
+      <label><span>Given</span><textarea id="child-test-given-${testCounter}" rows="2" placeholder="Given condition"></textarea></label>
+      <label><span>When</span><textarea id="child-test-when-${testCounter}" rows="2" placeholder="When action"></textarea></label>
+      <label><span>Then</span><textarea id="child-test-then-${testCounter}" rows="2" placeholder="Then expected result"></textarea></label>
       <button type="button" class="danger remove-test-btn">Remove Test</button>
     `;
     testsList.appendChild(newTest);
