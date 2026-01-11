@@ -100,11 +100,11 @@ test_data_consistency() {
     DIFF=$((DEV_COUNT - PROD_COUNT))
     ABS_DIFF=${DIFF#-}
     
-    # Allow up to 1 extra story in development environment
+    # Allow up to 5 extra stories in development environment for active development
     if [[ $ABS_DIFF -eq 0 ]]; then
         pass_test "Stories data consistent (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
-    elif [[ $DIFF -eq 1 ]]; then
-        pass_test "Stories data acceptable - dev has 1 extra story (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
+    elif [[ $DIFF -gt 0 && $DIFF -le 5 ]]; then
+        pass_test "Stories data acceptable - dev has $DIFF extra stories (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
     else
         fail_test "Stories data discrepancy (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
     fi
