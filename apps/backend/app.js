@@ -6169,7 +6169,7 @@ export async function createApp() {
             storyId: storyId,
             syncToOrigin: true
           }),
-          signal: AbortSignal.timeout(600000) // 10 minute timeout
+          signal: AbortSignal.timeout(30000) // 30 second timeout
         });
 
         if (!kiroResponse.ok) {
