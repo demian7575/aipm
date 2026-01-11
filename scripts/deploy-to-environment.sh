@@ -135,17 +135,25 @@ EOF
     
     # Restart services
     echo "🔄 Restarting services..."
-    cat > /tmp/restart_services.sh << 'EOF'
+    cat > /tmp/restart_services.sh << EOF
 cd aipm
-echo 'Stopping existing processes...'
-pkill -f 'apps/backend/server.js' || true
-pkill -f 'kiro-api-server' || true
-sleep 2
-echo 'Starting backend...'
-nohup node apps/backend/server.js > backend.log 2>&1 & 
-echo 'Starting Kiro API...'
-nohup node scripts/kiro-api-server-v4.js > kiro-api.log 2>&1 & 
-sleep 3
+if [[ "$ENV" == "prod" ]]; then
+    echo 'Restarting production systemd service...'
+    sudo systemctl restart aipm-backend.service
+    echo 'Waiting for service to start...'
+    sleep 5
+    sudo systemctl status aipm-backend.service --no-pager
+else
+    echo 'Stopping manual processes...'
+    pkill -f 'apps/backend/server.js' || true
+    pkill -f 'kiro-api-server' || true
+    sleep 2
+    echo 'Starting backend...'
+    nohup node apps/backend/server.js > backend.log 2>&1 & 
+    echo 'Starting Kiro API...'
+    nohup node scripts/kiro-api-server-v4.js > kiro-api.log 2>&1 & 
+    sleep 3
+fi
 echo 'Services restarted'
 EOF
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/restart_services.sh ec2-user@$HOST:/tmp/
