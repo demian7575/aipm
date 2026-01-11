@@ -5842,6 +5842,16 @@ export async function createApp() {
         return;
       }
 
+      if (pathname === '/api/create-pr' && method === 'OPTIONS') {
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        });
+        res.end();
+        return;
+      }
+
       if (pathname === '/api/create-pr' && method === 'POST') {
         await handleCreatePRRequest(req, res);
         return;
