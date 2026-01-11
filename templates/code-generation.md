@@ -33,12 +33,9 @@
 
 1. **Access GitHub PR**: Read the GitHub PR #PR_NUMBER linked to the Development Tasks card
 
-2. **Rebase with Latest Main**: 
+2. **Rebase with Latest Main**:
    - Execute `git fetch origin`
-   - Execute `git checkout main` 
-   - Execute `git pull origin main`
-
-3. **Checkout and Update PR Branch**: 
+   - Execute `git stash`
    - Execute `git checkout BRANCH_NAME`
    - Execute `git rebase origin/main`
 
@@ -98,6 +95,9 @@ language: string          # Programming language (default: javascript)
 - **Production Ready**: Ensure code is robust, secure, and performant
 - **Local Testing**: Verify functionality works correctly before committing
 - **No Breaking Changes**: Ensure existing functionality remains intact
+- **Use Fallback Only When Unavoidable**: Prefer direct solutions over fallback mechanisms
+- **Keep Simple and Clear**: Write straightforward, readable code without unnecessary complexity
+- **Maximize Reuse While Minimizing Duplication**: Leverage existing functions and avoid code repetition
 
 ### File Structure Context
 ```
@@ -132,32 +132,29 @@ apps/
 
 2. **Rebase Main**: 
    - `git fetch origin`
-   - `git checkout main` 
-   - `git pull origin main`
-
-3. **Setup Branch**: 
+   - `git stash`
    - `git checkout BRANCH_NAME`
    - `git rebase origin/main`
 
-4. **Analyze**: Review AIPM codebase structure and existing patterns
+3. **Analyze**: Review AIPM codebase structure and existing patterns
 
-5. **Extract**: Parse requirements, acceptance criteria, and constraints from TASK file
+4. **Extract**: Parse requirements, acceptance criteria, and constraints from TASK file
 
-6. **Create Tests**: Implement acceptance tests as gating tests first
+5. **Create Tests**: Implement acceptance tests as gating tests first
 
-7. **Implement**: Code changes for TASK_TITLE following OBJECTIVE_TEXT (REPEAT UNTIL ALL GATING TESTS PASS - MAX 5 ITERATIONS)
+6. **Implement**: Code changes for TASK_TITLE following OBJECTIVE_TEXT (REPEAT UNTIL ALL GATING TESTS PASS - MAX 5 ITERATIONS)
 
-8. **Apply Constraints**: Ensure CONSTRAINTS_TEXT are satisfied
+7. **Apply Constraints**: Ensure CONSTRAINTS_TEXT are satisfied
 
-9. **Verify**: Test functionality locally and ensure quality standards
+8. **Verify**: Test functionality locally and ensure quality standards
 
-10. **Commit**: 
+9. **Commit**: 
     - `git add .`
     - `git commit -m "feat: TASK_TITLE"`
 
-11. **Push**: 
+10. **Push**: 
     - `git push origin BRANCH_NAME`
 
-12. **Report**: Return JSON status with success/failure and details
+11. **Report**: Return JSON status with success/failure and details
 
 **EXECUTE EXACTLY ONCE**: Replace placeholders with actual values and complete the full workflow. Do not retry or execute multiple times.
