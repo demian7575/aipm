@@ -4381,7 +4381,7 @@ function renderStoryDetailsWithCompleteData(story) {
     }
 
     const healthItem = document.createElement('div');
-    healthItem.className = 'story-meta-item';
+    healthItem.className = 'story-meta-item invest-simplified';
     const healthLabel = document.createElement('span');
     healthLabel.className = 'story-meta-label';
     healthLabel.textContent = 'INVEST';
@@ -4391,34 +4391,25 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.appendChild(healthLabel);
     healthItem.appendChild(healthValue);
 
-    if (analysisInfo) {
+    // Simplified analysis info - only show essential information
+    if (analysisInfo && analysisInfo.aiSummary) {
       const analysisNote = document.createElement('p');
-      analysisNote.className = 'health-analysis-note';
-      if (analysisInfo.source === 'openai') {
-        const model = analysisInfo.aiModel ? ` (${analysisInfo.aiModel})` : '';
-        if (analysisInfo.aiSummary) {
-          analysisNote.textContent = `AI: ${analysisInfo.aiSummary}`;
-        } else {
-          analysisNote.textContent = `AI reviewed${model}`;
-        }
-      } else if (analysisInfo.source === 'fallback') {
-        analysisNote.textContent = 'AI unavailable - using local checks';
-      } else {
-        analysisNote.textContent = 'Using local checks';
-      }
+      analysisNote.className = 'health-analysis-note simplified';
+      analysisNote.textContent = analysisInfo.aiSummary;
       healthItem.appendChild(analysisNote);
     }
 
+    // Simplified actions - move AI button to be less prominent
     const healthActions = document.createElement('div');
-    healthActions.className = 'health-actions';
-    healthActions.style.marginTop = '0.5rem';
+    healthActions.className = 'health-actions simplified';
+    healthActions.style.marginTop = '0.25rem';
     const aiButton = document.createElement('button');
     aiButton.type = 'button';
-    aiButton.className = 'secondary small';
+    aiButton.className = 'link-button small';
     const aiButtonLabel =
       analysisInfo && analysisInfo.source === 'openai'
-        ? 'Re-run AI check'
-        : 'Run AI check';
+        ? 'Re-check'
+        : 'AI check';
     aiButton.textContent = aiButtonLabel;
     aiButton.addEventListener('click', async () => {
       if (aiButton.disabled) {
@@ -4454,37 +4445,19 @@ function renderStoryDetailsWithCompleteData(story) {
     healthActions.appendChild(aiButton);
     healthItem.appendChild(healthActions);
 
-    if (analysisInfo && analysisInfo.source === 'openai' && fallbackWarnings.length) {
-      const aiMessages = new Set(
-        (investHealth.issues || []).map((issue) => (issue && issue.message ? issue.message : ''))
-      );
-      const heuristicItems = fallbackWarnings.filter(
-        (issue) => issue && issue.message && !aiMessages.has(issue.message)
-      );
-
-      if (heuristicItems.length > 0) {
-        const heuristicsHeading = document.createElement('h4');
-        heuristicsHeading.className = 'health-subheading';
-        heuristicsHeading.textContent = 'Additional suggestions';
-        healthItem.appendChild(heuristicsHeading);
-
-        const heuristicsList = document.createElement('ul');
-        heuristicsList.className = 'health-issue-list heuristic-list';
-
-        heuristicItems.forEach((issue) => {
-          const item = document.createElement('li');
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'link-button health-issue-button';
-          button.textContent = issue.message;
-          button.addEventListener('click', () =>
-            openHealthIssueModal('Suggestion', issue, analysisInfo)
-          );
-          item.appendChild(button);
-          heuristicsList.appendChild(item);
-        });
-
-        healthItem.appendChild(heuristicsList);
+    // Simplified display - remove complex heuristics section for cleaner view
+    if (analysisInfo && analysisInfo.source === 'openai' && fallbackWarnings.length > 0) {
+      // Only show count of additional suggestions, not full list
+      const suggestionCount = fallbackWarnings.filter(
+        (issue) => issue && issue.message && 
+        !(investHealth.issues || []).some(existing => existing.message === issue.message)
+      ).length;
+      
+      if (suggestionCount > 0) {
+        const suggestionNote = document.createElement('p');
+        suggestionNote.className = 'health-suggestion-note simplified';
+        suggestionNote.textContent = `${suggestionCount} additional suggestion${suggestionCount > 1 ? 's' : ''} available`;
+        healthItem.appendChild(suggestionNote);
       }
     }
 
