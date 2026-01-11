@@ -100,7 +100,7 @@ test_data_consistency() {
     DIFF=$((PROD_COUNT - DEV_COUNT))
     ABS_DIFF=${DIFF#-}
     
-    if [[ $ABS_DIFF -lt 10 ]]; then
+    if [[ $ABS_DIFF -eq 0 ]]; then
         pass_test "Stories data consistent (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
     else
         fail_test "Stories data discrepancy (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
@@ -115,7 +115,7 @@ test_data_consistency() {
     TEST_DIFF=$((PROD_TESTS - DEV_TESTS))
     TEST_ABS_DIFF=${TEST_DIFF#-}
     
-    if [[ $TEST_ABS_DIFF -lt 20 ]]; then
+    if [[ $TEST_ABS_DIFF -eq 0 ]]; then
         pass_test "Acceptance tests consistent (Prod: $PROD_TESTS, Dev: $DEV_TESTS)"
     else
         fail_test "Acceptance tests discrepancy (Prod: $PROD_TESTS, Dev: $DEV_TESTS)"
@@ -130,7 +130,7 @@ test_data_consistency() {
     PRS_DIFF=$((PROD_PRS - DEV_PRS))
     PRS_ABS_DIFF=${PRS_DIFF#-}
     
-    if [[ $PRS_ABS_DIFF -lt 5 ]]; then
+    if [[ $PRS_ABS_DIFF -eq 0 ]]; then
         pass_test "PRs data consistent (Prod: $PROD_PRS, Dev: $DEV_PRS)"
     else
         fail_test "PRs data discrepancy (Prod: $PROD_PRS, Dev: $DEV_PRS)"

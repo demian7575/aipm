@@ -256,9 +256,34 @@ async function commitAndPush(generatedCode, storyId, branch) {
       console.log('✅ Added all changes to git');
     }
     
-    const commitMessage = `Generated code for story ${storyId}`;
+    // Generate and add task specification to the same commit
+    console.log('📝 Generating task specification...');
+    const fs = await import('fs');
+    const taskFiles = fs.readdirSync('/home/ec2-user/aipm').filter(f => f.startsWith(`TASK-${storyId}`));
+    
+    if (taskFiles.length > 0) {
+      // Update existing task specification
+      const taskFileName = taskFiles[0];
+      const taskFilePath = `/home/ec2-user/aipm/${taskFileName}`;
+      
+      // Get current story data from backend
+      try {
+        const storyResponse = await fetch(`http://44.220.45.57/api/stories/${storyId}`);
+        if (storyResponse.ok) {
+          const storyData = await storyResponse.json();
+          const updatedContent = generateTaskSpecContent(storyId, storyData);
+          fs.writeFileSync(taskFilePath, updatedContent);
+          await execCommand(`git add ${taskFileName}`);
+          console.log(`📝 Updated task specification: ${taskFileName}`);
+        }
+      } catch (error) {
+        console.log('⚠️ Could not update task specification:', error.message);
+      }
+    }
+    
+    const commitMessage = `Generated code and updated task specification for story ${storyId}`;
     await execCommand('git commit -m "' + commitMessage + '"');
-    console.log('✅ Committed changes');
+    console.log('✅ Committed changes with task specification');
     
     await execCommand('git push origin ' + branch);
     console.log('✅ Pushed to GitHub - PR should be updated automatically');

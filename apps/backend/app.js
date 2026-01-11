@@ -6169,7 +6169,7 @@ export async function createApp() {
             storyId: storyId,
             syncToOrigin: true
           }),
-          signal: AbortSignal.timeout(600000) // 10 minute timeout
+          signal: AbortSignal.timeout(30000) // 30 second timeout
         });
 
         if (!kiroResponse.ok) {
@@ -6671,7 +6671,9 @@ export async function createApp() {
         }
         
         // Update Task Specification file if story has associated PRs
-        await updateTaskSpecificationFile(storyId, payload);
+        // NOTE: Disabled to prevent duplicate commits during code generation
+        // Task specifications are now updated during the code generation process
+        // await updateTaskSpecificationFile(storyId, payload);
         
         sendJson(res, 200, { success: true, message: 'Story updated' });
       } catch (err) {

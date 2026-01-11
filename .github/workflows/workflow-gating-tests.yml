@@ -1,8 +1,6 @@
 name: AIPM Structured Gating Tests
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
   push:
     branches: [main]
   workflow_dispatch:
@@ -17,6 +15,9 @@ on:
         - '1'
         - '2'
         - '3'
+
+jobs:
+  gating-tests:
 
 permissions:
   contents: read
