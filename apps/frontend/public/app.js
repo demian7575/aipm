@@ -4402,9 +4402,9 @@ function renderStoryDetailsWithCompleteData(story) {
           analysisNote.textContent = `AI reviewed${model}`;
         }
       } else if (analysisInfo.source === 'fallback') {
-        analysisNote.textContent = 'AI unavailable - using local checks';
+        analysisNote.textContent = 'AI unavailable';
       } else {
-        analysisNote.textContent = 'Using local checks';
+        analysisNote.textContent = 'Local validation';
       }
       healthItem.appendChild(analysisNote);
     }
@@ -6113,7 +6113,7 @@ function openHealthIssueModal(title, issue, context = null) {
       const detail = context.error ? ` (${context.error})` : '';
       contextNote.textContent = `ChatGPT analysis unavailable${detail}; showing local guidance.`;
     } else {
-      contextNote.textContent = 'Using local INVEST heuristics for guidance.';
+      contextNote.textContent = 'Local guidance.';
     }
     container.appendChild(contextNote);
   }
