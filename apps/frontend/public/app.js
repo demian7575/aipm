@@ -4391,6 +4391,19 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.appendChild(healthLabel);
     healthItem.appendChild(healthValue);
 
+    // Simplified INVEST display - show details only on click
+    const detailsToggle = document.createElement('button');
+    detailsToggle.type = 'button';
+    detailsToggle.className = 'link-button invest-details-toggle';
+    detailsToggle.textContent = 'Details';
+    detailsToggle.style.marginLeft = '0.5rem';
+    detailsToggle.style.fontSize = '0.8em';
+    
+    const detailsContainer = document.createElement('div');
+    detailsContainer.className = 'invest-details-container';
+    detailsContainer.style.display = 'none';
+    detailsContainer.style.marginTop = '0.5rem';
+
     if (analysisInfo) {
       const analysisNote = document.createElement('p');
       analysisNote.className = 'health-analysis-note';
@@ -4406,12 +4419,11 @@ function renderStoryDetailsWithCompleteData(story) {
       } else {
         analysisNote.textContent = 'Using local checks';
       }
-      healthItem.appendChild(analysisNote);
+      detailsContainer.appendChild(analysisNote);
     }
 
     const healthActions = document.createElement('div');
     healthActions.className = 'health-actions';
-    healthActions.style.marginTop = '0.5rem';
     const aiButton = document.createElement('button');
     aiButton.type = 'button';
     aiButton.className = 'secondary small';
@@ -4452,7 +4464,20 @@ function renderStoryDetailsWithCompleteData(story) {
       }
     });
     healthActions.appendChild(aiButton);
-    healthItem.appendChild(healthActions);
+    detailsContainer.appendChild(healthActions);
+
+    // Toggle functionality for details
+    detailsToggle.addEventListener('click', () => {
+      const isVisible = detailsContainer.style.display !== 'none';
+      detailsContainer.style.display = isVisible ? 'none' : 'block';
+      detailsToggle.textContent = isVisible ? 'Details' : 'Hide';
+    });
+
+    healthItem.appendChild(healthValue);
+    if (analysisInfo || !investHealth.satisfied) {
+      healthItem.appendChild(detailsToggle);
+    }
+    healthItem.appendChild(detailsContainer);
 
     if (analysisInfo && analysisInfo.source === 'openai' && fallbackWarnings.length) {
       const aiMessages = new Set(
@@ -4466,7 +4491,7 @@ function renderStoryDetailsWithCompleteData(story) {
         const heuristicsHeading = document.createElement('h4');
         heuristicsHeading.className = 'health-subheading';
         heuristicsHeading.textContent = 'Additional suggestions';
-        healthItem.appendChild(heuristicsHeading);
+        detailsContainer.appendChild(heuristicsHeading);
 
         const heuristicsList = document.createElement('ul');
         heuristicsList.className = 'health-issue-list heuristic-list';
@@ -4484,7 +4509,7 @@ function renderStoryDetailsWithCompleteData(story) {
           heuristicsList.appendChild(item);
         });
 
-        healthItem.appendChild(heuristicsList);
+        detailsContainer.appendChild(heuristicsList);
       }
     }
 
