@@ -126,7 +126,12 @@ STAGE=$ENV
 PROD_VERSION=$DEPLOY_VERSION
 BASE_VERSION=$DEPLOY_VERSION
 PR_NUMBER=$PR_NUMBER
-GITHUB_TOKEN=$GITHUB_TOKEN
+# Preserve existing GITHUB_TOKEN if local one is empty
+if [ -n "$GITHUB_TOKEN" ]; then
+    echo "GITHUB_TOKEN=$GITHUB_TOKEN"
+else
+    echo "# GITHUB_TOKEN preserved from existing .env"
+fi
 ENVEOF
 EOF
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/env_config.sh ec2-user@$HOST:/tmp/
