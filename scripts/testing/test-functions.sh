@@ -100,13 +100,10 @@ test_data_consistency() {
     DIFF=$((DEV_COUNT - PROD_COUNT))
     ABS_DIFF=${DIFF#-}
     
-    # Allow up to 5 extra stories in development environment for active development
     if [[ $ABS_DIFF -eq 0 ]]; then
         pass_test "Stories data consistent (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
-    elif [[ $DIFF -gt 0 && $DIFF -le 5 ]]; then
-        pass_test "Stories data acceptable - dev has $DIFF extra stories (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
     else
-        fail_test "Stories data discrepancy (Prod: $PROD_COUNT, Dev: $DEV_COUNT)"
+        fail_test "Stories data discrepancy (Prod: $PROD_COUNT, Dev: $DEV_COUNT) - DATABASE COPY NEEDED"
     fi
     
     # Acceptance tests consistency
@@ -118,13 +115,10 @@ test_data_consistency() {
     TEST_DIFF=$((PROD_TESTS - DEV_TESTS))
     TEST_ABS_DIFF=${TEST_DIFF#-}
     
-    # Allow reasonable differences in acceptance tests due to development activity
     if [[ $TEST_ABS_DIFF -eq 0 ]]; then
         pass_test "Acceptance tests consistent (Prod: $PROD_TESTS, Dev: $DEV_TESTS)"
-    elif [[ $TEST_ABS_DIFF -le 150 ]]; then
-        pass_test "Acceptance tests acceptable difference (Prod: $PROD_TESTS, Dev: $DEV_TESTS, diff: $TEST_ABS_DIFF)"
     else
-        fail_test "Acceptance tests discrepancy (Prod: $PROD_TESTS, Dev: $DEV_TESTS)"
+        fail_test "Acceptance tests discrepancy (Prod: $PROD_TESTS, Dev: $DEV_TESTS) - DATABASE COPY NEEDED"
     fi
     
     # PRs consistency

@@ -135,22 +135,19 @@ EOF
     
     # Restart services
     echo "🔄 Restarting services..."
+    SERVICE_NAME="aipm-${ENV}-backend.service"
+    if [[ "$ENV" == "prod" ]]; then
+        SERVICE_NAME="aipm-backend.service"
+    fi
+    
     cat > /tmp/restart_services.sh << EOF
 cd aipm
-if [[ "$ENV" == "prod" ]]; then
-    echo 'Restarting production systemd service...'
-    sudo systemctl restart aipm-backend.service
-    echo 'Waiting for service to start...'
-    sleep 5
-    sudo systemctl status aipm-backend.service --no-pager
-else
-    echo 'Restarting development systemd service...'
-    sudo systemctl restart aipm-dev-backend.service
-    echo 'Waiting for service to start...'
-    sleep 5
-    sudo systemctl status aipm-dev-backend.service --no-pager
-fi
-echo 'Services restarted'
+echo 'Restarting $SERVICE_NAME...'
+sudo systemctl restart $SERVICE_NAME
+echo 'Waiting for service to start...'
+sleep 5
+sudo systemctl status $SERVICE_NAME --no-pager
+echo 'Service restarted successfully'
 EOF
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/restart_services.sh ec2-user@$HOST:/tmp/
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/restart_services.sh
