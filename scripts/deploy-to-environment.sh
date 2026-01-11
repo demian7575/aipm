@@ -113,22 +113,23 @@ EOF
     
     # Update environment configuration
     echo "⚙️ Updating environment configuration..."
+    
+    # Copy static environment file and add dynamic variables
     cat > /tmp/env_config.sh << EOF
 cd aipm
-cat > .env << ENVEOF
-STORIES_TABLE=$STORIES_TABLE
-ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
-AWS_REGION=us-east-1
-KIRO_API_PORT=8081
-DEPLOY_VERSION=$DEPLOY_VERSION
-COMMIT_HASH=$COMMIT_HASH
-STAGE=$ENV
-PROD_VERSION=$DEPLOY_VERSION
-BASE_VERSION=$DEPLOY_VERSION
-PR_NUMBER=$PR_NUMBER
-GITHUB_TOKEN=$GITHUB_TOKEN
-ENVEOF
+# Copy static environment file
+cp /tmp/static.env .env
+# Add dynamic variables
+echo "DEPLOY_VERSION=$DEPLOY_VERSION" >> .env
+echo "COMMIT_HASH=$COMMIT_HASH" >> .env
+echo "PROD_VERSION=$DEPLOY_VERSION" >> .env
+echo "BASE_VERSION=$DEPLOY_VERSION" >> .env
+echo "PR_NUMBER=$PR_NUMBER" >> .env
+echo "GITHUB_TOKEN=\${GITHUB_TOKEN:-PLACEHOLDER_TOKEN}" >> .env
 EOF
+    
+    # Copy static environment file to server
+    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no config/$ENV.env ec2-user@$HOST:/tmp/static.env
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/env_config.sh ec2-user@$HOST:/tmp/
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/env_config.sh
     
