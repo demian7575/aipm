@@ -2364,3 +2364,65 @@ dialog[data-size='content'] .modal-shell {
   background: linear-gradient(135deg, #45a049, #3d8b40);
   transform: translateY(-1px);
 }
+/* Simplified INVEST display styles */
+.invest-simplified {
+  margin-bottom: 0.5rem;
+}
+
+.invest-simplified .story-meta-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.health-pill {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+}
+
+.health-pill.pass {
+  background: #16a34a;
+}
+
+.health-pill.fail {
+  background: #d97706;
+}
+
+.health-analysis-note.simplified {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.health-suggestion-note.simplified {
+  margin: 0.25rem 0 0;
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+.health-actions.simplified {
+  margin-top: 0.5rem;
+}
+
+.health-actions.simplified .link-button {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  text-decoration: none;
+  padding: 0.2rem 0.4rem;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.health-actions.simplified .link-button:hover {
+  color: #6b7280;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
