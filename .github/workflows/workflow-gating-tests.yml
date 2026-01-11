@@ -16,9 +16,6 @@ on:
         - '2'
         - '3'
 
-jobs:
-  gating-tests:
-
 permissions:
   contents: read
   pull-requests: write
