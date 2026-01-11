@@ -115,7 +115,7 @@ EOF
     echo "⚙️ Updating environment configuration..."
     cat > /tmp/env_config.sh << EOF
 cd aipm
-cat > .env << 'ENVEOF'
+cat > .env << ENVEOF
 STORIES_TABLE=$STORIES_TABLE
 ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE
 AWS_REGION=us-east-1
