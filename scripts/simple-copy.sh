@@ -36,8 +36,8 @@ batch_copy() {
     # 3. Batch delete existing data (25 items per batch)
     if [ -s /tmp/${target_table}_keys.txt ]; then
         echo "🗑️ Batch deleting existing data..."
-        split -l 25 /tmp/${target_table}_keys.txt /tmp/delete_${target_table}_batch_
-        for batch_file in /tmp/delete_${target_table}_batch_*; do
+        split -l 25 /tmp/${target_table}_keys.txt /tmp/delete_batch_
+        for batch_file in /tmp/delete_batch_*; do
             if [ -s "$batch_file" ]; then
                 echo "{\"$target_table\": [" > /tmp/delete_request.json
                 first=true
@@ -68,7 +68,6 @@ batch_copy() {
     # 4. Batch insert new data (25 items per batch)
     echo "📥 Batch inserting new data..."
     if [ -s /tmp/${source_table}_data.txt ]; then
-<<<<<<< HEAD
         split -l 25 /tmp/${source_table}_data.txt /tmp/insert_batch_
         for batch_file in /tmp/insert_batch_*; do
             if [ -s "$batch_file" ]; then
@@ -92,41 +91,6 @@ batch_copy() {
                     aws dynamodb batch-write-item \
                         --region "$REGION" \
                         --request-items file:///tmp/insert_request.json 2>/dev/null || true
-=======
-        split -l 25 /tmp/${source_table}_data.txt /tmp/insert_${source_table}_batch_
-        for batch_file in /tmp/insert_${source_table}_batch_*; do
-            if [ -s "$batch_file" ]; then
-                # Build JSON array properly
-                items=()
-                while read item_data; do
-                    if [ -n "$item_data" ]; then
-                        item_json=$(echo "$item_data" | base64 --decode | jq -c '{PutRequest: {Item: .}}' 2>/dev/null)
-                        if [ -n "$item_json" ]; then
-                            items+=("$item_json")
-                        fi
-                    fi
-                done < "$batch_file"
-                
-                # Only send if we have valid items
-                if [ ${#items[@]} -gt 0 ]; then
-                    # Create proper JSON array
-                    printf '{"'$target_table'": [' > /tmp/insert_request.json
-                    for i in "${!items[@]}"; do
-                        if [ $i -gt 0 ]; then printf ',' >> /tmp/insert_request.json; fi
-                        printf '%s' "${items[$i]}" >> /tmp/insert_request.json
-                    done
-                    printf ']}' >> /tmp/insert_request.json
-                    
-                    echo "📤 Sending batch insert (${#items[@]} items)..."
-                    RESULT=$(aws dynamodb batch-write-item \
-                        --region "$REGION" \
-                        --request-items file:///tmp/insert_request.json 2>&1)
-                    if echo "$RESULT" | grep -q "UnprocessedItems"; then
-                        echo "✅ Batch insert successful"
-                    else
-                        echo "❌ Batch insert failed: $RESULT"
-                    fi
->>>>>>> test-ultra-fast-copy-1768095693
                 fi
                 rm "$batch_file" 2>/dev/null || true
             fi
