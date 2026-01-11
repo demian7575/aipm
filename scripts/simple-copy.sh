@@ -42,19 +42,24 @@ batch_copy() {
                 echo "{\"$target_table\": [" > /tmp/delete_request.json
                 first=true
                 while read key_data; do
-                    if [ "$first" = true ]; then
-                        first=false
-                    else
-                        echo "," >> /tmp/delete_request.json
+                    if [ -n "$key_data" ]; then  # Check if key_data is not empty
+                        if [ "$first" = true ]; then
+                            first=false
+                        else
+                            echo "," >> /tmp/delete_request.json
+                        fi
+                        echo "$key_data" | base64 --decode | \
+                        jq -r '{DeleteRequest: {Key: {id: .id}}}' >> /tmp/delete_request.json 2>/dev/null || continue
                     fi
-                    echo "$key_data" | base64 --decode | \
-                    jq -r '{DeleteRequest: {Key: {id: .id}}}' >> /tmp/delete_request.json
                 done < "$batch_file"
                 echo "]}" >> /tmp/delete_request.json
                 
-                aws dynamodb batch-write-item \
-                    --region "$REGION" \
-                    --request-items file:///tmp/delete_request.json 2>/dev/null || true
+                # Only send if we have valid items
+                if [ "$first" = false ]; then
+                    aws dynamodb batch-write-item \
+                        --region "$REGION" \
+                        --request-items file:///tmp/delete_request.json 2>/dev/null || true
+                fi
                 rm "$batch_file"
             fi
         done
@@ -62,28 +67,35 @@ batch_copy() {
     
     # 4. Batch insert new data (25 items per batch)
     echo "📥 Batch inserting new data..."
-    split -l 25 /tmp/${source_table}_data.txt /tmp/insert_batch_
-    for batch_file in /tmp/insert_batch_*; do
-        if [ -s "$batch_file" ]; then
-            echo "{\"$target_table\": [" > /tmp/insert_request.json
-            first=true
-            while read item_data; do
-                if [ "$first" = true ]; then
-                    first=false
-                else
-                    echo "," >> /tmp/insert_request.json
+    if [ -s /tmp/${source_table}_data.txt ]; then
+        split -l 25 /tmp/${source_table}_data.txt /tmp/insert_batch_
+        for batch_file in /tmp/insert_batch_*; do
+            if [ -s "$batch_file" ]; then
+                echo "{\"$target_table\": [" > /tmp/insert_request.json
+                first=true
+                while read item_data; do
+                    if [ -n "$item_data" ]; then  # Check if item_data is not empty
+                        if [ "$first" = true ]; then
+                            first=false
+                        else
+                            echo "," >> /tmp/insert_request.json
+                        fi
+                        echo "$item_data" | base64 --decode | \
+                        jq -r '{PutRequest: {Item: .}}' >> /tmp/insert_request.json 2>/dev/null || continue
+                    fi
+                done < "$batch_file"
+                echo "]}" >> /tmp/insert_request.json
+                
+                # Only send if we have valid items
+                if [ "$first" = false ]; then
+                    aws dynamodb batch-write-item \
+                        --region "$REGION" \
+                        --request-items file:///tmp/insert_request.json 2>/dev/null || true
                 fi
-                echo "$item_data" | base64 --decode | \
-                jq -r '{PutRequest: {Item: .}}' >> /tmp/insert_request.json
-            done < "$batch_file"
-            echo "]}" >> /tmp/insert_request.json
-            
-            aws dynamodb batch-write-item \
-                --region "$REGION" \
-                --request-items file:///tmp/insert_request.json 2>/dev/null || true
-            rm "$batch_file" 2>/dev/null || true
-        fi
-    done
+                rm "$batch_file" 2>/dev/null || true
+            fi
+        done
+    fi
     
     # 5. Cleanup temp files
     rm -f /tmp/${target_table}_keys.txt /tmp/${source_table}_data.txt
