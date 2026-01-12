@@ -4340,8 +4340,10 @@ function renderStoryDetailsWithCompleteData(story) {
   if (storyBriefBody) {
     const summaryRow = document.createElement('tr');
     summaryRow.className = 'story-meta-row';
+    const summaryHeader = document.createElement('th');
+    summaryHeader.scope = 'row';
+    summaryHeader.textContent = 'INVEST';
     const summaryCell = document.createElement('td');
-    summaryCell.setAttribute('colspan', '2');
     const metaGrid = document.createElement('div');
     metaGrid.className = 'story-meta-grid';
 
@@ -4380,13 +4382,9 @@ function renderStoryDetailsWithCompleteData(story) {
 
     const healthItem = document.createElement('div');
     healthItem.className = 'story-meta-item';
-    const healthLabel = document.createElement('span');
-    healthLabel.className = 'story-meta-label';
-    healthLabel.textContent = '';
     const healthValue = document.createElement('span');
     healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
     healthValue.textContent = investHealth.satisfied ? '✓ Pass' : `⚠ ${investHealth.issues.length} issue${investHealth.issues.length > 1 ? 's' : ''}`;
-    healthItem.appendChild(healthLabel);
     healthItem.appendChild(healthValue);
 
     if (analysisInfo) {
@@ -4489,6 +4487,7 @@ function renderStoryDetailsWithCompleteData(story) {
     metaGrid.appendChild(healthItem);
 
     summaryCell.appendChild(metaGrid);
+    summaryRow.appendChild(summaryHeader);
     summaryRow.appendChild(summaryCell);
     storyBriefBody.appendChild(summaryRow);
   }
