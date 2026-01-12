@@ -5533,7 +5533,10 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     'SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id',
     storyId
   );
-  docRows.forEach((docRow) => {
+  
+  // Ensure docRows is an array
+  const docRowsArray = Array.isArray(docRows) ? docRows : [];
+  docRowsArray.forEach((docRow) => {
     story.referenceDocuments.push({
       id: docRow.id,
       storyId: docRow.story_id,
