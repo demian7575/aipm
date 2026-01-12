@@ -4407,7 +4407,6 @@ function renderStoryDetailsWithCompleteData(story) {
 
     const healthActions = document.createElement('div');
     healthActions.className = 'health-actions';
-    healthActions.style.marginTop = '0.5rem';
     const aiButton = document.createElement('button');
     aiButton.type = 'button';
     aiButton.className = 'secondary small';
