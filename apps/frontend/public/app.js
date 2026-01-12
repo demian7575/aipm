@@ -4340,10 +4340,8 @@ function renderStoryDetailsWithCompleteData(story) {
   if (storyBriefBody) {
     const summaryRow = document.createElement('tr');
     summaryRow.className = 'story-meta-row';
-    const summaryHeader = document.createElement('th');
-    summaryHeader.scope = 'row';
-    summaryHeader.textContent = '';
     const summaryCell = document.createElement('td');
+    summaryCell.setAttribute('colspan', '2');
     const metaGrid = document.createElement('div');
     metaGrid.className = 'story-meta-grid';
 
@@ -4491,7 +4489,6 @@ function renderStoryDetailsWithCompleteData(story) {
     metaGrid.appendChild(healthItem);
 
     summaryCell.appendChild(metaGrid);
-    summaryRow.appendChild(summaryHeader);
     summaryRow.appendChild(summaryCell);
     storyBriefBody.appendChild(summaryRow);
   }
