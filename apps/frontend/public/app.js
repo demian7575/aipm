@@ -4384,7 +4384,10 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.className = 'story-meta-item';
     const healthValue = document.createElement('span');
     healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
-    healthValue.textContent = investHealth.satisfied ? '✓ Pass' : `⚠ ${investHealth.issues[0]?.message || 'Issues found'}`;
+    const issueText = investHealth.satisfied ? '✓ Pass' : 
+      investHealth.issues.length === 1 ? `⚠ ${investHealth.issues[0]?.message || 'Issue found'}` :
+      `⚠ ${investHealth.issues.length} issues: ${investHealth.issues.map(i => i.message).join(', ')}`;
+    healthValue.textContent = issueText;
     healthItem.appendChild(healthValue);
 
     if (analysisInfo) {
