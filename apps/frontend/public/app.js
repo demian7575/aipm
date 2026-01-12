@@ -4387,9 +4387,11 @@ function renderStoryDetailsWithCompleteData(story) {
     if (investHealth.satisfied) {
       healthValue.textContent = '✓ Pass';
     } else {
-      // Use line breaks for separate lines
+      // Use line breaks for separate lines and force block display
       const issueTexts = investHealth.issues.map(issue => `⚠ ${issue.message || 'Issue found'}`);
       healthValue.innerHTML = issueTexts.join('<br>');
+      healthValue.style.display = 'block';
+      healthValue.style.whiteSpace = 'normal';
     }
     healthItem.appendChild(healthValue);
 
