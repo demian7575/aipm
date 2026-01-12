@@ -7242,12 +7242,31 @@ export async function createApp() {
 
     if (storyIdMatch && method === 'DELETE') {
       const storyId = Number(storyIdMatch[1]);
-      const statement = db.prepare('DELETE FROM user_stories WHERE id = ?');
-      const result = statement.run(storyId);
-      if (result.changes === 0) {
-        sendJson(res, 404, { message: 'Story not found' });
-      } else {
+      
+      try {
+        // Get story PRs before deletion
+        const storyPRs = await getStoryPRs(db, storyId);
+        
+        // Delete the story
+        const statement = db.prepare('DELETE FROM user_stories WHERE id = ?');
+        const result = statement.run(storyId);
+        
+        if (result.changes === 0) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        
+        // Delete associated PRs from database
+        if (storyPRs && storyPRs.length > 0) {
+          const deletePRStatement = db.prepare('DELETE FROM story_prs WHERE storyId = ?');
+          deletePRStatement.run(storyId);
+          console.log(`🗑️ Deleted ${storyPRs.length} associated PRs for story ${storyId}`);
+        }
+        
         sendJson(res, 204, {});
+      } catch (error) {
+        console.error('Error deleting story and PRs:', error);
+        sendJson(res, 500, { message: 'Failed to delete story and associated PRs' });
       }
       return;
     }
