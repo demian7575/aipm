@@ -4413,8 +4413,6 @@ function renderStoryDetailsWithCompleteData(story) {
       healthItem.appendChild(analysisNote);
     }
 
-    const healthActions = document.createElement('div');
-    healthActions.className = 'health-actions';
     const aiButton = document.createElement('button');
     aiButton.type = 'button';
     aiButton.className = 'secondary small';
@@ -4454,8 +4452,7 @@ function renderStoryDetailsWithCompleteData(story) {
         }
       }
     });
-    healthActions.appendChild(aiButton);
-    healthItem.appendChild(healthActions);
+    healthItem.appendChild(aiButton);
 
     if (analysisInfo && analysisInfo.source === 'openai' && fallbackWarnings.length) {
       const aiMessages = new Set(
