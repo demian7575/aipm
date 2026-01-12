@@ -393,13 +393,13 @@ function startKiroProcess() {
 function startKiroHealthCheck() {
   kiroHealthCheckInterval = setInterval(() => {
     const timeSinceLastResponse = Date.now() - lastKiroResponse;
-    const maxIdleTime = 15 * 60 * 1000; // 15 minutes
+    const maxIdleTime = 60 * 60 * 1000; // 60 minutes (increased from 15)
     
     if (timeSinceLastResponse > maxIdleTime) {
       console.log('⚠️ Kiro CLI appears unresponsive, restarting...');
       restartKiroProcess();
     }
-  }, 5 * 60 * 1000); // Check every 5 minutes
+  }, 10 * 60 * 1000); // Check every 10 minutes (increased from 5)
 }
 
 function restartKiroProcess() {
