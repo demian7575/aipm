@@ -4395,24 +4395,6 @@ function renderStoryDetailsWithCompleteData(story) {
     }
     healthItem.appendChild(healthValue);
 
-    if (analysisInfo) {
-      const analysisNote = document.createElement('p');
-      analysisNote.className = 'health-analysis-note';
-      if (analysisInfo.source === 'openai') {
-        const model = analysisInfo.aiModel ? ` (${analysisInfo.aiModel})` : '';
-        if (analysisInfo.aiSummary) {
-          analysisNote.textContent = `AI: ${analysisInfo.aiSummary}`;
-        } else {
-          analysisNote.textContent = `AI reviewed${model}`;
-        }
-      } else if (analysisInfo.source === 'fallback') {
-        analysisNote.textContent = '';
-      } else {
-        analysisNote.textContent = '';
-      }
-      healthItem.appendChild(analysisNote);
-    }
-
     const aiButton = document.createElement('button');
     aiButton.type = 'button';
     aiButton.className = 'secondary small';
