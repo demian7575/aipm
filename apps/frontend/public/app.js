@@ -4387,13 +4387,9 @@ function renderStoryDetailsWithCompleteData(story) {
     if (investHealth.satisfied) {
       healthValue.textContent = '✓ Pass';
     } else {
-      // Create a container for multiple lines
-      healthValue.innerHTML = '';
-      investHealth.issues.forEach((issue, index) => {
-        const issueLine = document.createElement('div');
-        issueLine.textContent = `⚠ ${issue.message || 'Issue found'}`;
-        healthValue.appendChild(issueLine);
-      });
+      // Use line breaks for separate lines
+      const issueTexts = investHealth.issues.map(issue => `⚠ ${issue.message || 'Issue found'}`);
+      healthValue.innerHTML = issueTexts.join('<br>');
     }
     healthItem.appendChild(healthValue);
 
