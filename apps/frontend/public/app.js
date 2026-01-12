@@ -4384,7 +4384,7 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.className = 'story-meta-item';
     const healthValue = document.createElement('span');
     healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
-    healthValue.textContent = investHealth.satisfied ? '✓ Pass' : `⚠ ${investHealth.issues.length} issue${investHealth.issues.length > 1 ? 's' : ''}`;
+    healthValue.textContent = investHealth.satisfied ? '✓ Pass' : `⚠ ${investHealth.issues[0]?.message || 'Issues found'}`;
     healthItem.appendChild(healthValue);
 
     if (analysisInfo) {
