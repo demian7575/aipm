@@ -774,6 +774,50 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // INVEST analysis endpoint
+  if (url.pathname === '/api/analyze-invest' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const storyData = JSON.parse(body);
+        
+        // Build template prompt with story data
+        const prompt = `Read and follow the template file: ./templates/invest-analysis.md
+
+Story data:
+- Title: "${storyData.title || 'Untitled'}"
+- As a: "${storyData.asA || ''}"
+- I want: "${storyData.iWant || ''}"
+- So that: "${storyData.soThat || ''}"
+- Description: "${storyData.description || ''}"
+- Story Points: ${storyData.storyPoint || 0}
+- Components: ${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}
+- Acceptance Tests: ${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0} tests defined
+
+Execute the template instructions and provide JSON analysis.`;
+        
+        // Send to Kiro CLI
+        const result = await sendToKiro(prompt);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true, 
+          analysis: result 
+        }));
+        
+      } catch (error) {
+        console.error('INVEST analysis error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: error.message 
+        }));
+      }
+    });
+    return;
+  }
+
   // Generate draft endpoint (for frontend Generate button)
   if (url.pathname === '/api/generate-draft' && req.method === 'POST') {
     let body = '';

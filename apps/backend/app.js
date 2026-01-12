@@ -3171,11 +3171,58 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
   
-  // Skip Kiro API for INVEST analysis - it's too slow for synchronous requests
-  // Use fast heuristics instead
-  // TODO: Make INVEST analysis async via queue like story generation
+  // Try AI analysis via Kiro API (development environment only)
+  try {
+    const kiroApiUrl = 'http://44.222.168.46:8081';
+    const response = await fetch(`${kiroApiUrl}/api/analyze-invest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: story.title,
+        asA: story.asA,
+        iWant: story.iWant,
+        soThat: story.soThat,
+        description: story.description,
+        storyPoint: story.storyPoint,
+        components: story.components,
+        acceptanceTests: story.acceptanceTests || []
+      }),
+      signal: AbortSignal.timeout(30000) // 30 second timeout
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.analysis) {
+        // Parse AI response and format as expected
+        let aiAnalysis;
+        try {
+          aiAnalysis = typeof result.analysis === 'string' ? 
+            JSON.parse(result.analysis) : result.analysis;
+        } catch (parseError) {
+          console.warn('Failed to parse AI analysis, using fallback');
+          throw parseError;
+        }
+        
+        return {
+          warnings: aiAnalysis.warnings || baseline,
+          source: 'ai',
+          summary: aiAnalysis.summary || '',
+          ai: {
+            summary: aiAnalysis.summary || '',
+            warnings: aiAnalysis.warnings || [],
+            model: 'kiro-cli',
+            score: aiAnalysis.score || 0
+          },
+          fallbackWarnings: baseline,
+          usedFallback: false,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('AI INVEST analysis failed, using heuristics:', error.message);
+  }
   
-  // Use heuristics (works in all environments)
+  // Fallback to heuristics
   return {
     warnings: baseline,
     source: 'heuristic',

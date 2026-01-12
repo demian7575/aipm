@@ -4409,7 +4409,7 @@ function renderStoryDetailsWithCompleteData(story) {
       }
       const originalLabel = aiButton.textContent;
       aiButton.disabled = true;
-      aiButton.textContent = 'Running…';
+      aiButton.textContent = 'Analyzing with AI…';
       let applied = false;
       try {
         const refreshed = await recheckStoryHealth(story.id, { includeAiInvest: true });
