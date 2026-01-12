@@ -4342,7 +4342,7 @@ function renderStoryDetailsWithCompleteData(story) {
     summaryRow.className = 'story-meta-row';
     const summaryHeader = document.createElement('th');
     summaryHeader.scope = 'row';
-    summaryHeader.textContent = 'INVEST';
+    summaryHeader.textContent = '';
     const summaryCell = document.createElement('td');
     const metaGrid = document.createElement('div');
     metaGrid.className = 'story-meta-grid';
@@ -4384,7 +4384,7 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.className = 'story-meta-item';
     const healthLabel = document.createElement('span');
     healthLabel.className = 'story-meta-label';
-    healthLabel.textContent = 'INVEST';
+    healthLabel.textContent = '';
     const healthValue = document.createElement('span');
     healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
     healthValue.textContent = investHealth.satisfied ? '✓ Pass' : `⚠ ${investHealth.issues.length} issue${investHealth.issues.length > 1 ? 's' : ''}`;
@@ -4402,9 +4402,9 @@ function renderStoryDetailsWithCompleteData(story) {
           analysisNote.textContent = `AI reviewed${model}`;
         }
       } else if (analysisInfo.source === 'fallback') {
-        analysisNote.textContent = 'AI unavailable - using local checks';
+        analysisNote.textContent = '';
       } else {
-        analysisNote.textContent = 'Using local checks';
+        analysisNote.textContent = '';
       }
       healthItem.appendChild(analysisNote);
     }
@@ -6113,7 +6113,7 @@ function openHealthIssueModal(title, issue, context = null) {
       const detail = context.error ? ` (${context.error})` : '';
       contextNote.textContent = `ChatGPT analysis unavailable${detail}; showing local guidance.`;
     } else {
-      contextNote.textContent = 'Using local INVEST heuristics for guidance.';
+      contextNote.textContent = '';
     }
     container.appendChild(contextNote);
   }
