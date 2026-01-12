@@ -85,12 +85,55 @@ export async function removeStoryPR(db, storyId, prNumber) {
   const currentPRs = await getStoryPRs(db, storyId);
   const prToDelete = currentPRs.find(pr => pr.number == prNumber);
   
-  await docClient.send(new DeleteCommand({
-    TableName: tableName,
-    Key: {
-      id: prToDelete.localId
+  if (prToDelete) {
+    // Close the GitHub PR before removing from database
+    try {
+      await closeGitHubPR(prToDelete);
+    } catch (error) {
+      console.error('Failed to close GitHub PR:', error);
+      // Continue with database removal even if GitHub close fails
     }
-  }));
+    
+    await docClient.send(new DeleteCommand({
+      TableName: tableName,
+      Key: {
+        id: prToDelete.localId
+      }
+    }));
+  }
   
   return await getStoryPRs(db, storyId);
+}
+
+async function closeGitHubPR(prData) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    throw new Error('GitHub token not configured');
+  }
+  
+  if (!prData.repo || !prData.number) {
+    throw new Error('Missing repo or PR number');
+  }
+  
+  const url = `https://api.github.com/repos/${prData.repo}/pulls/${prData.number}`;
+  
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'Authorization': `Bearer ${token}`,
+      'User-Agent': 'aipm-backend',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      state: 'closed'
+    })
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`GitHub API error: ${response.status} ${error}`);
+  }
+  
+  return await response.json();
 }
