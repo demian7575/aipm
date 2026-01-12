@@ -4384,10 +4384,17 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.className = 'story-meta-item';
     const healthValue = document.createElement('span');
     healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
-    const issueText = investHealth.satisfied ? '✓ Pass' : 
-      investHealth.issues.length === 1 ? `⚠ ${investHealth.issues[0]?.message || 'Issue found'}` :
-      `⚠ ${investHealth.issues.length} issues: ${investHealth.issues.map(i => i.message).join(', ')}`;
-    healthValue.textContent = issueText;
+    if (investHealth.satisfied) {
+      healthValue.textContent = '✓ Pass';
+    } else {
+      // Create a container for multiple lines
+      healthValue.innerHTML = '';
+      investHealth.issues.forEach((issue, index) => {
+        const issueLine = document.createElement('div');
+        issueLine.textContent = `⚠ ${issue.message || 'Issue found'}`;
+        healthValue.appendChild(issueLine);
+      });
+    }
     healthItem.appendChild(healthValue);
 
     if (analysisInfo) {
