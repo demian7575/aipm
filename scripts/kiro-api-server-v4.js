@@ -878,27 +878,11 @@ Generate the fields and immediately place them into this JSON template:
         
       } catch (error) {
         console.error(`❌ Story draft error: ${error.message}`);
-        
-        // Fallback to local generation
-        const { idea, parentId } = JSON.parse(body);
-        const fallbackStory = {
-          storyId: `story-${Date.now()}`,
-          title: idea.charAt(0).toUpperCase() + idea.slice(1),
-          description: `Implement ${idea.toLowerCase()} functionality to improve user experience.`,
-          asA: 'system user',
-          iWant: `to ${idea.toLowerCase()}`,
-          soThat: 'I can accomplish my goals effectively',
-          acceptanceCriteria: [
-            `System successfully implements ${idea.toLowerCase()}`,
-            'User interface is intuitive and responsive',
-            'All edge cases are handled gracefully'
-          ],
-          enhanced: false,
-          enhancedAt: new Date().toISOString()
-        };
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(fallbackStory));
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: error.message 
+        }));
       }
     });
     return;
