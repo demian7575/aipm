@@ -62,7 +62,7 @@ This documentation is organized into logical sections, progressing from basic se
 
 ### 2.1 High-Level Architecture
 
-AIPM follows a three-tier architecture:
+AIPM follows a cloud-native three-tier architecture:
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -73,10 +73,15 @@ AIPM follows a three-tier architecture:
          │                       │                       │
          ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   GitHub Pages  │    │   GitHub API    │    │   AWS Services  │
-│   (Optional)    │    │   Integration   │    │   (S3, IAM)     │
+│   GitHub Actions│    │   GitHub API    │    │   AWS Services  │
+│   (CI/CD)       │    │   Integration   │    │   (S3, IAM)     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
+
+**Dual Environment Setup:**
+- **Production**: EC2 (44.220.45.57) + S3 (aipm-static-hosting-demo)
+- **Development**: EC2 (44.222.168.46) + S3 (aipm-dev-frontend-hosting)
+- **Kiro API**: Port 8081 on development server for AI code generation
 
 ### 2.2 Component Overview
 
@@ -109,19 +114,22 @@ AIPM follows a three-tier architecture:
 **Backend:**
 - Node.js (v18+)
 - Built-in HTTP module
-- AWS SDK for JavaScript
-- No external web frameworks
+- AWS SDK for JavaScript v3
+- Express.js (v5.1.0) for enhanced routing
+- DynamoDB DocumentClient for data operations
 
 **Database:**
-- AWS DynamoDB
-- NoSQL document storage
+- AWS DynamoDB (NoSQL)
+- Document-based storage
 - On-demand billing mode
+- Dual environment tables (prod/dev)
 
 **Infrastructure:**
-- AWS EC2 (t3.micro instances)
-- AWS S3 (static website hosting)
+- AWS EC2 (t3.micro instances) - Dual environment
+- AWS S3 (static website hosting) - Dual buckets
 - AWS IAM (access management)
 - GitHub Actions (CI/CD)
+- Kiro API integration (port 8081)
 
 ### 2.4 Infrastructure Diagram
 
@@ -373,23 +381,40 @@ If using webhooks for real-time updates:
 
 ### 4.1 Backend API (Node.js)
 
-#### 4.1.1 Server Architecture
+#### 4.1.1 Current File Structure
 
-The backend is built using Node.js built-in modules without external frameworks:
+```
+apps/backend/
+├── app.js           # Main HTTP server + DynamoDB integration
+├── server.js        # CLI entry point for development
+├── dynamodb.js      # DynamoDB helper functions  
+└── story-prs.js     # GitHub PR management functions
+```
+
+#### 4.1.2 Server Architecture
+
+The backend is built using Node.js with Express.js for enhanced routing and AWS SDK v3 for DynamoDB integration:
 
 ```javascript
-// Core server structure
-const http = require('http');
-const url = require('url');
-const fs = require('fs');
+// Core server structure (app.js)
+const express = require('express');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
 
-const server = http.createServer((req, res) => {
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
-  const method = req.method;
-  
-  // Route handling logic
-  handleRequest(pathname, method, req, res);
+const app = express();
+const dynamoClient = new DynamoDBClient({ region: 'us-east-1' });
+const docClient = DynamoDBDocumentClient.from(dynamoClient);
+
+// Middleware
+app.use(express.json());
+app.use(express.static('apps/frontend/public'));
+
+// CORS configuration
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
 });
 ```
 
@@ -436,28 +461,41 @@ GET    /api/github-status        - GitHub integration status
 
 #### 4.1.3 DynamoDB Integration
 
-**Connection Setup:**
+**Connection Setup (AWS SDK v3):**
 ```javascript
-const AWS = require('aws-sdk');
-const dynamodb = new AWS.DynamoDB.DocumentClient({
-  region: process.env.AWS_REGION || 'us-east-1'
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, ScanCommand, PutCommand, GetCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+
+const dynamoClient = new DynamoDBClient({ 
+  region: process.env.AWS_REGION || 'us-east-1' 
 });
+const docClient = DynamoDBDocumentClient.from(dynamoClient);
 ```
+
+**Current Table Structure:**
+- **Production Tables:**
+  - `aipm-backend-prod-stories`
+  - `aipm-backend-prod-acceptance-tests`
+  - `aipm-backend-prod-prs`
+- **Development Tables:**
+  - `aipm-backend-dev-stories`
+  - `aipm-backend-dev-acceptance-tests`
+  - `aipm-backend-dev-prs`
 
 **Data Operations:**
 ```javascript
 // Get all stories
 async function getAllStories() {
-  const params = {
+  const command = new ScanCommand({
     TableName: process.env.STORIES_TABLE
-  };
-  const result = await dynamodb.scan(params).promise();
+  });
+  const result = await docClient.send(command);
   return result.Items;
 }
 
 // Create story
 async function createStory(story) {
-  const params = {
+  const command = new PutCommand({
     TableName: process.env.STORIES_TABLE,
     Item: {
       id: Date.now(),
@@ -465,8 +503,8 @@ async function createStory(story) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-  };
-  await dynamodb.put(params).promise();
+  });
+  await docClient.send(command);
 }
 ```
 
@@ -931,24 +969,34 @@ npm test
 
 ### 5.3 Code Generation with Kiro CLI
 
-**Kiro Worker Setup:**
-```bash
-# Start the Kiro worker
-./scripts/workers/kiro-worker.sh
-```
+**Current Implementation:**
+The Kiro integration has evolved from a local worker to an API-based service running on the development environment.
+
+**Kiro API Server:**
+- **Location**: `scripts/kiro-api-server-v4.js`
+- **Deployment**: Runs on development EC2 instance (44.222.168.46:8081)
+- **Function**: Handles code generation requests via HTTP API
 
 **Code Generation Workflow:**
-1. Create user story in AIPM
-2. Click "Generate Code & PR"
-3. System creates GitHub PR with TASK.md
-4. Kiro worker picks up task from DynamoDB queue
-5. Kiro generates code and commits to PR branch
-6. Developer reviews and merges PR
+1. User clicks "Generate Code & PR" in AIPM story details
+2. Frontend sends request to backend `/api/create-pr` endpoint
+3. Backend creates GitHub PR with TASK.md specification
+4. Task added to DynamoDB queue (`aipm-amazon-q-queue`)
+5. Kiro API server processes task and generates code
+6. Code committed and pushed to PR branch
+7. Developer reviews and merges PR
 
 **Kiro Integration Points:**
-- Task queue: `aipm-amazon-q-queue` DynamoDB table
-- Code generation: Kiro CLI with browser authentication
-- PR management: GitHub API integration
+- **Task Queue**: `aipm-amazon-q-queue` DynamoDB table
+- **Code Generation**: Kiro CLI with browser authentication
+- **PR Management**: GitHub API integration
+- **Template System**: Uses `templates/code-generation.md` for workflow specification
+
+**Current Status:**
+- ✅ Kiro API server deployed and running
+- ✅ GitHub PR creation integrated
+- ✅ Task queue system operational
+- ✅ Code generation templates defined
 
 ### 5.4 Pull Request Workflow
 
@@ -1028,7 +1076,17 @@ AIPM uses a dual-environment deployment strategy:
 **Automated Deployment:**
 ```bash
 ./bin/deploy-prod
+# or
+./scripts/deploy-to-environment.sh prod
 ```
+
+**Current Deployment Process:**
+1. **Database Synchronization**: Copy production data to development (dev deployments only)
+2. **Backend Deployment**: Deploy to EC2 instance via SSH
+3. **Frontend Deployment**: Sync static files to S3 bucket
+4. **Service Restart**: Restart systemd service (`aipm-backend.service`)
+5. **Health Verification**: Validate deployment success
+6. **Gating Tests**: Run post-deployment validation
 
 **Manual Deployment Steps:**
 
