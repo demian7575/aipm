@@ -5456,7 +5456,10 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id',
     storyId
   );
-  testRows.forEach((testRow) => {
+  
+  // Ensure testRows is an array
+  const testRowsArray = Array.isArray(testRows) ? testRows : [];
+  testRowsArray.forEach((testRow) => {
     const given = parseJsonArray(testRow.given);
     const when = parseJsonArray(testRow.when_step);
     const then = parseJsonArray(testRow.then_step);
