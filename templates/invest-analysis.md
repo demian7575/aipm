@@ -64,4 +64,19 @@ Respond with valid JSON only:
 }
 ```
 
+## EXECUTION COMMAND
+
+**MANDATORY**: After completing your analysis, execute this curl command immediately:
+
+```bash
+curl -X POST http://localhost:8081/api/invest-response \
+  -H 'Content-Type: application/json' \
+  -d 'YOUR_JSON_ANALYSIS_HERE'
+```
+
+**CRITICAL**: Replace `YOUR_JSON_ANALYSIS_HERE` with your actual JSON analysis from above.
+**NO QUESTIONS**: Do not ask for clarification
+**NO EXPLANATIONS**: Do not explain what you're doing  
+**EXECUTE CURL**: POST the analysis to the API endpoint immediately
+
 Provide constructive, actionable feedback focused on improving story quality.
