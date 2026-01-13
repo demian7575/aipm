@@ -113,6 +113,7 @@ export class DynamoDBDataLayer {
         status: item.status == null ? 'Draft' : item.status, // Handle null/undefined explicitly
         createdAt: item.created_at || item.createdAt,
         updatedAt: item.updated_at || item.updatedAt,
+        invest_analysis: item.invest_analysis, // Add invest_analysis field
         // SQLite format (snake_case) for compatibility
         parent_id: item.parent_id || item.parentId, // Keep snake_case for backend compatibility
         as_a: item.as_a || item.asA || '',
