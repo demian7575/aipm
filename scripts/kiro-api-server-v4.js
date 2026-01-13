@@ -782,20 +782,24 @@ const server = http.createServer(async (req, res) => {
       try {
         const storyData = JSON.parse(body);
         
-        // Build template prompt with story data
-        const prompt = `Read and follow the template file: ./templates/invest-analysis.md
-
-Replace the template placeholders with this story data:
-- {{title}} = "${storyData.title || 'Untitled'}"
-- {{asA}} = "${storyData.asA || ''}"
-- {{iWant}} = "${storyData.iWant || ''}"
-- {{soThat}} = "${storyData.soThat || ''}"
-- {{description}} = "${storyData.description || ''}"
-- {{storyPoint}} = "${storyData.storyPoint || 0}"
-- {{components}} = "${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}"
-- {{acceptanceTestCount}} = "${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0}"
-
-Execute the template with these values substituted and provide the JSON analysis as specified in the template.`;
+        // Read and substitute the template
+        const fs = require('fs');
+        const templatePath = './templates/invest-analysis.md';
+        let template = fs.readFileSync(templatePath, 'utf8');
+        
+        // Substitute template variables
+        template = template
+          .replace(/\{\{title\}\}/g, storyData.title || 'Untitled')
+          .replace(/\{\{asA\}\}/g, storyData.asA || '')
+          .replace(/\{\{iWant\}\}/g, storyData.iWant || '')
+          .replace(/\{\{soThat\}\}/g, storyData.soThat || '')
+          .replace(/\{\{description\}\}/g, storyData.description || '')
+          .replace(/\{\{storyPoint\}\}/g, String(storyData.storyPoint || 0))
+          .replace(/\{\{components\}\}/g, Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None')
+          .replace(/\{\{acceptanceTestCount\}\}/g, String(Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0));
+        
+        // Send the complete template to Kiro CLI
+        const prompt = template;
         
         // Send to Kiro CLI
         const result = await sendToKiro(prompt);
