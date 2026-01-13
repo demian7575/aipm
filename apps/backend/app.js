@@ -4671,7 +4671,7 @@ function measurabilityWarnings(thenSteps) {
   return { warnings, suggestions };
 }
 
-function buildGwtHealth(given, when, then, measurability) {
+async function buildGwtHealth(given, when, then, measurability) {
   const issues = [];
   const hasContent = (steps) => steps.some((step) => step && step.trim().length > 0);
 
@@ -5396,7 +5396,7 @@ async function loadStories(db, options = {}) {
     const when = parseJsonArray(row.when_step);
     const then = parseJsonArray(row.then_step);
     const { warnings, suggestions } = measurabilityWarnings(then);
-    const gwtHealth = buildGwtHealth(given, when, then, warnings);
+    const gwtHealth = await buildGwtHealth(given, when, then, warnings);
     story.acceptanceTests.push({
       id: row.id,
       storyId: row.story_id,
@@ -5556,7 +5556,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     const when = parseJsonArray(testRow.when_step);
     const then = parseJsonArray(testRow.then_step);
     const { warnings, suggestions } = measurabilityWarnings(then);
-    const gwtHealth = buildGwtHealth(given, when, then, warnings);
+    const gwtHealth = await buildGwtHealth(given, when, then, warnings);
     story.acceptanceTests.push({
       id: testRow.id,
       storyId: testRow.story_id,
@@ -7558,13 +7558,17 @@ export async function createApp() {
         
         const payload = await parseJson(req);
         const { given, when, then } = measurablePayload(payload);
+        
+        // Use Kiro-based GWT health analysis
         const { warnings, suggestions } = measurabilityWarnings(then);
-        if (warnings.length > 0 && !payload.acceptWarnings) {
+        const gwtHealth = await buildGwtHealth(given, when, then, warnings);
+        
+        if (!gwtHealth.satisfied && !payload.acceptWarnings) {
           sendJson(res, 409, {
-            code: 'MEASURABILITY_WARNINGS',
-            message: 'Then steps must describe observable or measurable outcomes.',
-            warnings,
-            suggestions,
+            code: 'GWT_HEALTH_WARNINGS',
+            message: 'Acceptance test has Given/When/Then quality issues.',
+            warnings: gwtHealth.issues,
+            gwtHealth: gwtHealth
           });
           return;
         }
@@ -7628,13 +7632,17 @@ export async function createApp() {
       try {
         const payload = await parseJson(req);
         const { given, when, then } = measurablePayload(payload);
+        
+        // Use Kiro-based GWT health analysis
         const { warnings, suggestions } = measurabilityWarnings(then);
-        if (warnings.length > 0 && !payload.acceptWarnings) {
+        const gwtHealth = await buildGwtHealth(given, when, then, warnings);
+        
+        if (!gwtHealth.satisfied && !payload.acceptWarnings) {
           sendJson(res, 409, {
-            code: 'MEASURABILITY_WARNINGS',
-            message: 'Then steps must describe observable or measurable outcomes.',
-            warnings,
-            suggestions,
+            code: 'GWT_HEALTH_WARNINGS',
+            message: 'Acceptance test has Given/When/Then quality issues.',
+            warnings: gwtHealth.issues,
+            gwtHealth: gwtHealth
           });
           return;
         }
