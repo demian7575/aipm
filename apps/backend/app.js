@@ -5747,9 +5747,20 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     story.blocking.sort(sortByStoryId);
   }
 
-  // Check if we have stored analysis in DynamoDB
+  // Check if we should use stored analysis or run new AI analysis
   let analysis;
-  if (db.constructor.name === 'DynamoDBDataLayer' && row.invest_analysis) {
+  if (includeAiInvest) {
+    // Always run new AI analysis when explicitly requested
+    analysis = await evaluateInvestAnalysis(
+      story,
+      {
+        acceptanceTests: story.acceptanceTests,
+        includeTestChecks: true,
+      },
+      { includeAiInvest }
+    );
+  } else if (db.constructor.name === 'DynamoDBDataLayer' && row.invest_analysis) {
+    // Use stored analysis for regular requests
     try {
       const storedAnalysis = JSON.parse(row.invest_analysis);
       if (storedAnalysis && storedAnalysis.source) {
@@ -5760,7 +5771,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     }
   }
   
-  // If no stored analysis, calculate new one
+  // If no stored analysis and not requesting AI, calculate heuristic analysis
   if (!analysis) {
     analysis = await evaluateInvestAnalysis(
       story,
@@ -5768,7 +5779,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
         acceptanceTests: story.acceptanceTests,
         includeTestChecks: true,
       },
-      { includeAiInvest }
+      { includeAiInvest: false }
     );
   }
   
