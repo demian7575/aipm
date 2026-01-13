@@ -5604,19 +5604,18 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
 
   const taskRows = await (async () => {
     if (db.constructor.name === 'DynamoDBDataLayer') {
-      // DynamoDB implementation for tasks
+      // DynamoDB implementation for tasks - use scan since no index exists
       const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-      const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
       
       const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
       const docClient = DynamoDBDocumentClient.from(client);
       const tableName = process.env.TASKS_TABLE || 'aipm-backend-prod-tasks';
       
       try {
-        const result = await docClient.send(new QueryCommand({
+        const result = await docClient.send(new ScanCommand({
           TableName: tableName,
-          IndexName: 'storyId-index',
-          KeyConditionExpression: 'storyId = :storyId',
+          FilterExpression: 'story_id = :storyId',
           ExpressionAttributeValues: {
             ':storyId': storyId
           }
@@ -5641,19 +5640,18 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
 
   const childRows = await (async () => {
     if (db.constructor.name === 'DynamoDBDataLayer') {
-      // DynamoDB implementation for child stories
+      // DynamoDB implementation for child stories - use scan since no index exists
       const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-      const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
       
       const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
       const docClient = DynamoDBDocumentClient.from(client);
       const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
       
       try {
-        const result = await docClient.send(new QueryCommand({
+        const result = await docClient.send(new ScanCommand({
           TableName: tableName,
-          IndexName: 'parentId-index',
-          KeyConditionExpression: 'parentId = :parentId',
+          FilterExpression: 'parentId = :parentId',
           ExpressionAttributeValues: {
             ':parentId': storyId
           },
