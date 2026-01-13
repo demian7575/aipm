@@ -5515,11 +5515,35 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     blocking: [],
   };
 
-  const testRows = safeSelectAll(
-    db,
-    'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id',
-    storyId
-  );
+  const testRows = await (async () => {
+    if (db.constructor.name === 'DynamoDBDataLayer') {
+      // DynamoDB implementation for acceptance tests
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(client);
+      const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+      
+      const result = await docClient.send(new QueryCommand({
+        TableName: tableName,
+        IndexName: 'story-id-index',
+        KeyConditionExpression: 'story_id = :storyId',
+        ExpressionAttributeValues: {
+          ':storyId': storyId
+        }
+      }));
+      
+      return result.Items || [];
+    } else {
+      // SQLite implementation
+      return safeSelectAll(
+        db,
+        'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id',
+        storyId
+      );
+    }
+  })();
   
   // Ensure testRows is an array
   const testRowsArray = Array.isArray(testRows) ? testRows : [];
@@ -5545,11 +5569,35 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     });
   });
 
-  const docRows = safeSelectAll(
-    db,
-    'SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id',
-    storyId
-  );
+  const docRows = await (async () => {
+    if (db.constructor.name === 'DynamoDBDataLayer') {
+      // DynamoDB implementation for reference documents
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(client);
+      const tableName = process.env.REFERENCE_DOCUMENTS_TABLE || 'aipm-backend-prod-reference-documents';
+      
+      const result = await docClient.send(new QueryCommand({
+        TableName: tableName,
+        IndexName: 'story-id-index',
+        KeyConditionExpression: 'story_id = :storyId',
+        ExpressionAttributeValues: {
+          ':storyId': storyId
+        }
+      }));
+      
+      return result.Items || [];
+    } else {
+      // SQLite implementation
+      return safeSelectAll(
+        db,
+        'SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id',
+        storyId
+      );
+    }
+  })();
   
   // Ensure docRows is an array
   const docRowsArray = Array.isArray(docRows) ? docRows : [];
@@ -5564,7 +5612,31 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     });
   });
 
-  const taskRows = safeSelectAll(db, 'SELECT * FROM tasks WHERE story_id = ? ORDER BY id', storyId);
+  const taskRows = await (async () => {
+    if (db.constructor.name === 'DynamoDBDataLayer') {
+      // DynamoDB implementation for tasks
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(client);
+      const tableName = process.env.TASKS_TABLE || 'aipm-backend-prod-tasks';
+      
+      const result = await docClient.send(new QueryCommand({
+        TableName: tableName,
+        IndexName: 'story-id-index',
+        KeyConditionExpression: 'story_id = :storyId',
+        ExpressionAttributeValues: {
+          ':storyId': storyId
+        }
+      }));
+      
+      return result.Items || [];
+    } else {
+      // SQLite implementation
+      return safeSelectAll(db, 'SELECT * FROM tasks WHERE story_id = ? ORDER BY id', storyId);
+    }
+  })();
   
   // Ensure taskRows is an array
   const taskRowsArray = Array.isArray(taskRows) ? taskRows : [];
@@ -5572,7 +5644,35 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     story.tasks.push(buildTaskFromRow(taskRow));
   });
 
-  const childRows = db.prepare('SELECT id, status FROM user_stories WHERE parent_id = ?').all(storyId);
+  const childRows = await (async () => {
+    if (db.constructor.name === 'DynamoDBDataLayer') {
+      // DynamoDB implementation for child stories
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(client);
+      const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+      
+      const result = await docClient.send(new QueryCommand({
+        TableName: tableName,
+        IndexName: 'parent-id-index',
+        KeyConditionExpression: 'parent_id = :parentId',
+        ExpressionAttributeValues: {
+          ':parentId': storyId
+        },
+        ProjectionExpression: 'id, #status',
+        ExpressionAttributeNames: {
+          '#status': 'status'
+        }
+      }));
+      
+      return result.Items || [];
+    } else {
+      // SQLite implementation
+      return db.prepare('SELECT id, status FROM user_stories WHERE parent_id = ?').all(storyId);
+    }
+  })();
   if (safeNormalizeStoryStatus(story.status) === 'Ready' && hasActiveProgressChild(childRows)) {
     story.status = 'In Progress';
   }
