@@ -5456,15 +5456,6 @@ async function loadStories(db, options = {}) {
       story.investSatisfied = warnings.length === 0;
       story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
       story.investAnalysis = storedAnalysis;
-        source: 'heuristic',
-        summary: '',
-        aiSummary: '',
-        aiWarnings: [],
-        aiModel: null,
-        usedFallback: true,
-        error: null,
-        fallbackWarnings: [],
-      };
     } else {
       // Fallback: calculate if not stored (for old data)
       const analysis = buildBaselineInvestAnalysis(story, {
