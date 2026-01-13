@@ -798,8 +798,10 @@ const server = http.createServer(async (req, res) => {
           .replace(/\{\{components\}\}/g, Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None')
           .replace(/\{\{acceptanceTestCount\}\}/g, String(Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0));
         
-        // Send the complete template to Kiro CLI
-        const prompt = template;
+        // Send the complete template to Kiro CLI with explicit instructions
+        const prompt = `${template}
+
+IMPORTANT: Analyze the story data above using the INVEST criteria and respond with ONLY the JSON format specified in the template. Do not create files or provide explanations - just return the JSON analysis.`;
         
         // Send to Kiro CLI
         const result = await sendToKiro(prompt);
