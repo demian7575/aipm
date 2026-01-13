@@ -144,7 +144,13 @@ EOF
 cd aipm
 echo 'Restarting $SERVICE_NAME...'
 sudo systemctl restart $SERVICE_NAME
-echo 'Waiting for service to start...'
+
+echo 'Restarting Kiro API server...'
+pkill -f kiro-api-server || true
+sleep 2
+nohup node scripts/kiro-api-server-v4.js > /dev/null 2>&1 &
+
+echo 'Waiting for services to start...'
 sleep 5
 sudo systemctl status $SERVICE_NAME --no-pager
 echo 'Service restarted successfully'
