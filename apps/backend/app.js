@@ -5560,7 +5560,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     story.status = 'In Progress';
   }
 
-  const dependencyRows = loadDependencyRows(db).filter(
+  const dependencyRows = (await loadDependencyRows(db)).filter(
     (entry) => entry.story_id === storyId || entry.depends_on_story_id === storyId
   );
   if (dependencyRows.length > 0) {
