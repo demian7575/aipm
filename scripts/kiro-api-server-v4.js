@@ -785,17 +785,17 @@ const server = http.createServer(async (req, res) => {
         // Build template prompt with story data
         const prompt = `Read and follow the template file: ./templates/invest-analysis.md
 
-Story data:
-- Title: "${storyData.title || 'Untitled'}"
-- As a: "${storyData.asA || ''}"
-- I want: "${storyData.iWant || ''}"
-- So that: "${storyData.soThat || ''}"
-- Description: "${storyData.description || ''}"
-- Story Points: ${storyData.storyPoint || 0}
-- Components: ${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}
-- Acceptance Tests: ${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0} tests defined
+Replace the template placeholders with this story data:
+- {{title}} = "${storyData.title || 'Untitled'}"
+- {{asA}} = "${storyData.asA || ''}"
+- {{iWant}} = "${storyData.iWant || ''}"
+- {{soThat}} = "${storyData.soThat || ''}"
+- {{description}} = "${storyData.description || ''}"
+- {{storyPoint}} = "${storyData.storyPoint || 0}"
+- {{components}} = "${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}"
+- {{acceptanceTestCount}} = "${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0}"
 
-Execute the template instructions and provide JSON analysis.`;
+Execute the template with these values substituted and provide the JSON analysis as specified in the template.`;
         
         // Send to Kiro CLI
         const result = await sendToKiro(prompt);
