@@ -3173,6 +3173,7 @@ async function analyzeInvest(story, options = {}) {
   
   // Try AI analysis via Kiro API
   try {
+    console.log('🤖 Attempting AI INVEST analysis...');
     const kiroApiUrl = 'http://localhost:8081';
     const response = await fetch(`${kiroApiUrl}/api/analyze-invest`, {
       method: 'POST',
@@ -3190,8 +3191,12 @@ async function analyzeInvest(story, options = {}) {
       signal: AbortSignal.timeout(30000) // 30 second timeout
     });
     
+    console.log('🤖 Kiro API response status:', response.status);
+    
     if (response.ok) {
       const result = await response.json();
+      console.log('🤖 Kiro API result:', { success: result.success, hasAnalysis: !!result.analysis });
+      
       if (result.success && result.analysis) {
         // Parse AI response and format as expected
         let aiAnalysis;
@@ -3199,10 +3204,11 @@ async function analyzeInvest(story, options = {}) {
           aiAnalysis = typeof result.analysis === 'string' ? 
             JSON.parse(result.analysis) : result.analysis;
         } catch (parseError) {
-          console.warn('Failed to parse AI analysis, using fallback');
+          console.warn('🤖 Failed to parse AI analysis:', parseError.message);
           throw parseError;
         }
         
+        console.log('🤖 AI analysis successful, returning AI result');
         return {
           warnings: aiAnalysis.warnings || baseline,
           source: 'ai',
@@ -3216,12 +3222,17 @@ async function analyzeInvest(story, options = {}) {
           fallbackWarnings: baseline,
           usedFallback: false,
         };
+      } else {
+        console.log('🤖 Kiro API returned unsuccessful result or no analysis');
       }
+    } else {
+      console.log('🤖 Kiro API response not ok:', response.status);
     }
   } catch (error) {
-    console.warn('AI INVEST analysis failed, using heuristics:', error.message);
+    console.warn('🤖 AI INVEST analysis failed, using heuristics:', error.message);
   }
   
+  console.log('🤖 Falling back to heuristic analysis');
   // Fallback to heuristics
   return {
     warnings: baseline,
