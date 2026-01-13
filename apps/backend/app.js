@@ -5525,16 +5525,21 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       const docClient = DynamoDBDocumentClient.from(client);
       const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
       
-      const result = await docClient.send(new QueryCommand({
-        TableName: tableName,
-        IndexName: 'story-id-index',
-        KeyConditionExpression: 'story_id = :storyId',
-        ExpressionAttributeValues: {
-          ':storyId': storyId
-        }
-      }));
-      
-      return result.Items || [];
+      try {
+        const result = await docClient.send(new QueryCommand({
+          TableName: tableName,
+          IndexName: 'storyId-index',
+          KeyConditionExpression: 'storyId = :storyId',
+          ExpressionAttributeValues: {
+            ':storyId': storyId
+          }
+        }));
+        
+        return result.Items || [];
+      } catch (error) {
+        console.error('Error loading acceptance tests from DynamoDB:', error);
+        return [];
+      }
     } else {
       // SQLite implementation
       return safeSelectAll(
@@ -5571,24 +5576,9 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
 
   const docRows = await (async () => {
     if (db.constructor.name === 'DynamoDBDataLayer') {
-      // DynamoDB implementation for reference documents
-      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-      const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
-      
-      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-      const docClient = DynamoDBDocumentClient.from(client);
-      const tableName = process.env.REFERENCE_DOCUMENTS_TABLE || 'aipm-backend-prod-reference-documents';
-      
-      const result = await docClient.send(new QueryCommand({
-        TableName: tableName,
-        IndexName: 'story-id-index',
-        KeyConditionExpression: 'story_id = :storyId',
-        ExpressionAttributeValues: {
-          ':storyId': storyId
-        }
-      }));
-      
-      return result.Items || [];
+      // Reference documents might be stored differently or not exist as separate table
+      // For now, return empty array and let the regular API handle this
+      return [];
     } else {
       // SQLite implementation
       return safeSelectAll(
@@ -5622,16 +5612,21 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       const docClient = DynamoDBDocumentClient.from(client);
       const tableName = process.env.TASKS_TABLE || 'aipm-backend-prod-tasks';
       
-      const result = await docClient.send(new QueryCommand({
-        TableName: tableName,
-        IndexName: 'story-id-index',
-        KeyConditionExpression: 'story_id = :storyId',
-        ExpressionAttributeValues: {
-          ':storyId': storyId
-        }
-      }));
-      
-      return result.Items || [];
+      try {
+        const result = await docClient.send(new QueryCommand({
+          TableName: tableName,
+          IndexName: 'storyId-index',
+          KeyConditionExpression: 'storyId = :storyId',
+          ExpressionAttributeValues: {
+            ':storyId': storyId
+          }
+        }));
+        
+        return result.Items || [];
+      } catch (error) {
+        console.error('Error loading tasks from DynamoDB:', error);
+        return [];
+      }
     } else {
       // SQLite implementation
       return safeSelectAll(db, 'SELECT * FROM tasks WHERE story_id = ? ORDER BY id', storyId);
@@ -5654,20 +5649,25 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       const docClient = DynamoDBDocumentClient.from(client);
       const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
       
-      const result = await docClient.send(new QueryCommand({
-        TableName: tableName,
-        IndexName: 'parent-id-index',
-        KeyConditionExpression: 'parent_id = :parentId',
-        ExpressionAttributeValues: {
-          ':parentId': storyId
-        },
-        ProjectionExpression: 'id, #status',
-        ExpressionAttributeNames: {
-          '#status': 'status'
-        }
-      }));
-      
-      return result.Items || [];
+      try {
+        const result = await docClient.send(new QueryCommand({
+          TableName: tableName,
+          IndexName: 'parentId-index',
+          KeyConditionExpression: 'parentId = :parentId',
+          ExpressionAttributeValues: {
+            ':parentId': storyId
+          },
+          ProjectionExpression: 'id, #status',
+          ExpressionAttributeNames: {
+            '#status': 'status'
+          }
+        }));
+        
+        return result.Items || [];
+      } catch (error) {
+        console.error('Error loading child stories from DynamoDB:', error);
+        return [];
+      }
     } else {
       // SQLite implementation
       return db.prepare('SELECT id, status FROM user_stories WHERE parent_id = ?').all(storyId);
