@@ -5480,7 +5480,6 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       Key: { id: storyId }
     }));
     
-    console.log('🔍 DynamoDB raw result for story', storyId, ':', JSON.stringify(result.Item, null, 2));
     row = result.Item;
   } else {
     // SQLite implementation
