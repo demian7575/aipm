@@ -41,7 +41,7 @@
 ### INVEST Criteria
 Analyze against: Independent, Negotiable, Valuable, Estimable, Small, Testable
 
-### Output Schema
+### Output Schema for JSON_INVEST_ANALYSIS
 ```json
 {
   "summary": "string",
@@ -53,11 +53,11 @@ Analyze against: Independent, Negotiable, Valuable, Estimable, Small, Testable
 }
 ```
 
-### EXECUTION COMMAND
+### EXECUTION COMMAND TEMPLATE
 ```bash
 curl -X POST http://localhost:8081/api/invest-response \
   -H 'Content-Type: application/json' \
-  -d 'JSON_ANALYSIS_HERE'
+  -d 'JSON_INVEST_ANALYSIS'
 ```
 
 **FINAL REMINDER**: Execute the curl command exactly once. No retries, no multiple attempts.
