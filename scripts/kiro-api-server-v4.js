@@ -812,28 +812,35 @@ const server = http.createServer(async (req, res) => {
         const templatePath = './templates/invest-analysis.md';
         let template = readFileSync(templatePath, 'utf8');
         
-        // Replace placeholders with actual story data
-        const filledTemplate = template
-          .replace(/STORY_TITLE/g, storyData.title || 'Untitled')
-          .replace(/STORY_AS_A/g, storyData.asA || '')
-          .replace(/STORY_I_WANT/g, storyData.iWant || '')
-          .replace(/STORY_SO_THAT/g, storyData.soThat || '')
-          .replace(/STORY_DESCRIPTION/g, storyData.description || '')
-          .replace(/STORY_POINTS/g, storyData.storyPoint || 0)
-          .replace(/STORY_COMPONENTS/g, Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None')
-          .replace(/ACCEPTANCE_TEST_COUNT/g, Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0)
-          .replace(/ACCEPTANCE_TEST_DETAILS/g, Array.isArray(storyData.acceptanceTests) && storyData.acceptanceTests.length > 0 ? 
-            storyData.acceptanceTests.map((test, i) => 
-              `${i + 1}. ${test.title}\n   Given: ${Array.isArray(test.given) ? test.given.join(', ') : test.given}\n   When: ${Array.isArray(test.when) ? test.when.join(', ') : test.when}\n   Then: ${Array.isArray(test.then) ? test.then.join(', ') : test.then}`
-            ).join('\n') : 'None');
-        
-        // Write filled template to temporary file
+        // Template System: Create data file and reference both files
         const { writeFileSync, unlinkSync } = await import('fs');
-        const tempFileName = `invest-analysis-${Date.now()}.md`;
+        const tempFileName = `invest-data-${Date.now()}.md`;
         const tempFilePath = `./templates/${tempFileName}`;
-        writeFileSync(tempFilePath, filledTemplate);
         
-        const prompt = `Read and follow the template file: ./templates/invest-analysis.md and ./templates/${tempFileName}
+        // Create data file with story information
+        const storyDataContent = `# Story Data
+
+## Story Information
+- Title: ${storyData.title || 'Untitled'}
+- As a: ${storyData.asA || ''}
+- I want: ${storyData.iWant || ''}
+- So that: ${storyData.soThat || ''}
+- Description: ${storyData.description || ''}
+- Story Points: ${storyData.storyPoint || 0}
+- Components: ${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}
+- Acceptance Tests: ${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0}
+
+## Acceptance Test Details
+${Array.isArray(storyData.acceptanceTests) && storyData.acceptanceTests.length > 0 ? 
+  storyData.acceptanceTests.map((test, i) => 
+    `${i + 1}. ${test.title}\n   Given: ${Array.isArray(test.given) ? test.given.join(', ') : test.given}\n   When: ${Array.isArray(test.when) ? test.when.join(', ') : test.when}\n   Then: ${Array.isArray(test.then) ? test.then.join(', ') : test.then}`
+  ).join('\n') : 'None'}`;
+        
+        writeFileSync(tempFilePath, storyDataContent);
+        
+        const prompt = `Read and follow the template file: ./templates/invest-analysis.md
+
+Story data file: ./templates/${tempFileName}
 
 Execute the template instructions exactly as written.`;
         
