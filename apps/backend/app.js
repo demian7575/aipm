@@ -5771,9 +5771,16 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     }
   }
   
-  // If no stored analysis and not requesting AI, throw exception
+  // If no stored analysis and not requesting AI, use heuristic analysis
   if (!analysis) {
-    throw new Error('No stored analysis available and AI analysis not requested');
+    analysis = await evaluateInvestAnalysis(
+      story,
+      {
+        acceptanceTests: story.acceptanceTests,
+        includeTestChecks: true,
+      },
+      { includeAiInvest: false }
+    );
   }
   
   applyInvestAnalysisToStory(story, analysis);
