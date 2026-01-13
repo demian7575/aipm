@@ -808,7 +808,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const storyData = JSON.parse(body);
         
-        // Template System: Read template and provide filled data as parameters
+        // Template System: Create temporary file with filled data
         const templatePath = './templates/invest-analysis.md';
         let template = readFileSync(templatePath, 'utf8');
         
@@ -823,12 +823,20 @@ const server = http.createServer(async (req, res) => {
           .replace(/STORY_COMPONENTS/g, Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None')
           .replace(/ACCEPTANCE_TEST_COUNT/g, Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0);
         
-        const prompt = `Read and follow the template file: ./templates/invest-analysis.md
-
-Template with filled data:
-${filledTemplate}
+        // Write filled template to temporary file
+        const { writeFileSync, unlinkSync } = await import('fs');
+        const tempFileName = `invest-analysis-${Date.now()}.md`;
+        const tempFilePath = `./templates/${tempFileName}`;
+        writeFileSync(tempFilePath, filledTemplate);
+        
+        const prompt = `Read and follow the template file: ./templates/invest-analysis.md and ./templates/${tempFileName}
 
 Execute the template instructions exactly as written.`;
+        
+        // Clean up temp file after use
+        setTimeout(() => {
+          try { unlinkSync(tempFilePath); } catch (e) {}
+        }, 60000);
         
         // Clear any existing analysis data
         global.latestInvestAnalysis = null;
