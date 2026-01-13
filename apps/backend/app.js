@@ -3171,9 +3171,9 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
   
-  // Try AI analysis via Kiro API (development environment only)
+  // Try AI analysis via Kiro API
   try {
-    const kiroApiUrl = 'http://44.222.168.46:8081';
+    const kiroApiUrl = 'http://localhost:8081';
     const response = await fetch(`${kiroApiUrl}/api/analyze-invest`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
