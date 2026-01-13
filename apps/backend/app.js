@@ -3218,9 +3218,7 @@ async function analyzeInvest(story, options = {}) {
             warnings: aiAnalysis.warnings || [],
             model: 'kiro-cli',
             score: aiAnalysis.score || 0
-          },
-          fallbackWarnings: baseline,
-          usedFallback: false,
+          }
         };
       } else {
         console.log('🤖 Kiro API returned unsuccessful result or no analysis');
@@ -3241,10 +3239,7 @@ function buildBaselineInvestAnalysis(story, options = {}) {
   return {
     warnings,
     source: 'heuristic',
-    summary: '',
-    ai: null,
-    fallbackWarnings: warnings,
-    usedFallback: true,
+    summary: ''
   };
 }
 
@@ -3261,21 +3256,25 @@ async function evaluateInvestAnalysis(story, options = {}, controls = {}) {
 }
 
 function applyInvestAnalysisToStory(story, analysis) {
-  // Extract warnings from analysis (AI warnings take priority, fallback to analysis warnings)
-  const warnings = analysis.ai?.warnings || analysis.aiWarnings || analysis.warnings || [];
+  // Use analysis warnings directly (no separate investWarnings)
+  const warnings = analysis.warnings || [];
   
-  story.investWarnings = warnings;
+  story.investWarnings = warnings; // Keep for frontend compatibility
   story.investSatisfied = warnings.length === 0;
   story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
+  
+  // Simplified investAnalysis - no duplicated fields
   story.investAnalysis = {
+    source: analysis.source || 'heuristic',
+    summary: analysis.summary || '',
+    warnings: warnings,
+    model: analysis.ai?.model || null
+  };
+}
     source: analysis.source,
     summary: analysis.summary,
-    aiSummary: analysis.ai?.summary || '',
-    aiWarnings: analysis.ai?.warnings || [],
-    aiModel: analysis.ai?.model || null,
-    usedFallback: analysis.usedFallback,
-    error: analysis.ai?.error || null,
-    fallbackWarnings: analysis.fallbackWarnings || [],
+    warnings: analysis.warnings || [],
+    model: analysis.ai?.model || null
   };
 }
 
@@ -4356,8 +4355,8 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
       const investHealth = story.investHealth || null;
       const investLines = summarizeInvestWarnings(
         investHealth?.issues || [],
-        story.investAnalysis && story.investAnalysis.aiSummary
-          ? { summary: story.investAnalysis.aiSummary, source: story.investAnalysis.source }
+        story.investAnalysis && story.investAnalysis.summary
+          ? { summary: story.investAnalysis.summary, source: story.investAnalysis.source }
           : story.investAnalysis
       );
       investLines.forEach((line) => lines.push(line));
@@ -5450,7 +5449,7 @@ async function loadStories(db, options = {}) {
     
     if (storedAnalysis) {
       // Extract warnings from stored analysis
-      const warnings = storedAnalysis.ai?.warnings || storedAnalysis.aiWarnings || storedAnalysis.fallbackWarnings || [];
+      const warnings = storedAnalysis.warnings || [];
       
       story.investWarnings = warnings;
       story.investSatisfied = warnings.length === 0;
