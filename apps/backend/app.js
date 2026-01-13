@@ -5548,7 +5548,10 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   });
 
   const taskRows = safeSelectAll(db, 'SELECT * FROM tasks WHERE story_id = ? ORDER BY id', storyId);
-  taskRows.forEach((taskRow) => {
+  
+  // Ensure taskRows is an array
+  const taskRowsArray = Array.isArray(taskRows) ? taskRows : [];
+  taskRowsArray.forEach((taskRow) => {
     story.tasks.push(buildTaskFromRow(taskRow));
   });
 
