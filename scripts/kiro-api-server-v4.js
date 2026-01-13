@@ -808,12 +808,12 @@ const server = http.createServer(async (req, res) => {
       try {
         const storyData = JSON.parse(body);
         
-        // Template System: Read template and replace placeholders with actual data
+        // Template System: Read template and provide filled data as parameters
         const templatePath = './templates/invest-analysis.md';
         let template = readFileSync(templatePath, 'utf8');
         
         // Replace placeholders with actual story data
-        template = template
+        const filledTemplate = template
           .replace(/STORY_TITLE/g, storyData.title || 'Untitled')
           .replace(/STORY_AS_A/g, storyData.asA || '')
           .replace(/STORY_I_WANT/g, storyData.iWant || '')
@@ -823,7 +823,12 @@ const server = http.createServer(async (req, res) => {
           .replace(/STORY_COMPONENTS/g, Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None')
           .replace(/ACCEPTANCE_TEST_COUNT/g, Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0);
         
-        const prompt = template;
+        const prompt = `Read and follow the template file: ./templates/invest-analysis.md
+
+Template with filled data:
+${filledTemplate}
+
+Execute the template instructions exactly as written.`;
         
         // Clear any existing analysis data
         global.latestInvestAnalysis = null;
