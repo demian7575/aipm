@@ -145,10 +145,11 @@ cd aipm
 echo 'Restarting $SERVICE_NAME...'
 sudo systemctl restart $SERVICE_NAME
 
-echo 'Restarting Kiro API server...'
-pkill -f kiro-api-server || true
-sleep 2
-nohup node scripts/kiro-api-server-v4.js > /dev/null 2>&1 &
+echo 'Installing/updating Kiro API service...'
+sudo cp scripts/systemd/aipm-kiro-api.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable aipm-kiro-api
+sudo systemctl restart aipm-kiro-api
 
 echo 'Waiting for services to start...'
 sleep 5

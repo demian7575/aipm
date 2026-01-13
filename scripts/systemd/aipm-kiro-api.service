@@ -1,0 +1,20 @@
+[Unit]
+Description=AIPM Kiro API Server
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+ExecStart=/usr/bin/node scripts/kiro-api-server-v4.js
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aipm-kiro-api
+
+[Install]
+WantedBy=multi-user.target
