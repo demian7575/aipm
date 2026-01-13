@@ -38,6 +38,9 @@
 - Components: STORY_COMPONENTS
 - Acceptance Tests: ACCEPTANCE_TEST_COUNT tests
 
+### Acceptance Test Details
+ACCEPTANCE_TEST_DETAILS
+
 ### INVEST Criteria
 Analyze against: Independent, Negotiable, Valuable, Estimable, Small, Testable
 

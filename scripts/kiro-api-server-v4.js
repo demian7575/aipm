@@ -821,7 +821,11 @@ const server = http.createServer(async (req, res) => {
           .replace(/STORY_DESCRIPTION/g, storyData.description || '')
           .replace(/STORY_POINTS/g, storyData.storyPoint || 0)
           .replace(/STORY_COMPONENTS/g, Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None')
-          .replace(/ACCEPTANCE_TEST_COUNT/g, Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0);
+          .replace(/ACCEPTANCE_TEST_COUNT/g, Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0)
+          .replace(/ACCEPTANCE_TEST_DETAILS/g, Array.isArray(storyData.acceptanceTests) && storyData.acceptanceTests.length > 0 ? 
+            storyData.acceptanceTests.map((test, i) => 
+              `${i + 1}. ${test.title}\n   Given: ${Array.isArray(test.given) ? test.given.join(', ') : test.given}\n   When: ${Array.isArray(test.when) ? test.when.join(', ') : test.when}\n   Then: ${Array.isArray(test.then) ? test.then.join(', ') : test.then}`
+            ).join('\n') : 'None');
         
         // Write filled template to temporary file
         const { writeFileSync, unlinkSync } = await import('fs');
