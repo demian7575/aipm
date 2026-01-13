@@ -94,14 +94,20 @@ Respond with valid JSON only:
 
 ## EXECUTION COMMAND
 
+**TARGET URL**: http://localhost:8081/api/invest-response
+**METHOD**: POST
+**CONTENT-TYPE**: application/json
+
 **MANDATORY**: After completing your analysis, execute this EXACT curl command:
 
 ```bash
 curl -X POST http://localhost:8081/api/invest-response -H 'Content-Type: application/json' -d '{"summary":"Brief assessment","score":85,"warnings":[],"strengths":[],"source":"ai","model":"kiro-cli"}'
 ```
 
-**CRITICAL**: Replace the JSON data with your actual analysis results.
-**EXECUTE IMMEDIATELY**: Run this curl command right after your analysis.
-**NO OTHER COMMANDS**: Do not run any other curl commands or API calls.
+**CRITICAL**: 
+- URL MUST BE: http://localhost:8081/api/invest-response
+- Replace the JSON data with your actual analysis results
+- DO NOT use any other URL or endpoint
+- EXECUTE IMMEDIATELY after analysis
 
 Provide constructive, actionable feedback focused on improving story quality.
