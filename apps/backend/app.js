@@ -3229,19 +3229,11 @@ async function analyzeInvest(story, options = {}) {
       console.log('🤖 Kiro API response not ok:', response.status);
     }
   } catch (error) {
-    console.warn('🤖 AI INVEST analysis failed, using heuristics:', error.message);
+    console.warn('🤖 AI INVEST analysis failed:', error.message);
+    throw error; // Don't fallback, let the error propagate
   }
   
-  console.log('🤖 Falling back to heuristic analysis');
-  // Fallback to heuristics
-  return {
-    warnings: baseline,
-    source: 'heuristic',
-    summary: '',
-    ai: null,
-    fallbackWarnings: baseline,
-    usedFallback: true,
-  };
+  throw new Error('AI analysis failed - no fallback available');
 }
 
 function buildBaselineInvestAnalysis(story, options = {}) {
