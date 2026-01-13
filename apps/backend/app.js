@@ -7202,11 +7202,14 @@ export async function createApp() {
       try {
         const payload = await parseJson(req);
         const includeAiInvest = toBoolean(payload.includeAiInvest);
+        console.log('🏥 Health-check endpoint called for story:', storyId, 'includeAiInvest:', includeAiInvest);
+        
         const story = await loadStoryWithDetails(db, storyId, { includeAiInvest });
         if (!story) {
           sendJson(res, 404, { message: 'Story not found' });
           return;
         }
+        console.log('🏥 Story loaded, investAnalysis source:', story.investAnalysis?.source);
         sendJson(res, 200, story);
       } catch (error) {
         const status = error.statusCode ?? 500;
