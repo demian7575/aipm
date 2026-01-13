@@ -7972,7 +7972,7 @@ initialize();
 window.cleanupKiroQueue = async function() {
   try {
     const apiBaseUrl = getApiBaseUrl();
-    const response = await fetch(`${apiBaseUrl}/kiro/v3/queue/cleanup`, {
+    const response = await fetch(`${apiBaseUrl}:8081/kiro/v3/queue/cleanup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });

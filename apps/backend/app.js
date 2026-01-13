@@ -5386,12 +5386,12 @@ async function loadStories(db, options = {}) {
     story.blocking.sort(sortByStoryId);
   });
 
-  testRows.forEach((row) => {
+  for (const row of testRows) {
     const story = byId.get(row.story_id);
     if (row.story_id === 1767550018420) {
       console.log('🔍 Processing test for story 1767550018420:', row.id, 'found story:', !!story);
     }
-    if (!story) return;
+    if (!story) continue;
     const given = parseJsonArray(row.given);
     const when = parseJsonArray(row.when_step);
     const then = parseJsonArray(row.then_step);
@@ -5411,7 +5411,7 @@ async function loadStories(db, options = {}) {
       measurabilitySuggestions: suggestions,
       gwtHealth,
     });
-  });
+  }
 
   docRows.forEach((row) => {
     const story = byId.get(row.story_id);
@@ -5551,7 +5551,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   
   // Ensure testRows is an array
   const testRowsArray = Array.isArray(testRows) ? testRows : [];
-  testRowsArray.forEach((testRow) => {
+  for (const testRow of testRowsArray) {
     const given = parseJsonArray(testRow.given);
     const when = parseJsonArray(testRow.when_step);
     const then = parseJsonArray(testRow.then_step);
@@ -5571,7 +5571,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       measurabilitySuggestions: suggestions,
       gwtHealth,
     });
-  });
+  }
 
   const docRows = await (async () => {
     if (db.constructor.name === 'DynamoDBDataLayer') {
