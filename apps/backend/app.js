@@ -5519,17 +5519,16 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     if (db.constructor.name === 'DynamoDBDataLayer') {
       // DynamoDB implementation for acceptance tests
       const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-      const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
       
       const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
       const docClient = DynamoDBDocumentClient.from(client);
       const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
       
       try {
-        const result = await docClient.send(new QueryCommand({
+        const result = await docClient.send(new ScanCommand({
           TableName: tableName,
-          IndexName: 'storyId-index',
-          KeyConditionExpression: 'storyId = :storyId',
+          FilterExpression: 'story_id = :storyId',
           ExpressionAttributeValues: {
             ':storyId': storyId
           }
