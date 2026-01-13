@@ -783,7 +783,7 @@ const server = http.createServer(async (req, res) => {
         const storyData = JSON.parse(body);
         
         // Read and substitute the template
-        const fs = require('fs');
+        const fs = await import('fs');
         const templatePath = './templates/invest-analysis.md';
         let template = fs.readFileSync(templatePath, 'utf8');
         
