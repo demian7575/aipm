@@ -7202,6 +7202,35 @@ export async function createApp() {
           return;
         }
         console.log('🏥 Story loaded, investAnalysis source:', story.investAnalysis?.source);
+        
+        // Save the updated analysis to database if AI analysis was performed
+        if (includeAiInvest && story.investAnalysis?.source === 'ai') {
+          console.log('🏥 Saving AI analysis to database...');
+          
+          if (db.constructor.name === 'DynamoDBDataLayer') {
+            // DynamoDB update
+            const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+            const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+            
+            const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+            const docClient = DynamoDBDocumentClient.from(client);
+            const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+            
+            await docClient.send(new UpdateCommand({
+              TableName: tableName,
+              Key: { id: storyId },
+              UpdateExpression: 'SET invest_warnings = :warnings, invest_analysis = :analysis, updated_at = :updatedAt',
+              ExpressionAttributeValues: {
+                ':warnings': JSON.stringify(story.investWarnings || []),
+                ':analysis': JSON.stringify(story.investAnalysis || {}),
+                ':updatedAt': new Date().toISOString()
+              }
+            }));
+            
+            console.log('🏥 AI analysis saved to DynamoDB');
+          }
+        }
+        
         sendJson(res, 200, story);
       } catch (error) {
         const status = error.statusCode ?? 500;
