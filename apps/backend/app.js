@@ -5747,14 +5747,31 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     story.blocking.sort(sortByStoryId);
   }
 
-  const analysis = await evaluateInvestAnalysis(
-    story,
-    {
-      acceptanceTests: story.acceptanceTests,
-      includeTestChecks: true,
-    },
-    { includeAiInvest }
-  );
+  // Check if we have stored analysis in DynamoDB
+  let analysis;
+  if (db.constructor.name === 'DynamoDBDataLayer' && row.invest_analysis) {
+    try {
+      const storedAnalysis = JSON.parse(row.invest_analysis);
+      if (storedAnalysis && storedAnalysis.source) {
+        analysis = storedAnalysis;
+      }
+    } catch (error) {
+      console.error('Error parsing stored invest_analysis:', error);
+    }
+  }
+  
+  // If no stored analysis, calculate new one
+  if (!analysis) {
+    analysis = await evaluateInvestAnalysis(
+      story,
+      {
+        acceptanceTests: story.acceptanceTests,
+        includeTestChecks: true,
+      },
+      { includeAiInvest }
+    );
+  }
+  
   applyInvestAnalysisToStory(story, analysis);
 
   return story;
