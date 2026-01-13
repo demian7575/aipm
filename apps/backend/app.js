@@ -3258,9 +3258,13 @@ function buildBaselineInvestAnalysis(story, options = {}) {
 
 async function evaluateInvestAnalysis(story, options = {}, controls = {}) {
   const includeAiInvest = controls?.includeAiInvest === true;
+  console.log('🔍 evaluateInvestAnalysis called with includeAiInvest:', includeAiInvest);
+  
   if (includeAiInvest) {
+    console.log('🔍 Calling analyzeInvest for AI analysis');
     return analyzeInvest(story, options);
   }
+  console.log('🔍 Using baseline analysis (no AI)');
   return buildBaselineInvestAnalysis(story, options);
 }
 
