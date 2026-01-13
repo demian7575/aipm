@@ -755,6 +755,32 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // INVEST response endpoint - receives analysis data from KIRO CLI
+  if (url.pathname === '/api/invest-response' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const investData = JSON.parse(body);
+        console.log('📊 Received INVEST analysis from Kiro CLI:', investData);
+        
+        // Store the analysis with timestamp
+        global.latestInvestAnalysis = {
+          ...investData,
+          timestamp: Date.now()
+        };
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ received: true }));
+      } catch (error) {
+        console.error('Error parsing INVEST response:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
   // Draft response endpoint - receives draft data from KIRO CLI
   if (url.pathname === '/api/draft-response' && req.method === 'POST') {
     let body = '';
@@ -798,18 +824,41 @@ const server = http.createServer(async (req, res) => {
           .replace(/\{\{components\}\}/g, Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None')
           .replace(/\{\{acceptanceTestCount\}\}/g, String(Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0));
         
-        // Send the complete template to Kiro CLI with explicit instructions
+        // Send the complete template to Kiro CLI with callback instruction
         const prompt = `${template}
 
-IMPORTANT: Analyze the story data above using the INVEST criteria and respond with ONLY the JSON format specified in the template. Do not create files or provide explanations - just return the JSON analysis.`;
+IMPORTANT: Analyze the story data above using the INVEST criteria and respond with ONLY the JSON format specified in the template. 
+
+When you have the JSON analysis ready, POST it to: http://localhost:8081/api/invest-response
+
+Do not create files or provide explanations - just analyze and POST the JSON result.`;
+        
+        // Clear any existing analysis data
+        global.latestInvestAnalysis = null;
         
         // Send to Kiro CLI
         const result = await sendToKiro(prompt);
         
+        // Give KIRO CLI time to post the analysis data (similar to draft workflow)
+        await new Promise(resolve => setTimeout(resolve, 8000));
+        
+        // Check if we received analysis data
+        if (global.latestInvestAnalysis && (Date.now() - global.latestInvestAnalysis.timestamp) < 30000) {
+          const analysisResponse = global.latestInvestAnalysis;
+          global.latestInvestAnalysis = null; // Clear after use
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: true, 
+            analysis: analysisResponse 
+          }));
+          return;
+        }
+        
+        // Fallback if no callback received
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
-          success: true, 
-          analysis: result 
+          success: false, 
+          error: 'No analysis received from Kiro CLI'
         }));
         
       } catch (error) {
