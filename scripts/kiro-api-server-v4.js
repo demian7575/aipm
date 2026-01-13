@@ -839,8 +839,8 @@ Do not create files or provide explanations - just analyze and POST the JSON res
         // Send to Kiro CLI
         const result = await sendToKiro(prompt);
         
-        // Give KIRO CLI time to post the analysis data (similar to draft workflow)
-        await new Promise(resolve => setTimeout(resolve, 8000));
+        // Give KIRO CLI time to post the analysis data (INVEST analysis takes longer than drafts)
+        await new Promise(resolve => setTimeout(resolve, 15000));
         
         // Check if we received analysis data
         if (global.latestInvestAnalysis && (Date.now() - global.latestInvestAnalysis.timestamp) < 30000) {
