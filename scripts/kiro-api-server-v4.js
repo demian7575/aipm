@@ -755,6 +755,32 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // GWT response endpoint - receives GWT health analysis from KIRO CLI
+  if (url.pathname === '/api/gwt-response' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const gwtData = JSON.parse(body);
+        console.log('📊 Received GWT analysis from Kiro CLI:', gwtData);
+        
+        // Store the analysis with timestamp
+        global.latestGwtAnalysis = {
+          ...gwtData,
+          timestamp: Date.now()
+        };
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ received: true }));
+      } catch (error) {
+        console.error('Error parsing GWT response:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
   // INVEST response endpoint - receives analysis data from KIRO CLI
   if (url.pathname === '/api/invest-response' && req.method === 'POST') {
     let body = '';
@@ -794,6 +820,79 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ received: true }));
       } catch (error) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
+  // GWT Health Analysis endpoint
+  if (url.pathname === '/api/analyze-gwt' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const testData = JSON.parse(body);
+        
+        // Template System: Create data file and reference both files
+        const { writeFileSync, unlinkSync } = await import('fs');
+        const tempFileName = `gwt-data-${Date.now()}.md`;
+        const tempFilePath = `./templates/${tempFileName}`;
+        
+        // Create data file with test information
+        const testDataContent = `# GWT Test Data
+
+## Acceptance Test Information
+- Test ID: ${testData.id || 'Unknown'}
+- Test Title: ${testData.title || 'Untitled Test'}
+- Given Steps: ${Array.isArray(testData.given) ? testData.given.join(', ') : 'None'}
+- When Steps: ${Array.isArray(testData.when) ? testData.when.join(', ') : 'None'}
+- Then Steps: ${Array.isArray(testData.then) ? testData.then.join(', ') : 'None'}`;
+        
+        writeFileSync(tempFilePath, testDataContent);
+        
+        const prompt = `Read and follow the template file: ./templates/gwt-health-analysis.md
+
+Test data file: ./templates/${tempFileName}
+
+Execute the template instructions exactly as written.`;
+        
+        // Clear any existing analysis data
+        global.latestGwtAnalysis = null;
+        
+        // Send to Kiro CLI
+        const result = await sendToKiro(prompt);
+        
+        // Give KIRO CLI time to post the analysis data
+        await new Promise(resolve => setTimeout(resolve, 15000));
+        
+        // Clean up temp file
+        setTimeout(() => {
+          try { unlinkSync(tempFilePath); } catch (e) {}
+        }, 30000);
+        
+        // Check if we received analysis data
+        if (global.latestGwtAnalysis && (Date.now() - global.latestGwtAnalysis.timestamp) < 20000) {
+          const analysisResponse = global.latestGwtAnalysis;
+          global.latestGwtAnalysis = null; // Clear after use
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: true, 
+            analysis: analysisResponse 
+          }));
+          return;
+        }
+        
+        // Fallback if no callback received
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'No GWT analysis received from Kiro CLI'
+        }));
+        
+      } catch (error) {
+        console.error('Error in GWT analysis:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
     });
