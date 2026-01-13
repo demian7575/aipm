@@ -3261,9 +3261,12 @@ async function evaluateInvestAnalysis(story, options = {}, controls = {}) {
 }
 
 function applyInvestAnalysisToStory(story, analysis) {
-  story.investWarnings = analysis.warnings;
-  story.investSatisfied = analysis.warnings.length === 0;
-  story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
+  // Extract warnings from analysis (AI warnings take priority, fallback to analysis warnings)
+  const warnings = analysis.ai?.warnings || analysis.aiWarnings || analysis.warnings || [];
+  
+  story.investWarnings = warnings;
+  story.investSatisfied = warnings.length === 0;
+  story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
   story.investAnalysis = {
     source: analysis.source,
     summary: analysis.summary,
@@ -5443,14 +5446,16 @@ async function loadStories(db, options = {}) {
     
     // PRs are already loaded in the story object above
     
-    const storedWarnings = parseJsonArray(row.invest_warnings);
     const storedAnalysis = row.invest_analysis ? JSON.parse(row.invest_analysis) : null;
     
-    if (storedWarnings.length > 0 || storedAnalysis) {
-      story.investWarnings = storedWarnings;
-      story.investSatisfied = storedWarnings.length === 0;
-      story.investHealth = { satisfied: story.investSatisfied, issues: storedWarnings };
-      story.investAnalysis = storedAnalysis || {
+    if (storedAnalysis) {
+      // Extract warnings from stored analysis
+      const warnings = storedAnalysis.ai?.warnings || storedAnalysis.aiWarnings || storedAnalysis.fallbackWarnings || [];
+      
+      story.investWarnings = warnings;
+      story.investSatisfied = warnings.length === 0;
+      story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
+      story.investAnalysis = storedAnalysis;
         source: 'heuristic',
         summary: '',
         aiSummary: '',
@@ -5458,7 +5463,7 @@ async function loadStories(db, options = {}) {
         aiModel: null,
         usedFallback: true,
         error: null,
-        fallbackWarnings: storedWarnings,
+        fallbackWarnings: [],
       };
     } else {
       // Fallback: calculate if not stored (for old data)
@@ -6617,7 +6622,7 @@ export async function createApp() {
             blockedBy: [],
             blocking: [],
             children: [],
-            investWarnings: analysis?.warnings || [],
+            investWarnings: analysis?.ai?.warnings || analysis?.aiWarnings || analysis?.warnings || [],
             investSatisfied: false,
             investHealth: { satisfied: false, issues: analysis?.warnings || [] },
             investAnalysis: analysis || {}
@@ -7219,9 +7224,8 @@ export async function createApp() {
             await docClient.send(new UpdateCommand({
               TableName: tableName,
               Key: { id: storyId },
-              UpdateExpression: 'SET invest_warnings = :warnings, invest_analysis = :analysis, updated_at = :updatedAt',
+              UpdateExpression: 'SET invest_analysis = :analysis, updated_at = :updatedAt',
               ExpressionAttributeValues: {
-                ':warnings': JSON.stringify(story.investWarnings || []),
                 ':analysis': JSON.stringify(story.investAnalysis || {}),
                 ':updatedAt': new Date().toISOString()
               }
