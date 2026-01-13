@@ -808,19 +808,23 @@ const server = http.createServer(async (req, res) => {
       try {
         const storyData = JSON.parse(body);
         
-        // Template System: API gives KIRO CLI the filename to read and story data as parameters
-        const prompt = `Read and follow the template file: ./templates/invest-analysis.md
-
-Story Title: "${storyData.title || 'Untitled'}"
-As a: "${storyData.asA || ''}"
-I want: "${storyData.iWant || ''}"
-So that: "${storyData.soThat || ''}"
-Description: "${storyData.description || ''}"
-Story Points: ${storyData.storyPoint || 0}
-Components: ${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}
-Acceptance Tests: ${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0}
-
-Execute the template instructions exactly as written.`;
+        // Template System: Read template and replace placeholders with actual data
+        const fs = require('fs');
+        const templatePath = './templates/invest-analysis.md';
+        let template = fs.readFileSync(templatePath, 'utf8');
+        
+        // Replace placeholders with actual story data
+        template = template
+          .replace(/STORY_TITLE/g, storyData.title || 'Untitled')
+          .replace(/STORY_AS_A/g, storyData.asA || '')
+          .replace(/STORY_I_WANT/g, storyData.iWant || '')
+          .replace(/STORY_SO_THAT/g, storyData.soThat || '')
+          .replace(/STORY_DESCRIPTION/g, storyData.description || '')
+          .replace(/STORY_POINTS/g, storyData.storyPoint || 0)
+          .replace(/STORY_COMPONENTS/g, Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None')
+          .replace(/ACCEPTANCE_TEST_COUNT/g, Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0);
+        
+        const prompt = template;
         
         // Clear any existing analysis data
         global.latestInvestAnalysis = null;
