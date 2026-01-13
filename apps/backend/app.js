@@ -5468,7 +5468,28 @@ async function loadStories(db, options = {}) {
 
 async function loadStoryWithDetails(db, storyId, options = {}) {
   const { includeAiInvest = false } = options;
-  const row = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
+  
+  let row;
+  if (db.constructor.name === 'DynamoDBDataLayer') {
+    // DynamoDB implementation
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+    
+    const result = await docClient.send(new GetCommand({
+      TableName: tableName,
+      Key: { id: storyId }
+    }));
+    
+    row = result.Item;
+  } else {
+    // SQLite implementation
+    row = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
+  }
+  
   if (!row) {
     return null;
   }
