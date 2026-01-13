@@ -3188,7 +3188,7 @@ async function analyzeInvest(story, options = {}) {
         components: story.components,
         acceptanceTests: story.acceptanceTests || []
       }),
-      signal: AbortSignal.timeout(30000) // 30 second timeout
+      signal: AbortSignal.timeout(45000) // 45 second timeout (Kiro API needs 30s)
     });
     
     console.log('🤖 Kiro API response status:', response.status);
