@@ -809,9 +809,8 @@ const server = http.createServer(async (req, res) => {
         const storyData = JSON.parse(body);
         
         // Template System: Read template and replace placeholders with actual data
-        const fs = require('fs');
         const templatePath = './templates/invest-analysis.md';
-        let template = fs.readFileSync(templatePath, 'utf8');
+        let template = readFileSync(templatePath, 'utf8');
         
         // Replace placeholders with actual story data
         template = template
