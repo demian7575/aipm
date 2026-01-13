@@ -4303,7 +4303,7 @@ function renderStoryDetailsWithCompleteData(story) {
   const analysisInfo = story.investAnalysis || null;
   const fallbackWarnings = filterEpicSizingWarnings(
     story,
-    Array.isArray(analysisInfo?.fallbackWarnings) ? analysisInfo.fallbackWarnings : []
+    []
   );
   let statusSelect = null;
   let statusValueEl = null;
@@ -6084,11 +6084,11 @@ function openHealthIssueModal(title, issue, context = null) {
     const contextNote = document.createElement('p');
     contextNote.className = 'issue-context';
     if (context.source === 'openai') {
-      const model = context.aiModel ? ` (model ${context.aiModel})` : '';
+      const model = context.model ? ` (model ${context.model})` : '';
       if (issue.source === 'heuristic') {
         contextNote.textContent = `ChatGPT${model} approved the story; local rules suggested this follow-up.`;
       } else {
-        const summary = context.aiSummary ? context.aiSummary : 'ChatGPT reviewed this story.';
+        const summary = context.summary ? context.summary : 'ChatGPT reviewed this story.';
         contextNote.textContent = `ChatGPT${model}: ${summary}`;
       }
     } else if (context.source === 'fallback') {

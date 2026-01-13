@@ -3271,12 +3271,6 @@ function applyInvestAnalysisToStory(story, analysis) {
     model: analysis.ai?.model || null
   };
 }
-    source: analysis.source,
-    summary: analysis.summary,
-    warnings: analysis.warnings || [],
-    model: analysis.ai?.model || null
-  };
-}
 
 function normalizeStoryPoint(value) {
   if (value == null || value === '') {
@@ -6492,11 +6486,8 @@ export async function createApp() {
             analysis: {
               source: analysis.source,
               summary: analysis.summary,
-              aiSummary: analysis.ai?.summary || '',
-              aiModel: analysis.ai?.model || null,
-              usedFallback: analysis.usedFallback,
-              error: analysis.ai?.error || null,
-              fallbackWarnings: analysis.fallbackWarnings || [],
+              summary: analysis.summary,
+              model: analysis.ai?.model || null,
             },
           });
           return;
@@ -6536,11 +6527,8 @@ export async function createApp() {
             invest_analysis: JSON.stringify({
               source: analysis.source,
               summary: analysis.summary,
-              aiSummary: analysis.ai?.summary || '',
-              aiModel: analysis.ai?.model || null,
-              usedFallback: analysis.usedFallback,
-              error: analysis.ai?.error || null,
-              fallbackWarnings: analysis.fallbackWarnings || [],
+              summary: analysis.summary,
+              model: analysis.ai?.model || null,
             })
           };
           
@@ -6575,11 +6563,8 @@ export async function createApp() {
             JSON.stringify({
               source: analysis.source,
               summary: analysis.summary,
-              aiSummary: analysis.ai?.summary || '',
-              aiModel: analysis.ai?.model || null,
-              usedFallback: analysis.usedFallback,
-              error: analysis.ai?.error || null,
-              fallbackWarnings: analysis.fallbackWarnings || [],
+              summary: analysis.summary,
+              model: analysis.ai?.model || null,
             })
           );
           newStoryId = Number(lastInsertRowid);
@@ -6982,11 +6967,8 @@ export async function createApp() {
             analysis: {
               source: analysis.source,
               summary: analysis.summary,
-              aiSummary: analysis.ai?.summary || '',
-              aiModel: analysis.ai?.model || null,
-              usedFallback: analysis.usedFallback,
-              error: analysis.ai?.error || null,
-              fallbackWarnings: analysis.fallbackWarnings || [],
+              summary: analysis.summary,
+              model: analysis.ai?.model || null,
             },
           });
           return;
@@ -7060,11 +7042,8 @@ export async function createApp() {
           JSON.stringify({
             source: analysis.source,
             summary: analysis.summary,
-            aiSummary: analysis.ai?.summary || '',
-            aiModel: analysis.ai?.model || null,
-            usedFallback: analysis.usedFallback,
-            error: analysis.ai?.error || null,
-            fallbackWarnings: analysis.fallbackWarnings || [],
+            summary: analysis.summary,
+            model: analysis.ai?.model || null,
           }),
           storyId
         );
