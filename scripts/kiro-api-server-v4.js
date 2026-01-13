@@ -808,30 +808,19 @@ const server = http.createServer(async (req, res) => {
       try {
         const storyData = JSON.parse(body);
         
-        // Read and substitute the template
-        const fs = await import('fs');
-        const templatePath = './templates/invest-analysis.md';
-        let template = fs.readFileSync(templatePath, 'utf8');
-        
-        // Substitute template variables
-        template = template
-          .replace(/\{\{title\}\}/g, storyData.title || 'Untitled')
-          .replace(/\{\{asA\}\}/g, storyData.asA || '')
-          .replace(/\{\{iWant\}\}/g, storyData.iWant || '')
-          .replace(/\{\{soThat\}\}/g, storyData.soThat || '')
-          .replace(/\{\{description\}\}/g, storyData.description || '')
-          .replace(/\{\{storyPoint\}\}/g, String(storyData.storyPoint || 0))
-          .replace(/\{\{components\}\}/g, Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None')
-          .replace(/\{\{acceptanceTestCount\}\}/g, String(Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0));
-        
-        // Send the complete template to Kiro CLI with callback instruction
-        const prompt = `${template}
+        // Template System: API gives KIRO CLI the filename to read and story data as parameters
+        const prompt = `Read and follow the template file: ./templates/invest-analysis.md
 
-IMPORTANT: Analyze the story data above using the INVEST criteria and respond with ONLY the JSON format specified in the template. 
+Story Title: "${storyData.title || 'Untitled'}"
+As a: "${storyData.asA || ''}"
+I want: "${storyData.iWant || ''}"
+So that: "${storyData.soThat || ''}"
+Description: "${storyData.description || ''}"
+Story Points: ${storyData.storyPoint || 0}
+Components: ${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}
+Acceptance Tests: ${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0}
 
-When you have the JSON analysis ready, POST it to: http://localhost:8081/api/invest-response
-
-Do not create files or provide explanations - just analyze and POST the JSON result.`;
+Execute the template instructions exactly as written.`;
         
         // Clear any existing analysis data
         global.latestInvestAnalysis = null;
