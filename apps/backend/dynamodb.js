@@ -70,7 +70,7 @@ export class DynamoDBDataLayer {
       }));
       return (result.Items || []).map(item => ({
         id: item.id,
-        story_id: item.storyId || item.story_id, // DynamoDB uses storyId (camelCase)
+        story_id: item.story_id,
         title: item.title || '',
         given: item.given,
         when_step: item.when_step,
@@ -234,10 +234,10 @@ export class DynamoDBDataLayer {
     try {
       const result = await docClient.send(new QueryCommand({
         TableName: ACCEPTANCE_TESTS_TABLE,
-        IndexName: 'storyId-index',
-        KeyConditionExpression: 'storyId = :storyId',
+        IndexName: 'story_id-index',
+        KeyConditionExpression: 'story_id = :story_id',
         ExpressionAttributeValues: {
-          ':storyId': parseInt(storyId)
+          ':story_id': parseInt(storyId)
         }
       }));
       return result.Items || [];
@@ -249,8 +249,8 @@ export class DynamoDBDataLayer {
 
   async createAcceptanceTest(test) {
     try {
-      const id = Date.now() + Math.floor(Math.random() * 1000); // Avoid collisions
-      const testWithId = { ...test, id, storyId: parseInt(test.storyId) };
+      const id = Date.now() + Math.floor(Math.random() * 1000);
+      const testWithId = { ...test, id, story_id: parseInt(test.storyId || test.story_id) };
       await docClient.send(new PutCommand({
         TableName: ACCEPTANCE_TESTS_TABLE,
         Item: testWithId
