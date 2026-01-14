@@ -655,9 +655,10 @@ function buildHierarchy(flatStories) {
   
   // Second pass: build hierarchy
   flatStories.forEach(story => {
-    if (story.parentId && storyMap.has(story.parentId)) {
+    const parentId = story.parent_id || story.parentId;
+    if (parentId && storyMap.has(parentId)) {
       // Add to parent's children
-      const parent = storyMap.get(story.parentId);
+      const parent = storyMap.get(parentId);
       parent.children.push(story);
     } else {
       // Root level story
