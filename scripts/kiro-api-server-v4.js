@@ -2076,15 +2076,114 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
     return;
   }
   if (url.pathname.match(/^\/api\/stories\/\d+\/health-check$/) && req.method === 'POST') {
-    const storyId = parseInt(url.pathname.split('/')[3]);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      storyId, 
-      health: 'good', 
-      investScore: 85,
-      warnings: [],
-      suggestions: []
-    }));
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const storyId = parseInt(url.pathname.split('/')[3]);
+        const { useAI } = JSON.parse(body);
+        
+        if (!useAI) {
+          // Return basic health check without AI analysis
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            storyId, 
+            health: 'good', 
+            investScore: 85,
+            warnings: [],
+            suggestions: []
+          }));
+          return;
+        }
+        
+        // Get story data from DynamoDB
+        const { Item: story } = await dynamodb.send(new GetCommand({
+          TableName: STORIES_TABLE,
+          Key: { id: storyId }
+        }));
+        
+        if (!story) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Story not found' }));
+          return;
+        }
+        
+        // Trigger INVEST analysis via Kiro CLI
+        const prompt = `Read and follow the template file: ./templates/invest-data-${Date.now()}.md
+
+Execute the template instructions exactly as written.`;
+        
+        // Create temporary data file
+        const { writeFileSync, unlinkSync } = await import('fs');
+        const tempFileName = `invest-data-${Date.now()}.md`;
+        const tempFilePath = `./templates/${tempFileName}`;
+        
+        const storyDataContent = `# Story Data for INVEST Analysis
+
+## Story Information
+- Story ID: ${story.id}
+- Title: ${story.title}
+- Description: ${story.description || 'No description'}
+- As a: ${story.asA || 'Not specified'}
+- I want: ${story.iWant || 'Not specified'}
+- So that: ${story.soThat || 'Not specified'}
+- Story Points: ${story.storyPoint || 0}
+- Status: ${story.status}
+- Components: ${Array.isArray(story.components) ? story.components.join(', ') : 'None'}
+- Acceptance Tests: ${story.acceptanceTests?.length || 0}`;
+        
+        writeFileSync(tempFilePath, storyDataContent);
+        
+        // Clear any existing analysis
+        global.latestInvestAnalysis = null;
+        
+        // Execute Kiro CLI and wait for completion
+        await sendToKiro(prompt);
+        
+        // Wait for response (20 seconds like draft generation)
+        await new Promise(resolve => setTimeout(resolve, 20000));
+        
+        // Clean up temp file
+        try { unlinkSync(tempFilePath); } catch (e) {}
+        
+        // Check if we received analysis data
+        if (global.latestInvestAnalysis && (Date.now() - global.latestInvestAnalysis.timestamp) < 30000) {
+          const analysis = global.latestInvestAnalysis;
+          global.latestInvestAnalysis = null; // Clear after use
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            storyId,
+            health: analysis.score >= 70 ? 'good' : 'needs-improvement',
+            investScore: analysis.score,
+            warnings: analysis.warnings || [],
+            suggestions: analysis.strengths || [],
+            investAnalysis: {
+              summary: analysis.summary,
+              source: analysis.source,
+              model: analysis.model
+            }
+          }));
+          return;
+        }
+        
+        // Fallback - no analysis received
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          storyId,
+          health: 'unknown',
+          investScore: 0,
+          warnings: [],
+          suggestions: [],
+          error: 'No analysis data received from Kiro CLI'
+        }));
+        
+      } catch (error) {
+        console.error('Health check error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
     return;
   }
 
