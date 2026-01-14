@@ -5,7 +5,7 @@ This document contains all user stories organized by category hierarchy.
 ## 1. Core Services
 Backend APIs, data layer, and development environment
 
-### L2: Capacity planning
+#### L2: Capacity planning
 - **ID**: 1768382866688
 - **Description**: Capacity planning related features
 
@@ -14,7 +14,7 @@ Backend APIs, data layer, and development environment
 ## 2. Platform Architecture
 System architecture, infrastructure, and integration patterns
 
-### AI-Engine
+#### AI-Engine
 - **ID**: 1768383685917
 - **Description**: AI engine integration
 
@@ -212,11 +212,11 @@ Frontend UI, UX patterns, and user interactions
 ## 4. Quality & Security
 Testing, quality gates, and security compliance
 
-### E1: Story lifecycle
+#### E1: Story lifecycle
 - **ID**: 1768381986752
 - **Description**: Story status lifecycle management
 
-### B2: Acceptance tests linkage
+#### B2: Acceptance tests linkage
 - **ID**: 1768381432142
 - **Description**: Link acceptance tests to stories
 
@@ -225,7 +225,7 @@ Testing, quality gates, and security compliance
 ## 5. Operations
 Monitoring, configuration, and operational maintenance
 
-### I2: Log access
+#### I2: Log access
 - **ID**: 1768382617631
 - **Description**: System log access and management
 
