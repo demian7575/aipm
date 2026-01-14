@@ -518,7 +518,7 @@ function sendToKiroInternal(prompt) {
         console.log('🚨 Kiro CLI stuck detected (no output for 1 min during operation), restarting...');
         clearTimeout(timeout);
         clearInterval(stuckCheckInterval);
-        clearInterval(heartbeatInterval);
+        // // clearInterval(heartbeatInterval); // Disabled // Disabled
         kiroProcess.stdout.removeListener('data', onData);
         kiroProcess.stderr.removeListener('data', onData);
         restartKiroProcess();
@@ -527,16 +527,15 @@ function sendToKiroInternal(prompt) {
       }
     }, 10000); // Check every 10 seconds
     
-    // Heartbeat: send every 1 minute when idle (after prompt, no operation)
-    const heartbeatInterval = setInterval(() => {
-      if (promptSeen && !operationInProgress) {
-        console.log('💓 Sending heartbeat to idle Kiro CLI');
-        // Send empty line as heartbeat
-        if (kiroProcess && kiroProcess.stdin.writable) {
-          kiroProcess.stdin.write('\n');
-        }
-      }
-    }, 60000); // Every 1 minute
+    // Heartbeat disabled - causes Kiro CLI to think on empty input
+    // const heartbeatInterval = setInterval(() => {
+    //   if (promptSeen && !operationInProgress) {
+    //     console.log('💓 Sending heartbeat to idle Kiro CLI');
+    //     if (kiroProcess && kiroProcess.stdin.writable) {
+    //       kiroProcess.stdin.write('\n');
+    //     }
+    //   }
+    // }, 60000);
     
     const onData = (data) => {
       const chunk = data.toString();
@@ -567,7 +566,7 @@ function sendToKiroInternal(prompt) {
       if (responseBuffer.includes('Time:') && responseBuffer.length > 50) {
         clearTimeout(timeout);
         clearInterval(stuckCheckInterval);
-        clearInterval(heartbeatInterval);
+        // clearInterval(heartbeatInterval); // Disabled
         kiroProcess.stdout.removeListener('data', onData);
         kiroProcess.stderr.removeListener('data', onData);
         
@@ -602,7 +601,7 @@ function sendToKiroInternal(prompt) {
       if (!jsonFound) {
         clearTimeout(timeout);
         clearInterval(stuckCheckInterval);
-        clearInterval(heartbeatInterval);
+        // clearInterval(heartbeatInterval); // Disabled
         kiroProcess.stdout.removeListener('data', onData);
         reject(new Error('No valid JSON response received'));
       }
