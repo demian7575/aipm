@@ -5440,11 +5440,10 @@ async function loadStories(db, options = {}) {
     // PRs are already loaded in the story object above
     
     const storedAnalysis = row.invest_analysis ? JSON.parse(row.invest_analysis) : null;
-    const storedWarnings = row.invest_warnings ? JSON.parse(row.invest_warnings) : null;
     
     if (storedAnalysis) {
-      // Prefer separate invest_warnings field if it exists (newer format)
-      const warnings = storedWarnings || storedAnalysis.warnings || [];
+      // Use warnings from invest_analysis
+      const warnings = storedAnalysis.warnings || [];
       
       story.investWarnings = warnings;
       story.investSatisfied = warnings.length === 0;
