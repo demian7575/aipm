@@ -24,6 +24,7 @@
 **NO QUESTIONS**: Do not ask for clarification
 **NO EXPLANATIONS**: Do not explain what you're doing
 **EXECUTE WORKFLOW**: Complete the full development cycle from checkout to push
+**READY FOR NEXT REQUEST**: After completing workflow, wait for the next task
 
 ---
 
@@ -32,20 +33,32 @@
 ### WHEN user clicks "Generate Code" from "Development Tasks" card:
 
 1. **Access GitHub PR**: Read the GitHub PR #PR_NUMBER linked to the Development Tasks card
-2. **Checkout PR Branch**: Execute `git checkout BRANCH_NAME`
-3. **Update Branch**: Execute `git rebase origin/main` to ensure latest changes
+
+2. **Rebase with Latest Main**:
+   - Execute `git fetch origin`
+   - Execute `git stash`
+   - Execute `git checkout BRANCH_NAME`
+   - Execute `git rebase origin/main`
+
 4. **Analyze AIPM Codebase**: 
    - Understand project structure (apps/frontend/public/, apps/backend/, scripts/)
    - Review existing code patterns and conventions
    - Identify integration points and dependencies
+
 5. **Extract Requirements**: 
    - Read the TASK-*.md file in the PR's placeholder commit
    - Extract story details, requirements, expectations, and scope
    - Understand acceptance criteria and success metrics
+
 6. **Create Acceptance Tests**:
    - Implement gating tests that validate the requirements
    - Add tests under the Component section of the corresponding User Story
+   - **CRITICAL**: All acceptance tests created during code generation MUST be added to Phase 5 gating tests
+   - Tests should follow Given-When-Then format for proper validation
+   - Each generated acceptance test becomes part of the automated gating test suite
+   - Verify tests are executable and validate actual behavior, not mocks
    - Ensure tests cover all acceptance criteria
+
 7. **Implement Code Changes** (REPEAT UNTIL ALL GATING TESTS PASS - MAX 5 ITERATIONS):
    - Follow requirements exactly as described in the markdown file
    - Implement in appropriate files (app.js, styles.css, backend APIs)
@@ -53,12 +66,18 @@
    - Run gating tests after each implementation iteration
    - Continue implementing and testing until all gating tests pass
    - **MAXIMUM 5 ITERATIONS** - if tests still fail after 5 iterations, report failure
+
 8. **Quality Verification**:
    - Test functionality locally before committing
    - Verify all acceptance tests pass
    - Ensure no breaking changes to existing functionality
-9. **Commit Changes**: Execute `git add . && git commit -m "feat: TASK_TITLE"`
-10. **Push to PR**: Execute `git push origin BRANCH_NAME`
+
+9. **Commit Changes**: 
+   - Execute `git add .`
+   - Execute `git commit -m "feat: TASK_TITLE"`
+
+10. **Push to PR**: 
+    - Execute `git push origin BRANCH_NAME`
 
 ### Input Schema
 ```yaml
@@ -77,6 +96,9 @@ language: string          # Programming language (default: javascript)
 - **Production Ready**: Ensure code is robust, secure, and performant
 - **Local Testing**: Verify functionality works correctly before committing
 - **No Breaking Changes**: Ensure existing functionality remains intact
+- **Use Fallback Only When Unavoidable**: Prefer direct solutions over fallback mechanisms
+- **Keep Simple and Clear**: Write straightforward, readable code without unnecessary complexity
+- **Maximize Reuse While Minimizing Duplication**: Leverage existing functions and avoid code repetition
 
 ### File Structure Context
 ```
@@ -108,15 +130,32 @@ apps/
 **EXECUTE THIS COMPLETE WORKFLOW IMMEDIATELY**:
 
 1. **Access PR**: Read GitHub PR #PR_NUMBER and extract TASK-*.md requirements
-2. **Setup**: `git checkout BRANCH_NAME && git rebase origin/main`
+
+2. **Rebase Main**: 
+   - `git fetch origin`
+   - `git stash`
+   - `git checkout BRANCH_NAME`
+   - `git rebase origin/main`
+
 3. **Analyze**: Review AIPM codebase structure and existing patterns
+
 4. **Extract**: Parse requirements, acceptance criteria, and constraints from TASK file
+
 5. **Create Tests**: Implement acceptance tests as gating tests first
+
 6. **Implement**: Code changes for TASK_TITLE following OBJECTIVE_TEXT (REPEAT UNTIL ALL GATING TESTS PASS - MAX 5 ITERATIONS)
+
 7. **Apply Constraints**: Ensure CONSTRAINTS_TEXT are satisfied
+
 8. **Verify**: Test functionality locally and ensure quality standards
-9. **Commit**: `git add . && git commit -m "feat: TASK_TITLE"`
-10. **Push**: `git push origin BRANCH_NAME`
+
+9. **Commit**: 
+    - `git add .`
+    - `git commit -m "feat: TASK_TITLE"`
+
+10. **Push**: 
+    - `git push origin BRANCH_NAME`
+
 11. **Report**: Return JSON status with success/failure and details
 
-**EXECUTE EXACTLY ONCE**: Replace placeholders with actual values and complete the full workflow. Do not retry or execute multiple times.
+**EXECUTE ONCE PER REQUEST**: Replace placeholders with actual values and complete the full workflow. After completing, wait for the next task.

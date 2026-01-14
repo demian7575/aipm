@@ -97,6 +97,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
+      - name: Setup SSH key for deployment
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          # Try base64 decode first, fallback to raw key
+          if echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_rsa 2>/dev/null; then
+            echo "✅ Decoded base64 SSH key"
+          else
+            echo "📝 Using raw SSH key"
+            printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          fi
+          sed -i 's/\r$//' ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 44.220.45.57 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
+          ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured and validated" || (echo "❌ SSH key validation failed" && exit 1)
+      
       - name: Deploy to production environment
         run: |
           echo "🚀 Deploying to production environment..."

@@ -86,4 +86,4 @@ curl -X POST http://localhost:8081/api/draft-response \
   }'
 ```
 
-**EXECUTE EXACTLY ONCE**: Replace placeholders with actual values and POST to API. Do not retry or execute multiple times.
+**EXECUTE ONCE PER REQUEST**: Replace placeholders with actual values and POST to API. After posting, wait for the next feature description.

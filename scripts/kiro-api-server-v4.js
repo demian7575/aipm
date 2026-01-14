@@ -1,14 +1,31 @@
 #!/usr/bin/env node
 
+// Load environment variables from .env file
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// Load .env file if it exists
+try {
+  const envFile = readFileSync('.env', 'utf8');
+  envFile.split('\n').forEach(line => {
+    const [key, value] = line.split('=');
+    if (key && value) {
+      process.env[key] = value;
+    }
+  });
+} catch (err) {
+  console.log('No .env file found, using system environment variables');
+}
+
 import http from 'http';
-import { readFileSync, writeFileSync, appendFileSync } from 'fs';
+import { writeFileSync, appendFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 import { spawn } from 'child_process';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 
-// Git sync function
+// Git sync function with rebase and conflict handling
 async function syncToBranch(branchName) {
   const execCommand = (cmd) => {
     return new Promise((resolve, reject) => {
@@ -40,13 +57,161 @@ async function syncToBranch(branchName) {
     console.log(`🌿 Checking out branch: ${branchName}`);
     await execCommand(`git checkout ${branchName}`);
     
-    console.log('🔄 Pulling latest changes...');
-    await execCommand(`git pull origin ${branchName}`);
+    console.log('🔄 Attempting rebase to latest origin/main...');
+    try {
+      await execCommand('git rebase origin/main');
+      console.log('✅ Rebase successful - branch is up to date with main');
+    } catch (rebaseError) {
+      console.log('⚠️ Rebase failed due to conflicts:', rebaseError.message);
+      
+      // Abort the failed rebase
+      await execCommand('git rebase --abort');
+      
+      // This will trigger creation of new PR in the calling function
+      throw new Error('REBASE_CONFLICT');
+    }
     
     console.log('✅ Branch sync completed with clean state');
   } catch (error) {
+    if (error.message === 'REBASE_CONFLICT') {
+      throw error; // Re-throw to handle in calling function
+    }
     console.error('❌ Branch sync failed:', error.message);
     throw error;
+  }
+}
+
+// Handle PR conflicts by creating new PR and closing old one
+async function handlePRConflict(oldBranchName, taskSpecContent, storyId) {
+  const execCommand = (cmd) => {
+    return new Promise((resolve, reject) => {
+      const [command, ...args] = cmd.split(' ');
+      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      
+      let output = '';
+      proc.stdout.on('data', (data) => output += data.toString());
+      proc.stderr.on('data', (data) => output += data.toString());
+      
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          reject(new Error(`Command failed: ${cmd}\n${output}`));
+        }
+      });
+    });
+  };
+
+  try {
+    console.log('🔄 Creating new PR due to conflicts...');
+    
+    // Generate new branch name
+    const timestamp = Date.now();
+    const newBranchName = `${oldBranchName}-conflict-resolved-${timestamp}`;
+    
+    // Create new branch from latest main
+    console.log('🌿 Creating new branch from latest main...');
+    await execCommand('git checkout main');
+    await execCommand('git pull origin main');
+    await execCommand(`git checkout -b ${newBranchName}`);
+    
+    // Recreate Task Specification file
+    const taskFileName = `TASK-${storyId}-${timestamp}.md`;
+    const fs = await import('fs');
+    fs.writeFileSync(`/home/ec2-user/aipm/${taskFileName}`, taskSpecContent);
+    
+    await execCommand(`git add ${taskFileName}`);
+    await execCommand(`git commit -m "Add task specification for story ${storyId}"`);
+    await execCommand(`git push origin ${newBranchName}`);
+    
+    // Create new PR via GitHub API
+    const newPR = await createGitHubPR(newBranchName, storyId, taskSpecContent);
+    
+    // Close old PR
+    await closeOldPR(oldBranchName);
+    
+    console.log(`✅ Created new PR: ${newPR.html_url}`);
+    return {
+      newBranchName,
+      newPRUrl: newPR.html_url,
+      newPRNumber: newPR.number
+    };
+    
+  } catch (error) {
+    console.error('❌ Failed to handle PR conflict:', error.message);
+    throw error;
+  }
+}
+
+// Create GitHub PR
+async function createGitHubPR(branchName, storyId, taskContent) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    throw new Error('GitHub token not configured');
+  }
+  
+  const response = await fetch('https://api.github.com/repos/demian7575/aipm/pulls', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      title: `Story ${storyId} Implementation (Conflict Resolved)`,
+      body: `Auto-generated PR for story ${storyId} after resolving conflicts.\n\n${taskContent}`,
+      head: branchName,
+      base: 'main'
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+  
+  return await response.json();
+}
+
+// Close old PR
+async function closeOldPR(branchName) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    console.log('⚠️ No GitHub token - cannot close old PR');
+    return;
+  }
+  
+  try {
+    // Find PR by branch name
+    const searchResponse = await fetch(`https://api.github.com/repos/demian7575/aipm/pulls?head=demian7575:${branchName}&state=open`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    
+    if (searchResponse.ok) {
+      const prs = await searchResponse.json();
+      if (prs.length > 0) {
+        const prNumber = prs[0].number;
+        
+        // Close the PR
+        await fetch(`https://api.github.com/repos/demian7575/aipm/pulls/${prNumber}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            state: 'closed'
+          })
+        });
+        
+        console.log(`✅ Closed old PR #${prNumber}`);
+      }
+    }
+  } catch (error) {
+    console.log('⚠️ Failed to close old PR:', error.message);
   }
 }
 
@@ -91,9 +256,34 @@ async function commitAndPush(generatedCode, storyId, branch) {
       console.log('✅ Added all changes to git');
     }
     
-    const commitMessage = `Generated code for story ${storyId}`;
+    // Generate and add task specification to the same commit
+    console.log('📝 Generating task specification...');
+    const fs = await import('fs');
+    const taskFiles = fs.readdirSync('/home/ec2-user/aipm').filter(f => f.startsWith(`TASK-${storyId}`));
+    
+    if (taskFiles.length > 0) {
+      // Update existing task specification
+      const taskFileName = taskFiles[0];
+      const taskFilePath = `/home/ec2-user/aipm/${taskFileName}`;
+      
+      // Get current story data from backend
+      try {
+        const storyResponse = await fetch(`http://44.220.45.57/api/stories/${storyId}`);
+        if (storyResponse.ok) {
+          const storyData = await storyResponse.json();
+          const updatedContent = generateTaskSpecContent(storyId, storyData);
+          fs.writeFileSync(taskFilePath, updatedContent);
+          await execCommand(`git add ${taskFileName}`);
+          console.log(`📝 Updated task specification: ${taskFileName}`);
+        }
+      } catch (error) {
+        console.log('⚠️ Could not update task specification:', error.message);
+      }
+    }
+    
+    const commitMessage = `Generated code and updated task specification for story ${storyId}`;
     await execCommand('git commit -m "' + commitMessage + '"');
-    console.log('✅ Committed changes');
+    console.log('✅ Committed changes with task specification');
     
     await execCommand('git push origin ' + branch);
     console.log('✅ Pushed to GitHub - PR should be updated automatically');
@@ -110,8 +300,15 @@ const __dirname = dirname(__filename);
 // DynamoDB setup
 const client = new DynamoDBClient({ region: 'us-east-1' });
 const dynamodb = DynamoDBDocumentClient.from(client);
-const STORIES_TABLE = 'aipm-backend-prod-stories';
-const ACCEPTANCE_TESTS_TABLE = 'aipm-backend-prod-acceptance-tests';
+const STORIES_TABLE = process.env.STORIES_TABLE;
+const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE;
+
+if (!STORIES_TABLE) {
+  throw new Error('STORIES_TABLE environment variable is required');
+}
+if (!ACCEPTANCE_TESTS_TABLE) {
+  throw new Error('ACCEPTANCE_TESTS_TABLE environment variable is required');
+}
 
 // Load contracts
 const CONTRACTS = JSON.parse(
@@ -187,6 +384,9 @@ function startKiroProcess() {
   // Reset health tracking
   lastKiroResponse = Date.now();
   
+  // Keep stdin open but don't send any command - Kiro CLI will wait for input
+  // This keeps it in interactive mode without executing anything
+  
   // Start health check if not already running
   if (!kiroHealthCheckInterval) {
     startKiroHealthCheck();
@@ -196,13 +396,13 @@ function startKiroProcess() {
 function startKiroHealthCheck() {
   kiroHealthCheckInterval = setInterval(() => {
     const timeSinceLastResponse = Date.now() - lastKiroResponse;
-    const maxIdleTime = 15 * 60 * 1000; // 15 minutes
+    const maxIdleTime = 60 * 60 * 1000; // 60 minutes (increased from 15)
     
     if (timeSinceLastResponse > maxIdleTime) {
       console.log('⚠️ Kiro CLI appears unresponsive, restarting...');
       restartKiroProcess();
     }
-  }, 5 * 60 * 1000); // Check every 5 minutes
+  }, 10 * 60 * 1000); // Check every 10 minutes (increased from 5)
 }
 
 function restartKiroProcess() {
@@ -321,7 +521,7 @@ function sendToKiroInternal(prompt) {
         console.log('🚨 Kiro CLI stuck detected (no output for 1 min during operation), restarting...');
         clearTimeout(timeout);
         clearInterval(stuckCheckInterval);
-        clearInterval(heartbeatInterval);
+        // // clearInterval(heartbeatInterval); // Disabled // Disabled
         kiroProcess.stdout.removeListener('data', onData);
         kiroProcess.stderr.removeListener('data', onData);
         restartKiroProcess();
@@ -330,16 +530,15 @@ function sendToKiroInternal(prompt) {
       }
     }, 10000); // Check every 10 seconds
     
-    // Heartbeat: send every 1 minute when idle (after prompt, no operation)
-    const heartbeatInterval = setInterval(() => {
-      if (promptSeen && !operationInProgress) {
-        console.log('💓 Sending heartbeat to idle Kiro CLI');
-        // Send empty line as heartbeat
-        if (kiroProcess && kiroProcess.stdin.writable) {
-          kiroProcess.stdin.write('\n');
-        }
-      }
-    }, 60000); // Every 1 minute
+    // Heartbeat disabled - causes Kiro CLI to think on empty input
+    // const heartbeatInterval = setInterval(() => {
+    //   if (promptSeen && !operationInProgress) {
+    //     console.log('💓 Sending heartbeat to idle Kiro CLI');
+    //     if (kiroProcess && kiroProcess.stdin.writable) {
+    //       kiroProcess.stdin.write('\n');
+    //     }
+    //   }
+    // }, 60000);
     
     const onData = (data) => {
       const chunk = data.toString();
@@ -370,7 +569,7 @@ function sendToKiroInternal(prompt) {
       if (responseBuffer.includes('Time:') && responseBuffer.length > 50) {
         clearTimeout(timeout);
         clearInterval(stuckCheckInterval);
-        clearInterval(heartbeatInterval);
+        // clearInterval(heartbeatInterval); // Disabled
         kiroProcess.stdout.removeListener('data', onData);
         kiroProcess.stderr.removeListener('data', onData);
         
@@ -405,7 +604,7 @@ function sendToKiroInternal(prompt) {
       if (!jsonFound) {
         clearTimeout(timeout);
         clearInterval(stuckCheckInterval);
-        clearInterval(heartbeatInterval);
+        // clearInterval(heartbeatInterval); // Disabled
         kiroProcess.stdout.removeListener('data', onData);
         reject(new Error('No valid JSON response received'));
       }
@@ -558,6 +757,58 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // GWT response endpoint - receives GWT health analysis from KIRO CLI
+  if (url.pathname === '/api/gwt-response' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const gwtData = JSON.parse(body);
+        console.log('📊 Received GWT analysis from Kiro CLI:', gwtData);
+        
+        // Store the analysis with timestamp
+        global.latestGwtAnalysis = {
+          ...gwtData,
+          timestamp: Date.now()
+        };
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ received: true }));
+      } catch (error) {
+        console.error('Error parsing GWT response:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
+  // INVEST response endpoint - receives analysis data from KIRO CLI
+  if (url.pathname === '/api/invest-response' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const investData = JSON.parse(body);
+        console.log('📊 Received INVEST analysis from Kiro CLI:', investData);
+        
+        // Store the analysis with timestamp
+        global.latestInvestAnalysis = {
+          ...investData,
+          timestamp: Date.now()
+        };
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ received: true }));
+      } catch (error) {
+        console.error('Error parsing INVEST response:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
   // Draft response endpoint - receives draft data from KIRO CLI
   if (url.pathname === '/api/draft-response' && req.method === 'POST') {
     let body = '';
@@ -572,6 +823,168 @@ const server = http.createServer(async (req, res) => {
       } catch (error) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
+  // GWT Health Analysis endpoint
+  if (url.pathname === '/api/analyze-gwt' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const testData = JSON.parse(body);
+        
+        // Template System: Create data file and reference both files
+        const { writeFileSync, unlinkSync } = await import('fs');
+        const tempFileName = `gwt-data-${Date.now()}.md`;
+        const tempFilePath = `./templates/${tempFileName}`;
+        
+        // Create data file with test information
+        const testDataContent = `# GWT Test Data
+
+## Acceptance Test Information
+- Test ID: ${testData.id || 'Unknown'}
+- Test Title: ${testData.title || 'Untitled Test'}
+- Given Steps: ${Array.isArray(testData.given) ? testData.given.join(', ') : 'None'}
+- When Steps: ${Array.isArray(testData.when) ? testData.when.join(', ') : 'None'}
+- Then Steps: ${Array.isArray(testData.then) ? testData.then.join(', ') : 'None'}`;
+        
+        writeFileSync(tempFilePath, testDataContent);
+        
+        const prompt = `Read and follow the template file: ./templates/gwt-health-analysis.md
+
+Test data file: ./templates/${tempFileName}
+
+Execute the template instructions exactly as written.`;
+        
+        // Clear any existing analysis data
+        global.latestGwtAnalysis = null;
+        
+        // Send to Kiro CLI
+        const result = await sendToKiro(prompt);
+        
+        // Give KIRO CLI time to post the analysis data
+        await new Promise(resolve => setTimeout(resolve, 15000));
+        
+        // Clean up temp file
+        setTimeout(() => {
+          try { unlinkSync(tempFilePath); } catch (e) {}
+        }, 30000);
+        
+        // Check if we received analysis data
+        if (global.latestGwtAnalysis && (Date.now() - global.latestGwtAnalysis.timestamp) < 20000) {
+          const analysisResponse = global.latestGwtAnalysis;
+          global.latestGwtAnalysis = null; // Clear after use
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: true, 
+            analysis: analysisResponse 
+          }));
+          return;
+        }
+        
+        // Fallback if no callback received
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'No GWT analysis received from Kiro CLI'
+        }));
+        
+      } catch (error) {
+        console.error('Error in GWT analysis:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
+  // INVEST analysis endpoint
+  if (url.pathname === '/api/analyze-invest' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const storyData = JSON.parse(body);
+        
+        // Template System: Create temporary file with filled data
+        const templatePath = './templates/invest-analysis.md';
+        let template = readFileSync(templatePath, 'utf8');
+        
+        // Template System: Create data file and reference both files
+        const { writeFileSync, unlinkSync } = await import('fs');
+        const tempFileName = `invest-data-${Date.now()}.md`;
+        const tempFilePath = `./templates/${tempFileName}`;
+        
+        // Create data file with story information
+        const storyDataContent = `# Story Data
+
+## Story Information
+- Title: ${storyData.title || 'Untitled'}
+- As a: ${storyData.asA || ''}
+- I want: ${storyData.iWant || ''}
+- So that: ${storyData.soThat || ''}
+- Description: ${storyData.description || ''}
+- Story Points: ${storyData.storyPoint || 0}
+- Components: ${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}
+- Acceptance Tests: ${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0}
+
+## Acceptance Test Details
+${Array.isArray(storyData.acceptanceTests) && storyData.acceptanceTests.length > 0 ? 
+  storyData.acceptanceTests.map((test, i) => 
+    `${i + 1}. ${test.title}\n   Given: ${Array.isArray(test.given) ? test.given.join(', ') : test.given}\n   When: ${Array.isArray(test.when) ? test.when.join(', ') : test.when}\n   Then: ${Array.isArray(test.then) ? test.then.join(', ') : test.then}`
+  ).join('\n') : 'None'}`;
+        
+        writeFileSync(tempFilePath, storyDataContent);
+        
+        const prompt = `Read and follow the template file: ./templates/invest-analysis.md
+
+Story data file: ./templates/${tempFileName}
+
+Execute the template instructions exactly as written.`;
+        
+        // Clean up temp file after use
+        setTimeout(() => {
+          try { unlinkSync(tempFilePath); } catch (e) {}
+        }, 60000);
+        
+        // Clear any existing analysis data
+        global.latestInvestAnalysis = null;
+        
+        // Send to Kiro CLI
+        const result = await sendToKiro(prompt);
+        
+        // Give KIRO CLI time to post the analysis data (INVEST analysis takes longer than drafts)
+        await new Promise(resolve => setTimeout(resolve, 30000));
+        
+        // Check if we received analysis data
+        if (global.latestInvestAnalysis && (Date.now() - global.latestInvestAnalysis.timestamp) < 30000) {
+          const analysisResponse = global.latestInvestAnalysis;
+          global.latestInvestAnalysis = null; // Clear after use
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: true, 
+            analysis: analysisResponse 
+          }));
+          return;
+        }
+        
+        // Fallback if no callback received
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'No analysis received from Kiro CLI'
+        }));
+        
+      } catch (error) {
+        console.error('INVEST analysis error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: error.message 
+        }));
       }
     });
     return;
@@ -599,8 +1012,8 @@ Execute the template instructions exactly as written.`;
         // Execute KIRO CLI and wait for completion
         const result = await sendToKiro(prompt);
         
-        // Give KIRO CLI time to post the draft data (it takes ~6-8 seconds)
-        await new Promise(resolve => setTimeout(resolve, 8000));
+        // Give KIRO CLI time to post the draft data (increased timeout for reliability)
+        await new Promise(resolve => setTimeout(resolve, 20000));
         
         // Check if we received draft data
         if (global.latestDraft && (Date.now() - global.latestDraft.timestamp) < 30000) {
@@ -681,27 +1094,11 @@ Generate the fields and immediately place them into this JSON template:
         
       } catch (error) {
         console.error(`❌ Story draft error: ${error.message}`);
-        
-        // Fallback to local generation
-        const { idea, parentId } = JSON.parse(body);
-        const fallbackStory = {
-          storyId: `story-${Date.now()}`,
-          title: idea.charAt(0).toUpperCase() + idea.slice(1),
-          description: `Implement ${idea.toLowerCase()} functionality to improve user experience.`,
-          asA: 'system user',
-          iWant: `to ${idea.toLowerCase()}`,
-          soThat: 'I can accomplish my goals effectively',
-          acceptanceCriteria: [
-            `System successfully implements ${idea.toLowerCase()}`,
-            'User interface is intuitive and responsive',
-            'All edge cases are handled gracefully'
-          ],
-          enhanced: false,
-          enhancedAt: new Date().toISOString()
-        };
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(fallbackStory));
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: error.message 
+        }));
       }
     });
     return;
@@ -1465,10 +1862,14 @@ Task: ${storyTitle || 'Code Generation Task'}
 Prompt: ${prompt}
 
 Please:
-1. Check out the existing Pull Request branch.
-2. Rebase the branch onto origin/main to ensure it is up to date.
-3. Analyze the current codebase and the AIPM project context, then generate and modify the required code files to implement this feature.
-4. Commit all changes and push the commit to the corresponding GitHub Pull Request branch.
+1. Fetch the latest changes: git fetch origin
+2. Check out main branch: git checkout main
+3. Pull latest main: git pull origin main
+4. Check out the PR branch: git checkout ${branchName}
+5. Rebase onto latest main: git rebase origin/main
+6. If conflicts exist, resolve them or create a new branch from main
+7. Analyze the current codebase and generate the required code files
+8. Commit all changes and push to the PR branch
 
 Return: {"status": "Success", "message": "Code generated and pushed successfully"} or {"status": "Fail", "message": "Error description"}`;
 
@@ -1815,18 +2216,59 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         
         console.log('🔧 Code generation request for PR:', prNumber);
         
+        // Read existing Task Specification file
+        let taskSpecContent = '';
+        try {
+          const fs = await import('fs');
+          const taskFiles = fs.readdirSync('/home/ec2-user/aipm').filter(f => f.startsWith(`TASK-${storyId}`));
+          if (taskFiles.length > 0) {
+            taskSpecContent = fs.readFileSync(`/home/ec2-user/aipm/${taskFiles[0]}`, 'utf8');
+          }
+        } catch (error) {
+          console.log('⚠️ Could not read Task Specification file:', error.message);
+        }
+        
+        let finalBranch = originalBranch;
+        let finalPRNumber = prNumber;
+        let finalPRUrl = null;
+        
+        try {
+          // Attempt to sync to branch with rebase
+          await syncToBranch(originalBranch);
+          console.log('✅ Successfully rebased to latest main');
+          
+        } catch (error) {
+          if (error.message === 'REBASE_CONFLICT') {
+            console.log('⚠️ Rebase conflicts detected - creating new PR');
+            
+            // Handle conflict by creating new PR
+            const conflictResult = await handlePRConflict(originalBranch, taskSpecContent, storyId);
+            finalBranch = conflictResult.newBranchName;
+            finalPRNumber = conflictResult.newPRNumber;
+            finalPRUrl = conflictResult.newPRUrl;
+            
+            // Notify backend about PR change
+            await notifyBackendPRUpdate(storyId, finalPRNumber, finalPRUrl);
+            
+            console.log(`✅ Created new PR #${finalPRNumber} due to conflicts`);
+          } else {
+            throw error; // Re-throw non-conflict errors
+          }
+        }
+
         // Use code generation contract with direct execution command
-        const kiroPrompt = `Execute code generation contract: ./templates/code-generation.md
+        const kiroPrompt = `Read and follow the template file: ./templates/code-generation.md
 
-IMMEDIATE EXECUTION - All parameters provided:
-- taskTitle: Code Generation for Story ${storyId}
-- objective: ${prompt}
-- constraints: GitHub PR #${prNumber} on branch ${originalBranch}
-- prNumber: ${prNumber}
-- branchName: ${originalBranch}
-- language: javascript
+Task Title: Code Generation for Story ${storyId}
+Objective: ${prompt}
+PR Number: ${finalPRNumber}
+Branch Name: ${finalBranch}
+Language: javascript
 
-BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
+Task Specification Content:
+${taskSpecContent}
+
+Execute the template instructions exactly as written.`;
 
         console.log('📤 Calling Kiro CLI with code generation contract...');
         
@@ -1836,9 +2278,11 @@ BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: true,
-          message: 'Code generation started',
-          prNumber: prNumber,
-          branchName: originalBranch
+          message: finalPRUrl ? 'New PR created due to conflicts, code generation started' : 'Code generation started',
+          prNumber: finalPRNumber,
+          branchName: finalBranch,
+          newPRCreated: !!finalPRUrl,
+          newPRUrl: finalPRUrl
         }));
       } catch (error) {
         console.error('❌ Generate code branch error:', error);
@@ -1847,6 +2291,56 @@ BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
           success: false,
           error: error.message,
           message: 'Code generation failed'
+        }));
+      }
+    });
+    return;
+  }
+
+  // Update Task Specification endpoint
+  if (url.pathname === '/api/update-task-spec' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { storyId, updatedStory } = JSON.parse(body);
+        
+        console.log('📝 Updating Task Specification for story:', storyId);
+        
+        // Find existing Task Specification files
+        const fs = await import('fs');
+        const taskFiles = fs.readdirSync('/home/ec2-user/aipm').filter(f => f.startsWith(`TASK-${storyId}`));
+        
+        if (taskFiles.length > 0) {
+          // Update existing Task Specification file
+          const taskFileName = taskFiles[0];
+          const taskFilePath = `/home/ec2-user/aipm/${taskFileName}`;
+          
+          // Generate updated Task Specification content
+          const updatedContent = generateTaskSpecContent(storyId, updatedStory);
+          
+          // Write updated content
+          fs.writeFileSync(taskFilePath, updatedContent);
+          
+          // Commit the update to git if in a PR branch
+          await commitTaskSpecUpdate(taskFileName, storyId);
+          
+          console.log(`✅ Updated Task Specification file: ${taskFileName}`);
+        }
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: true,
+          message: 'Task Specification updated',
+          storyId: storyId
+        }));
+      } catch (error) {
+        console.error('❌ Update Task Specification error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false,
+          error: error.message,
+          message: 'Task Specification update failed'
         }));
       }
     });
@@ -1868,6 +2362,106 @@ BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
 });
+
+// Generate Task Specification content
+function generateTaskSpecContent(storyId, updatedStory) {
+  const timestamp = Date.now();
+  return `# Story ${storyId} Implementation
+
+This branch was created automatically for implementing story ${storyId}.
+
+## Next Steps
+1. Implement the required functionality
+2. Add tests
+3. Update documentation
+4. Request review
+
+## Story Details
+Title: ${updatedStory.title || 'Development Task'}
+
+As a: ${updatedStory.asA || 'user'}
+I want: ${updatedStory.iWant || 'functionality'}
+So that: ${updatedStory.soThat || 'value is provided'}
+
+Description: ${updatedStory.description || 'Implementation details'}
+
+Components: ${updatedStory.components ? updatedStory.components.join(', ') : 'WorkModel'}
+
+Story Points: ${updatedStory.storyPoint || 'TBD'}
+
+${updatedStory.acceptanceTests && updatedStory.acceptanceTests.length > 0 ? 
+  `Acceptance Tests:\n${updatedStory.acceptanceTests.map((test, i) => 
+    `${i + 1}. ${test.title}\n   Given: ${test.given}\n   When: ${test.when}\n   Then: ${test.then}`
+  ).join('\n')}` : 
+  'Acceptance Tests: To be defined'
+}
+
+---
+Updated: ${new Date().toISOString()}
+`;
+}
+
+// Commit Task Specification update
+async function commitTaskSpecUpdate(taskFileName, storyId) {
+  const execCommand = (cmd) => {
+    return new Promise((resolve, reject) => {
+      const [command, ...args] = cmd.split(' ');
+      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      
+      let output = '';
+      proc.stdout.on('data', (data) => output += data.toString());
+      proc.stderr.on('data', (data) => output += data.toString());
+      
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          reject(new Error(`Command failed: ${cmd}\n${output}`));
+        }
+      });
+    });
+  };
+
+  try {
+    // Check if we're in a git repository and on a branch
+    const branchName = await execCommand('git branch --show-current');
+    if (branchName.trim() && branchName.trim() !== 'main') {
+      // Add and commit the updated Task Specification
+      await execCommand(`git add ${taskFileName}`);
+      await execCommand(`git commit -m "Update Task Specification for story ${storyId}"`);
+      await execCommand(`git push origin ${branchName.trim()}`);
+      console.log(`✅ Committed Task Specification update to branch: ${branchName.trim()}`);
+    }
+  } catch (error) {
+    console.log('⚠️ Could not commit Task Specification update:', error.message);
+  }
+}
+
+// Notify backend about PR updates
+async function notifyBackendPRUpdate(storyId, newPRNumber, newPRUrl) {
+  try {
+    const response = await fetch('http://44.220.45.57/api/update-story-pr', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        storyId: storyId,
+        prNumber: newPRNumber,
+        prUrl: newPRUrl,
+        action: 'conflict_resolved'
+      })
+    });
+    
+    if (response.ok) {
+      console.log('✅ Notified backend about PR update');
+    } else {
+      console.log('⚠️ Failed to notify backend about PR update:', response.status);
+    }
+  } catch (error) {
+    console.log('⚠️ Error notifying backend about PR update:', error.message);
+  }
+}
 
 // Start Kiro process
 startKiroProcess();

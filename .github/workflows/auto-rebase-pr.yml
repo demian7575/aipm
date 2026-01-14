@@ -1,0 +1,41 @@
+name: Auto Reset Stale PR Branches
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to reset'
+        required: true
+      
+jobs:
+  reset-pr-branch:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Reset PR branch to main
+        run: |
+          # Get PR branch name
+          PR_BRANCH=$(gh pr view ${{ github.event.inputs.pr_number }} --json headRefName --jq '.headRefName')
+          
+          echo "Resetting branch $PR_BRANCH to main..."
+          
+          # Checkout and reset branch
+          git fetch origin
+          git checkout $PR_BRANCH
+          git reset --hard origin/main
+          git push --force-with-lease origin $PR_BRANCH
+          
+          echo "✅ Branch $PR_BRANCH reset to main"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

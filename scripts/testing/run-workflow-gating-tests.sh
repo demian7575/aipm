@@ -1,1 +1,1 @@
-run-structured-gating-tests.sh
+real-behavior-gating-tests.sh

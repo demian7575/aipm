@@ -1018,27 +1018,7 @@ function persistAllData() {
   persistCodeWhispererDelegations();
 }
 
-function loadStoriesFromLocal() {
-  try {
-    const storiesData = localStorage.getItem(STORAGE_KEYS.stories);
-    console.log('Local storage stories data:', storiesData ? 'found' : 'not found');
-    if (storiesData) {
-      const stories = JSON.parse(storiesData);
-      if (Array.isArray(stories) && stories.length > 0) {
-        console.log('Loading', stories.length, 'stories from local storage');
-        state.stories = stories;
-        rebuildStoryIndex();
-        return true;
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load stories from local storage', error);
-    // Clear corrupted localStorage data
-    localStorage.removeItem(STORAGE_KEYS.stories);
-  }
-  console.log('No valid local stories data found');
-  return false;
-}
+
 
 function autoBackupData() {
   try {
@@ -1457,7 +1437,7 @@ function getCodeWhispererDelegations(storyId) {
   }
   // Get PRs from the story object
   const story = storyIndex.get(key);
-  return (story?.prs || []).map((entry) => ensureCodeWhispererEntryShape(entry, key)).filter(Boolean);
+  return story.prs.map((entry) => ensureCodeWhispererEntryShape(entry, key)).filter(Boolean);
 }
 
 async function setCodeWhispererDelegations(storyId, entries) {
@@ -1955,7 +1935,16 @@ Execute the template instructions exactly as written.`;
           console.log('✅ Generation result:', result);
           
           if (result.success) {
-            showToast(`Code generation started for PR #${result.prNumber}`, 'success');
+            if (result.newPRCreated) {
+              showToast(`🔄 Conflicts resolved! New PR #${result.prNumber} created. Code generation started.`, 'warning');
+              // Update the UI with new PR information
+              if (result.newPRUrl) {
+                // Refresh the story data to show updated PR links
+                await loadStories();
+              }
+            } else {
+              showToast(`Code generation started for PR #${result.prNumber}`, 'success');
+            }
           } else {
             showToast('Code generation failed', 'error');
           }
@@ -2240,13 +2229,13 @@ function canDelegateToCodeWhisperer(story) {
   }
   
   // Check INVEST validation
-  const investIssues = story.investIssues || [];
+  const investIssues = story.investIssues;
   if (investIssues.length > 0) {
     reasons.push(`INVEST issues: ${investIssues.join(', ')}`);
   }
   
   // Check acceptance tests
-  const acceptanceTests = story.acceptanceTests || [];
+  const acceptanceTests = story.acceptanceTests;
   if (acceptanceTests.length === 0) {
     reasons.push('No acceptance tests defined');
   } else {
@@ -2540,11 +2529,7 @@ async function loadStories(preserveSelection = true) {
   console.log('loadStories called, preserveSelection:', preserveSelection);
   const previousSelection = preserveSelection ? state.selectedStoryId : null;
   
-  // Try to load from local storage first
-  const loadedFromLocal = loadStoriesFromLocal();
-  console.log('Loaded from local:', loadedFromLocal);
-  
-  // Always try to load from API to get latest data
+  // Load from API only
   try {
     const url = resolveApiUrl('/api/stories');
     console.log('Fetching from API:', url);
@@ -2560,29 +2545,23 @@ async function loadStories(preserveSelection = true) {
     const apiStories = normalizeStoryCollection(Array.isArray(data) ? data : []);
     console.log('Normalized stories:', apiStories);
     
-    // Use API data if we have it, or fall back to local data
+    // Use API data or create root story if empty
     if (apiStories.length > 0) {
       state.stories = apiStories;
       rebuildStoryIndex();
       console.log('Stories loaded from API, count:', apiStories.length);
       // Auto-backup after successful API load
       autoBackupData();
-    } else if (!loadedFromLocal) {
-      // No API data and no local data - create root story
-      console.log('No stories found in API or local storage - creating root story');
+    } else {
+      // No API data - create root story
+      console.log('No stories found in API - creating root story');
       await createRootStory();
     }
   } catch (error) {
     console.error('API load failed:', error);
-    if (!loadedFromLocal) {
-      // If both local and API fail, show error
-      showToast('Failed to load stories. Check your connection.', 'error');
-      state.stories = [];
-      rebuildStoryIndex();
-    } else {
-      // We have local data, just show a warning
-      showToast('Using offline data. Check your connection.', 'warning');
-    }
+    showToast('Failed to load stories. Check your connection.', 'error');
+    state.stories = [];
+    rebuildStoryIndex();
   }
   
   console.log('Final stories count:', state.stories.length);
@@ -4203,19 +4182,45 @@ function _renderDetailsImmediate() {
   }
   const story = state.selectedStoryId != null ? storyIndex.get(state.selectedStoryId) : null;
   console.log('📖 Selected story:', story?.id, story?.title);
-  console.log('📊 Story data:', {
-    acceptanceTests: story?.acceptanceTests?.length || 0,
-    prs: story?.prs?.length || 0
-  });
-  detailsContent.innerHTML = '';
+  
   if (!story) {
+    detailsContent.innerHTML = '';
     detailsPlaceholder.classList.remove('hidden');
     console.log('❌ No story selected');
     return;
   }
 
-  console.log('✅ Story found, rendering details...');
+  // Fetch complete story data and update cached story
+  fetch(resolveApiUrl(`/api/stories/${story.id}`))
+    .then(response => response.json())
+    .then(completeStory => {
+      console.log('📊 Complete story data:', {
+        acceptanceTests: completeStory?.acceptanceTests?.length || 0,
+        prs: completeStory?.prs?.length || 0
+      });
+      
+      // Update cached story with complete data
+      Object.assign(story, completeStory);
+      
+      // Continue with rendering
+      renderStoryDetailsWithCompleteData(story);
+    })
+    .catch(error => {
+      console.error('Failed to fetch complete story:', error);
+      console.log('✅ Using cached story data');
+      renderStoryDetailsWithCompleteData(story);
+    });
+}
+
+function renderStoryDetailsWithCompleteData(story) {
+  console.log('📊 Story data:', {
+    acceptanceTests: story?.acceptanceTests?.length || 0,
+    prs: story?.prs?.length || 0
+  });
+  detailsContent.innerHTML = '';
   detailsPlaceholder.classList.add('hidden');
+
+  console.log('✅ Story found, rendering details...');
 
   const form = document.createElement('form');
   form.className = 'story-form';
@@ -4230,6 +4235,10 @@ function _renderDetailsImmediate() {
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
       <button type="button" class="primary" id="mark-done-btn">Done</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
+    </div>
+    <div class="full field-row">
+      <label>Story ID</label>
+      <div class="story-text story-id">${story.id}</div>
     </div>
     <div class="full field-row">
       <label>Title</label>
@@ -4294,7 +4303,7 @@ function _renderDetailsImmediate() {
   const analysisInfo = story.investAnalysis || null;
   const fallbackWarnings = filterEpicSizingWarnings(
     story,
-    Array.isArray(analysisInfo?.fallbackWarnings) ? analysisInfo.fallbackWarnings : []
+    []
   );
   let statusSelect = null;
   let statusValueEl = null;
@@ -4333,7 +4342,7 @@ function _renderDetailsImmediate() {
     summaryRow.className = 'story-meta-row';
     const summaryHeader = document.createElement('th');
     summaryHeader.scope = 'row';
-    summaryHeader.textContent = 'Summary';
+    summaryHeader.textContent = 'INVEST';
     const summaryCell = document.createElement('td');
     const metaGrid = document.createElement('div');
     metaGrid.className = 'story-meta-grid';
@@ -4373,74 +4382,26 @@ function _renderDetailsImmediate() {
 
     const healthItem = document.createElement('div');
     healthItem.className = 'story-meta-item';
-    const healthLabel = document.createElement('span');
-    healthLabel.className = 'story-meta-label';
-    healthLabel.textContent = 'Health (INVEST)';
     const healthValue = document.createElement('span');
     healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
-    healthValue.textContent = investHealth.satisfied ? 'Pass' : 'Needs review';
-    healthItem.appendChild(healthLabel);
+    if (investHealth.satisfied) {
+      healthValue.textContent = '✓ Pass';
+    } else {
+      // Use line breaks for separate lines and force block display
+      const issueTexts = investHealth.issues.map(issue => `⚠ ${issue.message || 'Issue found'}`);
+      healthValue.innerHTML = issueTexts.join('<br>');
+      healthValue.style.display = 'block';
+      healthValue.style.whiteSpace = 'normal';
+    }
     healthItem.appendChild(healthValue);
 
-    if (investHealth.issues && investHealth.issues.length) {
-      const issueList = document.createElement('ul');
-      issueList.className = 'health-issue-list';
-      investHealth.issues.forEach((issue) => {
-        const item = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'link-button health-issue-button';
-        const criterionLabel = formatCriterionLabel(issue.criterion);
-        const originLabel = describeIssueOrigin(issue.source);
-        const parts = [];
-        if (originLabel) parts.push(originLabel);
-        if (criterionLabel) parts.push(criterionLabel);
-        button.textContent = `${parts.length ? `${parts.join(' · ')} – ` : ''}${issue.message}`;
-        button.addEventListener('click', () => openHealthIssueModal('INVEST Issue', issue, analysisInfo));
-        item.appendChild(button);
-        issueList.appendChild(item);
-      });
-      healthItem.appendChild(issueList);
-    } else {
-      const ok = document.createElement('p');
-      ok.className = 'health-ok';
-      ok.textContent = 'All INVEST checks passed.';
-      healthItem.appendChild(ok);
-    }
-
-    if (analysisInfo) {
-      const analysisNote = document.createElement('p');
-      analysisNote.className = 'health-analysis-note';
-      if (analysisInfo.source === 'openai') {
-        const model = analysisInfo.aiModel ? ` (model ${analysisInfo.aiModel})` : '';
-        const heuristicsTail = fallbackWarnings.length
-          ? ' Additional heuristic suggestions are listed below.'
-          : '';
-        if (analysisInfo.aiSummary) {
-          const suffix = heuristicsTail ? `${heuristicsTail}` : '';
-          analysisNote.textContent = `ChatGPT${model} summary: ${analysisInfo.aiSummary}${suffix}`;
-        } else {
-          analysisNote.textContent = `ChatGPT${model} reviewed this story.${heuristicsTail}`;
-        }
-      } else if (analysisInfo.source === 'fallback') {
-        const detail = analysisInfo.error ? ` (${analysisInfo.error})` : '';
-        analysisNote.textContent = `ChatGPT analysis unavailable${detail}; showing local heuristics.`;
-      } else {
-        analysisNote.textContent = 'Using local INVEST heuristics.';
-      }
-      healthItem.appendChild(analysisNote);
-    }
-
-    const healthActions = document.createElement('div');
-    healthActions.className = 'health-actions';
-    healthActions.style.marginTop = '0.75rem';
     const aiButton = document.createElement('button');
     aiButton.type = 'button';
-    aiButton.className = 'secondary';
+    aiButton.className = 'secondary small';
     const aiButtonLabel =
       analysisInfo && analysisInfo.source === 'openai'
-        ? 'Re-run AI INVEST check'
-        : 'Run AI INVEST check';
+        ? 'Re-run AI check'
+        : 'Run AI check';
     aiButton.textContent = aiButtonLabel;
     aiButton.addEventListener('click', async () => {
       if (aiButton.disabled) {
@@ -4448,7 +4409,7 @@ function _renderDetailsImmediate() {
       }
       const originalLabel = aiButton.textContent;
       aiButton.disabled = true;
-      aiButton.textContent = 'Running…';
+      aiButton.textContent = 'Analyzing with AI…';
       let applied = false;
       try {
         const refreshed = await recheckStoryHealth(story.id, { includeAiInvest: true });
@@ -4457,13 +4418,13 @@ function _renderDetailsImmediate() {
           throw new Error('Story could not be refreshed.');
         }
         persistSelection();
-        showToast('AI INVEST check completed.', 'success');
+        showToast('AI check completed.', 'success');
       } catch (error) {
-        console.error('Failed to run AI INVEST check', error);
+        console.error('Failed to run AI check', error);
         const message =
           error && typeof error.message === 'string'
             ? error.message
-            : 'Failed to run AI INVEST check.';
+            : 'Failed to run AI check.';
         showToast(message, 'error');
       } finally {
         aiButton.disabled = false;
@@ -4473,8 +4434,7 @@ function _renderDetailsImmediate() {
         }
       }
     });
-    healthActions.appendChild(aiButton);
-    healthItem.appendChild(healthActions);
+    healthItem.appendChild(aiButton);
 
     if (analysisInfo && analysisInfo.source === 'openai' && fallbackWarnings.length) {
       const aiMessages = new Set(
@@ -4484,40 +4444,30 @@ function _renderDetailsImmediate() {
         (issue) => issue && issue.message && !aiMessages.has(issue.message)
       );
 
-      const heuristicsHeading = document.createElement('h4');
-      heuristicsHeading.className = 'health-subheading';
-      heuristicsHeading.textContent = 'Additional rule-check suggestions';
-      healthItem.appendChild(heuristicsHeading);
+      if (heuristicItems.length > 0) {
+        const heuristicsHeading = document.createElement('h4');
+        heuristicsHeading.className = 'health-subheading';
+        heuristicsHeading.textContent = 'Additional suggestions';
+        healthItem.appendChild(heuristicsHeading);
 
-      const heuristicsList = document.createElement('ul');
-      heuristicsList.className = 'health-issue-list heuristic-list';
+        const heuristicsList = document.createElement('ul');
+        heuristicsList.className = 'health-issue-list heuristic-list';
 
-      if (!heuristicItems.length) {
-        const empty = document.createElement('li');
-        empty.textContent = 'No extra suggestions beyond ChatGPT feedback.';
-        heuristicsList.appendChild(empty);
-      } else {
         heuristicItems.forEach((issue) => {
           const item = document.createElement('li');
           const button = document.createElement('button');
           button.type = 'button';
           button.className = 'link-button health-issue-button';
-          const criterionLabel = formatCriterionLabel(issue.criterion);
-          const originLabel = describeIssueOrigin(issue.source);
-          const parts = [];
-          if (originLabel) parts.push(originLabel);
-          if (criterionLabel) parts.push(criterionLabel);
-          const prefix = parts.length ? `${parts.join(' · ')} – ` : '';
-          button.textContent = `${prefix}${issue.message}`;
+          button.textContent = issue.message;
           button.addEventListener('click', () =>
-            openHealthIssueModal('Heuristic Suggestion', issue, analysisInfo)
+            openHealthIssueModal('Suggestion', issue, analysisInfo)
           );
           item.appendChild(button);
           heuristicsList.appendChild(item);
         });
-      }
 
-      healthItem.appendChild(heuristicsList);
+        healthItem.appendChild(heuristicsList);
+      }
     }
 
     metaGrid.appendChild(healthItem);
@@ -4687,7 +4637,7 @@ function _renderDetailsImmediate() {
           </div>
           <div class="form-group">
             <label>Story Points:</label>
-            <input type="number" name="storyPoints" value="${story.storyPoints || 0}" min="0">
+            <input type="number" name="storyPoint" value="${story.storyPoint || 0}" min="0">
           </div>
           <div class="form-group">
             <label>Assignee Email:</label>
@@ -4750,7 +4700,7 @@ function _renderDetailsImmediate() {
         iWant: formData.get('iWant'),
         soThat: formData.get('soThat'),
         description: formData.get('description'),
-        storyPoints: parseInt(formData.get('storyPoints')) || 0,
+        storyPoint: parseInt(formData.get('storyPoint')) || 0,
         assigneeEmail: formData.get('assigneeEmail'),
         status: formData.get('status'),
         components: modalComponents
@@ -6134,18 +6084,18 @@ function openHealthIssueModal(title, issue, context = null) {
     const contextNote = document.createElement('p');
     contextNote.className = 'issue-context';
     if (context.source === 'openai') {
-      const model = context.aiModel ? ` (model ${context.aiModel})` : '';
+      const model = context.model ? ` (model ${context.model})` : '';
       if (issue.source === 'heuristic') {
         contextNote.textContent = `ChatGPT${model} approved the story; local rules suggested this follow-up.`;
       } else {
-        const summary = context.aiSummary ? context.aiSummary : 'ChatGPT reviewed this story.';
+        const summary = context.summary ? context.summary : 'ChatGPT reviewed this story.';
         contextNote.textContent = `ChatGPT${model}: ${summary}`;
       }
     } else if (context.source === 'fallback') {
       const detail = context.error ? ` (${context.error})` : '';
       contextNote.textContent = `ChatGPT analysis unavailable${detail}; showing local guidance.`;
     } else {
-      contextNote.textContent = 'Using local INVEST heuristics for guidance.';
+      contextNote.textContent = '';
     }
     container.appendChild(contextNote);
   }
@@ -6504,10 +6454,10 @@ function openChildStoryModal(parentId) {
     
     try {
       // Generate draft data only (no database save)
-      const apiBaseUrl = window.CONFIG.apiEndpoint;
+      const kiroApiUrl = window.CONFIG.KIRO_API_URL;
       
-      // Generate draft data only (no database save)
-      fetch(`${apiBaseUrl}/api/generate-draft`, {
+      // Generate draft data only (no database save) - use Kiro API server
+      const response = await fetch(`${kiroApiUrl}/api/generate-draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -6515,12 +6465,17 @@ function openChildStoryModal(parentId) {
           feature_description: idea,
           parentId: String(parentId)
         })
-      }).then(async response => {
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.draft) {
-            // Use the actual generated story data and populate the form
-            const draftData = result.draft;
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.draft) {
+        // Use the actual generated story data and populate the form
+        const draftData = result.draft;
             
             // Populate form fields
             const titleInput = container.querySelector('#child-title');
@@ -6582,27 +6537,19 @@ function openChildStoryModal(parentId) {
               });
               
               showToast(`✨ Story draft generated with ${draftData.acceptanceTests.length} acceptance test(s)! Review and click Create Story to save.`, 'success');
-            } else {
-              showToast('✨ Story draft generated! Review and click Create Story to save.', 'success');
-            }
+          } else {
+            showToast('✨ Story draft generated! Review and click Create Story to save.', 'success');
           }
         } else {
-          throw new Error('Draft generation failed');
+          throw new Error('Draft generation failed - no draft data received');
         }
-      }).catch(error => {
+      } catch (error) {
         console.error('Draft generation failed:', error);
-        showToast('Draft generation failed. Please fill manually.', 'error');
-      }).finally(() => {
+        showToast(`Draft generation failed: ${error.message}`, 'error');
+      } finally {
         generateBtn.textContent = restore.text;
         generateBtn.disabled = restore.disabled;
-      });
-      
-    } catch (error) {
-      console.error('Failed to start story generation:', error);
-      showToast('Failed to start story generation', 'error');
-      generateBtn.textContent = restore.text;
-      generateBtn.disabled = restore.disabled;
-    }
+      }
   });
 
   openModal({
@@ -6665,7 +6612,8 @@ function openChildStoryModal(parentId) {
             asA: container.querySelector('#child-asa-display').value.trim(),
             iWant: container.querySelector('#child-iwant-display').value.trim(),
             soThat: container.querySelector('#child-sothat-display').value.trim(),
-            components: childComponents
+            components: childComponents,
+            acceptWarnings: true
           };
           try {
             const response = await fetch(resolveApiUrl('/api/stories'), {
@@ -7170,7 +7118,7 @@ async function createRootStory() {
     title: 'Project Root',
     description: 'Welcome to AIPM! This is your root story. Create child stories to build your project hierarchy.',
     status: 'Ready',
-    storyPoints: 0,
+    storyPoint: 0,
     parentId: null,
     assignee: '',
     component: 'System'
@@ -8023,7 +7971,7 @@ initialize();
 // Global function to clean up Kiro API queue (accessible from browser console)
 window.cleanupKiroQueue = async function() {
   try {
-    const apiBaseUrl = window.CONFIG?.API_BASE_URL || window.CONFIG?.apiEndpoint || '';
+    const apiBaseUrl = getApiBaseUrl();
     const response = await fetch(`${apiBaseUrl}:8081/kiro/v3/queue/cleanup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -8043,3 +7991,79 @@ window.cleanupKiroQueue = async function() {
     throw error;
   }
 };
+
+// Check for deployment notifications
+async function checkDeploymentNotifications() {
+  try {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/api/deployment-notifications`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      const notifications = data.notifications || [];
+      
+      // Handle rebase failure notifications
+      const rebaseFailures = notifications.filter(n => n.type === 'rebase_failure');
+      
+      for (const notification of rebaseFailures) {
+        // Mark as read
+        await fetch(`${apiBaseUrl}/api/deployment-notifications/mark-read`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId: notification.id })
+        });
+        
+        // Show popup
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = `
+            <div style="margin-bottom: 15px;">
+              <p><strong>The PR branch has conflicts with the latest main branch and cannot be automatically rebased.</strong></p>
+            </div>
+            <div style="margin-bottom: 15px;">
+              <p><strong>Action Required:</strong></p>
+              <ul style="margin-left: 20px;">
+                <li>Code regeneration is needed to resolve conflicts</li>
+                <li>Please use the "Generate Code & PR" feature to create updated code</li>
+                <li>Or manually resolve conflicts and push updated code</li>
+              </ul>
+            </div>
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+              <strong>Error:</strong> ${notification.message}<br>
+              <strong>PR:</strong> #${notification.prNumber}<br>
+              <strong>Time:</strong> ${new Date(notification.timestamp).toLocaleString()}
+            </div>
+          `;
+        
+        openModal({
+          title: '🚨 Rebase Failure Detected',
+          content: contentDiv,
+          actions: [
+            {
+              label: 'OK',
+              className: 'btn-primary',
+              onClick: () => {
+                closeModal();
+              }
+            }
+          ],
+          size: 'large'
+        });
+        
+        // Only show one notification at a time
+        break;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to check deployment notifications:', error);
+  }
+}
+
+// Check notifications on page load and periodically
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', checkDeploymentNotifications);
+} else {
+  checkDeploymentNotifications();
+}
+
+// Check for new notifications every 30 seconds
+setInterval(checkDeploymentNotifications, 30000);

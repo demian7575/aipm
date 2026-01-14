@@ -842,7 +842,7 @@ async function runProductionTest(testName) {
                 title: `CRUD Test ${Date.now()}`,
                 description: 'CRUD validation test',
                 status: 'Draft',
-                storyPoints: 1,
+                storyPoint: 1,
                 assigneeEmail: 'test@example.com',
                 acceptWarnings: true
             };

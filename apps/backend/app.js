@@ -11,6 +11,35 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 // Removed delegation imports - now using direct PR creation
 
+// Load environment variables from .env file
+try {
+  const envFile = readFileSync('.env', 'utf8');
+  envFile.split('\n').forEach(line => {
+    const [key, value] = line.split('=');
+    if (key && value) {
+      process.env[key] = value;
+    }
+  });
+} catch (err) {
+  console.log('No .env file found, using system environment variables');
+}
+
+// Require environment variables
+if (!process.env.STORIES_TABLE) {
+  throw new Error('STORIES_TABLE environment variable is required');
+}
+if (!process.env.ACCEPTANCE_TESTS_TABLE) {
+  throw new Error('ACCEPTANCE_TESTS_TABLE environment variable is required');
+}
+
+// Debug logging configuration
+const DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const debugLog = (...args) => {
+  if (DEBUG) {
+    console.log('[DEBUG]', new Date().toISOString(), ...args);
+  }
+};
+
 // Add delegation helper functions
 function ensureGithubToken() {
   const token = process.env.GITHUB_TOKEN;
@@ -81,29 +110,24 @@ async function githubRequest(path, options = {}) {
 }
 
 async function getAllStories(db) {
-  try {
-    const query = 'SELECT * FROM stories ORDER BY id';
-    const rows = await new Promise((resolve, reject) => {
-      db.all(query, [], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
+  const query = 'SELECT * FROM stories ORDER BY id';
+  const rows = await new Promise((resolve, reject) => {
+    db.all(query, [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows || []);
     });
-    
-    return rows.map(row => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      status: row.status,
-      storyPoints: row.story_points,
-      parentId: row.parent_id,
-      assignee: row.assignee,
-      component: row.component
-    }));
-  } catch (error) {
-    console.error('getAllStories error:', error);
-    return [];
-  }
+  });
+  
+  return rows.map(row => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    storyPoints: row.story_points,
+    parentId: row.parent_id,
+    assignee: row.assignee,
+    component: row.component
+  }));
 }
 
 async function handleCreatePRWithCodeRequest(req, res) {
@@ -187,7 +211,94 @@ async function handlePersonalDelegateStatusRequest(req, res, url) {
   }
 }
 
+async function handleUpdateStoryPRRequest(req, res) {
+  try {
+    const body = await readRequestBody(req);
+    const { storyId, prNumber, prUrl, action } = JSON.parse(body);
+    
+    if (!storyId || !prNumber) {
+      sendJson(res, 400, { message: 'storyId and prNumber are required' });
+      return;
+    }
 
+    const db = await ensureDatabase();
+    
+    // Update story with new PR information
+    const story = await getStoryById(db, storyId);
+    if (!story) {
+      sendJson(res, 404, { message: 'Story not found' });
+      return;
+    }
+
+    // Update PR information in story
+    const updatedPRs = story.prs || [];
+    const existingPRIndex = updatedPRs.findIndex(pr => pr.number === prNumber);
+    
+    const prEntry = {
+      localId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      storyId: storyId,
+      taskTitle: `Development task (${action})`,
+      repo: 'demian7575/aipm',
+      branchName: `story-${storyId}-implementation`,
+      number: prNumber,
+      type: 'pull_request',
+      prUrl: prUrl,
+      htmlUrl: prUrl,
+      taskUrl: prUrl,
+      threadUrl: prUrl,
+      createdAt: new Date().toISOString(),
+      action: action
+    };
+
+    if (existingPRIndex >= 0) {
+      updatedPRs[existingPRIndex] = prEntry;
+    } else {
+      updatedPRs.push(prEntry);
+    }
+
+    // Update story in database
+    await updateStory(db, storyId, { prs: updatedPRs });
+    
+    console.log(`✅ Updated story ${storyId} with PR #${prNumber} (${action})`);
+    
+    sendJson(res, 200, { 
+      success: true, 
+      message: 'Story PR updated successfully',
+      storyId: storyId,
+      prNumber: prNumber,
+      action: action
+    });
+  } catch (error) {
+    console.error('Update story PR request failed', error);
+    const status = error.statusCode || 500;
+    sendJson(res, status, { message: error.message || 'Failed to update story PR' });
+  }
+}
+
+// Update Task Specification file when User Story changes
+async function updateTaskSpecificationFile(storyId, updatedStory) {
+  try {
+    // Notify Kiro API server to update Task Specification
+    const response = await fetch('http://44.220.45.57:8081/api/update-task-spec', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        storyId: storyId,
+        updatedStory: updatedStory
+      })
+    });
+    
+    if (response.ok) {
+      console.log(`✅ Updated Task Specification for story ${storyId}`);
+    } else {
+      console.log(`⚠️ Failed to update Task Specification for story ${storyId}:`, response.status);
+    }
+  } catch (error) {
+    console.log(`⚠️ Error updating Task Specification for story ${storyId}:`, error.message);
+  }
+}
 
 async function handleCodeWhispererStatusRequest(req, res) {
   try {
@@ -2206,20 +2317,13 @@ function now() {
 }
 
 function ensureArray(value) {
-  if (Array.isArray(value)) return value.map((entry) => String(entry).trim()).filter(Boolean);
-  if (value == null) return [];
-  return [String(value).trim()].filter(Boolean);
+  return value.map((entry) => String(entry).trim()).filter(Boolean);
 }
 
 function parseJsonArray(value) {
   if (!value) return [];
-  if (Array.isArray(value)) return value; // Already an array (from DynamoDB)
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  if (Array.isArray(value)) return value;
+  return JSON.parse(value);
 }
 
 function sanitizeFilename(name) {
@@ -3067,19 +3171,67 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
   
-  // Skip Kiro API for INVEST analysis - it's too slow for synchronous requests
-  // Use fast heuristics instead
-  // TODO: Make INVEST analysis async via queue like story generation
+  // Try AI analysis via Kiro API
+  try {
+    console.log('🤖 Attempting AI INVEST analysis...');
+    const kiroApiUrl = 'http://localhost:8081';
+    const response = await fetch(`${kiroApiUrl}/api/analyze-invest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: story.title,
+        asA: story.asA,
+        iWant: story.iWant,
+        soThat: story.soThat,
+        description: story.description,
+        storyPoint: story.storyPoint,
+        components: story.components,
+        acceptanceTests: story.acceptanceTests || []
+      }),
+      signal: AbortSignal.timeout(45000) // 45 second timeout (Kiro API needs 30s)
+    });
+    
+    console.log('🤖 Kiro API response status:', response.status);
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('🤖 Kiro API result:', { success: result.success, hasAnalysis: !!result.analysis });
+      
+      if (result.success && result.analysis) {
+        // Parse AI response and format as expected
+        let aiAnalysis;
+        try {
+          aiAnalysis = typeof result.analysis === 'string' ? 
+            JSON.parse(result.analysis) : result.analysis;
+        } catch (parseError) {
+          console.warn('🤖 Failed to parse AI analysis:', parseError.message);
+          throw parseError;
+        }
+        
+        console.log('🤖 AI analysis successful, returning AI result');
+        return {
+          warnings: aiAnalysis.warnings || baseline,
+          source: 'ai',
+          summary: aiAnalysis.summary || '',
+          ai: {
+            summary: aiAnalysis.summary || '',
+            warnings: aiAnalysis.warnings || [],
+            model: 'kiro-cli',
+            score: aiAnalysis.score || 0
+          }
+        };
+      } else {
+        console.log('🤖 Kiro API returned unsuccessful result or no analysis');
+      }
+    } else {
+      console.log('🤖 Kiro API response not ok:', response.status);
+    }
+  } catch (error) {
+    console.warn('🤖 AI INVEST analysis failed:', error.message);
+    throw error; // Don't fallback, let the error propagate
+  }
   
-  // Use heuristics (works in all environments)
-  return {
-    warnings: baseline,
-    source: 'heuristic',
-    summary: '',
-    ai: null,
-    fallbackWarnings: baseline,
-    usedFallback: true,
-  };
+  throw new Error('AI analysis failed - no fallback available');
 }
 
 function buildBaselineInvestAnalysis(story, options = {}) {
@@ -3087,34 +3239,36 @@ function buildBaselineInvestAnalysis(story, options = {}) {
   return {
     warnings,
     source: 'heuristic',
-    summary: '',
-    ai: null,
-    fallbackWarnings: warnings,
-    usedFallback: true,
+    summary: ''
   };
 }
 
 async function evaluateInvestAnalysis(story, options = {}, controls = {}) {
   const includeAiInvest = controls?.includeAiInvest === true;
+  console.log('🔍 evaluateInvestAnalysis called with includeAiInvest:', includeAiInvest);
+  
   if (includeAiInvest) {
+    console.log('🔍 Calling analyzeInvest for AI analysis');
     return analyzeInvest(story, options);
   }
+  console.log('🔍 Using baseline analysis (no AI)');
   return buildBaselineInvestAnalysis(story, options);
 }
 
 function applyInvestAnalysisToStory(story, analysis) {
-  story.investWarnings = analysis.warnings;
-  story.investSatisfied = analysis.warnings.length === 0;
-  story.investHealth = { satisfied: story.investSatisfied, issues: analysis.warnings };
+  // Use analysis warnings directly (no separate investWarnings)
+  const warnings = analysis.warnings || [];
+  
+  story.investWarnings = warnings; // Keep for frontend compatibility
+  story.investSatisfied = warnings.length === 0;
+  story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
+  
+  // Simplified investAnalysis - no duplicated fields
   story.investAnalysis = {
-    source: analysis.source,
-    summary: analysis.summary,
-    aiSummary: analysis.ai?.summary || '',
-    aiWarnings: analysis.ai?.warnings || [],
-    aiModel: analysis.ai?.model || null,
-    usedFallback: analysis.usedFallback,
-    error: analysis.ai?.error || null,
-    fallbackWarnings: analysis.fallbackWarnings || [],
+    source: analysis.source || 'heuristic',
+    summary: analysis.summary || '',
+    warnings: warnings,
+    model: analysis.ai?.model || null
   };
 }
 
@@ -4195,8 +4349,8 @@ function buildCommonRequirementSpecificationDocument(context = {}) {
       const investHealth = story.investHealth || null;
       const investLines = summarizeInvestWarnings(
         investHealth?.issues || [],
-        story.investAnalysis && story.investAnalysis.aiSummary
-          ? { summary: story.investAnalysis.aiSummary, source: story.investAnalysis.source }
+        story.investAnalysis && story.investAnalysis.summary
+          ? { summary: story.investAnalysis.summary, source: story.investAnalysis.source }
           : story.investAnalysis
       );
       investLines.forEach((line) => lines.push(line));
@@ -4517,7 +4671,7 @@ function measurabilityWarnings(thenSteps) {
   return { warnings, suggestions };
 }
 
-function buildGwtHealth(given, when, then, measurability) {
+async function buildGwtHealth(given, when, then, measurability) {
   const issues = [];
   const hasContent = (steps) => steps.some((step) => step && step.trim().length > 0);
 
@@ -4926,8 +5080,8 @@ function tableColumns(db, table) {
       return db._all(`PRAGMA table_info(${table})`);
     }
   } catch (error) {
-    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
-      return [];
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message)) {
+      throw new Error(`Table not found: ${table}`);
     }
     throw error;
   }
@@ -4937,15 +5091,14 @@ async function safeSelectAll(db, sql, ...params) {
   try {
     // Check if this is DynamoDB adapter
     if (db.safeSelectAll && typeof db.safeSelectAll === 'function') {
-      const result = await db.safeSelectAll(sql, ...params);
-      return Array.isArray(result) ? result : [];
+      return await db.safeSelectAll(sql, ...params);
     }
     
     // SQLite path
     return db.prepare(sql).all(...params);
   } catch (error) {
-    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
-      return [];
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message)) {
+      throw new Error(`Table not found: ${error.message}`);
     }
     throw error;
   }
@@ -5074,8 +5227,8 @@ async function loadDependencyRows(db) {
       .prepare('SELECT story_id, depends_on_story_id, relationship FROM story_dependencies ORDER BY story_id, depends_on_story_id')
       .all();
   } catch (error) {
-    if (error && SQLITE_NO_SUCH_TABLE.test(error.message || '')) {
-      return [];
+    if (error && SQLITE_NO_SUCH_TABLE.test(error.message)) {
+      throw new Error(`Dependencies table not found: ${error.message}`);
     }
     throw error;
   }
@@ -5233,17 +5386,17 @@ async function loadStories(db, options = {}) {
     story.blocking.sort(sortByStoryId);
   });
 
-  testRows.forEach((row) => {
+  for (const row of testRows) {
     const story = byId.get(row.story_id);
     if (row.story_id === 1767550018420) {
       console.log('🔍 Processing test for story 1767550018420:', row.id, 'found story:', !!story);
     }
-    if (!story) return;
+    if (!story) continue;
     const given = parseJsonArray(row.given);
     const when = parseJsonArray(row.when_step);
     const then = parseJsonArray(row.then_step);
     const { warnings, suggestions } = measurabilityWarnings(then);
-    const gwtHealth = buildGwtHealth(given, when, then, warnings);
+    const gwtHealth = await buildGwtHealth(given, when, then, warnings);
     story.acceptanceTests.push({
       id: row.id,
       storyId: row.story_id,
@@ -5258,7 +5411,7 @@ async function loadStories(db, options = {}) {
       measurabilitySuggestions: suggestions,
       gwtHealth,
     });
-  });
+  }
 
   docRows.forEach((row) => {
     const story = byId.get(row.story_id);
@@ -5286,23 +5439,16 @@ async function loadStories(db, options = {}) {
     
     // PRs are already loaded in the story object above
     
-    const storedWarnings = parseJsonArray(row.invest_warnings);
     const storedAnalysis = row.invest_analysis ? JSON.parse(row.invest_analysis) : null;
     
-    if (storedWarnings.length > 0 || storedAnalysis) {
-      story.investWarnings = storedWarnings;
-      story.investSatisfied = storedWarnings.length === 0;
-      story.investHealth = { satisfied: story.investSatisfied, issues: storedWarnings };
-      story.investAnalysis = storedAnalysis || {
-        source: 'heuristic',
-        summary: '',
-        aiSummary: '',
-        aiWarnings: [],
-        aiModel: null,
-        usedFallback: true,
-        error: null,
-        fallbackWarnings: storedWarnings,
-      };
+    if (storedAnalysis) {
+      // Use warnings from invest_analysis
+      const warnings = storedAnalysis.warnings || [];
+      
+      story.investWarnings = warnings;
+      story.investSatisfied = warnings.length === 0;
+      story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
+      story.investAnalysis = storedAnalysis;
     } else {
       // Fallback: calculate if not stored (for old data)
       const analysis = buildBaselineInvestAnalysis(story, {
@@ -5318,7 +5464,28 @@ async function loadStories(db, options = {}) {
 
 async function loadStoryWithDetails(db, storyId, options = {}) {
   const { includeAiInvest = false } = options;
-  const row = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
+  
+  let row;
+  if (db.constructor.name === 'DynamoDBDataLayer') {
+    // DynamoDB implementation
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+    
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+    
+    const result = await docClient.send(new GetCommand({
+      TableName: tableName,
+      Key: { id: storyId }
+    }));
+    
+    row = result.Item;
+  } else {
+    // SQLite implementation
+    row = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
+  }
+  
   if (!row) {
     return null;
   }
@@ -5348,17 +5515,48 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     blocking: [],
   };
 
-  const testRows = safeSelectAll(
-    db,
-    'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id',
-    storyId
-  );
-  testRows.forEach((testRow) => {
+  const testRows = await (async () => {
+    if (db.constructor.name === 'DynamoDBDataLayer') {
+      // DynamoDB implementation for acceptance tests
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(client);
+      const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+      
+      try {
+        const result = await docClient.send(new ScanCommand({
+          TableName: tableName,
+          FilterExpression: 'story_id = :storyId',
+          ExpressionAttributeValues: {
+            ':storyId': storyId
+          }
+        }));
+        
+        return result.Items || [];
+      } catch (error) {
+        console.error('Error loading acceptance tests from DynamoDB:', error);
+        return [];
+      }
+    } else {
+      // SQLite implementation
+      return safeSelectAll(
+        db,
+        'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id',
+        storyId
+      );
+    }
+  })();
+  
+  // Ensure testRows is an array
+  const testRowsArray = Array.isArray(testRows) ? testRows : [];
+  for (const testRow of testRowsArray) {
     const given = parseJsonArray(testRow.given);
     const when = parseJsonArray(testRow.when_step);
     const then = parseJsonArray(testRow.then_step);
     const { warnings, suggestions } = measurabilityWarnings(then);
-    const gwtHealth = buildGwtHealth(given, when, then, warnings);
+    const gwtHealth = await buildGwtHealth(given, when, then, warnings);
     story.acceptanceTests.push({
       id: testRow.id,
       storyId: testRow.story_id,
@@ -5373,14 +5571,26 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       measurabilitySuggestions: suggestions,
       gwtHealth,
     });
-  });
+  }
 
-  const docRows = safeSelectAll(
-    db,
-    'SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id',
-    storyId
-  );
-  docRows.forEach((docRow) => {
+  const docRows = await (async () => {
+    if (db.constructor.name === 'DynamoDBDataLayer') {
+      // Reference documents might be stored differently or not exist as separate table
+      // For now, return empty array and let the regular API handle this
+      return [];
+    } else {
+      // SQLite implementation
+      return safeSelectAll(
+        db,
+        'SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id',
+        storyId
+      );
+    }
+  })();
+  
+  // Ensure docRows is an array
+  const docRowsArray = Array.isArray(docRows) ? docRows : [];
+  docRowsArray.forEach((docRow) => {
     story.referenceDocuments.push({
       id: docRow.id,
       storyId: docRow.story_id,
@@ -5391,17 +5601,80 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     });
   });
 
-  const taskRows = safeSelectAll(db, 'SELECT * FROM tasks WHERE story_id = ? ORDER BY id', storyId);
-  taskRows.forEach((taskRow) => {
+  const taskRows = await (async () => {
+    if (db.constructor.name === 'DynamoDBDataLayer') {
+      // DynamoDB implementation for tasks - use scan since no index exists
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(client);
+      const tableName = process.env.TASKS_TABLE || 'aipm-backend-prod-tasks';
+      
+      try {
+        const result = await docClient.send(new ScanCommand({
+          TableName: tableName,
+          FilterExpression: 'story_id = :storyId',
+          ExpressionAttributeValues: {
+            ':storyId': storyId
+          }
+        }));
+        
+        return result.Items || [];
+      } catch (error) {
+        console.error('Error loading tasks from DynamoDB:', error);
+        return [];
+      }
+    } else {
+      // SQLite implementation
+      return safeSelectAll(db, 'SELECT * FROM tasks WHERE story_id = ? ORDER BY id', storyId);
+    }
+  })();
+  
+  // Ensure taskRows is an array
+  const taskRowsArray = Array.isArray(taskRows) ? taskRows : [];
+  taskRowsArray.forEach((taskRow) => {
     story.tasks.push(buildTaskFromRow(taskRow));
   });
 
-  const childRows = db.prepare('SELECT id, status FROM user_stories WHERE parent_id = ?').all(storyId);
+  const childRows = await (async () => {
+    if (db.constructor.name === 'DynamoDBDataLayer') {
+      // DynamoDB implementation for child stories - use scan since no index exists
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+      
+      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+      const docClient = DynamoDBDocumentClient.from(client);
+      const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+      
+      try {
+        const result = await docClient.send(new ScanCommand({
+          TableName: tableName,
+          FilterExpression: 'parentId = :parentId',
+          ExpressionAttributeValues: {
+            ':parentId': storyId
+          },
+          ProjectionExpression: 'id, #status',
+          ExpressionAttributeNames: {
+            '#status': 'status'
+          }
+        }));
+        
+        return result.Items || [];
+      } catch (error) {
+        console.error('Error loading child stories from DynamoDB:', error);
+        return [];
+      }
+    } else {
+      // SQLite implementation
+      return db.prepare('SELECT id, status FROM user_stories WHERE parent_id = ?').all(storyId);
+    }
+  })();
   if (safeNormalizeStoryStatus(story.status) === 'Ready' && hasActiveProgressChild(childRows)) {
     story.status = 'In Progress';
   }
 
-  const dependencyRows = loadDependencyRows(db).filter(
+  const dependencyRows = (await loadDependencyRows(db)).filter(
     (entry) => entry.story_id === storyId || entry.depends_on_story_id === storyId
   );
   if (dependencyRows.length > 0) {
@@ -5474,14 +5747,42 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     story.blocking.sort(sortByStoryId);
   }
 
-  const analysis = await evaluateInvestAnalysis(
-    story,
-    {
-      acceptanceTests: story.acceptanceTests,
-      includeTestChecks: true,
-    },
-    { includeAiInvest }
-  );
+  // Check if we should use stored analysis or run new AI analysis
+  let analysis;
+  if (includeAiInvest) {
+    // Always run new AI analysis when explicitly requested
+    analysis = await evaluateInvestAnalysis(
+      story,
+      {
+        acceptanceTests: story.acceptanceTests,
+        includeTestChecks: true,
+      },
+      { includeAiInvest }
+    );
+  } else if (db.constructor.name === 'DynamoDBDataLayer' && row.invest_analysis) {
+    // Use stored analysis for regular requests
+    try {
+      const storedAnalysis = JSON.parse(row.invest_analysis);
+      if (storedAnalysis && storedAnalysis.source) {
+        analysis = storedAnalysis;
+      }
+    } catch (error) {
+      console.error('Error parsing stored invest_analysis:', error);
+    }
+  }
+  
+  // If no stored analysis and not requesting AI, use heuristic analysis
+  if (!analysis) {
+    analysis = await evaluateInvestAnalysis(
+      story,
+      {
+        acceptanceTests: story.acceptanceTests,
+        includeTestChecks: true,
+      },
+      { includeAiInvest: false }
+    );
+  }
+  
   applyInvestAnalysisToStory(story, analysis);
 
   return story;
@@ -5677,6 +5978,8 @@ export async function createApp() {
       const pathname = url.pathname;
       const method = req.method ?? 'GET';
 
+      debugLog(`${method} ${pathname}`, url.search ? `query: ${url.search}` : '');
+
       if (method === 'OPTIONS') {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',
@@ -5737,6 +6040,16 @@ export async function createApp() {
         return;
       }
 
+      if (pathname === '/api/create-pr' && method === 'OPTIONS') {
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        });
+        res.end();
+        return;
+      }
+
       if (pathname === '/api/create-pr' && method === 'POST') {
         await handleCreatePRRequest(req, res);
         return;
@@ -5765,10 +6078,14 @@ export async function createApp() {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
         });
+        const version = process.env.DEPLOY_VERSION || 'unknown';
+        const commitHash = process.env.COMMIT_HASH || 'unknown';
         res.end(JSON.stringify({ 
           status: 'running', 
           timestamp: new Date().toISOString(),
-          service: 'aipm-backend'
+          service: 'aipm-backend',
+          version: version,
+          commit: commitHash
         }));
         return;
       }
@@ -5820,6 +6137,11 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/update-story-pr' && method === 'POST') {
+      await handleUpdateStoryPRRequest(req, res);
+      return;
+    }
+
     if (pathname === '/api/run-staging' && method === 'POST') {
       // Staging deployment endpoint - returns 500 for automated tests as expected
       sendJson(res, 500, { 
@@ -5838,14 +6160,16 @@ export async function createApp() {
       let version;
       
       if (stage === 'dev' || stage === 'development') {
-        // Development shows base version + PR number
-        const baseVersion = process.env.BASE_VERSION || '0.1.0';
+        // Development shows base version + PR number + commit hash
+        const deployVersion = process.env.DEPLOY_VERSION || 'dev-unknown';
+        const commitHash = process.env.COMMIT_HASH || 'unknown';
         const prNumber = process.env.PR_NUMBER || 'dev';
-        version = { version: `${baseVersion}-${prNumber}` };
+        version = { version: `${deployVersion}-${prNumber}-${commitHash}` };
       } else {
-        // Production uses configured version
-        const prodVersion = process.env.PROD_VERSION || '4.0.0';
-        version = { version: prodVersion };
+        // Production uses deployment timestamp
+        const deployVersion = process.env.DEPLOY_VERSION || 'prod-unknown';
+        const commitHash = process.env.COMMIT_HASH || 'unknown';
+        version = { version: `${deployVersion}-${commitHash}` };
       }
       
       sendJson(res, 200, version);
@@ -5919,6 +6243,29 @@ export async function createApp() {
             details: error.message,
           });
         }
+      }
+      return;
+    }
+
+    if (pathname === '/api/kiro-live-log' && method === 'GET') {
+      try {
+        const { readFileSync, existsSync } = await import('fs');
+        const logPath = '/tmp/kiro-cli-live.log';
+        
+        let content = '';
+        if (existsSync(logPath)) {
+          content = readFileSync(logPath, 'utf-8');
+        } else {
+          content = 'Log file not found. Kiro CLI may not be running.';
+        }
+        
+        sendJson(res, 200, { content });
+      } catch (error) {
+        console.error('Error reading Kiro live log:', error);
+        sendJson(res, 500, { 
+          error: 'Failed to read log file',
+          content: 'Error reading log file. Check server logs.'
+        });
       }
       return;
     }
@@ -6030,7 +6377,7 @@ export async function createApp() {
             storyId: storyId,
             syncToOrigin: true
           }),
-          signal: AbortSignal.timeout(600000) // 10 minute timeout
+          signal: AbortSignal.timeout(30000) // 30 second timeout
         });
 
         if (!kiroResponse.ok) {
@@ -6069,7 +6416,7 @@ export async function createApp() {
         const docClient = DynamoDBDocumentClient.from(client);
         
         const prodTable = 'aipm-backend-prod-stories';
-        const devTable = process.env.STORIES_TABLE || 'aipm-backend-dev-stories';
+        const devTable = process.env.STORIES_TABLE;
         
         console.log(`📥 Exporting from ${prodTable} to ${devTable}`);
         
@@ -6264,11 +6611,8 @@ export async function createApp() {
             analysis: {
               source: analysis.source,
               summary: analysis.summary,
-              aiSummary: analysis.ai?.summary || '',
-              aiModel: analysis.ai?.model || null,
-              usedFallback: analysis.usedFallback,
-              error: analysis.ai?.error || null,
-              fallbackWarnings: analysis.fallbackWarnings || [],
+              summary: analysis.summary,
+              model: analysis.ai?.model || null,
             },
           });
           return;
@@ -6286,7 +6630,7 @@ export async function createApp() {
           
           const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
           const docClient = DynamoDBDocumentClient.from(client);
-          const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          const tableName = process.env.STORIES_TABLE;
           
           newStoryId = Date.now(); // Generate unique ID
           
@@ -6308,11 +6652,8 @@ export async function createApp() {
             invest_analysis: JSON.stringify({
               source: analysis.source,
               summary: analysis.summary,
-              aiSummary: analysis.ai?.summary || '',
-              aiModel: analysis.ai?.model || null,
-              usedFallback: analysis.usedFallback,
-              error: analysis.ai?.error || null,
-              fallbackWarnings: analysis.fallbackWarnings || [],
+              summary: analysis.summary,
+              model: analysis.ai?.model || null,
             })
           };
           
@@ -6347,29 +6688,14 @@ export async function createApp() {
             JSON.stringify({
               source: analysis.source,
               summary: analysis.summary,
-              aiSummary: analysis.ai?.summary || '',
-              aiModel: analysis.ai?.model || null,
-              usedFallback: analysis.usedFallback,
-              error: analysis.ai?.error || null,
-              fallbackWarnings: analysis.fallbackWarnings || [],
+              summary: analysis.summary,
+              model: analysis.ai?.model || null,
             })
           );
           newStoryId = Number(lastInsertRowid);
         }
         
-        // Try to create automatic acceptance test, but don't fail story creation if it fails
-        try {
-          await createAutomaticAcceptanceTest(db, {
-            id: newStoryId,
-            title,
-            asA,
-            iWant,
-            soThat,
-            components,
-          });
-        } catch (error) {
-          console.error('Failed to create automatic acceptance test, but story creation continues:', error);
-        }
+        // Automatic acceptance test creation disabled - frontend handles acceptance tests
         
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
         if (created) {
@@ -6396,7 +6722,7 @@ export async function createApp() {
             blockedBy: [],
             blocking: [],
             children: [],
-            investWarnings: analysis?.warnings || [],
+            investWarnings: analysis?.ai?.warnings || analysis?.aiWarnings || analysis?.warnings || [],
             investSatisfied: false,
             investHealth: { satisfied: false, issues: analysis?.warnings || [] },
             investAnalysis: analysis || {}
@@ -6426,7 +6752,7 @@ export async function createApp() {
           const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
           const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
           
-          const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          const tableName = process.env.STORIES_TABLE;
           if (!tableName) {
             throw new Error('STORIES_TABLE environment variable not set');
           }
@@ -6521,7 +6847,7 @@ export async function createApp() {
             iWant: payload.iWant ?? existing.iWant,
             soThat: payload.soThat ?? existing.soThat,
             description: payload.description ?? existing.description,
-            storyPoints: payload.storyPoints ?? existing.storyPoints,
+            storyPoints: payload.storyPoint ?? existing.storyPoint,
             assigneeEmail: payload.assigneeEmail ?? existing.assigneeEmail,
             status: payload.status ?? existing.status,
             components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]'))
@@ -6531,10 +6857,10 @@ export async function createApp() {
             db.run(
               `UPDATE user_stories SET 
                 title = ?, asA = ?, iWant = ?, soThat = ?, description = ?,
-                storyPoints = ?, assigneeEmail = ?, status = ?, components = ?
+                story_point = ?, assigneeEmail = ?, status = ?, components = ?
               WHERE id = ?`,
               [updates.title, updates.asA, updates.iWant, updates.soThat, updates.description,
-               updates.storyPoints, updates.assigneeEmail, updates.status, updates.components, storyId],
+               updates.storyPoint, updates.assigneeEmail, updates.status, updates.components, storyId],
               (err) => {
                 if (err) reject(err);
                 else resolve();
@@ -6542,6 +6868,11 @@ export async function createApp() {
             );
           });
         }
+        
+        // Update Task Specification file if story has associated PRs
+        // NOTE: Disabled to prevent duplicate commits during code generation
+        // Task specifications are now updated during the code generation process
+        // await updateTaskSpecificationFile(storyId, payload);
         
         sendJson(res, 200, { success: true, message: 'Story updated' });
       } catch (err) {
@@ -6687,11 +7018,24 @@ export async function createApp() {
     if (storyIdMatch && method === 'GET') {
       const storyId = Number(storyIdMatch[1]);
       try {
+        // Get complete story data
+        const stories = await loadStories(db);
+        const flatStories = flattenStories(stories);
+        const story = flatStories.find(s => s.id === storyId);
+        
+        if (!story) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        
+        // Add PRs to the story
         const prs = await getStoryPRs(db, storyId);
-        sendJson(res, 200, { prs });
+        story.prs = prs;
+        
+        sendJson(res, 200, story);
       } catch (error) {
-        console.error(`Failed to load PRs for story ${storyId}:`, error);
-        sendJson(res, 500, { message: 'Failed to load PRs', prs: [] });
+        console.error(`Failed to load story ${storyId}:`, error);
+        sendJson(res, 500, { message: 'Failed to load story' });
       }
       return;
     }
@@ -6748,11 +7092,8 @@ export async function createApp() {
             analysis: {
               source: analysis.source,
               summary: analysis.summary,
-              aiSummary: analysis.ai?.summary || '',
-              aiModel: analysis.ai?.model || null,
-              usedFallback: analysis.usedFallback,
-              error: analysis.ai?.error || null,
-              fallbackWarnings: analysis.fallbackWarnings || [],
+              summary: analysis.summary,
+              model: analysis.ai?.model || null,
             },
           });
           return;
@@ -6785,14 +7126,14 @@ export async function createApp() {
           componentsChanged;
 
         // For DynamoDB, use direct update to ensure status change works
-        if (process.env.NODE_ENV !== 'test' && (process.env.STORIES_TABLE || process.env.AWS_REGION)) {
+        if (process.env.NODE_ENV !== 'test' && process.env.STORIES_TABLE && process.env.AWS_REGION) {
           // Direct DynamoDB update for status change
           const { DynamoDBClient, UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
           const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
           
           try {
             await dynamoClient.send(new UpdateItemCommand({
-              TableName: process.env.STORIES_TABLE || 'aipm-backend-dev-stories',
+              TableName: process.env.STORIES_TABLE,
               Key: { id: { N: String(storyId) } },
               UpdateExpression: 'SET #status = :status, updated_at = :updatedAt',
               ExpressionAttributeNames: { '#status': 'status' },
@@ -6826,11 +7167,8 @@ export async function createApp() {
           JSON.stringify({
             source: analysis.source,
             summary: analysis.summary,
-            aiSummary: analysis.ai?.summary || '',
-            aiModel: analysis.ai?.model || null,
-            usedFallback: analysis.usedFallback,
-            error: analysis.ai?.error || null,
-            fallbackWarnings: analysis.fallbackWarnings || [],
+            summary: analysis.summary,
+            model: analysis.ai?.model || null,
           }),
           storyId
         );
@@ -6955,11 +7293,42 @@ export async function createApp() {
       try {
         const payload = await parseJson(req);
         const includeAiInvest = toBoolean(payload.includeAiInvest);
+        console.log('🏥 Health-check endpoint called for story:', storyId, 'includeAiInvest:', includeAiInvest);
+        
         const story = await loadStoryWithDetails(db, storyId, { includeAiInvest });
         if (!story) {
           sendJson(res, 404, { message: 'Story not found' });
           return;
         }
+        console.log('🏥 Story loaded, investAnalysis source:', story.investAnalysis?.source);
+        
+        // Save the updated analysis to database if AI analysis was performed
+        if (includeAiInvest && story.investAnalysis?.source === 'ai') {
+          console.log('🏥 Saving AI analysis to database...');
+          
+          if (db.constructor.name === 'DynamoDBDataLayer') {
+            // DynamoDB update
+            const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+            const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+            
+            const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+            const docClient = DynamoDBDocumentClient.from(client);
+            const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+            
+            await docClient.send(new UpdateCommand({
+              TableName: tableName,
+              Key: { id: storyId },
+              UpdateExpression: 'SET invest_analysis = :analysis, updated_at = :updatedAt',
+              ExpressionAttributeValues: {
+                ':analysis': JSON.stringify(story.investAnalysis || {}),
+                ':updatedAt': new Date().toISOString()
+              }
+            }));
+            
+            console.log('🏥 AI analysis saved to DynamoDB');
+          }
+        }
+        
         sendJson(res, 200, story);
       } catch (error) {
         const status = error.statusCode ?? 500;
@@ -7087,12 +7456,31 @@ export async function createApp() {
 
     if (storyIdMatch && method === 'DELETE') {
       const storyId = Number(storyIdMatch[1]);
-      const statement = db.prepare('DELETE FROM user_stories WHERE id = ?');
-      const result = statement.run(storyId);
-      if (result.changes === 0) {
-        sendJson(res, 404, { message: 'Story not found' });
-      } else {
+      
+      try {
+        // Get story PRs before deletion
+        const storyPRs = await getStoryPRs(db, storyId);
+        
+        // Delete the story
+        const statement = db.prepare('DELETE FROM user_stories WHERE id = ?');
+        const result = statement.run(storyId);
+        
+        if (result.changes === 0) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        
+        // Delete associated PRs from database
+        if (storyPRs && storyPRs.length > 0) {
+          const deletePRStatement = db.prepare('DELETE FROM story_prs WHERE storyId = ?');
+          deletePRStatement.run(storyId);
+          console.log(`🗑️ Deleted ${storyPRs.length} associated PRs for story ${storyId}`);
+        }
+        
         sendJson(res, 204, {});
+      } catch (error) {
+        console.error('Error deleting story and PRs:', error);
+        sendJson(res, 500, { message: 'Failed to delete story and associated PRs' });
       }
       return;
     }
@@ -7170,13 +7558,17 @@ export async function createApp() {
         
         const payload = await parseJson(req);
         const { given, when, then } = measurablePayload(payload);
+        
+        // Use Kiro-based GWT health analysis
         const { warnings, suggestions } = measurabilityWarnings(then);
-        if (warnings.length > 0 && !payload.acceptWarnings) {
+        const gwtHealth = await buildGwtHealth(given, when, then, warnings);
+        
+        if (!gwtHealth.satisfied && !payload.acceptWarnings) {
           sendJson(res, 409, {
-            code: 'MEASURABILITY_WARNINGS',
-            message: 'Then steps must describe observable or measurable outcomes.',
-            warnings,
-            suggestions,
+            code: 'GWT_HEALTH_WARNINGS',
+            message: 'Acceptance test has Given/When/Then quality issues.',
+            warnings: gwtHealth.issues,
+            gwtHealth: gwtHealth
           });
           return;
         }
@@ -7240,13 +7632,17 @@ export async function createApp() {
       try {
         const payload = await parseJson(req);
         const { given, when, then } = measurablePayload(payload);
+        
+        // Use Kiro-based GWT health analysis
         const { warnings, suggestions } = measurabilityWarnings(then);
-        if (warnings.length > 0 && !payload.acceptWarnings) {
+        const gwtHealth = await buildGwtHealth(given, when, then, warnings);
+        
+        if (!gwtHealth.satisfied && !payload.acceptWarnings) {
           sendJson(res, 409, {
-            code: 'MEASURABILITY_WARNINGS',
-            message: 'Then steps must describe observable or measurable outcomes.',
-            warnings,
-            suggestions,
+            code: 'GWT_HEALTH_WARNINGS',
+            message: 'Acceptance test has Given/When/Then quality issues.',
+            warnings: gwtHealth.issues,
+            gwtHealth: gwtHealth
           });
           return;
         }
@@ -7522,6 +7918,77 @@ export async function createApp() {
     }
 
     // Handle API 404s before falling back to static files
+    // Deployment notifications API
+    if (pathname === '/api/deployment-notifications' && method === 'POST') {
+      try {
+        const bodyStr = await readRequestBody(req);
+        const body = JSON.parse(bodyStr);
+        console.log('Notification request body:', body);
+        const { type, prNumber, message, timestamp } = body;
+        console.log('Parsed fields:', { type, prNumber, message, timestamp });
+        
+        // Store notification in memory (could be extended to use database)
+        global.deploymentNotifications = global.deploymentNotifications || [];
+        global.deploymentNotifications.push({
+          id: Date.now(),
+          type,
+          prNumber,
+          message,
+          timestamp: timestamp || new Date().toISOString(),
+          read: false
+        });
+        
+        // Keep only last 10 notifications
+        if (global.deploymentNotifications.length > 10) {
+          global.deploymentNotifications = global.deploymentNotifications.slice(-10);
+        }
+        
+        sendJson(res, 200, { success: true, message: 'Notification stored' });
+        return;
+      } catch (error) {
+        console.error('Error storing deployment notification:', error);
+        sendJson(res, 500, { error: 'Failed to store notification' });
+        return;
+      }
+    }
+    
+    if (pathname === '/api/deployment-notifications' && method === 'GET') {
+      try {
+        const notifications = global.deploymentNotifications || [];
+        console.log('GET notifications:', notifications);
+        const unreadNotifications = notifications.filter(n => !n.read);
+        console.log('Unread notifications:', unreadNotifications);
+        sendJson(res, 200, { notifications: unreadNotifications });
+        return;
+      } catch (error) {
+        console.error('Error fetching deployment notifications:', error);
+        sendJson(res, 500, { error: 'Failed to fetch notifications' });
+        return;
+      }
+    }
+    
+    if (pathname === '/api/deployment-notifications/mark-read' && method === 'POST') {
+      try {
+        const bodyStr = await readRequestBody(req);
+        const body = JSON.parse(bodyStr);
+        const { notificationId } = body;
+        
+        if (global.deploymentNotifications) {
+          const notification = global.deploymentNotifications.find(n => n.id === notificationId);
+          if (notification) {
+            notification.read = true;
+          }
+        }
+        
+        sendJson(res, 200, { success: true });
+        return;
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+        sendJson(res, 500, { error: 'Failed to mark notification as read' });
+        return;
+      }
+    }
+
     if (pathname.startsWith('/api/')) {
       sendJson(res, 404, { message: 'API endpoint not found' });
       return;
@@ -7556,7 +8023,12 @@ export async function createApp() {
 export async function startServer(port = 4000) {
   const app = await createApp();
   return new Promise((resolve, reject) => {
-    app.listen(port, () => resolve(app));
+    app.listen(port, () => {
+      console.log(`🚀 AIPM Backend Server started on port ${port}`);
+      debugLog(`Debug logging enabled: ${DEBUG}`);
+      debugLog(`Environment: ${process.env.NODE_ENV || 'production'}`);
+      resolve(app);
+    });
     app.once('error', reject);
   });
 }

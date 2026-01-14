@@ -1,4 +1,4 @@
-import { createApp } from './app.js';
+import { createApp, startServer } from './app.js';
 
 // PR creation functions for automatic GitHub integration
 export async function handlePersonalDelegateRequest(req, res, url) {
@@ -260,39 +260,11 @@ export async function handlePersonalDelegateStatusRequest(req, res, url) {
 }
 
 const desiredPort = Number(process.env.PORT || 4000);
-const allowDynamicFallback = !process.env.PORT;
 
-createApp()
+startServer(desiredPort)
   .then((server) => {
-    const listen = (portToUse, allowFallback) => {
-      const handleListening = () => {
-        server.off('error', handleError);
-        const address = server.address();
-        const resolvedPort =
-          typeof address === 'object' && address !== null ? address.port : portToUse;
-        console.log(`Server running on http://localhost:${resolvedPort}`);
-      };
-
-      const handleError = (error) => {
-        server.off('listening', handleListening);
-        if (error && error.code === 'EADDRINUSE' && allowFallback) {
-          console.warn(
-            `Port ${portToUse} is already in use. Trying a random available port instead.`,
-          );
-          setImmediate(() => listen(0, false));
-          return;
-        }
-
-        console.error('Failed to start server', error);
-        process.exit(1);
-      };
-
-      server.once('listening', handleListening);
-      server.once('error', handleError);
-      server.listen(portToUse, '0.0.0.0');
-    };
-
-    listen(desiredPort, allowDynamicFallback);
+    console.log(`🚀 AIPM Backend Server started on port ${desiredPort}`);
+    console.log(`🐛 Debug logging: ${process.env.DEBUG === 'true' ? 'ENABLED' : 'DISABLED'}`);
   })
   .catch((error) => {
     console.error('Failed to start server', error);
