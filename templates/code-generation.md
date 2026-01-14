@@ -24,6 +24,7 @@
 **NO QUESTIONS**: Do not ask for clarification
 **NO EXPLANATIONS**: Do not explain what you're doing
 **EXECUTE WORKFLOW**: Complete the full development cycle from checkout to push
+**READY FOR NEXT REQUEST**: After completing workflow, wait for the next task
 
 ---
 
@@ -157,4 +158,4 @@ apps/
 
 11. **Report**: Return JSON status with success/failure and details
 
-**EXECUTE EXACTLY ONCE**: Replace placeholders with actual values and complete the full workflow. Do not retry or execute multiple times.
+**EXECUTE ONCE PER REQUEST**: Replace placeholders with actual values and complete the full workflow. After completing, wait for the next task.

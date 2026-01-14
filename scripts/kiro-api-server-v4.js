@@ -2257,22 +2257,18 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         }
 
         // Use code generation contract with direct execution command
-        const kiroPrompt = `Execute code generation contract: ./templates/code-generation.md
+        const kiroPrompt = `Read and follow the template file: ./templates/code-generation.md
 
-IMPORTANT: Generate code to satisfy the requirements defined in the Task Specification File from latest origin/main.
-
-IMMEDIATE EXECUTION - All parameters provided:
-- taskTitle: Code Generation for Story ${storyId}
-- objective: ${prompt}
-- constraints: GitHub PR #${finalPRNumber} on branch ${finalBranch}
-- prNumber: ${finalPRNumber}
-- branchName: ${finalBranch}
-- language: javascript
+Task Title: Code Generation for Story ${storyId}
+Objective: ${prompt}
+PR Number: ${finalPRNumber}
+Branch Name: ${finalBranch}
+Language: javascript
 
 Task Specification Content:
 ${taskSpecContent}
 
-BEGIN WORKFLOW NOW - Do not ask for additional parameters.`;
+Execute the template instructions exactly as written.`;
 
         console.log('📤 Calling Kiro CLI with code generation contract...');
         
