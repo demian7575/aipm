@@ -816,11 +816,12 @@ const server = http.createServer(async (req, res) => {
     req.on('end', () => {
       try {
         const draftData = JSON.parse(body);
-        // Store draft data temporarily (could use in-memory store or database)
+        // Store draft data temporarily (includes acceptance tests)
         global.latestDraft = { success: true, draft: draftData, timestamp: Date.now() };
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ received: true }));
       } catch (error) {
+        console.error('Error in draft-response:', error);
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -1019,8 +1020,52 @@ Execute the template instructions exactly as written.`;
         if (global.latestDraft && (Date.now() - global.latestDraft.timestamp) < 30000) {
           const draftResponse = global.latestDraft;
           global.latestDraft = null; // Clear after use
+          
+          // Create the story in DynamoDB
+          const storyData = draftResponse.draft;
+          const storyId = Date.now();
+          await dynamodb.send(new PutCommand({
+            TableName: STORIES_TABLE,
+            Item: {
+              id: storyId,
+              title: storyData.title,
+              description: storyData.description,
+              as_a: storyData.asA,
+              i_want: storyData.iWant,
+              so_that: storyData.soThat,
+              components: storyData.components || [],
+              story_point: storyData.storyPoint || 0,
+              assignee_email: storyData.assigneeEmail || '',
+              parent_id: storyData.parentId || null,
+              status: 'Draft',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          }));
+          
+          // Create acceptance tests if included
+          if (storyData.acceptanceTests && Array.isArray(storyData.acceptanceTests)) {
+            for (const test of storyData.acceptanceTests) {
+              const testId = Date.now() + Math.floor(Math.random() * 1000);
+              await dynamodb.send(new PutCommand({
+                TableName: ACCEPTANCE_TESTS_TABLE,
+                Item: {
+                  id: testId,
+                  story_id: storyId,
+                  title: test.title || '',
+                  given: Array.isArray(test.given) ? test.given : [test.given],
+                  when_step: Array.isArray(test.when) ? test.when : [test.when],
+                  then_step: Array.isArray(test.then) ? test.then : [test.then],
+                  status: test.status || 'Draft',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              }));
+            }
+          }
+          
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(draftResponse));
+          res.end(JSON.stringify({ ...draftResponse, storyId }));
           return;
         }
         
