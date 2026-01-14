@@ -4959,44 +4959,7 @@ function renderStoryDetailsWithCompleteData(story) {
         tbody.appendChild(tr);
       });
 
-      const gwtRow = document.createElement('tr');
-      const gwtTh = document.createElement('th');
-      gwtTh.scope = 'row';
-      gwtTh.textContent = 'Health (GWT)';
-      const gwtTd = document.createElement('td');
-      const gwtHealth = test.gwtHealth || { satisfied: true, issues: [] };
-      const gwtPill = document.createElement('span');
-      gwtPill.className = `health-pill ${gwtHealth.satisfied ? 'pass' : 'fail'}`;
-      gwtPill.textContent = gwtHealth.satisfied ? 'Pass' : 'Needs review';
-      gwtTd.appendChild(gwtPill);
 
-      if (gwtHealth.issues && gwtHealth.issues.length) {
-        const issueList = document.createElement('ul');
-        issueList.className = 'health-issue-list';
-        gwtHealth.issues.forEach((issue) => {
-          const item = document.createElement('li');
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'link-button health-issue-button';
-          const criterionLabel = formatCriterionLabel(issue.criterion);
-          button.textContent = `${criterionLabel ? `${criterionLabel} – ` : ''}${issue.message}`;
-          button.addEventListener('click', () =>
-            openHealthIssueModal('Acceptance Test Issue', issue)
-          );
-          item.appendChild(button);
-          issueList.appendChild(item);
-        });
-        gwtTd.appendChild(issueList);
-      } else {
-        const ok = document.createElement('p');
-        ok.className = 'health-ok';
-        ok.textContent = 'All Given/When/Then checks passed.';
-        gwtTd.appendChild(ok);
-      }
-
-      gwtRow.appendChild(gwtTh);
-      gwtRow.appendChild(gwtTd);
-      tbody.appendChild(gwtRow);
 
       const statusRow = document.createElement('tr');
       const statusTh = document.createElement('th');
