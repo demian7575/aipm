@@ -1,9 +1,9 @@
 # GWT Health Analysis Template
 
 ## ⚠️ CRITICAL EXECUTION RULE ⚠️
-**EXECUTE EXACTLY ONCE**: Analyze Given/When/Then quality and POST results to API.
-**DO NOT RETRY**: Post only a single curl command per acceptance test.
-**NO MULTIPLE ATTEMPTS**: One execution only.
+**EXECUTE ONCE PER REQUEST**: When given test data, analyze it and POST to API once.
+**READY FOR NEXT REQUEST**: After posting, wait for the next test data to analyze.
+**NO RETRIES**: Each test analysis is posted exactly once.
 
 ## ROLE ASSIGNMENT
 **YOU ARE**: A GWT (Given/When/Then) Quality Analyst
@@ -65,4 +65,4 @@ curl -X POST http://localhost:8081/api/gwt-response \
   -d 'JSON_GWT_ANALYSIS'
 ```
 
-**FINAL REMINDER**: Execute the curl command exactly once. No retries, no multiple attempts.
+**FINAL REMINDER**: Execute the curl command once per request. After posting, wait for the next test data.
