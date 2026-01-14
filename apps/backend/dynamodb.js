@@ -68,10 +68,9 @@ export class DynamoDBDataLayer {
       const result = await docClient.send(new ScanCommand({
         TableName: ACCEPTANCE_TESTS_TABLE
       }));
-      console.log('DynamoDB: Raw acceptance tests result:', result.Items?.length || 0);
-      const mapped = (result.Items || []).map(item => ({
+      return (result.Items || []).map(item => ({
         id: item.id,
-        story_id: item.story_id, // Keep as story_id for backend compatibility
+        story_id: item.storyId || item.story_id, // DynamoDB uses storyId (camelCase)
         title: item.title || '',
         given: item.given,
         when_step: item.when_step,
@@ -80,9 +79,6 @@ export class DynamoDBDataLayer {
         created_at: item.created_at,
         updated_at: item.updated_at
       }));
-      console.log('DynamoDB: Tests for story 1767550018420:', mapped.filter(t => t.story_id === 1767550018420).length);
-      console.log('DynamoDB: Sample mapped test:', mapped.find(t => t.story_id === 1767550018420));
-      return mapped;
     } catch (error) {
       console.error('DynamoDB: Error getting acceptance tests:', error);
       return [];
