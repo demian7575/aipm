@@ -384,11 +384,11 @@ function startKiroProcess() {
   // Reset health tracking
   lastKiroResponse = Date.now();
   
-  // Send initial command to keep Kiro CLI alive and load templates
+  // Send initial command to keep Kiro CLI alive - just load template, don't execute
   setTimeout(() => {
     if (kiroProcess && kiroProcess.stdin.writable) {
-      console.log('📋 Loading INVEST analysis template...');
-      kiroProcess.stdin.write('Read and follow the template file: ./templates/invest-analysis.md\n\nExecute the template instructions exactly as written.\n');
+      console.log('📋 Loading INVEST analysis template (keeping Kiro CLI ready)...');
+      kiroProcess.stdin.write('Read the template file: ./templates/invest-analysis.md\n');
     }
   }, 2000); // Wait 2 seconds for Kiro CLI to be ready
   
