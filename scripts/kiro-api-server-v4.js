@@ -2102,14 +2102,14 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         const testId = Date.now();
         const acceptanceTest = {
           id: testId,
-          storyId: storyId,
+          story_id: storyId,
           title: testData.title,
           given: Array.isArray(testData.given) ? testData.given : [testData.given],
-          when: Array.isArray(testData.when) ? testData.when : [testData.when],
-          then: Array.isArray(testData.then) ? testData.then : [testData.then],
+          when_step: Array.isArray(testData.when) ? testData.when : [testData.when],
+          then_step: Array.isArray(testData.then) ? testData.then : [testData.then],
           status: testData.status || 'Draft',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
         
         await dynamodb.send(new PutCommand({
