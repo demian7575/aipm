@@ -114,6 +114,7 @@ export class DynamoDBDataLayer {
         createdAt: item.created_at || item.createdAt,
         updatedAt: item.updated_at || item.updatedAt,
         invest_analysis: item.invest_analysis, // Add invest_analysis field
+        invest_warnings: item.invest_warnings, // Add invest_warnings field
         // SQLite format (snake_case) for compatibility
         parent_id: item.parent_id || item.parentId, // Keep snake_case for backend compatibility
         as_a: item.as_a || item.asA || '',
