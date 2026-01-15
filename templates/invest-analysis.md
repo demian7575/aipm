@@ -48,7 +48,7 @@ Analyze against: Independent, Negotiable, Valuable, Estimable, Small, Testable
 ### Output Schema for JSON_INVEST_ANALYSIS
 ```json
 {
-  "storyId": STORY_ID,
+  "storyId": <numeric Story ID from data file>,
   "summary": "string",
   "score": number,
   "warnings": [{"criterion": "string", "message": "string", "suggestion": "string"}],
@@ -57,6 +57,8 @@ Analyze against: Independent, Negotiable, Valuable, Estimable, Small, Testable
   "model": "kiro-cli"
 }
 ```
+
+**CRITICAL**: The `storyId` field MUST be a number (e.g., 101), not a string (e.g., "US-0101").
 
 ### EXECUTION COMMAND TEMPLATE
 ```bash
