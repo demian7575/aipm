@@ -625,10 +625,14 @@ async function getStories() {
     TableName: ACCEPTANCE_TESTS_TABLE
   }));
   
-  // Group tests by storyId
+  // Group tests by story_id
   const testsByStory = {};
   (tests || []).forEach(test => {
-    const storyId = test.story_id || test.storyId;
+    const storyId = test.story_id;
+    if (!storyId) {
+      console.warn('⚠️ Acceptance test missing story_id:', test.id);
+      return;
+    }
     if (!testsByStory[storyId]) {
       testsByStory[storyId] = [];
     }
