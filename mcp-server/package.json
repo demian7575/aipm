@@ -1,0 +1,18 @@
+{
+  "name": "aipm-mcp-server",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP server for AIPM - exposes user story and acceptance test management",
+  "main": "aipm-server.js",
+  "bin": {
+    "aipm-mcp-server": "./aipm-server.js"
+  },
+  "scripts": {
+    "start": "node aipm-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}
