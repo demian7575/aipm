@@ -2342,13 +2342,33 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           return;
         }
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          message: 'Deployment to staging triggered',
-          stagingUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
-          workflowUrl: 'https://github.com/demian7575/aipm/actions'
-        }));
+        // Trigger GitHub Actions workflow
+        try {
+          await octokit.rest.actions.createWorkflowDispatch({
+            owner: GITHUB_OWNER,
+            repo: GITHUB_REPO,
+            workflow_id: 'deploy-pr-to-dev.yml',
+            ref: 'main',
+            inputs: {
+              pr_number: String(prNumber)
+            }
+          });
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            message: 'Deployment to staging triggered',
+            stagingUrl: 'http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com',
+            workflowUrl: 'https://github.com/demian7575/aipm/actions'
+          }));
+        } catch (githubError) {
+          console.error('GitHub Actions trigger error:', githubError);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: false, 
+            error: `Failed to trigger GitHub Actions: ${githubError.message}` 
+          }));
+        }
         
       } catch (error) {
         console.error('Deploy PR error:', error);
