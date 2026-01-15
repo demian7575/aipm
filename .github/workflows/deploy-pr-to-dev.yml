@@ -135,18 +135,26 @@ jobs:
             jq -r '.Items[].id.N' | \
             xargs -r -I {} aws dynamodb delete-item --table-name aipm-backend-dev-acceptance-tests --key '{"id":{"N":"{}"}}' --region us-east-1
           
-          # Import to development
+          # Import to development (with error handling for empty tables)
           echo "📤 Importing to development..."
-          jq -c '.Items[]' /tmp/prod-stories.json | while read item; do
-            aws dynamodb put-item --table-name aipm-backend-dev-stories --item "$item" --region us-east-1
-          done
-          
-          jq -c '.Items[]' /tmp/prod-tests.json | while read item; do
-            aws dynamodb put-item --table-name aipm-backend-dev-acceptance-tests --item "$item" --region us-east-1
-          done
-          
           STORY_COUNT=$(jq '.Items | length' /tmp/prod-stories.json)
           TEST_COUNT=$(jq '.Items | length' /tmp/prod-tests.json)
+          
+          if [ "$STORY_COUNT" -gt 0 ]; then
+            jq -c '.Items[]' /tmp/prod-stories.json | while read item; do
+              aws dynamodb put-item --table-name aipm-backend-dev-stories --item "$item" --region us-east-1
+            done
+          else
+            echo "⚠️ No stories to import"
+          fi
+          
+          if [ "$TEST_COUNT" -gt 0 ]; then
+            jq -c '.Items[]' /tmp/prod-tests.json | while read item; do
+              aws dynamodb put-item --table-name aipm-backend-dev-acceptance-tests --item "$item" --region us-east-1
+            done
+          else
+            echo "⚠️ No tests to import"
+          fi
           
           echo "✅ Database synced: $STORY_COUNT stories, $TEST_COUNT tests"
       
