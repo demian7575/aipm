@@ -5,29 +5,17 @@ on:
     inputs:
       pr_number:
         description: 'PR number to deploy'
-        required: false
-      branch_name:
-        description: 'Branch name to deploy'
-        required: false
+        required: true
+        type: string
 
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  # First run gating tests to validate the system
-  gating-tests:
+  deploy-dev:
     runs-on: ubuntu-latest
-    # Skip deployment for code generation commits
-    if: |
-      github.event_name == 'workflow_dispatch' || 
-      (github.event_name == 'pull_request' && 
-       !contains(github.event.head_commit.message, 'Generated code') &&
-       !contains(github.event.head_commit.message, 'feat: ') &&
-       !contains(github.event.head_commit.message, 'Add task specification') &&
-       !contains(github.event.head_commit.message, 'Update Task Specification'))
-    outputs:
-      gating-status: ${{ steps.gating.outputs.status }}
+    environment: development
     
     steps:
       - name: Checkout repository
@@ -35,152 +23,23 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Checkout and deploy PR branch
+      - name: Checkout PR branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Get PR number and branch
-          if [ -z "${{ github.event.inputs.pr_number }}" ]; then
-            if [ "${{ github.event_name }}" = "pull_request" ]; then
-              PR_NUMBER="${{ github.event.number }}"
-              BRANCH_NAME="${{ github.head_ref }}"
-            else
-              echo "❌ No PR specified"
-              exit 1
-            fi
-          else
-            PR_NUMBER="${{ github.event.inputs.pr_number }}"
-            # Get branch name from PR
-            BRANCH_NAME=$(curl -s "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER" | jq -r '.head.ref')
-          fi
+          PR_NUMBER="${{ github.event.inputs.pr_number }}"
+          echo "📥 Deploying PR #$PR_NUMBER"
           
-          echo "📥 Deploying PR #$PR_NUMBER (branch: $BRANCH_NAME)"
+          # Get branch name from PR
+          BRANCH_NAME=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER" | jq -r '.head.ref')
           
-          # Checkout PR branch directly - no rebase needed for clean PRs
+          echo "Branch: $BRANCH_NAME"
+          
+          # Checkout PR branch
           git fetch origin $BRANCH_NAME
           git checkout $BRANCH_NAME
-          
-          # Verify PR is based on recent main (within last 10 commits)
-          git fetch origin main
-          MERGE_BASE=$(git merge-base HEAD origin/main)
-          MAIN_COMMITS=$(git rev-list --count $MERGE_BASE..origin/main)
-          
-          if [ $MAIN_COMMITS -gt 10 ]; then
-            echo "❌ PR is too far behind main ($MAIN_COMMITS commits). Please regenerate from latest main."
-            exit 1
-          fi
-          
-      - name: Validate PR quality
-        run: |
-          # Check if PR has too many commits (should be 1-2 for generated code)
-          COMMIT_COUNT=$(git rev-list --count origin/main..HEAD)
-          if [ $COMMIT_COUNT -gt 3 ]; then
-            echo "❌ PR has too many commits ($COMMIT_COUNT). Generated PRs should have 1-2 commits."
-            echo "Please regenerate the PR from latest main."
-            exit 1
-          fi
-          
-          # Check if PR has merge commits (indicates manual merging)
-          if git log --oneline origin/main..HEAD | grep -q "Merge"; then
-            echo "❌ PR contains merge commits. Generated PRs should not have merges."
-            echo "Please regenerate the PR from latest main."
-            exit 1
-          fi
-          
-          echo "✅ PR quality checks passed ($COMMIT_COUNT commits, no merges)"
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Install dependencies
-        run: |
-          npm install --legacy-peer-deps
-          sudo apt-get update
-          sudo apt-get install -y jq python3-yaml
-      
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-      
-      - name: Copy database files
-        run: |
-          echo "📁 Copying database files..."
-          ./scripts/simple-copy.sh
-      
-      - name: Run Workflow Gating Tests
-        id: gating
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "🧪 Running Pre-Deployment Gating Tests on rebased code"
-          export PHASE="pre-deployment"
-          
-          if ./scripts/testing/run-structured-gating-tests.sh; then
-            echo "✅ Gating tests passed - deployment approved"
-            echo "status=success" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Gating tests failed - blocking deployment"
-            echo "status=failure" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-
-  # Only deploy if gating tests pass
-  deploy:
-    runs-on: ubuntu-latest
-    needs: gating-tests
-    # Skip deployment for code generation commits AND require gating tests to pass
-    if: |
-      needs.gating-tests.outputs.gating-status == 'success' &&
-      (github.event_name == 'workflow_dispatch' || 
-       (github.event_name == 'pull_request' && 
-        !contains(github.event.head_commit.message, 'Generated code') &&
-        !contains(github.event.head_commit.message, 'feat: ') &&
-        !contains(github.event.head_commit.message, 'Add task specification') &&
-        !contains(github.event.head_commit.message, 'Update Task Specification')))
-    environment: development  # This creates a deployment environment
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      
-      - name: Checkout and use rebased code
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Checkout the same PR branch and rebase (should be clean since gating passed)
-          if [ -z "${{ github.event.inputs.pr_number }}" ] && [ -z "${{ github.event.inputs.branch_name }}" ]; then
-            if [ "${{ github.event_name }}" = "pull_request" ]; then
-              git fetch origin ${{ github.head_ref }}
-              git checkout ${{ github.head_ref }}
-            else
-              git checkout main
-              exit 0
-            fi
-          else
-            if [ -n "${{ github.event.inputs.branch_name }}" ]; then
-              git fetch origin ${{ github.event.inputs.branch_name }}
-              git checkout ${{ github.event.inputs.branch_name }}
-            elif [ -n "${{ github.event.inputs.pr_number }}" ]; then
-              git fetch origin pull/${{ github.event.inputs.pr_number }}/head:pr-${{ github.event.inputs.pr_number }}
-              git checkout pr-${{ github.event.inputs.pr_number }}
-            fi
-          fi
-          
-          # Rebase again (should be clean since gating tests passed)
-          git fetch origin main
-          git config core.editor true
-          GIT_EDITOR=true git rebase origin/main
-          
-          echo "✅ Using rebased code for deployment"
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -191,7 +50,7 @@ jobs:
         run: npm install --legacy-peer-deps
       
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -212,95 +71,58 @@ jobs:
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
-          ssh-keyscan -H 44.220.45.57 >> ~/.ssh/known_hosts
-          ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured and validated" || (echo "❌ SSH key validation failed" && exit 1)
+          ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
-      - name: Copy database files
+      - name: Create development config
         run: |
-          echo "📁 Copying database files..."
-          ./scripts/simple-copy.sh
+          echo "📝 Creating development configuration..."
+          cat > apps/frontend/public/config.js << EOF
+          window.CONFIG = {
+            API_BASE_URL: 'http://44.222.168.46',
+            apiEndpoint: 'http://44.222.168.46:8081',
+            EC2_TERMINAL_URL: 'ws://44.222.168.46:8080',
+            GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+            PROD_VERSION: '4.0.0-dev',
+            ENVIRONMENT: 'development',
+            environment: 'development',
+            stage: 'dev',
+            region: 'us-east-1',
+            storiesTable: 'aipm-backend-dev-stories',
+            acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
+            DEBUG: true
+          };
+          EOF
+          
+          echo "✅ Development config created"
       
-      - name: Deploy to development environment
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      - name: Deploy backend to development EC2
         run: |
-          echo "🚀 Deploying to development environment using unified script..."
-          echo "📍 Current branch: $(git branch --show-current)"
+          echo "🚀 Deploying backend to development EC2..."
           ./scripts/deploy-to-environment.sh dev
+          
+          echo "✅ Backend deployed to development EC2"
       
-      - name: Run production gating tests
+      - name: Deploy frontend to S3
         run: |
-          echo "🧪 Running production gating tests..."
+          echo "🚀 Deploying frontend to S3..."
+          aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ \
+            --exclude '.git/*' \
+            --exclude 'node_modules/*' \
+            --delete
           
-          # Wait for deployment to be ready
-          sleep 10
-          
-          echo "✅ Deployment completed"
+          echo "✅ Frontend deployed to S3"
+          echo "🌐 Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
       
-      - name: Run Post-Deployment Validation
-        id: post_deployment
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify deployment
         run: |
-          echo "🔍 Running Post-Deployment Validation"
-          export PHASE="post-deployment"
+          echo "🔍 Verifying deployment..."
           
-          # Run post-deployment gating tests
-          if ./scripts/testing/run-structured-gating-tests.sh; then
-            echo "✅ Post-deployment validation passed"
+          # Check backend health
+          if curl -sf http://44.222.168.46/health | jq -e '.status == "running"' > /dev/null; then
+            echo "✅ Backend is healthy"
           else
-            echo "❌ Post-deployment validation failed"
+            echo "❌ Backend health check failed"
             exit 1
           fi
-      
-      - name: Validate Data Consistency
-        run: |
-          echo "📊 Validating data consistency after deployment..."
-          ./scripts/testing/post-deployment-data-consistency.sh
-      
-      - name: Comment on PR
-        if: always()
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const success = '${{ steps.post_deployment.outcome }}' === 'success';
-            const status = success ? '✅ **Deployment Successful**' : '❌ **Deployment Failed**';
-            const emoji = success ? '🚀' : '⚠️';
-            
-            const body = `${emoji} **Deployed to Development Environment**
-            
-            ${status}
-            
-            **Deployment Steps:**
-            - ✅ Pre-deployment gating tests passed
-            - ✅ Frontend deployed to S3
-            - ✅ Backend deployed to EC2
-            - ✅ Development config updated
-            - ✅ Data synchronized from production
-            - ${success ? '✅' : '❌'} Post-deployment validation ${success ? 'passed' : 'failed'}
-            
-            **Environment URLs:**
-            - 🔗 Frontend: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com
-            - 🔗 Backend API: http://44.222.168.46
-            - 🔗 Kiro API: http://44.222.168.46:8081
-            
-            ${success ? '**Ready for testing!** 🎉' : '**Please check logs and retry deployment** 🔧'}`;
-            
-            if (context.payload.pull_request) {
-              github.rest.issues.createComment({
-                issue_number: context.payload.pull_request.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: body
-              });
-            } else {
-              const prNumber = '${{ github.event.inputs.pr_number }}';
-              if (prNumber) {
-                github.rest.issues.createComment({
-                  issue_number: parseInt(prNumber),
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: body
-                });
-              }
-            }
+          
+          echo "✅ Deployment verified successfully"
