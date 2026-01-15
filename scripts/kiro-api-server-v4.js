@@ -1112,6 +1112,7 @@ Execute the template instructions exactly as written.`;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(stories));
     } catch (error) {
+      console.error('Error in GET /api/stories:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
     }
