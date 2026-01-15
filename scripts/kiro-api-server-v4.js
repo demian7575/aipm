@@ -633,6 +633,9 @@ async function getStories() {
       console.warn('⚠️ Acceptance test missing storyId:', test.id);
       return;
     }
+    // Normalize field names for frontend compatibility
+    test.when = test.whenStep || test.when;
+    test.then = test.thenStep || test.then;
     if (!testsByStory[storyId]) {
       testsByStory[storyId] = [];
     }
@@ -1226,6 +1229,12 @@ Generate the fields and immediately place them into this JSON template:
         KeyConditionExpression: 'storyId = :sid',
         ExpressionAttributeValues: { ':sid': id }
       }));
+      
+      // Normalize field names for frontend compatibility
+      (tests || []).forEach(test => {
+        test.when = test.whenStep || test.when;
+        test.then = test.thenStep || test.then;
+      });
       
       story.acceptanceTests = tests || [];
       
