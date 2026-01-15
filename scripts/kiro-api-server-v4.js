@@ -24,6 +24,13 @@ import { dirname } from 'path';
 import { spawn } from 'child_process';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { Octokit } from '@octokit/rest';
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_OWNER = 'demian7575';
+const GITHUB_REPO = 'aipm';
+
+const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
 // Git sync function with rebase and conflict handling
 async function syncToBranch(branchName) {
