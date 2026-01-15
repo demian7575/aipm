@@ -40,6 +40,20 @@ jobs:
           # Checkout PR branch
           git fetch origin $BRANCH_NAME
           git checkout $BRANCH_NAME
+          
+          # Rebase onto latest main
+          echo "🔄 Rebasing onto latest main..."
+          git fetch origin main
+          git rebase origin/main
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ Rebase failed - PR has conflicts with main"
+            echo "Please update your PR branch and resolve conflicts first"
+            git rebase --abort
+            exit 1
+          fi
+          
+          echo "✅ PR branch rebased onto latest main"
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
