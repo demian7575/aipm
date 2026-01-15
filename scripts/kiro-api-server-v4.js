@@ -2511,6 +2511,44 @@ Execute the template instructions exactly as written.`;
     return;
   }
 
+  const testDraftMatch = url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/draft$/);
+  if (testDraftMatch && req.method === 'POST') {
+    const storyId = parseInt(testDraftMatch[1], 10);
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { idea = '' } = body ? JSON.parse(body) : {};
+        
+        const prompt = `Read and follow the template file: ./templates/acceptance-test-generation.md
+
+Story ID: ${storyId}
+${idea ? `Idea: "${idea}"` : ''}
+
+Execute the template instructions exactly as written.`;
+        
+        global.latestDraft = null;
+        await sendToKiro(prompt);
+        await new Promise(resolve => setTimeout(resolve, 20000));
+        
+        if (global.latestDraft && (Date.now() - global.latestDraft.timestamp) < 30000) {
+          const draft = global.latestDraft.draft;
+          global.latestDraft = null;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(draft));
+          return;
+        }
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ given: [], when: [], then: [] }));
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
   if (url.pathname.startsWith('/api/')) {
     console.log('⚠️ Missing API endpoint:', req.method, url.pathname);
     res.writeHead(501, { 'Content-Type': 'application/json' });
