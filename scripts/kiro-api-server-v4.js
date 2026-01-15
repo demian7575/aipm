@@ -2197,8 +2197,8 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           // Get acceptance tests
           const { Items: tests } = await dynamodb.send(new QueryCommand({
             TableName: ACCEPTANCE_TESTS_TABLE,
-            IndexName: 'story_id-index',
-            KeyConditionExpression: 'story_id = :sid',
+            IndexName: 'storyId-index',
+            KeyConditionExpression: 'storyId = :sid',
             ExpressionAttributeValues: { ':sid': storyId }
           }));
           
@@ -2209,11 +2209,11 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
             body: JSON.stringify({
               storyId: storyId,
               title: story.title,
-              asA: story.as_a,
-              iWant: story.i_want,
-              soThat: story.so_that,
+              asA: story.asA,
+              iWant: story.iWant,
+              soThat: story.soThat,
               description: story.description,
-              storyPoint: story.story_point,
+              storyPoint: story.storyPoint,
               components: story.components,
               acceptanceTests: tests || []
             })
