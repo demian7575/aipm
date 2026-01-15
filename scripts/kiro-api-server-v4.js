@@ -1107,6 +1107,14 @@ Execute the template instructions exactly as written.`;
     });
     return;
   }
+
+  // Deployment notifications endpoint
+  if (url.pathname === '/api/deployment-notifications' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify([]));
+    return;
+  }
+
   if (url.pathname === '/api/stories' && req.method === 'GET') {
     try {
       const stories = await getStories();
