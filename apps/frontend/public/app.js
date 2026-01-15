@@ -1437,6 +1437,9 @@ function getCodeWhispererDelegations(storyId) {
   }
   // Get PRs from the story object
   const story = storyIndex.get(key);
+  if (!story || !story.prs) {
+    return [];
+  }
   return story.prs.map((entry) => ensureCodeWhispererEntryShape(entry, key)).filter(Boolean);
 }
 
