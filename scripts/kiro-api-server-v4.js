@@ -799,6 +799,15 @@ const server = http.createServer(async (req, res) => {
         const investData = JSON.parse(body);
         console.log('📊 Received INVEST analysis from Kiro CLI:', investData);
         
+        // Handle Kiro sending "id" instead of "storyId"
+        if (investData.id && !investData.storyId) {
+          // Extract numeric ID from "US-0101" format or use as-is if already numeric
+          const idStr = String(investData.id);
+          const match = idStr.match(/US-0*(\d+)/);
+          investData.storyId = match ? parseInt(match[1]) : parseInt(idStr);
+          console.log(`⚠️ Mapped id "${investData.id}" to storyId ${investData.storyId}`);
+        }
+        
         // Store in memory for backward compatibility
         global.latestInvestAnalysis = {
           ...investData,
