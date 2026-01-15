@@ -819,7 +819,7 @@ const server = http.createServer(async (req, res) => {
           await dynamodb.send(new UpdateCommand({
             TableName: STORIES_TABLE,
             Key: { id: investData.storyId },
-            UpdateExpression: 'SET investAnalysis = :analysis, updated_at = :updated',
+            UpdateExpression: 'SET investAnalysis = :analysis, updatedAt = :updated',
             ExpressionAttributeValues: {
               ':analysis': {
                 summary: investData.summary || '',
