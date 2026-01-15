@@ -2317,6 +2317,7 @@ function now() {
 }
 
 function ensureArray(value) {
+  if (!Array.isArray(value)) return [];
   return value.map((entry) => String(entry).trim()).filter(Boolean);
 }
 
@@ -3228,10 +3229,22 @@ async function analyzeInvest(story, options = {}) {
     }
   } catch (error) {
     console.warn('🤖 AI INVEST analysis failed:', error.message);
-    throw error; // Don't fallback, let the error propagate
+    console.log('🔄 Falling back to baseline heuristic analysis');
+    return {
+      warnings: baseline,
+      source: 'heuristic',
+      summary: '',
+      ai: null
+    };
   }
   
-  throw new Error('AI analysis failed - no fallback available');
+  console.log('🔄 AI analysis unsuccessful, using baseline');
+  return {
+    warnings: baseline,
+    source: 'heuristic',
+    summary: '',
+    ai: null
+  };
 }
 
 function buildBaselineInvestAnalysis(story, options = {}) {
@@ -6813,6 +6826,15 @@ export async function createApp() {
             updateExpressions.push('components = :components');
             expressionAttributeValues[':components'] = JSON.stringify(payload.components || []);
           }
+          if (payload.parentId !== undefined) {
+            if (payload.parentId === null) {
+              updateExpressions.push('parent_id = :parentId');
+              expressionAttributeValues[':parentId'] = null;
+            } else {
+              updateExpressions.push('parent_id = :parentId');
+              expressionAttributeValues[':parentId'] = payload.parentId;
+            }
+          }
           
           if (updateExpressions.length === 0) {
             sendJson(res, 400, { message: 'No fields to update' });
@@ -6850,17 +6872,18 @@ export async function createApp() {
             storyPoints: payload.storyPoint ?? existing.storyPoint,
             assigneeEmail: payload.assigneeEmail ?? existing.assigneeEmail,
             status: payload.status ?? existing.status,
-            components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]'))
+            components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]')),
+            parentId: payload.parentId !== undefined ? payload.parentId : existing.parent_id
           };
           
           await new Promise((resolve, reject) => {
             db.run(
               `UPDATE user_stories SET 
                 title = ?, asA = ?, iWant = ?, soThat = ?, description = ?,
-                story_point = ?, assigneeEmail = ?, status = ?, components = ?
+                story_point = ?, assigneeEmail = ?, status = ?, components = ?, parent_id = ?
               WHERE id = ?`,
               [updates.title, updates.asA, updates.iWant, updates.soThat, updates.description,
-               updates.storyPoint, updates.assigneeEmail, updates.status, updates.components, storyId],
+               updates.storyPoint, updates.assigneeEmail, updates.status, updates.components, updates.parentId, storyId],
               (err) => {
                 if (err) reject(err);
                 else resolve();
