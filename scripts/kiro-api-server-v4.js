@@ -2558,6 +2558,23 @@ Execute the template instructions exactly as written.`;
     return;
   }
 
+  const testDeleteMatch = url.pathname.match(/^\/api\/tests\/(\d+)$/);
+  if (testDeleteMatch && req.method === 'DELETE') {
+    const testId = parseInt(testDeleteMatch[1], 10);
+    try {
+      await dynamodb.send(new DeleteCommand({
+        TableName: ACCEPTANCE_TESTS_TABLE,
+        Key: { id: testId }
+      }));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
   if (url.pathname.startsWith('/api/')) {
     console.log('⚠️ Missing API endpoint:', req.method, url.pathname);
     res.writeHead(501, { 'Content-Type': 'application/json' });
