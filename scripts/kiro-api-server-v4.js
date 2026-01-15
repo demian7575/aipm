@@ -625,12 +625,12 @@ async function getStories() {
     TableName: ACCEPTANCE_TESTS_TABLE
   }));
   
-  // Group tests by story_id
+  // Group tests by storyId
   const testsByStory = {};
   (tests || []).forEach(test => {
-    const storyId = test.story_id;
+    const storyId = test.storyId;
     if (!storyId) {
-      console.warn('⚠️ Acceptance test missing story_id:', test.id);
+      console.warn('⚠️ Acceptance test missing storyId:', test.id);
       return;
     }
     if (!testsByStory[storyId]) {
@@ -639,16 +639,9 @@ async function getStories() {
     testsByStory[storyId].push(test);
   });
   
-  // Add acceptance tests and normalize field names for frontend
+  // Add acceptance tests to each story
   stories.forEach(story => {
     story.acceptanceTests = testsByStory[story.id] || [];
-    
-    // Normalize snake_case to camelCase for frontend compatibility
-    story.asA = story.as_a || '';
-    story.iWant = story.i_want || '';
-    story.soThat = story.so_that || '';
-    story.parentId = story.parent_id;
-    story.storyPoint = story.story_point || 0;
   });
   
   // Build hierarchical structure
@@ -667,7 +660,7 @@ function buildHierarchy(flatStories) {
   
   // Second pass: build hierarchy
   flatStories.forEach(story => {
-    const parentId = story.parent_id || story.parentId;
+    const parentId = story.parentId;
     if (parentId && storyMap.has(parentId)) {
       // Add to parent's children
       const parent = storyMap.get(parentId);
@@ -1085,16 +1078,16 @@ Execute the template instructions exactly as written.`;
               id: storyId,
               title: storyData.title,
               description: storyData.description,
-              as_a: storyData.asA,
-              i_want: storyData.iWant,
-              so_that: storyData.soThat,
+              asA: storyData.asA,
+              iWant: storyData.iWant,
+              soThat: storyData.soThat,
               components: storyData.components || [],
-              story_point: storyData.storyPoint || 0,
+              storyPoint: storyData.storyPoint || 0,
               assignee_email: storyData.assigneeEmail || '',
-              parent_id: storyData.parentId || null,
+              parentId: storyData.parentId || null,
               status: 'Draft',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
             }
           }));
           
@@ -1106,14 +1099,14 @@ Execute the template instructions exactly as written.`;
                 TableName: ACCEPTANCE_TESTS_TABLE,
                 Item: {
                   id: testId,
-                  story_id: storyId,
+                  storyId: storyId,
                   title: test.title || '',
                   given: Array.isArray(test.given) ? test.given : [test.given],
-                  when_step: Array.isArray(test.when) ? test.when : [test.when],
-                  then_step: Array.isArray(test.then) ? test.then : [test.then],
+                  whenStep: Array.isArray(test.when) ? test.when : [test.when],
+                  thenStep: Array.isArray(test.then) ? test.then : [test.then],
                   status: test.status || 'Draft',
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
                 }
               }));
             }
@@ -2263,14 +2256,14 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         const testId = Date.now();
         const acceptanceTest = {
           id: testId,
-          story_id: storyId,
+          storyId: storyId,
           title: testData.title,
           given: Array.isArray(testData.given) ? testData.given : [testData.given],
-          when_step: Array.isArray(testData.when) ? testData.when : [testData.when],
-          then_step: Array.isArray(testData.then) ? testData.then : [testData.then],
+          whenStep: Array.isArray(testData.when) ? testData.when : [testData.when],
+          thenStep: Array.isArray(testData.then) ? testData.then : [testData.then],
           status: testData.status || 'Draft',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         };
         
         await dynamodb.send(new PutCommand({
