@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "generate_story_with_context",
+    "arguments": {
+      "feature_description": "implement two-factor authentication",
+      "parentId": 2000
+    }
+  }
+}

@@ -115,6 +115,24 @@ server.setRequestHandler('tools/list', async () => ({
         type: 'object',
         properties: {}
       }
+    },
+    {
+      name: 'generate_story_with_context',
+      description: 'Generate a user story with AI context analysis',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          feature_description: {
+            type: 'string',
+            description: 'Description of the feature to implement'
+          },
+          parentId: {
+            type: 'number',
+            description: 'Parent story ID'
+          }
+        },
+        required: ['feature_description', 'parentId']
+      }
     }
   ]
 }));
@@ -291,6 +309,113 @@ server.setRequestHandler('tools/call', async (request) => {
           content: [{
             type: 'text',
             text: JSON.stringify(hierarchy, null, 2)
+          }]
+        };
+      }
+
+      case 'generate_story_with_context': {
+        const { feature_description, parentId } = args;
+        
+        // Step 1: Gather context
+        const { Item: parent } = await dynamodb.send(new GetCommand({
+          TableName: STORIES_TABLE,
+          Key: { id: parentId }
+        }));
+        
+        if (!parent) {
+          return {
+            content: [{
+              type: 'text',
+              text: `Parent story ${parentId} not found`
+            }],
+            isError: true
+          };
+        }
+        
+        // Get all stories to find similar ones
+        const { Items: allStories } = await dynamodb.send(new ScanCommand({
+          TableName: STORIES_TABLE
+        }));
+        
+        // Find similar stories (simple keyword matching)
+        const keywords = feature_description.toLowerCase().split(' ');
+        const similarStories = allStories.filter(s => {
+          const text = `${s.title} ${s.description}`.toLowerCase();
+          return keywords.some(kw => text.includes(kw)) && s.id !== parentId;
+        }).slice(0, 5);
+        
+        // Calculate average story points from similar stories
+        const avgPoints = similarStories.length > 0
+          ? Math.round(similarStories.reduce((sum, s) => sum + (s.storyPoint || 0), 0) / similarStories.length)
+          : 3;
+        
+        // Extract common components
+        const componentCounts = {};
+        similarStories.forEach(s => {
+          (s.components || []).forEach(c => {
+            componentCounts[c] = (componentCounts[c] || 0) + 1;
+          });
+        });
+        const suggestedComponents = Object.entries(componentCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([c]) => c);
+        
+        // Generate story with AI context
+        const storyId = Date.now();
+        const story = {
+          id: storyId,
+          title: feature_description.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          asA: parent.asA || 'user',
+          iWant: `to ${feature_description}`,
+          soThat: 'I can accomplish my goals',
+          description: `As a ${parent.asA || 'user'}, I want to ${feature_description} so that I can accomplish my goals`,
+          parentId: parentId,
+          storyPoint: avgPoints,
+          components: suggestedComponents,
+          status: 'Draft',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Create story in DynamoDB
+        await dynamodb.send(new PutCommand({
+          TableName: STORIES_TABLE,
+          Item: story
+        }));
+        
+        // Generate basic acceptance test
+        const testId = Date.now() + 1;
+        const test = {
+          id: testId,
+          storyId: storyId,
+          given: [`User has access to ${parent.title}`],
+          whenStep: [`User initiates ${feature_description}`],
+          thenStep: [`The ${feature_description} is completed successfully`],
+          status: 'Draft',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        await dynamodb.send(new PutCommand({
+          TableName: TESTS_TABLE,
+          Item: test
+        }));
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              story: story,
+              acceptanceTest: test,
+              context: {
+                parent: { id: parent.id, title: parent.title },
+                similarStories: similarStories.map(s => ({ id: s.id, title: s.title })),
+                suggestedComponents: suggestedComponents,
+                estimatedPoints: avgPoints,
+                reasoning: `Based on ${similarStories.length} similar stories with average ${avgPoints} points`
+              }
+            }, null, 2)
           }]
         };
       }

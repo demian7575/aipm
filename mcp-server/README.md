@@ -175,12 +175,34 @@ Queries stories by component.
 
 **Output:** Array of matching stories
 
-### get_story_hierarchy
-Returns the full story hierarchy tree.
+### generate_story_with_context
+Generates a user story with AI context analysis.
 
-**Input:** None
+**Input:**
+- `feature_description` (string): Description of the feature
+- `parentId` (number): Parent story ID
 
-**Output:** Hierarchical tree structure
+**Output:** Story object with context analysis
+
+**Context Analysis:**
+- Finds similar stories by keyword matching
+- Calculates average story points from similar stories
+- Suggests components based on similar stories
+- Generates basic acceptance test
+- Provides reasoning for estimates
+
+**Example:**
+```
+AI: Use generate_story_with_context:
+- feature_description: "implement password reset"
+- parentId: 2000
+```
+
+Returns story with:
+- Estimated story points (from similar stories)
+- Suggested components (from similar stories)
+- Basic acceptance test
+- Context explanation
 
 ## Environment Variables
 
