@@ -824,7 +824,7 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ received: true }));
       } catch (error) {
         console.error('Error processing INVEST response:', error);
-        res.writeHead(400, { 'Content-Type: application/json' });
+        res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
     });
