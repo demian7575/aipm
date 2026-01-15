@@ -934,6 +934,16 @@ Execute the template instructions exactly as written.`;
       try {
         const storyData = JSON.parse(body);
         
+        // Validate required field
+        if (!storyData.storyId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: false, 
+            error: 'storyId is required' 
+          }));
+          return;
+        }
+        
         // Template System: Create temporary file with filled data
         const templatePath = './templates/invest-analysis.md';
         let template = readFileSync(templatePath, 'utf8');
@@ -947,7 +957,7 @@ Execute the template instructions exactly as written.`;
         const storyDataContent = `# Story Data
 
 ## Story Information
-- Story ID: ${storyData.storyId || 'Unknown'}
+- Story ID: ${storyData.storyId}
 - Title: ${storyData.title || 'Untitled'}
 - As a: ${storyData.asA || ''}
 - I want: ${storyData.iWant || ''}
