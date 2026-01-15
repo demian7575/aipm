@@ -639,9 +639,16 @@ async function getStories() {
     testsByStory[storyId].push(test);
   });
   
-  // Add acceptance tests to each story
+  // Add acceptance tests and normalize field names for frontend
   stories.forEach(story => {
     story.acceptanceTests = testsByStory[story.id] || [];
+    
+    // Normalize snake_case to camelCase for frontend compatibility
+    if (story.as_a !== undefined) story.asA = story.as_a;
+    if (story.i_want !== undefined) story.iWant = story.i_want;
+    if (story.so_that !== undefined) story.soThat = story.so_that;
+    if (story.parent_id !== undefined) story.parentId = story.parent_id;
+    if (story.story_point !== undefined) story.storyPoint = story.story_point;
   });
   
   // Build hierarchical structure
