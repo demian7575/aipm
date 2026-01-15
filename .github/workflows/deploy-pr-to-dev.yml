@@ -111,15 +111,15 @@ jobs:
           aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 > /tmp/prod-stories.json
           aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1 > /tmp/prod-tests.json
           
-          # Clear development tables
+          # Clear development tables (with -r flag to handle empty input)
           echo "🗑️ Clearing development tables..."
           aws dynamodb scan --table-name aipm-backend-dev-stories --region us-east-1 --attributes-to-get id | \
             jq -r '.Items[].id.N' | \
-            xargs -I {} aws dynamodb delete-item --table-name aipm-backend-dev-stories --key '{"id":{"N":"{}"}}' --region us-east-1
+            xargs -r -I {} aws dynamodb delete-item --table-name aipm-backend-dev-stories --key '{"id":{"N":"{}"}}' --region us-east-1
           
           aws dynamodb scan --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --attributes-to-get id | \
             jq -r '.Items[].id.N' | \
-            xargs -I {} aws dynamodb delete-item --table-name aipm-backend-dev-acceptance-tests --key '{"id":{"N":"{}"}}' --region us-east-1
+            xargs -r -I {} aws dynamodb delete-item --table-name aipm-backend-dev-acceptance-tests --key '{"id":{"N":"{}"}}' --region us-east-1
           
           # Import to development
           echo "📤 Importing to development..."
