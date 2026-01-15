@@ -2149,14 +2149,60 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
   }
   if (url.pathname.match(/^\/api\/stories\/\d+\/health-check$/) && req.method === 'POST') {
     const storyId = parseInt(url.pathname.split('/')[3]);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      storyId, 
-      health: 'good', 
-      investScore: 85,
-      warnings: [],
-      suggestions: []
-    }));
+    
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const options = body ? JSON.parse(body) : {};
+        
+        // Get the story
+        const { Item: story } = await dynamodb.send(new GetCommand({
+          TableName: STORIES_TABLE,
+          Key: { id: storyId }
+        }));
+        
+        if (!story) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Story not found' }));
+          return;
+        }
+        
+        // If AI INVEST check requested, trigger it
+        if (options.includeAiInvest) {
+          const prompt = `Read and follow the template file: ./aipm/templates/invest-analysis.md
+
+Story ID: ${storyId}
+Story Title: ${story.title}
+As a: ${story.as_a || ''}
+I want: ${story.i_want || ''}
+So that: ${story.so_that || ''}
+
+Execute the template instructions exactly as written.`;
+          
+          sendToKiro(prompt);
+          
+          // Wait a bit for analysis to complete
+          await new Promise(resolve => setTimeout(resolve, 15000));
+          
+          // Fetch updated story
+          const { Item: updatedStory } = await dynamodb.send(new GetCommand({
+            TableName: STORIES_TABLE,
+            Key: { id: storyId }
+          }));
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(updatedStory || story));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(story));
+        }
+      } catch (error) {
+        console.error('Error in health-check:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
     return;
   }
 
