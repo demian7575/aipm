@@ -29,6 +29,7 @@
 ## Technical Specifications
 
 ### Story Information (PROVIDED)
+- Story ID: STORY_ID
 - Title: STORY_TITLE
 - As a: STORY_AS_A
 - I want: STORY_I_WANT
@@ -47,6 +48,7 @@ Analyze against: Independent, Negotiable, Valuable, Estimable, Small, Testable
 ### Output Schema for JSON_INVEST_ANALYSIS
 ```json
 {
+  "storyId": STORY_ID,
   "summary": "string",
   "score": number,
   "warnings": [{"criterion": "string", "message": "string", "suggestion": "string"}],

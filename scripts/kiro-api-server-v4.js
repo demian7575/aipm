@@ -788,23 +788,44 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/invest-response' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const investData = JSON.parse(body);
         console.log('📊 Received INVEST analysis from Kiro CLI:', investData);
         
-        // Store the analysis with timestamp
+        // Store in memory for backward compatibility
         global.latestInvestAnalysis = {
           ...investData,
           timestamp: Date.now()
         };
         
+        // Save to DynamoDB if storyId is provided
+        if (investData.storyId) {
+          await dynamodb.send(new UpdateCommand({
+            TableName: STORIES_TABLE,
+            Key: { id: investData.storyId },
+            UpdateExpression: 'SET invest_analysis = :analysis, updated_at = :updated',
+            ExpressionAttributeValues: {
+              ':analysis': {
+                summary: investData.summary || '',
+                score: investData.score || 0,
+                warnings: investData.warnings || [],
+                strengths: investData.strengths || [],
+                source: investData.source || 'ai',
+                model: investData.model || 'kiro-cli'
+              },
+              ':updated': new Date().toISOString()
+            }
+          }));
+          console.log(`✅ Saved INVEST analysis for story ${investData.storyId}`);
+        }
+        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ received: true }));
       } catch (error) {
-        console.error('Error parsing INVEST response:', error);
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        console.error('Error processing INVEST response:', error);
+        res.writeHead(400, { 'Content-Type: application/json' });
+        res.end(JSON.stringify({ error: error.message }));
       }
     });
     return;
