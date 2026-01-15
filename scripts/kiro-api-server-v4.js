@@ -2334,8 +2334,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
     req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
-        const prNumber = payload.prNumber || payload.pr_number;
-        const branchName = payload.branchName || payload.branch_name;
+        const { prNumber, branchName } = payload;
         
         if (!prNumber && !branchName) {
           res.writeHead(400, { 'Content-Type': 'application/json' });

@@ -2016,7 +2016,7 @@ Execute the template instructions exactly as written.`;
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              pr_number: prNumber
+              prNumber: prNumber
             })
           });
           
