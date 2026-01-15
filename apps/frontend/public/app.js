@@ -4294,20 +4294,8 @@ function renderStoryDetailsWithCompleteData(story) {
     </div>
   `;
 
-  const rawInvestHealth = story.investHealth || {
-    satisfied: !story.investWarnings || story.investWarnings.length === 0,
-    issues: story.investWarnings || [],
-  };
-  const investHealthIssues = filterEpicSizingWarnings(story, rawInvestHealth.issues);
-  const investHealth = {
-    satisfied: investHealthIssues.length === 0,
-    issues: investHealthIssues,
-  };
   const analysisInfo = story.investAnalysis || null;
-  const fallbackWarnings = filterEpicSizingWarnings(
-    story,
-    []
-  );
+  
   let statusSelect = null;
   let statusValueEl = null;
   let statusDescriptionEl = null;
@@ -4387,23 +4375,15 @@ function renderStoryDetailsWithCompleteData(story) {
     healthItem.className = 'story-meta-item';
     const healthValue = document.createElement('span');
     
-    // Use AI analysis warnings if available, otherwise use heuristic health
-    const hasAIAnalysis = analysisInfo && Array.isArray(analysisInfo.warnings) && analysisInfo.warnings.length > 0;
-    const displayWarnings = hasAIAnalysis ? analysisInfo.warnings : investHealth.issues;
-    const isHealthy = hasAIAnalysis ? displayWarnings.length === 0 : investHealth.satisfied;
+    // Use AI analysis warnings
+    const warnings = (analysisInfo && Array.isArray(analysisInfo.warnings)) ? analysisInfo.warnings : [];
+    const isHealthy = warnings.length === 0;
     
     healthValue.className = `health-pill ${isHealthy ? 'pass' : 'fail'}`;
     if (isHealthy) {
-      healthValue.textContent = '✓ Pass';
+      healthValue.textContent = analysisInfo ? '✓ Pass' : 'No analysis';
     } else {
-      // Display warnings from AI analysis or heuristic health
-      const issueTexts = displayWarnings.map(issue => {
-        if (hasAIAnalysis) {
-          return `⚠ ${issue.criterion}: ${issue.message}`;
-        } else {
-          return `⚠ ${issue.message || 'Issue found'}`;
-        }
-      });
+      const issueTexts = warnings.map(w => `⚠ ${w.criterion}: ${w.message}`);
       healthValue.innerHTML = issueTexts.join('<br>');
       healthValue.style.display = 'block';
       healthValue.style.whiteSpace = 'normal';
