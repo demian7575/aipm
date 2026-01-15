@@ -2168,22 +2168,35 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           return;
         }
         
-        // If AI INVEST check requested, trigger it
+        // If AI INVEST check requested, trigger it via existing endpoint
         if (options.includeAiInvest) {
-          const prompt = `Read and follow the template file: ./aipm/templates/invest-analysis.md
-
-Story ID: ${storyId}
-Story Title: ${story.title}
-As a: ${story.as_a || ''}
-I want: ${story.i_want || ''}
-So that: ${story.so_that || ''}
-
-Execute the template instructions exactly as written.`;
+          // Get acceptance tests
+          const { Items: tests } = await dynamodb.send(new QueryCommand({
+            TableName: ACCEPTANCE_TESTS_TABLE,
+            IndexName: 'story_id-index',
+            KeyConditionExpression: 'story_id = :sid',
+            ExpressionAttributeValues: { ':sid': storyId }
+          }));
           
-          sendToKiro(prompt);
+          // Call existing analyze-invest endpoint
+          const analyzeResponse = await fetch('http://localhost:8081/api/analyze-invest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: story.title,
+              asA: story.as_a,
+              iWant: story.i_want,
+              soThat: story.so_that,
+              description: story.description,
+              storyPoint: story.story_point,
+              components: story.components,
+              acceptanceTests: tests || []
+            })
+          });
           
-          // Wait a bit for analysis to complete
-          await new Promise(resolve => setTimeout(resolve, 15000));
+          if (!analyzeResponse.ok) {
+            throw new Error('INVEST analysis failed');
+          }
           
           // Fetch updated story
           const { Item: updatedStory } = await dynamodb.send(new GetCommand({
