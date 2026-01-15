@@ -46,19 +46,23 @@ ACCEPTANCE_TEST_DETAILS
 Analyze against: Independent, Negotiable, Valuable, Estimable, Small, Testable
 
 ### Output Schema for JSON_INVEST_ANALYSIS
+**CRITICAL**: Use EXACTLY this JSON structure. Do NOT change field names or add prefixes.
+
+If Story ID is 101, output:
 ```json
 {
-  "storyId": <numeric Story ID from data file>,
-  "summary": "string",
-  "score": number,
-  "warnings": [{"criterion": "string", "message": "string", "suggestion": "string"}],
-  "strengths": ["string"],
+  "storyId": 101,
+  "summary": "your analysis summary here",
+  "score": 75,
+  "warnings": [{"criterion": "Estimable", "message": "...", "suggestion": "..."}],
+  "strengths": ["strength 1", "strength 2"],
   "source": "ai",
   "model": "kiro-cli"
 }
 ```
 
-**CRITICAL**: The `storyId` field MUST be a number (e.g., 101), not a string (e.g., "US-0101").
+**DO NOT** output `"id"` - use `"storyId"`
+**DO NOT** add "US-" prefix - use the numeric value directly
 
 ### EXECUTION COMMAND TEMPLATE
 ```bash
