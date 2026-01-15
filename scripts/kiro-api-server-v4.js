@@ -983,7 +983,7 @@ Execute the template instructions exactly as written.`;
 ## Acceptance Test Details
 ${Array.isArray(storyData.acceptanceTests) && storyData.acceptanceTests.length > 0 ? 
   storyData.acceptanceTests.map((test, i) => 
-    `${i + 1}. ${test.title}\n   Given: ${Array.isArray(test.given) ? test.given.join(', ') : test.given}\n   When: ${Array.isArray(test.when) ? test.when.join(', ') : test.when}\n   Then: ${Array.isArray(test.then) ? test.then.join(', ') : test.then}`
+    `${i + 1}. ${test.title}\n   Given: ${Array.isArray(test.given) ? test.given.join(', ') : test.given}\n   When: ${Array.isArray(test.whenStep) ? test.whenStep.join(', ') : test.whenStep}\n   Then: ${Array.isArray(test.thenStep) ? test.thenStep.join(', ') : test.thenStep}`
   ).join('\n') : 'None'}`;
         
         writeFileSync(tempFilePath, storyDataContent);
