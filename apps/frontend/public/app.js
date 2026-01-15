@@ -6351,19 +6351,6 @@ function openChildStoryModal(parentId) {
         </tr>
       </tbody>
     </table>
-    
-    <div class="acceptance-tests-section" id="child-acceptance-tests">
-      <h4>Acceptance Tests</h4>
-      <div class="acceptance-tests-list" id="child-acceptance-tests-list">
-        <div class="acceptance-test-item">
-          <label>Test Title<input type="text" id="child-test-title-1" placeholder="Enter test title"></label>
-          <label>Given<textarea id="child-test-given-1" rows="2" placeholder="Given condition"></textarea></label>
-          <label>When<textarea id="child-test-when-1" rows="2" placeholder="When action"></textarea></label>
-          <label>Then<textarea id="child-test-then-1" rows="2" placeholder="Then expected result"></textarea></label>
-        </div>
-      </div>
-      <button type="button" class="secondary" id="child-add-test-btn">Add Another Test</button>
-    </div>
   `;
 
   let childComponents = [];
@@ -6372,34 +6359,6 @@ function openChildStoryModal(parentId) {
   const ideaInput = container.querySelector('#child-idea');
   const generateBtn = container.querySelector('#child-generate-btn');
   const titleInput = container.querySelector('#child-title');
-  const addTestBtn = container.querySelector('#child-add-test-btn');
-  
-  let testCounter = 1;
-
-  // Add test functionality
-  const addNewTest = () => {
-    testCounter++;
-    const testsList = container.querySelector('#child-acceptance-tests-list');
-    const newTest = document.createElement('div');
-    newTest.className = 'acceptance-test-item';
-    newTest.innerHTML = `
-      <label>Test Title<input type="text" id="child-test-title-${testCounter}" placeholder="Enter test title"></label>
-      <label>Given<textarea id="child-test-given-${testCounter}" rows="2" placeholder="Given condition"></textarea></label>
-      <label>When<textarea id="child-test-when-${testCounter}" rows="2" placeholder="When action"></textarea></label>
-      <label>Then<textarea id="child-test-then-${testCounter}" rows="2" placeholder="Then expected result"></textarea></label>
-      <button type="button" class="danger remove-test-btn">Remove Test</button>
-    `;
-    testsList.appendChild(newTest);
-    
-    // Add remove functionality
-    newTest.querySelector('.remove-test-btn').addEventListener('click', () => {
-      newTest.remove();
-    });
-  };
-
-  if (addTestBtn) {
-    addTestBtn.addEventListener('click', addNewTest);
-  }
 
   // Auto-resize title textarea
   const autoResizeTitle = () => {
@@ -6493,48 +6452,7 @@ function openChildStoryModal(parentId) {
               refreshChildComponents();
             }
             
-            // Display acceptance tests in manual input fields
-            if (draftData.acceptanceTests && draftData.acceptanceTests.length > 0) {
-              const testsList = container.querySelector('#child-acceptance-tests-list');
-              
-              // Clear existing tests except the first one
-              const existingTests = testsList.querySelectorAll('.acceptance-test-item');
-              for (let i = 1; i < existingTests.length; i++) {
-                existingTests[i].remove();
-              }
-              
-              // Populate tests
-              draftData.acceptanceTests.forEach((test, index) => {
-                if (index === 0) {
-                  // Populate first test
-                  const titleField = container.querySelector('#child-test-title-1');
-                  const givenField = container.querySelector('#child-test-given-1');
-                  const whenField = container.querySelector('#child-test-when-1');
-                  const thenField = container.querySelector('#child-test-then-1');
-                  
-                  if (titleField) titleField.value = test.title || '';
-                  if (givenField) givenField.value = test.given || '';
-                  if (whenField) whenField.value = test.when || '';
-                  if (thenField) thenField.value = test.then || '';
-                } else {
-                  // Add additional tests
-                  addNewTest();
-                  const titleField = container.querySelector(`#child-test-title-${testCounter}`);
-                  const givenField = container.querySelector(`#child-test-given-${testCounter}`);
-                  const whenField = container.querySelector(`#child-test-when-${testCounter}`);
-                  const thenField = container.querySelector(`#child-test-then-${testCounter}`);
-                  
-                  if (titleField) titleField.value = test.title || '';
-                  if (givenField) givenField.value = test.given || '';
-                  if (whenField) whenField.value = test.when || '';
-                  if (thenField) thenField.value = test.then || '';
-                }
-              });
-              
-              showToast(`✨ Story draft generated with ${draftData.acceptanceTests.length} acceptance test(s)! Review and click Create Story to save.`, 'success');
-          } else {
             showToast('✨ Story draft generated! Review and click Create Story to save.', 'success');
-          }
         } else {
           throw new Error('Draft generation failed - no draft data received');
         }
@@ -6558,36 +6476,6 @@ function openChildStoryModal(parentId) {
           const title = normalizeMindmapText(rawTitle).trim();
           if (!title) {
             showToast('Title is required', 'error');
-            return false;
-          }
-          
-          // Collect acceptance tests from manual input fields
-          const acceptanceTests = [];
-          const testItems = container.querySelectorAll('.acceptance-test-item');
-          testItems.forEach((item, index) => {
-            const titleField = item.querySelector(`input[id*="test-title"]`);
-            const givenField = item.querySelector(`textarea[id*="test-given"]`);
-            const whenField = item.querySelector(`textarea[id*="test-when"]`);
-            const thenField = item.querySelector(`textarea[id*="test-then"]`);
-            
-            const testTitle = titleField?.value.trim();
-            const given = givenField?.value.trim();
-            const when = whenField?.value.trim();
-            const then = thenField?.value.trim();
-            
-            if (testTitle && given && when && then) {
-              acceptanceTests.push({
-                title: testTitle,
-                given,
-                when,
-                then,
-                status: 'Draft'
-              });
-            }
-          });
-
-          if (acceptanceTests.length === 0) {
-            showToast('At least one complete acceptance test is required', 'error');
             return false;
           }
           
@@ -6623,29 +6511,9 @@ function openChildStoryModal(parentId) {
               throw new Error(`Failed to create child story: ${response.statusText}`);
             }
             
-            // Story created successfully, now create acceptance tests
-            const storyId = result.id;
-            const testCreationPromises = acceptanceTests.map(test => 
-              fetch(resolveApiUrl(`/api/stories/${storyId}/tests`), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  title: test.title,
-                  given: [test.given],
-                  when: [test.when], 
-                  then: [test.then],
-                  status: test.status,
-                  acceptWarnings: true
-                })
-              })
-            );
-            
-            // Wait for all acceptance tests to be created
-            await Promise.all(testCreationPromises);
-            
-            showToast('Child story created successfully with acceptance tests!', 'success');
-            await loadStories(); // Refresh stories list
-            return true; // Close modal
+            showToast('Child story created successfully!', 'success');
+            await loadStories();
+            return true;
           } catch (error) {
             showToast(error.message || 'Failed to create story', 'error');
             return false;
