@@ -1219,6 +1219,16 @@ Generate the fields and immediately place them into this JSON template:
         return;
       }
       
+      // Fetch acceptance tests for this story
+      const { Items: tests } = await dynamodb.send(new QueryCommand({
+        TableName: ACCEPTANCE_TESTS_TABLE,
+        IndexName: 'storyId-index',
+        KeyConditionExpression: 'storyId = :sid',
+        ExpressionAttributeValues: { ':sid': id }
+      }));
+      
+      story.acceptanceTests = tests || [];
+      
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(story));
     } catch (error) {
