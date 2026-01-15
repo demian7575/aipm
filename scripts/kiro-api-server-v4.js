@@ -628,10 +628,11 @@ async function getStories() {
   // Group tests by storyId
   const testsByStory = {};
   (tests || []).forEach(test => {
-    if (!testsByStory[test.storyId]) {
-      testsByStory[test.storyId] = [];
+    const storyId = test.story_id || test.storyId;
+    if (!testsByStory[storyId]) {
+      testsByStory[storyId] = [];
     }
-    testsByStory[test.storyId].push(test);
+    testsByStory[storyId].push(test);
   });
   
   // Add acceptance tests to each story
