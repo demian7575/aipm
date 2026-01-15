@@ -2328,7 +2328,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
   }
 
   // Deploy PR endpoint
-  if ((url.pathname === '/api/deploy-pr' || url.pathname === '/api/trigger-deployment') && req.method === 'POST') {
+  if (url.pathname === '/api/trigger-deployment' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
