@@ -7053,11 +7053,24 @@ export async function createApp() {
         const iWant = payload.iWant != null ? String(payload.iWant).trim() : undefined;
         const soThat = payload.soThat != null ? String(payload.soThat).trim() : undefined;
         const requestedComponents = payload.components;
+        const parentId = payload.parentId !== undefined ? (payload.parentId === null ? null : Number(payload.parentId)) : undefined;
 
         const existingStmt = db.prepare('SELECT * FROM user_stories WHERE id = ?');
         const existing = existingStmt.get(storyId);
         if (!existing) {
           throw Object.assign(new Error('Story not found'), { statusCode: 404 });
+        }
+
+        // Validate parent story if provided
+        if (parentId !== undefined && parentId !== null) {
+          if (parentId === storyId) {
+            throw Object.assign(new Error('Story cannot be its own parent'), { statusCode: 400 });
+          }
+          const parentStmt = db.prepare('SELECT id FROM user_stories WHERE id = ?');
+          const parentExists = parentStmt.get(parentId);
+          if (!parentExists) {
+            throw Object.assign(new Error('Parent story not found'), { statusCode: 404 });
+          }
         }
 
         const storyPoint =
@@ -7127,22 +7140,35 @@ export async function createApp() {
 
         // For DynamoDB, use direct update to ensure status change works
         if (process.env.NODE_ENV !== 'test' && process.env.STORIES_TABLE && process.env.AWS_REGION) {
-          // Direct DynamoDB update for status change
+          // Direct DynamoDB update for status and parent_id change
           const { DynamoDBClient, UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
           const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
           
           try {
+            const updateExpression = ['#status = :status', 'updated_at = :updatedAt'];
+            const expressionAttributeNames = { '#status': 'status' };
+            const expressionAttributeValues = {
+              ':status': { S: nextStatus },
+              ':updatedAt': { S: now() }
+            };
+            
+            if (parentId !== undefined) {
+              updateExpression.push('parent_id = :parentId');
+              if (parentId === null) {
+                expressionAttributeValues[':parentId'] = { NULL: true };
+              } else {
+                expressionAttributeValues[':parentId'] = { N: String(parentId) };
+              }
+            }
+            
             await dynamoClient.send(new UpdateItemCommand({
               TableName: process.env.STORIES_TABLE,
               Key: { id: { N: String(storyId) } },
-              UpdateExpression: 'SET #status = :status, updated_at = :updatedAt',
-              ExpressionAttributeNames: { '#status': 'status' },
-              ExpressionAttributeValues: {
-                ':status': { S: nextStatus },
-                ':updatedAt': { S: now() }
-              }
+              UpdateExpression: `SET ${updateExpression.join(', ')}`,
+              ExpressionAttributeNames: expressionAttributeNames,
+              ExpressionAttributeValues: expressionAttributeValues
             }));
-            console.log(`✅ DynamoDB status updated to ${nextStatus} for story ${storyId}`);
+            console.log(`✅ DynamoDB updated story ${storyId}: status=${nextStatus}, parentId=${parentId}`);
           } catch (dynamoError) {
             console.error('❌ DynamoDB direct update failed:', dynamoError);
             // Fall back to SQLite emulation
@@ -7150,7 +7176,7 @@ export async function createApp() {
         }
 
         const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
+          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, parent_id = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
         );
         update.run(
           title,
@@ -7162,6 +7188,7 @@ export async function createApp() {
           nextIWant,
           nextSoThat,
           nextStatus,
+          parentId !== undefined ? parentId : existing.parent_id,
           now(),
           JSON.stringify(warnings),
           JSON.stringify({

@@ -4,12 +4,13 @@
 class GatingTestRunner {
     constructor() {
         this.apiBase = window.CONFIG?.API_BASE_URL || 'http://44.220.45.57';
-        this.totalTests = 27;
+        this.totalTests = 29;
         this.completedTests = 0;
         this.testResults = {
             phase1: {},
             phase2: {},
-            phase3: {}
+            phase3: {},
+            phase5: {}
         };
         this.isRunning = false;
     }
@@ -247,6 +248,192 @@ class GatingTestRunner {
         } catch (error) {
             this.logOutput(3, `❌ Phase 3 failed: ${error.message}`);
             return false;
+        }
+    }
+
+    async runPhase5() {
+        this.logOutput(5, '🟢 Starting Phase 5: Acceptance Tests');
+        
+        try {
+            // Test 1: Verify parent story selection
+            this.updateTestStatus('test-parent-selection', 'running');
+            const parentSelectionResult = await this.testParentStorySelection();
+            this.updateTestStatus('test-parent-selection', parentSelectionResult.status, parentSelectionResult.message);
+            
+            // Test 2: Verify root level connection
+            this.updateTestStatus('test-root-connection', 'running');
+            const rootConnectionResult = await this.testRootLevelConnection();
+            this.updateTestStatus('test-root-connection', rootConnectionResult.status, rootConnectionResult.message);
+            
+            this.logOutput(5, '✅ Phase 5 completed');
+            return true;
+            
+        } catch (error) {
+            this.logOutput(5, `❌ Phase 5 failed: ${error.message}`);
+            return false;
+        }
+    }
+
+    async testParentStorySelection() {
+        try {
+            // Create a parent story
+            const parentResponse = await fetch(`${this.apiBase}/api/stories`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: 'Test Parent Story',
+                    description: 'Parent for testing',
+                    asA: 'tester',
+                    iWant: 'to test parent selection',
+                    soThat: 'hierarchy works',
+                    components: ['WorkModel'],
+                    storyPoint: 1,
+                    acceptWarnings: true
+                })
+            });
+            
+            if (!parentResponse.ok) {
+                return { status: 'error', message: 'Failed to create parent story' };
+            }
+            
+            const parent = await parentResponse.json();
+            
+            // Create a child story
+            const childResponse = await fetch(`${this.apiBase}/api/stories`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: 'Test Child Story',
+                    description: 'Child for testing',
+                    asA: 'tester',
+                    iWant: 'to test child creation',
+                    soThat: 'hierarchy works',
+                    components: ['WorkModel'],
+                    storyPoint: 1,
+                    parentId: null,
+                    acceptWarnings: true
+                })
+            });
+            
+            if (!childResponse.ok) {
+                return { status: 'error', message: 'Failed to create child story' };
+            }
+            
+            const child = await childResponse.json();
+            
+            // Update child to link to parent
+            const updateResponse = await fetch(`${this.apiBase}/api/stories/${child.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: child.title,
+                    parentId: parent.id,
+                    acceptWarnings: true
+                })
+            });
+            
+            if (!updateResponse.ok) {
+                return { status: 'error', message: 'Failed to update child with parent' };
+            }
+            
+            const updated = await updateResponse.json();
+            
+            // Verify the parent link
+            if (updated.parentId !== parent.id) {
+                return { status: 'error', message: `Parent link failed: expected ${parent.id}, got ${updated.parentId}` };
+            }
+            
+            // Cleanup
+            await fetch(`${this.apiBase}/api/stories/${child.id}`, { method: 'DELETE' });
+            await fetch(`${this.apiBase}/api/stories/${parent.id}`, { method: 'DELETE' });
+            
+            return { status: 'success', message: 'Parent story selection works correctly' };
+        } catch (error) {
+            return { status: 'error', message: error.message };
+        }
+    }
+
+    async testRootLevelConnection() {
+        try {
+            // Create a parent story
+            const parentResponse = await fetch(`${this.apiBase}/api/stories`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: 'Test Parent for Root',
+                    description: 'Parent for root testing',
+                    asA: 'tester',
+                    iWant: 'to test root conversion',
+                    soThat: 'hierarchy works',
+                    components: ['WorkModel'],
+                    storyPoint: 1,
+                    acceptWarnings: true
+                })
+            });
+            
+            if (!parentResponse.ok) {
+                return { status: 'error', message: 'Failed to create parent story' };
+            }
+            
+            const parent = await parentResponse.json();
+            
+            // Create a child story with parent
+            const childResponse = await fetch(`${this.apiBase}/api/stories`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: 'Test Child for Root',
+                    description: 'Child for root testing',
+                    asA: 'tester',
+                    iWant: 'to become root',
+                    soThat: 'hierarchy works',
+                    components: ['WorkModel'],
+                    storyPoint: 1,
+                    parentId: parent.id,
+                    acceptWarnings: true
+                })
+            });
+            
+            if (!childResponse.ok) {
+                return { status: 'error', message: 'Failed to create child story' };
+            }
+            
+            const child = await childResponse.json();
+            
+            // Verify child has parent
+            if (child.parentId !== parent.id) {
+                return { status: 'error', message: 'Child was not created with parent' };
+            }
+            
+            // Remove parent connection (set to null)
+            const updateResponse = await fetch(`${this.apiBase}/api/stories/${child.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: child.title,
+                    parentId: null,
+                    acceptWarnings: true
+                })
+            });
+            
+            if (!updateResponse.ok) {
+                return { status: 'error', message: 'Failed to remove parent connection' };
+            }
+            
+            const updated = await updateResponse.json();
+            
+            // Verify the story is now root level
+            if (updated.parentId !== null) {
+                return { status: 'error', message: `Root conversion failed: parentId should be null, got ${updated.parentId}` };
+            }
+            
+            // Cleanup
+            await fetch(`${this.apiBase}/api/stories/${child.id}`, { method: 'DELETE' });
+            await fetch(`${this.apiBase}/api/stories/${parent.id}`, { method: 'DELETE' });
+            
+            return { status: 'success', message: 'Root level connection works correctly' };
+        } catch (error) {
+            return { status: 'error', message: error.message };
         }
     }
 
@@ -703,11 +890,12 @@ async function runAllPhases() {
         const phase1Success = await gatingTestRunner.runPhase1();
         const phase2Success = await gatingTestRunner.runPhase2();
         const phase3Success = await gatingTestRunner.runPhase3();
+        const phase5Success = await gatingTestRunner.runPhase5();
         
         // Show final results
         gatingTestRunner.showFinalResults();
         
-        const overallSuccess = phase1Success && phase2Success && phase3Success;
+        const overallSuccess = phase1Success && phase2Success && phase3Success && phase5Success;
         runAllButton.textContent = overallSuccess ? '🎉 All Tests Completed' : '⚠️ Tests Completed with Issues';
         
     } catch (error) {
