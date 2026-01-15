@@ -4386,12 +4386,24 @@ function renderStoryDetailsWithCompleteData(story) {
     const healthItem = document.createElement('div');
     healthItem.className = 'story-meta-item';
     const healthValue = document.createElement('span');
-    healthValue.className = `health-pill ${investHealth.satisfied ? 'pass' : 'fail'}`;
-    if (investHealth.satisfied) {
+    
+    // Use AI analysis warnings if available, otherwise use heuristic health
+    const hasAIAnalysis = analysisInfo && Array.isArray(analysisInfo.warnings) && analysisInfo.warnings.length > 0;
+    const displayWarnings = hasAIAnalysis ? analysisInfo.warnings : investHealth.issues;
+    const isHealthy = hasAIAnalysis ? displayWarnings.length === 0 : investHealth.satisfied;
+    
+    healthValue.className = `health-pill ${isHealthy ? 'pass' : 'fail'}`;
+    if (isHealthy) {
       healthValue.textContent = '✓ Pass';
     } else {
-      // Use line breaks for separate lines and force block display
-      const issueTexts = investHealth.issues.map(issue => `⚠ ${issue.message || 'Issue found'}`);
+      // Display warnings from AI analysis or heuristic health
+      const issueTexts = displayWarnings.map(issue => {
+        if (hasAIAnalysis) {
+          return `⚠ ${issue.criterion}: ${issue.message}`;
+        } else {
+          return `⚠ ${issue.message || 'Issue found'}`;
+        }
+      });
       healthValue.innerHTML = issueTexts.join('<br>');
       healthValue.style.display = 'block';
       healthValue.style.whiteSpace = 'normal';
