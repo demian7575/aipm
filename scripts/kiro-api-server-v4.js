@@ -947,6 +947,7 @@ Execute the template instructions exactly as written.`;
         const storyDataContent = `# Story Data
 
 ## Story Information
+- Story ID: ${storyData.storyId || 'Unknown'}
 - Title: ${storyData.title || 'Untitled'}
 - As a: ${storyData.asA || ''}
 - I want: ${storyData.iWant || ''}
@@ -2183,6 +2184,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              storyId: storyId,
               title: story.title,
               asA: story.as_a,
               iWant: story.i_want,
