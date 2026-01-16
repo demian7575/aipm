@@ -251,6 +251,10 @@ jobs:
         run: |
           echo "🚀 Deploying frontend to S3..."
           
+          # Copy dev config
+          echo "📝 Copying dev configuration..."
+          cp config/config.dev.js apps/frontend/public/config.js
+          
           # Verify we're deploying the correct version
           echo "🔍 Pre-deployment verification..."
           echo "📊 Current git commit: $(git rev-parse --short HEAD)"
