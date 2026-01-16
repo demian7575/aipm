@@ -1554,10 +1554,13 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
         const existingTests = story.acceptanceTests || [];
         const existingTestTitles = existingTests.map(t => t.title).join(', ');
         
+        // Extract numeric ID from story (e.g., "US-0311" -> "0311" or "0311" -> "0311")
+        const numericStoryId = story.id.toString().replace(/^US-/, '');
+        
         const prompt = `Read and follow the template file: ./templates/acceptance-test-generation.md
 
 INPUT PARAMETERS:
-- Story ID: ${storyId}
+- Story ID: ${numericStoryId}
 - Title: ${story.title}
 - Description: ${story.description}
 - As a: ${story.asA}
