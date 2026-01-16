@@ -5439,7 +5439,8 @@ async function loadStories(db, options = {}) {
     
     // PRs are already loaded in the story object above
     
-    const storedAnalysis = row.invest_analysis ? JSON.parse(row.invest_analysis) : null;
+    // invest_analysis is now a Map object, not a string
+    const storedAnalysis = row.invest_analysis || null;
     
     if (storedAnalysis) {
       // Use warnings from invest_analysis
@@ -5760,14 +5761,9 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       { includeAiInvest }
     );
   } else if (db.constructor.name === 'DynamoDBDataLayer' && row.invest_analysis) {
-    // Use stored analysis for regular requests
-    try {
-      const storedAnalysis = JSON.parse(row.invest_analysis);
-      if (storedAnalysis && storedAnalysis.source) {
-        analysis = storedAnalysis;
-      }
-    } catch (error) {
-      console.error('Error parsing stored invest_analysis:', error);
+    // Use stored analysis for regular requests (invest_analysis is now a Map object)
+    if (row.invest_analysis && row.invest_analysis.source) {
+      analysis = row.invest_analysis;
     }
   }
   
@@ -6649,12 +6645,11 @@ export async function createApp() {
             created_at: timestamp,
             updated_at: timestamp,
             invest_warnings: JSON.stringify(warnings),
-            invest_analysis: JSON.stringify({
+            invest_analysis: {
               source: analysis.source,
               summary: analysis.summary,
-              summary: analysis.summary,
-              model: analysis.ai?.model || null,
-            })
+              model: analysis.ai?.model || null
+            }
           };
           
           // Only add parent_id if it's not null (DynamoDB doesn't store null values well)
@@ -7320,7 +7315,7 @@ export async function createApp() {
               Key: { id: storyId },
               UpdateExpression: 'SET invest_analysis = :analysis, updated_at = :updatedAt',
               ExpressionAttributeValues: {
-                ':analysis': JSON.stringify(story.investAnalysis || {}),
+                ':analysis': story.investAnalysis || {},
                 ':updatedAt': new Date().toISOString()
               }
             }));
