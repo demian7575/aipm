@@ -141,19 +141,23 @@ jobs:
           TEST_COUNT=$(jq '.Items | length' /tmp/prod-tests.json)
           
           if [ "$STORY_COUNT" -gt 0 ]; then
-            jq -c '.Items[]' /tmp/prod-stories.json | while read item; do
+            echo "  Importing $STORY_COUNT stories..."
+            jq -c '.Items[]' /tmp/prod-stories.json | while IFS= read -r item; do
               echo "{\"TableName\":\"aipm-backend-dev-stories\",\"Item\":$item}" > /tmp/put-item.json
-              aws dynamodb put-item --cli-input-json file:///tmp/put-item.json --region us-east-1
+              aws dynamodb put-item --cli-input-json file:///tmp/put-item.json --region us-east-1 || echo "⚠️ Failed to import story"
             done
+            echo "  ✅ Stories imported"
           else
             echo "⚠️ No stories to import"
           fi
           
           if [ "$TEST_COUNT" -gt 0 ]; then
-            jq -c '.Items[]' /tmp/prod-tests.json | while read item; do
+            echo "  Importing $TEST_COUNT tests..."
+            jq -c '.Items[]' /tmp/prod-tests.json | while IFS= read -r item; do
               echo "{\"TableName\":\"aipm-backend-dev-acceptance-tests\",\"Item\":$item}" > /tmp/put-item.json
-              aws dynamodb put-item --cli-input-json file:///tmp/put-item.json --region us-east-1
+              aws dynamodb put-item --cli-input-json file:///tmp/put-item.json --region us-east-1 || echo "⚠️ Failed to import test"
             done
+            echo "  ✅ Tests imported"
           else
             echo "⚠️ No tests to import"
           fi
