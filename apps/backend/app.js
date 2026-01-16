@@ -7565,6 +7565,34 @@ export async function createApp() {
       return;
     }
 
+    const testDraftResponseMatch = pathname.match(/^\/api\/stories\/(\d+)\/tests\/draft-response$/);
+    if (testDraftResponseMatch && method === 'POST') {
+      const storyId = Number(testDraftResponseMatch[1]);
+      console.log('🟢 DRAFT RESPONSE received for story:', storyId);
+      try {
+        const payload = await parseJson(req);
+        console.log('🟢 DRAFT RESPONSE payload:', JSON.stringify(payload));
+        
+        // Validate payload
+        if (!payload.acceptanceTests || !Array.isArray(payload.acceptanceTests)) {
+          sendJson(res, 400, { message: 'Invalid payload: acceptanceTests array required' });
+          return;
+        }
+        
+        // Store draft in memory or return success
+        // Frontend will handle displaying the drafts
+        sendJson(res, 200, { 
+          success: true, 
+          message: 'Draft received',
+          count: payload.acceptanceTests.length 
+        });
+      } catch (error) {
+        console.error('Failed to process draft response', error);
+        sendJson(res, 500, { message: error.message || 'Failed to process draft response' });
+      }
+      return;
+    }
+
     const testCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/tests$/);
     if (testCreateMatch && method === 'POST') {
       const storyId = Number(testCreateMatch[1]);

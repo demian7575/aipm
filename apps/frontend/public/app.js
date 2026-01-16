@@ -6661,13 +6661,17 @@ function openAcceptanceTestModal(storyId, options = {}) {
   const container = document.createElement('div');
   container.className = 'modal-form acceptance-test-form';
   container.innerHTML = `
-    <div class="ai-draft-controls" ${test ? 'hidden' : ''}>
-      <p class="ai-draft-status">Click "Generate Draft" to create test steps with AI</p>
-      <button type="button" class="secondary small" id="ai-draft-generate">Generate Draft</button>
-    </div>
     <div class="idea-section" id="test-idea-section" ${test ? 'hidden' : ''}>
       <label>Idea (Optional)<textarea id="test-idea" placeholder="Describe the scenario or behaviour to cover"></textarea></label>
-      <p class="form-hint">Provide context to help AI generate better test steps.</p>
+      <p class="form-hint">Provide context to help AI generate better test steps. Leave empty for default tests.</p>
+      <div class="ai-draft-controls">
+        <button type="button" class="secondary small" id="ai-draft-generate">Generate Draft</button>
+        <p class="ai-draft-status"></p>
+      </div>
+    </div>
+    <div id="draft-tests-container" style="display: none;">
+      <h4>Generated Drafts</h4>
+      <div id="draft-tests-list"></div>
     </div>
     <label>Given<textarea id="test-given" placeholder="One step per line"></textarea></label>
     <label>When<textarea id="test-when" placeholder="One step per line"></textarea></label>
@@ -6688,59 +6692,59 @@ function openAcceptanceTestModal(storyId, options = {}) {
   const generateBtn = container.querySelector('#ai-draft-generate');
   const ideaField = container.querySelector('#test-idea');
   const ideaSection = container.querySelector('#test-idea-section');
+  const draftTestsContainer = container.querySelector('#draft-tests-container');
+  const draftTestsList = container.querySelector('#draft-tests-list');
   const givenField = container.querySelector('#test-given');
   const whenField = container.querySelector('#test-when');
   const thenField = container.querySelector('#test-then');
   const statusField = container.querySelector('#test-status');
 
   async function loadDraft() {
-    if (!draftControls) return;
+    if (!generateBtn) return;
+    
     if (draftStatus) {
-      draftStatus.textContent = 'Generating draft with AI…';
+      draftStatus.textContent = 'Generating drafts with Kiro CLI…';
     }
+    
     const idea = ideaField ? ideaField.value.trim() : '';
-    if (generateBtn) {
-      generateBtn.disabled = true;
-      generateBtn.textContent = 'Generating…';
-    }
-    statusField.value = 'Draft';
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generating…';
+    
     try {
-      console.log('Fetching acceptance test draft for story:', storyId, 'with idea:', idea);
-      const draft = await fetchAcceptanceTestDraft(storyId, idea ? { idea } : undefined);
-      console.log('Draft received:', draft);
-      if (!draft) {
-        if (draftStatus) {
-          draftStatus.textContent = 'Unable to generate draft. Fill in the steps manually.';
-        }
-        return;
+      // Get current story data
+      const storyResponse = await fetch(resolveApiUrl(`/api/stories/${storyId}`));
+      if (!storyResponse.ok) {
+        throw new Error('Failed to load story');
       }
-      const given = Array.isArray(draft.given) ? draft.given.join('\n') : '';
-      const when = Array.isArray(draft.when) ? draft.when.join('\n') : '';
-      const then = Array.isArray(draft.then) ? draft.then.join('\n') : '';
-      console.log('Parsed draft fields:', { given, when, then, status: draft.status });
-      givenField.value = given;
-      whenField.value = when;
-      thenField.value = then;
-      statusField.value = draft.status || 'Draft';
-      console.log('Fields updated. givenField.value:', givenField.value);
+      const story = await storyResponse.json();
+      
+      // Show instruction to user
+      const existingTestsCount = story.acceptanceTests?.length || 0;
+      const instruction = idea 
+        ? `Generate acceptance test drafts for the idea: "${idea}". Story already has ${existingTestsCount} test(s).`
+        : `Generate default acceptance test drafts. Story already has ${existingTestsCount} test(s).`;
+      
       if (draftStatus) {
-        draftStatus.textContent = 'Draft generated! Review and edit before creating.';
+        draftStatus.textContent = `Waiting for Kiro CLI... (${instruction})`;
       }
-      if (generateBtn) {
-        generateBtn.textContent = 'Regenerate Draft';
+      
+      showToast('Ask Kiro CLI: ' + instruction, 'info');
+      
+      // Wait for Kiro CLI to post drafts
+      // Poll for draft-response (Kiro CLI will POST to /api/stories/{id}/tests/draft-response)
+      // For now, just show message
+      if (draftStatus) {
+        draftStatus.textContent = 'Waiting for Kiro CLI to generate drafts...';
       }
+      
     } catch (error) {
       if (draftStatus) {
-        draftStatus.textContent = error.message || 'Failed to generate draft. Fill in the steps manually.';
+        draftStatus.textContent = error.message || 'Failed to generate draft.';
       }
       showToast(error.message || 'Unable to generate acceptance test draft', 'error');
-      if (generateBtn) {
-        generateBtn.textContent = 'Generate Draft';
-      }
     } finally {
-      if (generateBtn) {
-        generateBtn.disabled = false;
-      }
+      generateBtn.disabled = false;
+      generateBtn.textContent = 'Generate Draft';
     }
   }
 

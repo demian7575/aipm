@@ -21,11 +21,16 @@
 **FORBIDDEN**: Any modifications, improvements, creative interpretations, questions, or explanations
 
 ## EXECUTION COMMAND
-**WHEN ASKED TO GENERATE DRAFT**: Return draft suggestions only - DO NOT create tests in database
-**NO DATABASE OPERATIONS**: Draft generation does NOT save to database
+**WHEN ASKED TO GENERATE DRAFT**: 
+1. Analyze User Story (title, description, asA, iWant, soThat)
+2. Consider the Idea if provided
+3. Check existing acceptance tests to avoid duplicates
+4. Generate 1-2 new acceptance test drafts
+5. POST to draft-response endpoint
+
 **NO QUESTIONS**: Do not ask for clarification
 **NO EXPLANATIONS**: Do not explain what you're doing
-**WORKFLOW**: Same as User Story Draft generation - return suggestions without saving
+**EXECUTE IMMEDIATELY**: Generate and POST drafts
 
 ---
 
@@ -52,46 +57,68 @@ Tests should be: Specific, Measurable, Achievable, Relevant, Time-bound
 - **When**: The action or event that occurs
 - **Then**: The expected outcome or result
 
-### Draft Generation (Does NOT create tests)
+### Draft Generation Workflow
 
-**Purpose**: Provide suggestions to help user fill in Given/When/Then fields
-**Output**: JSON object with draft suggestions
-**Database**: NO database operations - draft is NOT saved
+1. **Analyze Context**:
+   - User Story: title, description, asA, iWant, soThat
+   - Idea: Optional user-provided scenario
+   - Existing Tests: Check to avoid duplicates
 
-Draft generation follows the same pattern as User Story Draft:
-1. User clicks "Generate Draft" button
-2. System returns draft suggestions
-3. User reviews and edits in modal
-4. User clicks "Create Test" to save to database
+2. **Generate Drafts**:
+   - If Idea provided: Generate tests specific to that scenario
+   - If Idea empty: Generate default tests based on User Story
+   - Generate 1-2 tests (avoid duplicating existing tests)
 
-**DO NOT execute curl commands for draft generation**
-**DO NOT create tests in database**
-**ONLY return draft suggestions**
+3. **POST to draft-response endpoint**:
+   ```bash
+   curl -X POST http://localhost:8081/api/stories/STORY_ID/tests/draft-response \
+     -H 'Content-Type: application/json' \
+     -d '{
+       "acceptanceTests": [
+         {
+           "title": "Verify [specific behavior]",
+           "given": "Given [precondition]",
+           "when": "When [action]",
+           "then": "Then [expected outcome]",
+           "status": "Draft"
+         }
+       ]
+     }'
+   ```
 
-### Command Templates
+### Important Notes
 
-#### Draft Generation Response Format
+- **Avoid Duplicates**: Check existing test titles and scenarios
+- **Use Idea**: If provided, focus tests on that specific scenario
+- **Default Tests**: If no Idea, generate tests covering main User Story functionality
+- **Format**: Each test must have title, given, when, then, status
+- **Status**: Always "Draft"
+- **Count**: Generate 1-2 tests per request
+
+### Example
+
+User Story: "As a user, I want to login, so that I can access my account"
+Existing Tests: ["Verify successful login with valid credentials"]
+Idea: "test password reset flow"
+
+Generate:
 ```json
 {
-  "given": ["Given step 1", "Given step 2"],
-  "when": ["When step"],
-  "then": ["Then step 1", "Then step 2"]
+  "acceptanceTests": [
+    {
+      "title": "Verify password reset email is sent",
+      "given": "Given user has forgotten password",
+      "when": "When user requests password reset",
+      "then": "Then reset email is sent to registered email",
+      "status": "Draft"
+    },
+    {
+      "title": "Verify password reset link works",
+      "given": "Given user received reset email",
+      "when": "When user clicks reset link",
+      "then": "Then user can set new password",
+      "status": "Draft"
+    }
+  ]
 }
 ```
-
-#### For Creating Actual Tests (ONLY when user clicks "Create Test" button)
-This is handled by the frontend - Kiro CLI should NOT execute this:
-```bash
-# Frontend will execute this, NOT Kiro CLI
-curl -X POST http://localhost:8081/api/stories/STORY_ID/tests \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "title": "TEST_TITLE",
-    "given": ["step1", "step2"],
-    "when": ["step"],
-    "then": ["step1", "step2"],
-    "status": "Draft"
-  }'
-```
-
-**CRITICAL**: Kiro CLI should ONLY provide draft suggestions, NOT create tests
