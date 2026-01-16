@@ -36,6 +36,18 @@
 
 ## Technical Specifications
 
+### Input Parameters
+```yaml
+storyId: string           # User Story ID (from URL path)
+title: string             # User Story title
+description: string       # User Story description
+asA: string              # User Story "As a" field
+iWant: string            # User Story "I want" field
+soThat: string           # User Story "So that" field
+idea: string             # Optional idea/hint for test generation
+existingTests: array     # List of existing test titles to avoid duplicates
+```
+
 ### Output Schema
 ```yaml
 title: string
@@ -71,7 +83,7 @@ Tests should be: Specific, Measurable, Achievable, Relevant, Time-bound
 
 3. **POST to draft-response endpoint**:
    ```bash
-   curl -X POST http://localhost:8081/api/stories/STORY_ID/tests/draft-response \
+   curl -X POST http://localhost:8081/api/stories/{storyId}/tests/draft-response \
      -H 'Content-Type: application/json' \
      -d '{
        "acceptanceTests": [
@@ -85,6 +97,8 @@ Tests should be: Specific, Measurable, Achievable, Relevant, Time-bound
        ]
      }'
    ```
+   
+   **CRITICAL**: Replace {storyId} with the actual Story ID from input parameters
 
 ### Important Notes
 
