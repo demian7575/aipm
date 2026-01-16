@@ -6711,30 +6711,60 @@ function openAcceptanceTestModal(storyId, options = {}) {
     generateBtn.textContent = 'Generating…';
     
     try {
-      // Get current story data
-      const storyResponse = await fetch(resolveApiUrl(`/api/stories/${storyId}`));
-      if (!storyResponse.ok) {
-        throw new Error('Failed to load story');
+      // Call Kiro API Server (same pattern as User Story Draft)
+      const response = await fetch('http://localhost:4100/api/stories/' + storyId + '/tests/generate-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      const story = await storyResponse.json();
+
+      const result = await response.json();
       
-      // Show instruction to user
-      const existingTestsCount = story.acceptanceTests?.length || 0;
-      const instruction = idea 
-        ? `Generate acceptance test drafts for the idea: "${idea}". Story already has ${existingTestsCount} test(s).`
-        : `Generate default acceptance test drafts. Story already has ${existingTestsCount} test(s).`;
-      
-      if (draftStatus) {
-        draftStatus.textContent = `Waiting for Kiro CLI... (${instruction})`;
-      }
-      
-      showToast('Ask Kiro CLI: ' + instruction, 'info');
-      
-      // Wait for Kiro CLI to post drafts
-      // Poll for draft-response (Kiro CLI will POST to /api/stories/{id}/tests/draft-response)
-      // For now, just show message
-      if (draftStatus) {
-        draftStatus.textContent = 'Waiting for Kiro CLI to generate drafts...';
+      if (result.success && result.acceptanceTests) {
+        // Display drafts in the modal
+        const drafts = result.acceptanceTests;
+        
+        if (drafts.length > 0) {
+          // Show drafts container
+          draftTestsContainer.style.display = 'block';
+          draftTestsList.innerHTML = '';
+          
+          drafts.forEach((draft, index) => {
+            const draftItem = document.createElement('div');
+            draftItem.className = 'draft-test-item';
+            draftItem.innerHTML = `
+              <h5>${draft.title}</h5>
+              <p><strong>Given:</strong> ${draft.given}</p>
+              <p><strong>When:</strong> ${draft.when}</p>
+              <p><strong>Then:</strong> ${draft.then}</p>
+              <button type="button" class="secondary small" data-index="${index}">Use This Draft</button>
+            `;
+            draftTestsList.appendChild(draftItem);
+          });
+          
+          // Add click handlers for "Use This Draft" buttons
+          draftTestsList.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const index = parseInt(btn.dataset.index);
+              const draft = drafts[index];
+              givenField.value = draft.given;
+              whenField.value = draft.when;
+              thenField.value = draft.then;
+              statusField.value = 'Draft';
+              showToast('Draft applied! Review and click Create Test to save.', 'success');
+            });
+          });
+          
+          if (draftStatus) {
+            draftStatus.textContent = `${drafts.length} draft(s) generated! Click "Use This Draft" or edit manually.`;
+          }
+        }
+      } else {
+        throw new Error(result.error || 'Draft generation failed');
       }
       
     } catch (error) {

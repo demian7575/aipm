@@ -2364,3 +2364,39 @@ dialog[data-size='content'] .modal-shell {
   background: linear-gradient(135deg, #45a049, #3d8b40);
   transform: translateY(-1px);
 }
+
+/* Acceptance Test Draft Styles */
+#draft-tests-container {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+#draft-tests-container h4 {
+  margin: 0 0 1rem 0;
+  color: #334155;
+}
+
+.draft-test-item {
+  background: white;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.draft-test-item h5 {
+  margin: 0 0 0.5rem 0;
+  color: #1e293b;
+}
+
+.draft-test-item p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.draft-test-item button {
+  margin-top: 0.5rem;
+}

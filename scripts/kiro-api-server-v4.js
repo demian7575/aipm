@@ -876,6 +876,26 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Acceptance test draft response endpoint - receives draft data from KIRO CLI
+  if (url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/draft-response$/) && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const draftData = JSON.parse(body);
+        // Store acceptance test draft data temporarily
+        global.latestAcceptanceTestDraft = { success: true, acceptanceTests: draftData.acceptanceTests, timestamp: Date.now() };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ received: true }));
+      } catch (error) {
+        console.error('Error in acceptance test draft-response:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
   // GWT Health Analysis endpoint
   if (url.pathname === '/api/analyze-gwt' && req.method === 'POST') {
     let body = '';
@@ -1100,6 +1120,79 @@ Execute the template instructions exactly as written.`;
     });
     return;
   }
+
+  // Generate acceptance test draft endpoint
+  if (url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft$/) && req.method === 'POST') {
+    const storyIdMatch = url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft$/);
+    const storyId = storyIdMatch[1];
+    
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { idea = '' } = JSON.parse(body);
+        
+        // Get story data
+        const storyResponse = await fetch(`http://localhost:8081/api/stories/${storyId}`);
+        if (!storyResponse.ok) {
+          throw new Error('Story not found');
+        }
+        const story = await storyResponse.json();
+        
+        // Template System: API gives KIRO CLI the filename to read
+        const existingTests = story.acceptanceTests || [];
+        const existingTestTitles = existingTests.map(t => t.title).join(', ');
+        
+        const prompt = `Read and follow the template file: ./templates/acceptance-test-generation.md
+
+User Story:
+- Title: ${story.title}
+- Description: ${story.description}
+- As a: ${story.asA}
+- I want: ${story.iWant}
+- So that: ${story.soThat}
+
+Idea: ${idea || '(none - generate default tests)'}
+
+Existing Tests (${existingTests.length}): ${existingTestTitles || '(none)'}
+
+Execute the template instructions exactly as written. Generate 1-2 new tests that avoid duplicating existing tests.`;
+        
+        // Clear any existing draft data
+        global.latestAcceptanceTestDraft = null;
+        
+        // Execute KIRO CLI and wait for completion
+        const result = await sendToKiro(prompt);
+        
+        // Give KIRO CLI time to post the draft data
+        await new Promise(resolve => setTimeout(resolve, 20000));
+        
+        // Check if we received draft data
+        if (global.latestAcceptanceTestDraft && (Date.now() - global.latestAcceptanceTestDraft.timestamp) < 30000) {
+          const draftResponse = global.latestAcceptanceTestDraft;
+          global.latestAcceptanceTestDraft = null; // Clear after use
+          
+          // Return draft data WITHOUT saving to database
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(draftResponse));
+          return;
+        }
+        
+        // Fallback - no draft received
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'No draft data received from KIRO'
+        }));
+        
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
+
   if (url.pathname === '/api/stories' && req.method === 'GET') {
     try {
       const stories = await getStories();
