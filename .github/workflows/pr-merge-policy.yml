@@ -1,0 +1,86 @@
+name: PR Merge Policy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  enforce-squash-merge:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check PR commits
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const commits = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            const commitCount = commits.data.length;
+            
+            console.log(`📊 PR #${pr.number} has ${commitCount} commit(s)`);
+            
+            if (commitCount > 1) {
+              const message = `## 📝 Multiple Commits Detected
+              
+This PR has **${commitCount} commits**. 
+
+### Merge Policy
+This repository uses **Squash and Merge** to maintain a clean commit history.
+
+When merging this PR:
+1. Click the dropdown next to "Merge pull request"
+2. Select **"Squash and merge"**
+3. Edit the commit message if needed
+4. Complete the merge
+
+### Why Squash?
+✅ Clean, linear history
+✅ One commit per feature
+✅ Easier to revert if needed
+✅ Better for code archaeology
+
+### Current Commits
+${commits.data.map((c, i) => `${i + 1}. ${c.commit.message.split('\n')[0]}`).join('\n')}
+
+These will be combined into a single commit when squash merged.`;
+              
+              // Add or update comment
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number
+              });
+              
+              const botComment = comments.data.find(c => 
+                c.user.type === 'Bot' && c.body.includes('Multiple Commits Detected')
+              );
+              
+              if (botComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: message
+                });
+                console.log('✅ Updated existing comment');
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: message
+                });
+                console.log('✅ Created new comment');
+              }
+            } else {
+              console.log('✅ Single commit - no action needed');
+            }
