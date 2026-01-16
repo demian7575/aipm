@@ -6,9 +6,13 @@ source "$(dirname "$0")/test-functions.sh"
 
 echo "🔧 Phase 5: Code Generation & Acceptance Tests Workflow"
 
+# Get Test Root
+TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
+echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+
 # Test 1: Create story and acceptance test, then clean up
 echo "  🧪 Testing code generation workflow with cleanup..."
-TEST_STORY_PAYLOAD='{"title":"Phase5 Code Gen Test","description":"Test story for code generation workflow","storyPoint":2,"acceptWarnings":true}'
+TEST_STORY_PAYLOAD="{\"title\":\"Phase5 Code Gen Test\",\"description\":\"Test story for code generation workflow\",\"storyPoint\":2,\"parentId\":$TEST_ROOT_ID,\"acceptWarnings\":true}"
 CREATE_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" -H "Content-Type: application/json" -d "$TEST_STORY_PAYLOAD")
 TEST_STORY_ID=$(echo "$CREATE_RESPONSE" | jq -r '.id // empty')
 

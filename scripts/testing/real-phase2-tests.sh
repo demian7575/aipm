@@ -6,14 +6,23 @@ source "$(dirname "$0")/test-functions.sh"
 
 echo "🟡 Phase 2: Real Performance & API Workflow Tests"
 
+# Get Test Root
+TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
+echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+
 # Test 1: Real performance test with actual story operations
 echo "  🧪 Testing real API performance under load..."
 START_TIME=$(date +%s.%N)
 
 # Create 5 stories and measure time
+CREATED_IDS=()
 for i in {1..5}; do
-    STORY_DATA="{\"title\":\"Perf Test $i\",\"description\":\"Performance test story\",\"storyPoint\":1}"
-    curl -s -X POST "$PROD_API_BASE/api/stories" -H "Content-Type: application/json" -d "$STORY_DATA" > /dev/null
+    STORY_DATA="{\"title\":\"Perf Test $i\",\"description\":\"Performance test story\",\"storyPoint\":1,\"parentId\":$TEST_ROOT_ID,\"acceptWarnings\":true}"
+    RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" -H "Content-Type: application/json" -d "$STORY_DATA")
+    STORY_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
+    if [[ -n "$STORY_ID" ]]; then
+        CREATED_IDS+=("$STORY_ID")
+    fi
 done
 
 END_TIME=$(date +%s.%N)
@@ -25,6 +34,11 @@ if (( $(echo "$AVG_TIME < 2.0" | bc -l) )); then
 else
     fail_test "Real API performance test (${AVG_TIME}s avg per story - too slow)"
 fi
+
+# Cleanup performance test stories
+for story_id in "${CREATED_IDS[@]}"; do
+    curl -s -X DELETE "$PROD_API_BASE/api/stories/$story_id" > /dev/null
+done
 
 # Test 2: Real concurrent draft generation
 echo "  🧪 Testing real concurrent draft generation..."

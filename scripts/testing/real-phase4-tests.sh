@@ -6,10 +6,14 @@ source "$(dirname "$0")/test-functions.sh"
 
 echo "🔄 Phase 4: Real End-to-End Workflow Tests"
 
+# Get Test Root
+TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
+echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+
 # Test 1: Complete story lifecycle workflow
 echo "  🧪 Testing complete story lifecycle workflow..."
 # Create -> Update -> Add acceptance test -> Update status -> Verify
-LIFECYCLE_DATA='{"title":"Lifecycle Test","description":"Full workflow test","asA":"tester","iWant":"to verify","soThat":"workflows work","storyPoint":2}'
+LIFECYCLE_DATA="{\"title\":\"Lifecycle Test\",\"description\":\"Full workflow test\",\"asA\":\"tester\",\"iWant\":\"to verify\",\"soThat\":\"workflows work\",\"storyPoint\":2,\"parentId\":$TEST_ROOT_ID,\"acceptWarnings\":true}"
 LIFECYCLE_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" -H "Content-Type: application/json" -d "$LIFECYCLE_DATA")
 LIFECYCLE_ID=$(echo "$LIFECYCLE_RESPONSE" | jq -r '.id // empty')
 
@@ -56,7 +60,7 @@ DRAFT_POINTS=$(echo "$DRAFT_RESPONSE" | jq -r '.draft.storyPoint // empty')
 
 if [[ -n "$DRAFT_TITLE" && -n "$DRAFT_DESC" && -n "$DRAFT_POINTS" ]]; then
     # Create story from draft
-    STORY_FROM_DRAFT="{\"title\":\"$DRAFT_TITLE\",\"description\":\"$DRAFT_DESC\",\"storyPoint\":$DRAFT_POINTS}"
+    STORY_FROM_DRAFT="{\"title\":\"$DRAFT_TITLE\",\"description\":\"$DRAFT_DESC\",\"storyPoint\":$DRAFT_POINTS,\"parentId\":$TEST_ROOT_ID,\"acceptWarnings\":true}"
     STORY_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" -H "Content-Type: application/json" -d "$STORY_FROM_DRAFT")
     STORY_ID=$(echo "$STORY_RESPONSE" | jq -r '.id // empty')
     
@@ -83,7 +87,7 @@ fi
 # Test 3: Real multi-environment workflow consistency
 echo "  🧪 Testing real multi-environment workflow consistency..."
 # Create story in prod, verify it syncs to dev (if sync is enabled)
-SYNC_DATA='{"title":"Sync Test Story","description":"Testing environment sync","storyPoint":1}'
+SYNC_DATA="{\"title\":\"Sync Test Story\",\"description\":\"Testing environment sync\",\"storyPoint\":1,\"parentId\":$TEST_ROOT_ID,\"acceptWarnings\":true}"
 SYNC_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" -H "Content-Type: application/json" -d "$SYNC_DATA")
 SYNC_ID=$(echo "$SYNC_RESPONSE" | jq -r '.id // empty')
 

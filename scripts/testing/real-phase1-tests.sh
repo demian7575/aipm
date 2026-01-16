@@ -6,6 +6,14 @@ source "$(dirname "$0")/test-functions.sh"
 
 echo "🔴 Phase 1: Real Security & Data Safety Tests"
 
+# Get or create Test Root
+TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
+if [[ -z "$TEST_ROOT_ID" ]]; then
+  fail_test "Failed to get/create Test Root"
+  exit 1
+fi
+echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+
 # Test 1: Front page loading test
 echo "  🧪 Testing front page loading..."
 PROD_FRONTEND_RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/prod_frontend.html "$PROD_FRONTEND_URL")
@@ -28,12 +36,12 @@ rm -f /tmp/prod_frontend.html /tmp/dev_frontend.html
 
 # Test 2: Create and delete test story
 echo "  🧪 Testing real story create/delete workflow..."
-TEST_STORY_PAYLOAD='{"title":"Phase1 Test Story","description":"Test story for Phase 1 gating tests","storyPoint":1,"acceptWarnings":true}'
+TEST_STORY_PAYLOAD="{\"title\":\"Phase1 Test Story\",\"description\":\"Test story for Phase 1 gating tests\",\"storyPoint\":1,\"parentId\":$TEST_ROOT_ID,\"acceptWarnings\":true}"
 CREATE_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" -H "Content-Type: application/json" -d "$TEST_STORY_PAYLOAD")
 TEST_STORY_ID=$(echo "$CREATE_RESPONSE" | jq -r '.id // empty')
 
 if [[ -n "$TEST_STORY_ID" ]]; then
-    pass_test "Real story creation workflow (ID: $TEST_STORY_ID)"
+    pass_test "Real story creation workflow (ID: $TEST_STORY_ID, Parent: $TEST_ROOT_ID)"
     
     # Clean up - delete the test story
     DELETE_RESPONSE=$(curl -s -X DELETE "$PROD_API_BASE/api/stories/$TEST_STORY_ID")

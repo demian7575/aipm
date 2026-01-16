@@ -6,6 +6,10 @@ source "$(dirname "$0")/test-functions.sh"
 
 echo "🟢 Phase 3: Real Infrastructure & Integration Tests"
 
+# Get Test Root
+TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
+echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+
 # Test 1: Real frontend-backend integration
 echo "  🧪 Testing real frontend-backend integration..."
 # Get frontend config and verify it points to working backend
@@ -46,7 +50,7 @@ fi
 # Test 3: Real database persistence across requests
 echo "  🧪 Testing real database persistence..."
 # Create a story, restart would happen in real deployment, then verify it persists
-PERSIST_DATA='{"title":"Persistence Test","description":"Testing real persistence","storyPoint":3}'
+PERSIST_DATA="{\"title\":\"Persistence Test\",\"description\":\"Testing real persistence\",\"storyPoint\":3,\"parentId\":$TEST_ROOT_ID,\"acceptWarnings\":true}"
 PERSIST_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" -H "Content-Type: application/json" -d "$PERSIST_DATA")
 PERSIST_ID=$(echo "$PERSIST_RESPONSE" | jq -r '.id // empty')
 
