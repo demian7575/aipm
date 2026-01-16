@@ -41,7 +41,7 @@
    - Execute `git rebase origin/main`
 
 3. **Read TASK File**:
-   - Read the TASK file: `cat TASK-*.md`
+   - Read the TASK file: `cat TASK-STORY_ID-*.md`
    - Store the complete file content for reference
 
 4. **Analyze AIPM Codebase**: 
