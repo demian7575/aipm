@@ -1079,51 +1079,10 @@ Execute the template instructions exactly as written.`;
           const draftResponse = global.latestDraft;
           global.latestDraft = null; // Clear after use
           
-          // Create the story in DynamoDB
-          const storyData = draftResponse.draft;
-          const storyId = Date.now();
-          await dynamodb.send(new PutCommand({
-            TableName: STORIES_TABLE,
-            Item: {
-              id: storyId,
-              title: storyData.title,
-              description: storyData.description,
-              asA: storyData.asA,
-              iWant: storyData.iWant,
-              soThat: storyData.soThat,
-              components: storyData.components || [],
-              storyPoint: storyData.storyPoint || 0,
-              assignee_email: storyData.assigneeEmail || '',
-              parentId: storyData.parentId || null,
-              status: 'Draft',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            }
-          }));
-          
-          // Create acceptance tests if included
-          if (storyData.acceptanceTests && Array.isArray(storyData.acceptanceTests)) {
-            for (const test of storyData.acceptanceTests) {
-              const testId = Date.now() + Math.floor(Math.random() * 1000);
-              await dynamodb.send(new PutCommand({
-                TableName: ACCEPTANCE_TESTS_TABLE,
-                Item: {
-                  id: testId,
-                  storyId: storyId,
-                  title: test.title || '',
-                  given: Array.isArray(test.given) ? test.given : [test.given],
-                  whenStep: Array.isArray(test.when) ? test.when : [test.when],
-                  thenStep: Array.isArray(test.then) ? test.then : [test.then],
-                  status: test.status || 'Draft',
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString()
-                }
-              }));
-            }
-          }
-          
+          // Return draft data WITHOUT saving to database
+          // Frontend will save when user clicks "Create Story"
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ...draftResponse, storyId }));
+          res.end(JSON.stringify(draftResponse));
           return;
         }
         
