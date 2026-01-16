@@ -4956,7 +4956,9 @@ function normalizeGeneratedSteps(value) {
 
 async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' } = {}) {
   // Use heuristic generation - Kiro CLI can enhance via terminal interaction
-  return defaultAcceptanceTestDraft(story, ordinal, reason, idea);
+  const result = defaultAcceptanceTestDraft(story, ordinal, reason, idea);
+  console.log('generateAcceptanceTestDraft result:', JSON.stringify(result));
+  return result;
 }
 
 async function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingCount = null } = {}) {
