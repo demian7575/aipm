@@ -1554,16 +1554,15 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
         
         const prompt = `Read and follow the template file: ./templates/acceptance-test-generation.md
 
-User Story:
+INPUT PARAMETERS:
+- Story ID: ${storyId}
 - Title: ${story.title}
 - Description: ${story.description}
 - As a: ${story.asA}
 - I want: ${story.iWant}
 - So that: ${story.soThat}
-
-Idea: ${idea || '(none - generate default tests)'}
-
-Existing Tests (${existingTests.length}): ${existingTestTitles || '(none)'}
+- Idea: ${idea || '(none - generate default tests)'}
+- Existing Tests (${existingTests.length}): ${existingTestTitles || '(none)'}
 
 Execute the template instructions exactly as written. Generate 1-2 new tests that avoid duplicating existing tests.`;
         
