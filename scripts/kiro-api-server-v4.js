@@ -933,31 +933,48 @@ Execute the template instructions exactly as written.`;
         // Send to Kiro CLI
         const result = await sendToKiro(prompt);
         
-        // Give KIRO CLI time to post the analysis data
-        await new Promise(resolve => setTimeout(resolve, 15000));
+        // Poll for analysis data (max 180 seconds)
+        const maxAttempts = 180;
+        const pollInterval = 1000;
+        let attempts = 0;
+        
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          attempts++;
+          
+          // Check if we received analysis data
+          if (global.latestGwtAnalysis && (Date.now() - global.latestGwtAnalysis.timestamp) < 30000) {
+            const analysisResponse = global.latestGwtAnalysis;
+            global.latestGwtAnalysis = null; // Clear after use
+            
+            console.log(`✅ GWT analysis received after ${attempts} seconds`);
+            
+            // Clean up temp file
+            setTimeout(() => {
+              try { unlinkSync(tempFilePath); } catch (e) {}
+            }, 5000);
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              success: true, 
+              analysis: analysisResponse 
+            }));
+            return;
+          }
+        }
+        
+        // Timeout - no analysis received
+        console.log(`⏱️ GWT analysis timeout after ${maxAttempts} seconds`);
         
         // Clean up temp file
         setTimeout(() => {
           try { unlinkSync(tempFilePath); } catch (e) {}
-        }, 30000);
+        }, 5000);
         
-        // Check if we received analysis data
-        if (global.latestGwtAnalysis && (Date.now() - global.latestGwtAnalysis.timestamp) < 20000) {
-          const analysisResponse = global.latestGwtAnalysis;
-          global.latestGwtAnalysis = null; // Clear after use
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ 
-            success: true, 
-            analysis: analysisResponse 
-          }));
-          return;
-        }
-        
-        // Fallback if no callback received
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false, 
-          error: 'No GWT analysis received from Kiro CLI'
+          error: 'Timeout: No GWT analysis received from Kiro CLI after 180 seconds'
         }));
         
       } catch (error) {
@@ -1035,26 +1052,48 @@ Execute the template instructions exactly as written.`;
         // Send to Kiro CLI
         const result = await sendToKiro(prompt);
         
-        // Give KIRO CLI time to post the analysis data (INVEST analysis takes longer than drafts)
-        await new Promise(resolve => setTimeout(resolve, 30000));
+        // Poll for analysis data (max 180 seconds)
+        const maxAttempts = 180;
+        const pollInterval = 1000;
+        let attempts = 0;
         
-        // Check if we received analysis data
-        if (global.latestInvestAnalysis && (Date.now() - global.latestInvestAnalysis.timestamp) < 30000) {
-          const analysisResponse = global.latestInvestAnalysis;
-          global.latestInvestAnalysis = null; // Clear after use
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ 
-            success: true, 
-            analysis: analysisResponse 
-          }));
-          return;
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          attempts++;
+          
+          // Check if we received analysis data
+          if (global.latestInvestAnalysis && (Date.now() - global.latestInvestAnalysis.timestamp) < 30000) {
+            const analysisResponse = global.latestInvestAnalysis;
+            global.latestInvestAnalysis = null; // Clear after use
+            
+            console.log(`✅ INVEST analysis received after ${attempts} seconds`);
+            
+            // Clean up temp file
+            setTimeout(() => {
+              try { unlinkSync(tempFilePath); } catch (e) {}
+            }, 5000);
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              success: true, 
+              analysis: analysisResponse 
+            }));
+            return;
+          }
         }
         
-        // Fallback if no callback received
+        // Timeout - no analysis received
+        console.log(`⏱️ INVEST analysis timeout after ${maxAttempts} seconds`);
+        
+        // Clean up temp file
+        setTimeout(() => {
+          try { unlinkSync(tempFilePath); } catch (e) {}
+        }, 5000);
+        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false, 
-          error: 'No analysis received from Kiro CLI'
+          error: 'Timeout: No INVEST analysis received from Kiro CLI after 180 seconds'
         }));
         
       } catch (error) {
