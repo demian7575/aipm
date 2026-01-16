@@ -4898,9 +4898,11 @@ function describePersona(persona) {
 }
 
 function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
+  console.log('defaultAcceptanceTestDraft called:', { storyId: story?.id, ordinal, reason, idea });
   const persona = normalizeStoryText(story.asA, 'the user');
   const action = normalizeStoryText(story.iWant, 'perform the described action');
   const outcome = normalizeStoryText(story.soThat, 'achieve the desired outcome');
+  console.log('Normalized story fields:', { persona, action, outcome });
   const titleBase = normalizeStoryText(story.title, `Story ${story.id}`);
   const verificationLabel = reason === 'update' ? 'Update verification' : 'Initial verification';
   const title = acceptanceTestsHasTitleColumn
@@ -4936,7 +4938,9 @@ function defaultAcceptanceTestDraft(story, ordinal, reason, idea = '') {
         'And a confirmation code of at least 6 characters is recorded',
       ];
 
-  return { title, given, when, then, source: 'fallback', summary: '' };
+  const result = { title, given, when, then, source: 'fallback', summary: '' };
+  console.log('defaultAcceptanceTestDraft result:', { givenCount: given.length, whenCount: when.length, thenCount: then.length });
+  return result;
 }
 
 function normalizeGeneratedSteps(value) {
