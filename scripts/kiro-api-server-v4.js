@@ -1442,8 +1442,9 @@ Execute the template instructions exactly as written.`;
   }
 
   // Generate acceptance test draft endpoint (SSE)
-  if (url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft-stream$/) && req.method === 'GET') {
-    const storyIdMatch = url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft-stream$/);
+  // SSE endpoint for acceptance test draft generation
+  if (url.pathname.match(/^\/api\/stories\/([^\/]+)\/tests\/generate-draft-stream$/) && req.method === 'GET') {
+    const storyIdMatch = url.pathname.match(/^\/api\/stories\/([^\/]+)\/tests\/generate-draft-stream$/);
     const storyId = storyIdMatch[1];
     
     const params = new URLSearchParams(url.search);
@@ -1532,8 +1533,8 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
   }
 
   // Generate acceptance test draft endpoint (Legacy - keep for compatibility)
-  if (url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft$/) && req.method === 'POST') {
-    const storyIdMatch = url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft$/);
+  if (url.pathname.match(/^\/api\/stories\/([^\/]+)\/tests\/generate-draft$/) && req.method === 'POST') {
+    const storyIdMatch = url.pathname.match(/^\/api\/stories\/([^\/]+)\/tests\/generate-draft$/);
     const storyId = storyIdMatch[1];
     
     let body = '';
