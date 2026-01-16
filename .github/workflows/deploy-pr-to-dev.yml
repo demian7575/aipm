@@ -211,11 +211,25 @@ jobs:
           echo "📊 app.js size: $(wc -c < apps/frontend/public/app.js) bytes"
           echo "📊 app.js lines: $(wc -l < apps/frontend/public/app.js) lines"
           
-          aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ \
-            --exclude '.git/*' \
-            --exclude 'node_modules/*' \
-            --cache-control "no-cache, no-store, must-revalidate" \
-            --delete
+          # Force upload all files (don't rely on size/time comparison)
+          echo "🔄 Uploading all files..."
+          for file in apps/frontend/public/*; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "  Uploading $filename..."
+              aws s3 cp "$file" "s3://aipm-dev-frontend-hosting/$filename" \
+                --cache-control "no-cache, no-store, must-revalidate" \
+                --region us-east-1
+            fi
+          done
+          
+          # Upload subdirectories if any
+          if [ -d "apps/frontend/public/uploads" ]; then
+            aws s3 sync apps/frontend/public/uploads/ s3://aipm-dev-frontend-hosting/uploads/ \
+              --cache-control "no-cache, no-store, must-revalidate" \
+              --delete \
+              --region us-east-1
+          fi
           
           echo "✅ Frontend deployed to S3"
           echo "🌐 Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
@@ -223,15 +237,18 @@ jobs:
           # Verify deployment
           echo "🔍 Post-deployment verification..."
           sleep 2
-          DEPLOYED_SIZE=$(curl -sI http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/app.js | grep -i content-length | awk '{print $2}' | tr -d '\r')
+          S3_SIZE=$(aws s3api head-object --bucket aipm-dev-frontend-hosting --key app.js --region us-east-1 | jq -r '.ContentLength')
           LOCAL_SIZE=$(wc -c < apps/frontend/public/app.js)
-          echo "📊 Deployed app.js size: $DEPLOYED_SIZE bytes"
+          echo "📊 S3 app.js size: $S3_SIZE bytes"
           echo "📊 Local app.js size: $LOCAL_SIZE bytes"
           
-          if [ "$DEPLOYED_SIZE" = "$LOCAL_SIZE" ]; then
+          if [ "$S3_SIZE" = "$LOCAL_SIZE" ]; then
             echo "✅ Deployment verified - sizes match"
           else
-            echo "⚠️ Size mismatch - may need cache refresh"
+            echo "❌ ERROR: Size mismatch!"
+            echo "   S3: $S3_SIZE bytes"
+            echo "   Local: $LOCAL_SIZE bytes"
+            exit 1
           fi
       
       - name: Verify deployment
