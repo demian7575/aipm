@@ -6703,89 +6703,92 @@ function openAcceptanceTestModal(storyId, options = {}) {
     if (!generateBtn) return;
     
     if (draftStatus) {
-      draftStatus.textContent = 'Generating drafts with Kiro CLI…';
+      draftStatus.textContent = 'Connecting to Kiro CLI...';
     }
     
     const idea = ideaField ? ideaField.value.trim() : '';
     generateBtn.disabled = true;
     generateBtn.textContent = 'Generating…';
     
-    // Show progress
-    let elapsed = 0;
-    const progressInterval = setInterval(() => {
-      elapsed++;
-      if (draftStatus) {
-        draftStatus.textContent = `Generating drafts... ${elapsed}s elapsed`;
-      }
-    }, 1000);
-    
     try {
-      // Call Kiro API Server (same pattern as User Story Draft)
-      const response = await fetch('http://localhost:4100/api/stories/' + storyId + '/tests/generate-draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea })
-      });
-
-      clearInterval(progressInterval);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      // Use SSE for real-time progress
+      const eventSource = new EventSource(
+        `http://localhost:4100/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`
+      );
       
-      if (result.success && result.acceptanceTests) {
-        // Display drafts in the modal
-        const drafts = result.acceptanceTests;
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
         
-        if (drafts.length > 0) {
-          // Show drafts container
-          draftTestsContainer.style.display = 'block';
-          draftTestsList.innerHTML = '';
-          
-          drafts.forEach((draft, index) => {
-            const draftItem = document.createElement('div');
-            draftItem.className = 'draft-test-item';
-            draftItem.innerHTML = `
-              <h5>${draft.title}</h5>
-              <p><strong>Given:</strong> ${draft.given}</p>
-              <p><strong>When:</strong> ${draft.when}</p>
-              <p><strong>Then:</strong> ${draft.then}</p>
-              <button type="button" class="secondary small" data-index="${index}">Use This Draft</button>
-            `;
-            draftTestsList.appendChild(draftItem);
-          });
-          
-          // Add click handlers for "Use This Draft" buttons
-          draftTestsList.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('click', () => {
-              const index = parseInt(btn.dataset.index);
-              const draft = drafts[index];
-              givenField.value = draft.given;
-              whenField.value = draft.when;
-              thenField.value = draft.then;
-              statusField.value = 'Draft';
-              showToast('Draft applied! Review and click Create Test to save.', 'success');
-            });
-          });
-          
+        if (data.status === 'started') {
           if (draftStatus) {
-            draftStatus.textContent = `${drafts.length} draft(s) generated! Click "Use This Draft" or edit manually.`;
+            draftStatus.textContent = data.message;
           }
+        } else if (data.status === 'progress') {
+          if (draftStatus) {
+            draftStatus.textContent = data.message;
+          }
+        } else if (data.status === 'complete' && data.success) {
+          eventSource.close();
+          
+          const drafts = data.acceptanceTests;
+          
+          if (drafts && drafts.length > 0) {
+            draftTestsContainer.style.display = 'block';
+            draftTestsList.innerHTML = '';
+            
+            drafts.forEach((draft, index) => {
+              const draftItem = document.createElement('div');
+              draftItem.className = 'draft-test-item';
+              draftItem.innerHTML = `
+                <h5>${draft.title}</h5>
+                <p><strong>Given:</strong> ${draft.given}</p>
+                <p><strong>When:</strong> ${draft.when}</p>
+                <p><strong>Then:</strong> ${draft.then}</p>
+                <button type="button" class="secondary small" data-index="${index}">Use This Draft</button>
+              `;
+              draftTestsList.appendChild(draftItem);
+            });
+            
+            draftTestsList.querySelectorAll('button').forEach(btn => {
+              btn.addEventListener('click', () => {
+                const index = parseInt(btn.dataset.index);
+                const draft = drafts[index];
+                givenField.value = draft.given;
+                whenField.value = draft.when;
+                thenField.value = draft.then;
+                statusField.value = 'Draft';
+                showToast('Draft applied! Review and click Create Test to save.', 'success');
+              });
+            });
+            
+            if (draftStatus) {
+              draftStatus.textContent = `${drafts.length} draft(s) generated in ${data.elapsed}s! Click "Use This Draft" or edit manually.`;
+            }
+          }
+          
+          generateBtn.disabled = false;
+          generateBtn.textContent = 'Generate Draft';
+        } else if (data.status === 'timeout' || data.error) {
+          eventSource.close();
+          throw new Error(data.error || 'Draft generation timeout');
         }
-      } else {
-        throw new Error(result.error || 'Draft generation failed');
-      }
+      };
+      
+      eventSource.onerror = (error) => {
+        eventSource.close();
+        if (draftStatus) {
+          draftStatus.textContent = 'Connection error. Please try again.';
+        }
+        showToast('Failed to connect to Kiro CLI', 'error');
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate Draft';
+      };
       
     } catch (error) {
-      clearInterval(progressInterval);
       if (draftStatus) {
         draftStatus.textContent = error.message || 'Failed to generate draft.';
       }
       showToast(error.message || 'Unable to generate acceptance test draft', 'error');
-    } finally {
-      clearInterval(progressInterval);
       generateBtn.disabled = false;
       generateBtn.textContent = 'Generate Draft';
     }

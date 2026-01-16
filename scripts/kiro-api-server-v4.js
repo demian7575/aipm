@@ -896,7 +896,102 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // GWT Health Analysis endpoint
+  // GWT Health Analysis endpoint (SSE)
+  if (url.pathname === '/api/analyze-gwt-stream' && req.method === 'GET') {
+    const params = new URLSearchParams(url.search);
+    const testId = params.get('testId');
+    
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    try {
+      // Get test data from query params
+      const title = params.get('title') || 'Untitled Test';
+      const given = params.get('given') || '';
+      const when = params.get('when') || '';
+      const then = params.get('then') || '';
+      
+      const { writeFileSync, unlinkSync } = await import('fs');
+      const tempFileName = `gwt-data-${Date.now()}.md`;
+      const tempFilePath = `./templates/${tempFileName}`;
+      
+      const testDataContent = `# GWT Test Data
+
+## Acceptance Test Information
+- Test ID: ${testId || 'Unknown'}
+- Test Title: ${title}
+- Given Steps: ${given}
+- When Steps: ${when}
+- Then Steps: ${then}`;
+      
+      writeFileSync(tempFilePath, testDataContent);
+      
+      const prompt = `Read and follow the template file: ./templates/gwt-health-analysis.md
+
+Test data file: ./templates/${tempFileName}
+
+Execute the template instructions exactly as written.`;
+      
+      global.latestGwtAnalysis = null;
+      
+      res.write(`data: ${JSON.stringify({ status: 'started', message: 'Analyzing GWT health...' })}\n\n`);
+      
+      await sendToKiro(prompt);
+      
+      // Poll for result
+      const maxAttempts = 180;
+      let attempts = 0;
+      
+      const pollInterval = setInterval(() => {
+        attempts++;
+        
+        if (global.latestGwtAnalysis && (Date.now() - global.latestGwtAnalysis.timestamp) < 30000) {
+          const analysisResponse = global.latestGwtAnalysis;
+          global.latestGwtAnalysis = null;
+          
+          setTimeout(() => {
+            try { unlinkSync(tempFilePath); } catch (e) {}
+          }, 5000);
+          
+          res.write(`data: ${JSON.stringify({ 
+            status: 'complete',
+            success: true,
+            analysis: analysisResponse,
+            elapsed: attempts 
+          })}\n\n`);
+          res.end();
+          clearInterval(pollInterval);
+        } else if (attempts >= maxAttempts) {
+          setTimeout(() => {
+            try { unlinkSync(tempFilePath); } catch (e) {}
+          }, 5000);
+          
+          res.write(`data: ${JSON.stringify({ 
+            status: 'timeout', 
+            error: 'Timeout after 180 seconds' 
+          })}\n\n`);
+          res.end();
+          clearInterval(pollInterval);
+        } else if (attempts % 5 === 0) {
+          res.write(`data: ${JSON.stringify({ 
+            status: 'progress', 
+            message: `Analyzing... ${attempts}s elapsed` 
+          })}\n\n`);
+        }
+      }, 1000);
+      
+    } catch (error) {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+    return;
+  }
+
+  // GWT Health Analysis endpoint (Legacy)
   if (url.pathname === '/api/analyze-gwt' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -986,7 +1081,115 @@ Execute the template instructions exactly as written.`;
     return;
   }
 
-  // INVEST analysis endpoint
+  // INVEST analysis endpoint (SSE)
+  if (url.pathname === '/api/analyze-invest-stream' && req.method === 'GET') {
+    const params = new URLSearchParams(url.search);
+    const storyId = params.get('storyId');
+    
+    if (!storyId) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('storyId is required');
+      return;
+    }
+    
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    try {
+      // Get story data
+      const storyResponse = await fetch(`http://localhost:8081/api/stories/${storyId}`);
+      if (!storyResponse.ok) {
+        res.write(`data: ${JSON.stringify({ error: 'Story not found' })}\n\n`);
+        res.end();
+        return;
+      }
+      const storyData = await storyResponse.json();
+      
+      const { writeFileSync, unlinkSync } = await import('fs');
+      const tempFileName = `invest-data-${Date.now()}.md`;
+      const tempFilePath = `./templates/${tempFileName}`;
+      
+      const storyDataContent = `# Story Data
+
+## Story Information
+- Story ID: ${storyData.id}
+- Title: ${storyData.title || 'Untitled'}
+- As a: ${storyData.asA || ''}
+- I want: ${storyData.iWant || ''}
+- So that: ${storyData.soThat || ''}
+- Description: ${storyData.description || ''}
+- Story Points: ${storyData.storyPoint || 0}
+- Components: ${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}
+- Acceptance Tests: ${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0}`;
+      
+      writeFileSync(tempFilePath, storyDataContent);
+      
+      const prompt = `Read and follow the template file: ./templates/invest-analysis.md
+
+Story data file: ./templates/${tempFileName}
+
+Execute the template instructions exactly as written.`;
+      
+      global.latestInvestAnalysis = null;
+      
+      res.write(`data: ${JSON.stringify({ status: 'started', message: 'Analyzing INVEST criteria...' })}\n\n`);
+      
+      await sendToKiro(prompt);
+      
+      // Poll for result
+      const maxAttempts = 180;
+      let attempts = 0;
+      
+      const pollInterval = setInterval(() => {
+        attempts++;
+        
+        if (global.latestInvestAnalysis && (Date.now() - global.latestInvestAnalysis.timestamp) < 30000) {
+          const analysisResponse = global.latestInvestAnalysis;
+          global.latestInvestAnalysis = null;
+          
+          setTimeout(() => {
+            try { unlinkSync(tempFilePath); } catch (e) {}
+          }, 5000);
+          
+          res.write(`data: ${JSON.stringify({ 
+            status: 'complete',
+            success: true,
+            analysis: analysisResponse,
+            elapsed: attempts 
+          })}\n\n`);
+          res.end();
+          clearInterval(pollInterval);
+        } else if (attempts >= maxAttempts) {
+          setTimeout(() => {
+            try { unlinkSync(tempFilePath); } catch (e) {}
+          }, 5000);
+          
+          res.write(`data: ${JSON.stringify({ 
+            status: 'timeout', 
+            error: 'Timeout after 180 seconds' 
+          })}\n\n`);
+          res.end();
+          clearInterval(pollInterval);
+        } else if (attempts % 5 === 0) {
+          res.write(`data: ${JSON.stringify({ 
+            status: 'progress', 
+            message: `Analyzing... ${attempts}s elapsed` 
+          })}\n\n`);
+        }
+      }, 1000);
+      
+    } catch (error) {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+    return;
+  }
+
+  // INVEST analysis endpoint (Legacy)
   if (url.pathname === '/api/analyze-invest' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -1108,7 +1311,74 @@ Execute the template instructions exactly as written.`;
     return;
   }
 
-  // Generate draft endpoint (for frontend Generate button)
+  // Generate draft endpoint (SSE)
+  if (url.pathname === '/api/generate-draft-stream' && req.method === 'GET') {
+    const params = new URLSearchParams(url.search);
+    const feature_description = params.get('feature_description') || 'user login system';
+    const parentId = params.get('parentId') || null;
+    
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    try {
+      const prompt = `Read and follow the template file: ./templates/user-story-generation.md
+
+Feature description: "${feature_description}"
+Parent ID: ${parentId}
+
+Execute the template instructions exactly as written.`;
+      
+      global.latestDraft = null;
+      
+      res.write(`data: ${JSON.stringify({ status: 'started', message: 'Kiro CLI started...' })}\n\n`);
+      
+      await sendToKiro(prompt);
+      
+      // Poll for result
+      const maxAttempts = 180;
+      let attempts = 0;
+      
+      const pollInterval = setInterval(() => {
+        attempts++;
+        
+        if (global.latestDraft && (Date.now() - global.latestDraft.timestamp) < 30000) {
+          const draftResponse = global.latestDraft;
+          global.latestDraft = null;
+          
+          res.write(`data: ${JSON.stringify({ 
+            status: 'complete',
+            ...draftResponse,
+            elapsed: attempts 
+          })}\n\n`);
+          res.end();
+          clearInterval(pollInterval);
+        } else if (attempts >= maxAttempts) {
+          res.write(`data: ${JSON.stringify({ 
+            status: 'timeout', 
+            error: 'Timeout after 180 seconds' 
+          })}\n\n`);
+          res.end();
+          clearInterval(pollInterval);
+        } else if (attempts % 5 === 0) {
+          res.write(`data: ${JSON.stringify({ 
+            status: 'progress', 
+            message: `Generating... ${attempts}s elapsed` 
+          })}\n\n`);
+        }
+      }, 1000);
+      
+    } catch (error) {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+    return;
+  }
+
+  // Generate draft endpoint (Legacy - for frontend Generate button)
   if (url.pathname === '/api/generate-draft' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -1170,7 +1440,97 @@ Execute the template instructions exactly as written.`;
     return;
   }
 
-  // Generate acceptance test draft endpoint
+  // Generate acceptance test draft endpoint (SSE)
+  if (url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft-stream$/) && req.method === 'GET') {
+    const storyIdMatch = url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft-stream$/);
+    const storyId = storyIdMatch[1];
+    
+    const params = new URLSearchParams(url.search);
+    const idea = params.get('idea') || '';
+    
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    
+    try {
+      // Get story data
+      const storyResponse = await fetch(`http://localhost:8081/api/stories/${storyId}`);
+      if (!storyResponse.ok) {
+        res.write(`data: ${JSON.stringify({ error: 'Story not found' })}\n\n`);
+        res.end();
+        return;
+      }
+      const story = await storyResponse.json();
+      
+      const existingTests = story.acceptanceTests || [];
+      const existingTestTitles = existingTests.map(t => t.title).join(', ');
+      
+      const prompt = `Read and follow the template file: ./templates/acceptance-test-generation.md
+
+User Story:
+- Title: ${story.title}
+- Description: ${story.description}
+- As a: ${story.asA}
+- I want: ${story.iWant}
+- So that: ${story.soThat}
+
+Idea: ${idea || '(none - generate default tests)'}
+
+Existing Tests (${existingTests.length}): ${existingTestTitles || '(none)'}
+
+Execute the template instructions exactly as written. Generate 1-2 new tests that avoid duplicating existing tests.`;
+      
+      global.latestAcceptanceTestDraft = null;
+      
+      res.write(`data: ${JSON.stringify({ status: 'started', message: 'Kiro CLI started...' })}\n\n`);
+      
+      await sendToKiro(prompt);
+      
+      // Poll for result
+      const maxAttempts = 180;
+      let attempts = 0;
+      
+      const pollInterval = setInterval(() => {
+        attempts++;
+        
+        if (global.latestAcceptanceTestDraft && (Date.now() - global.latestAcceptanceTestDraft.timestamp) < 30000) {
+          const draftResponse = global.latestAcceptanceTestDraft;
+          global.latestAcceptanceTestDraft = null;
+          
+          res.write(`data: ${JSON.stringify({ 
+            status: 'complete', 
+            success: true,
+            acceptanceTests: draftResponse.acceptanceTests,
+            elapsed: attempts 
+          })}\n\n`);
+          res.end();
+          clearInterval(pollInterval);
+        } else if (attempts >= maxAttempts) {
+          res.write(`data: ${JSON.stringify({ 
+            status: 'timeout', 
+            error: 'Timeout after 180 seconds' 
+          })}\n\n`);
+          res.end();
+          clearInterval(pollInterval);
+        } else if (attempts % 5 === 0) {
+          res.write(`data: ${JSON.stringify({ 
+            status: 'progress', 
+            message: `Generating... ${attempts}s elapsed` 
+          })}\n\n`);
+        }
+      }, 1000);
+      
+    } catch (error) {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+    return;
+  }
+
+  // Generate acceptance test draft endpoint (Legacy - keep for compatibility)
   if (url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft$/) && req.method === 'POST') {
     const storyIdMatch = url.pathname.match(/^\/api\/stories\/(\d+)\/tests\/generate-draft$/);
     const storyId = storyIdMatch[1];
