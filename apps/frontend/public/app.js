@@ -6749,8 +6749,12 @@ function openAcceptanceTestModal(storyId, options = {}) {
       }
       
       try {
+        const kiroApiUrl = window.location.hostname === 'localhost' 
+          ? 'http://localhost:4100'
+          : 'http://44.222.168.46:4100'; // Dev Kiro API Server
+        
         const eventSource = new EventSource(
-          `http://localhost:4100/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`
+          `${kiroApiUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`
         );
         
         eventSource.onmessage = (event) => {
