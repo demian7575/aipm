@@ -6705,7 +6705,9 @@ function openAcceptanceTestModal(storyId, options = {}) {
     }
     statusField.value = 'Draft';
     try {
+      console.log('Fetching acceptance test draft for story:', storyId, 'with idea:', idea);
       const draft = await fetchAcceptanceTestDraft(storyId, idea ? { idea } : undefined);
+      console.log('Draft received:', draft);
       if (!draft) {
         if (draftStatus) {
           draftStatus.textContent = 'Unable to generate draft. Fill in the steps manually.';
@@ -6715,10 +6717,12 @@ function openAcceptanceTestModal(storyId, options = {}) {
       const given = Array.isArray(draft.given) ? draft.given.join('\n') : '';
       const when = Array.isArray(draft.when) ? draft.when.join('\n') : '';
       const then = Array.isArray(draft.then) ? draft.then.join('\n') : '';
+      console.log('Parsed draft fields:', { given, when, then, status: draft.status });
       givenField.value = given;
       whenField.value = when;
       thenField.value = then;
       statusField.value = draft.status || 'Draft';
+      console.log('Fields updated. givenField.value:', givenField.value);
       if (draftStatus) {
         draftStatus.textContent = 'Draft generated! Review and edit before creating.';
       }
