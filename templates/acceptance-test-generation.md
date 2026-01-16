@@ -21,13 +21,11 @@
 **FORBIDDEN**: Any modifications, improvements, creative interpretations, questions, or explanations
 
 ## EXECUTION COMMAND
-**WHEN EXPLICITLY ASKED TO CREATE TESTS**: Generate acceptance tests and execute curl POST to `/api/stories/{storyId}/tests`
-**WHEN ASKED TO GENERATE DRAFT**: Generate draft only and execute curl POST to `/api/stories/{storyId}/tests/draft`
+**WHEN ASKED TO GENERATE DRAFT**: Return draft suggestions only - DO NOT create tests in database
+**NO DATABASE OPERATIONS**: Draft generation does NOT save to database
 **NO QUESTIONS**: Do not ask for clarification
 **NO EXPLANATIONS**: Do not explain what you're doing
-**DISTINGUISH CAREFULLY**: 
-- "Generate Draft" or "draft" → POST to `/api/stories/{storyId}/tests/draft` (does NOT create test)
-- "Create Test" or "create acceptance test" → POST to `/api/stories/{storyId}/tests` (creates actual test)
+**WORKFLOW**: Same as User Story Draft generation - return suggestions without saving
 
 ---
 
@@ -54,32 +52,46 @@ Tests should be: Specific, Measurable, Achievable, Relevant, Time-bound
 - **When**: The action or event that occurs
 - **Then**: The expected outcome or result
 
+### Draft Generation (Does NOT create tests)
+
+**Purpose**: Provide suggestions to help user fill in Given/When/Then fields
+**Output**: JSON object with draft suggestions
+**Database**: NO database operations - draft is NOT saved
+
+Draft generation follows the same pattern as User Story Draft:
+1. User clicks "Generate Draft" button
+2. System returns draft suggestions
+3. User reviews and edits in modal
+4. User clicks "Create Test" to save to database
+
+**DO NOT execute curl commands for draft generation**
+**DO NOT create tests in database**
+**ONLY return draft suggestions**
+
 ### Command Templates
 
-#### For Creating Actual Tests (when explicitly asked to "create test")
+#### Draft Generation Response Format
+```json
+{
+  "given": ["Given step 1", "Given step 2"],
+  "when": ["When step"],
+  "then": ["Then step 1", "Then step 2"]
+}
+```
+
+#### For Creating Actual Tests (ONLY when user clicks "Create Test" button)
+This is handled by the frontend - Kiro CLI should NOT execute this:
 ```bash
+# Frontend will execute this, NOT Kiro CLI
 curl -X POST http://localhost:8081/api/stories/STORY_ID/tests \
   -H 'Content-Type: application/json' \
   -d '{
     "title": "TEST_TITLE",
-    "given": "TEST_GIVEN",
-    "when": "TEST_WHEN",
-    "then": "TEST_THEN",
+    "given": ["step1", "step2"],
+    "when": ["step"],
+    "then": ["step1", "step2"],
     "status": "Draft"
   }'
 ```
 
-#### For Generating Draft Only (when asked to "generate draft")
-```bash
-curl -X POST http://localhost:8081/api/stories/STORY_ID/tests/draft \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "idea": "OPTIONAL_IDEA_TEXT"
-  }'
-```
-
-**CRITICAL DISTINCTION**:
-- `/tests/draft` endpoint: Returns draft suggestions WITHOUT creating tests
-- `/tests` endpoint: Creates actual acceptance tests in the database
-
-**EXECUTE ONCE PER REQUEST**: Replace STORY_ID and placeholders with actual values. After posting, wait for the next request.
+**CRITICAL**: Kiro CLI should ONLY provide draft suggestions, NOT create tests

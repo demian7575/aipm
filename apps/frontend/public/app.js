@@ -6766,63 +6766,9 @@ function openAcceptanceTestModal(storyId, options = {}) {
     }
   }
 
-  // Poll for changes while modal is open (for Kiro CLI integration)
-  let pollInterval = null;
-  let initialTestCount = 0;
-  
-  // Get initial test count
-  const getInitialTestCount = async () => {
-    try {
-      const response = await fetch(resolveApiUrl(`/api/stories/${storyId}`));
-      if (response.ok) {
-        const story = await response.json();
-        initialTestCount = story.acceptanceTests?.length || 0;
-      }
-    } catch (error) {
-      console.error('Failed to get initial test count:', error);
-    }
-  };
-  
-  const startPolling = async () => {
-    await getInitialTestCount();
-    
-    pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(resolveApiUrl(`/api/stories/${storyId}`));
-        if (response.ok) {
-          const updatedStory = await response.json();
-          const currentTestCount = updatedStory.acceptanceTests?.length || 0;
-          
-          // If new tests were added (by Kiro CLI), show notification and close modal
-          if (currentTestCount > initialTestCount) {
-            const newTestsCount = currentTestCount - initialTestCount;
-            showToast(`${newTestsCount} new test(s) added by Kiro CLI`, 'info');
-            stopPolling();
-            closeModal();
-            await loadStories();
-          }
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
-    }, 2000); // Poll every 2 seconds
-  };
-  
-  const stopPolling = () => {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      pollInterval = null;
-    }
-  };
-
   openModal({
     title: test ? 'Edit Acceptance Test' : 'Create Acceptance Test',
     content: container,
-    onClose: async () => {
-      stopPolling();
-      // Reload stories when modal closes to pick up any changes made by Kiro CLI
-      await loadStories();
-    },
     actions: [
       {
         label: test ? 'Save Changes' : 'Create Test',
@@ -6874,11 +6820,6 @@ function openAcceptanceTestModal(storyId, options = {}) {
       },
     ],
   });
-
-  // Start polling for Kiro CLI changes (only for create mode)
-  if (!test) {
-    startPolling();
-  }
 
   // Don't auto-generate draft - let user click Generate button
 }
