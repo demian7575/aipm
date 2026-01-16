@@ -194,6 +194,7 @@ jobs:
           aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ \
             --exclude '.git/*' \
             --exclude 'node_modules/*' \
+            --cache-control "no-cache, no-store, must-revalidate" \
             --delete
           
           echo "✅ Frontend deployed to S3"
