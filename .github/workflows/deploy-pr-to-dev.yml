@@ -54,6 +54,13 @@ jobs:
           fi
           
           echo "✅ PR branch rebased onto latest main"
+          
+          # Ensure working directory reflects rebased state
+          echo "🔄 Updating working directory..."
+          git reset --hard HEAD
+          
+          echo "📊 Current commit: $(git rev-parse --short HEAD)"
+          echo "📊 Files changed from main: $(git diff --name-only origin/main | wc -l)"
       
       - name: Setup Node.js
         uses: actions/setup-node@v3

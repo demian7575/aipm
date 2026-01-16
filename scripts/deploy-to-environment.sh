@@ -164,10 +164,8 @@ EOF
     echo "✅ Backend deployed successfully"
 fi
 
-# Deploy frontend
-echo "📦 Deploying frontend..."
-aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET --delete --cache-control no-cache
-echo "✅ Frontend deployed to S3"
+# Note: Frontend deployment is handled separately by the workflow
+echo "ℹ️  Frontend deployment will be handled by the workflow"
 
 # Verify deployment
 echo "🔍 Verifying deployment..."
