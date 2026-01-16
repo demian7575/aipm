@@ -91,6 +91,53 @@ jobs:
             git diff --name-only origin/main | head -10
           fi
       
+      - name: Run critical gating tests
+        run: |
+          echo "🧪 Running critical gating tests..."
+          
+          # Test 1: JavaScript syntax check
+          echo "  1️⃣ Checking JavaScript syntax..."
+          if [ -f "apps/frontend/public/app.js" ]; then
+            if ! node -c apps/frontend/public/app.js; then
+              echo "❌ Syntax error in app.js"
+              exit 1
+            fi
+            echo "  ✅ app.js syntax OK"
+          fi
+          
+          # Test 2: Brace balance check
+          echo "  2️⃣ Checking brace balance..."
+          if [ -f "apps/frontend/public/app.js" ]; then
+            OPEN=$(grep -o '{' apps/frontend/public/app.js | wc -l)
+            CLOSE=$(grep -o '}' apps/frontend/public/app.js | wc -l)
+            if [ "$OPEN" -ne "$CLOSE" ]; then
+              echo "❌ Unbalanced braces: Open=$OPEN, Close=$CLOSE"
+              exit 1
+            fi
+            echo "  ✅ Braces balanced ($OPEN pairs)"
+          fi
+          
+          # Test 3: Backend syntax check
+          echo "  3️⃣ Checking backend syntax..."
+          if [ -f "apps/backend/app.js" ]; then
+            if ! node -c apps/backend/app.js; then
+              echo "❌ Syntax error in backend app.js"
+              exit 1
+            fi
+            echo "  ✅ Backend syntax OK"
+          fi
+          
+          # Test 4: No console.log in production code (warning only)
+          echo "  4️⃣ Checking for debug statements..."
+          if git diff origin/main apps/frontend/public/app.js | grep -E "^\+.*console\.(log|debug)" > /dev/null; then
+            echo "  ⚠️  Warning: New console.log statements found"
+            echo "     Consider removing before production"
+          else
+            echo "  ✅ No new debug statements"
+          fi
+          
+          echo "✅ Critical gating tests passed"
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
