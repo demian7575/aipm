@@ -41,8 +41,11 @@
    - Execute `git rebase origin/main`
 
 3. **Read TASK File**:
-   - List all TASK*.md files in the repository root: `ls -la TASK*.md`
-   - Read the content of the TASK file (usually TASK.md or TASK-*.md)
+   - The TASK file was created in the first commit of the PR
+   - Find the exact filename: `git log --oneline --all | grep "Add task file" | head -1`
+   - Or list files: `git show HEAD:. | grep TASK`
+   - Read the TASK file from the first commit: `git show $(git log --reverse --format=%H | head -1):TASK-*.md`
+   - Alternative: Read from current branch: `cat TASK-*.md` (the file created by "Create PR")
    - Store the complete file content for reference
 
 4. **Analyze AIPM Codebase**: 
