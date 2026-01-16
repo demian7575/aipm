@@ -18,28 +18,38 @@ jobs:
     environment: development
     
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      
-      - name: Checkout PR branch
+      - name: Get PR branch name
+        id: pr-info
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
           PR_NUMBER="${{ github.event.inputs.pr_number }}"
-          echo "📥 Deploying PR #$PR_NUMBER"
+          echo "📥 Getting info for PR #$PR_NUMBER"
           
           # Get branch name from PR
           BRANCH_NAME=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER" | jq -r '.head.ref')
           
-          echo "Branch: $BRANCH_NAME"
+          if [[ -z "$BRANCH_NAME" || "$BRANCH_NAME" == "null" ]]; then
+            echo "❌ Failed to get branch name for PR #$PR_NUMBER"
+            exit 1
+          fi
           
-          # Checkout PR branch
-          git fetch origin $BRANCH_NAME
-          git checkout $BRANCH_NAME
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "✅ PR branch: $BRANCH_NAME"
+      
+      - name: Checkout PR branch directly
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.pr-info.outputs.branch_name }}
+          fetch-depth: 0
+      
+      - name: Rebase onto latest main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          BRANCH_NAME="${{ steps.pr-info.outputs.branch_name }}"
+          echo "📍 Current branch: $(git branch --show-current)"
+          echo "📍 Current commit: $(git rev-parse --short HEAD)"
           
           # Rebase onto latest main
           echo "🔄 Rebasing onto latest main..."
@@ -57,13 +67,23 @@ jobs:
           
           # Verify we're deploying the rebased code
           echo "🔍 Verifying deployment source..."
+          CURRENT_BRANCH=$(git branch --show-current)
           CURRENT_COMMIT=$(git rev-parse --short HEAD)
           MAIN_COMMIT=$(git rev-parse --short origin/main)
           PR_CHANGES=$(git diff --name-only origin/main | wc -l)
           
+          echo "📊 Current branch: $CURRENT_BRANCH"
           echo "📊 Current commit: $CURRENT_COMMIT"
           echo "📊 Main commit: $MAIN_COMMIT"
           echo "📊 PR changes: $PR_CHANGES files"
+          
+          # Verify we're on the correct branch
+          if [[ "$CURRENT_BRANCH" != "$BRANCH_NAME" ]]; then
+            echo "❌ ERROR: Not on PR branch!"
+            echo "   Expected: $BRANCH_NAME"
+            echo "   Actual: $CURRENT_BRANCH"
+            exit 1
+          fi
           
           # List changed files for verification
           if [ "$PR_CHANGES" -gt 0 ]; then
