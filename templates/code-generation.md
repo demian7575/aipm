@@ -67,12 +67,18 @@
    - Continue implementing and testing until all gating tests pass
    - **MAXIMUM 5 ITERATIONS** - if tests still fail after 5 iterations, report failure
 
-8. **Quality Verification**:
-   - Test functionality locally before committing
-   - Verify all acceptance tests pass
-   - Ensure no breaking changes to existing functionality
+8. **Quality Verification** (MANDATORY):
+   - **Syntax Check**: Run `node -c apps/frontend/public/app.js`
+   - **Brace Balance**: Verify opening and closing braces match
+   - **Test functionality locally** before committing
+   - **Verify all acceptance tests pass**
+   - **Ensure no breaking changes** to existing functionality
+   - **IF ANY CHECK FAILS**: Fix and repeat from step 7
+   - **DO NOT COMMIT** if syntax errors exist
 
-9. **Commit Changes**: 
+9. **Commit Changes** (ONLY IF ALL CHECKS PASS): 
+   - Execute `node -c apps/frontend/public/app.js` (verify syntax)
+   - If syntax error: STOP and fix
    - Execute `git add .`
    - Execute `git commit -m "feat: TASK_TITLE"`
 
