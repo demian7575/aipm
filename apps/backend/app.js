@@ -7568,11 +7568,13 @@ export async function createApp() {
     const testCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/tests$/);
     if (testCreateMatch && method === 'POST') {
       const storyId = Number(testCreateMatch[1]);
+      console.log('🔵 TEST CREATION REQUEST:', { storyId, timestamp: new Date().toISOString() });
       try {
         // Re-evaluate title column existence for this request
         const hasTitleColumn = tableColumns(db, 'acceptance_tests').some((column) => column.name === 'title');
         
         const payload = await parseJson(req);
+        console.log('🔵 TEST CREATION PAYLOAD:', JSON.stringify(payload));
         const { given, when, then } = measurablePayload(payload);
         
         // Use Kiro-based GWT health analysis
