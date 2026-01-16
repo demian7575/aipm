@@ -29,6 +29,7 @@ import { Octokit } from '@octokit/rest';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_OWNER = 'demian7575';
 const GITHUB_REPO = 'aipm';
+const WORK_DIR = process.env.WORK_DIR || process.cwd();
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
@@ -37,7 +38,7 @@ async function syncToBranch(branchName) {
   const execCommand = (cmd) => {
     return new Promise((resolve, reject) => {
       const [command, ...args] = cmd.split(' ');
-      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      const proc = spawn(command, args, { cwd: WORK_DIR });
       
       let output = '';
       proc.stdout.on('data', (data) => output += data.toString());
@@ -93,7 +94,7 @@ async function handlePRConflict(oldBranchName, taskSpecContent, storyId) {
   const execCommand = (cmd) => {
     return new Promise((resolve, reject) => {
       const [command, ...args] = cmd.split(' ');
-      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      const proc = spawn(command, args, { cwd: WORK_DIR });
       
       let output = '';
       proc.stdout.on('data', (data) => output += data.toString());
@@ -125,7 +126,7 @@ async function handlePRConflict(oldBranchName, taskSpecContent, storyId) {
     // Recreate Task Specification file
     const taskFileName = `TASK-${storyId}-${timestamp}.md`;
     const fs = await import('fs');
-    fs.writeFileSync(`/home/ec2-user/aipm/${taskFileName}`, taskSpecContent);
+    fs.writeFileSync(`/${taskFileName}`, taskSpecContent);
     
     await execCommand(`git add ${taskFileName}`);
     await execCommand(`git commit -m "Add task specification for story ${storyId}"`);
@@ -227,7 +228,7 @@ async function commitAndPush(generatedCode, storyId, branch) {
   const execCommand = (cmd) => {
     return new Promise((resolve, reject) => {
       const [command, ...args] = cmd.split(' ');
-      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      const proc = spawn(command, args, { cwd: WORK_DIR });
       
       let output = '';
       proc.stdout.on('data', (data) => output += data.toString());
@@ -251,7 +252,7 @@ async function commitAndPush(generatedCode, storyId, branch) {
       console.log('⚠️ No changes detected in git. Kiro CLI may not have modified files.');
       // Still create a summary file for reference
       const fileName = `kiro-generation-summary-${storyId}.md`;
-      const filePath = `/home/ec2-user/aipm/${fileName}`;
+      const filePath = `/${fileName}`;
       const cleanCode = generatedCode.replace(/\x1b\[[0-9;]*m/g, '').replace(/\u001B\[[0-9;]*[mGK]/g, '');
       writeFileSync(filePath, `# Code Generation Summary for Story #${storyId}\n\n${cleanCode}`);
       await execCommand('git add ' + fileName);
@@ -266,12 +267,12 @@ async function commitAndPush(generatedCode, storyId, branch) {
     // Generate and add task specification to the same commit
     console.log('📝 Generating task specification...');
     const fs = await import('fs');
-    const taskFiles = fs.readdirSync('/home/ec2-user/aipm').filter(f => f.startsWith(`TASK-${storyId}`));
+    const taskFiles = fs.readdirSync(WORK_DIR).filter(f => f.startsWith(`TASK-${storyId}`));
     
     if (taskFiles.length > 0) {
       // Update existing task specification
       const taskFileName = taskFiles[0];
-      const taskFilePath = `/home/ec2-user/aipm/${taskFileName}`;
+      const taskFilePath = `/${taskFileName}`;
       
       // Get current story data from backend
       try {
@@ -335,7 +336,7 @@ function startKiroProcess() {
   if (kiroProcess) return;
   
   console.log('🚀 Starting Kiro CLI process...');
-  const kiroPath = process.env.KIRO_CLI_PATH || '/home/ec2-user/.local/bin/kiro-cli';
+  const kiroPath = process.env.KIRO_CLI_PATH || 'kiro-cli';
   
   kiroProcess = spawn(kiroPath, ['chat', '--trust-all-tools'], {
     stdio: ['pipe', 'pipe', 'pipe']
@@ -2890,9 +2891,9 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         let taskSpecContent = '';
         try {
           const fs = await import('fs');
-          const taskFiles = fs.readdirSync('/home/ec2-user/aipm').filter(f => f.startsWith(`TASK-${storyId}`));
+          const taskFiles = fs.readdirSync(WORK_DIR).filter(f => f.startsWith(`TASK-${storyId}`));
           if (taskFiles.length > 0) {
-            taskSpecContent = fs.readFileSync(`/home/ec2-user/aipm/${taskFiles[0]}`, 'utf8');
+            taskSpecContent = fs.readFileSync(`/${taskFiles[0]}`, 'utf8');
           }
         } catch (error) {
           console.log('⚠️ Could not read Task Specification file:', error.message);
@@ -2979,12 +2980,12 @@ Execute the template instructions exactly as written.`;
         
         // Find existing Task Specification files
         const fs = await import('fs');
-        const taskFiles = fs.readdirSync('/home/ec2-user/aipm').filter(f => f.startsWith(`TASK-${storyId}`));
+        const taskFiles = fs.readdirSync(WORK_DIR).filter(f => f.startsWith(`TASK-${storyId}`));
         
         if (taskFiles.length > 0) {
           // Update existing Task Specification file
           const taskFileName = taskFiles[0];
-          const taskFilePath = `/home/ec2-user/aipm/${taskFileName}`;
+          const taskFilePath = `/${taskFileName}`;
           
           // Generate updated Task Specification content
           const updatedContent = generateTaskSpecContent(storyId, updatedStory);
@@ -3138,7 +3139,7 @@ async function commitTaskSpecUpdate(taskFileName, storyId) {
   const execCommand = (cmd) => {
     return new Promise((resolve, reject) => {
       const [command, ...args] = cmd.split(' ');
-      const proc = spawn(command, args, { cwd: '/home/ec2-user/aipm' });
+      const proc = spawn(command, args, { cwd: WORK_DIR });
       
       let output = '';
       proc.stdout.on('data', (data) => output += data.toString());
