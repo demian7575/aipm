@@ -6756,11 +6756,28 @@ function openAcceptanceTestModal(storyId, options = {}) {
       if (draftStatus) draftStatus.textContent = 'Connecting to Kiro CLI...';
       
       try {
-        const isLocal = ['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]'].includes(window.location.hostname) 
-          || window.location.hostname.startsWith('192.168.') 
-          || window.location.hostname.startsWith('10.') 
-          || window.location.hostname.endsWith('.local');
-        const kiroApiUrl = isLocal ? 'http://localhost:4100' : 'http://44.222.168.46:4100';
+        // Determine Kiro API URL based on environment
+        function getKiroApiUrl() {
+          const hostname = window.location.hostname;
+          
+          // Local development
+          if (['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]'].includes(hostname) 
+              || hostname.startsWith('192.168.') 
+              || hostname.startsWith('10.') 
+              || hostname.endsWith('.local')) {
+            return 'http://localhost:4100';
+          }
+          
+          // Development environment
+          if (hostname.includes('aipm-dev-frontend-hosting') || hostname === '44.222.168.46') {
+            return 'http://44.222.168.46:4100';
+          }
+          
+          // Production environment (default)
+          return 'http://44.220.45.57:4100';
+        }
+        
+        const kiroApiUrl = getKiroApiUrl();
         const eventSource = new EventSource(`${kiroApiUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
         
         eventSource.onmessage = (event) => {
