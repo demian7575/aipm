@@ -7530,8 +7530,10 @@ export async function createApp() {
           sendJson(res, 404, { message: 'Story not found' });
           return;
         }
+        console.log('Generating draft for story:', { id: story.id, title: story.title, acceptanceTestsCount: story.acceptanceTests?.length || 0 });
         const ordinal = story.acceptanceTests.length + 1;
         const draft = await generateAcceptanceTestDraft(story, ordinal, 'manual', { idea });
+        console.log('Draft generated:', { title: draft.title, givenCount: draft.given?.length, whenCount: draft.when?.length, thenCount: draft.then?.length });
         sendJson(res, 200, {
           ...draft,
           status: ACCEPTANCE_TEST_STATUS_DRAFT,
