@@ -7540,13 +7540,21 @@ export async function createApp() {
         const ordinal = story.acceptanceTests.length + 1;
         const draft = await generateAcceptanceTestDraft(story, ordinal, 'manual', { idea });
         console.log('Draft generated:', JSON.stringify(draft));
+        
+        // Ensure arrays are not undefined
+        const given = Array.isArray(draft.given) ? draft.given : [];
+        const when = Array.isArray(draft.when) ? draft.when : [];
+        const then = Array.isArray(draft.then) ? draft.then : [];
+        
+        console.log('Sending response:', { givenLength: given.length, whenLength: when.length, thenLength: then.length });
+        
         sendJson(res, 200, {
-          title: draft.title,
-          given: draft.given,
-          when: draft.when,
-          then: draft.then,
-          source: draft.source,
-          summary: draft.summary,
+          title: draft.title || '',
+          given,
+          when,
+          then,
+          source: draft.source || 'fallback',
+          summary: draft.summary || '',
           status: ACCEPTANCE_TEST_STATUS_DRAFT,
         });
       } catch (error) {
