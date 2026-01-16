@@ -21,10 +21,13 @@
 **FORBIDDEN**: Any modifications, improvements, creative interpretations, questions, or explanations
 
 ## EXECUTION COMMAND
-**WHEN GIVEN STORY DATA**: Generate acceptance tests and execute curl POST immediately
+**WHEN EXPLICITLY ASKED TO CREATE TESTS**: Generate acceptance tests and execute curl POST to `/api/stories/{storyId}/tests`
+**WHEN ASKED TO GENERATE DRAFT**: Generate draft only and execute curl POST to `/api/stories/{storyId}/tests/draft`
 **NO QUESTIONS**: Do not ask for clarification
 **NO EXPLANATIONS**: Do not explain what you're doing
-**EXECUTE CURL**: POST each generated test to the API endpoint
+**DISTINGUISH CAREFULLY**: 
+- "Generate Draft" or "draft" → POST to `/api/stories/{storyId}/tests/draft` (does NOT create test)
+- "Create Test" or "create acceptance test" → POST to `/api/stories/{storyId}/tests` (creates actual test)
 
 ---
 
@@ -51,7 +54,9 @@ Tests should be: Specific, Measurable, Achievable, Relevant, Time-bound
 - **When**: The action or event that occurs
 - **Then**: The expected outcome or result
 
-### Command Template
+### Command Templates
+
+#### For Creating Actual Tests (when explicitly asked to "create test")
 ```bash
 curl -X POST http://localhost:8081/api/stories/STORY_ID/tests \
   -H 'Content-Type: application/json' \
@@ -64,4 +69,17 @@ curl -X POST http://localhost:8081/api/stories/STORY_ID/tests \
   }'
 ```
 
-**EXECUTE ONCE PER REQUEST**: Replace STORY_ID and placeholders with actual values and POST each test to API. After posting all tests, wait for the next request.
+#### For Generating Draft Only (when asked to "generate draft")
+```bash
+curl -X POST http://localhost:8081/api/stories/STORY_ID/tests/draft \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "idea": "OPTIONAL_IDEA_TEXT"
+  }'
+```
+
+**CRITICAL DISTINCTION**:
+- `/tests/draft` endpoint: Returns draft suggestions WITHOUT creating tests
+- `/tests` endpoint: Creates actual acceptance tests in the database
+
+**EXECUTE ONCE PER REQUEST**: Replace STORY_ID and placeholders with actual values. After posting, wait for the next request.
