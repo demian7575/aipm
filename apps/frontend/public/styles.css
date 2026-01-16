@@ -443,6 +443,41 @@ body.is-mindmap-panning {
   max-height: 80vh;
 }
 
+.filter-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 400px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-section h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.filter-section label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.filter-section input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
 .heatmap-controls {
   display: flex;
   align-items: center;
