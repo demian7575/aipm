@@ -6795,6 +6795,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
               }
               await loadStories();
               showToast('Acceptance test updated', 'success');
+              return true; // Close modal
             } else {
               console.log('Creating test for story:', storyId);
               const created = await createAcceptanceTest(storyId, { given, when, then, status });
@@ -6807,6 +6808,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
               await loadStories();
               console.log('Showing success toast');
               showToast('Acceptance test created', 'success');
+              return true; // Close modal
             }
             console.log('onClick completed successfully');
           } catch (error) {
