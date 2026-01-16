@@ -67,6 +67,50 @@ const modalCloseBtn = document.getElementById('modal-close');
 const toastEl = document.getElementById('toast');
 const runtimeDataLink = document.getElementById('runtime-data-link');
 
+// Modal drag state
+let modalDragState = null;
+
+// Make modals draggable by their h2 header
+function initModalDrag() {
+  const modalContent = modal.querySelector('.modal-content');
+  if (!modalContent) return;
+  
+  modalContent.addEventListener('mousedown', (e) => {
+    if (e.target.tagName !== 'H2') return;
+    e.preventDefault();
+    
+    const rect = modalContent.getBoundingClientRect();
+    modalDragState = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialLeft: rect.left,
+      initialTop: rect.top
+    };
+    
+    modalContent.style.position = 'fixed';
+    modalContent.style.left = rect.left + 'px';
+    modalContent.style.top = rect.top + 'px';
+    modalContent.style.margin = '0';
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!modalDragState) return;
+    
+    const modalContent = modal.querySelector('.modal-content');
+    const dx = e.clientX - modalDragState.startX;
+    const dy = e.clientY - modalDragState.startY;
+    
+    modalContent.style.left = (modalDragState.initialLeft + dx) + 'px';
+    modalContent.style.top = (modalDragState.initialTop + dy) + 'px';
+  });
+  
+  document.addEventListener('mouseup', () => {
+    modalDragState = null;
+  });
+}
+
+initModalDrag();
+
 const STORAGE_KEYS = {
   expanded: 'aiPm.expanded',
   selection: 'aiPm.selection',
@@ -6756,28 +6800,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
       if (draftStatus) draftStatus.textContent = 'Connecting to Kiro CLI...';
       
       try {
-        // Determine Kiro API URL based on environment
-        function getKiroApiUrl() {
-          const hostname = window.location.hostname;
-          
-          // Local development
-          if (['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]'].includes(hostname) 
-              || hostname.startsWith('192.168.') 
-              || hostname.startsWith('10.') 
-              || hostname.endsWith('.local')) {
-            return 'http://localhost:4100';
-          }
-          
-          // Development environment
-          if (hostname.includes('aipm-dev-frontend-hosting') || hostname === '44.222.168.46') {
-            return 'http://44.222.168.46:4100';
-          }
-          
-          // Production environment (default)
-          return 'http://44.220.45.57:4100';
-        }
-        
-        const kiroApiUrl = getKiroApiUrl();
+        const kiroApiUrl = window.CONFIG?.KIRO_API_URL || 'http://localhost:4100';
         const eventSource = new EventSource(`${kiroApiUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
         
         eventSource.onmessage = (event) => {

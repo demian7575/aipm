@@ -2220,12 +2220,15 @@ dialog[data-size='content'] .modal-shell {
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   width: 90%;
-  max-width: 900px;
+  max-width: 1200px;
+  position: relative;
 }
 
 .modal-content h2 {
   margin-top: 0;
   margin-bottom: 20px;
+  cursor: move;
+  user-select: none;
 }
 
 .form-group {
