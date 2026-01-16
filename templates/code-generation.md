@@ -38,10 +38,12 @@
    - Execute `git fetch origin`
    - Execute `git stash`
    - Execute `git checkout BRANCH_NAME`
-   - Execute `git rebase origin/main`
+   - Execute `git merge origin/main` (safer than rebase for automated workflows)
+   - If merge conflicts: Report error via SSE and stop workflow
 
 3. **Read TASK File**:
    - Read the TASK file: `cat TASK-STORY_ID-*.md`
+   - If file not found: Report error via SSE and stop workflow
    - Store the complete file content for reference
 
 4. **Analyze AIPM Codebase**: 
@@ -67,9 +69,9 @@
    - Follow requirements exactly as described in the markdown file
    - Implement in appropriate files (app.js, styles.css, backend APIs)
    - Maintain consistency with existing AIPM architecture
-   - Run gating tests after each implementation iteration
+   - Run gating tests: `./scripts/testing/run-structured-gating-tests.sh`
    - Continue implementing and testing until all gating tests pass
-   - **MAXIMUM 5 ITERATIONS** - if tests still fail after 5 iterations, report failure
+   - **MAXIMUM 5 ITERATIONS** - if tests still fail after 5 iterations, report failure via SSE and stop
 
 8. **Quality Verification** (MANDATORY):
    - **Syntax Check**: Run `node -c apps/frontend/public/app.js`
@@ -88,12 +90,16 @@
 
 10. **Push to PR**: 
     - Execute `git push origin BRANCH_NAME`
+    - Verify push succeeded by checking exit code
+    - If push fails: Report error via SSE with details
+    - On success: Send completion event via SSE
 
 ### Input Schema
 ```yaml
 taskTitle: string          # Title of the development task
 objective: string          # What the code should accomplish  
 constraints: string        # Technical constraints or requirements
+storyId: string           # User story ID (for TASK file matching)
 prNumber: number          # GitHub PR number to work on
 branchName: string        # Git branch name for the PR
 language: string          # Programming language (default: javascript)
