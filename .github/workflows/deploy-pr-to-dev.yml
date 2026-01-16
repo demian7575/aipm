@@ -55,12 +55,21 @@ jobs:
           
           echo "✅ PR branch rebased onto latest main"
           
-          # Ensure working directory reflects rebased state
-          echo "🔄 Updating working directory..."
-          git reset --hard HEAD
+          # Verify we're deploying the rebased code
+          echo "🔍 Verifying deployment source..."
+          CURRENT_COMMIT=$(git rev-parse --short HEAD)
+          MAIN_COMMIT=$(git rev-parse --short origin/main)
+          PR_CHANGES=$(git diff --name-only origin/main | wc -l)
           
-          echo "📊 Current commit: $(git rev-parse --short HEAD)"
-          echo "📊 Files changed from main: $(git diff --name-only origin/main | wc -l)"
+          echo "📊 Current commit: $CURRENT_COMMIT"
+          echo "📊 Main commit: $MAIN_COMMIT"
+          echo "📊 PR changes: $PR_CHANGES files"
+          
+          # List changed files for verification
+          if [ "$PR_CHANGES" -gt 0 ]; then
+            echo "📝 Files changed in PR:"
+            git diff --name-only origin/main | head -10
+          fi
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -174,6 +183,14 @@ jobs:
       - name: Deploy frontend to S3
         run: |
           echo "🚀 Deploying frontend to S3..."
+          
+          # Verify we're deploying the correct version
+          echo "🔍 Pre-deployment verification..."
+          echo "📊 Current git commit: $(git rev-parse --short HEAD)"
+          echo "📊 app.js first line: $(head -1 apps/frontend/public/app.js)"
+          echo "📊 app.js size: $(wc -c < apps/frontend/public/app.js) bytes"
+          echo "📊 app.js lines: $(wc -l < apps/frontend/public/app.js) lines"
+          
           aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/ \
             --exclude '.git/*' \
             --exclude 'node_modules/*' \
@@ -181,6 +198,20 @@ jobs:
           
           echo "✅ Frontend deployed to S3"
           echo "🌐 Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
+          
+          # Verify deployment
+          echo "🔍 Post-deployment verification..."
+          sleep 2
+          DEPLOYED_SIZE=$(curl -sI http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/app.js | grep -i content-length | awk '{print $2}' | tr -d '\r')
+          LOCAL_SIZE=$(wc -c < apps/frontend/public/app.js)
+          echo "📊 Deployed app.js size: $DEPLOYED_SIZE bytes"
+          echo "📊 Local app.js size: $LOCAL_SIZE bytes"
+          
+          if [ "$DEPLOYED_SIZE" = "$LOCAL_SIZE" ]; then
+            echo "✅ Deployment verified - sizes match"
+          else
+            echo "⚠️ Size mismatch - may need cache refresh"
+          fi
       
       - name: Verify deployment
         run: |
