@@ -1091,26 +1091,36 @@ Execute the template instructions exactly as written.`;
         // Execute KIRO CLI and wait for completion
         const result = await sendToKiro(prompt);
         
-        // Give KIRO CLI time to post the draft data (increased timeout for reliability)
-        await new Promise(resolve => setTimeout(resolve, 20000));
+        // Poll for draft data (max 180 seconds)
+        const maxAttempts = 180; // 180 seconds
+        const pollInterval = 1000; // 1 second
+        let attempts = 0;
         
-        // Check if we received draft data
-        if (global.latestDraft && (Date.now() - global.latestDraft.timestamp) < 30000) {
-          const draftResponse = global.latestDraft;
-          global.latestDraft = null; // Clear after use
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          attempts++;
           
-          // Return draft data WITHOUT saving to database
-          // Frontend will save when user clicks "Create Story"
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(draftResponse));
-          return;
+          // Check if we received draft data
+          if (global.latestDraft && (Date.now() - global.latestDraft.timestamp) < 30000) {
+            const draftResponse = global.latestDraft;
+            global.latestDraft = null; // Clear after use
+            
+            console.log(`✅ User Story draft received after ${attempts} seconds`);
+            
+            // Return draft data WITHOUT saving to database
+            // Frontend will save when user clicks "Create Story"
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(draftResponse));
+            return;
+          }
         }
         
-        // Fallback - no draft received
+        // Timeout - no draft received
+        console.log(`⏱️ User Story draft timeout after ${maxAttempts} seconds`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false, 
-          error: 'No draft data received from KIRO'
+          error: 'Timeout: No draft data received from KIRO after 180 seconds'
         }));
         
       } catch (error) {
@@ -1164,25 +1174,35 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
         // Execute KIRO CLI and wait for completion
         const result = await sendToKiro(prompt);
         
-        // Give KIRO CLI time to post the draft data
-        await new Promise(resolve => setTimeout(resolve, 20000));
+        // Poll for draft data (max 180 seconds)
+        const maxAttempts = 180; // 180 seconds
+        const pollInterval = 1000; // 1 second
+        let attempts = 0;
         
-        // Check if we received draft data
-        if (global.latestAcceptanceTestDraft && (Date.now() - global.latestAcceptanceTestDraft.timestamp) < 30000) {
-          const draftResponse = global.latestAcceptanceTestDraft;
-          global.latestAcceptanceTestDraft = null; // Clear after use
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          attempts++;
           
-          // Return draft data WITHOUT saving to database
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(draftResponse));
-          return;
+          // Check if we received draft data
+          if (global.latestAcceptanceTestDraft && (Date.now() - global.latestAcceptanceTestDraft.timestamp) < 30000) {
+            const draftResponse = global.latestAcceptanceTestDraft;
+            global.latestAcceptanceTestDraft = null; // Clear after use
+            
+            console.log(`✅ Draft received after ${attempts} seconds`);
+            
+            // Return draft data WITHOUT saving to database
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(draftResponse));
+            return;
+          }
         }
         
-        // Fallback - no draft received
+        // Timeout - no draft received
+        console.log(`⏱️ Draft timeout after ${maxAttempts} seconds`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false, 
-          error: 'No draft data received from KIRO'
+          error: 'Timeout: No draft data received from KIRO after 180 seconds'
         }));
         
       } catch (error) {
