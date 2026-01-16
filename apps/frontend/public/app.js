@@ -6710,6 +6710,15 @@ function openAcceptanceTestModal(storyId, options = {}) {
     generateBtn.disabled = true;
     generateBtn.textContent = 'Generating…';
     
+    // Show progress
+    let elapsed = 0;
+    const progressInterval = setInterval(() => {
+      elapsed++;
+      if (draftStatus) {
+        draftStatus.textContent = `Generating drafts... ${elapsed}s elapsed`;
+      }
+    }, 1000);
+    
     try {
       // Call Kiro API Server (same pattern as User Story Draft)
       const response = await fetch('http://localhost:4100/api/stories/' + storyId + '/tests/generate-draft', {
@@ -6717,6 +6726,8 @@ function openAcceptanceTestModal(storyId, options = {}) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idea })
       });
+
+      clearInterval(progressInterval);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -6768,11 +6779,13 @@ function openAcceptanceTestModal(storyId, options = {}) {
       }
       
     } catch (error) {
+      clearInterval(progressInterval);
       if (draftStatus) {
         draftStatus.textContent = error.message || 'Failed to generate draft.';
       }
       showToast(error.message || 'Unable to generate acceptance test draft', 'error');
     } finally {
+      clearInterval(progressInterval);
       generateBtn.disabled = false;
       generateBtn.textContent = 'Generate Draft';
     }
