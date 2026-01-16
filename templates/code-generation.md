@@ -40,13 +40,18 @@
    - Execute `git checkout BRANCH_NAME`
    - Execute `git rebase origin/main`
 
+3. **Read TASK File**:
+   - List all TASK*.md files in the repository root: `ls -la TASK*.md`
+   - Read the content of the TASK file (usually TASK.md or TASK-*.md)
+   - Store the complete file content for reference
+
 4. **Analyze AIPM Codebase**: 
    - Understand project structure (apps/frontend/public/, apps/backend/, scripts/)
    - Review existing code patterns and conventions
    - Identify integration points and dependencies
 
 5. **Extract Requirements**: 
-   - Read the TASK-*.md file in the PR's placeholder commit
+   - Parse the TASK file content from step 3
    - Extract story details, requirements, expectations, and scope
    - Understand acceptance criteria and success metrics
 
