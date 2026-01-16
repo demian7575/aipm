@@ -6660,22 +6660,16 @@ function openAcceptanceTestModal(storyId, options = {}) {
   const { test = null } = options;
   const isEditMode = Boolean(test);
   
-  // Create modal container
   const container = document.createElement('div');
   container.className = 'modal-form acceptance-test-form';
   
-  // Build HTML structure
   const htmlParts = [];
   
-  // Idea section (only for create mode)
   if (!isEditMode) {
     htmlParts.push(`
-      <div class="idea-section" id="test-idea-section">
-        <label>
-          Idea (Optional)
-          <textarea id="test-idea" placeholder="Describe the scenario or behaviour to cover" rows="2"></textarea>
-        </label>
-        <p class="form-hint">Provide context to help AI generate better test steps. Leave empty for default tests.</p>
+      <div class="idea-section">
+        <label>Idea (Optional)<textarea id="test-idea" placeholder="Describe scenarios to cover" rows="2"></textarea></label>
+        <p class="form-hint">Provide context for AI. Leave empty for default tests.</p>
         <div class="ai-draft-controls">
           <button type="button" class="secondary small" id="ai-draft-generate">Generate Draft</button>
           <p class="ai-draft-status"></p>
@@ -6685,93 +6679,96 @@ function openAcceptanceTestModal(storyId, options = {}) {
         <h4>Generated Drafts</h4>
         <div id="draft-tests-list"></div>
       </div>
+      <div class="acceptance-tests-section">
+        <h4>Acceptance Tests</h4>
+        <div id="acceptance-tests-list"></div>
+        <button type="button" class="secondary small" id="add-test-btn">+ Add Test</button>
+      </div>
     `);
-  }
-  
-  // Test fields
-  htmlParts.push(`
-    <label>
-      Given
-      <textarea id="test-given" placeholder="One step per line" rows="3"></textarea>
-    </label>
-    <label>
-      When
-      <textarea id="test-when" placeholder="One step per line" rows="3"></textarea>
-    </label>
-    <label>
-      Then
-      <textarea id="test-then" placeholder="One observable or measurable step per line" rows="3"></textarea>
-    </label>
-    <label>
-      Status
-      <select id="test-status">
+  } else {
+    htmlParts.push(`
+      <label>Given<textarea id="test-given" placeholder="One step per line" rows="3"></textarea></label>
+      <label>When<textarea id="test-when" placeholder="One step per line" rows="3"></textarea></label>
+      <label>Then<textarea id="test-then" placeholder="One step per line" rows="3"></textarea></label>
+      <label>Status<select id="test-status">
         <option value="Draft">Draft</option>
         <option value="Ready">Ready</option>
         <option value="Pass">Pass</option>
         <option value="Fail">Fail</option>
         <option value="Blocked">Blocked</option>
-      </select>
-    </label>
-  `);
+      </select></label>
+    `);
+  }
   
   container.innerHTML = htmlParts.join('');
   
-  // Get DOM references
   const ideaField = container.querySelector('#test-idea');
   const generateBtn = container.querySelector('#ai-draft-generate');
   const draftStatus = container.querySelector('.ai-draft-status');
   const draftTestsContainer = container.querySelector('#draft-tests-container');
   const draftTestsList = container.querySelector('#draft-tests-list');
-  const givenField = container.querySelector('#test-given');
-  const whenField = container.querySelector('#test-when');
-  const thenField = container.querySelector('#test-then');
-  const statusField = container.querySelector('#test-status');
+  const acceptanceTestsList = container.querySelector('#acceptance-tests-list');
+  const addTestBtn = container.querySelector('#add-test-btn');
   
-  // Populate fields if editing
+  let testCounter = 0;
+  
+  const addTestToList = (testData = {}) => {
+    testCounter++;
+    const testItem = document.createElement('div');
+    testItem.className = 'acceptance-test-item';
+    testItem.style.cssText = 'border: 1px solid #e2e8f0; padding: 1rem; margin-bottom: 1rem; border-radius: 6px;';
+    testItem.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h5 style="margin: 0;">Test #${testCounter}</h5>
+        <button type="button" class="danger small remove-test-btn">Remove</button>
+      </div>
+      <label>Title<input type="text" id="test-title-${testCounter}" value="${testData.title || ''}" placeholder="Test title" /></label>
+      <label>Given<textarea id="test-given-${testCounter}" placeholder="One step per line" rows="2">${testData.given || ''}</textarea></label>
+      <label>When<textarea id="test-when-${testCounter}" placeholder="One step per line" rows="2">${testData.when || ''}</textarea></label>
+      <label>Then<textarea id="test-then-${testCounter}" placeholder="One step per line" rows="2">${testData.then || ''}</textarea></label>
+    `;
+    acceptanceTestsList.appendChild(testItem);
+    testItem.querySelector('.remove-test-btn').addEventListener('click', () => testItem.remove());
+  };
+  
+  if (addTestBtn) {
+    addTestBtn.addEventListener('click', () => addTestToList());
+    addTestToList();
+  }
+  
   if (isEditMode) {
+    const givenField = container.querySelector('#test-given');
+    const whenField = container.querySelector('#test-when');
+    const thenField = container.querySelector('#test-then');
+    const statusField = container.querySelector('#test-status');
     givenField.value = Array.isArray(test.given) ? test.given.join('\n') : '';
     whenField.value = Array.isArray(test.when) ? test.when.join('\n') : '';
     thenField.value = Array.isArray(test.then) ? test.then.join('\n') : '';
     statusField.value = test.status || 'Draft';
   }
   
-  // Draft generation handler
   if (generateBtn) {
     generateBtn.addEventListener('click', async (event) => {
       event.preventDefault();
-      
       const idea = ideaField ? ideaField.value.trim() : '';
       generateBtn.disabled = true;
       generateBtn.textContent = 'Generating…';
-      
-      if (draftStatus) {
-        draftStatus.textContent = 'Connecting to Kiro CLI...';
-      }
+      if (draftStatus) draftStatus.textContent = 'Connecting to Kiro CLI...';
       
       try {
-        const kiroApiUrl = window.location.hostname === 'localhost' 
-          ? 'http://localhost:4100'
-          : 'http://44.222.168.46:4100'; // Dev Kiro API Server
-        
-        const eventSource = new EventSource(
-          `${kiroApiUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`
-        );
+        const kiroApiUrl = window.location.hostname === 'localhost' ? 'http://localhost:4100' : 'http://44.222.168.46:4100';
+        const eventSource = new EventSource(`${kiroApiUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
         
         eventSource.onmessage = (event) => {
           const data = JSON.parse(event.data);
-          
           if (data.status === 'started' || data.status === 'progress') {
-            if (draftStatus) {
-              draftStatus.textContent = data.message;
-            }
+            if (draftStatus) draftStatus.textContent = data.message;
           } else if (data.status === 'complete' && data.success) {
             eventSource.close();
-            
             const drafts = data.acceptanceTests;
             if (drafts && drafts.length > 0) {
               draftTestsContainer.style.display = 'block';
               draftTestsList.innerHTML = '';
-              
               drafts.forEach((draft, index) => {
                 const draftItem = document.createElement('div');
                 draftItem.className = 'draft-test-item';
@@ -6780,27 +6777,19 @@ function openAcceptanceTestModal(storyId, options = {}) {
                   <p><strong>Given:</strong> ${draft.given}</p>
                   <p><strong>When:</strong> ${draft.when}</p>
                   <p><strong>Then:</strong> ${draft.then}</p>
-                  <button type="button" class="secondary small" data-index="${index}">Use This Draft</button>
+                  <button type="button" class="secondary small" data-index="${index}">Add to List</button>
                 `;
                 draftTestsList.appendChild(draftItem);
               });
-              
               draftTestsList.querySelectorAll('button').forEach(btn => {
                 btn.addEventListener('click', () => {
                   const draft = drafts[parseInt(btn.dataset.index)];
-                  givenField.value = draft.given;
-                  whenField.value = draft.when;
-                  thenField.value = draft.then;
-                  statusField.value = 'Draft';
-                  showToast('Draft applied! Review and click Create Test to save.', 'success');
+                  addTestToList({ title: draft.title, given: draft.given, when: draft.when, then: draft.then });
+                  showToast('Draft added to list!', 'success');
                 });
               });
-              
-              if (draftStatus) {
-                draftStatus.textContent = `${drafts.length} draft(s) generated in ${data.elapsed}s!`;
-              }
+              if (draftStatus) draftStatus.textContent = `${drafts.length} draft(s) generated in ${data.elapsed}s!`;
             }
-            
             generateBtn.disabled = false;
             generateBtn.textContent = 'Generate Draft';
           } else if (data.status === 'timeout' || data.error) {
@@ -6811,18 +6800,13 @@ function openAcceptanceTestModal(storyId, options = {}) {
         
         eventSource.onerror = () => {
           eventSource.close();
-          if (draftStatus) {
-            draftStatus.textContent = 'Connection error. Please try again.';
-          }
+          if (draftStatus) draftStatus.textContent = 'Connection error. Please try again.';
           showToast('Failed to connect to Kiro CLI', 'error');
           generateBtn.disabled = false;
           generateBtn.textContent = 'Generate Draft';
         };
-        
       } catch (error) {
-        if (draftStatus) {
-          draftStatus.textContent = error.message || 'Failed to generate draft.';
-        }
+        if (draftStatus) draftStatus.textContent = error.message || 'Failed to generate draft.';
         showToast(error.message || 'Unable to generate acceptance test draft', 'error');
         generateBtn.disabled = false;
         generateBtn.textContent = 'Generate Draft';
@@ -6830,44 +6814,73 @@ function openAcceptanceTestModal(storyId, options = {}) {
     });
   }
   
-  // Open modal with save handler
   openModal({
-    title: isEditMode ? 'Edit Acceptance Test' : 'Create Acceptance Test',
+    title: isEditMode ? 'Edit Acceptance Test' : 'Create Acceptance Tests',
     content: container,
-    actions: [
-      {
-        label: isEditMode ? 'Save Changes' : 'Create Test',
-        onClick: async () => {
+    actions: [{
+      label: isEditMode ? 'Save Changes' : 'Create Tests',
+      onClick: async () => {
+        if (isEditMode) {
+          const givenField = container.querySelector('#test-given');
+          const whenField = container.querySelector('#test-when');
+          const thenField = container.querySelector('#test-then');
+          const statusField = container.querySelector('#test-status');
           const given = splitLines(givenField.value);
           const when = splitLines(whenField.value);
           const then = splitLines(thenField.value);
           const status = statusField.value;
-          
           if (!given.length || !when.length || !then.length) {
             showToast('Please provide Given, When, and Then steps.', 'error');
             return false;
           }
-          
           try {
-            if (isEditMode) {
-              const updated = await updateAcceptanceTest(test.id, { given, when, then, status });
-              if (updated === null) return false;
-              await loadStories();
-              showToast('Acceptance test updated', 'success');
-            } else {
-              const created = await createAcceptanceTest(storyId, { given, when, then, status });
-              if (created === null) return false;
-              await loadStories();
-              showToast('Acceptance test created', 'success');
-            }
+            const updated = await updateAcceptanceTest(test.id, { given, when, then, status });
+            if (updated === null) return false;
+            await loadStories();
+            showToast('Acceptance test updated', 'success');
             return true;
           } catch (error) {
             showToast(error.message || 'Failed to save acceptance test', 'error');
             return false;
           }
-        },
+        } else {
+          const tests = [];
+          const testItems = container.querySelectorAll('.acceptance-test-item');
+          testItems.forEach((item) => {
+            const titleField = item.querySelector('input[id*="test-title"]');
+            const givenField = item.querySelector('textarea[id*="test-given"]');
+            const whenField = item.querySelector('textarea[id*="test-when"]');
+            const thenField = item.querySelector('textarea[id*="test-then"]');
+            const title = titleField?.value.trim();
+            const given = givenField?.value.trim();
+            const when = whenField?.value.trim();
+            const then = thenField?.value.trim();
+            if (title && given && when && then) {
+              tests.push({ title, given, when, then });
+            }
+          });
+          if (tests.length === 0) {
+            showToast('Please add at least one complete test.', 'error');
+            return false;
+          }
+          try {
+            const promises = tests.map(t => createAcceptanceTest(storyId, {
+              given: splitLines(t.given),
+              when: splitLines(t.when),
+              then: splitLines(t.then),
+              status: 'Draft'
+            }));
+            await Promise.all(promises);
+            await loadStories();
+            showToast(`${tests.length} acceptance test(s) created`, 'success');
+            return true;
+          } catch (error) {
+            showToast(error.message || 'Failed to create tests', 'error');
+            return false;
+          }
+        }
       },
-    ],
+    }],
   });
 }
 
