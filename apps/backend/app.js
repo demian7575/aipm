@@ -7536,12 +7536,17 @@ export async function createApp() {
           sendJson(res, 404, { message: 'Story not found' });
           return;
         }
-        console.log('Generating draft for story:', { id: story.id, title: story.title, acceptanceTestsCount: story.acceptanceTests?.length || 0 });
+        console.log('Generating draft for story:', { id: story.id, title: story.title, asA: story.asA, iWant: story.iWant, soThat: story.soThat, acceptanceTestsCount: story.acceptanceTests?.length || 0 });
         const ordinal = story.acceptanceTests.length + 1;
         const draft = await generateAcceptanceTestDraft(story, ordinal, 'manual', { idea });
-        console.log('Draft generated:', { title: draft.title, givenCount: draft.given?.length, whenCount: draft.when?.length, thenCount: draft.then?.length });
+        console.log('Draft generated:', JSON.stringify(draft));
         sendJson(res, 200, {
-          ...draft,
+          title: draft.title,
+          given: draft.given,
+          when: draft.when,
+          then: draft.then,
+          source: draft.source,
+          summary: draft.summary,
           status: ACCEPTANCE_TEST_STATUS_DRAFT,
         });
       } catch (error) {
