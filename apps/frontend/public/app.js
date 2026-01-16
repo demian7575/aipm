@@ -255,7 +255,6 @@ function getVisibleMindmapStories(stories) {
         if (!story) return false;
         if (state.hideCompleted && story.status === 'Done') return false;
         
-        // Apply filters
         if (state.filters.status.length > 0 && !state.filters.status.includes(story.status)) {
           return false;
         }
@@ -655,6 +654,37 @@ if (hideCompletedBtn) {
     persistHideCompleted();
     renderOutline();
     renderMindmap();
+  });
+}
+
+const filterBtn = document.getElementById('filter-btn');
+if (filterBtn) {
+  filterBtn.addEventListener('click', () => {
+    const element = buildFilterModalContent();
+    openModal({
+      title: 'Filter User Stories',
+      content: element,
+      cancelLabel: 'Close',
+      actions: [
+        {
+          label: 'Apply Filters',
+          onClick: () => {
+            applyFilters();
+            renderMindmap();
+            renderOutline();
+          },
+        },
+        {
+          label: 'Clear Filters',
+          variant: 'secondary',
+          onClick: () => {
+            clearFilters();
+            renderMindmap();
+            renderOutline();
+          },
+        },
+      ],
+    });
   });
 }
 
@@ -3918,120 +3948,6 @@ function buildHeatmapModalContent() {
         modal.style.width = '';
         modal.style.maxWidth = '';
         modalBody.style.width = '';
-
-/**
- * Build filter modal content with status, component, and assignee filters
- * @returns {HTMLElement} Filter modal content element
- */
-function buildFilterModalContent() {
-  const container = document.createElement('div');
-  container.className = 'filter-modal';
-
-  const statuses = ['Draft', 'Ready', 'In Progress', 'Blocked', 'Approved', 'Done'];
-  const components = ['System', 'WorkModel', 'DocumentIntelligence', 'Review & Governance', 'Orchestration & Engagement', 'Run & Verify', 'Traceability & Insight'];
-  const assignees = [...new Set(state.stories.map(s => s.assigneeEmail).filter(Boolean))];
-
-  // Status filter
-  const statusSection = document.createElement('div');
-  statusSection.className = 'filter-section';
-  const statusLabel = document.createElement('h3');
-  statusLabel.textContent = 'Status';
-  statusSection.appendChild(statusLabel);
-  statuses.forEach(status => {
-    const label = document.createElement('label');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.value = status;
-    checkbox.checked = state.filters.status.includes(status);
-    checkbox.dataset.filterType = 'status';
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(` ${status}`));
-    statusSection.appendChild(label);
-  });
-  container.appendChild(statusSection);
-
-  // Component filter
-  const componentSection = document.createElement('div');
-  componentSection.className = 'filter-section';
-  const componentLabel = document.createElement('h3');
-  componentLabel.textContent = 'Component';
-  componentSection.appendChild(componentLabel);
-  components.forEach(component => {
-    const label = document.createElement('label');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.value = component;
-    checkbox.checked = state.filters.component.includes(component);
-    checkbox.dataset.filterType = 'component';
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(` ${component}`));
-    componentSection.appendChild(label);
-  });
-  container.appendChild(componentSection);
-
-  // Assignee filter
-  if (assignees.length > 0) {
-    const assigneeSection = document.createElement('div');
-    assigneeSection.className = 'filter-section';
-    const assigneeLabel = document.createElement('h3');
-    assigneeLabel.textContent = 'Assignee';
-    assigneeSection.appendChild(assigneeLabel);
-    assignees.forEach(assignee => {
-      const label = document.createElement('label');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.value = assignee;
-      checkbox.checked = state.filters.assignee.includes(assignee);
-      checkbox.dataset.filterType = 'assignee';
-      label.appendChild(checkbox);
-      label.appendChild(document.createTextNode(` ${assignee}`));
-      assigneeSection.appendChild(label);
-    });
-    container.appendChild(assigneeSection);
-  }
-
-  return container;
-}
-
-/**
- * Apply selected filters from modal checkboxes
- */
-function applyFilters() {
-  const checkboxes = document.querySelectorAll('.filter-modal input[type="checkbox"]');
-  state.filters = { status: [], component: [], assignee: [] };
-  
-  checkboxes.forEach(checkbox => {
-    if (checkbox.checked) {
-      const filterType = checkbox.dataset.filterType;
-      state.filters[filterType].push(checkbox.value);
-    }
-  });
-}
-
-/**
- * Clear all active filters
- */
-function clearFilters() {
-  state.filters = { status: [], component: [], assignee: [] };
-}
-
-function buildHeatmapModalContent() {
-  const container = document.createElement('div');
-  container.className = 'heatmap-modal';
-
-  const data = computeHeatmapData();
-  if (!data.assignees.length) {
-    const placeholder = document.createElement('p');
-    placeholder.className = 'placeholder';
-    placeholder.textContent =
-      'Assign user stories with assignees, components, and story points to see workload distribution.';
-    container.appendChild(placeholder);
-    return {
-      element: container,
-      onClose: () => {
-        modal.style.width = '';
-        modal.style.maxWidth = '';
-        modalBody.style.width = '';
       },
     };
   }
@@ -5459,6 +5375,111 @@ function closeModal() {
     }
     modalTeardown = null;
   }
+}
+
+/**
+ * Build filter modal content with status, component, and assignee checkboxes
+ */
+function buildFilterModalContent() {
+  const container = document.createElement('div');
+  container.className = 'filter-modal';
+
+  const statuses = ['Draft', 'Ready', 'In Progress', 'Blocked', 'Approved', 'Done'];
+  const components = ['System', 'WorkModel', 'DocumentIntelligence', 'Review & Governance', 'Orchestration & Engagement', 'Run & Verify', 'Traceability & Insight'];
+  const assignees = [...new Set(state.stories.flatMap(s => getAllStoryAssignees(s)).filter(Boolean))];
+
+  const statusSection = document.createElement('div');
+  statusSection.className = 'filter-section';
+  const statusLabel = document.createElement('h3');
+  statusLabel.textContent = 'Status';
+  statusSection.appendChild(statusLabel);
+  statuses.forEach(status => {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = status;
+    checkbox.checked = state.filters.status.includes(status);
+    checkbox.dataset.filterType = 'status';
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(` ${status}`));
+    statusSection.appendChild(label);
+  });
+  container.appendChild(statusSection);
+
+  const componentSection = document.createElement('div');
+  componentSection.className = 'filter-section';
+  const componentLabel = document.createElement('h3');
+  componentLabel.textContent = 'Component';
+  componentSection.appendChild(componentLabel);
+  components.forEach(component => {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = component;
+    checkbox.checked = state.filters.component.includes(component);
+    checkbox.dataset.filterType = 'component';
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(` ${component}`));
+    componentSection.appendChild(label);
+  });
+  container.appendChild(componentSection);
+
+  if (assignees.length > 0) {
+    const assigneeSection = document.createElement('div');
+    assigneeSection.className = 'filter-section';
+    const assigneeLabel = document.createElement('h3');
+    assigneeLabel.textContent = 'Assignee';
+    assigneeSection.appendChild(assigneeLabel);
+    assignees.forEach(assignee => {
+      const label = document.createElement('label');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = assignee;
+      checkbox.checked = state.filters.assignee.includes(assignee);
+      checkbox.dataset.filterType = 'assignee';
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(` ${assignee}`));
+      assigneeSection.appendChild(label);
+    });
+    container.appendChild(assigneeSection);
+  }
+
+  return container;
+}
+
+/**
+ * Get all assignees from a story and its children
+ */
+function getAllStoryAssignees(story) {
+  const assignees = [story.assigneeEmail];
+  if (story.children) {
+    story.children.forEach(child => {
+      assignees.push(...getAllStoryAssignees(child));
+    });
+  }
+  return assignees;
+}
+
+/**
+ * Apply selected filters from modal checkboxes
+ */
+function applyFilters() {
+  const checkboxes = document.querySelectorAll('.filter-modal input[type="checkbox"]');
+  state.filters = { status: [], component: [], assignee: [] };
+  
+  checkboxes.forEach(checkbox => {
+    if (checkbox.checked) {
+      const filterType = checkbox.dataset.filterType;
+      state.filters[filterType].push(checkbox.value);
+    }
+  });
+}
+
+/**
+ * Clear all active filters
+ */
+function clearFilters() {
+  state.filters = { status: [], component: [], assignee: [] };
 }
 
 function openModal({
@@ -7646,35 +7667,6 @@ function initialize() {
       cancelLabel: 'Close',
       size: 'content',
       onClose,
-    });
-  });
-
-  const filterBtn = document.getElementById('filter-btn');
-  filterBtn?.addEventListener('click', () => {
-    const element = buildFilterModalContent();
-    openModal({
-      title: 'Filter User Stories',
-      content: element,
-      cancelLabel: 'Close',
-      actions: [
-        {
-          label: 'Apply Filters',
-          onClick: () => {
-            applyFilters();
-            renderMindmap();
-            renderOutline();
-          },
-        },
-        {
-          label: 'Clear Filters',
-          variant: 'secondary',
-          onClick: () => {
-            clearFilters();
-            renderMindmap();
-            renderOutline();
-          },
-        },
-      ],
     });
   });
 
