@@ -6658,25 +6658,52 @@ function openChildStoryModal(parentId) {
 
 function openAcceptanceTestModal(storyId, options = {}) {
   const { test = null } = options;
+  const isEditMode = Boolean(test);
+  
+  // Create modal container
   const container = document.createElement('div');
   container.className = 'modal-form acceptance-test-form';
-  container.innerHTML = `
-    <div class="idea-section" id="test-idea-section" ${test ? 'hidden' : ''}>
-      <label>Idea (Optional)<textarea id="test-idea" placeholder="Describe the scenario or behaviour to cover"></textarea></label>
-      <p class="form-hint">Provide context to help AI generate better test steps. Leave empty for default tests.</p>
-      <div class="ai-draft-controls">
-        <button type="button" class="secondary small" id="ai-draft-generate">Generate Draft</button>
-        <p class="ai-draft-status"></p>
+  
+  // Build HTML structure
+  const htmlParts = [];
+  
+  // Idea section (only for create mode)
+  if (!isEditMode) {
+    htmlParts.push(`
+      <div class="idea-section" id="test-idea-section">
+        <label>
+          Idea (Optional)
+          <textarea id="test-idea" placeholder="Describe the scenario or behaviour to cover" rows="2"></textarea>
+        </label>
+        <p class="form-hint">Provide context to help AI generate better test steps. Leave empty for default tests.</p>
+        <div class="ai-draft-controls">
+          <button type="button" class="secondary small" id="ai-draft-generate">Generate Draft</button>
+          <p class="ai-draft-status"></p>
+        </div>
       </div>
-    </div>
-    <div id="draft-tests-container" style="display: none;">
-      <h4>Generated Drafts</h4>
-      <div id="draft-tests-list"></div>
-    </div>
-    <label>Given<textarea id="test-given" placeholder="One step per line"></textarea></label>
-    <label>When<textarea id="test-when" placeholder="One step per line"></textarea></label>
-    <label>Then<textarea id="test-then" placeholder="One observable or measurable step per line"></textarea></label>
-    <label>Status
+      <div id="draft-tests-container" style="display: none;">
+        <h4>Generated Drafts</h4>
+        <div id="draft-tests-list"></div>
+      </div>
+    `);
+  }
+  
+  // Test fields
+  htmlParts.push(`
+    <label>
+      Given
+      <textarea id="test-given" placeholder="One step per line" rows="3"></textarea>
+    </label>
+    <label>
+      When
+      <textarea id="test-when" placeholder="One step per line" rows="3"></textarea>
+    </label>
+    <label>
+      Then
+      <textarea id="test-then" placeholder="One observable or measurable step per line" rows="3"></textarea>
+    </label>
+    <label>
+      Status
       <select id="test-status">
         <option value="Draft">Draft</option>
         <option value="Ready">Ready</option>
@@ -6685,184 +6712,152 @@ function openAcceptanceTestModal(storyId, options = {}) {
         <option value="Blocked">Blocked</option>
       </select>
     </label>
-  `;
-
-  const draftControls = container.querySelector('.ai-draft-controls');
-  const draftStatus = container.querySelector('.ai-draft-status');
-  const generateBtn = container.querySelector('#ai-draft-generate');
+  `);
+  
+  container.innerHTML = htmlParts.join('');
+  
+  // Get DOM references
   const ideaField = container.querySelector('#test-idea');
-  const ideaSection = container.querySelector('#test-idea-section');
+  const generateBtn = container.querySelector('#ai-draft-generate');
+  const draftStatus = container.querySelector('.ai-draft-status');
   const draftTestsContainer = container.querySelector('#draft-tests-container');
   const draftTestsList = container.querySelector('#draft-tests-list');
   const givenField = container.querySelector('#test-given');
   const whenField = container.querySelector('#test-when');
   const thenField = container.querySelector('#test-then');
   const statusField = container.querySelector('#test-status');
-
-  async function loadDraft() {
-    if (!generateBtn) return;
-    
-    if (draftStatus) {
-      draftStatus.textContent = 'Connecting to Kiro CLI...';
-    }
-    
-    const idea = ideaField ? ideaField.value.trim() : '';
-    generateBtn.disabled = true;
-    generateBtn.textContent = 'Generating…';
-    
-    try {
-      // Use SSE for real-time progress
-      const eventSource = new EventSource(
-        `http://localhost:4100/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`
-      );
-      
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.status === 'started') {
-          if (draftStatus) {
-            draftStatus.textContent = data.message;
-          }
-        } else if (data.status === 'progress') {
-          if (draftStatus) {
-            draftStatus.textContent = data.message;
-          }
-        } else if (data.status === 'complete' && data.success) {
-          eventSource.close();
-          
-          const drafts = data.acceptanceTests;
-          
-          if (drafts && drafts.length > 0) {
-            draftTestsContainer.style.display = 'block';
-            draftTestsList.innerHTML = '';
-            
-            drafts.forEach((draft, index) => {
-              const draftItem = document.createElement('div');
-              draftItem.className = 'draft-test-item';
-              draftItem.innerHTML = `
-                <h5>${draft.title}</h5>
-                <p><strong>Given:</strong> ${draft.given}</p>
-                <p><strong>When:</strong> ${draft.when}</p>
-                <p><strong>Then:</strong> ${draft.then}</p>
-                <button type="button" class="secondary small" data-index="${index}">Use This Draft</button>
-              `;
-              draftTestsList.appendChild(draftItem);
-            });
-            
-            draftTestsList.querySelectorAll('button').forEach(btn => {
-              btn.addEventListener('click', () => {
-                const index = parseInt(btn.dataset.index);
-                const draft = drafts[index];
-                givenField.value = draft.given;
-                whenField.value = draft.when;
-                thenField.value = draft.then;
-                statusField.value = 'Draft';
-                showToast('Draft applied! Review and click Create Test to save.', 'success');
-              });
-            });
-            
-            if (draftStatus) {
-              draftStatus.textContent = `${drafts.length} draft(s) generated in ${data.elapsed}s! Click "Use This Draft" or edit manually.`;
-            }
-          }
-          
-          generateBtn.disabled = false;
-          generateBtn.textContent = 'Generate Draft';
-        } else if (data.status === 'timeout' || data.error) {
-          eventSource.close();
-          throw new Error(data.error || 'Draft generation timeout');
-        }
-      };
-      
-      eventSource.onerror = (error) => {
-        eventSource.close();
-        if (draftStatus) {
-          draftStatus.textContent = 'Connection error. Please try again.';
-        }
-        showToast('Failed to connect to Kiro CLI', 'error');
-        generateBtn.disabled = false;
-        generateBtn.textContent = 'Generate Draft';
-      };
-      
-    } catch (error) {
-      if (draftStatus) {
-        draftStatus.textContent = error.message || 'Failed to generate draft.';
-      }
-      showToast(error.message || 'Unable to generate acceptance test draft', 'error');
-      generateBtn.disabled = false;
-      generateBtn.textContent = 'Generate Draft';
-    }
-  }
-
-  if (generateBtn) {
-    generateBtn.addEventListener('click', (event) => {
-      event.preventDefault();
-      loadDraft();
-    });
-  }
-
-  if (test) {
+  
+  // Populate fields if editing
+  if (isEditMode) {
     givenField.value = Array.isArray(test.given) ? test.given.join('\n') : '';
     whenField.value = Array.isArray(test.when) ? test.when.join('\n') : '';
     thenField.value = Array.isArray(test.then) ? test.then.join('\n') : '';
-    if (typeof test.status === 'string') {
-      statusField.value = test.status;
-    }
-    if (draftControls) {
-      draftControls.hidden = true;
-    }
-    if (ideaSection) {
-      ideaSection.hidden = true;
-    }
+    statusField.value = test.status || 'Draft';
   }
-
+  
+  // Draft generation handler
+  if (generateBtn) {
+    generateBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      
+      const idea = ideaField ? ideaField.value.trim() : '';
+      generateBtn.disabled = true;
+      generateBtn.textContent = 'Generating…';
+      
+      if (draftStatus) {
+        draftStatus.textContent = 'Connecting to Kiro CLI...';
+      }
+      
+      try {
+        const eventSource = new EventSource(
+          `http://localhost:4100/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`
+        );
+        
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          
+          if (data.status === 'started' || data.status === 'progress') {
+            if (draftStatus) {
+              draftStatus.textContent = data.message;
+            }
+          } else if (data.status === 'complete' && data.success) {
+            eventSource.close();
+            
+            const drafts = data.acceptanceTests;
+            if (drafts && drafts.length > 0) {
+              draftTestsContainer.style.display = 'block';
+              draftTestsList.innerHTML = '';
+              
+              drafts.forEach((draft, index) => {
+                const draftItem = document.createElement('div');
+                draftItem.className = 'draft-test-item';
+                draftItem.innerHTML = `
+                  <h5>${draft.title}</h5>
+                  <p><strong>Given:</strong> ${draft.given}</p>
+                  <p><strong>When:</strong> ${draft.when}</p>
+                  <p><strong>Then:</strong> ${draft.then}</p>
+                  <button type="button" class="secondary small" data-index="${index}">Use This Draft</button>
+                `;
+                draftTestsList.appendChild(draftItem);
+              });
+              
+              draftTestsList.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                  const draft = drafts[parseInt(btn.dataset.index)];
+                  givenField.value = draft.given;
+                  whenField.value = draft.when;
+                  thenField.value = draft.then;
+                  statusField.value = 'Draft';
+                  showToast('Draft applied! Review and click Create Test to save.', 'success');
+                });
+              });
+              
+              if (draftStatus) {
+                draftStatus.textContent = `${drafts.length} draft(s) generated in ${data.elapsed}s!`;
+              }
+            }
+            
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Draft';
+          } else if (data.status === 'timeout' || data.error) {
+            eventSource.close();
+            throw new Error(data.error || 'Draft generation timeout');
+          }
+        };
+        
+        eventSource.onerror = () => {
+          eventSource.close();
+          if (draftStatus) {
+            draftStatus.textContent = 'Connection error. Please try again.';
+          }
+          showToast('Failed to connect to Kiro CLI', 'error');
+          generateBtn.disabled = false;
+          generateBtn.textContent = 'Generate Draft';
+        };
+        
+      } catch (error) {
+        if (draftStatus) {
+          draftStatus.textContent = error.message || 'Failed to generate draft.';
+        }
+        showToast(error.message || 'Unable to generate acceptance test draft', 'error');
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate Draft';
+      }
+    });
+  }
+  
+  // Open modal with save handler
   openModal({
-    title: test ? 'Edit Acceptance Test' : 'Create Acceptance Test',
+    title: isEditMode ? 'Edit Acceptance Test' : 'Create Acceptance Test',
     content: container,
     actions: [
       {
-        label: test ? 'Save Changes' : 'Create Test',
+        label: isEditMode ? 'Save Changes' : 'Create Test',
         onClick: async () => {
-          console.log('Create Test clicked');
           const given = splitLines(givenField.value);
           const when = splitLines(whenField.value);
           const then = splitLines(thenField.value);
           const status = statusField.value;
-          console.log('Parsed fields:', { given, when, then, status });
+          
           if (!given.length || !when.length || !then.length) {
-            console.log('Validation failed: empty fields');
             showToast('Please provide Given, When, and Then steps.', 'error');
             return false;
           }
+          
           try {
-            if (test) {
-              console.log('Updating test:', test.id);
+            if (isEditMode) {
               const updated = await updateAcceptanceTest(test.id, { given, when, then, status });
-              console.log('Update result:', updated);
-              if (updated === null) {
-                console.log('Update returned null, keeping modal open');
-                return false;
-              }
+              if (updated === null) return false;
               await loadStories();
               showToast('Acceptance test updated', 'success');
-              return true; // Close modal
             } else {
-              console.log('Creating test for story:', storyId);
               const created = await createAcceptanceTest(storyId, { given, when, then, status });
-              console.log('Create result:', created);
-              if (created === null) {
-                console.log('Create returned null, keeping modal open');
-                return false;
-              }
-              console.log('Loading stories...');
+              if (created === null) return false;
               await loadStories();
-              console.log('Showing success toast');
               showToast('Acceptance test created', 'success');
-              return true; // Close modal
             }
-            console.log('onClick completed successfully');
+            return true;
           } catch (error) {
-            console.error('onClick error:', error);
             showToast(error.message || 'Failed to save acceptance test', 'error');
             return false;
           }
@@ -6870,8 +6865,6 @@ function openAcceptanceTestModal(storyId, options = {}) {
       },
     ],
   });
-
-  // Don't auto-generate draft - let user click Generate button
 }
 
 function openTaskModal(storyId, task = null) {
