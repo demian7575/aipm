@@ -73,7 +73,12 @@ Running `npm install` creates a lockfile for reproducibility. No packages are do
 
 ```bash
 npm install
+
+# Install Git hooks (recommended)
+./scripts/install-hooks.sh
 ```
+
+**Git Hooks**: The pre-commit hook prevents committing code with syntax errors. This is especially important for AI-generated code.
 
 ## Development
 

@@ -1,0 +1,32 @@
+#!/bin/bash
+# Pre-commit hook to prevent committing broken code
+# This file is tracked in the repo and installed via scripts/install-hooks.sh
+
+echo "🔍 Running pre-commit checks..."
+
+# Check JavaScript syntax
+echo "  Checking JavaScript syntax..."
+if [ -f "apps/frontend/public/app.js" ]; then
+  if ! node -c apps/frontend/public/app.js 2>/dev/null; then
+    echo "❌ Syntax error in apps/frontend/public/app.js"
+    echo "   Fix the syntax errors before committing"
+    exit 1
+  fi
+  echo "  ✅ app.js syntax OK"
+fi
+
+# Check for balanced braces
+echo "  Checking brace balance..."
+if [ -f "apps/frontend/public/app.js" ]; then
+  OPEN=$(grep -o '{' apps/frontend/public/app.js | wc -l)
+  CLOSE=$(grep -o '}' apps/frontend/public/app.js | wc -l)
+  if [ "$OPEN" -ne "$CLOSE" ]; then
+    echo "❌ Unbalanced braces in app.js"
+    echo "   Open: $OPEN, Close: $CLOSE"
+    exit 1
+  fi
+  echo "  ✅ Braces balanced ($OPEN pairs)"
+fi
+
+echo "✅ Pre-commit checks passed"
+exit 0

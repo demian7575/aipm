@@ -94,6 +94,12 @@ echo "Checking out branch: $1"
 git checkout $1
 git reset --hard origin/$1
 echo "Code updated successfully to branch: $1"
+
+# Install Git hooks to prevent committing broken code
+if [ -f scripts/install-hooks.sh ]; then
+    echo "Installing Git hooks..."
+    bash scripts/install-hooks.sh
+fi
 EOF
     
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/deploy_commands.sh ec2-user@$HOST:/tmp/
