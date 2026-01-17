@@ -3183,8 +3183,8 @@ async function analyzeInvest(story, options = {}) {
       
       const timeout = setTimeout(() => {
         req.destroy();
-        reject(new Error('AI analysis timeout after 45 seconds'));
-      }, 45000);
+        reject(new Error('AI analysis timeout after 90 seconds'));
+      }, 90000); // Increased from 45s to 90s
       
       const req = http.get(url, (res) => {
         let buffer = '';
