@@ -5475,11 +5475,12 @@ async function loadStories(db, options = {}) {
       story.investHealth = { satisfied: story.investSatisfied, issues: warnings };
       story.investAnalysis = storedAnalysis;
     } else {
-      // Fallback: calculate if not stored (for old data)
-      const analysis = buildBaselineInvestAnalysis(story, {
-        acceptanceTests: story.acceptanceTests,
-        includeTestChecks: true,
-      });
+      // No stored analysis - don't calculate heuristic
+      const analysis = {
+        warnings: [],
+        source: 'none',
+        summary: 'No INVEST analysis available. Click "Run AI check" to analyze.'
+      };
       applyInvestAnalysisToStory(story, analysis);
     }
   });
