@@ -5209,7 +5209,9 @@ function renderStoryDetailsWithCompleteData(story) {
   `;
   const childList = document.createElement('ul');
   childList.className = 'child-story-list';
+  console.log('👶 Rendering children for story', story.id, '- children count:', story.children?.length || 0);
   if (story.children && story.children.length) {
+    console.log('👶 Children IDs:', story.children.map(c => c.id));
     story.children.forEach((child) => {
       const li = document.createElement('li');
       li.className = 'child-story-item';
