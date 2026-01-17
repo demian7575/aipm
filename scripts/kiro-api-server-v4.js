@@ -2302,19 +2302,30 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         // Extract numeric story ID for MCP
         const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
         
-        // Use MCP for story data and git operations
-        const kiroPrompt = `Read and follow the template file: ./templates/code-generation.md
+        // Read and customize template
+        const fs = require('fs');
+        const path = require('path');
+        const templatePath = path.join(__dirname, '..', 'templates', 'code-generation-v2.md');
+        let template = fs.readFileSync(templatePath, 'utf-8');
+        
+        // Build complete prompt with actual values
+        const kiroPrompt = `${template}
 
-Use MCP tool get_story with storyId: ${numericStoryId}
-Use MCP tool git_prepare_branch with branchName: ${originalBranch}
+## EXECUTION CONTEXT
+You are now executing this template with the following values:
 
-Task Title: Code Generation for Story ${storyId}
-Objective: ${prompt}
-PR Number: ${prNumber}
-Branch Name: ${originalBranch}
-Language: javascript
+**Story ID**: ${numericStoryId}
+**Branch Name**: ${originalBranch}
+**PR Number**: ${prNumber}
+**Task Title**: ${prompt}
 
-Execute the template instructions exactly as written.`;
+## INSTRUCTIONS
+1. Use MCP tool get_story with storyId: ${numericStoryId}
+2. Use MCP tool git_prepare_branch with branchName: ${originalBranch}
+3. Implement the feature as described in the story
+4. Use MCP tool git_commit_and_push with branchName: ${originalBranch} and commitMessage: "feat: ${prompt}"
+
+Execute now.`;
 
         console.log('📤 Calling Kiro CLI with code generation contract...');
         
