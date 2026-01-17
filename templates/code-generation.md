@@ -23,17 +23,16 @@ The prompt provides these variables:
 
 ### 3. Implement (Max 5 iterations)
 ```
-LOOP until all acceptance tests pass OR 5 iterations:
+LOOP until code is valid OR 5 iterations:
   a. Write code following story requirements
-  b. Run: `./scripts/testing/run-structured-gating-tests.sh`
-  c. If tests fail: Fix issues and repeat
-  d. If iteration 5 and tests fail: Report failure and STOP
+  b. Use MCP: verify_code({ filePath: "apps/frontend/public/app.js" })
+  c. If verification fails: Fix issues and repeat
+  d. If iteration 5 and still failing: Report failure and STOP
 ```
 
 ### 4. Quality Check (MANDATORY)
-- Syntax: `node -c apps/frontend/public/app.js` (must pass)
-- Braces: Verify balanced opening/closing
-- Tests: All acceptance tests pass
+- Use MCP: verify_code for all modified files
+- Verify: syntaxValid = true, bracesBalanced = true
 - If ANY fail: Fix and return to step 3
 
 ### 5. Commit & Push (MCP)

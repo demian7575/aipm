@@ -170,6 +170,20 @@ server.setRequestHandler('tools/list', async () => ({
       }
     },
     {
+      name: 'verify_code',
+      description: 'Verify JavaScript code syntax and brace balance',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          filePath: {
+            type: 'string',
+            description: 'Path to JavaScript file (e.g., apps/frontend/public/app.js)'
+          }
+        },
+        required: ['filePath']
+      }
+    },
+    {
       name: 'git_commit_and_push',
       description: 'Commit all changes and push to remote branch',
       inputSchema: {
@@ -536,6 +550,46 @@ server.setRequestHandler('tools/call', async (request) => {
         }
       }
 
+      case 'verify_code': {
+        const { filePath } = args;
+        
+        try {
+          // Check syntax
+          const syntaxCheck = execCommand(`node -c ${filePath}`, WORK_DIR);
+          
+          // Count braces
+          const content = fs.readFileSync(path.join(WORK_DIR, filePath), 'utf-8');
+          const openBraces = (content.match(/{/g) || []).length;
+          const closeBraces = (content.match(/}/g) || []).length;
+          
+          const result = {
+            syntaxValid: syntaxCheck.success,
+            bracesBalanced: openBraces === closeBraces,
+            openBraces,
+            closeBraces
+          };
+          
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2)
+              }
+            ]
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ error: error.message, syntaxValid: false })
+              }
+            ],
+            isError: true
+          };
+        }
+      }
+      
       case 'git_commit_and_push': {
         const { branchName, commitMessage } = args;
         
