@@ -28,18 +28,22 @@ Write code following story requirements and existing patterns
 - Use MCP: `verify_code({ filePath: "apps/frontend/public/app.js" })`
 - Check: syntaxValid = true, bracesBalanced = true
 - If fails: Fix and retry (max 3 attempts)
+- If still failing after 3 attempts: Return to step 2
 
-### 5. Run Tests (MANDATORY)
+### 5. Run Gating Tests (MANDATORY)
 - Use MCP: `run_tests({ timeout: 60 })`
 - Check: success = true, failed = 0
 - If fails: Fix code and return to step 3 (max 3 attempts)
-- If still failing after 3 attempts: Report failure and STOP
+- If still failing after 3 attempts: Return to step 2
 
-### 6. Commit & Push (MCP)
+### 6. Final Check
+- If returned to step 2 more than 2 times: Report failure and STOP
+
+### 7. Commit & Push (MCP)
 - `git_commit_and_push({ branchName: <use branchName variable>, commitMessage: "feat: <story title>" })`
 - If success = false: Report error and STOP
 
-### 7. Report
+### 8. Report
 ```json
 {
   "status": "success|failure",
