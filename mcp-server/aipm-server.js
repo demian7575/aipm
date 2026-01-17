@@ -147,6 +147,24 @@ server.setRequestHandler('tools/list', async () => ({
         },
         required: ['branchName']
       }
+    },
+    {
+      name: 'git_commit_and_push',
+      description: 'Commit all changes and push to remote branch',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          branchName: {
+            type: 'string',
+            description: 'Branch name to push to'
+          },
+          commitMessage: {
+            type: 'string',
+            description: 'Commit message'
+          }
+        },
+        required: ['branchName', 'commitMessage']
+      }
     }
   ]
 }));
@@ -510,6 +528,68 @@ server.setRequestHandler('tools/call', async (request) => {
                 status: 'error',
                 message: 'Git operation failed',
                 error: error.message
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
+      }
+
+      case 'git_commit_and_push': {
+        const { branchName, commitMessage } = args;
+        const { spawn } = await import('child_process');
+        
+        const execCommand = (cmd) => {
+          return new Promise((resolve, reject) => {
+            const [command, ...cmdArgs] = cmd.split(' ');
+            const proc = spawn(command, cmdArgs, { cwd: process.cwd() });
+            
+            let output = '';
+            proc.stdout.on('data', (data) => output += data.toString());
+            proc.stderr.on('data', (data) => output += data.toString());
+            
+            proc.on('close', (code) => {
+              if (code === 0) {
+                resolve(output);
+              } else {
+                reject(new Error(`Command failed: ${cmd}\n${output}`));
+              }
+            });
+          });
+        };
+        
+        try {
+          // Add all changes
+          await execCommand('git add .');
+          
+          // Commit with message
+          await execCommand(`git commit -m "${commitMessage}"`);
+          
+          // Get commit hash
+          const commitHash = (await execCommand('git rev-parse HEAD')).trim();
+          
+          // Push to remote
+          await execCommand(`git push origin ${branchName}`);
+          
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: true,
+                commitHash: commitHash,
+                branch: branchName,
+                message: 'Changes committed and pushed successfully'
+              }, null, 2)
+            }]
+          };
+        } catch (error) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: error.message,
+                message: 'Git commit/push failed'
               }, null, 2)
             }],
             isError: true
