@@ -59,6 +59,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const hideCompletedBtn = document.getElementById('hide-completed-btn');
+const filterBtn = document.getElementById('filter-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -293,16 +294,25 @@ for (const [alias, canonical] of COMPONENT_SYNONYMS.entries()) {
 }
 
 function getVisibleMindmapStories(stories) {
-  const filterDoneStories = (entries) => {
+  const hasFilters = state.filters.status.length > 0 || 
+                     state.filters.component.length > 0 || 
+                     state.filters.assignee.length > 0;
+  
+  const filterStories = (entries) => {
     return entries
-      .filter((story) => story && (!state.hideCompleted || story.status !== 'Done'))
+      .filter((story) => {
+        if (!story) return false;
+        if (state.hideCompleted && story.status === 'Done') return false;
+        if (hasFilters && !matchesFilters(story)) return false;
+        return true;
+      })
       .map((story) => ({
         ...story,
-        children: story.children ? filterDoneStories(story.children) : [],
+        children: story.children ? filterStories(story.children) : [],
       }));
   };
 
-  return filterDoneStories(Array.isArray(stories) ? stories : []);
+  return filterStories(Array.isArray(stories) ? stories : []);
 }
 
 function seedManualPositionsFromAutoLayout() {
@@ -426,6 +436,11 @@ const state = {
   autoLayout: true,
   showDependencies: false,
   hideCompleted: false,
+  filters: {
+    status: [],
+    component: [],
+    assignee: []
+  },
   mindmapZoom: 1,
   panelVisibility: {
     outline: true,
@@ -676,6 +691,10 @@ if (hideCompletedBtn) {
     renderOutline();
     renderMindmap();
   });
+}
+
+if (filterBtn) {
+  filterBtn.addEventListener('click', openFilterModal);
 }
 
 if (mindmapZoomInBtn) {
@@ -2655,8 +2674,21 @@ function updateWorkspaceColumns() {
 }
 
 function getVisibleStories() {
-  if (!state.hideCompleted) return state.stories;
-  return state.stories.filter(story => story.status !== 'Done');
+  let stories = state.stories;
+  
+  if (state.hideCompleted) {
+    stories = stories.filter(story => story.status !== 'Done');
+  }
+  
+  const hasFilters = state.filters.status.length > 0 || 
+                     state.filters.component.length > 0 || 
+                     state.filters.assignee.length > 0;
+  
+  if (hasFilters) {
+    stories = stories.filter(story => matchesFilters(story));
+  }
+  
+  return stories;
 }
 
 function renderOutline() {
@@ -2705,7 +2737,20 @@ function renderOutline() {
     list.appendChild(row);
 
     if (story.children && story.children.length > 0 && state.expanded.has(story.id)) {
-      const visibleChildren = state.hideCompleted ? story.children.filter(child => child.status !== 'Done') : story.children;
+      let visibleChildren = story.children;
+      
+      if (state.hideCompleted) {
+        visibleChildren = visibleChildren.filter(child => child.status !== 'Done');
+      }
+      
+      const hasFilters = state.filters.status.length > 0 || 
+                         state.filters.component.length > 0 || 
+                         state.filters.assignee.length > 0;
+      
+      if (hasFilters) {
+        visibleChildren = visibleChildren.filter(child => matchesFilters(child));
+      }
+      
       visibleChildren.forEach((child) => renderNode(child, depth + 1));
     }
   }
@@ -8073,3 +8118,121 @@ window.cleanupKiroQueue = async function() {
     throw error;
   }
 };
+
+
+/**
+ * Opens filter modal for filtering user stories
+ */
+function openFilterModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+
+  const allStatuses = ['Draft', 'Ready', 'In Progress', 'Blocked', 'Approved', 'Done'];
+  const allComponents = ['System', 'WorkModel', 'DocumentIntelligence', 'Review & Governance', 'Orchestration & Engagement', 'Run & Verify', 'Traceability & Insight'];
+  const allAssignees = [...new Set(state.stories.map(s => s.assigneeEmail).filter(Boolean))];
+
+  const form = document.createElement('form');
+  form.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      <fieldset>
+        <legend>Status</legend>
+        ${allStatuses.map(status => `
+          <label style="display:block;">
+            <input type="checkbox" name="status" value="${status}" ${state.filters.status.includes(status) ? 'checked' : ''} />
+            ${status}
+          </label>
+        `).join('')}
+      </fieldset>
+      
+      <fieldset>
+        <legend>Component</legend>
+        ${allComponents.map(comp => `
+          <label style="display:block;">
+            <input type="checkbox" name="component" value="${comp}" ${state.filters.component.includes(comp) ? 'checked' : ''} />
+            ${comp}
+          </label>
+        `).join('')}
+      </fieldset>
+      
+      <fieldset>
+        <legend>Assignee</legend>
+        ${allAssignees.length > 0 ? allAssignees.map(assignee => `
+          <label style="display:block;">
+            <input type="checkbox" name="assignee" value="${assignee}" ${state.filters.assignee.includes(assignee) ? 'checked' : ''} />
+            ${assignee}
+          </label>
+        `).join('') : '<p>No assignees found</p>'}
+      </fieldset>
+      
+      <div style="display:flex; gap:0.5rem;">
+        <button type="submit">Apply Filters</button>
+        <button type="button" id="clear-filters-btn" class="secondary">Clear All</button>
+      </div>
+    </div>
+  `;
+  container.appendChild(form);
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    
+    state.filters.status = formData.getAll('status');
+    state.filters.component = formData.getAll('component');
+    state.filters.assignee = formData.getAll('assignee');
+    
+    renderOutline();
+    renderMindmap();
+    closeModal();
+    showToast('Filters applied', 'success');
+  });
+
+  const clearBtn = form.querySelector('#clear-filters-btn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      state.filters.status = [];
+      state.filters.component = [];
+      state.filters.assignee = [];
+      
+      renderOutline();
+      renderMindmap();
+      closeModal();
+      showToast('Filters cleared', 'success');
+    });
+  }
+
+  openModal('Filter User Stories', container);
+}
+
+/**
+ * Checks if a story matches current filters
+ * @param {Object} story - Story to check
+ * @returns {boolean} True if story matches filters
+ */
+function matchesFilters(story) {
+  if (!story) return false;
+  
+  const hasFilters = state.filters.status.length > 0 || 
+                     state.filters.component.length > 0 || 
+                     state.filters.assignee.length > 0;
+  
+  if (!hasFilters) return true;
+  
+  let matches = true;
+  
+  if (state.filters.status.length > 0) {
+    matches = matches && state.filters.status.includes(story.status);
+  }
+  
+  if (state.filters.component.length > 0 && matches) {
+    const storyComponents = story.components || [];
+    matches = matches && storyComponents.some(c => state.filters.component.includes(c));
+  }
+  
+  if (state.filters.assignee.length > 0 && matches) {
+    matches = matches && state.filters.assignee.includes(story.assigneeEmail || '');
+  }
+  
+  return matches;
+}
