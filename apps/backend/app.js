@@ -3173,13 +3173,14 @@ async function analyzeInvest(story, options = {}) {
   
   // Try AI analysis via Kiro API SSE endpoint
   try {
-    console.log('🤖 Attempting AI INVEST analysis via SSE...');
-    const kiroApiUrl = 'http://localhost:8081';
     const storyId = story.id;
+    console.log('🤖 Attempting AI INVEST analysis via SSE for story:', storyId);
+    const kiroApiUrl = 'http://localhost:8081';
     const http = await import('http');
     
     return await new Promise((resolve, reject) => {
       const url = `${kiroApiUrl}/api/analyze-invest-stream?storyId=${storyId}`;
+      console.log('🤖 SSE URL:', url);
       
       const timeout = setTimeout(() => {
         req.destroy();
