@@ -7053,6 +7053,41 @@ export async function createApp() {
         const prs = await getStoryPRs(db, storyId);
         story.prs = prs;
         
+        // Load children stories
+        const childRows = await (async () => {
+          if (db.constructor.name === 'DynamoDBDataLayer') {
+            const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+            const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+            
+            const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+            const docClient = DynamoDBDocumentClient.from(client);
+            const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+            
+            try {
+              const result = await docClient.send(new ScanCommand({
+                TableName: tableName,
+                FilterExpression: 'parentId = :parentId',
+                ExpressionAttributeValues: {
+                  ':parentId': storyId
+                }
+              }));
+              
+              return result.Items || [];
+            } catch (error) {
+              console.error('Error loading child stories from DynamoDB:', error);
+              return [];
+            }
+          } else {
+            return db.prepare('SELECT * FROM user_stories WHERE parent_id = ?').all(storyId);
+          }
+        })();
+        
+        story.children = childRows.map(row => ({
+          id: row.id,
+          title: row.title,
+          status: safeNormalizeStoryStatus(row.status)
+        }));
+        
         sendJson(res, 200, story);
       } catch (error) {
         console.error(`Failed to load story ${storyId}:`, error);
