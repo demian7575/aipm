@@ -30,18 +30,17 @@
 
 ### Input Parameters
 ```yaml
-storyId: number  # User Story ID (use MCP tool get_story to fetch data)
+storyId: number  # User Story ID
 ```
 
-### MCP Tool Usage
-```javascript
-// Fetch complete story data
-get_story({ storyId: <storyId> })
-// Returns: { id, title, description, asA, iWant, soThat, storyPoint, components, acceptanceTests, ... }
+### Fetch Story Data
+```bash
+curl -s http://localhost:8081/api/stories/{storyId}
 ```
+Parse JSON response to get complete story data
 
 ### Story Data Structure
-After fetching via MCP, you'll have:
+After fetching, you'll have:
 - id: Story ID
 - title: Story title
 - asA: "As a" role

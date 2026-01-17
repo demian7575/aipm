@@ -12,35 +12,55 @@ The prompt provides these variables:
 
 ## WORKFLOW
 
-### 1. Fetch Data (MCP)
-- `get_story({ storyId: <use storyId variable> })` → Get story details and acceptance tests
-- `git_prepare_branch({ branchName: <use branchName variable> })` → Prepare git branch
-  - If status ≠ 'ready': Report error and STOP
+### 1. Fetch Data
+```bash
+cd /home/ec2-user/aipm
+curl -s http://localhost:8081/api/stories/{storyId}
+```
+Parse JSON response to get story details and acceptance tests
 
-### 2. Analyze Codebase
-- Review: `apps/frontend/public/app.js`, `apps/backend/app.js`, `scripts/kiro-api-server-v4.js`
+### 2. Prepare Git Branch
+```bash
+cd /home/ec2-user/aipm
+git reset --hard HEAD
+git clean -fd
+git fetch origin
+git checkout {branchName}
+git pull origin {branchName} --rebase || true
+```
+
+### 3. Analyze Codebase
+- Review: `apps/frontend/public/app.js`, `apps/backend/app.js`
 - Identify: Integration points, patterns, conventions
 
-### 3. Implement
+### 4. Implement
 Write code following story requirements and existing patterns
 
-### 4. Verify Code (MANDATORY)
-- Use MCP: `verify_code({ filePath: "apps/frontend/public/app.js" })`
-- Check: syntaxValid = true, bracesBalanced = true
-- If fails: Fix and retry (max 3 attempts)
-- If still failing: Report failure and STOP
+### 5. Verify Code (MANDATORY)
+```bash
+cd /home/ec2-user/aipm
+node -c apps/frontend/public/app.js
+node -c apps/backend/app.js
+```
+If fails: Fix and retry (max 3 attempts)
 
-### 5. Run Gating Tests (MANDATORY)
-- Use shell: `cd /home/ec2-user/aipm && bash scripts/testing/run-structured-gating-tests.sh --phases 1,2,3 2>&1 | tail -50`
-- Check output for: "ALL GATING TESTS PASSED"
-- If fails: Fix code and return to step 3 (max 3 attempts)
-- If still failing: Report failure and STOP
+### 6. Run Gating Tests (MANDATORY)
+```bash
+cd /home/ec2-user/aipm
+bash scripts/testing/run-structured-gating-tests.sh --phases 1,2,3 2>&1 | tail -50
+```
+Check output for: "ALL GATING TESTS PASSED"
+If fails: Fix code and return to step 4 (max 3 attempts)
 
-### 6. Commit & Push (MCP)
-- `git_commit_and_push({ branchName: <use branchName variable>, commitMessage: "feat: <story title>" })`
-- If success = false: Report error and STOP
+### 7. Commit & Push
+```bash
+cd /home/ec2-user/aipm
+git add -A
+git commit -m "feat: {story title}"
+git push origin {branchName}
+```
 
-### 7. Report
+### 8. Report
 ```json
 {
   "status": "success|failure",
