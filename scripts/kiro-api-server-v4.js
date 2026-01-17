@@ -747,6 +747,8 @@ Execute the template instructions exactly as written.`;
     });
     
     try {
+      console.log('📊 INVEST SSE request for story:', storyId);
+      
       // Extract numeric story ID for MCP
       const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
       
@@ -760,7 +762,9 @@ Execute the template instructions exactly as written.`;
       
       res.write(`data: ${JSON.stringify({ status: 'started', message: 'Analyzing INVEST criteria...' })}\n\n`);
       
+      console.log('📤 Sending to Kiro:', prompt.substring(0, 100) + '...');
       await sendToKiro(prompt);
+      console.log('✅ Sent to Kiro, waiting for response...');
       
       // Poll for result
       const maxAttempts = 180;
@@ -773,6 +777,7 @@ Execute the template instructions exactly as written.`;
           const analysisResponse = global.latestInvestAnalysis;
           global.latestInvestAnalysis = null;
           
+          console.log('✅ Got INVEST analysis response');
           res.write(`data: ${JSON.stringify({ 
             status: 'complete',
             success: true,
