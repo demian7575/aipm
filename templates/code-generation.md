@@ -21,25 +21,25 @@ The prompt provides these variables:
 - Review: `apps/frontend/public/app.js`, `apps/backend/app.js`, `scripts/kiro-api-server-v4.js`
 - Identify: Integration points, patterns, conventions
 
-### 3. Implement (Max 5 iterations)
-```
-LOOP until code is valid OR 5 iterations:
-  a. Write code following story requirements
-  b. Use MCP: verify_code({ filePath: "apps/frontend/public/app.js" })
-  c. If verification fails: Fix issues and repeat
-  d. If iteration 5 and still failing: Report failure and STOP
-```
+### 3. Implement
+Write code following story requirements and existing patterns
 
-### 4. Quality Check (MANDATORY)
-- Use MCP: verify_code for all modified files
-- Verify: syntaxValid = true, bracesBalanced = true
-- If ANY fail: Fix and return to step 3
+### 4. Verify Code (MANDATORY)
+- Use MCP: `verify_code({ filePath: "apps/frontend/public/app.js" })`
+- Check: syntaxValid = true, bracesBalanced = true
+- If fails: Fix and retry (max 3 attempts)
 
-### 5. Commit & Push (MCP)
+### 5. Run Tests (MANDATORY)
+- Use MCP: `run_tests({ timeout: 60 })`
+- Check: success = true, failed = 0
+- If fails: Fix code and return to step 3 (max 3 attempts)
+- If still failing after 3 attempts: Report failure and STOP
+
+### 6. Commit & Push (MCP)
 - `git_commit_and_push({ branchName: <use branchName variable>, commitMessage: "feat: <story title>" })`
 - If success = false: Report error and STOP
 
-### 6. Report
+### 7. Report
 ```json
 {
   "status": "success|failure",
