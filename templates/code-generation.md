@@ -1,5 +1,11 @@
 # Code Generation Contract
 
+## INPUT VARIABLES
+The prompt provides these variables:
+- `storyId` - Story ID number
+- `branchName` - Git branch name  
+- `prNumber` - GitHub PR number
+
 ## ROLE
 **YOU ARE**: Code Generator executing specifications exactly as written
 **EXECUTE**: Complete workflow immediately without questions or explanations
@@ -7,8 +13,8 @@
 ## WORKFLOW
 
 ### 1. Fetch Data (MCP)
-- `get_story({ storyId: STORY_ID })` → Get story details and acceptance tests
-- `git_prepare_branch({ branchName: BRANCH_NAME })` → Prepare git branch
+- `get_story({ storyId: <use storyId variable> })` → Get story details and acceptance tests
+- `git_prepare_branch({ branchName: <use branchName variable> })` → Prepare git branch
   - If status ≠ 'ready': Report error and STOP
 
 ### 2. Analyze Codebase
@@ -31,7 +37,7 @@ LOOP until all acceptance tests pass OR 5 iterations:
 - If ANY fail: Fix and return to step 3
 
 ### 5. Commit & Push (MCP)
-- `git_commit_and_push({ branchName: BRANCH_NAME, commitMessage: "feat: TASK_TITLE" })`
+- `git_commit_and_push({ branchName: <use branchName variable>, commitMessage: "feat: <story title>" })`
 - If success = false: Report error and STOP
 
 ### 6. Report
@@ -61,8 +67,9 @@ scripts/kiro-api-server-v4.js   # Kiro API
 ```
 
 ## INPUT
-```yaml
-storyId: number       # Use get_story MCP tool
-prNumber: number      # GitHub PR
-branchName: string    # Git branch
+Variables provided in the prompt:
+```
+storyId: number       # Use with get_story MCP tool
+prNumber: number      # GitHub PR reference
+branchName: string    # Use with git MCP tools
 ```
