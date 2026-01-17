@@ -1049,6 +1049,68 @@ Execute the template instructions exactly as written.`;
     return;
   }
 
+  // INVEST analysis endpoint (POST) - for backend API calls
+  if (url.pathname === '/api/analyze-invest' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        const storyId = data.id || data.storyId;
+        
+        if (!storyId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'storyId is required' }));
+          return;
+        }
+        
+        // Extract numeric story ID for MCP
+        const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
+        
+        const prompt = `Read and follow the template file: ./templates/invest-analysis.md
+
+Use MCP tool get_story with storyId: ${numericStoryId}
+
+Execute the template instructions exactly as written.`;
+        
+        global.latestInvestAnalysis = null;
+        
+        await sendToKiro(prompt);
+        
+        // Poll for result with timeout
+        const maxAttempts = 45; // 45 seconds
+        let attempts = 0;
+        
+        const result = await new Promise((resolve) => {
+          const pollInterval = setInterval(() => {
+            attempts++;
+            
+            if (global.latestInvestAnalysis && (Date.now() - global.latestInvestAnalysis.timestamp) < 30000) {
+              const analysisResponse = global.latestInvestAnalysis;
+              global.latestInvestAnalysis = null;
+              clearInterval(pollInterval);
+              resolve({ success: true, analysis: analysisResponse });
+            } else if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              resolve({ success: false, error: 'Timeout after 45 seconds' });
+            }
+          }, 1000);
+        });
+        
+        res.writeHead(result.success ? 200 : 408, { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify(result));
+        
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: error.message }));
+      }
+    });
+    return;
+  }
+
   // INVEST analysis endpoint (Legacy)
 
   // Generate draft endpoint (SSE)
