@@ -184,6 +184,19 @@ server.setRequestHandler('tools/list', async () => ({
       }
     },
     {
+      name: 'run_tests',
+      description: 'Run gating tests and return results',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          timeout: {
+            type: 'number',
+            description: 'Timeout in seconds (default: 60)'
+          }
+        }
+      }
+    },
+    {
       name: 'git_commit_and_push',
       description: 'Commit all changes and push to remote branch',
       inputSchema: {
@@ -501,9 +514,9 @@ server.setRequestHandler('tools/call', async (request) => {
           // Checkout branch
           await execCommand(`git checkout ${branchName}`);
           
-          // Attempt rebase
+          // Pull latest changes from remote branch if it exists
           try {
-            await execCommand('git rebase origin/main');
+            await execCommand(`git pull origin ${branchName} --rebase`);
             
             return {
               content: [{
@@ -512,23 +525,39 @@ server.setRequestHandler('tools/call', async (request) => {
                   success: true,
                   branch: branchName,
                   status: 'ready',
-                  message: 'Branch prepared successfully and rebased to latest main'
+                  message: 'Branch prepared successfully and synced with remote'
                 }, null, 2)
               }]
             };
-          } catch (rebaseError) {
-            // Abort failed rebase
-            await execCommand('git rebase --abort');
+          } catch (pullError) {
+            // If pull fails (e.g., no remote branch), that's okay
+            // Check if it's a rebase conflict
+            if (pullError.message.includes('conflict')) {
+              await execCommand('git rebase --abort');
+              
+              return {
+                content: [{
+                  type: 'text',
+                  text: JSON.stringify({
+                    success: false,
+                    branch: branchName,
+                    status: 'conflict',
+                    message: 'Merge conflicts detected. Manual resolution required.',
+                    error: pullError.message
+                  }, null, 2)
+                }]
+              };
+            }
             
+            // No remote branch or other non-critical error - proceed
             return {
               content: [{
                 type: 'text',
                 text: JSON.stringify({
-                  success: false,
+                  success: true,
                   branch: branchName,
-                  status: 'conflict',
-                  message: 'Rebase conflicts detected. New PR required.',
-                  error: rebaseError.message
+                  status: 'ready',
+                  message: 'Branch prepared (no remote branch to sync)'
                 }, null, 2)
               }]
             };
@@ -585,6 +614,47 @@ server.setRequestHandler('tools/call', async (request) => {
                 text: JSON.stringify({ error: error.message, syntaxValid: false })
               }
             ],
+            isError: true
+          };
+        }
+      }
+      
+      case 'run_tests': {
+        const timeout = args.timeout || 60;
+        
+        try {
+          const result = execCommand(
+            `timeout ${timeout} ./scripts/testing/run-structured-gating-tests.sh 2>&1 | tail -50`,
+            WORK_DIR
+          );
+          
+          // Parse test results
+          const output = result.stdout || '';
+          const passed = (output.match(/✅/g) || []).length;
+          const failed = (output.match(/❌/g) || []).length;
+          const allPassed = failed === 0 && passed > 0;
+          
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: allPassed,
+                passed,
+                failed,
+                output: output.split('\n').slice(-30).join('\n')
+              }, null, 2)
+            }]
+          };
+        } catch (error) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                error: error.message,
+                message: 'Test execution failed'
+              }, null, 2)
+            }],
             isError: true
           };
         }
