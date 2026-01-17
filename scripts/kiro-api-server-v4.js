@@ -87,41 +87,54 @@ let kiroCommandQueue = [];
 let kiroProcessing = false;
 let lastQueueActivity = Date.now();
 let currentProcessingStartTime = null;
+let lastKiroOutput = Date.now();
 
 // Queue health monitor - auto-recovery
 setInterval(() => {
-  const queueStuckTime = Date.now() - lastQueueActivity;
+  const idleTime = Date.now() - lastQueueActivity;
   const processingTime = currentProcessingStartTime ? Date.now() - currentProcessingStartTime : 0;
+  const outputIdleTime = Date.now() - lastKiroOutput;
   
-  // If queue has items but hasn't processed anything in 60 seconds (not currently processing)
-  if (kiroCommandQueue.length > 0 && !kiroProcessing && queueStuckTime > 60000) {
-    console.log('🚨 Queue stuck detected! Clearing and restarting...');
-    console.log(`   Queue length: ${kiroCommandQueue.length}, Stuck time: ${queueStuckTime}ms`);
-    
-    // Reject all pending requests
-    kiroCommandQueue.forEach(({ reject }) => {
-      reject(new Error('Queue stuck - auto-recovery triggered'));
-    });
-    
-    // Clear queue
-    kiroCommandQueue = [];
-    kiroProcessing = false;
-    lastQueueActivity = Date.now();
-    currentProcessingStartTime = null;
-    
-    // Restart Kiro process
-    restartKiroProcess();
+  // Stuck condition 1: Queue has items but idle for 60 seconds
+  if (kiroCommandQueue.length > 0 && idleTime > 60000) {
+    console.log('🚨 Queue stuck: Items waiting but no activity for 60s');
+    console.log(`   Queue length: ${kiroCommandQueue.length}, Idle time: ${idleTime}ms`);
+    triggerQueueRecovery();
+    return;
   }
   
-  // If processing for more than 10 minutes (600 seconds)
+  // Stuck condition 2: Processing but no output for 60 seconds (thinking stuck)
+  if (kiroProcessing && outputIdleTime > 60000) {
+    console.log('🚨 Queue stuck: Processing but no output for 60s (thinking stuck)');
+    console.log(`   Processing time: ${processingTime}ms, Output idle: ${outputIdleTime}ms`);
+    triggerQueueRecovery();
+    return;
+  }
+  
+  // Timeout: Processing for more than 10 minutes
   if (kiroProcessing && processingTime > 600000) {
-    console.log('🚨 Processing timeout (10 min)! Resetting...');
-    kiroProcessing = false;
-    lastQueueActivity = Date.now();
-    currentProcessingStartTime = null;
-    processKiroQueue();
+    console.log('🚨 Processing timeout: 10 minutes exceeded');
+    triggerQueueRecovery();
+    return;
   }
 }, 10000); // Check every 10 seconds
+
+function triggerQueueRecovery() {
+  // Reject all pending requests
+  kiroCommandQueue.forEach(({ reject }) => {
+    reject(new Error('Queue stuck - auto-recovery triggered'));
+  });
+  
+  // Clear queue and reset state
+  kiroCommandQueue = [];
+  kiroProcessing = false;
+  lastQueueActivity = Date.now();
+  currentProcessingStartTime = null;
+  lastKiroOutput = Date.now();
+  
+  // Restart Kiro process
+  restartKiroProcess();
+}
 
 function startKiroProcess() {
   if (kiroProcess) return;
@@ -147,6 +160,7 @@ function startKiroProcess() {
   // Pipe Kiro CLI stdout and stderr to log files with selective line breaks
   kiroProcess.stdout.on('data', (data) => {
     let chunk = data.toString();
+    lastKiroOutput = Date.now(); // Track output activity
     
     // Add line break before purple '>' prompt
     chunk = chunk.replace(/(\x1b\[38;5;141m>\s*)/g, '\n$1');
@@ -600,14 +614,17 @@ const server = http.createServer(async (req, res) => {
   // Debug endpoint - queue status
   if (url.pathname === '/api/debug/queue' && req.method === 'GET') {
     const processingTime = currentProcessingStartTime ? Date.now() - currentProcessingStartTime : 0;
+    const outputIdleTime = Date.now() - lastKiroOutput;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       queueLength: kiroCommandQueue.length,
       processing: kiroProcessing,
       processingTime: processingTime,
+      outputIdleTime: outputIdleTime,
       kiroProcessRunning: !!kiroProcess,
       lastActivity: new Date(lastQueueActivity).toISOString(),
       timeSinceActivity: Date.now() - lastQueueActivity,
+      lastOutput: new Date(lastKiroOutput).toISOString(),
       queueItems: kiroCommandQueue.map((item, idx) => ({
         index: idx,
         age: Date.now() - item.timestamp,
