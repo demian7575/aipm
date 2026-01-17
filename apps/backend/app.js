@@ -7041,10 +7041,8 @@ export async function createApp() {
     if (storyIdMatch && method === 'GET') {
       const storyId = Number(storyIdMatch[1]);
       try {
-        // Get complete story data
-        const stories = await loadStories(db);
-        const flatStories = flattenStories(stories);
-        const story = flatStories.find(s => s.id === storyId);
+        // Use loadStoryWithDetails for proper DynamoDB support
+        const story = await loadStoryWithDetails(db, storyId);
         
         if (!story) {
           sendJson(res, 404, { message: 'Story not found' });
