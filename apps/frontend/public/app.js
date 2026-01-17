@@ -6800,7 +6800,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
       if (draftStatus) draftStatus.textContent = 'Connecting to Kiro CLI...';
       
       try {
-        const kiroApiUrl = window.CONFIG?.KIRO_API_URL || 'http://localhost:4100';
+        const kiroApiUrl = window.CONFIG?.KIRO_API_URL || 'http://localhost:8081';
         const eventSource = new EventSource(`${kiroApiUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
         
         eventSource.onmessage = (event) => {
