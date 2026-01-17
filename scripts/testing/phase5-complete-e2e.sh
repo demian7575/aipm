@@ -176,3 +176,6 @@ echo "   Story ID: $TEST_STORY_ID"
 echo "   Status: $STORY_STATUS"
 echo "   PR Number: ${TEST_PR_NUMBER:-N/A}"
 echo "   Branch: ${TEST_BRANCH:-N/A}"
+
+# Explicit cleanup (in addition to trap)
+cleanup
