@@ -11,7 +11,21 @@ class GatingTestRunner {
             phase2: {},
             phase3: {}
         };
+        this.phaseCounts = {
+            phase1: { total: 10, passed: 0 },
+            phase2: { total: 9, passed: 0 },
+            phase3: { total: 8, passed: 0 }
+        };
         this.isRunning = false;
+    }
+
+    // Update phase count display
+    updatePhaseCount(phase) {
+        const countElement = document.getElementById(`phase${phase}-count`);
+        if (!countElement) return;
+        
+        const { passed, total } = this.phaseCounts[`phase${phase}`];
+        countElement.textContent = `(${passed}/${total} passed)`;
     }
 
     // Update coverage display
@@ -30,7 +44,7 @@ class GatingTestRunner {
     }
 
     // Update test status
-    updateTestStatus(testId, status, message = '') {
+    updateTestStatus(testId, status, message = '', phase = null) {
         const element = document.getElementById(testId);
         if (!element) return;
 
@@ -43,14 +57,25 @@ class GatingTestRunner {
             case 'success':
                 element.textContent = '✅ Passed';
                 this.completedTests++;
+                if (phase) {
+                    this.phaseCounts[`phase${phase}`].passed++;
+                    this.updatePhaseCount(phase);
+                }
                 break;
             case 'warning':
                 element.textContent = '⚠️ Warning';
                 this.completedTests++;
+                if (phase) {
+                    this.phaseCounts[`phase${phase}`].passed++;
+                    this.updatePhaseCount(phase);
+                }
                 break;
             case 'error':
                 element.textContent = '❌ Failed';
                 this.completedTests++;
+                if (phase) {
+                    this.updatePhaseCount(phase);
+                }
                 break;
             default:
                 element.textContent = 'Pending';
@@ -81,52 +106,52 @@ class GatingTestRunner {
             // GitHub token validation
             this.updateTestStatus('test-github-token', 'running');
             const githubResult = await this.testGitHubToken();
-            this.updateTestStatus('test-github-token', githubResult.status, githubResult.message);
+            this.updateTestStatus('test-github-token', githubResult.status, githubResult.message, 1);
             
             // AWS IAM validation
             this.updateTestStatus('test-aws-iam', 'running');
             const awsResult = await this.testAWSPermissions();
-            this.updateTestStatus('test-aws-iam', awsResult.status, awsResult.message);
+            this.updateTestStatus('test-aws-iam', awsResult.status, awsResult.message, 1);
             
             // Environment security
             this.updateTestStatus('test-env-security', 'running');
             const envResult = await this.testEnvironmentSecurity();
-            this.updateTestStatus('test-env-security', envResult.status, envResult.message);
+            this.updateTestStatus('test-env-security', envResult.status, envResult.message, 1);
             
             // Database schema
             this.updateTestStatus('test-db-schema', 'running');
             const schemaResult = await this.testDatabaseSchema();
-            this.updateTestStatus('test-db-schema', schemaResult.status, schemaResult.message);
+            this.updateTestStatus('test-db-schema', schemaResult.status, schemaResult.message, 1);
             
             // Data consistency
             this.updateTestStatus('test-data-consistency', 'running');
             const dataResult = await this.testDataConsistency();
-            this.updateTestStatus('test-data-consistency', dataResult.status, dataResult.message);
+            this.updateTestStatus('test-data-consistency', dataResult.status, dataResult.message, 1);
             
             // Billing mode
             this.updateTestStatus('test-billing-mode', 'running');
             const billingResult = await this.testBillingMode();
-            this.updateTestStatus('test-billing-mode', billingResult.status, billingResult.message);
+            this.updateTestStatus('test-billing-mode', billingResult.status, billingResult.message, 1);
             
             // Git state
             this.updateTestStatus('test-git-state', 'running');
             const gitResult = await this.testGitState();
-            this.updateTestStatus('test-git-state', gitResult.status, gitResult.message);
+            this.updateTestStatus('test-git-state', gitResult.status, gitResult.message, 1);
             
             // Branch protection
             this.updateTestStatus('test-branch-protection', 'running');
             const branchResult = await this.testBranchProtection();
-            this.updateTestStatus('test-branch-protection', branchResult.status, branchResult.message);
+            this.updateTestStatus('test-branch-protection', branchResult.status, branchResult.message, 1);
             
             // Deployment artifacts
             this.updateTestStatus('test-artifacts', 'running');
             const artifactsResult = await this.testDeploymentArtifacts();
-            this.updateTestStatus('test-artifacts', artifactsResult.status, artifactsResult.message);
+            this.updateTestStatus('test-artifacts', artifactsResult.status, artifactsResult.message, 1);
             
             // Service health
             this.updateTestStatus('test-service-health', 'running');
             const healthResult = await this.testServiceHealth();
-            this.updateTestStatus('test-service-health', healthResult.status, healthResult.message);
+            this.updateTestStatus('test-service-health', healthResult.status, healthResult.message, 1);
             
             this.logOutput(1, '✅ Phase 1 completed');
             return true;
@@ -145,47 +170,47 @@ class GatingTestRunner {
             // Stories API performance
             this.updateTestStatus('test-stories-perf', 'running');
             const storiesResult = await this.testStoriesPerformance();
-            this.updateTestStatus('test-stories-perf', storiesResult.status, storiesResult.message);
+            this.updateTestStatus('test-stories-perf', storiesResult.status, storiesResult.message, 2);
             
             // Health endpoint performance
             this.updateTestStatus('test-health-perf', 'running');
             const healthPerfResult = await this.testHealthPerformance();
-            this.updateTestStatus('test-health-perf', healthPerfResult.status, healthPerfResult.message);
+            this.updateTestStatus('test-health-perf', healthPerfResult.status, healthPerfResult.message, 2);
             
             // Concurrent requests
             this.updateTestStatus('test-concurrent', 'running');
             const concurrentResult = await this.testConcurrentRequests();
-            this.updateTestStatus('test-concurrent', concurrentResult.status, concurrentResult.message);
+            this.updateTestStatus('test-concurrent', concurrentResult.status, concurrentResult.message, 2);
             
             // Kiro API performance
             this.updateTestStatus('test-kiro-perf', 'running');
             const kiroResult = await this.testKiroPerformance();
-            this.updateTestStatus('test-kiro-perf', kiroResult.status, kiroResult.message);
+            this.updateTestStatus('test-kiro-perf', kiroResult.status, kiroResult.message, 2);
             
             // API schema
             this.updateTestStatus('test-api-schema', 'running');
             const schemaResult = await this.testAPISchema();
-            this.updateTestStatus('test-api-schema', schemaResult.status, schemaResult.message);
+            this.updateTestStatus('test-api-schema', schemaResult.status, schemaResult.message, 2);
             
             // API version consistency
             this.updateTestStatus('test-api-version', 'running');
             const versionResult = await this.testAPIVersion();
-            this.updateTestStatus('test-api-version', versionResult.status, versionResult.message);
+            this.updateTestStatus('test-api-version', versionResult.status, versionResult.message, 2);
             
             // CORS support
             this.updateTestStatus('test-cors', 'running');
             const corsResult = await this.testCORSSupport();
-            this.updateTestStatus('test-cors', corsResult.status, corsResult.message);
+            this.updateTestStatus('test-cors', corsResult.status, corsResult.message, 2);
             
             // Throttling protection
             this.updateTestStatus('test-throttling', 'running');
             const throttlingResult = await this.testThrottlingProtection();
-            this.updateTestStatus('test-throttling', throttlingResult.status, throttlingResult.message);
+            this.updateTestStatus('test-throttling', throttlingResult.status, throttlingResult.message, 2);
             
             // Size limits
             this.updateTestStatus('test-size-limits', 'running');
             const sizeLimitsResult = await this.testSizeLimits();
-            this.updateTestStatus('test-size-limits', sizeLimitsResult.status, sizeLimitsResult.message);
+            this.updateTestStatus('test-size-limits', sizeLimitsResult.status, sizeLimitsResult.message, 2);
             
             this.logOutput(2, '✅ Phase 2 completed');
             return true;
@@ -204,42 +229,42 @@ class GatingTestRunner {
             // DNS resolution
             this.updateTestStatus('test-dns', 'running');
             const dnsResult = await this.testDNSResolution();
-            this.updateTestStatus('test-dns', dnsResult.status, dnsResult.message);
+            this.updateTestStatus('test-dns', dnsResult.status, dnsResult.message, 3);
             
             // SSL validation
             this.updateTestStatus('test-ssl', 'running');
             const sslResult = await this.testSSLValidation();
-            this.updateTestStatus('test-ssl', sslResult.status, sslResult.message);
+            this.updateTestStatus('test-ssl', sslResult.status, sslResult.message, 3);
             
             // EC2 connectivity
             this.updateTestStatus('test-ec2-connectivity', 'running');
             const ec2Result = await this.testEC2Connectivity();
-            this.updateTestStatus('test-ec2-connectivity', ec2Result.status, ec2Result.message);
+            this.updateTestStatus('test-ec2-connectivity', ec2Result.status, ec2Result.message, 3);
             
             // S3 access
             this.updateTestStatus('test-s3-access', 'running');
             const s3Result = await this.testS3Access();
-            this.updateTestStatus('test-s3-access', s3Result.status, s3Result.message);
+            this.updateTestStatus('test-s3-access', s3Result.status, s3Result.message, 3);
             
             // Health monitoring
             this.updateTestStatus('test-health-monitoring', 'running');
             const monitoringResult = await this.testHealthMonitoring();
-            this.updateTestStatus('test-health-monitoring', monitoringResult.status, monitoringResult.message);
+            this.updateTestStatus('test-health-monitoring', monitoringResult.status, monitoringResult.message, 3);
             
             // CloudWatch integration
             this.updateTestStatus('test-cloudwatch', 'running');
             const cloudwatchResult = await this.testCloudWatchIntegration();
-            this.updateTestStatus('test-cloudwatch', cloudwatchResult.status, cloudwatchResult.message);
+            this.updateTestStatus('test-cloudwatch', cloudwatchResult.status, cloudwatchResult.message, 3);
             
             // GitHub integration
             this.updateTestStatus('test-github-integration', 'running');
             const githubIntegrationResult = await this.testGitHubIntegration();
-            this.updateTestStatus('test-github-integration', githubIntegrationResult.status, githubIntegrationResult.message);
+            this.updateTestStatus('test-github-integration', githubIntegrationResult.status, githubIntegrationResult.message, 3);
             
             // Frontend-backend integration
             this.updateTestStatus('test-frontend-backend', 'running');
             const integrationResult = await this.testFrontendBackendIntegration();
-            this.updateTestStatus('test-frontend-backend', integrationResult.status, integrationResult.message);
+            this.updateTestStatus('test-frontend-backend', integrationResult.status, integrationResult.message, 3);
             
             this.logOutput(3, '✅ Phase 3 completed');
             return true;
@@ -425,7 +450,7 @@ class GatingTestRunner {
     async testKiroPerformance() {
         const start = performance.now();
         try {
-            const response = await fetch(`${this.apiBase}:8081/health`);
+            const response = await fetch(`${this.apiBase}/health`);
             const end = performance.now();
             const responseTime = Math.round(end - start);
             
@@ -545,7 +570,7 @@ class GatingTestRunner {
     }
 
     async testHealthMonitoring() {
-        const endpoints = [`${this.apiBase}/health`, `${this.apiBase}:8081/health`];
+        const endpoints = [`${this.apiBase}/health`];
         const results = await Promise.all(
             endpoints.map(async endpoint => {
                 try {
@@ -684,7 +709,13 @@ async function runAllPhases() {
     
     gatingTestRunner.isRunning = true;
     gatingTestRunner.completedTests = 0;
+    gatingTestRunner.phaseCounts.phase1.passed = 0;
+    gatingTestRunner.phaseCounts.phase2.passed = 0;
+    gatingTestRunner.phaseCounts.phase3.passed = 0;
     gatingTestRunner.updateCoverage();
+    gatingTestRunner.updatePhaseCount(1);
+    gatingTestRunner.updatePhaseCount(2);
+    gatingTestRunner.updatePhaseCount(3);
     
     try {
         // Reset all test statuses

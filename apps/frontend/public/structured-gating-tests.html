@@ -35,6 +35,13 @@
             margin: 0;
         }
         
+        .phase-count {
+            font-size: 14px;
+            color: #666;
+            font-weight: normal;
+            margin-left: 10px;
+        }
+        
         .phase-priority {
             font-size: 24px;
         }
@@ -196,6 +203,7 @@
                 <h2 class="phase-title">
                     <span class="phase-priority">🔴</span>
                     Phase 1: Critical Security & Data Safety
+                    <span class="phase-count" id="phase1-count">(0/10 passed)</span>
                 </h2>
                 <div class="phase-actions">
                     <button class="run-btn" onclick="runPhase(1)">Run Phase 1</button>
@@ -258,6 +266,7 @@
                 <h2 class="phase-title">
                     <span class="phase-priority">🟡</span>
                     Phase 2: Performance & API Safety
+                    <span class="phase-count" id="phase2-count">(0/9 passed)</span>
                 </h2>
                 <div class="phase-actions">
                     <button class="run-btn" onclick="runPhase(2)">Run Phase 2</button>
@@ -316,6 +325,7 @@
                 <h2 class="phase-title">
                     <span class="phase-priority">🟢</span>
                     Phase 3: Infrastructure & Monitoring
+                    <span class="phase-count" id="phase3-count">(0/8 passed)</span>
                 </h2>
                 <div class="phase-actions">
                     <button class="run-btn" onclick="runPhase(3)">Run Phase 3</button>
