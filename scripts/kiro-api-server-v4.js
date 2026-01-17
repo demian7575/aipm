@@ -555,6 +555,21 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Debug endpoint - queue status
+  if (url.pathname === '/api/debug/queue' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      queueLength: kiroCommandQueue.length,
+      processing: kiroProcessing,
+      kiroProcessRunning: !!kiroProcess,
+      queueItems: kiroCommandQueue.map((item, idx) => ({
+        index: idx,
+        promptPreview: item.prompt.substring(0, 100)
+      }))
+    }));
+    return;
+  }
+
   // INVEST response endpoint - receives analysis data from KIRO CLI
   if (url.pathname === '/api/invest-response' && req.method === 'POST') {
     let body = '';
