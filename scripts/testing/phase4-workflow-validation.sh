@@ -6,21 +6,50 @@ source "$(dirname "$0")/test-functions.sh"
 
 echo "🔄 Phase 4: End-to-End Workflow Validation"
 
+# Get or create a test root story
+log_test "Setup: Get test root story"
+TEST_ROOT_ID=$(curl -s "$PROD_API_BASE/api/stories" | jq -r '.[] | select(.title == "Test Root Story") | .id' 2>/dev/null | head -1)
+
+if [[ -z "$TEST_ROOT_ID" || "$TEST_ROOT_ID" == "null" ]]; then
+    # Create test root if it doesn't exist
+    TEST_ROOT_ID=$(curl -s -X POST "$PROD_API_BASE/api/stories" \
+        -H "Content-Type: application/json" \
+        -d '{"title":"Test Root Story","asA":"tester","iWant":"test container","soThat":"tests are organized","status":"Draft"}' \
+        | jq -r '.id' 2>/dev/null || echo "")
+    
+    if [[ -n "$TEST_ROOT_ID" && "$TEST_ROOT_ID" != "null" ]]; then
+        pass_test "Created test root story: $TEST_ROOT_ID"
+    else
+        fail_test "Failed to create test root story"
+        exit 1
+    fi
+else
+    pass_test "Using existing test root: $TEST_ROOT_ID"
+fi
+
 # Test 1: Story CRUD Workflow
 log_test "Story CRUD Workflow"
 STORY_ID=$(curl -s -X POST "$PROD_API_BASE/api/stories" \
     -H "Content-Type: application/json" \
-    -d '{"title":"Test Story","asA":"tester","iWant":"to test","soThat":"it works","status":"Draft"}' \
+    -d "{\"title\":\"Test Story $(date +%s)\",\"asA\":\"tester\",\"iWant\":\"to test\",\"soThat\":\"it works\",\"status\":\"Draft\",\"parentId\":$TEST_ROOT_ID}" \
     | jq -r '.id' 2>/dev/null || echo "")
 
 if [[ -n "$STORY_ID" && "$STORY_ID" != "null" ]]; then
     # Verify story was created
     if curl -s "$PROD_API_BASE/api/stories/$STORY_ID" | jq -e '.id' > /dev/null 2>&1; then
-        # Clean up
-        curl -s -X DELETE "$PROD_API_BASE/api/stories/$STORY_ID" > /dev/null 2>&1
-        pass_test "Story CRUD Workflow (Create → Read → Delete)"
+        # Clean up - verify deletion worked
+        DELETE_RESPONSE=$(curl -s -X DELETE "$PROD_API_BASE/api/stories/$STORY_ID" -w "\n%{http_code}")
+        HTTP_CODE=$(echo "$DELETE_RESPONSE" | tail -1)
+        
+        if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "204" ]]; then
+            pass_test "Story CRUD Workflow (Create → Read → Delete)"
+        else
+            fail_test "Story CRUD Workflow (Delete failed with code $HTTP_CODE)"
+        fi
     else
         fail_test "Story CRUD Workflow (Read failed)"
+        # Try to clean up anyway
+        curl -s -X DELETE "$PROD_API_BASE/api/stories/$STORY_ID" > /dev/null 2>&1
     fi
 else
     fail_test "Story CRUD Workflow (Create failed)"
