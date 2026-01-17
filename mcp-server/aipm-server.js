@@ -133,6 +133,20 @@ server.setRequestHandler('tools/list', async () => ({
         },
         required: ['feature_description', 'parentId']
       }
+    },
+    {
+      name: 'git_prepare_branch',
+      description: 'Prepare git branch for code generation: fetch, checkout, and rebase. Returns branch status.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          branchName: {
+            type: 'string',
+            description: 'Branch name to prepare (e.g., feature/story-123)'
+          }
+        },
+        required: ['branchName']
+      }
     }
   ]
 }));
@@ -418,6 +432,89 @@ server.setRequestHandler('tools/call', async (request) => {
             }, null, 2)
           }]
         };
+      }
+
+      case 'git_prepare_branch': {
+        const { branchName } = args;
+        const { spawn } = await import('child_process');
+        
+        const execCommand = (cmd) => {
+          return new Promise((resolve, reject) => {
+            const [command, ...cmdArgs] = cmd.split(' ');
+            const proc = spawn(command, cmdArgs, { cwd: process.cwd() });
+            
+            let output = '';
+            proc.stdout.on('data', (data) => output += data.toString());
+            proc.stderr.on('data', (data) => output += data.toString());
+            
+            proc.on('close', (code) => {
+              if (code === 0) {
+                resolve(output);
+              } else {
+                reject(new Error(`Command failed: ${cmd}\n${output}`));
+              }
+            });
+          });
+        };
+        
+        try {
+          // Clean up repository
+          await execCommand('git reset --hard HEAD');
+          await execCommand('git clean -fd');
+          
+          // Fetch latest changes
+          await execCommand('git fetch origin');
+          
+          // Checkout branch
+          await execCommand(`git checkout ${branchName}`);
+          
+          // Attempt rebase
+          try {
+            await execCommand('git rebase origin/main');
+            
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  success: true,
+                  branch: branchName,
+                  status: 'ready',
+                  message: 'Branch prepared successfully and rebased to latest main'
+                }, null, 2)
+              }]
+            };
+          } catch (rebaseError) {
+            // Abort failed rebase
+            await execCommand('git rebase --abort');
+            
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  success: false,
+                  branch: branchName,
+                  status: 'conflict',
+                  message: 'Rebase conflicts detected. New PR required.',
+                  error: rebaseError.message
+                }, null, 2)
+              }]
+            };
+          }
+        } catch (error) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                branch: branchName,
+                status: 'error',
+                message: 'Git operation failed',
+                error: error.message
+              }, null, 2)
+            }],
+            isError: true
+          };
+        }
       }
 
       default:

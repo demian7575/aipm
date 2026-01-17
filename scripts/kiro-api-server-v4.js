@@ -2605,43 +2605,16 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         // Extract numeric story ID for MCP
         const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
         
-        let finalBranch = originalBranch;
-        let finalPRNumber = prNumber;
-        let finalPRUrl = null;
-        
-        try {
-          // Attempt to sync to branch with rebase
-          await syncToBranch(originalBranch);
-          console.log('✅ Successfully rebased to latest main');
-          
-        } catch (error) {
-          if (error.message === 'REBASE_CONFLICT') {
-            console.log('⚠️ Rebase conflicts detected - creating new PR');
-            
-            // Handle conflict by creating new PR (no longer needs taskSpecContent)
-            const conflictResult = await handlePRConflict(originalBranch, '', storyId);
-            finalBranch = conflictResult.newBranchName;
-            finalPRNumber = conflictResult.newPRNumber;
-            finalPRUrl = conflictResult.newPRUrl;
-            
-            // Notify backend about PR change
-            await notifyBackendPRUpdate(storyId, finalPRNumber, finalPRUrl);
-            
-            console.log(`✅ Created new PR #${finalPRNumber} due to conflicts`);
-          } else {
-            throw error; // Re-throw non-conflict errors
-          }
-        }
-
-        // Use MCP for story data instead of TASK file
+        // Use MCP for story data and git operations
         const kiroPrompt = `Read and follow the template file: ./templates/code-generation.md
 
 Use MCP tool get_story with storyId: ${numericStoryId}
+Use MCP tool git_prepare_branch with branchName: ${originalBranch}
 
 Task Title: Code Generation for Story ${storyId}
 Objective: ${prompt}
-PR Number: ${finalPRNumber}
-Branch Name: ${finalBranch}
+PR Number: ${prNumber}
+Branch Name: ${originalBranch}
 Language: javascript
 
 Execute the template instructions exactly as written.`;
@@ -2654,11 +2627,9 @@ Execute the template instructions exactly as written.`;
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: true,
-          message: finalPRUrl ? 'New PR created due to conflicts, code generation started' : 'Code generation started',
-          prNumber: finalPRNumber,
-          branchName: finalBranch,
-          newPRCreated: !!finalPRUrl,
-          newPRUrl: finalPRUrl
+          message: 'Code generation started',
+          prNumber: prNumber,
+          branchName: originalBranch
         }));
       } catch (error) {
         console.error('❌ Generate code branch error:', error);

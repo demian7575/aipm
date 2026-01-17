@@ -39,12 +39,12 @@
    - This provides: title, description, asA, iWant, soThat, acceptanceTests, etc.
    - All story data is now available without reading files
 
-3. **Rebase with Latest Main**:
-   - Execute `git fetch origin`
-   - Execute `git stash`
-   - Execute `git checkout BRANCH_NAME`
-   - Execute `git merge origin/main` (safer than rebase for automated workflows)
-   - If merge conflicts: Report error via SSE and stop workflow
+3. **Prepare Git Branch via MCP**:
+   - Use MCP tool `git_prepare_branch` with branchName: BRANCH_NAME
+   - This automatically: fetches, checks out, and rebases to latest main
+   - If status is 'ready': Continue to step 4
+   - If status is 'conflict': Report error via SSE and stop workflow
+   - If status is 'error': Report error via SSE and stop workflow
 
 4. **Analyze AIPM Codebase**: 
    - Understand project structure (apps/frontend/public/, apps/backend/, scripts/)
