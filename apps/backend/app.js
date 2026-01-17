@@ -6384,18 +6384,18 @@ export async function createApp() {
           return;
         }
 
-        // Use existing PR branch instead of creating new one
+        // Use existing PR branch
         const prBranch = originalBranch || `feature-story-${storyId}`;
 
-        // Call Kiro API for code generation with branch info
-        const kiroResponse = await fetch('http://44.220.45.57:8081/kiro/v4/enhance', {
+        // Call Kiro API for code generation
+        const kiroResponse = await fetch('http://localhost:8081/api/generate-code-branch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            idea: prompt, 
-            branch: prBranch,
             storyId: storyId,
-            syncToOrigin: true
+            prNumber: prNumber,
+            prompt: prompt,
+            originalBranch: prBranch
           }),
           signal: AbortSignal.timeout(30000) // 30 second timeout
         });
