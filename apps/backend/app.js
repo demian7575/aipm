@@ -6016,9 +6016,10 @@ export async function createApp() {
       if (pathname === '/api/trigger-deployment' && method === 'POST') {
         try {
           const payload = await parseJson(req);
-          const { pr_number } = payload;
+          const { prNumber, pr_number } = payload;
+          const prNum = prNumber || pr_number;
           
-          if (!pr_number) {
+          if (!prNum) {
             sendJson(res, 400, { success: false, error: 'PR number is required' });
             return;
           }
@@ -6040,7 +6041,7 @@ export async function createApp() {
             body: JSON.stringify({
               ref: 'main',
               inputs: {
-                pr_number: pr_number.toString()
+                pr_number: prNum.toString()
               }
             })
           });
@@ -6048,7 +6049,7 @@ export async function createApp() {
           if (response.ok) {
             sendJson(res, 200, { 
               success: true, 
-              message: `Deployment workflow triggered for PR #${pr_number}` 
+              message: `Deployment workflow triggered for PR #${prNum}` 
             });
           } else {
             const error = await response.text();
