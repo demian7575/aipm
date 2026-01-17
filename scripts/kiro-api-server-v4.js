@@ -2302,12 +2302,8 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         // Extract numeric story ID for MCP
         const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
         
-        // Minimal prompt - details in template
-        const kiroPrompt = `Execute template: ./templates/code-generation.md
-
-storyId=${numericStoryId}
-branchName=${originalBranch}
-prNumber=${prNumber}`;
+        // Single-line prompt with all parameters
+        const kiroPrompt = `Execute template ./templates/code-generation.md with storyId=${numericStoryId}, branchName="${originalBranch}", prNumber=${prNumber}`;
 
         console.log('📤 Calling Kiro CLI with code generation contract...');
         
