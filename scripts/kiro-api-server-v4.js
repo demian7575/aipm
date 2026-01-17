@@ -85,6 +85,39 @@ let lastKiroResponse = Date.now();
 let kiroHealthCheckInterval = null;
 let kiroCommandQueue = [];
 let kiroProcessing = false;
+let lastQueueActivity = Date.now();
+
+// Queue health monitor - auto-recovery
+setInterval(() => {
+  const queueStuckTime = Date.now() - lastQueueActivity;
+  
+  // If queue has items but hasn't processed anything in 30 seconds
+  if (kiroCommandQueue.length > 0 && queueStuckTime > 30000) {
+    console.log('🚨 Queue stuck detected! Clearing and restarting...');
+    console.log(`   Queue length: ${kiroCommandQueue.length}, Stuck time: ${queueStuckTime}ms`);
+    
+    // Reject all pending requests
+    kiroCommandQueue.forEach(({ reject }) => {
+      reject(new Error('Queue stuck - auto-recovery triggered'));
+    });
+    
+    // Clear queue
+    kiroCommandQueue = [];
+    kiroProcessing = false;
+    lastQueueActivity = Date.now();
+    
+    // Restart Kiro process
+    restartKiroProcess();
+  }
+  
+  // If processing flag stuck for 60 seconds
+  if (kiroProcessing && queueStuckTime > 60000) {
+    console.log('🚨 Processing flag stuck! Resetting...');
+    kiroProcessing = false;
+    lastQueueActivity = Date.now();
+    processKiroQueue();
+  }
+}, 10000); // Check every 10 seconds
 
 function startKiroProcess() {
   if (kiroProcess) return;
@@ -235,6 +268,7 @@ async function processKiroQueue() {
   }
   
   kiroProcessing = true;
+  lastQueueActivity = Date.now();
   const { prompt, resolve, reject } = kiroCommandQueue.shift();
   
   try {
@@ -244,6 +278,7 @@ async function processKiroQueue() {
     reject(error);
   } finally {
     kiroProcessing = false;
+    lastQueueActivity = Date.now();
     // Process next command in queue
     setTimeout(processKiroQueue, 100);
   }
@@ -251,7 +286,8 @@ async function processKiroQueue() {
 
 function sendToKiro(prompt) {
   return new Promise((resolve, reject) => {
-    kiroCommandQueue.push({ prompt, resolve, reject });
+    kiroCommandQueue.push({ prompt, resolve, reject, timestamp: Date.now() });
+    lastQueueActivity = Date.now();
     processKiroQueue();
   });
 }
@@ -562,8 +598,11 @@ const server = http.createServer(async (req, res) => {
       queueLength: kiroCommandQueue.length,
       processing: kiroProcessing,
       kiroProcessRunning: !!kiroProcess,
+      lastActivity: new Date(lastQueueActivity).toISOString(),
+      timeSinceActivity: Date.now() - lastQueueActivity,
       queueItems: kiroCommandQueue.map((item, idx) => ({
         index: idx,
+        age: Date.now() - item.timestamp,
         promptPreview: item.prompt.substring(0, 100)
       }))
     }));
