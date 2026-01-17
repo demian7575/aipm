@@ -5541,6 +5541,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   };
 
   const testRows = await (async () => {
+    console.log('🔍 Loading acceptance tests for story:', storyId, 'DB type:', db.constructor.name);
     if (db.constructor.name === 'DynamoDBDataLayer') {
       // DynamoDB implementation for acceptance tests
       const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
@@ -5551,6 +5552,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
       
       try {
+        console.log('🔍 Scanning DynamoDB table:', tableName, 'for story_id:', storyId);
         const result = await docClient.send(new ScanCommand({
           TableName: tableName,
           FilterExpression: 'story_id = :storyId',
@@ -5559,6 +5561,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
           }
         }));
         
+        console.log('🔍 DynamoDB returned', result.Items?.length || 0, 'acceptance tests');
         return result.Items || [];
       } catch (error) {
         console.error('Error loading acceptance tests from DynamoDB:', error);
@@ -5566,6 +5569,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       }
     } else {
       // SQLite implementation
+      console.log('🔍 Using SQLite for acceptance tests');
       return safeSelectAll(
         db,
         'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id',
