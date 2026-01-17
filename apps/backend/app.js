@@ -5582,20 +5582,20 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   const testRowsArray = Array.isArray(testRows) ? testRows : [];
   for (const testRow of testRowsArray) {
     const given = parseJsonArray(testRow.given);
-    const when = parseJsonArray(testRow.when_step);
-    const then = parseJsonArray(testRow.then_step);
+    const when = parseJsonArray(testRow.when_step || testRow.whenStep);
+    const then = parseJsonArray(testRow.then_step || testRow.thenStep);
     const { warnings, suggestions } = measurabilityWarnings(then);
     const gwtHealth = await buildGwtHealth(given, when, then, warnings);
     story.acceptanceTests.push({
       id: testRow.id,
-      storyId: testRow.story_id,
+      storyId: testRow.story_id || testRow.storyId,
       title: acceptanceTestsHasTitleColumn ? testRow.title ?? '' : '',
       given,
       when,
       then,
       status: testRow.status,
-      createdAt: testRow.created_at,
-      updatedAt: testRow.updated_at,
+      createdAt: testRow.created_at || testRow.createdAt,
+      updatedAt: testRow.updated_at || testRow.updatedAt,
       measurabilityWarnings: warnings,
       measurabilitySuggestions: suggestions,
       gwtHealth,
