@@ -2768,23 +2768,6 @@ function buildMindmapMetaLines(story) {
     });
   }
 
-  // Add acceptance test summary
-  if (Array.isArray(story.acceptanceTests) && story.acceptanceTests.length > 0) {
-    const test = story.acceptanceTests[0]; // Show first test
-    if (test.when && test.when.length > 0) {
-      metaLines.push({
-        value: `When: ${test.when[0]}`,
-        classNames: ['story-meta', 'acceptance-when'],
-      });
-    }
-    if (test.then && test.then.length > 0) {
-      metaLines.push({
-        value: `Then: ${test.then[0]}`,
-        classNames: ['story-meta', 'acceptance-then'],
-      });
-    }
-  }
-
   return metaLines
     .map((line) => {
       const cleaned = normalizeMindmapText(line.value);
