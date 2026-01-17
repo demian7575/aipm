@@ -9,12 +9,33 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, QueryCommand, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { spawn } from 'child_process';
 
 const client = new DynamoDBClient({ region: 'us-east-1' });
 const dynamodb = DynamoDBDocumentClient.from(client);
 
 const STORIES_TABLE = 'aipm-backend-prod-stories';
 const TESTS_TABLE = 'aipm-backend-prod-acceptance-tests';
+
+// Shared git command executor
+const execCommand = (cmd, cwd = process.cwd()) => {
+  return new Promise((resolve, reject) => {
+    const [command, ...cmdArgs] = cmd.split(' ');
+    const proc = spawn(command, cmdArgs, { cwd });
+    
+    let output = '';
+    proc.stdout.on('data', (data) => output += data.toString());
+    proc.stderr.on('data', (data) => output += data.toString());
+    
+    proc.on('close', (code) => {
+      if (code === 0) {
+        resolve(output);
+      } else {
+        reject(new Error(`Command failed: ${cmd}\n${output}`));
+      }
+    });
+  });
+};
 
 const server = new Server({
   name: 'aipm-server',
@@ -454,26 +475,6 @@ server.setRequestHandler('tools/call', async (request) => {
 
       case 'git_prepare_branch': {
         const { branchName } = args;
-        const { spawn } = await import('child_process');
-        
-        const execCommand = (cmd) => {
-          return new Promise((resolve, reject) => {
-            const [command, ...cmdArgs] = cmd.split(' ');
-            const proc = spawn(command, cmdArgs, { cwd: process.cwd() });
-            
-            let output = '';
-            proc.stdout.on('data', (data) => output += data.toString());
-            proc.stderr.on('data', (data) => output += data.toString());
-            
-            proc.on('close', (code) => {
-              if (code === 0) {
-                resolve(output);
-              } else {
-                reject(new Error(`Command failed: ${cmd}\n${output}`));
-              }
-            });
-          });
-        };
         
         try {
           // Clean up repository
@@ -537,26 +538,6 @@ server.setRequestHandler('tools/call', async (request) => {
 
       case 'git_commit_and_push': {
         const { branchName, commitMessage } = args;
-        const { spawn } = await import('child_process');
-        
-        const execCommand = (cmd) => {
-          return new Promise((resolve, reject) => {
-            const [command, ...cmdArgs] = cmd.split(' ');
-            const proc = spawn(command, cmdArgs, { cwd: process.cwd() });
-            
-            let output = '';
-            proc.stdout.on('data', (data) => output += data.toString());
-            proc.stderr.on('data', (data) => output += data.toString());
-            
-            proc.on('close', (code) => {
-              if (code === 0) {
-                resolve(output);
-              } else {
-                reject(new Error(`Command failed: ${cmd}\n${output}`));
-              }
-            });
-          });
-        };
         
         try {
           // Add all changes
