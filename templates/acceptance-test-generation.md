@@ -22,11 +22,12 @@
 
 ## EXECUTION COMMAND
 **WHEN ASKED TO GENERATE DRAFT**: 
-1. Analyze User Story (title, description, asA, iWant, soThat)
-2. Consider the Idea if provided
-3. Check existing acceptance tests to avoid duplicates
-4. Generate 1-2 new acceptance test drafts
-5. POST to draft-response endpoint
+1. Use MCP tool `get_story` with the provided storyId to fetch story data
+2. Analyze User Story (title, description, asA, iWant, soThat)
+3. Consider the Idea if provided
+4. Check existing acceptance tests to avoid duplicates
+5. Generate 1-2 new acceptance test drafts
+6. POST to draft-response endpoint
 
 **NO QUESTIONS**: Do not ask for clarification
 **NO EXPLANATIONS**: Do not explain what you're doing
@@ -38,14 +39,15 @@
 
 ### Input Parameters
 ```yaml
-storyId: string           # User Story ID (from URL path)
-title: string             # User Story title
-description: string       # User Story description
-asA: string              # User Story "As a" field
-iWant: string            # User Story "I want" field
-soThat: string           # User Story "So that" field
+storyId: number           # User Story ID (use MCP tool get_story to fetch data)
 idea: string             # Optional idea/hint for test generation
-existingTests: array     # List of existing test titles to avoid duplicates
+```
+
+### MCP Tool Usage
+```javascript
+// Use this MCP tool to get story data
+get_story({ storyId: <storyId> })
+// Returns: { id, title, description, asA, iWant, soThat, acceptanceTests, ... }
 ```
 
 ### Output Schema

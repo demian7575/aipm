@@ -1458,30 +1458,13 @@ Execute the template instructions exactly as written.`;
     });
     
     try {
-      // Get story data
-      const storyResponse = await fetch(`http://localhost:8081/api/stories/${storyId}`);
-      if (!storyResponse.ok) {
-        res.write(`data: ${JSON.stringify({ error: 'Story not found' })}\n\n`);
-        res.end();
-        return;
-      }
-      const story = await storyResponse.json();
-      
-      const existingTests = story.acceptanceTests || [];
-      const existingTestTitles = existingTests.map(t => t.title).join(', ');
+      // Extract numeric story ID for MCP tool
+      const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
       
       const prompt = `Read and follow the template file: ./templates/acceptance-test-generation.md
 
-User Story:
-- Title: ${story.title}
-- Description: ${story.description}
-- As a: ${story.asA}
-- I want: ${story.iWant}
-- So that: ${story.soThat}
-
-Idea: ${idea || '(none - generate default tests)'}
-
-Existing Tests (${existingTests.length}): ${existingTestTitles || '(none)'}
+Use MCP tool get_story with storyId: ${numericStoryId}
+${idea ? `Idea: "${idea}"` : ''}
 
 Execute the template instructions exactly as written. Generate 1-2 new tests that avoid duplicating existing tests.`;
       
@@ -1550,24 +1533,13 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
         }
         const story = await storyResponse.json();
         
-        // Template System: API gives KIRO CLI the filename to read
-        const existingTests = story.acceptanceTests || [];
-        const existingTestTitles = existingTests.map(t => t.title).join(', ');
-        
         // Extract numeric ID from story (e.g., "US-0311" -> "0311" or "0311" -> "0311")
         const numericStoryId = story.id.toString().replace(/^US-/, '');
         
         const prompt = `Read and follow the template file: ./templates/acceptance-test-generation.md
 
-INPUT PARAMETERS:
-- Story ID: ${numericStoryId}
-- Title: ${story.title}
-- Description: ${story.description}
-- As a: ${story.asA}
-- I want: ${story.iWant}
-- So that: ${story.soThat}
-- Idea: ${idea || '(none - generate default tests)'}
-- Existing Tests (${existingTests.length}): ${existingTestTitles || '(none)'}
+Use MCP tool get_story with storyId: ${numericStoryId}
+${idea ? `Idea: "${idea}"` : ''}
 
 Execute the template instructions exactly as written. Generate 1-2 new tests that avoid duplicating existing tests.`;
         
