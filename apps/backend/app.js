@@ -5779,7 +5779,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   // Check if we should use stored analysis or run new AI analysis
   let analysis;
   if (includeAiInvest) {
-    // Always run new AI analysis when explicitly requested
+    // Run new AI analysis when explicitly requested
     analysis = await evaluateInvestAnalysis(
       story,
       {
@@ -5789,22 +5789,19 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       { includeAiInvest }
     );
   } else if (db.constructor.name === 'DynamoDBDataLayer' && row.invest_analysis) {
-    // Use stored analysis for regular requests (invest_analysis is now a Map object)
+    // Use stored analysis for regular requests
     if (row.invest_analysis && row.invest_analysis.source) {
       analysis = row.invest_analysis;
     }
   }
   
-  // If no stored analysis and not requesting AI, use heuristic analysis
+  // If no stored analysis, return empty analysis (don't calculate heuristic)
   if (!analysis) {
-    analysis = await evaluateInvestAnalysis(
-      story,
-      {
-        acceptanceTests: story.acceptanceTests,
-        includeTestChecks: true,
-      },
-      { includeAiInvest: false }
-    );
+    analysis = {
+      warnings: [],
+      source: 'none',
+      summary: 'No INVEST analysis available. Click "Run AI check" to analyze.'
+    };
   }
   
   applyInvestAnalysisToStory(story, analysis);
