@@ -5552,10 +5552,10 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
       
       try {
-        console.log('🔍 Scanning DynamoDB table:', tableName, 'for story_id:', storyId);
+        console.log('🔍 Scanning DynamoDB table:', tableName, 'for storyId:', storyId);
         const result = await docClient.send(new ScanCommand({
           TableName: tableName,
-          FilterExpression: 'story_id = :storyId OR storyId = :storyId',
+          FilterExpression: 'storyId = :storyId',
           ExpressionAttributeValues: {
             ':storyId': storyId
           }
@@ -5582,20 +5582,20 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   const testRowsArray = Array.isArray(testRows) ? testRows : [];
   for (const testRow of testRowsArray) {
     const given = parseJsonArray(testRow.given);
-    const when = parseJsonArray(testRow.when_step || testRow.whenStep);
-    const then = parseJsonArray(testRow.then_step || testRow.thenStep);
+    const when = parseJsonArray(testRow.whenStep);
+    const then = parseJsonArray(testRow.thenStep);
     const { warnings, suggestions } = measurabilityWarnings(then);
     const gwtHealth = await buildGwtHealth(given, when, then, warnings);
     story.acceptanceTests.push({
       id: testRow.id,
-      storyId: testRow.story_id || testRow.storyId,
+      storyId: testRow.storyId,
       title: acceptanceTestsHasTitleColumn ? testRow.title ?? '' : '',
       given,
       when,
       then,
       status: testRow.status,
-      createdAt: testRow.created_at || testRow.createdAt,
-      updatedAt: testRow.updated_at || testRow.updatedAt,
+      createdAt: testRow.createdAt,
+      updatedAt: testRow.updatedAt,
       measurabilityWarnings: warnings,
       measurabilitySuggestions: suggestions,
       gwtHealth,
