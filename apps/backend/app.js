@@ -3171,67 +3171,85 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
   
-  // Try AI analysis via Kiro API
+  // Try AI analysis via Kiro API SSE endpoint
   try {
-    console.log('🤖 Attempting AI INVEST analysis...');
+    console.log('🤖 Attempting AI INVEST analysis via SSE...');
     const kiroApiUrl = 'http://localhost:8081';
-    const response = await fetch(`${kiroApiUrl}/api/analyze-invest`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: story.title,
-        asA: story.asA,
-        iWant: story.iWant,
-        soThat: story.soThat,
-        description: story.description,
-        storyPoint: story.storyPoint,
-        components: story.components,
-        acceptanceTests: story.acceptanceTests || []
-      }),
-      signal: AbortSignal.timeout(45000) // 45 second timeout (Kiro API needs 30s)
-    });
+    const storyId = story.id;
     
-    console.log('🤖 Kiro API response status:', response.status);
-    
-    if (response.ok) {
-      const result = await response.json();
-      console.log('🤖 Kiro API result:', { success: result.success, hasAnalysis: !!result.analysis });
+    return await new Promise((resolve, reject) => {
+      const url = `${kiroApiUrl}/api/analyze-invest-stream?storyId=${storyId}`;
+      const http = require('http');
       
-      if (result.success && result.analysis) {
-        // Parse AI response and format as expected
-        let aiAnalysis;
-        try {
-          aiAnalysis = typeof result.analysis === 'string' ? 
-            JSON.parse(result.analysis) : result.analysis;
-        } catch (parseError) {
-          console.warn('🤖 Failed to parse AI analysis:', parseError.message);
-          throw parseError;
-        }
+      const timeout = setTimeout(() => {
+        req.destroy();
+        reject(new Error('AI analysis timeout after 45 seconds'));
+      }, 45000);
+      
+      const req = http.get(url, (res) => {
+        let buffer = '';
         
-        console.log('🤖 AI analysis successful, returning AI result');
-        return {
-          warnings: aiAnalysis.warnings || baseline,
-          source: 'ai',
-          summary: aiAnalysis.summary || '',
-          ai: {
-            summary: aiAnalysis.summary || '',
-            warnings: aiAnalysis.warnings || [],
-            model: 'kiro-cli',
-            score: aiAnalysis.score || 0
+        res.on('data', (chunk) => {
+          buffer += chunk.toString();
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.status === 'complete' && data.success && data.analysis) {
+                  clearTimeout(timeout);
+                  req.destroy();
+                  
+                  let aiAnalysis = typeof data.analysis === 'string' ? 
+                    JSON.parse(data.analysis) : data.analysis;
+                  
+                  console.log('🤖 AI analysis successful via SSE');
+                  resolve({
+                    warnings: aiAnalysis.warnings || baseline,
+                    source: 'ai',
+                    summary: aiAnalysis.summary || '',
+                    ai: {
+                      summary: aiAnalysis.summary || '',
+                      warnings: aiAnalysis.warnings || [],
+                      model: 'kiro-cli',
+                      score: aiAnalysis.score || 0
+                    }
+                  });
+                } else if (data.status === 'timeout' || data.error) {
+                  clearTimeout(timeout);
+                  req.destroy();
+                  reject(new Error(data.error || 'AI analysis timeout'));
+                }
+              } catch (parseError) {
+                console.warn('🤖 Failed to parse SSE data:', parseError.message);
+              }
+            }
           }
-        };
-      } else {
-        console.log('🤖 Kiro API returned unsuccessful result or no analysis');
-      }
-    } else {
-      console.log('🤖 Kiro API response not ok:', response.status);
-    }
+        });
+        
+        res.on('end', () => {
+          clearTimeout(timeout);
+          reject(new Error('SSE stream ended without result'));
+        });
+        
+        res.on('error', (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+      });
+      
+      req.on('error', (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+    });
   } catch (error) {
     console.warn('🤖 AI INVEST analysis failed:', error.message);
-    throw error; // Don't fallback, let the error propagate
+    throw error;
   }
-  
-  throw new Error('AI analysis failed - no fallback available');
 }
 
 function buildBaselineInvestAnalysis(story, options = {}) {
