@@ -86,13 +86,15 @@ let kiroHealthCheckInterval = null;
 let kiroCommandQueue = [];
 let kiroProcessing = false;
 let lastQueueActivity = Date.now();
+let currentProcessingStartTime = null;
 
 // Queue health monitor - auto-recovery
 setInterval(() => {
   const queueStuckTime = Date.now() - lastQueueActivity;
+  const processingTime = currentProcessingStartTime ? Date.now() - currentProcessingStartTime : 0;
   
-  // If queue has items but hasn't processed anything in 30 seconds
-  if (kiroCommandQueue.length > 0 && queueStuckTime > 30000) {
+  // If queue has items but hasn't processed anything in 60 seconds (not currently processing)
+  if (kiroCommandQueue.length > 0 && !kiroProcessing && queueStuckTime > 60000) {
     console.log('🚨 Queue stuck detected! Clearing and restarting...');
     console.log(`   Queue length: ${kiroCommandQueue.length}, Stuck time: ${queueStuckTime}ms`);
     
@@ -105,16 +107,18 @@ setInterval(() => {
     kiroCommandQueue = [];
     kiroProcessing = false;
     lastQueueActivity = Date.now();
+    currentProcessingStartTime = null;
     
     // Restart Kiro process
     restartKiroProcess();
   }
   
-  // If processing flag stuck for 60 seconds
-  if (kiroProcessing && queueStuckTime > 60000) {
-    console.log('🚨 Processing flag stuck! Resetting...');
+  // If processing for more than 10 minutes (600 seconds)
+  if (kiroProcessing && processingTime > 600000) {
+    console.log('🚨 Processing timeout (10 min)! Resetting...');
     kiroProcessing = false;
     lastQueueActivity = Date.now();
+    currentProcessingStartTime = null;
     processKiroQueue();
   }
 }, 10000); // Check every 10 seconds
@@ -269,6 +273,7 @@ async function processKiroQueue() {
   
   kiroProcessing = true;
   lastQueueActivity = Date.now();
+  currentProcessingStartTime = Date.now();
   const { prompt, resolve, reject } = kiroCommandQueue.shift();
   
   try {
@@ -279,6 +284,7 @@ async function processKiroQueue() {
   } finally {
     kiroProcessing = false;
     lastQueueActivity = Date.now();
+    currentProcessingStartTime = null;
     // Process next command in queue
     setTimeout(processKiroQueue, 100);
   }
@@ -593,10 +599,12 @@ const server = http.createServer(async (req, res) => {
 
   // Debug endpoint - queue status
   if (url.pathname === '/api/debug/queue' && req.method === 'GET') {
+    const processingTime = currentProcessingStartTime ? Date.now() - currentProcessingStartTime : 0;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       queueLength: kiroCommandQueue.length,
       processing: kiroProcessing,
+      processingTime: processingTime,
       kiroProcessRunning: !!kiroProcess,
       lastActivity: new Date(lastQueueActivity).toISOString(),
       timeSinceActivity: Date.now() - lastQueueActivity,
