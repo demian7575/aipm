@@ -7332,8 +7332,9 @@ export async function createApp() {
         
         sendJson(res, 200, story);
       } catch (error) {
+        console.error('🏥 Health-check error:', error);
         const status = error.statusCode ?? 500;
-        sendJson(res, status, { message: error.message || 'Failed to refresh story health' });
+        sendJson(res, status, { error: error.message || 'Failed to refresh story health' });
       }
       return;
     }
