@@ -2210,7 +2210,7 @@ Execute the template instructions exactly as written.`;
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
-      removeBtn.className = 'link-button codewhisperer-remove';
+      removeBtn.className = 'codewhisperer-remove';
       removeBtn.textContent = 'Stop tracking';
       removeBtn.addEventListener('click', () => {
         removeCodeWhispererDelegation(entry.storyId, entry.localId);
