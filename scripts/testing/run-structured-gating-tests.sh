@@ -44,8 +44,9 @@ fail_test() {
     return 1
 }
 
-# Export functions so phase scripts use them
+# Export functions and variables so phase scripts use them
 export -f pass_test fail_test
+export TOTAL_PASSED TOTAL_FAILED PHASE_PASSED PHASE_FAILED
 
 phase_summary() {
     local phase_name=$1
