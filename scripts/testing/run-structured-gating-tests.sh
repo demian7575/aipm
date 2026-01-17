@@ -113,6 +113,17 @@ main() {
         echo "⚠️  Workflow validation issues detected - review workflow implementations"
     fi
     
+    # Phase 5: Complete End-to-End User Journey
+    log_phase "🎯 PHASE 5: Complete End-to-End User Journey"
+    
+    export PHASE_PASSED PHASE_FAILED
+    if ./scripts/testing/phase5-complete-e2e.sh; then
+        phase_summary "Phase 5"
+    else
+        phase_summary "Phase 5"
+        echo "⚠️  End-to-end journey issues detected - review complete workflow"
+    fi
+    
     # Final summary
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
