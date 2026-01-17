@@ -28,16 +28,29 @@
 
 ## Technical Specifications
 
-### Story Information (PROVIDED)
-- Story ID: STORY_ID
-- Title: STORY_TITLE
-- As a: STORY_AS_A
-- I want: STORY_I_WANT
-- So that: STORY_SO_THAT
-- Description: STORY_DESCRIPTION
-- Story Points: STORY_POINTS
-- Components: STORY_COMPONENTS
-- Acceptance Tests: ACCEPTANCE_TEST_COUNT tests
+### Input Parameters
+```yaml
+storyId: number  # User Story ID (use MCP tool get_story to fetch data)
+```
+
+### MCP Tool Usage
+```javascript
+// Fetch complete story data
+get_story({ storyId: <storyId> })
+// Returns: { id, title, description, asA, iWant, soThat, storyPoint, components, acceptanceTests, ... }
+```
+
+### Story Data Structure
+After fetching via MCP, you'll have:
+- id: Story ID
+- title: Story title
+- asA: "As a" role
+- iWant: "I want" goal
+- soThat: "So that" benefit
+- description: Full description
+- storyPoint: Story points
+- components: Array of components
+- acceptanceTests: Array of acceptance tests
 
 ### Acceptance Test Details
 ACCEPTANCE_TEST_DETAILS

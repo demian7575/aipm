@@ -900,7 +900,13 @@ const server = http.createServer(async (req, res) => {
   // GWT Health Analysis endpoint (SSE)
   if (url.pathname === '/api/analyze-gwt-stream' && req.method === 'GET') {
     const params = new URLSearchParams(url.search);
-    const testId = params.get('testId');
+    const storyId = params.get('storyId');
+    
+    if (!storyId) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('storyId is required');
+      return;
+    }
     
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -910,30 +916,12 @@ const server = http.createServer(async (req, res) => {
     });
     
     try {
-      // Get test data from query params
-      const title = params.get('title') || 'Untitled Test';
-      const given = params.get('given') || '';
-      const when = params.get('when') || '';
-      const then = params.get('then') || '';
-      
-      const { writeFileSync, unlinkSync } = await import('fs');
-      const tempFileName = `gwt-data-${Date.now()}.md`;
-      const tempFilePath = `./templates/${tempFileName}`;
-      
-      const testDataContent = `# GWT Test Data
-
-## Acceptance Test Information
-- Test ID: ${testId || 'Unknown'}
-- Test Title: ${title}
-- Given Steps: ${given}
-- When Steps: ${when}
-- Then Steps: ${then}`;
-      
-      writeFileSync(tempFilePath, testDataContent);
+      // Extract numeric story ID for MCP
+      const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
       
       const prompt = `Read and follow the template file: ./templates/gwt-health-analysis.md
 
-Test data file: ./templates/${tempFileName}
+Use MCP tool get_story with storyId: ${numericStoryId}
 
 Execute the template instructions exactly as written.`;
       
@@ -954,10 +942,6 @@ Execute the template instructions exactly as written.`;
           const analysisResponse = global.latestGwtAnalysis;
           global.latestGwtAnalysis = null;
           
-          setTimeout(() => {
-            try { unlinkSync(tempFilePath); } catch (e) {}
-          }, 5000);
-          
           res.write(`data: ${JSON.stringify({ 
             status: 'complete',
             success: true,
@@ -967,10 +951,6 @@ Execute the template instructions exactly as written.`;
           res.end();
           clearInterval(pollInterval);
         } else if (attempts >= maxAttempts) {
-          setTimeout(() => {
-            try { unlinkSync(tempFilePath); } catch (e) {}
-          }, 5000);
-          
           res.write(`data: ${JSON.stringify({ 
             status: 'timeout', 
             error: 'Timeout after 180 seconds' 
@@ -1101,37 +1081,12 @@ Execute the template instructions exactly as written.`;
     });
     
     try {
-      // Get story data
-      const storyResponse = await fetch(`http://localhost:8081/api/stories/${storyId}`);
-      if (!storyResponse.ok) {
-        res.write(`data: ${JSON.stringify({ error: 'Story not found' })}\n\n`);
-        res.end();
-        return;
-      }
-      const storyData = await storyResponse.json();
-      
-      const { writeFileSync, unlinkSync } = await import('fs');
-      const tempFileName = `invest-data-${Date.now()}.md`;
-      const tempFilePath = `./templates/${tempFileName}`;
-      
-      const storyDataContent = `# Story Data
-
-## Story Information
-- Story ID: ${storyData.id}
-- Title: ${storyData.title || 'Untitled'}
-- As a: ${storyData.asA || ''}
-- I want: ${storyData.iWant || ''}
-- So that: ${storyData.soThat || ''}
-- Description: ${storyData.description || ''}
-- Story Points: ${storyData.storyPoint || 0}
-- Components: ${Array.isArray(storyData.components) ? storyData.components.join(', ') : 'None'}
-- Acceptance Tests: ${Array.isArray(storyData.acceptanceTests) ? storyData.acceptanceTests.length : 0}`;
-      
-      writeFileSync(tempFilePath, storyDataContent);
+      // Extract numeric story ID for MCP
+      const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
       
       const prompt = `Read and follow the template file: ./templates/invest-analysis.md
 
-Story data file: ./templates/${tempFileName}
+Use MCP tool get_story with storyId: ${numericStoryId}
 
 Execute the template instructions exactly as written.`;
       
@@ -1152,10 +1107,6 @@ Execute the template instructions exactly as written.`;
           const analysisResponse = global.latestInvestAnalysis;
           global.latestInvestAnalysis = null;
           
-          setTimeout(() => {
-            try { unlinkSync(tempFilePath); } catch (e) {}
-          }, 5000);
-          
           res.write(`data: ${JSON.stringify({ 
             status: 'complete',
             success: true,
@@ -1165,10 +1116,6 @@ Execute the template instructions exactly as written.`;
           res.end();
           clearInterval(pollInterval);
         } else if (attempts >= maxAttempts) {
-          setTimeout(() => {
-            try { unlinkSync(tempFilePath); } catch (e) {}
-          }, 5000);
-          
           res.write(`data: ${JSON.stringify({ 
             status: 'timeout', 
             error: 'Timeout after 180 seconds' 

@@ -28,12 +28,26 @@
 
 ## Technical Specifications
 
-### Acceptance Test Information (PROVIDED)
-- Test ID: TEST_ID
-- Test Title: TEST_TITLE
-- Given Steps: GIVEN_STEPS
-- When Steps: WHEN_STEPS
-- Then Steps: THEN_STEPS
+### Input Parameters
+```yaml
+storyId: number  # User Story ID (use MCP tool get_story to fetch story with tests)
+```
+
+### MCP Tool Usage
+```javascript
+// Fetch story data including all acceptance tests
+get_story({ storyId: <storyId> })
+// Returns: { id, title, acceptanceTests: [{ id, title, given, when, then, ... }], ... }
+```
+
+### Acceptance Test Data Structure
+After fetching via MCP, acceptanceTests array contains:
+- id: Test ID
+- title: Test title
+- given: Given steps (array or string)
+- when: When steps (array or string)
+- then: Then steps (array or string)
+- status: Test status
 
 ### GWT Quality Criteria
 Analyze each section for:
