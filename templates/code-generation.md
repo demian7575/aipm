@@ -34,17 +34,17 @@
 
 1. **Access GitHub PR**: Read the GitHub PR #PR_NUMBER linked to the Development Tasks card
 
-2. **Rebase with Latest Main**:
+2. **Fetch Story Data via MCP**:
+   - Use MCP tool `get_story` with storyId: STORY_ID
+   - This provides: title, description, asA, iWant, soThat, acceptanceTests, etc.
+   - All story data is now available without reading files
+
+3. **Rebase with Latest Main**:
    - Execute `git fetch origin`
    - Execute `git stash`
    - Execute `git checkout BRANCH_NAME`
    - Execute `git merge origin/main` (safer than rebase for automated workflows)
    - If merge conflicts: Report error via SSE and stop workflow
-
-3. **Read TASK File**:
-   - Read the TASK file: `cat TASK-STORY_ID-*.md`
-   - If file not found: Report error via SSE and stop workflow
-   - Store the complete file content for reference
 
 4. **Analyze AIPM Codebase**: 
    - Understand project structure (apps/frontend/public/, apps/backend/, scripts/)
@@ -52,9 +52,9 @@
    - Identify integration points and dependencies
 
 5. **Extract Requirements**: 
-   - Parse the TASK file content from step 3
+   - Use story data from MCP (step 2)
    - Extract story details, requirements, expectations, and scope
-   - Understand acceptance criteria and success metrics
+   - Understand acceptance criteria from acceptanceTests array
 
 6. **Create Acceptance Tests**:
    - Implement gating tests that validate the requirements
@@ -96,13 +96,20 @@
 
 ### Input Schema
 ```yaml
-taskTitle: string          # Title of the development task
-objective: string          # What the code should accomplish  
-constraints: string        # Technical constraints or requirements
-storyId: string           # User story ID (for TASK file matching)
+storyId: number           # User Story ID (use MCP tool get_story)
+taskTitle: string         # Title of the development task
+objective: string         # What the code should accomplish  
+constraints: string       # Technical constraints or requirements
 prNumber: number          # GitHub PR number to work on
 branchName: string        # Git branch name for the PR
 language: string          # Programming language (default: javascript)
+```
+
+### MCP Tool Usage
+```javascript
+// Fetch story data including acceptance tests
+get_story({ storyId: <storyId> })
+// Returns: { id, title, description, asA, iWant, soThat, acceptanceTests, ... }
 ```
 
 ### CODE QUALITY REQUIREMENTS (MANDATORY)

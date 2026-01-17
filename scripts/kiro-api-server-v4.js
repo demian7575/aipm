@@ -2863,17 +2863,8 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         
         console.log('🔧 Code generation request for PR:', prNumber);
         
-        // Read existing Task Specification file
-        let taskSpecContent = '';
-        try {
-          const fs = await import('fs');
-          const taskFiles = fs.readdirSync(WORK_DIR).filter(f => f.startsWith(`TASK-${storyId}`));
-          if (taskFiles.length > 0) {
-            taskSpecContent = fs.readFileSync(`/${taskFiles[0]}`, 'utf8');
-          }
-        } catch (error) {
-          console.log('⚠️ Could not read Task Specification file:', error.message);
-        }
+        // Extract numeric story ID for MCP
+        const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
         
         let finalBranch = originalBranch;
         let finalPRNumber = prNumber;
@@ -2888,8 +2879,8 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           if (error.message === 'REBASE_CONFLICT') {
             console.log('⚠️ Rebase conflicts detected - creating new PR');
             
-            // Handle conflict by creating new PR
-            const conflictResult = await handlePRConflict(originalBranch, taskSpecContent, storyId);
+            // Handle conflict by creating new PR (no longer needs taskSpecContent)
+            const conflictResult = await handlePRConflict(originalBranch, '', storyId);
             finalBranch = conflictResult.newBranchName;
             finalPRNumber = conflictResult.newPRNumber;
             finalPRUrl = conflictResult.newPRUrl;
@@ -2903,17 +2894,16 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           }
         }
 
-        // Use code generation contract with direct execution command
+        // Use MCP for story data instead of TASK file
         const kiroPrompt = `Read and follow the template file: ./templates/code-generation.md
+
+Use MCP tool get_story with storyId: ${numericStoryId}
 
 Task Title: Code Generation for Story ${storyId}
 Objective: ${prompt}
 PR Number: ${finalPRNumber}
 Branch Name: ${finalBranch}
 Language: javascript
-
-Task Specification Content:
-${taskSpecContent}
 
 Execute the template instructions exactly as written.`;
 
