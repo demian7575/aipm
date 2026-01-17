@@ -33,7 +33,28 @@ const WORK_DIR = process.env.WORK_DIR || process.cwd();
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
+// Shared git command executor (reusable across all git operations)
+const execGitCommand = (cmd, cwd = WORK_DIR) => {
+  return new Promise((resolve, reject) => {
+    const [command, ...args] = cmd.split(' ');
+    const proc = spawn(command, args, { cwd });
+    
+    let output = '';
+    proc.stdout.on('data', (data) => output += data.toString());
+    proc.stderr.on('data', (data) => output += data.toString());
+    
+    proc.on('close', (code) => {
+      if (code === 0) {
+        resolve(output);
+      } else {
+        reject(new Error(`Command failed: ${cmd}\n${output}`));
+      }
+    });
+  });
+};
+
 // Git sync function with rebase and conflict handling
+// NOTE: Uses local execCommand for legacy compatibility
 async function syncToBranch(branchName) {
   const execCommand = (cmd) => {
     return new Promise((resolve, reject) => {
