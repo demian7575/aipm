@@ -6450,7 +6450,7 @@ export async function createApp() {
         const docClient = DynamoDBDocumentClient.from(client);
         
         const prodTable = 'aipm-backend-prod-stories';
-        const devTable = process.env.STORIES_TABLE;
+        const devTable = 'aipm-backend-dev-stories';
         
         console.log(`📥 Exporting from ${prodTable} to ${devTable}`);
         
