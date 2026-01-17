@@ -4246,8 +4246,15 @@ function _renderDetailsImmediate() {
         prs: completeStory?.prs?.length || 0
       });
       
-      // Update cached story with complete data
-      Object.assign(story, completeStory);
+      // Update only specific fields, preserve children hierarchy
+      story.acceptanceTests = completeStory.acceptanceTests;
+      story.prs = completeStory.prs;
+      story.referenceDocuments = completeStory.referenceDocuments;
+      story.tasks = completeStory.tasks;
+      story.investAnalysis = completeStory.investAnalysis;
+      story.investWarnings = completeStory.investWarnings;
+      story.investSatisfied = completeStory.investSatisfied;
+      story.investHealth = completeStory.investHealth;
       
       // Continue with rendering
       renderStoryDetailsWithCompleteData(story);
