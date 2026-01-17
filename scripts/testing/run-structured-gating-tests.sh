@@ -4,6 +4,20 @@
 
 set -e
 
+# Parse command line arguments
+PHASES_TO_RUN="1,2,3,4,5"
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --phases)
+            PHASES_TO_RUN="$2"
+            shift 2
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
 # Import shared test functions
 source "$(dirname "$0")/test-functions.sh"
 
@@ -68,60 +82,76 @@ main() {
     echo "Based on systematic architecture analysis"
     echo ""
     
-    # Phase 1: Critical Security & Data Safety
-    log_phase "🔴 PHASE 1: Critical Security & Data Safety"
+    # Check if phase should run
+    should_run_phase() {
+        local phase=$1
+        [[ ",$PHASES_TO_RUN," == *",$phase,"* ]]
+    }
     
-    export PHASE_PASSED PHASE_FAILED
-    if ./scripts/testing/phase1-security-data-safety.sh; then
-        phase_summary "Phase 1"
-    else
-        phase_summary "Phase 1"
-        echo "🚫 BLOCKING DEPLOYMENT - Critical security/data issues detected"
-        exit 1
+    # Phase 1: Critical Security & Data Safety
+    if should_run_phase 1; then
+        log_phase "🔴 PHASE 1: Critical Security & Data Safety"
+        
+        export PHASE_PASSED PHASE_FAILED
+        if ./scripts/testing/phase1-security-data-safety.sh; then
+            phase_summary "Phase 1"
+        else
+            phase_summary "Phase 1"
+            echo "🚫 BLOCKING DEPLOYMENT - Critical security/data issues detected"
+            exit 1
+        fi
     fi
     
     # Phase 2: Performance & API Safety  
-    log_phase "🟡 PHASE 2: Performance & API Safety"
-    
-    export PHASE_PASSED PHASE_FAILED
-    if ./scripts/testing/phase2-performance-api.sh; then
-        phase_summary "Phase 2"
-    else
-        phase_summary "Phase 2"
-        echo "⚠️  Performance/API issues detected - consider fixing before deployment"
+    if should_run_phase 2; then
+        log_phase "🟡 PHASE 2: Performance & API Safety"
+        
+        export PHASE_PASSED PHASE_FAILED
+        if ./scripts/testing/phase2-performance-api.sh; then
+            phase_summary "Phase 2"
+        else
+            phase_summary "Phase 2"
+            echo "⚠️  Performance/API issues detected - consider fixing before deployment"
+        fi
     fi
     
     # Phase 3: Infrastructure & Monitoring
-    log_phase "🟢 PHASE 3: Infrastructure & Monitoring"
-    
-    export PHASE_PASSED PHASE_FAILED
-    if ./scripts/testing/phase3-infrastructure-monitoring.sh; then
-        phase_summary "Phase 3"
-    else
-        phase_summary "Phase 3"
-        echo "ℹ️  Infrastructure/monitoring issues detected - non-blocking"
+    if should_run_phase 3; then
+        log_phase "🟢 PHASE 3: Infrastructure & Monitoring"
+        
+        export PHASE_PASSED PHASE_FAILED
+        if ./scripts/testing/phase3-infrastructure-monitoring.sh; then
+            phase_summary "Phase 3"
+        else
+            phase_summary "Phase 3"
+            echo "ℹ️  Infrastructure/monitoring issues detected - non-blocking"
+        fi
     fi
     
     # Phase 4: End-to-End Workflow Validation
-    log_phase "🔄 PHASE 4: End-to-End Workflow Validation"
-    
-    export PHASE_PASSED PHASE_FAILED
-    if ./scripts/testing/phase4-workflow-validation.sh; then
-        phase_summary "Phase 4"
-    else
-        phase_summary "Phase 4"
-        echo "⚠️  Workflow validation issues detected - review workflow implementations"
+    if should_run_phase 4; then
+        log_phase "🔄 PHASE 4: End-to-End Workflow Validation"
+        
+        export PHASE_PASSED PHASE_FAILED
+        if ./scripts/testing/phase4-workflow-validation.sh; then
+            phase_summary "Phase 4"
+        else
+            phase_summary "Phase 4"
+            echo "⚠️  Workflow validation issues detected - review workflow implementations"
+        fi
     fi
     
     # Phase 5: Complete End-to-End User Journey
-    log_phase "🎯 PHASE 5: Complete End-to-End User Journey"
-    
-    export PHASE_PASSED PHASE_FAILED
-    if ./scripts/testing/phase5-complete-e2e.sh; then
-        phase_summary "Phase 5"
-    else
-        phase_summary "Phase 5"
-        echo "⚠️  End-to-end journey issues detected - review complete workflow"
+    if should_run_phase 5; then
+        log_phase "🎯 PHASE 5: Complete End-to-End User Journey"
+        
+        export PHASE_PASSED PHASE_FAILED
+        if ./scripts/testing/phase5-complete-e2e.sh; then
+            phase_summary "Phase 5"
+        else
+            phase_summary "Phase 5"
+            echo "⚠️  End-to-end journey issues detected - review complete workflow"
+        fi
     fi
     
     # Final summary

@@ -31,8 +31,8 @@ Write code following story requirements and existing patterns
 - If still failing: Report failure and STOP
 
 ### 5. Run Gating Tests (MANDATORY)
-- Use MCP: `run_tests({ timeout: 60 })`
-- Check: success = true, failed = 0
+- Use shell: `cd /home/ec2-user/aipm && bash scripts/testing/run-structured-gating-tests.sh --phases 1,2,3 2>&1 | tail -50`
+- Check output for: "ALL GATING TESTS PASSED"
 - If fails: Fix code and return to step 3 (max 3 attempts)
 - If still failing: Report failure and STOP
 
