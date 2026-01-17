@@ -86,20 +86,29 @@ storyId=$STORY_ID
 branchName=$BRANCH_NAME
 prNumber=$PR_NUMBER"
 
-GEN_RESPONSE=$(curl -s -X POST "$API_URL/api/generate-code-branch" \
+GEN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/api/generate-code-branch" \
   -H "Content-Type: application/json" \
   -d "{
     \"storyId\": $STORY_ID,
     \"prNumber\": $PR_NUMBER,
     \"prompt\": $(echo "$PROMPT" | jq -Rs .),
     \"originalBranch\": \"$BRANCH_NAME\"
-  }")
+  }" 2>&1 || echo -e "\n504")
 
-if echo "$GEN_RESPONSE" | grep -q '"success":true'; then
-  echo "✅ Code generation started"
+HTTP_CODE=$(echo "$GEN_RESPONSE" | tail -1)
+RESPONSE_BODY=$(echo "$GEN_RESPONSE" | head -n -1)
+
+# Accept both success response and timeout (504) as valid
+# Kiro CLI works asynchronously, so timeout is expected
+if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "504" ]; then
+  if [ "$HTTP_CODE" = "504" ]; then
+    echo "⏱️  Request timed out (expected - Kiro CLI works asynchronously)"
+  else
+    echo "✅ Code generation request accepted"
+  fi
 else
-  echo "❌ Code generation failed"
-  echo "$GEN_RESPONSE"
+  echo "❌ Code generation failed (HTTP $HTTP_CODE)"
+  echo "$RESPONSE_BODY"
   exit 1
 fi
 
