@@ -1,15 +1,29 @@
 #!/bin/bash
-# Clean up orphaned test stories
+# Clean up orphaned test stories created by gating tests
 
 PROD_API_BASE="http://44.220.45.57"
 
-echo "🧹 Cleaning up orphaned test stories..."
+echo "🧹 Cleaning up orphaned gating test stories..."
 
-# Get all root stories with "Test" in title
-TEST_STORIES=$(curl -s "$PROD_API_BASE/api/stories" | jq -r '.[] | select(.title | contains("Test")) | select(.parentId == null or .parentId == 0) | .id' 2>/dev/null)
+# Only delete stories with exact test patterns created by gating tests
+# Pattern 1: "Test Story TIMESTAMP" (from phase4 tests)
+# Pattern 2: "Test Root Story" (test container)
+TEST_STORIES=$(curl -s "$PROD_API_BASE/api/stories" | jq -r '.[] | select(.title | test("^Test Story [0-9]+$|^Test Root Story$")) | select(.parentId == null or .parentId == 0) | .id' 2>/dev/null)
 
 if [[ -z "$TEST_STORIES" ]]; then
     echo "✅ No orphaned test stories found"
+    exit 0
+fi
+
+echo "Found test stories to clean:"
+curl -s "$PROD_API_BASE/api/stories" | jq -r '.[] | select(.title | test("^Test Story [0-9]+$|^Test Root Story$")) | select(.parentId == null or .parentId == 0) | "  - \(.id): \(.title)"' 2>/dev/null
+
+echo ""
+read -p "Delete these stories? (y/N): " -n 1 -r
+echo ""
+
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ Cancelled"
     exit 0
 fi
 
