@@ -6086,6 +6086,7 @@ export async function createApp() {
       if (pathname === '/api/generate-draft' && method === 'POST') {
         try {
           const payload = await parseJson(req);
+          console.log('📝 generate-draft payload:', JSON.stringify(payload));
           const { feature_description, parentId } = payload;
           const { randomUUID } = await import('crypto');
           const requestId = randomUUID();
