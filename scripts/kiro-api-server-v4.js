@@ -1049,12 +1049,6 @@ Execute the template instructions exactly as written.`;
     });
     return;
   }
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message || error.toString() }));
-      }
-    });
-    return;
-  }
 
   // Generate acceptance test draft endpoint (SSE)
   // SSE endpoint for acceptance test draft generation
