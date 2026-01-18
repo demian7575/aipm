@@ -6086,7 +6086,7 @@ export async function createApp() {
       if (pathname === '/api/generate-draft' && method === 'POST') {
         try {
           const payload = await parseJson(req);
-          console.log('📝 generate-draft payload:', JSON.stringify(payload));
+          console.error('📝 generate-draft payload:', JSON.stringify(payload));
           const { feature_description, parentId } = payload;
           const { randomUUID } = await import('crypto');
           const requestId = randomUUID();
@@ -6134,9 +6134,11 @@ export async function createApp() {
           
           // Wait for draft response
           const draft = await draftPromise;
+          console.error('✅ Draft received:', JSON.stringify(draft).substring(0, 100));
           sendJson(res, 200, draft);
           
         } catch (error) {
+          console.error('❌ generate-draft error:', error.message, error.stack);
           sendJson(res, 500, { error: error.message });
         }
         return;
