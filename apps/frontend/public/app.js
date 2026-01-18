@@ -6961,10 +6961,12 @@ function openAcceptanceTestModal(storyId, options = {}) {
             const given = givenField?.value.trim();
             const when = whenField?.value.trim();
             const then = thenField?.value.trim();
-            if (title && given && when && then) {
-              tests.push({ title, given, when, then });
+            console.log('Test item:', { title, given, when, then });
+            if (given && when && then) {
+              tests.push({ title: title || 'Untitled Test', given, when, then });
             }
           });
+          console.log('Collected tests:', tests);
           if (tests.length === 0) {
             showToast('Please add at least one complete test.', 'error');
             return false;
