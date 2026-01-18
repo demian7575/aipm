@@ -4764,14 +4764,14 @@ async function insertAcceptanceTest(
       TableName: tableName,
       Item: {
         id,
-        story_id: storyId,
+        storyId: storyId,
         title: acceptanceTestsHasTitleColumn ? title : undefined,
         given: JSON.stringify(given),
-        when_step: JSON.stringify(when),
-        then_step: JSON.stringify(then),
+        whenStep: JSON.stringify(when),
+        thenStep: JSON.stringify(then),
         status,
-        created_at: timestamp,
-        updated_at: timestamp
+        createdAt: timestamp,
+        updatedAt: timestamp
       }
     }));
     
@@ -5557,7 +5557,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
         console.log('🔍 Scanning DynamoDB table:', tableName, 'for storyId:', storyId);
         const result = await docClient.send(new ScanCommand({
           TableName: tableName,
-          FilterExpression: 'story_id = :storyId OR storyId = :storyId',
+          FilterExpression: 'storyId = :storyId',
           ExpressionAttributeValues: {
             ':storyId': storyId
           }
@@ -5645,7 +5645,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       try {
         const result = await docClient.send(new ScanCommand({
           TableName: tableName,
-          FilterExpression: 'story_id = :storyId OR storyId = :storyId',
+          FilterExpression: 'storyId = :storyId',
           ExpressionAttributeValues: {
             ':storyId': storyId
           }
