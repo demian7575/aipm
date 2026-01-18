@@ -95,8 +95,13 @@ class KiroSession {
   }
   
   checkCompletion() {
+    // Only check completion if there's an active request
+    if (!this.currentResolve) {
+      return;
+    }
+    
     // Simple completion detection: look for prompt or specific markers
-    if (this.currentResolve && this.outputBuffer.length > 100) {
+    if (this.outputBuffer.length > 100) {
       this.cleanup();
       this.currentResolve({
         output: this.outputBuffer,
