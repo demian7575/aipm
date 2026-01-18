@@ -58,7 +58,6 @@ const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
 const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
-const hideCompletedBtn = document.getElementById('hide-completed-btn');
 const filterBtn = document.getElementById('filter-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
@@ -691,17 +690,6 @@ function syncDependencyOverlayControls() {
   });
 }
 
-function syncHideCompletedControls() {
-  if (hideCompletedBtn) {
-    hideCompletedBtn.classList.toggle('is-active', state.hideCompleted);
-    hideCompletedBtn.setAttribute('aria-pressed', state.hideCompleted ? 'true' : 'false');
-    hideCompletedBtn.setAttribute(
-      'title',
-      state.hideCompleted ? 'Show completed stories' : 'Hide completed stories'
-    );
-  }
-}
-
 function setDependencyOverlayVisible(visible) {
   const next = Boolean(visible);
   if (state.showDependencies === next) {
@@ -730,16 +718,6 @@ if (referenceBtn) {
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
-  });
-}
-
-if (hideCompletedBtn) {
-  hideCompletedBtn.addEventListener('click', () => {
-    state.hideCompleted = !state.hideCompleted;
-    syncHideCompletedControls();
-    persistHideCompleted();
-    renderOutline();
-    renderMindmap();
   });
 }
 
