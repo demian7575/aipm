@@ -6885,6 +6885,10 @@ function openAcceptanceTestModal(storyId, options = {}) {
             eventSource.close();
             const drafts = data.acceptanceTests;
             if (drafts && drafts.length > 0) {
+              // Clear existing tests and reset counter
+              acceptanceTestsList.innerHTML = '';
+              testCounter = 0;
+              // Add generated tests
               drafts.forEach((draft) => {
                 addTestToList({ title: draft.title, given: draft.given, when: draft.when, then: draft.then });
               });
