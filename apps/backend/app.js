@@ -6135,7 +6135,7 @@ export async function createApp() {
           // Wait for draft response
           const draft = await draftPromise;
           console.error('✅ Draft received:', JSON.stringify(draft).substring(0, 100));
-          sendJson(res, 200, draft);
+          sendJson(res, 200, { success: true, draft });
           
         } catch (error) {
           console.error('❌ generate-draft error:', error.message, error.stack);
