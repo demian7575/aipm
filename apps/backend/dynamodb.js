@@ -70,14 +70,14 @@ export class DynamoDBDataLayer {
       }));
       return (result.Items || []).map(item => ({
         id: item.id,
-        storyId: item.storyId,
+        storyId: item.story_id || item.storyId,
         title: item.title || '',
         given: item.given,
-        whenStep: item.whenStep,
-        thenStep: item.thenStep,
+        whenStep: item.when_step || item.whenStep,
+        thenStep: item.then_step || item.thenStep,
         status: item.status,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt
+        createdAt: item.created_at || item.createdAt,
+        updatedAt: item.updated_at || item.updatedAt
       }));
     } catch (error) {
       console.error('DynamoDB: Error getting acceptance tests:', error);
