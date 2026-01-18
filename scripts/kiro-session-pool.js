@@ -32,47 +32,50 @@ class KiroSession {
   
   start() {
     // Safety check: count existing kiro-cli processes
-    const { execSync } = require('child_process');
-    try {
-      const count = execSync("ps aux | grep -E 'kiro-cli' | grep -v grep | wc -l", { encoding: 'utf8' });
-      const processCount = parseInt(count.trim());
+    const psProcess = spawn('sh', ['-c', "ps aux | grep -E 'kiro-cli' | grep -v grep | wc -l"]);
+    let countOutput = '';
+    
+    psProcess.stdout.on('data', (data) => {
+      countOutput += data.toString();
+    });
+    
+    psProcess.on('close', () => {
+      const processCount = parseInt(countOutput.trim());
       if (processCount > 6) {  // 2 parent + 2 child + 2 tee = 6 max
         this.log(`⚠️  Too many kiro-cli processes (${processCount}), skipping start`);
         setTimeout(() => this.start(), 5000);
         return;
       }
-    } catch (err) {
-      this.log(`Warning: Could not check process count: ${err.message}`);
-    }
-    
-    this.log(`Starting Kiro CLI session ${this.id}`);
-    
-    this.process = spawn('kiro-cli', ['chat', '--trust-all-tools'], {
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-    
-    this.process.stdout.on('data', (data) => {
-      const chunk = data.toString();
-      this.outputBuffer += chunk;
-      this.log(chunk);
       
-      // Detect prompt (ready for next command)
-      if (chunk.includes('> ') || chunk.includes('I ')) {
-        this.checkCompletion();
-      }
-    });
+      this.log(`Starting Kiro CLI session ${this.id}`);
+      
+      this.process = spawn('kiro-cli', ['chat', '--trust-all-tools'], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
     
-    this.process.stderr.on('data', (data) => {
-      // Don't log stderr to avoid cluttering the log with spinner animations
-      // this.log(`[ERROR] ${data.toString()}`);
-    });
-    
-    this.process.on('close', () => {
-      this.log(`Session ${this.id} closed, restarting...`);
-      if (this.currentReject) {
-        this.currentReject(new Error('Kiro CLI process closed'));
-      }
-      setTimeout(() => this.start(), 1000);
+      this.process.stdout.on('data', (data) => {
+        const chunk = data.toString();
+        this.outputBuffer += chunk;
+        this.log(chunk);
+        
+        // Detect prompt (ready for next command)
+        if (chunk.includes('> ') || chunk.includes('I ')) {
+          this.checkCompletion();
+        }
+      });
+      
+      this.process.stderr.on('data', (data) => {
+        // Don't log stderr to avoid cluttering the log with spinner animations
+        // this.log(`[ERROR] ${data.toString()}`);
+      });
+      
+      this.process.on('close', () => {
+        this.log(`Session ${this.id} closed, restarting...`);
+        if (this.currentReject) {
+          this.currentReject(new Error('Kiro CLI process closed'));
+        }
+        setTimeout(() => this.start(), 1000);
+      });
     });
   }
   
