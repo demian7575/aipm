@@ -123,6 +123,7 @@ const STORAGE_KEYS = {
   stories: 'aiPm.stories',
   lastBackup: 'aiPm.lastBackup',
   hideCompleted: 'aiPm.hideCompleted',
+  filters: 'aiPm.filters',
 };
 
 const AIPM_VERSION = '1.0.0'; // Update this when making breaking changes
@@ -1252,6 +1253,20 @@ function loadPreferences() {
   }
 
   try {
+    const filtersRaw = localStorage.getItem(STORAGE_KEYS.filters);
+    if (filtersRaw) {
+      const filters = JSON.parse(filtersRaw);
+      state.filters = {
+        status: Array.isArray(filters.status) ? filters.status : [],
+        component: Array.isArray(filters.component) ? filters.component : [],
+        assignee: Array.isArray(filters.assignee) ? filters.assignee : []
+      };
+    }
+  } catch (error) {
+    console.error('Failed to load filter preferences', error);
+  }
+
+  try {
     const selectionRaw = localStorage.getItem(STORAGE_KEYS.selection);
     if (selectionRaw) {
       state.selectedStoryId = Number(selectionRaw);
@@ -1305,6 +1320,10 @@ function persistPanels() {
 
 function persistHideCompleted() {
   localStorage.setItem(STORAGE_KEYS.hideCompleted, JSON.stringify(state.hideCompleted));
+}
+
+function persistFilters() {
+  localStorage.setItem(STORAGE_KEYS.filters, JSON.stringify(state.filters));
 }
 
 function codewhispererEntryShape(entry, storyId) {
@@ -7194,6 +7213,7 @@ function openFilterModal() {
           state.filters.status = [];
           state.filters.component = [];
           state.filters.assignee = [];
+          persistFilters();
           renderMindmap();
           return false;
         }
@@ -7206,6 +7226,7 @@ function openFilterModal() {
           state.filters.component = Array.from(componentList.querySelectorAll('input:checked')).map(cb => cb.value);
           state.filters.assignee = Array.from(assigneeList.querySelectorAll('input:checked')).map(cb => cb.value);
           
+          persistFilters();
           renderMindmap();
           showToast('Filters applied', 'success');
           return true;
