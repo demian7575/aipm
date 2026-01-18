@@ -41,13 +41,36 @@ class KiroSession {
     
     psProcess.on('close', () => {
       const processCount = parseInt(countOutput.trim());
-      if (processCount > 10) {  // Allow more headroom: 2 sessions * (2 parent + 2 child + 2 tee) = 12 max
-        this.log(`⚠️  Too many kiro-cli processes (${processCount}), killing excess processes`);
+      if (processCount > 10) {
+        this.log(`⚠️  Too many kiro-cli processes (${processCount}), cleaning up orphaned processes`);
         
-        // Kill all kiro-cli processes and restart
-        spawn('pkill', ['-f', 'kiro-cli']);
+        // Get list of all kiro-cli PIDs
+        const listProcess = spawn('sh', ['-c', "ps aux | grep 'kiro-cli' | grep -v grep | awk '{print $2}'"]);
+        let pids = '';
         
-        setTimeout(() => this.start(), 2000);
+        listProcess.stdout.on('data', (data) => {
+          pids += data.toString();
+        });
+        
+        listProcess.on('close', () => {
+          const pidList = pids.trim().split('\n').map(p => parseInt(p));
+          
+          // Kill processes that aren't our current session process
+          pidList.forEach(pid => {
+            if (this.process && this.process.pid === pid) {
+              // Skip our own process
+              return;
+            }
+            try {
+              process.kill(pid, 'SIGTERM');
+              this.log(`🔪 Killed orphaned process: ${pid}`);
+            } catch (err) {
+              // Process already dead or no permission
+            }
+          });
+          
+          setTimeout(() => this.start(), 2000);
+        });
         return;
       }
       
