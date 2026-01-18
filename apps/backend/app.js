@@ -6692,36 +6692,7 @@ export async function createApp() {
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
-        // Skip AI analysis if acceptWarnings is true
-        let analysis;
-        if (payload.acceptWarnings) {
-          analysis = { warnings: [], source: 'skipped' };
-        } else {
-          analysis = await analyzeInvest({
-            title,
-            asA,
-            iWant,
-            soThat,
-            description,
-            storyPoint,
-            components,
-          });
-        }
-        const warnings = analysis.warnings;
-        if (warnings.length > 0 && !payload.acceptWarnings) {
-          sendJson(res, 409, {
-            code: 'INVEST_WARNINGS',
-            message: 'User story does not meet INVEST criteria.',
-            warnings,
-            analysis: {
-              source: analysis.source,
-              summary: analysis.summary,
-              summary: analysis.summary,
-              model: analysis.ai?.model || null,
-            },
-          });
-          return;
-        }
+        // Create story first
         const timestamp = now();
         
         // Check if using DynamoDB or SQLite
@@ -6753,15 +6724,15 @@ export async function createApp() {
             status: 'Draft',
             createdAt: timestamp,
             updatedAt: timestamp,
-            investWarnings: JSON.stringify(warnings),
+            investWarnings: '[]',
             investAnalysis: JSON.stringify({
-              source: analysis.source || 'skipped',
-              summary: analysis.summary || '',
-              model: analysis.ai?.model || ''
+              source: 'pending',
+              summary: '',
+              model: ''
             })
           };
           
-          // Only add parentId if it's not null (DynamoDB doesn't store null values well)
+          // Only add parentId if it's not null
           if (parentId !== null && parentId !== undefined) {
             dynamoItem.parentId = parentId;
           }
@@ -6788,15 +6759,94 @@ export async function createApp() {
             'Draft',
             timestamp,
             timestamp,
+            '[]',
+            JSON.stringify({
+              source: 'pending',
+              summary: '',
+              model: '',
+            })
+          );
+          newStoryId = Number(lastInsertRowid);
+        }
+        
+        // Now analyze INVEST with story ID (skip if acceptWarnings is true)
+        let analysis;
+        if (payload.acceptWarnings) {
+          analysis = { warnings: [], source: 'skipped' };
+        } else {
+          analysis = await analyzeInvest({
+            id: newStoryId,
+            title,
+            asA,
+            iWant,
+            soThat,
+            description,
+            storyPoint,
+            components,
+          });
+        }
+        const warnings = analysis.warnings;
+        
+        // If warnings exist and not accepted, delete story and return error
+        if (warnings.length > 0 && !payload.acceptWarnings) {
+          // Delete the created story
+          if (db.constructor.name === 'DynamoDBDataLayer') {
+            const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+            const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
+            const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+            const docClient = DynamoDBDocumentClient.from(client);
+            await docClient.send(new DeleteCommand({
+              TableName: process.env.STORIES_TABLE,
+              Key: { id: newStoryId }
+            }));
+          } else {
+            const stmt = db.prepare('DELETE FROM user_stories WHERE id = ?');
+            await stmt.run(newStoryId);
+          }
+          
+          sendJson(res, 409, {
+            code: 'INVEST_WARNINGS',
+            message: 'User story does not meet INVEST criteria.',
+            warnings,
+            analysis: {
+              source: analysis.source,
+              summary: analysis.summary,
+              model: analysis.ai?.model || null,
+            },
+          });
+          return;
+        }
+        
+        // Update story with analysis results
+        if (db.constructor.name === 'DynamoDBDataLayer') {
+          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const docClient = DynamoDBDocumentClient.from(client);
+          await docClient.send(new UpdateCommand({
+            TableName: process.env.STORIES_TABLE,
+            Key: { id: newStoryId },
+            UpdateExpression: 'SET investWarnings = :warnings, investAnalysis = :analysis',
+            ExpressionAttributeValues: {
+              ':warnings': JSON.stringify(warnings),
+              ':analysis': JSON.stringify({
+                source: analysis.source || 'skipped',
+                summary: analysis.summary || '',
+                model: analysis.ai?.model || ''
+              })
+            }
+          }));
+        } else {
+          const stmt = db.prepare('UPDATE user_stories SET invest_warnings = ?, invest_analysis = ? WHERE id = ?');
+          await stmt.run(
             JSON.stringify(warnings),
             JSON.stringify({
               source: analysis.source,
               summary: analysis.summary,
-              summary: analysis.summary,
               model: analysis.ai?.model || null,
-            })
+            }),
+            newStoryId
           );
-          newStoryId = Number(lastInsertRowid);
         }
         
         // Automatic acceptance test creation disabled - frontend handles acceptance tests
