@@ -6918,6 +6918,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
   openModal({
     title: isEditMode ? 'Edit Acceptance Test' : 'Create Acceptance Tests',
     content: container,
+    size: 'large',
     actions: [{
       label: isEditMode ? 'Save Changes' : 'Create Tests',
       onClick: async () => {
