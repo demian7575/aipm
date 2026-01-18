@@ -1031,11 +1031,14 @@ Execute the template instructions exactly as written.`;
         }
         
         // Template System: API gives KIRO CLI the filename to read
-        const prompt = `Read and follow the template file: ./templates/user-story-generation.md
+        const prompt = `=== NEW REQUEST ===
+Read and follow the template file: ./templates/user-story-generation.md
 
 Feature description: "${feature_description}"
 Parent ID: ${parentId}
 Request ID: ${requestId}
+
+IMPORTANT: This is a NEW request. Use the Request ID above (${requestId}), not any previous request ID.
 
 Execute the template instructions exactly as written.`;
         
