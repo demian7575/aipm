@@ -102,10 +102,15 @@ class KiroSession {
     
     // Simple completion detection: look for prompt or specific markers
     if (this.outputBuffer.length > 100) {
+      const resolve = this.currentResolve;
+      const output = this.outputBuffer;
+      const sessionId = this.id;
+      
       this.cleanup();
-      this.currentResolve({
-        output: this.outputBuffer,
-        sessionId: this.id
+      
+      resolve({
+        output: output,
+        sessionId: sessionId
       });
     }
   }
