@@ -6084,15 +6084,77 @@ export async function createApp() {
       }
 
       if (pathname === '/api/generate-draft' && method === 'POST') {
-        // Redirect to Kiro API server - this endpoint should not be called on main backend
-        res.writeHead(404, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        });
-        res.end(JSON.stringify({ 
-          success: false, 
-          error: 'Story generation handled by Kiro API server on port 8081' 
-        }));
+        try {
+          const payload = await parseJson(req);
+          const { feature_description, parentId } = payload;
+          const { randomUUID } = await import('crypto');
+          const requestId = randomUUID();
+          
+          // Initialize pending requests
+          if (!global.pendingRequests) {
+            global.pendingRequests = {};
+          }
+          
+          // Create promise for draft response
+          const draftPromise = new Promise((resolve, reject) => {
+            global.pendingRequests[requestId] = { 
+              resolve, 
+              reject,
+              createdAt: Date.now()
+            };
+            
+            // Timeout after 90 seconds
+            setTimeout(() => {
+              if (global.pendingRequests[requestId]) {
+                delete global.pendingRequests[requestId];
+                reject(new Error('Timeout after 90 seconds'));
+              }
+            }, 90000);
+          });
+          
+          // Call Kiro API
+          try {
+            const kiroResponse = await fetch('http://localhost:8081/api/generate-draft', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ feature_description, parentId, requestId })
+            });
+            
+            if (!kiroResponse.ok) {
+              throw new Error(`Kiro API error: ${kiroResponse.status}`);
+            }
+          } catch (err) {
+            if (global.pendingRequests[requestId]) {
+              global.pendingRequests[requestId].reject(err);
+              delete global.pendingRequests[requestId];
+            }
+            throw err;
+          }
+          
+          // Wait for draft response
+          const draft = await draftPromise;
+          sendJson(res, 200, draft);
+          
+        } catch (error) {
+          sendJson(res, 500, { error: error.message });
+        }
+        return;
+      }
+
+      if (pathname === '/api/draft-response' && method === 'POST') {
+        try {
+          const payload = await parseJson(req);
+          const { requestId, ...draft } = payload;
+          
+          if (global.pendingRequests && global.pendingRequests[requestId]) {
+            global.pendingRequests[requestId].resolve(draft);
+            delete global.pendingRequests[requestId];
+          }
+          
+          sendJson(res, 200, { received: true });
+        } catch (error) {
+          sendJson(res, 500, { error: error.message });
+        }
         return;
       }
 
@@ -8139,6 +8201,19 @@ export async function startServer(port = 4000) {
       console.log(`🚀 AIPM Backend Server started on port ${port}`);
       debugLog(`Debug logging enabled: ${DEBUG}`);
       debugLog(`Environment: ${process.env.NODE_ENV || 'production'}`);
+      
+      // Memory leak prevention: Clean up expired pending requests every minute
+      setInterval(() => {
+        if (!global.pendingRequests) return;
+        const now = Date.now();
+        for (const [id, req] of Object.entries(global.pendingRequests)) {
+          if (now - req.createdAt > 300000) {  // 5 minutes
+            req.reject(new Error('Request expired'));
+            delete global.pendingRequests[id];
+          }
+        }
+      }, 60000);
+      
       resolve(app);
     });
     app.once('error', reject);

@@ -719,13 +719,41 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/draft-response' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
-        const draftData = JSON.parse(body);
-        // Store draft data temporarily (includes acceptance tests)
-        global.latestDraft = { success: true, draft: draftData, timestamp: Date.now() };
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ received: true }));
+        const draft = JSON.parse(body);
+        
+        // Forward to Backend with retry logic (3 attempts)
+        let lastError;
+        for (let i = 0; i < 3; i++) {
+          try {
+            const response = await fetch('http://3.92.96.67:4000/api/draft-response', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(draft)
+            });
+            
+            if (response.ok) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ received: true }));
+              return;
+            }
+            
+            lastError = new Error(`Backend responded with ${response.status}`);
+          } catch (err) {
+            lastError = err;
+            if (i < 2) {
+              // Wait before retry: 1s, 2s
+              await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+            }
+          }
+        }
+        
+        // All retries failed
+        console.error('Failed to forward draft to backend after 3 attempts:', lastError);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to forward to backend' }));
+        
       } catch (error) {
         console.error('Error in draft-response:', error);
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -989,55 +1017,38 @@ Execute the template instructions exactly as written.`;
     req.on('end', async () => {
       console.log('📝 Request body received:', body);
       try {
-        const { feature_description = 'user login system', parentId = null } = JSON.parse(body);
+        const { feature_description = 'user login system', parentId = null, requestId } = JSON.parse(body);
+        
+        if (!requestId) {
+          throw new Error('requestId is required');
+        }
         
         // Template System: API gives KIRO CLI the filename to read
         const prompt = `Read and follow the template file: ./templates/user-story-generation.md
 
 Feature description: "${feature_description}"
 Parent ID: ${parentId}
+Request ID: ${requestId}
 
 Execute the template instructions exactly as written.`;
         
-        // Clear any existing draft data
-        global.latestDraft = null;
+        // Execute KIRO CLI via session pool (don't wait for completion)
+        sendToKiro(prompt).catch(err => {
+          console.error('Error executing Kiro CLI:', err);
+        });
         
-        // Execute KIRO CLI via session pool
-        const result = await sendToKiro(prompt);
-        console.log('📝 Kiro response received, waiting for callback...');
-        
-        // Poll for draft data (max 30 seconds since kiro already executed)
-        const maxAttempts = 30;
-        const pollInterval = 1000;
-        let attempts = 0;
-        
-        while (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, pollInterval));
-          attempts++;
-          
-          // Check if we received draft data via callback
-          if (global.latestDraft && (Date.now() - global.latestDraft.timestamp) < 30000) {
-            const draftResponse = global.latestDraft;
-            global.latestDraft = null;
-            
-            console.log(`✅ User Story draft received after ${attempts} seconds`);
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(draftResponse));
-            return;
-          }
-        }
-        
-        // Timeout - no draft received
-        console.log(`⏱️ User Story draft timeout after ${maxAttempts} seconds`);
+        // Immediately respond (draft will come via callback)
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
-          success: false, 
-          error: 'Timeout: No draft data received from callback after 30 seconds'
-        }));
+        res.end(JSON.stringify({ status: 'processing', requestId }));
         
       } catch (error) {
         console.error('Error in generate-draft:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message || error.toString() }));
+      }
+    });
+    return;
+  }
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message || error.toString() }));
       }
