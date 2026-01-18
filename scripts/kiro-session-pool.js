@@ -3,15 +3,21 @@
 /**
  * Kiro CLI Session Pool Server
  * Manages multiple Kiro CLI sessions for concurrent request handling
+ * 
+ * Core Features:
+ * 1. Persistent sessions (no kill after each request)
+ * 2. Request queue when all sessions busy
+ * 3. Graceful stuck recovery (Ctrl+C before kill)
  */
 
 import { spawn } from 'child_process';
-import { createWriteStream, appendFileSync } from 'fs';
+import { createWriteStream } from 'fs';
 import http from 'http';
 
 const POOL_SIZE = 2;
-const SESSION_TIMEOUT = 600000; // 10 minutes
-const IDLE_RESTART_TIME = 300000; // 5 minutes
+const SESSION_TIMEOUT = 90000; // 90 seconds
+const IDLE_DETECTION_TIME = 2000; // 2 seconds of no output = complete
+const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
 const LOG_FILE = '/tmp/kiro-cli-live.log';
 
 class KiroSession {
@@ -20,89 +26,47 @@ class KiroSession {
     this.logStream = logStream;
     this.process = null;
     this.busy = false;
+    this.stuck = false;
     this.lastUsed = Date.now();
+    this.lastOutputTime = null;
     this.currentPrompt = null;
     this.currentResolve = null;
     this.currentReject = null;
     this.outputBuffer = '';
     this.timeoutHandle = null;
+    this.idleCheckHandle = null;
     
     this.start();
   }
   
   start() {
-    // Safety check: count existing kiro-cli processes
-    const psProcess = spawn('sh', ['-c', "ps aux | grep 'kiro-cli' | grep -v grep | grep -v 'ps aux' | wc -l"]);
-    let countOutput = '';
+    this.log(`Starting Kiro CLI session ${this.id}`);
     
-    psProcess.stdout.on('data', (data) => {
-      countOutput += data.toString();
+    this.process = spawn('kiro-cli', ['chat', '--trust-all-tools'], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+  
+    this.process.stdout.on('data', (data) => {
+      const chunk = data.toString();
+      this.outputBuffer += chunk;
+      this.lastOutputTime = Date.now();
+      this.log(chunk);
+      
+      // Start idle detection
+      this.checkIdleCompletion();
     });
     
-    psProcess.on('close', () => {
-      const processCount = parseInt(countOutput.trim());
-      if (processCount > 10) {
-        this.log(`⚠️  Too many kiro-cli processes (${processCount}), cleaning up orphaned processes`);
-        
-        // Get list of all kiro-cli PIDs
-        const listProcess = spawn('sh', ['-c', "ps aux | grep 'kiro-cli' | grep -v grep | awk '{print $2}'"]);
-        let pids = '';
-        
-        listProcess.stdout.on('data', (data) => {
-          pids += data.toString();
-        });
-        
-        listProcess.on('close', () => {
-          const pidList = pids.trim().split('\n').map(p => parseInt(p));
-          
-          // Kill processes that aren't our current session process
-          pidList.forEach(pid => {
-            if (this.process && this.process.pid === pid) {
-              // Skip our own process
-              return;
-            }
-            try {
-              process.kill(pid, 'SIGTERM');
-              this.log(`🔪 Killed orphaned process: ${pid}`);
-            } catch (err) {
-              // Process already dead or no permission
-            }
-          });
-          
-          setTimeout(() => this.start(), 2000);
-        });
-        return;
-      }
-      
-      this.log(`Starting Kiro CLI session ${this.id}`);
-      
-      this.process = spawn('kiro-cli', ['chat', '--trust-all-tools'], {
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
+    this.process.stderr.on('data', (data) => {
+      // Suppress stderr to avoid log clutter
+    });
     
-      this.process.stdout.on('data', (data) => {
-        const chunk = data.toString();
-        this.outputBuffer += chunk;
-        this.log(chunk);
-        
-        // Detect prompt (ready for next command)
-        if (chunk.includes('> ') || chunk.includes('I ')) {
-          this.checkCompletion();
-        }
-      });
-      
-      this.process.stderr.on('data', (data) => {
-        // Don't log stderr to avoid cluttering the log with spinner animations
-        // this.log(`[ERROR] ${data.toString()}`);
-      });
-      
-      this.process.on('close', () => {
-        this.log(`Session ${this.id} closed, restarting...`);
-        if (this.currentReject) {
-          this.currentReject(new Error('Kiro CLI process closed'));
-        }
-        setTimeout(() => this.start(), 1000);
-      });
+    this.process.on('close', () => {
+      this.log(`Session ${this.id} closed, restarting...`);
+      if (this.currentReject) {
+        this.currentReject(new Error('Kiro CLI process closed'));
+      }
+      this.cleanup();
+      setTimeout(() => this.start(), 1000);
     });
   }
   
@@ -118,19 +82,19 @@ class KiroSession {
     }
     
     this.busy = true;
+    this.stuck = false;
     this.lastUsed = Date.now();
     this.currentPrompt = prompt;
     this.outputBuffer = '';
+    this.lastOutputTime = Date.now();
     
     return new Promise((resolve, reject) => {
       this.currentResolve = resolve;
       this.currentReject = reject;
       
-      // Set timeout
+      // Set timeout for stuck detection
       this.timeoutHandle = setTimeout(() => {
-        this.log(`Session ${this.id} timeout after ${SESSION_TIMEOUT}ms`);
-        this.cleanup();
-        reject(new Error('Session timeout'));
+        this.handleStuck();
       }, SESSION_TIMEOUT);
       
       // Send prompt
@@ -139,25 +103,93 @@ class KiroSession {
     });
   }
   
-  checkCompletion() {
-    // Only check completion if there's an active request
+  checkIdleCompletion() {
+    // Clear previous idle check
+    if (this.idleCheckHandle) {
+      clearTimeout(this.idleCheckHandle);
+    }
+    
+    // Only check if we have an active request
+    if (!this.currentResolve || !this.busy) {
+      return;
+    }
+    
+    // Set new idle check
+    this.idleCheckHandle = setTimeout(() => {
+      const timeSinceLastOutput = Date.now() - this.lastOutputTime;
+      
+      // If no output for IDLE_DETECTION_TIME and we have some output, consider complete
+      if (timeSinceLastOutput >= IDLE_DETECTION_TIME && this.outputBuffer.length > 50) {
+        this.log(`Idle detection: completing after ${timeSinceLastOutput}ms of no output`);
+        this.complete();
+      }
+    }, IDLE_DETECTION_TIME);
+  }
+  
+  complete() {
     if (!this.currentResolve) {
       return;
     }
     
-    // Simple completion detection: look for prompt or specific markers
-    if (this.outputBuffer.length > 100) {
-      const resolve = this.currentResolve;
-      const output = this.outputBuffer;
-      const sessionId = this.id;
-      
-      this.cleanup();
-      
-      resolve({
-        output: output,
-        sessionId: sessionId
-      });
+    const resolve = this.currentResolve;
+    const output = this.outputBuffer;
+    
+    this.cleanup();
+    
+    resolve({
+      output: output,
+      sessionId: this.id
+    });
+  }
+  
+  async handleStuck() {
+    if (!this.busy || this.stuck) {
+      return;
     }
+    
+    this.stuck = true;
+    this.log(`⚠️  Session ${this.id} appears stuck, attempting graceful recovery`);
+    
+    // Try Ctrl+C first
+    try {
+      this.process.stdin.write('\x03'); // Ctrl+C
+      this.log(`Sent Ctrl+C to session ${this.id}`);
+      
+      // Wait for recovery
+      await new Promise(resolve => setTimeout(resolve, RECOVERY_TIMEOUT));
+      
+      // Check if recovered
+      if (!this.busy) {
+        this.log(`✅ Session ${this.id} recovered`);
+        this.stuck = false;
+        return;
+      }
+      
+      // Still stuck, kill and restart
+      this.log(`❌ Session ${this.id} did not recover, killing process`);
+      this.forceRestart();
+      
+    } catch (err) {
+      this.log(`Error during recovery: ${err.message}`);
+      this.forceRestart();
+    }
+  }
+  
+  forceRestart() {
+    const reject = this.currentReject;
+    
+    if (this.process) {
+      this.process.kill('SIGKILL');
+      this.process = null;
+    }
+    
+    this.cleanup();
+    
+    if (reject) {
+      reject(new Error('Session stuck and restarted'));
+    }
+    
+    setTimeout(() => this.start(), 1000);
   }
   
   cleanup() {
@@ -165,17 +197,18 @@ class KiroSession {
       clearTimeout(this.timeoutHandle);
       this.timeoutHandle = null;
     }
+    
+    if (this.idleCheckHandle) {
+      clearTimeout(this.idleCheckHandle);
+      this.idleCheckHandle = null;
+    }
+    
     this.busy = false;
+    this.stuck = false;
     this.currentPrompt = null;
     this.currentResolve = null;
     this.currentReject = null;
-    
-    // Kill and restart the process to prevent memory leaks
-    if (this.process) {
-      this.process.kill();
-      this.process = null;
-    }
-    setTimeout(() => this.start(), 1000);
+    this.outputBuffer = '';
   }
   
   kill() {
@@ -189,6 +222,7 @@ class KiroSessionPool {
   constructor(size) {
     this.logStream = createWriteStream(LOG_FILE, { flags: 'a' });
     this.sessions = [];
+    this.queue = []; // Request queue
     
     // Initialize log
     const timestamp = new Date().toISOString();
@@ -198,39 +232,86 @@ class KiroSessionPool {
     for (let i = 0; i < size; i++) {
       this.sessions.push(new KiroSession(i, this.logStream));
     }
-    
-    // Health check interval
-    setInterval(() => this.healthCheck(), 60000); // Every minute
   }
   
   async execute(prompt) {
     // Find available session
-    const session = this.sessions.find(s => !s.busy);
+    const session = this.sessions.find(s => !s.busy && !s.stuck);
     
-    if (!session) {
-      throw new Error('All sessions busy');
+    if (session) {
+      // Execute immediately
+      return await session.execute(prompt);
     }
     
-    return await session.execute(prompt);
+    // All sessions busy, add to queue
+    this.logStream.write(`[Pool] All sessions busy, queuing request (queue size: ${this.queue.length + 1})\n`);
+    
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        // Remove from queue
+        const index = this.queue.findIndex(item => item.resolve === resolve);
+        if (index !== -1) {
+          this.queue.splice(index, 1);
+        }
+        reject(new Error('Queue timeout'));
+      }, SESSION_TIMEOUT);
+      
+      this.queue.push({
+        prompt,
+        resolve,
+        reject,
+        timeout,
+        addedAt: Date.now()
+      });
+      
+      // Try to process queue
+      this.processQueue();
+    });
   }
   
-  healthCheck() {
-    const now = Date.now();
-    this.sessions.forEach(session => {
-      if (!session.busy && now - session.lastUsed > IDLE_RESTART_TIME) {
-        session.logStream.write(`[Health Check] Restarting idle session ${session.id}\n`);
-        session.kill();
-        session.start();
-      }
-    });
+  async processQueue() {
+    if (this.queue.length === 0) {
+      return;
+    }
+    
+    // Find available session
+    const session = this.sessions.find(s => !s.busy && !s.stuck);
+    
+    if (!session) {
+      return; // No available session
+    }
+    
+    // Get next item from queue
+    const item = this.queue.shift();
+    
+    if (!item) {
+      return;
+    }
+    
+    clearTimeout(item.timeout);
+    
+    const waitTime = Date.now() - item.addedAt;
+    this.logStream.write(`[Pool] Processing queued request (waited ${waitTime}ms, queue size: ${this.queue.length})\n`);
+    
+    try {
+      const result = await session.execute(item.prompt);
+      item.resolve(result);
+    } catch (err) {
+      item.reject(err);
+    }
+    
+    // Process next item in queue
+    setTimeout(() => this.processQueue(), 100);
   }
   
   getStatus() {
     return {
       poolSize: this.sessions.length,
+      queueLength: this.queue.length,
       sessions: this.sessions.map(s => ({
         id: s.id,
         busy: s.busy,
+        stuck: s.stuck,
         lastUsed: new Date(s.lastUsed).toISOString(),
         idleTime: Date.now() - s.lastUsed
       }))
@@ -251,7 +332,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   if (req.method === 'OPTIONS') {
-    res.writeHead(204);
+    res.writeHead(200);
     res.end();
     return;
   }
@@ -266,7 +347,11 @@ const server = http.createServer(async (req, res) => {
   // Execute endpoint
   if (url.pathname === '/execute' && req.method === 'POST') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
     req.on('end', async () => {
       try {
         const { prompt } = JSON.parse(body);
@@ -280,26 +365,23 @@ const server = http.createServer(async (req, res) => {
         const result = await pool.execute(prompt);
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          ...result
-        }));
-      } catch (error) {
+        res.end(JSON.stringify(result));
+        
+      } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: false,
-          error: error.message
-        }));
+        res.end(JSON.stringify({ error: err.message }));
       }
     });
+    
     return;
   }
   
-  res.writeHead(404);
-  res.end('Not Found');
+  // Not found
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Not found' }));
 });
 
-const PORT = process.env.KIRO_POOL_PORT || 8082;
+const PORT = 8082;
 server.listen(PORT, () => {
   console.log(`🚀 Kiro Session Pool Server running on port ${PORT}`);
   console.log(`📊 Pool size: ${POOL_SIZE}`);
