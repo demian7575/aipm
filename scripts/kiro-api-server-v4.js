@@ -305,10 +305,30 @@ async function processKiroQueue() {
 }
 
 function sendToKiro(prompt) {
-  return new Promise((resolve, reject) => {
-    kiroCommandQueue.push({ prompt, resolve, reject, timestamp: Date.now() });
-    lastQueueActivity = Date.now();
-    processKiroQueue();
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Use session pool instead of direct process
+      const response = await fetch('http://localhost:8082/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+        signal: AbortSignal.timeout(600000) // 10 minutes
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Session pool error: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        resolve(result.output);
+      } else {
+        reject(new Error(result.error));
+      }
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 
