@@ -6692,15 +6692,21 @@ export async function createApp() {
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
-        const analysis = await analyzeInvest({
-          title,
-          asA,
-          iWant,
-          soThat,
-          description,
-          storyPoint,
-          components,
-        });
+        // Skip AI analysis if acceptWarnings is true
+        let analysis;
+        if (payload.acceptWarnings) {
+          analysis = { warnings: [], source: 'skipped' };
+        } else {
+          analysis = await analyzeInvest({
+            title,
+            asA,
+            iWant,
+            soThat,
+            description,
+            storyPoint,
+            components,
+          });
+        }
         const warnings = analysis.warnings;
         if (warnings.length > 0 && !payload.acceptWarnings) {
           sendJson(res, 409, {
