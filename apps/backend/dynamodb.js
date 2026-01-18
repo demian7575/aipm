@@ -70,14 +70,14 @@ export class DynamoDBDataLayer {
       }));
       return (result.Items || []).map(item => ({
         id: item.id,
-        storyId: item.storyId || item.story_id,
+        storyId: item.storyId,
         title: item.title || '',
         given: item.given,
-        whenStep: item.whenStep || item.when_step,
-        thenStep: item.thenStep || item.then_step,
+        whenStep: item.whenStep,
+        thenStep: item.thenStep,
         status: item.status,
-        createdAt: item.createdAt || item.created_at,
-        updatedAt: item.updatedAt || item.updated_at
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
       }));
     } catch (error) {
       console.error('DynamoDB: Error getting acceptance tests:', error);
@@ -96,20 +96,20 @@ export class DynamoDBDataLayer {
       // DynamoDB DocumentClient already converts types, so we just need to map field names
       const stories = (result.Items || []).map(item => ({
         id: item.id,
-        parentId: item.parentId || item.parent_id,
+        parentId: item.parentId,
         title: item.title || '',
         description: item.description || '',
-        asA: item.asA || item.as_a || '',
-        iWant: item.iWant || item.i_want || '',
-        soThat: item.soThat || item.so_that || '',
+        asA: item.asA || '',
+        iWant: item.iWant || '',
+        soThat: item.soThat || '',
         components: item.components || '[]',
-        storyPoint: item.storyPoint || item.story_point || 0,
-        assigneeEmail: item.assigneeEmail || item.assignee_email || '',
+        storyPoint: item.storyPoint || 0,
+        assigneeEmail: item.assigneeEmail || '',
         status: item.status == null ? 'Draft' : item.status,
-        createdAt: item.createdAt || item.created_at,
-        updatedAt: item.updatedAt || item.updated_at,
-        investAnalysis: item.investAnalysis || item.invest_analysis,
-        mrId: item.mrId || item.mr_id || 1,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        investAnalysis: item.investAnalysis,
+        mrId: item.mrId || 1,
         prs: item.prs || '[]'
       }));
       
