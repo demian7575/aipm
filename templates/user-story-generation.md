@@ -64,6 +64,7 @@ Generate stories that are: Independent, Negotiable, Valuable, Estimable, Small, 
 curl -X POST http://localhost:8081/api/draft-response \
   -H 'Content-Type: application/json' \
   -d '{
+    "requestId": "REQUEST_ID_VALUE",
     "title": "STORY_TITLE",
     "description": "STORY_DESCRIPTION", 
     "asA": "USER_PERSONA",
@@ -86,4 +87,4 @@ curl -X POST http://localhost:8081/api/draft-response \
   }'
 ```
 
-**EXECUTE ONCE PER REQUEST**: Replace placeholders with actual values and POST to API. After posting, wait for the next feature description.
+**EXECUTE ONCE PER REQUEST**: Replace placeholders (including REQUEST_ID_VALUE) with actual values from the prompt and POST to API. After posting, wait for the next feature description.
