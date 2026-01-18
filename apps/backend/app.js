@@ -5557,7 +5557,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
         console.log('🔍 Scanning DynamoDB table:', tableName, 'for storyId:', storyId);
         const result = await docClient.send(new ScanCommand({
           TableName: tableName,
-          FilterExpression: 'story_id = :storyId',
+          FilterExpression: 'story_id = :storyId OR storyId = :storyId',
           ExpressionAttributeValues: {
             ':storyId': storyId
           }
@@ -5645,7 +5645,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
       try {
         const result = await docClient.send(new ScanCommand({
           TableName: tableName,
-          FilterExpression: 'story_id = :storyId',
+          FilterExpression: 'story_id = :storyId OR storyId = :storyId',
           ExpressionAttributeValues: {
             ':storyId': storyId
           }
