@@ -6708,7 +6708,7 @@ export async function createApp() {
           const docClient = DynamoDBDocumentClient.from(client);
           const tableName = process.env.STORIES_TABLE;
           
-          newStoryId = Date.now(); // Generate unique ID
+          newStoryId = Date.now();
           
           const dynamoItem = {
             id: newStoryId,
@@ -6732,7 +6732,6 @@ export async function createApp() {
             })
           };
           
-          // Only add parentId if it's not null
           if (parentId !== null && parentId !== undefined) {
             dynamoItem.parentId = parentId;
           }
@@ -6769,27 +6768,21 @@ export async function createApp() {
           newStoryId = Number(lastInsertRowid);
         }
         
-        // Now analyze INVEST with story ID (skip if acceptWarnings is true)
-        let analysis;
-        if (payload.acceptWarnings) {
-          analysis = { warnings: [], source: 'skipped' };
-        } else {
-          analysis = await analyzeInvest({
-            id: newStoryId,
-            title,
-            asA,
-            iWant,
-            soThat,
-            description,
-            storyPoint,
-            components,
-          });
-        }
+        // Analyze INVEST with story ID
+        const analysis = await analyzeInvest({
+          id: newStoryId,
+          title,
+          asA,
+          iWant,
+          soThat,
+          description,
+          storyPoint,
+          components,
+        });
         const warnings = analysis.warnings;
         
-        // If warnings exist and not accepted, delete story and return error
-        if (warnings.length > 0 && !payload.acceptWarnings) {
-          // Delete the created story
+        // If warnings exist, delete story and return error
+        if (warnings.length > 0) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
             const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -6830,7 +6823,7 @@ export async function createApp() {
             ExpressionAttributeValues: {
               ':warnings': JSON.stringify(warnings),
               ':analysis': JSON.stringify({
-                source: analysis.source || 'skipped',
+                source: analysis.source || 'completed',
                 summary: analysis.summary || '',
                 model: analysis.ai?.model || ''
               })
