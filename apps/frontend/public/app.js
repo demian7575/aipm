@@ -6795,13 +6795,9 @@ function openAcceptanceTestModal(storyId, options = {}) {
         <label>Idea (Optional)<textarea id="test-idea" placeholder="Describe scenarios to cover" rows="2"></textarea></label>
         <p class="form-hint">Provide context for AI. Leave empty for default tests.</p>
         <div class="ai-draft-controls">
-          <button type="button" class="secondary small" id="ai-draft-generate">Generate Draft</button>
+          <button type="button" class="secondary small" id="ai-draft-generate">Generate Tests</button>
           <p class="ai-draft-status"></p>
         </div>
-      </div>
-      <div id="draft-tests-container" style="display: none;">
-        <h4>Generated Drafts</h4>
-        <div id="draft-tests-list"></div>
       </div>
       <div class="acceptance-tests-section">
         <h4>Acceptance Tests</h4>
@@ -6829,8 +6825,6 @@ function openAcceptanceTestModal(storyId, options = {}) {
   const ideaField = container.querySelector('#test-idea');
   const generateBtn = container.querySelector('#ai-draft-generate');
   const draftStatus = container.querySelector('.ai-draft-status');
-  const draftTestsContainer = container.querySelector('#draft-tests-container');
-  const draftTestsList = container.querySelector('#draft-tests-list');
   const acceptanceTestsList = container.querySelector('#acceptance-tests-list');
   const addTestBtn = container.querySelector('#add-test-btn');
   
@@ -6891,31 +6885,14 @@ function openAcceptanceTestModal(storyId, options = {}) {
             eventSource.close();
             const drafts = data.acceptanceTests;
             if (drafts && drafts.length > 0) {
-              draftTestsContainer.style.display = 'block';
-              draftTestsList.innerHTML = '';
-              drafts.forEach((draft, index) => {
-                const draftItem = document.createElement('div');
-                draftItem.className = 'draft-test-item';
-                draftItem.innerHTML = `
-                  <h5>${draft.title}</h5>
-                  <p><strong>Given:</strong> ${draft.given}</p>
-                  <p><strong>When:</strong> ${draft.when}</p>
-                  <p><strong>Then:</strong> ${draft.then}</p>
-                  <button type="button" class="secondary small" data-index="${index}">Add to List</button>
-                `;
-                draftTestsList.appendChild(draftItem);
+              drafts.forEach((draft) => {
+                addTestToList({ title: draft.title, given: draft.given, when: draft.when, then: draft.then });
               });
-              draftTestsList.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('click', () => {
-                  const draft = drafts[parseInt(btn.dataset.index)];
-                  addTestToList({ title: draft.title, given: draft.given, when: draft.when, then: draft.then });
-                  showToast('Draft added to list!', 'success');
-                });
-              });
-              if (draftStatus) draftStatus.textContent = `${drafts.length} draft(s) generated in ${data.elapsed}s!`;
+              if (draftStatus) draftStatus.textContent = `${drafts.length} test(s) generated in ${data.elapsed}s!`;
+              showToast(`${drafts.length} test(s) added to Acceptance Tests!`, 'success');
             }
             generateBtn.disabled = false;
-            generateBtn.textContent = 'Generate Draft';
+            generateBtn.textContent = 'Generate Tests';
           } else if (data.status === 'timeout' || data.error) {
             eventSource.close();
             throw new Error(data.error || 'Draft generation timeout');
@@ -6927,13 +6904,13 @@ function openAcceptanceTestModal(storyId, options = {}) {
           if (draftStatus) draftStatus.textContent = 'Connection error. Please try again.';
           showToast('Failed to connect to Kiro CLI', 'error');
           generateBtn.disabled = false;
-          generateBtn.textContent = 'Generate Draft';
+          generateBtn.textContent = 'Generate Tests';
         };
       } catch (error) {
         if (draftStatus) draftStatus.textContent = error.message || 'Failed to generate draft.';
         showToast(error.message || 'Unable to generate acceptance test draft', 'error');
         generateBtn.disabled = false;
-        generateBtn.textContent = 'Generate Draft';
+        generateBtn.textContent = 'Generate Tests';
       }
     });
   }
