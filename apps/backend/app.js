@@ -6754,11 +6754,11 @@ export async function createApp() {
             createdAt: timestamp,
             updatedAt: timestamp,
             investWarnings: JSON.stringify(warnings),
-            investAnalysis: {
-              source: analysis.source,
-              summary: analysis.summary,
-              model: analysis.ai?.model || null
-            }
+            investAnalysis: JSON.stringify({
+              source: analysis.source || 'skipped',
+              summary: analysis.summary || '',
+              model: analysis.ai?.model || ''
+            })
           };
           
           // Only add parentId if it's not null (DynamoDB doesn't store null values well)
