@@ -6952,16 +6952,18 @@ function openAcceptanceTestModal(storyId, options = {}) {
         } else {
           const tests = [];
           const testItems = container.querySelectorAll('.acceptance-test-item');
-          testItems.forEach((item) => {
+          console.log('Found test items:', testItems.length);
+          testItems.forEach((item, index) => {
             const titleField = item.querySelector('input[id*="test-title"]');
             const givenField = item.querySelector('textarea[id*="test-given"]');
             const whenField = item.querySelector('textarea[id*="test-when"]');
             const thenField = item.querySelector('textarea[id*="test-then"]');
+            console.log(`Test item ${index}:`, { titleField, givenField, whenField, thenField });
             const title = titleField?.value.trim();
             const given = givenField?.value.trim();
             const when = whenField?.value.trim();
             const then = thenField?.value.trim();
-            console.log('Test item:', { title, given, when, then });
+            console.log(`Test item ${index} values:`, { title, given, when, then });
             if (given && when && then) {
               tests.push({ title: title || 'Untitled Test', given, when, then });
             }
