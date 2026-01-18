@@ -549,6 +549,7 @@ async function getMainBranchSha(owner, repo, token) {
 }
 
 const server = http.createServer(async (req, res) => {
+  console.log(`📥 Request: ${req.method} ${req.url}`);
   try {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
