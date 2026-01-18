@@ -42,8 +42,12 @@ class KiroSession {
     psProcess.on('close', () => {
       const processCount = parseInt(countOutput.trim());
       if (processCount > 10) {  // Allow more headroom: 2 sessions * (2 parent + 2 child + 2 tee) = 12 max
-        this.log(`⚠️  Too many kiro-cli processes (${processCount}), skipping start`);
-        setTimeout(() => this.start(), 5000);
+        this.log(`⚠️  Too many kiro-cli processes (${processCount}), killing excess processes`);
+        
+        // Kill all kiro-cli processes and restart
+        spawn('pkill', ['-f', 'kiro-cli']);
+        
+        setTimeout(() => this.start(), 2000);
         return;
       }
       
