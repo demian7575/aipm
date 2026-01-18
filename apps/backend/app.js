@@ -6781,8 +6781,13 @@ export async function createApp() {
         });
         const warnings = analysis.warnings;
         
-        // If warnings exist, delete story and return error
-        if (warnings.length > 0) {
+        // Filter out "Testable" warnings about missing acceptance tests (frontend handles them separately)
+        const criticalWarnings = warnings.filter(w => 
+          !(w.criterion === 'Testable' && w.message && w.message.includes('acceptance test'))
+        );
+        
+        // If critical warnings exist, delete story and return error
+        if (criticalWarnings.length > 0) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
             const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -6800,7 +6805,7 @@ export async function createApp() {
           sendJson(res, 409, {
             code: 'INVEST_WARNINGS',
             message: 'User story does not meet INVEST criteria.',
-            warnings,
+            warnings: criticalWarnings,
             analysis: {
               source: analysis.source,
               summary: analysis.summary,
