@@ -6770,6 +6770,48 @@ export async function createApp() {
           newStoryId = Number(lastInsertRowid);
         }
         
+        // Create acceptance tests BEFORE INVEST analysis
+        if (acceptanceTests.length > 0) {
+          for (const test of acceptanceTests) {
+            const testId = Date.now() + Math.floor(Math.random() * 1000);
+            if (db.constructor.name === 'DynamoDBDataLayer') {
+              const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+              const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+              const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+              const docClient = DynamoDBDocumentClient.from(client);
+              await docClient.send(new PutCommand({
+                TableName: process.env.ACCEPTANCE_TESTS_TABLE,
+                Item: {
+                  id: testId,
+                  storyId: newStoryId,
+                  title: test.title,
+                  given: Array.isArray(test.given) ? test.given : [test.given],
+                  whenStep: Array.isArray(test.when) ? test.when : [test.when],
+                  thenStep: Array.isArray(test.then) ? test.then : [test.then],
+                  status: test.status || 'Draft',
+                  createdAt: timestamp,
+                  updatedAt: timestamp
+                }
+              }));
+            } else {
+              const stmt = db.prepare(
+                'INSERT INTO acceptance_tests (id, story_id, title, given, when_step, then_step, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+              );
+              await stmt.run(
+                testId,
+                newStoryId,
+                test.title,
+                JSON.stringify(Array.isArray(test.given) ? test.given : [test.given]),
+                JSON.stringify(Array.isArray(test.when) ? test.when : [test.when]),
+                JSON.stringify(Array.isArray(test.then) ? test.then : [test.then]),
+                test.status || 'Draft',
+                timestamp,
+                timestamp
+              );
+            }
+          }
+        }
+        
         // Analyze INVEST with story ID
         const analysis = await analyzeInvest({
           id: newStoryId,
@@ -6842,48 +6884,6 @@ export async function createApp() {
             }),
             newStoryId
           );
-        }
-        
-        // Create acceptance tests if provided
-        if (acceptanceTests.length > 0) {
-          for (const test of acceptanceTests) {
-            const testId = Date.now() + Math.floor(Math.random() * 1000);
-            if (db.constructor.name === 'DynamoDBDataLayer') {
-              const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-              const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
-              const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-              const docClient = DynamoDBDocumentClient.from(client);
-              await docClient.send(new PutCommand({
-                TableName: process.env.ACCEPTANCE_TESTS_TABLE,
-                Item: {
-                  id: testId,
-                  storyId: newStoryId,
-                  title: test.title,
-                  given: Array.isArray(test.given) ? test.given : [test.given],
-                  whenStep: Array.isArray(test.when) ? test.when : [test.when],
-                  thenStep: Array.isArray(test.then) ? test.then : [test.then],
-                  status: test.status || 'Draft',
-                  createdAt: timestamp,
-                  updatedAt: timestamp
-                }
-              }));
-            } else {
-              const stmt = db.prepare(
-                'INSERT INTO acceptance_tests (id, story_id, title, given, when_step, then_step, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-              );
-              await stmt.run(
-                testId,
-                newStoryId,
-                test.title,
-                JSON.stringify(Array.isArray(test.given) ? test.given : [test.given]),
-                JSON.stringify(Array.isArray(test.when) ? test.when : [test.when]),
-                JSON.stringify(Array.isArray(test.then) ? test.then : [test.then]),
-                test.status || 'Draft',
-                timestamp,
-                timestamp
-              );
-            }
-          }
         }
         
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
