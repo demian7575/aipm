@@ -125,6 +125,13 @@ class KiroSession {
     this.currentPrompt = null;
     this.currentResolve = null;
     this.currentReject = null;
+    
+    // Kill and restart the process to prevent memory leaks
+    if (this.process) {
+      this.process.kill();
+      this.process = null;
+    }
+    setTimeout(() => this.start(), 1000);
   }
   
   kill() {
