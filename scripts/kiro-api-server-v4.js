@@ -982,9 +982,11 @@ Execute the template instructions exactly as written.`;
 
   // Generate draft endpoint (Legacy - for frontend Generate button)
   if (url.pathname === '/api/generate-draft' && req.method === 'POST') {
+    console.log('📝 Generate draft endpoint called');
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
+      console.log('📝 Request body received:', body);
       try {
         const { feature_description = 'user login system', parentId = null } = JSON.parse(body);
         
