@@ -6692,6 +6692,8 @@ export async function createApp() {
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
+        const acceptanceTests = payload.acceptanceTests || [];
+        
         // Create story first
         const timestamp = now();
         
@@ -6781,13 +6783,8 @@ export async function createApp() {
         });
         const warnings = analysis.warnings;
         
-        // Filter out "Testable" warnings about missing acceptance tests (frontend handles them separately)
-        const criticalWarnings = warnings.filter(w => 
-          !(w.criterion === 'Testable' && w.message && w.message.includes('acceptance test'))
-        );
-        
-        // If critical warnings exist, delete story and return error
-        if (criticalWarnings.length > 0) {
+        // If warnings exist, delete story and return error
+        if (warnings.length > 0) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
             const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -6805,7 +6802,7 @@ export async function createApp() {
           sendJson(res, 409, {
             code: 'INVEST_WARNINGS',
             message: 'User story does not meet INVEST criteria.',
-            warnings: criticalWarnings,
+            warnings,
             analysis: {
               source: analysis.source,
               summary: analysis.summary,
@@ -6847,7 +6844,47 @@ export async function createApp() {
           );
         }
         
-        // Automatic acceptance test creation disabled - frontend handles acceptance tests
+        // Create acceptance tests if provided
+        if (acceptanceTests.length > 0) {
+          for (const test of acceptanceTests) {
+            const testId = Date.now() + Math.floor(Math.random() * 1000);
+            if (db.constructor.name === 'DynamoDBDataLayer') {
+              const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+              const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+              const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+              const docClient = DynamoDBDocumentClient.from(client);
+              await docClient.send(new PutCommand({
+                TableName: process.env.ACCEPTANCE_TESTS_TABLE,
+                Item: {
+                  id: testId,
+                  storyId: newStoryId,
+                  title: test.title,
+                  given: Array.isArray(test.given) ? test.given : [test.given],
+                  whenStep: Array.isArray(test.when) ? test.when : [test.when],
+                  thenStep: Array.isArray(test.then) ? test.then : [test.then],
+                  status: test.status || 'Draft',
+                  createdAt: timestamp,
+                  updatedAt: timestamp
+                }
+              }));
+            } else {
+              const stmt = db.prepare(
+                'INSERT INTO acceptance_tests (id, story_id, title, given, when_step, then_step, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+              );
+              await stmt.run(
+                testId,
+                newStoryId,
+                test.title,
+                JSON.stringify(Array.isArray(test.given) ? test.given : [test.given]),
+                JSON.stringify(Array.isArray(test.when) ? test.when : [test.when]),
+                JSON.stringify(Array.isArray(test.then) ? test.then : [test.then]),
+                test.status || 'Draft',
+                timestamp,
+                timestamp
+              );
+            }
+          }
+        }
         
         const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
         if (created) {

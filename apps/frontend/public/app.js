@@ -6732,7 +6732,13 @@ function openChildStoryModal(parentId) {
             iWant: container.querySelector('#child-iwant-display').value.trim(),
             soThat: container.querySelector('#child-sothat-display').value.trim(),
             components: childComponents,
-            acceptWarnings: true
+            acceptanceTests: acceptanceTests.map(test => ({
+              title: test.title,
+              given: test.given,
+              when: test.when,
+              then: test.then,
+              status: test.status || 'Draft'
+            }))
           };
           try {
             const response = await fetch(resolveApiUrl('/api/stories'), {
