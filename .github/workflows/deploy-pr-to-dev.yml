@@ -202,50 +202,8 @@ jobs:
       - name: Sync database from production to development
         run: |
           echo "🔄 Syncing database from production to development..."
-          
-          # Scan production tables
-          echo "📥 Exporting from production..."
-          aws dynamodb scan --table-name aipm-backend-prod-stories --region us-east-1 > /tmp/prod-stories.json
-          aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --region us-east-1 > /tmp/prod-tests.json
-          
-          # Clear development tables (with -r flag to handle empty input)
-          echo "🗑️ Clearing development tables..."
-          aws dynamodb scan --table-name aipm-backend-dev-stories --region us-east-1 --attributes-to-get id | \
-            jq -r '.Items[].id.N' | \
-            xargs -r -I {} aws dynamodb delete-item --table-name aipm-backend-dev-stories --key '{"id":{"N":"{}"}}' --region us-east-1
-          
-          aws dynamodb scan --table-name aipm-backend-dev-acceptance-tests --region us-east-1 --attributes-to-get id | \
-            jq -r '.Items[].id.N' | \
-            xargs -r -I {} aws dynamodb delete-item --table-name aipm-backend-dev-acceptance-tests --key '{"id":{"N":"{}"}}' --region us-east-1
-          
-          # Import to development (with error handling for empty tables)
-          echo "📤 Importing to development..."
-          STORY_COUNT=$(jq '.Items | length' /tmp/prod-stories.json)
-          TEST_COUNT=$(jq '.Items | length' /tmp/prod-tests.json)
-          
-          if [ "$STORY_COUNT" -gt 0 ]; then
-            echo "  Importing $STORY_COUNT stories..."
-            jq -c '.Items[]' /tmp/prod-stories.json | while IFS= read -r item; do
-              echo "{\"TableName\":\"aipm-backend-dev-stories\",\"Item\":$item}" > /tmp/put-item.json
-              aws dynamodb put-item --cli-input-json file:///tmp/put-item.json --region us-east-1 || echo "⚠️ Failed to import story"
-            done
-            echo "  ✅ Stories imported"
-          else
-            echo "⚠️ No stories to import"
-          fi
-          
-          if [ "$TEST_COUNT" -gt 0 ]; then
-            echo "  Importing $TEST_COUNT tests..."
-            jq -c '.Items[]' /tmp/prod-tests.json | while IFS= read -r item; do
-              echo "{\"TableName\":\"aipm-backend-dev-acceptance-tests\",\"Item\":$item}" > /tmp/put-item.json
-              aws dynamodb put-item --cli-input-json file:///tmp/put-item.json --region us-east-1 || echo "⚠️ Failed to import test"
-            done
-            echo "  ✅ Tests imported"
-          else
-            echo "⚠️ No tests to import"
-          fi
-          
-          echo "✅ Database synced: $STORY_COUNT stories, $TEST_COUNT tests"
+          node scripts/utilities/sync-prod-to-dev.cjs
+          echo "✅ Database synced"
       
       - name: Deploy frontend to S3
         run: |
