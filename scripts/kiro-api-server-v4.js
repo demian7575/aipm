@@ -999,34 +999,41 @@ Parent ID: ${parentId}
 
 Execute the template instructions exactly as written.`;
         
-        // Execute KIRO CLI via session pool and get response directly
-        const result = await sendToKiro(prompt);
+        // Clear any existing draft data
+        global.latestDraft = null;
         
-        // Parse the response to extract draft data
-        // The response should contain JSON with the story draft
-        try {
-          // Try to find JSON in the response
-          const jsonMatch = result.match(/\{[\s\S]*"title"[\s\S]*\}/);
-          if (jsonMatch) {
-            const draftData = JSON.parse(jsonMatch[0]);
+        // Execute KIRO CLI via session pool
+        const result = await sendToKiro(prompt);
+        console.log('📝 Kiro response received, waiting for callback...');
+        
+        // Poll for draft data (max 30 seconds since kiro already executed)
+        const maxAttempts = 30;
+        const pollInterval = 1000;
+        let attempts = 0;
+        
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          attempts++;
+          
+          // Check if we received draft data via callback
+          if (global.latestDraft && (Date.now() - global.latestDraft.timestamp) < 30000) {
+            const draftResponse = global.latestDraft;
+            global.latestDraft = null;
             
-            console.log(`✅ User Story draft received`);
+            console.log(`✅ User Story draft received after ${attempts} seconds`);
             
-            // Return draft data WITHOUT saving to database
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, draft: draftData }));
+            res.end(JSON.stringify(draftResponse));
             return;
           }
-        } catch (parseError) {
-          console.error('Failed to parse draft response:', parseError);
         }
         
-        // If we couldn't parse the response, return error
+        // Timeout - no draft received
+        console.log(`⏱️ User Story draft timeout after ${maxAttempts} seconds`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false, 
-          error: 'Could not parse draft data from response',
-          rawResponse: result.substring(0, 500) // First 500 chars for debugging
+          error: 'Timeout: No draft data received from callback after 30 seconds'
         }));
         
       } catch (error) {
