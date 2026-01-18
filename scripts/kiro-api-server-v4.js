@@ -316,15 +316,19 @@ function sendToKiro(prompt) {
       });
       
       if (!response.ok) {
-        throw new Error(`Session pool error: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Session pool error: ${response.statusText} - ${errorText}`);
       }
       
       const result = await response.json();
       
-      if (result.success) {
+      // Session pool returns { output, sessionId }
+      if (result.output) {
         resolve(result.output);
-      } else {
+      } else if (result.error) {
         reject(new Error(result.error));
+      } else {
+        reject(new Error('Invalid response from session pool'));
       }
     } catch (error) {
       reject(error);
@@ -2657,8 +2661,8 @@ async function notifyBackendPRUpdate(storyId, newPRNumber, newPRUrl) {
   }
 }
 
-// Start Kiro process
-startKiroProcess();
+// Start Kiro process - DISABLED: Now using session pool on port 8082
+// startKiroProcess();
 
 const PORT = process.env.KIRO_API_PORT || 8081;
 server.listen(PORT, () => {
