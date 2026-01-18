@@ -888,12 +888,12 @@ Execute the template instructions exactly as written.`;
     try {
       console.log('📊 INVEST SSE request for story:', storyId);
       
-      // Extract numeric story ID for MCP
+      // Extract numeric story ID
       const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
       
       const prompt = `Read and follow the template file: ./templates/invest-analysis.md
 
-Use MCP tool get_story with storyId: ${numericStoryId}
+Story ID: ${numericStoryId}
 
 Execute the template instructions exactly as written.`;
       
