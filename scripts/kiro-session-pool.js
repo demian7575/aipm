@@ -49,7 +49,8 @@ class KiroSession {
     });
     
     this.process.stderr.on('data', (data) => {
-      this.log(`[ERROR] ${data.toString()}`);
+      // Don't log stderr to avoid cluttering the log with spinner animations
+      // this.log(`[ERROR] ${data.toString()}`);
     });
     
     this.process.on('close', () => {
