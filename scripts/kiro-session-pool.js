@@ -31,6 +31,20 @@ class KiroSession {
   }
   
   start() {
+    // Safety check: count existing kiro-cli processes
+    const { execSync } = require('child_process');
+    try {
+      const count = execSync("ps aux | grep -E 'kiro-cli' | grep -v grep | wc -l", { encoding: 'utf8' });
+      const processCount = parseInt(count.trim());
+      if (processCount > 6) {  // 2 parent + 2 child + 2 tee = 6 max
+        this.log(`⚠️  Too many kiro-cli processes (${processCount}), skipping start`);
+        setTimeout(() => this.start(), 5000);
+        return;
+      }
+    } catch (err) {
+      this.log(`Warning: Could not check process count: ${err.message}`);
+    }
+    
     this.log(`Starting Kiro CLI session ${this.id}`);
     
     this.process = spawn('kiro-cli', ['chat', '--trust-all-tools'], {
