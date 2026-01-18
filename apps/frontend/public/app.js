@@ -121,7 +121,6 @@ const STORAGE_KEYS = {
   version: 'aiPm.version',
   stories: 'aiPm.stories',
   lastBackup: 'aiPm.lastBackup',
-  hideCompleted: 'aiPm.hideCompleted',
 };
 
 const AIPM_VERSION = '1.0.0'; // Update this when making breaking changes
@@ -297,9 +296,6 @@ function getVisibleMindmapStories(stories) {
     return entries
       .filter((story) => {
         if (!story) return false;
-        
-        // Apply hide completed filter
-        if (state.hideCompleted && story.status === 'Done') return false;
         
         // Apply status filter
         if (state.filters.status.length > 0 && !state.filters.status.includes(story.status)) {
@@ -484,7 +480,6 @@ const state = {
   manualPositions: {},
   autoLayout: true,
   showDependencies: false,
-  hideCompleted: false,
   filters: {
     status: [],
     component: [],
@@ -1221,15 +1216,6 @@ function loadPreferences() {
   }
 
   try {
-    const hideCompletedRaw = localStorage.getItem(STORAGE_KEYS.hideCompleted);
-    if (hideCompletedRaw) {
-      state.hideCompleted = JSON.parse(hideCompletedRaw);
-    }
-  } catch (error) {
-    console.error('Failed to load hide completed preference', error);
-  }
-
-  try {
     const selectionRaw = localStorage.getItem(STORAGE_KEYS.selection);
     if (selectionRaw) {
       state.selectedStoryId = Number(selectionRaw);
@@ -1279,10 +1265,6 @@ function persistMindmap() {
 
 function persistPanels() {
   localStorage.setItem(STORAGE_KEYS.panels, JSON.stringify(state.panelVisibility));
-}
-
-function persistHideCompleted() {
-  localStorage.setItem(STORAGE_KEYS.hideCompleted, JSON.stringify(state.hideCompleted));
 }
 
 function codewhispererEntryShape(entry, storyId) {
@@ -2704,8 +2686,7 @@ function updateWorkspaceColumns() {
 }
 
 function getVisibleStories() {
-  if (!state.hideCompleted) return state.stories;
-  return state.stories.filter(story => story.status !== 'Done');
+  return state.stories;
 }
 
 function renderOutline() {
@@ -2754,8 +2735,7 @@ function renderOutline() {
     list.appendChild(row);
 
     if (story.children && story.children.length > 0 && state.expanded.has(story.id)) {
-      const visibleChildren = state.hideCompleted ? story.children.filter(child => child.status !== 'Done') : story.children;
-      visibleChildren.forEach((child) => renderNode(child, depth + 1));
+      story.children.forEach((child) => renderNode(child, depth + 1));
     }
   }
 
@@ -7745,7 +7725,6 @@ function initialize() {
   localStorage.setItem('aipm_environment', currentEnv);
   
   loadPreferences();
-  syncHideCompletedControls();
   initializeCodeWhispererDelegations();
   updateWorkspaceColumns();
   renderOutline();
