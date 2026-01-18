@@ -89,16 +89,25 @@ curl -X POST http://localhost:8081/api/draft-response \
 
 ## EXECUTION INSTRUCTIONS
 
-**STEP 1**: Generate user story content based on the feature description
-**STEP 2**: Replace ALL placeholders in the curl command:
-  - REQUEST_ID_VALUE → actual requestId from prompt
-  - STORY_TITLE → generated title
-  - STORY_DESCRIPTION → generated description
-  - USER_PERSONA, USER_GOAL, USER_BENEFIT → generated values
-  - STORY_POINTS → estimated points (1-8)
-  - PARENT_ID_VALUE → actual parentId from prompt (or null)
-  - TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN → generated test values
-**STEP 3**: Execute the curl command using bash tool
-**STEP 4**: Wait for next request
+**STEP 1**: Extract values from the prompt:
+  - Find the line "Request ID: XXXXX" and extract the UUID (e.g., "14d2655c-46dc-4d7f-ad31-05efbe21cd08")
+  - Find the line "Parent ID: XXXXX" and extract the value (number or null)
+  - Find the line "Feature description: XXXXX" and extract the description
 
-**CRITICAL**: You MUST execute the curl command. Do not just read the template.
+**STEP 2**: Generate user story content based on the feature description
+
+**STEP 3**: Replace ALL placeholders in the curl command:
+  - REQUEST_ID_VALUE → the UUID from "Request ID:" line (NOT the feature description)
+  - PARENT_ID_VALUE → the value from "Parent ID:" line
+  - STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT → generated values
+  - STORY_POINTS → estimated points (1-8)
+  - TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN → generated test values
+
+**STEP 4**: Execute the curl command using bash tool
+
+**STEP 5**: Wait for next request
+
+**CRITICAL**: 
+- The requestId MUST be the exact UUID from the "Request ID:" line in the prompt
+- Do NOT use the feature description as the requestId
+- You MUST execute the curl command
