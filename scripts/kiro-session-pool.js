@@ -9,7 +9,7 @@ import { spawn } from 'child_process';
 import { createWriteStream, appendFileSync } from 'fs';
 import http from 'http';
 
-const POOL_SIZE = 3;
+const POOL_SIZE = 2;
 const SESSION_TIMEOUT = 600000; // 10 minutes
 const IDLE_RESTART_TIME = 300000; // 5 minutes
 const LOG_FILE = '/tmp/kiro-cli-live.log';
