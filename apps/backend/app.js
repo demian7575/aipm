@@ -6112,24 +6112,16 @@ export async function createApp() {
             }, 90000);
           });
           
-          // Call Session Pool directly
-          const prompt = `Read and follow the template file: ./templates/user-story-generation.md
-
-Feature description: "${feature_description}"
-Parent ID: ${parentId}
-Request ID: ${requestId}
-
-Execute the template instructions exactly as written.`;
-
+          // Call Kiro API
           try {
-            const sessionResponse = await fetch('http://localhost:8082/execute', {
+            const kiroResponse = await fetch('http://localhost:8081/api/generate-draft', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt })
+              body: JSON.stringify({ feature_description, parentId, requestId })
             });
             
-            if (!sessionResponse.ok) {
-              throw new Error(`Session Pool error: ${sessionResponse.status}`);
+            if (!kiroResponse.ok) {
+              throw new Error(`Kiro API error: ${kiroResponse.status}`);
             }
           } catch (err) {
             if (global.pendingRequests[requestId]) {

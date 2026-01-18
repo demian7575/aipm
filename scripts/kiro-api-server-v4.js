@@ -565,18 +565,25 @@ const server = http.createServer(async (req, res) => {
   
   // Health check
   if (url.pathname === '/health') {
-    const timeSinceLastResponse = Date.now() - lastKiroResponse;
-    const kiroHealthy = timeSinceLastResponse < 15 * 60 * 1000; // 15 minutes
+    // Check Session Pool health instead of local kiro process
+    let sessionPoolHealthy = false;
+    try {
+      const poolResponse = await fetch('http://localhost:8082/status');
+      if (poolResponse.ok) {
+        const poolStatus = await poolResponse.json();
+        sessionPoolHealthy = poolStatus.poolSize > 0;
+      }
+    } catch (err) {
+      // Session pool not reachable
+    }
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       status: 'running',
       service: 'V4',
       version: '4.0',
-      kiroProcess: kiroProcess ? 'running' : 'stopped',
-      kiroHealthy: kiroHealthy,
-      lastKiroResponse: new Date(lastKiroResponse).toISOString(),
-      timeSinceLastResponse: `${Math.round(timeSinceLastResponse / 1000)}s`,
+      sessionPool: sessionPoolHealthy ? 'healthy' : 'unavailable',
+      sessionPoolUrl: 'http://localhost:8082',
       activeRequests: 0,
       maxConcurrent: 10,
       uptime: Math.floor(process.uptime())
