@@ -6971,10 +6971,12 @@ function openAcceptanceTestModal(storyId, options = {}) {
           }
           try {
             const promises = tests.map(t => createAcceptanceTest(storyId, {
+              title: t.title,
               given: splitLines(t.given),
               when: splitLines(t.when),
               then: splitLines(t.then),
-              status: 'Draft'
+              status: 'Draft',
+              acceptWarnings: true
             }));
             await Promise.all(promises);
             await loadStories();
