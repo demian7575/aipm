@@ -1027,8 +1027,9 @@ Execute the template instructions exactly as written.`;
         }));
         
       } catch (error) {
+        console.error('Error in generate-draft:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message }));
+        res.end(JSON.stringify({ error: error.message || error.toString() }));
       }
     });
     return;
