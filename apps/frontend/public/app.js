@@ -6573,10 +6573,10 @@ function openChildStoryModal(parentId) {
     
     try {
       // Generate draft data only (no database save)
-      const kiroApiUrl = window.CONFIG.KIRO_API_URL;
+      const apiBaseUrl = getApiBaseUrl();
       
-      // Generate draft data only (no database save) - use Kiro API server
-      const response = await fetch(`${kiroApiUrl}/api/generate-draft`, {
+      // Generate draft data only (no database save) - use Backend server
+      const response = await fetch(`${apiBaseUrl}/api/generate-draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
