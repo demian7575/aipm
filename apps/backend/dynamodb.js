@@ -95,32 +95,22 @@ export class DynamoDBDataLayer {
       
       // DynamoDB DocumentClient already converts types, so we just need to map field names
       const stories = (result.Items || []).map(item => ({
-        // DynamoDB format (camelCase)
         id: item.id,
-        parentId: item.parent_id || item.parentId, // Convert parent_id to parentId
+        parentId: item.parentId || item.parent_id,
         title: item.title || '',
         description: item.description || '',
-        asA: item.as_a || item.asA || '',
-        iWant: item.i_want || item.iWant || '',
-        soThat: item.so_that || item.soThat || '',
+        asA: item.asA || item.as_a || '',
+        iWant: item.iWant || item.i_want || '',
+        soThat: item.soThat || item.so_that || '',
         components: item.components || '[]',
-        storyPoint: item.story_point || item.storyPoint || 0,
-        assigneeEmail: item.assignee_email || item.assigneeEmail || '',
-        status: item.status == null ? 'Draft' : item.status, // Handle null/undefined explicitly
-        createdAt: item.created_at || item.createdAt,
-        updatedAt: item.updated_at || item.updatedAt,
-        invest_analysis: item.invest_analysis, // INVEST analysis with warnings
-        // SQLite format (snake_case) for compatibility
-        parent_id: item.parent_id || item.parentId, // Keep snake_case for backend compatibility
-        as_a: item.as_a || item.asA || '',
-        i_want: item.i_want || item.iWant || '',
-        so_that: item.so_that || item.soThat || '',
-        story_point: item.story_point || item.storyPoint || 0,
-        assignee_email: item.assignee_email || item.assigneeEmail || '',
-        created_at: item.created_at || item.createdAt,
-        updated_at: item.updated_at || item.updatedAt,
-        mr_id: 1, // Default value
-        prs: item.prs || '[]' // Keep as JSON string, don't double-encode
+        storyPoint: item.storyPoint || item.story_point || 0,
+        assigneeEmail: item.assigneeEmail || item.assignee_email || '',
+        status: item.status == null ? 'Draft' : item.status,
+        createdAt: item.createdAt || item.created_at,
+        updatedAt: item.updatedAt || item.updated_at,
+        investAnalysis: item.investAnalysis || item.invest_analysis,
+        mrId: item.mrId || item.mr_id || 1,
+        prs: item.prs || '[]'
       }));
       
       return stories;

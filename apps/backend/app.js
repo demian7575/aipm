@@ -6670,29 +6670,29 @@ export async function createApp() {
           
           const dynamoItem = {
             id: newStoryId,
-            mr_id: 1,
+            mrId: 1,
             title,
             description,
-            as_a: asA,
-            i_want: iWant,
-            so_that: soThat,
+            asA: asA,
+            iWant: iWant,
+            soThat: soThat,
             components: serializeComponents(components),
-            story_point: storyPoint,
-            assignee_email: assigneeEmail,
+            storyPoint: storyPoint,
+            assigneeEmail: assigneeEmail,
             status: 'Draft',
-            created_at: timestamp,
-            updated_at: timestamp,
-            invest_warnings: JSON.stringify(warnings),
-            invest_analysis: {
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            investWarnings: JSON.stringify(warnings),
+            investAnalysis: {
               source: analysis.source,
               summary: analysis.summary,
               model: analysis.ai?.model || null
             }
           };
           
-          // Only add parent_id if it's not null (DynamoDB doesn't store null values well)
+          // Only add parentId if it's not null (DynamoDB doesn't store null values well)
           if (parentId !== null && parentId !== undefined) {
-            dynamoItem.parent_id = parentId;
+            dynamoItem.parentId = parentId;
           }
           
           await docClient.send(new PutCommand({
@@ -6814,15 +6814,15 @@ export async function createApp() {
             expressionAttributeValues[':title'] = payload.title;
           }
           if (payload.asA !== undefined) {
-            updateExpressions.push('as_a = :asA');
+            updateExpressions.push('asA = :asA');
             expressionAttributeValues[':asA'] = payload.asA;
           }
           if (payload.iWant !== undefined) {
-            updateExpressions.push('i_want = :iWant');
+            updateExpressions.push('iWant = :iWant');
             expressionAttributeValues[':iWant'] = payload.iWant;
           }
           if (payload.soThat !== undefined) {
-            updateExpressions.push('so_that = :soThat');
+            updateExpressions.push('soThat = :soThat');
             expressionAttributeValues[':soThat'] = payload.soThat;
           }
           if (payload.description !== undefined) {
@@ -6830,11 +6830,11 @@ export async function createApp() {
             expressionAttributeValues[':description'] = payload.description;
           }
           if (payload.storyPoint !== undefined) {
-            updateExpressions.push('story_point = :storyPoint');
+            updateExpressions.push('storyPoint = :storyPoint');
             expressionAttributeValues[':storyPoint'] = payload.storyPoint;
           }
           if (payload.assigneeEmail !== undefined) {
-            updateExpressions.push('assignee_email = :assigneeEmail');
+            updateExpressions.push('assigneeEmail = :assigneeEmail');
             expressionAttributeValues[':assigneeEmail'] = payload.assigneeEmail;
           }
           if (payload.status !== undefined) {
