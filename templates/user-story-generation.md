@@ -87,4 +87,18 @@ curl -X POST http://localhost:8081/api/draft-response \
   }'
 ```
 
-**EXECUTE ONCE PER REQUEST**: Replace placeholders (including REQUEST_ID_VALUE) with actual values from the prompt and POST to API. After posting, wait for the next feature description.
+## EXECUTION INSTRUCTIONS
+
+**STEP 1**: Generate user story content based on the feature description
+**STEP 2**: Replace ALL placeholders in the curl command:
+  - REQUEST_ID_VALUE → actual requestId from prompt
+  - STORY_TITLE → generated title
+  - STORY_DESCRIPTION → generated description
+  - USER_PERSONA, USER_GOAL, USER_BENEFIT → generated values
+  - STORY_POINTS → estimated points (1-8)
+  - PARENT_ID_VALUE → actual parentId from prompt (or null)
+  - TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN → generated test values
+**STEP 3**: Execute the curl command using bash tool
+**STEP 4**: Wait for next request
+
+**CRITICAL**: You MUST execute the curl command. Do not just read the template.
