@@ -6243,22 +6243,8 @@ export async function createApp() {
       const { readFile } = await import('fs/promises');
       const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
       
-      // Determine environment and version
-      const stage = process.env.STAGE || process.env.AWS_STAGE || 'prod';
-      let version;
-      
-      if (stage === 'dev' || stage === 'development') {
-        // Development shows base version + PR number + commit hash
-        const deployVersion = process.env.DEPLOY_VERSION || 'dev-unknown';
-        const commitHash = process.env.COMMIT_HASH || 'unknown';
-        const prNumber = process.env.PR_NUMBER || 'dev';
-        version = { version: `${deployVersion}-${prNumber}-${commitHash}` };
-      } else {
-        // Production uses deployment timestamp
-        const deployVersion = process.env.DEPLOY_VERSION || 'prod-unknown';
-        const commitHash = process.env.COMMIT_HASH || 'unknown';
-        version = { version: `${deployVersion}-${commitHash}` };
-      }
+      // Version is replaced during deployment by deploy-to-environment.sh
+      const version = { version: 'DEPLOYMENT_VERSION_PLACEHOLDER' };
       
       sendJson(res, 200, version);
       return;
