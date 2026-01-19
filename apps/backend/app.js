@@ -6799,16 +6799,30 @@ export async function createApp() {
         }
         
         // Analyze INVEST with story ID
-        const analysis = await analyzeInvest({
-          id: newStoryId,
-          title,
-          asA,
-          iWant,
-          soThat,
-          description,
-          storyPoint,
-          components,
-        });
+        let analysis;
+        try {
+          analysis = await analyzeInvest({
+            id: newStoryId,
+            title,
+            asA,
+            iWant,
+            soThat,
+            description,
+            storyPoint,
+            components,
+          });
+        } catch (error) {
+          console.warn('🤖 AI analysis failed, using baseline:', error.message);
+          analysis = buildBaselineInvestAnalysis({
+            title,
+            asA,
+            iWant,
+            soThat,
+            description,
+            storyPoint,
+            components,
+          });
+        }
         const warnings = analysis.warnings;
         
         // If warnings exist, delete story and return error
