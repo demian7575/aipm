@@ -10,17 +10,13 @@ API_BASE="${API_BASE:-http://44.220.45.57:4000}"
 KIRO_API_BASE="${KIRO_API_BASE:-http://44.220.45.57:8081}"
 
 echo "🎯 Phase 5: Complete End-to-End User Journey"
-echo "Testing: Story → Acceptance Test → INVEST → GWT → PR → Code → Status → Consistency"
+echo "Testing: Story → Acceptance Test → PR → Status → Consistency"
 echo "Environment: $API_BASE"
 echo ""
 
-# All tests are now independent and reusable
+# E2E journey tests (unique to Phase 5)
 test_story_with_acceptance_tests "$API_BASE"
-test_invest_analysis_sse "$API_BASE" "$KIRO_API_BASE"
-test_health_check_endpoint "$API_BASE"
 test_pr_creation "$API_BASE"
-test_code_generation_endpoint "$KIRO_API_BASE"
-test_environment_health "$API_BASE" "target"
 test_story_status_workflow "$API_BASE"
 test_data_consistency "$API_BASE"
 

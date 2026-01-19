@@ -10,9 +10,8 @@ KIRO_API_BASE="${KIRO_API_BASE:-http://44.220.45.57:8081}"
 
 echo "🟢 Phase 3: API Functionality Tests"
 
-# API functionality tests
+# API functionality tests (not duplicated in other phases)
 test_invest_analysis_sse "$API_BASE" "$KIRO_API_BASE"
-test_health_check_endpoint "$API_BASE"
 test_code_generation_endpoint "$KIRO_API_BASE"
 
 echo "✅ Phase 3 completed"
