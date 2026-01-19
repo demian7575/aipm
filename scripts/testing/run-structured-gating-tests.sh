@@ -34,7 +34,7 @@ if [[ "$TARGET_ENV" == "dev" ]]; then
     FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
     echo "🔧 Target Environment: DEVELOPMENT"
 else
-    SSH_HOST="44.220.45.57"
+    SSH_HOST="3.92.96.67"
     API_BASE="http://localhost:4000"
     KIRO_API_BASE="http://localhost:8081"
     FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
