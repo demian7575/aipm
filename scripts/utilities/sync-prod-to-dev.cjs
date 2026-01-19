@@ -38,6 +38,15 @@ async function sync() {
   console.log(`Syncing ${tests.Items.length} tests...`);
   await batchWrite('aipm-backend-dev-acceptance-tests', tests.Items);
   console.log('✅ Tests synced');
+  
+  // Scan prod PRs
+  const prs = await client.send(new ScanCommand({
+    TableName: 'aipm-backend-prod-prs'
+  }));
+  
+  console.log(`Syncing ${prs.Items.length} PRs...`);
+  await batchWrite('aipm-backend-dev-prs', prs.Items);
+  console.log('✅ PRs synced');
 }
 
 sync().catch(console.error);
