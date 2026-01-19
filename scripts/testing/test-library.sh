@@ -66,11 +66,22 @@ test_draft_generation_performance() {
     local kiro_base="${1:-$KIRO_API_BASE}"
     log_test "Draft Generation Performance"
     
+    local request_id="test-$(date +%s)"
     local start_time=$(date +%s)
-    local response=$(curl -s -X POST "$kiro_base/api/generate-draft" \
-        -H "Content-Type: application/json" \
-        -d '{"storyId":"test","title":"Test","asA":"user","iWant":"test","soThat":"test"}' \
-        --max-time 30 2>/dev/null || echo "")
+    
+    local response
+    if [[ -n "$SSH_HOST" ]]; then
+        response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST \
+            "curl -s -X POST '$kiro_base/api/generate-draft' \
+            -H 'Content-Type: application/json' \
+            -d '{\"requestId\":\"$request_id\",\"feature_description\":\"Test feature\"}' \
+            --max-time 120" 2>/dev/null || echo "")
+    else
+        response=$(curl -s -X POST "$kiro_base/api/generate-draft" \
+            -H "Content-Type: application/json" \
+            -d "{\"requestId\":\"$request_id\",\"feature_description\":\"Test feature\"}" \
+            --max-time 120 2>/dev/null || echo "")
+    fi
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
     
