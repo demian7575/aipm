@@ -297,34 +297,20 @@ test_story_with_acceptance_tests() {
     log_test "Story with Acceptance Tests"
     
     local timestamp=$(date +%s)
-    local story_response=$(curl -s -X POST "$api_base/api/stories" \
+    local story_response=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
-        -d "{
-            \"title\": \"E2E Test $timestamp\",
-            \"asA\": \"developer\",
-            \"iWant\": \"test workflow\",
-            \"soThat\": \"verify functionality\",
-            \"status\": \"Draft\",
-            \"components\": [\"WorkModel\"],
-            \"acceptanceTests\": [{
-                \"title\": \"Test passes\",
-                \"given\": \"ready\",
-                \"when\": \"runs\",
-                \"then\": \"succeeds\",
-                \"status\": \"Draft\"
-            }]
-        }")
+        -d "{\"title\":\"E2E workflow test $timestamp\",\"description\":\"End-to-end test to verify complete story workflow with acceptance tests\",\"asA\":\"QA engineer\",\"iWant\":\"to test the complete workflow from story creation to acceptance test validation\",\"soThat\":\"I can ensure the system handles the full user journey correctly\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":3,\"acceptanceTests\":[{\"given\":[\"System is ready\"],\"when\":[\"Story is created with acceptance test\"],\"then\":[\"Story and test are both created successfully\"],\"status\":\"Pass\"}]}")
     
     local story_id=$(echo "$story_response" | jq -r '.id' 2>/dev/null || echo "")
     
     if [[ -n "$story_id" && "$story_id" != "null" ]]; then
         # Verify acceptance tests
-        if curl -s "$api_base/api/stories/$story_id" | jq -e '.acceptanceTests' > /dev/null 2>&1; then
+        if curl_api -s "$api_base/api/stories/$story_id" | jq -e '.acceptanceTests' > /dev/null 2>&1; then
             pass_test "Story with Acceptance Tests"
         else
             fail_test "Story (Acceptance tests missing)"
         fi
-        curl -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
+        curl_api -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
     else
         fail_test "Story with Acceptance Tests (Creation failed)"
     fi
@@ -335,9 +321,9 @@ test_story_status_workflow() {
     log_test "Story Status Workflow"
     
     # Create story
-    local story_id=$(curl -s -X POST "$api_base/api/stories" \
+    local story_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
-        -d "{\"title\":\"Status Test $(date +%s)\",\"asA\":\"tester\",\"iWant\":\"test\",\"soThat\":\"works\",\"status\":\"Draft\",\"components\":[\"WorkModel\"]}" \
+        -d "{\"title\":\"Verify story status workflow transitions for test $(date +%s)\",\"description\":\"Automated test to verify that story status can be updated from Draft to Ready. This ensures the status workflow is functioning correctly and state transitions are properly handled.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to programmatically test story status transitions\",\"soThat\":\"I can verify the status workflow operates correctly and maintains data integrity\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"Story exists in Draft status\"],\"when\":[\"Status is updated to Ready\"],\"then\":[\"Story status changes to Ready successfully\"],\"status\":\"Pass\"}]}" \
         | jq -r '.id' 2>/dev/null || echo "")
     
     if [[ -z "$story_id" || "$story_id" == "null" ]]; then
@@ -346,12 +332,12 @@ test_story_status_workflow() {
     fi
     
     # Update status
-    local updated=$(curl -s -X PATCH "$api_base/api/stories/$story_id" \
+    local updated=$(curl_api -s -X PATCH "$api_base/api/stories/$story_id" \
         -H "Content-Type: application/json" \
         -d '{"status": "Ready"}' | jq -r '.status' 2>/dev/null || echo "")
     
     # Cleanup
-    curl -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
+    curl_api -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
     
     if [[ "$updated" == "Ready" ]]; then
         pass_test "Story Status Workflow (Draft → Ready)"
@@ -365,14 +351,14 @@ test_pr_creation() {
     log_test "PR Creation"
     
     # Get any existing story
-    local story_id=$(curl -s "$api_base/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
+    local story_id=$(curl_api -s "$api_base/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
     
     if [[ -z "$story_id" || "$story_id" == "null" ]]; then
         fail_test "PR Creation (No story found)"
         return
     fi
     
-    local pr_response=$(curl -s -X POST "$api_base/api/stories/$story_id/create-pr" \
+    local pr_response=$(curl_api -s -X POST "$api_base/api/stories/$story_id/create-pr" \
         -H "Content-Type: application/json" \
         -d "{\"title\":\"Test PR\",\"description\":\"Test\"}")
     
@@ -390,9 +376,9 @@ test_data_consistency() {
     
     # Create story
     local timestamp=$(date +%s)
-    local story_id=$(curl -s -X POST "$api_base/api/stories" \
+    local story_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
-        -d "{\"title\":\"Consistency Test $timestamp\",\"asA\":\"tester\",\"iWant\":\"test\",\"soThat\":\"works\",\"status\":\"Draft\",\"components\":[\"WorkModel\"]}" \
+        -d "{\"title\":\"Verify data consistency across API operations for test $timestamp\",\"description\":\"Automated test to verify that data remains consistent when creating and fetching stories. This ensures the API correctly stores and retrieves data without corruption or loss.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to verify data consistency across create and read operations\",\"soThat\":\"I can ensure the system maintains data integrity throughout the workflow\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"Story is created with specific data\"],\"when\":[\"Story is fetched from API\"],\"then\":[\"Fetched data matches created data exactly\"],\"status\":\"Pass\"}]}" \
         | jq -r '.id' 2>/dev/null || echo "")
     
     if [[ -z "$story_id" || "$story_id" == "null" ]]; then
@@ -401,12 +387,12 @@ test_data_consistency() {
     fi
     
     # Verify data
-    local fetched_title=$(curl -s "$api_base/api/stories" | jq -r ".[] | select(.id == $story_id) | .title" 2>/dev/null || echo "")
+    local fetched_title=$(curl_api -s "$api_base/api/stories" | jq -r ".[] | select(.id == $story_id) | .title" 2>/dev/null || echo "")
     
     # Cleanup
-    curl -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
+    curl_api -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
     
-    if [[ "$fetched_title" == "Consistency Test $timestamp" ]]; then
+    if [[ "$fetched_title" == "Verify data consistency across API operations for test $timestamp" ]]; then
         pass_test "Data Consistency"
     else
         fail_test "Data Consistency (Data mismatch)"
@@ -424,13 +410,13 @@ test_deployment_health() {
     log_test "Deployment Health Check"
     
     # Backend health
-    if ! curl -s "$api_base/health" | grep -q "running"; then
+    if ! curl_api -s "$api_base/health" | grep -q "running"; then
         fail_test "Deployment Health (Backend not running)"
         return
     fi
     
     # Frontend availability
-    if ! curl -s "$frontend_url" | grep -q "AIPM"; then
+    if ! curl_api -s "$frontend_url" | grep -q "AIPM"; then
         fail_test "Deployment Health (Frontend not accessible)"
         return
     fi
@@ -442,7 +428,7 @@ test_version_consistency() {
     local api_base="${1:-$API_BASE}"
     log_test "Version Consistency"
     
-    local version=$(curl -s "$api_base/api/version" | jq -r '.version' 2>/dev/null)
+    local version=$(curl_api -s "$api_base/api/version" | jq -r '.version' 2>/dev/null)
     if [[ -n "$version" && "$version" != "null" ]]; then
         pass_test "Version: $version"
     else
@@ -455,7 +441,7 @@ test_environment_health() {
     local env_name="${2:-production}"
     log_test "Environment Health ($env_name)"
     
-    if curl -s "$api_base/health" | grep -q "running"; then
+    if curl_api -s "$api_base/health" | grep -q "running"; then
         pass_test "Environment Health ($env_name)"
     else
         fail_test "Environment Health ($env_name not accessible)"
