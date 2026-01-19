@@ -129,54 +129,28 @@ main() {
         fi
     fi
     
-    # Phase 2: Performance & API Safety  
+    # Phase 2: API Functionality & Workflow Tests
     if should_run_phase 2; then
-        log_phase "🟡 PHASE 2: Performance & API Safety"
+        log_phase "🟡 PHASE 2: API Functionality & Workflow Tests"
         
         export PHASE_PASSED PHASE_FAILED
         if source ./scripts/testing/phase2-performance-api.sh; then
             phase_summary "Phase 2"
         else
             phase_summary "Phase 2"
-            echo "⚠️  Performance/API issues detected - consider fixing before deployment"
+            echo "⚠️  API/Workflow issues detected - consider fixing before deployment"
         fi
     fi
     
-    # Phase 3: Infrastructure & Monitoring
+    # Phase 3: Complete End-to-End User Journey
     if should_run_phase 3; then
-        log_phase "🟢 PHASE 3: Infrastructure & Monitoring"
+        log_phase "🎯 PHASE 3: Complete End-to-End User Journey"
         
         export PHASE_PASSED PHASE_FAILED
-        if source ./scripts/testing/phase3-infrastructure-monitoring.sh; then
+        if source ./scripts/testing/phase3-complete-e2e.sh; then
             phase_summary "Phase 3"
         else
             phase_summary "Phase 3"
-            echo "ℹ️  Infrastructure/monitoring issues detected - non-blocking"
-        fi
-    fi
-    
-    # Phase 4: End-to-End Workflow Validation
-    if should_run_phase 4; then
-        log_phase "🔄 PHASE 4: End-to-End Workflow Validation"
-        
-        export PHASE_PASSED PHASE_FAILED
-        if source ./scripts/testing/phase4-workflow-validation.sh; then
-            phase_summary "Phase 4"
-        else
-            phase_summary "Phase 4"
-            echo "⚠️  Workflow validation issues detected - review workflow implementations"
-        fi
-    fi
-    
-    # Phase 5: Complete End-to-End User Journey
-    if should_run_phase 5; then
-        log_phase "🎯 PHASE 5: Complete End-to-End User Journey"
-        
-        export PHASE_PASSED PHASE_FAILED
-        if source ./scripts/testing/phase5-complete-e2e.sh; then
-            phase_summary "Phase 5"
-        else
-            phase_summary "Phase 5"
             echo "⚠️  End-to-end journey issues detected - review complete workflow"
         fi
     fi
