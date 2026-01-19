@@ -132,7 +132,7 @@ test_story_crud() {
     local timestamp=$(date +%s)
     local story_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
-        -d "{\"title\":\"Test Story $timestamp\",\"description\":\"Automated test story for gating tests\",\"asA\":\"QA engineer\",\"iWant\":\"to verify the story CRUD workflow\",\"soThat\":\"I can ensure the API is working correctly\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"API is running\"],\"when\":[\"I create a story\"],\"then\":[\"Story is created successfully\"],\"status\":\"Pass\"}]}" \
+        -d "{\"title\":\"Verify API story management for test $timestamp\",\"description\":\"Automated test to verify that the API correctly handles story creation, retrieval, and deletion operations. This ensures the core CRUD functionality is working as expected.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to programmatically create, read, and delete test stories\",\"soThat\":\"I can verify the API endpoints are functioning correctly and maintain system quality\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"API server is running and accessible\"],\"when\":[\"POST request is sent to create a story\"],\"then\":[\"Story is created with unique ID and can be retrieved\"],\"status\":\"Pass\"},{\"given\":[\"Story exists in database\"],\"when\":[\"DELETE request is sent with story ID\"],\"then\":[\"Story is removed and no longer retrievable\"],\"status\":\"Pass\"}]}" \
         | jq -r '.id' 2>/dev/null || echo "")
     
     if [[ -n "$story_id" && "$story_id" != "null" ]]; then
@@ -155,7 +155,7 @@ test_story_hierarchy() {
     # Create parent
     local parent_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
-        -d "{\"title\":\"Parent Story $timestamp\",\"description\":\"Parent test story\",\"asA\":\"QA engineer\",\"iWant\":\"to test hierarchy\",\"soThat\":\"I can verify parent-child relationships\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":3,\"acceptanceTests\":[{\"given\":[\"System ready\"],\"when\":[\"Create parent\"],\"then\":[\"Parent created\"],\"status\":\"Pass\"}]}" \
+        -d "{\"title\":\"Verify parent-child story relationships for test $timestamp\",\"description\":\"Test parent story to verify that the system correctly maintains hierarchical relationships between stories. This ensures epic/story/subtask structures work properly.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to create parent stories that can contain child stories\",\"soThat\":\"I can verify the hierarchical story structure is maintained correctly\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":3,\"acceptanceTests\":[{\"given\":[\"Parent story is created\"],\"when\":[\"Child story is created with parentId\"],\"then\":[\"Child story is linked to parent and appears in parent's children list\"],\"status\":\"Pass\"}]}" \
         | jq -r '.id' 2>/dev/null || echo "")
     
     if [[ -z "$parent_id" || "$parent_id" == "null" ]]; then
@@ -166,7 +166,7 @@ test_story_hierarchy() {
     # Create child
     local child_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
-        -d "{\"title\":\"Child Story $timestamp\",\"description\":\"Child test story\",\"asA\":\"QA engineer\",\"iWant\":\"to test child creation\",\"soThat\":\"I can verify hierarchy works\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"parentId\":$parent_id,\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"Parent exists\"],\"when\":[\"Create child\"],\"then\":[\"Child created\"],\"status\":\"Pass\"}]}" \
+        -d "{\"title\":\"Child story for hierarchy test $timestamp\",\"description\":\"Child story to verify parent-child relationship functionality. Tests that child stories correctly reference their parent and maintain the relationship.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to create child stories under a parent story\",\"soThat\":\"I can verify the system maintains proper story hierarchy\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"parentId\":$parent_id,\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"Parent story exists with ID $parent_id\"],\"when\":[\"Child story is created with parentId set\"],\"then\":[\"Child story is created and linked to parent\"],\"status\":\"Pass\"}]}" \
         | jq -r '.id' 2>/dev/null || echo "")
     
     # Cleanup
