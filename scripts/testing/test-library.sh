@@ -116,18 +116,28 @@ test_network_connectivity() {
 # WORKFLOW TESTS
 # ============================================
 
+# Helper to execute curl via SSH if needed
+curl_api() {
+    if [[ -n "$SSH_HOST" ]]; then
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "curl $@" 2>/dev/null
+    else
+        curl "$@"
+    fi
+}
+
 test_story_crud() {
     local api_base="${1:-$API_BASE}"
     log_test "Story CRUD Workflow"
     
-    local story_id=$(curl -s -X POST "$api_base/api/stories" \
+    local timestamp=$(date +%s)
+    local story_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
-        -d "{\"title\":\"Test $(date +%s)\",\"asA\":\"tester\",\"iWant\":\"test\",\"soThat\":\"works\",\"status\":\"Draft\",\"components\":[\"WorkModel\"]}" \
+        -d "{\"title\":\"Test Story $timestamp\",\"description\":\"Automated test story for gating tests\",\"asA\":\"QA engineer\",\"iWant\":\"to verify the story CRUD workflow\",\"soThat\":\"I can ensure the API is working correctly\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"API is running\"],\"when\":[\"I create a story\"],\"then\":[\"Story is created successfully\"],\"status\":\"Pass\"}]}" \
         | jq -r '.id' 2>/dev/null || echo "")
     
     if [[ -n "$story_id" && "$story_id" != "null" ]]; then
-        if curl -s "$api_base/api/stories/$story_id" | jq -e '.id' > /dev/null 2>&1; then
-            curl -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
+        if curl_api -s "$api_base/api/stories/$story_id" | jq -e '.id' > /dev/null 2>&1; then
+            curl_api -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
             pass_test "Story CRUD (Create → Read → Delete)"
         else
             fail_test "Story CRUD (Read failed)"
@@ -141,10 +151,11 @@ test_story_hierarchy() {
     local api_base="${1:-$API_BASE}"
     log_test "Story Hierarchy (Parent-Child)"
     
+    local timestamp=$(date +%s)
     # Create parent
-    local parent_id=$(curl -s -X POST "$api_base/api/stories" \
+    local parent_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
-        -d "{\"title\":\"Parent $(date +%s)\",\"asA\":\"tester\",\"iWant\":\"test\",\"soThat\":\"works\",\"status\":\"Draft\",\"components\":[\"WorkModel\"]}" \
+        -d "{\"title\":\"Parent Story $timestamp\",\"description\":\"Parent test story\",\"asA\":\"QA engineer\",\"iWant\":\"to test hierarchy\",\"soThat\":\"I can verify parent-child relationships\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":3,\"acceptanceTests\":[{\"given\":[\"System ready\"],\"when\":[\"Create parent\"],\"then\":[\"Parent created\"],\"status\":\"Pass\"}]}" \
         | jq -r '.id' 2>/dev/null || echo "")
     
     if [[ -z "$parent_id" || "$parent_id" == "null" ]]; then
@@ -153,14 +164,14 @@ test_story_hierarchy() {
     fi
     
     # Create child
-    local child_id=$(curl -s -X POST "$api_base/api/stories" \
+    local child_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
-        -d "{\"title\":\"Child $(date +%s)\",\"asA\":\"tester\",\"iWant\":\"test\",\"soThat\":\"works\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"parentId\":$parent_id}" \
+        -d "{\"title\":\"Child Story $timestamp\",\"description\":\"Child test story\",\"asA\":\"QA engineer\",\"iWant\":\"to test child creation\",\"soThat\":\"I can verify hierarchy works\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"parentId\":$parent_id,\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"Parent exists\"],\"when\":[\"Create child\"],\"then\":[\"Child created\"],\"status\":\"Pass\"}]}" \
         | jq -r '.id' 2>/dev/null || echo "")
     
     # Cleanup
-    [[ -n "$child_id" && "$child_id" != "null" ]] && curl -s -X DELETE "$api_base/api/stories/$child_id" > /dev/null 2>&1
-    [[ -n "$parent_id" && "$parent_id" != "null" ]] && curl -s -X DELETE "$api_base/api/stories/$parent_id" > /dev/null 2>&1
+    [[ -n "$child_id" && "$child_id" != "null" ]] && curl_api -s -X DELETE "$api_base/api/stories/$child_id" > /dev/null 2>&1
+    [[ -n "$parent_id" && "$parent_id" != "null" ]] && curl_api -s -X DELETE "$api_base/api/stories/$parent_id" > /dev/null 2>&1
     
     if [[ -n "$child_id" && "$child_id" != "null" ]]; then
         pass_test "Story Hierarchy (Parent-Child created)"
@@ -175,14 +186,22 @@ test_invest_analysis_sse() {
     log_test "INVEST Analysis SSE"
     
     # Get any existing story
-    local story_id=$(curl -s "$api_base/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
+    local story_id=$(curl_api -s "$api_base/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
     
     if [[ -z "$story_id" || "$story_id" == "null" ]]; then
         fail_test "INVEST Analysis (No story found)"
         return
     fi
     
-    if timeout 5 curl -s "$kiro_base/api/analyze-invest-stream?storyId=$story_id" | grep -q "data:"; then
+    local response
+    if [[ -n "$SSH_HOST" ]]; then
+        response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST \
+            "timeout 5 curl -s '$kiro_base/api/analyze-invest-stream?storyId=$story_id'" 2>/dev/null)
+    else
+        response=$(timeout 5 curl -s "$kiro_base/api/analyze-invest-stream?storyId=$story_id")
+    fi
+    
+    if echo "$response" | grep -q "data:"; then
         pass_test "INVEST Analysis SSE"
     else
         fail_test "INVEST Analysis (No SSE response)"
@@ -194,14 +213,14 @@ test_health_check_endpoint() {
     log_test "Health Check Endpoint"
     
     # Get any existing story
-    local story_id=$(curl -s "$api_base/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
+    local story_id=$(curl_api -s "$api_base/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
     
     if [[ -z "$story_id" || "$story_id" == "null" ]]; then
         fail_test "Health Check (No story found)"
         return
     fi
     
-    if curl -s -X POST "$api_base/api/stories/$story_id/health-check" \
+    if curl_api -s -X POST "$api_base/api/stories/$story_id/health-check" \
         -H "Content-Type: application/json" \
         -d '{"includeAiInvest":false}' | jq -e '.investAnalysis' > /dev/null 2>&1; then
         pass_test "Health Check Endpoint"
@@ -214,10 +233,19 @@ test_code_generation_endpoint() {
     local kiro_base="${1:-$KIRO_API_BASE}"
     log_test "Code Generation Endpoint"
     
-    if curl -s -X POST "$kiro_base/api/generate-code-branch" \
-        -H "Content-Type: application/json" \
-        -d '{"storyId":"test","prNumber":1,"originalBranch":"test","prompt":"test"}' \
-        | jq -e '.error' > /dev/null 2>&1; then
+    local response
+    if [[ -n "$SSH_HOST" ]]; then
+        response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST \
+            "curl -s -X POST '$kiro_base/api/generate-code-branch' \
+            -H 'Content-Type: application/json' \
+            -d '{\"storyId\":\"test\",\"prNumber\":1,\"originalBranch\":\"test\",\"prompt\":\"test\"}'" 2>/dev/null)
+    else
+        response=$(curl -s -X POST "$kiro_base/api/generate-code-branch" \
+            -H "Content-Type: application/json" \
+            -d '{"storyId":"test","prNumber":1,"originalBranch":"test","prompt":"test"}')
+    fi
+    
+    if echo "$response" | jq -e '.error' > /dev/null 2>&1; then
         pass_test "Code Generation Endpoint"
     else
         fail_test "Code Generation Endpoint"
@@ -228,7 +256,15 @@ test_mcp_server_integration() {
     local kiro_base="${1:-$KIRO_API_BASE}"
     log_test "MCP Server Integration"
     
-    if curl -s "$kiro_base/health" | jq -e '.kiroHealthy' > /dev/null 2>&1; then
+    local response
+    if [[ -n "$SSH_HOST" ]]; then
+        response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST \
+            "curl -s '$kiro_base/health'" 2>/dev/null)
+    else
+        response=$(curl -s "$kiro_base/health")
+    fi
+    
+    if echo "$response" | jq -e '.kiroHealthy' > /dev/null 2>&1; then
         pass_test "MCP Server Integration"
     else
         fail_test "MCP Server Integration"
