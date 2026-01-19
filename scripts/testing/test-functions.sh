@@ -10,7 +10,7 @@ DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaw
 # Helper to execute curl via SSH if needed
 curl_api() {
     if [[ -n "$SSH_HOST" ]]; then
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "curl $@" 2>/dev/null
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "curl $(printf '%q ' "$@")" 2>/dev/null
     else
         curl "$@"
     fi
