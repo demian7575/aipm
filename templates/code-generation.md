@@ -47,7 +47,7 @@ If fails: Fix and retry (max 3 attempts)
 ### 6. Run Gating Tests (MANDATORY)
 ```bash
 cd /home/ec2-user/aipm
-bash scripts/testing/run-structured-gating-tests.sh --phases 1,2,3 2>&1 | tail -50
+bash scripts/testing/run-structured-gating-tests.sh --phases 1,2,3,4 2>&1 | tail -50
 ```
 Check output for: "ALL GATING TESTS PASSED"
 If fails: Fix code and return to step 4 (max 3 attempts)

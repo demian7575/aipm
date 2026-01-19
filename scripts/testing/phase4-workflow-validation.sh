@@ -4,17 +4,22 @@
 set -e
 source "$(dirname "$0")/test-functions.sh"
 
+# Use variables from parent script
+API_BASE="${API_BASE:-http://44.220.45.57:4000}"
+KIRO_API_BASE="${KIRO_API_BASE:-http://44.220.45.57:8081}"
+FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com}"
+
 echo "🔄 Phase 4: End-to-End Workflow Validation"
 
 # Get or create a test root story
 log_test "Setup: Get test root story"
-TEST_ROOT_ID=$(curl -s "$PROD_API_BASE/api/stories" | jq -r '.[] | select(.title == "Test Root Story") | .id' 2>/dev/null | head -1)
+TEST_ROOT_ID=$(curl -s "$API_BASE/api/stories" | jq -r '.[] | select(.title == "Test Root Story") | .id' 2>/dev/null | head -1)
 
 if [[ -z "$TEST_ROOT_ID" || "$TEST_ROOT_ID" == "null" ]]; then
     # Create test root if it doesn't exist
-    TEST_ROOT_ID=$(curl -s -X POST "$PROD_API_BASE/api/stories" \
+    TEST_ROOT_ID=$(curl -s -X POST "$API_BASE/api/stories" \
         -H "Content-Type: application/json" \
-        -d '{"title":"Test Root Story","asA":"tester","iWant":"test container","soThat":"tests are organized","status":"Draft"}' \
+        -d '{"title":"Test Root Story","asA":"tester","iWant":"test container","soThat":"tests are organized","status":"Draft","components":["WorkModel"]}' \
         | jq -r '.id' 2>/dev/null || echo "")
     
     if [[ -n "$TEST_ROOT_ID" && "$TEST_ROOT_ID" != "null" ]]; then
@@ -29,16 +34,16 @@ fi
 
 # Test 1: Story CRUD Workflow
 log_test "Story CRUD Workflow"
-STORY_ID=$(curl -s -X POST "$PROD_API_BASE/api/stories" \
+STORY_ID=$(curl -s -X POST "$API_BASE/api/stories" \
     -H "Content-Type: application/json" \
-    -d "{\"title\":\"Test Story $(date +%s)\",\"asA\":\"tester\",\"iWant\":\"to test\",\"soThat\":\"it works\",\"status\":\"Draft\",\"parentId\":$TEST_ROOT_ID}" \
+    -d "{\"title\":\"Test Story $(date +%s)\",\"asA\":\"tester\",\"iWant\":\"to test\",\"soThat\":\"it works\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"parentId\":$TEST_ROOT_ID}" \
     | jq -r '.id' 2>/dev/null || echo "")
 
 if [[ -n "$STORY_ID" && "$STORY_ID" != "null" ]]; then
     # Verify story was created
-    if curl -s "$PROD_API_BASE/api/stories/$STORY_ID" | jq -e '.id' > /dev/null 2>&1; then
+    if curl -s "$API_BASE/api/stories/$STORY_ID" | jq -e '.id' > /dev/null 2>&1; then
         # Clean up - verify deletion worked
-        DELETE_RESPONSE=$(curl -s -X DELETE "$PROD_API_BASE/api/stories/$STORY_ID" -w "\n%{http_code}")
+        DELETE_RESPONSE=$(curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -w "\n%{http_code}")
         HTTP_CODE=$(echo "$DELETE_RESPONSE" | tail -1)
         
         if [[ "$HTTP_CODE" == "200" || "$HTTP_CODE" == "204" ]]; then
@@ -49,7 +54,7 @@ if [[ -n "$STORY_ID" && "$STORY_ID" != "null" ]]; then
     else
         fail_test "Story CRUD Workflow (Read failed)"
         # Try to clean up anyway
-        curl -s -X DELETE "$PROD_API_BASE/api/stories/$STORY_ID" > /dev/null 2>&1
+        curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" > /dev/null 2>&1
     fi
 else
     fail_test "Story CRUD Workflow (Create failed)"
@@ -57,10 +62,10 @@ fi
 
 # Test 2: INVEST Analysis SSE Workflow
 log_test "INVEST Analysis SSE Workflow"
-TEST_STORY_ID=$(curl -s "$PROD_API_BASE/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
+TEST_STORY_ID=$(curl -s "$API_BASE/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
 if [[ -n "$TEST_STORY_ID" && "$TEST_STORY_ID" != "null" ]]; then
     # Test SSE endpoint responds
-    if timeout 5 curl -s "$PROD_API_BASE:8081/api/analyze-invest-stream?storyId=$TEST_STORY_ID" | grep -q "data:"; then
+    if timeout 5 curl -s "$KIRO_API_BASE/api/analyze-invest-stream?storyId=$TEST_STORY_ID" | grep -q "data:"; then
         pass_test "INVEST Analysis SSE Workflow"
     else
         fail_test "INVEST Analysis SSE Workflow (No SSE response)"
@@ -72,7 +77,7 @@ fi
 # Test 3: Health Check with AI Workflow
 log_test "Health Check with AI Workflow"
 if [[ -n "$TEST_STORY_ID" && "$TEST_STORY_ID" != "null" ]]; then
-    HEALTH_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories/$TEST_STORY_ID/health-check" \
+    HEALTH_RESPONSE=$(curl -s -X POST "$API_BASE/api/stories/$TEST_STORY_ID/health-check" \
         -H "Content-Type: application/json" \
         -d '{"includeAiInvest":false}' 2>/dev/null || echo "")
     
@@ -88,7 +93,7 @@ fi
 # Test 4: MCP Server Integration
 log_test "MCP Server Integration"
 # Check if MCP server is accessible via Kiro API
-if curl -s "$PROD_API_BASE:8081/health" | jq -e '.kiroHealthy' > /dev/null 2>&1; then
+if curl -s "$KIRO_API_BASE/health" | jq -e '.kiroHealthy' > /dev/null 2>&1; then
     pass_test "MCP Server Integration (Kiro healthy)"
 else
     fail_test "MCP Server Integration (Kiro not healthy)"
@@ -96,9 +101,9 @@ fi
 
 # Test 5: Frontend-Backend Integration
 log_test "Frontend-Backend Integration"
-if curl -s "$PROD_FRONTEND_URL" | grep -q "AIPM"; then
+if curl -s "$FRONTEND_URL" | grep -q "AIPM"; then
     # Check if frontend can reach backend
-    if curl -s "$PROD_FRONTEND_URL/config.js" | grep -q "API_BASE_URL"; then
+    if curl -s "$FRONTEND_URL/config.js" | grep -q "API_BASE_URL"; then
         pass_test "Frontend-Backend Integration (config loaded)"
     else
         fail_test "Frontend-Backend Integration (config missing)"
@@ -109,14 +114,14 @@ fi
 
 # Test 6: Code Generation Endpoint
 log_test "Code Generation Endpoint"
-if curl -s -X POST "$PROD_API_BASE:8081/api/generate-code-branch" \
+if curl -s -X POST "$KIRO_API_BASE/api/generate-code-branch" \
     -H "Content-Type: application/json" \
     -d '{"storyId":"test","prNumber":1,"originalBranch":"test","prompt":"test"}' \
     | jq -e '.success' > /dev/null 2>&1; then
     pass_test "Code Generation Endpoint (accepts requests)"
 else
     # Expected to fail without valid PR, but should return proper error
-    if curl -s -X POST "$PROD_API_BASE:8081/api/generate-code-branch" \
+    if curl -s -X POST "$KIRO_API_BASE/api/generate-code-branch" \
         -H "Content-Type: application/json" \
         -d '{"storyId":"test","prNumber":1,"originalBranch":"test","prompt":"test"}' \
         | jq -e '.error' > /dev/null 2>&1; then

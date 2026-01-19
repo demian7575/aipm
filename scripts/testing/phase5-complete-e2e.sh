@@ -5,15 +5,19 @@
 set +e  # Don't exit on error - we want to run all tests
 source "$(dirname "$0")/test-functions.sh"
 
+# Use API_BASE from parent script, fallback to PROD
+API_BASE="${API_BASE:-http://44.220.45.57:4000}"
+
 echo "🎯 Phase 5: Complete End-to-End User Journey"
 echo "Testing: Story → Acceptance Test → INVEST → GWT → PR → Code → Dev → Merge"
+echo "Environment: $API_BASE"
 echo ""
 
 # Cleanup function
 cleanup() {
     if [[ -n "$TEST_STORY_ID" ]]; then
         echo "🧹 Cleaning up test story $TEST_STORY_ID..."
-        curl -s -X DELETE "$PROD_API_BASE/api/stories/$TEST_STORY_ID" > /dev/null 2>&1
+        curl -s -X DELETE "$API_BASE/api/stories/$TEST_STORY_ID" > /dev/null 2>&1
     fi
     if [[ -n "$TEST_PR_NUMBER" ]]; then
         echo "🧹 Closing test PR #$TEST_PR_NUMBER..."
@@ -25,7 +29,7 @@ trap cleanup EXIT
 # Step 1: Generate User Story
 log_test "Step 1: Generate User Story"
 TIMESTAMP=$(date +%s)
-STORY_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" \
+STORY_RESPONSE=$(curl -s -X POST "$API_BASE/api/stories" \
     -H "Content-Type: application/json" \
     -d "{
         \"title\": \"E2E Test Story $TIMESTAMP\",
@@ -35,7 +39,14 @@ STORY_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories" \
         \"description\": \"This is an automated end-to-end test story\",
         \"status\": \"Draft\",
         \"storyPoint\": 3,
-        \"components\": [\"System\"]
+        \"components\": [\"WorkModel\"],
+        \"acceptanceTests\": [{
+            \"title\": \"Test passes\",
+            \"given\": \"system ready\",
+            \"when\": \"test runs\",
+            \"then\": \"test succeeds\",
+            \"status\": \"Draft\"
+        }]
     }")
 
 TEST_STORY_ID=$(echo "$STORY_RESPONSE" | jq -r '.id' 2>/dev/null || echo "")
@@ -51,7 +62,7 @@ fi
 log_test "Step 2: Add Acceptance Test to Story"
 # Acceptance tests are managed through story updates, not separate endpoint
 # For now, we'll verify the story can be retrieved with acceptance test structure
-STORY_WITH_AT=$(curl -s "$PROD_API_BASE/api/stories/$TEST_STORY_ID")
+STORY_WITH_AT=$(curl -s "$API_BASE/api/stories/$TEST_STORY_ID")
 
 if echo "$STORY_WITH_AT" | jq -e '.acceptanceTests' > /dev/null 2>&1; then
     pass_test "Story has acceptance tests structure"
@@ -63,7 +74,7 @@ fi
 log_test "Step 3: Check INVEST Analysis"
 # Note: health-check with includeAiInvest=false returns story without full analysis
 # This is expected behavior - just verify endpoint responds
-INVEST_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories/$TEST_STORY_ID/health-check" \
+INVEST_RESPONSE=$(curl -s -X POST "$API_BASE/api/stories/$TEST_STORY_ID/health-check" \
     -H "Content-Type: application/json" \
     -d '{"includeAiInvest": false}')
 
@@ -81,7 +92,7 @@ fi
 # Step 4: Check GWT Health
 log_test "Step 4: Check GWT Health"
 # GWT health is included in the story response
-GWT_STRUCTURE=$(curl -s "$PROD_API_BASE/api/stories/$TEST_STORY_ID" | jq -r '.acceptanceTests' 2>/dev/null)
+GWT_STRUCTURE=$(curl -s "$API_BASE/api/stories/$TEST_STORY_ID" | jq -r '.acceptanceTests' 2>/dev/null)
 
 if [[ -n "$GWT_STRUCTURE" && "$GWT_STRUCTURE" != "null" ]]; then
     pass_test "GWT health structure present"
@@ -91,7 +102,7 @@ fi
 
 # Step 5: Create PR
 log_test "Step 5: Create PR"
-PR_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/stories/$TEST_STORY_ID/create-pr" \
+PR_RESPONSE=$(curl -s -X POST "$API_BASE/api/stories/$TEST_STORY_ID/create-pr" \
     -H "Content-Type: application/json" \
     -d "{
         \"title\": \"E2E Test PR $TIMESTAMP\",
@@ -110,7 +121,7 @@ fi
 
 # Step 6: Generate Code (simulate - don't actually run)
 log_test "Step 6: Code Generation Endpoint"
-CODE_GEN_RESPONSE=$(curl -s -X POST "$PROD_API_BASE/api/generate-code-branch" \
+CODE_GEN_RESPONSE=$(curl -s -X POST "$API_BASE/api/generate-code-branch" \
     -H "Content-Type: application/json" \
     -d "{
         \"storyId\": \"$TEST_STORY_ID\",
@@ -141,7 +152,7 @@ fi
 # Step 8: Verify Story Status Workflow
 log_test "Step 8: Story Status Workflow"
 # Update story to Ready
-UPDATE_RESPONSE=$(curl -s -X PATCH "$PROD_API_BASE/api/stories/$TEST_STORY_ID" \
+UPDATE_RESPONSE=$(curl -s -X PATCH "$API_BASE/api/stories/$TEST_STORY_ID" \
     -H "Content-Type: application/json" \
     -d '{"status": "Ready"}')
 
@@ -158,7 +169,7 @@ fi
 
 # Step 9: Verify Data Consistency
 log_test "Step 9: Data Consistency Check"
-FINAL_STORY=$(curl -s "$PROD_API_BASE/api/stories" | jq ".[] | select(.id == $TEST_STORY_ID)")
+FINAL_STORY=$(curl -s "$API_BASE/api/stories" | jq ".[] | select(.id == $TEST_STORY_ID)")
 
 STORY_TITLE=$(echo "$FINAL_STORY" | jq -r '.title' 2>/dev/null)
 STORY_STATUS=$(echo "$FINAL_STORY" | jq -r '.status' 2>/dev/null)
@@ -172,6 +183,7 @@ fi
 echo ""
 echo "✅ Phase 5 completed"
 echo "📊 End-to-End Journey Summary:"
+echo "   Environment: $API_BASE"
 echo "   Story ID: $TEST_STORY_ID"
 echo "   Status: $STORY_STATUS"
 echo "   PR Number: ${TEST_PR_NUMBER:-N/A}"

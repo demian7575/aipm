@@ -4,22 +4,24 @@
 set -e
 source "$(dirname "$0")/test-functions.sh"
 
+# Use variables from parent script
+API_BASE="${API_BASE:-http://44.220.45.57:4000}"
+FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com}"
+TARGET_ENV="${TARGET_ENV:-prod}"
+
 echo "🟢 Phase 3: Infrastructure & Monitoring"
 
 # Frontend Infrastructure
-test_endpoint "Production Frontend Availability" "$PROD_FRONTEND_URL" "html"
-test_endpoint "Development Frontend Availability" "$DEV_FRONTEND_URL" "html"
+test_endpoint "Frontend Availability" "$FRONTEND_URL" "html"
 
 # S3 Configuration
-test_endpoint "Production S3 Config" "$PROD_FRONTEND_URL/config-prod.js" "API_BASE_URL"
-test_endpoint "Development S3 Config" "$DEV_FRONTEND_URL/config-dev.js" "API_BASE_URL"
+CONFIG_FILE="config-${TARGET_ENV}.js"
+test_endpoint "S3 Config" "$FRONTEND_URL/$CONFIG_FILE" "API_BASE_URL"
 
 # Network Connectivity
-test_endpoint "Production Network" "$PROD_API_BASE/api/version" "version"
-test_endpoint "Development Network" "$DEV_API_BASE/api/version" "version"
+test_endpoint "Network" "$API_BASE/api/version" "version"
 
 # Service Health
-test_endpoint "Production Service Health" "$PROD_API_BASE/api/stories" "\\["
-test_endpoint "Development Service Health" "$DEV_API_BASE/api/stories" "\\["
+test_endpoint "Service Health" "$API_BASE/api/stories" "\\["
 
 echo "✅ Phase 3 completed"

@@ -6,10 +6,15 @@ set -e
 
 # Parse command line arguments
 PHASES_TO_RUN="1,2,3,4,5"
+TARGET_ENV="prod"
 while [[ $# -gt 0 ]]; do
     case $1 in
         --phases)
             PHASES_TO_RUN="$2"
+            shift 2
+            ;;
+        --env)
+            TARGET_ENV="$2"
             shift 2
             ;;
         *)
@@ -21,12 +26,27 @@ done
 # Import shared test functions
 source "$(dirname "$0")/test-functions.sh"
 
-# Configuration
-PROD_API_BASE="http://44.220.45.57"
-DEV_API_BASE="http://44.222.168.46"
-KIRO_API_BASE="http://44.220.45.57:8081"
-PROD_FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
+# Configuration based on target environment
+if [[ "$TARGET_ENV" == "dev" ]]; then
+    API_BASE="http://44.222.168.46:4000"
+    KIRO_API_BASE="http://44.222.168.46:8081"
+    FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
+    echo "🔧 Target Environment: DEVELOPMENT"
+else
+    API_BASE="http://44.220.45.57:4000"
+    KIRO_API_BASE="http://44.220.45.57:8081"
+    FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
+    echo "🔧 Target Environment: PRODUCTION"
+fi
+
+# Legacy variables for backward compatibility
+PROD_API_BASE="$API_BASE"
+DEV_API_BASE="http://44.222.168.46:4000"
+PROD_FRONTEND_URL="$FRONTEND_URL"
 DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
+
+# Export for phase scripts
+export API_BASE KIRO_API_BASE FRONTEND_URL TARGET_ENV
 
 # Test counters
 TOTAL_PASSED=0
