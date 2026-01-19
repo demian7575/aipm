@@ -247,7 +247,7 @@ test_code_generation_endpoint() {
             -d '{"storyId":"test","prNumber":1,"originalBranch":"test","prompt":"test"}')
     fi
     
-    if echo "$response" | jq -e '.error' > /dev/null 2>&1; then
+    if echo "$response" | jq -e '.success' > /dev/null 2>&1; then
         pass_test "Code Generation Endpoint"
     else
         fail_test "Code Generation Endpoint"
@@ -277,7 +277,7 @@ test_frontend_backend_integration() {
     local frontend_url="${1:-$FRONTEND_URL}"
     log_test "Frontend-Backend Integration"
     
-    if curl -s "$frontend_url" | grep -q "AIPM"; then
+    if curl -s "$frontend_url" | grep -q "AI Project Manager"; then
         if curl -s "$frontend_url/config.js" | grep -q "API_BASE_URL"; then
             pass_test "Frontend-Backend Integration"
         else
