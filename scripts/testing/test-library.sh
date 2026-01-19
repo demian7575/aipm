@@ -28,6 +28,9 @@ fi
 PHASE_PASSED=${PHASE_PASSED:-0}
 PHASE_FAILED=${PHASE_FAILED:-0}
 
+# Kiro Mock Mode Flag
+USE_KIRO_MOCK="${USE_KIRO_MOCK:-false}"
+
 # ============================================
 # SECURITY TESTS
 # ============================================
@@ -183,6 +186,27 @@ test_story_hierarchy() {
 test_invest_analysis_sse() {
     local api_base="${1:-$API_BASE}"
     local kiro_base="${2:-$KIRO_API_BASE}"
+    
+    # Check if mock mode is enabled
+    if [[ "$USE_KIRO_MOCK" == "true" ]]; then
+        log_test "INVEST Analysis SSE (Mock)"
+        local response
+        if [[ -n "$SSH_HOST" ]]; then
+            response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST \
+                "curl -s -w '\n%{http_code}' '$kiro_base/api/invest-analysis-sse?storyId=mock' --max-time 3" 2>/dev/null || echo "000")
+        else
+            response=$(curl -s -w '\n%{http_code}' "$kiro_base/api/invest-analysis-sse?storyId=mock" --max-time 3 2>/dev/null || echo "000")
+        fi
+        local http_code=$(echo "$response" | tail -1)
+        if [[ "$http_code" != "000" ]]; then
+            pass_test "INVEST Analysis SSE (endpoint responds)"
+        else
+            fail_test "INVEST Analysis SSE (no response)"
+        fi
+        return
+    fi
+    
+    # Real mode - full test
     log_test "INVEST Analysis SSE"
     
     # Get any existing story
@@ -233,6 +257,29 @@ test_health_check_endpoint() {
 
 test_code_generation_endpoint() {
     local kiro_base="${1:-$KIRO_API_BASE}"
+    
+    # Check if mock mode is enabled
+    if [[ "$USE_KIRO_MOCK" == "true" ]]; then
+        log_test "Code Generation (Mock)"
+        local response
+        if [[ -n "$SSH_HOST" ]]; then
+            response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST \
+                "curl -s -w '\n%{http_code}' -X POST '$kiro_base/api/code-generation' \
+                -H 'Content-Type: application/json' -d '{\"storyId\":\"mock\"}' --max-time 3" 2>/dev/null || echo "000")
+        else
+            response=$(curl -s -w '\n%{http_code}' -X POST "$kiro_base/api/code-generation" \
+                -H "Content-Type: application/json" -d '{"storyId":"mock"}' --max-time 3 2>/dev/null || echo "000")
+        fi
+        local http_code=$(echo "$response" | tail -1)
+        if [[ "$http_code" != "000" ]]; then
+            pass_test "Code Generation (endpoint responds)"
+        else
+            fail_test "Code Generation (no response)"
+        fi
+        return
+    fi
+    
+    # Real mode - full test
     log_test "Code Generation Endpoint"
     
     local response

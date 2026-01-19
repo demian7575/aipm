@@ -7,6 +7,9 @@ source "$(dirname "$0")/test-library.sh"
 API_BASE="${API_BASE:-http://44.220.45.57:4000}"
 KIRO_API_BASE="${KIRO_API_BASE:-http://44.220.45.57:8081}"
 
+# Disable Kiro Mock Mode (use real Kiro CLI)
+export USE_KIRO_MOCK=false
+
 echo "🎯 Phase 2: Complete E2E Workflow (REAL Kiro CLI)"
 echo "Testing full user journey with real AI features"
 echo ""
@@ -18,7 +21,7 @@ test_story_crud "$API_BASE"
 # Step 2: INVEST Analysis SSE (Real)
 echo ""
 echo "🤖 Step 2: INVEST Analysis SSE (Real)"
-test_invest_analysis_sse "$KIRO_API_BASE"
+test_invest_analysis_sse "$API_BASE" "$KIRO_API_BASE"
 
 # Step 3: Edit User Story (included in CRUD)
 echo ""
