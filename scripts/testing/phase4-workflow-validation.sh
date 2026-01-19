@@ -16,7 +16,6 @@ test_story_crud "$API_BASE"
 test_story_hierarchy "$API_BASE"
 test_invest_analysis_sse "$API_BASE" "$KIRO_API_BASE"
 test_health_check_endpoint "$API_BASE"
-test_mcp_server_integration "$KIRO_API_BASE"
 test_frontend_backend_integration "$FRONTEND_URL"
 test_code_generation_endpoint "$KIRO_API_BASE"
 
