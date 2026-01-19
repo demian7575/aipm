@@ -1,0 +1,21 @@
+[Unit]
+Description=Kiro CLI Session Pool
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+Environment=PATH=/home/ec2-user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=KIRO_POOL_PORT=8082
+ExecStart=/usr/bin/node scripts/kiro-session-pool.js
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kiro-session-pool
+
+[Install]
+WantedBy=multi-user.target

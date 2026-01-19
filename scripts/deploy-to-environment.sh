@@ -154,8 +154,10 @@ sudo systemctl restart $SERVICE_NAME
 echo 'Installing/updating Kiro services...'
 sudo cp scripts/systemd/aipm-kiro-api.service /etc/systemd/system/
 sudo cp scripts/systemd/aipm-kiro-cli.service /etc/systemd/system/
+sudo cp scripts/systemd/kiro-session-pool.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable aipm-kiro-api aipm-kiro-cli
+sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool
+sudo systemctl restart kiro-session-pool
 sudo systemctl restart aipm-kiro-cli
 sudo systemctl restart aipm-kiro-api
 
