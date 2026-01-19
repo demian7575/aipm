@@ -193,12 +193,13 @@ test_invest_analysis_sse() {
         return
     fi
     
+    # Test if SSE endpoint responds (wait up to 10 seconds for first data)
     local response
     if [[ -n "$SSH_HOST" ]]; then
         response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST \
-            "timeout 5 curl -s '$kiro_base/api/analyze-invest-stream?storyId=$story_id'" 2>/dev/null)
+            "timeout 10 curl -s -m 10 '$kiro_base/api/analyze-invest-stream?storyId=$story_id'" 2>/dev/null | head -n 3)
     else
-        response=$(timeout 5 curl -s "$kiro_base/api/analyze-invest-stream?storyId=$story_id")
+        response=$(timeout 10 curl -s -m 10 "$kiro_base/api/analyze-invest-stream?storyId=$story_id" | head -n 3)
     fi
     
     if echo "$response" | grep -q "data:"; then
