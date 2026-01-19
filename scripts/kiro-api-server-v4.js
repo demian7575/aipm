@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
+// Debug mode control
+const DEBUG = process.env.DEBUG === 'true';
+const log = DEBUG ? console.log : () => {};
+const error = console.error; // Always log errors
+
 // Load environment variables from .env file
-import { readFileSync } from 'fs';
+import { readFileSync, createWriteStream } from 'fs';
 import { join } from 'path';
 
 // Load .env file if it exists
@@ -14,7 +19,7 @@ try {
     }
   });
 } catch (err) {
-  console.log('No .env file found, using system environment variables');
+  log('No .env file found, using system environment variables');
 }
 
 import http from 'http';
@@ -77,7 +82,7 @@ const CONTRACTS = JSON.parse(
   readFileSync(join(__dirname, 'contracts/contracts.json'), 'utf-8')
 );
 
-console.log('📋 Loaded contracts:', Object.keys(CONTRACTS));
+log('📋 Loaded contracts:', Object.keys(CONTRACTS));
 
 // Kiro CLI process
 let kiroProcess = null;
@@ -97,23 +102,23 @@ setInterval(() => {
   
   // Stuck condition 1: Queue has items but idle for 60 seconds
   if (kiroCommandQueue.length > 0 && idleTime > 60000) {
-    console.log('🚨 Queue stuck: Items waiting but no activity for 60s');
-    console.log(`   Queue length: ${kiroCommandQueue.length}, Idle time: ${idleTime}ms`);
+    log('🚨 Queue stuck: Items waiting but no activity for 60s');
+    log(`   Queue length: ${kiroCommandQueue.length}, Idle time: ${idleTime}ms`);
     triggerQueueRecovery();
     return;
   }
   
   // Stuck condition 2: Processing but no output for 60 seconds (thinking stuck)
   if (kiroProcessing && outputIdleTime > 60000) {
-    console.log('🚨 Queue stuck: Processing but no output for 60s (thinking stuck)');
-    console.log(`   Processing time: ${processingTime}ms, Output idle: ${outputIdleTime}ms`);
+    log('🚨 Queue stuck: Processing but no output for 60s (thinking stuck)');
+    log(`   Processing time: ${processingTime}ms, Output idle: ${outputIdleTime}ms`);
     triggerQueueRecovery();
     return;
   }
   
   // Timeout: Processing for more than 10 minutes
   if (kiroProcessing && processingTime > 600000) {
-    console.log('🚨 Processing timeout: 10 minutes exceeded');
+    log('🚨 Processing timeout: 10 minutes exceeded');
     triggerQueueRecovery();
     return;
   }
@@ -139,14 +144,24 @@ function triggerQueueRecovery() {
 function startKiroProcess() {
   if (kiroProcess) return;
   
-  console.log('🚀 Starting Kiro CLI process...');
+  log('🚀 Starting Kiro CLI process...');
   const kiroPath = process.env.KIRO_CLI_PATH || 'kiro-cli';
   
-  kiroProcess = spawn(kiroPath, ['chat', '--trust-all-tools'], {
-    stdio: ['pipe', 'pipe', 'pipe']
+  kiroProcess = spawn(kiroPath, [
+    'chat', 
+    '--trust-all-tools',
+    '--no-interactive',
+    '--wrap=never'
+  ], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      NO_COLOR: '1',
+      TERM: 'dumb'
+    }
   });
   
-  // Create live log file with tee for both stdout and stderr
+  // Create live log file with buffered write
   const logFile = '/tmp/kiro-cli-live.log';
   const errorLogFile = '/tmp/kiro-cli-error.log';
   
@@ -154,43 +169,43 @@ function startKiroProcess() {
   const timestamp = new Date().toISOString();
   appendFileSync(logFile, `\n\n=== Kiro CLI Session Started: ${timestamp} ===\n`);
   
-  const teeProcess = spawn('tee', ['-a', logFile], { stdio: ['pipe', 'inherit', 'inherit'] });
-  const teeErrorProcess = spawn('tee', ['-a', errorLogFile], { stdio: ['pipe', 'inherit', 'inherit'] });
+  // Use buffered file streams instead of tee
+  const logStream = createWriteStream(logFile, { flags: 'a', highWaterMark: 64 * 1024 });
+  const errorLogStream = createWriteStream(errorLogFile, { flags: 'a', highWaterMark: 64 * 1024 });
   
   // Pipe Kiro CLI stdout and stderr to log files with selective line breaks
   kiroProcess.stdout.on('data', (data) => {
     let chunk = data.toString();
     lastKiroOutput = Date.now(); // Track output activity
     
-    // Add line break before purple '>' prompt
-    chunk = chunk.replace(/(\x1b\[38;5;141m>\s*)/g, '\n$1');
+    // Add line break before purple '>' prompt (only if needed)
+    if (chunk.includes('\x1b[38;5;141m>')) {
+      chunk = chunk.replace(/(\x1b\[38;5;141m>\s*)/g, '\n$1');
+    }
     
-    // Add line breaks only at appropriate points:
-    // - After JSON responses
-    // - After command completions
-    // - NOT after prompts (>) since we want prompts on their own line
+    // Add line breaks only at appropriate points
     if (chunk.includes('{"') || 
         chunk.includes('✅') || 
         chunk.includes('❌') ||
         chunk.includes('Time:') ||
         chunk.includes('Success') ||
         chunk.includes('Fail')) {
-      teeProcess.stdin.write(chunk + '\n');
+      logStream.write(chunk + '\n');
     } else {
-      teeProcess.stdin.write(chunk);
+      logStream.write(chunk);
     }
   });
   
   kiroProcess.stderr.on('data', (data) => {
     const chunk = data.toString();
-    teeErrorProcess.stdin.write('[ERROR] ' + chunk);
+    errorLogStream.write('[ERROR] ' + chunk);
   });
   
   kiroProcess.on('close', () => {
-    console.log('Kiro process closed, restarting...');
+    error('Kiro process closed, restarting...');
     kiroProcess = null;
-    teeProcess.kill();
-    teeErrorProcess.kill();
+    logStream.end();
+    errorLogStream.end();
     setTimeout(startKiroProcess, 1000);
   });
   
@@ -212,7 +227,7 @@ function startKiroHealthCheck() {
     const maxIdleTime = 60 * 60 * 1000; // 60 minutes (increased from 15)
     
     if (timeSinceLastResponse > maxIdleTime) {
-      console.log('⚠️ Kiro CLI appears unresponsive, restarting...');
+      log('⚠️ Kiro CLI appears unresponsive, restarting...');
       restartKiroProcess();
     }
   }, 10 * 60 * 1000); // Check every 10 minutes (increased from 5)
@@ -220,7 +235,7 @@ function startKiroHealthCheck() {
 
 function restartKiroProcess() {
   if (kiroProcess) {
-    console.log('🔄 Restarting Kiro CLI process...');
+    log('🔄 Restarting Kiro CLI process...');
     kiroProcess.kill();
     kiroProcess = null;
   }
@@ -254,7 +269,7 @@ function sendToKiroWithStatus(prompt) {
           try {
             const statusResponse = JSON.parse(match);
             if (statusResponse.status && (statusResponse.status === 'Success' || statusResponse.status === 'Fail')) {
-              console.log('✅ Found status response:', statusResponse.status);
+              log('✅ Found status response:', statusResponse.status);
               clearTimeout(timeout);
               kiroProcess.stdout.removeListener('data', onData);
               resolve(statusResponse);
@@ -269,7 +284,7 @@ function sendToKiroWithStatus(prompt) {
     
     kiroProcess.stdout.on('data', onData);
     
-    console.log('📤 Sending prompt to Kiro CLI (expecting status JSON)');
+    log('📤 Sending prompt to Kiro CLI (expecting status JSON)');
     
     // Log the command to live log file
     const logFile = '/tmp/kiro-cli-live.log';
@@ -344,7 +359,7 @@ function sendToKiroInternal(prompt) {
     }
     
     const timeout = setTimeout(() => {
-      console.log('⏰ Kiro CLI timeout after 600 seconds, restarting...');
+      log('⏰ Kiro CLI timeout after 600 seconds, restarting...');
       restartKiroProcess();
       reject(new Error('Kiro CLI timeout after 600 seconds'));
     }, 600000); // 10 minutes timeout
@@ -360,7 +375,7 @@ function sendToKiroInternal(prompt) {
       const timeSinceLastOutput = Date.now() - lastOutputTime;
       
       if (operationInProgress && timeSinceLastOutput > 60000) { // 1 minute
-        console.log('🚨 Kiro CLI stuck detected (no output for 1 min during operation), restarting...');
+        log('🚨 Kiro CLI stuck detected (no output for 1 min during operation), restarting...');
         clearTimeout(timeout);
         clearInterval(stuckCheckInterval);
         // // clearInterval(heartbeatInterval); // Disabled // Disabled
@@ -375,7 +390,7 @@ function sendToKiroInternal(prompt) {
     // Heartbeat disabled - causes Kiro CLI to think on empty input
     // const heartbeatInterval = setInterval(() => {
     //   if (promptSeen && !operationInProgress) {
-    //     console.log('💓 Sending heartbeat to idle Kiro CLI');
+    //     log('💓 Sending heartbeat to idle Kiro CLI');
     //     if (kiroProcess && kiroProcess.stdin.writable) {
     //       kiroProcess.stdin.write('\n');
     //     }
@@ -394,7 +409,7 @@ function sendToKiroInternal(prompt) {
       if (chunk.includes('\x1b[38;5;141m>')) {
         promptSeen = true;
         operationInProgress = false;
-        console.log('🟣 Prompt detected - operation finished or ready');
+        log('🟣 Prompt detected - operation finished or ready');
       }
       
       // Detect operation in progress (output after prompt)
@@ -404,7 +419,7 @@ function sendToKiroInternal(prompt) {
       
       // Only log significant chunks to reduce noise
       if (chunk.length > 10) {
-        console.log('📥 Kiro CLI output chunk:', chunk.substring(0, 100));
+        log('📥 Kiro CLI output chunk:', chunk.substring(0, 100));
       }
       
       // Check if we have a complete response (look for "Time:" indicator)
@@ -432,7 +447,7 @@ function sendToKiroInternal(prompt) {
     kiroProcess.stdout.on('data', onData);
     kiroProcess.stderr.on('data', onData);
     
-    console.log('📤 Sending prompt to Kiro CLI');
+    log('📤 Sending prompt to Kiro CLI');
     
     // Log the command to live log file
     const logFile = '/tmp/kiro-cli-live.log';
@@ -472,7 +487,7 @@ async function getStories() {
   (tests || []).forEach(test => {
     const storyId = test.storyId;
     if (!storyId) {
-      console.warn('⚠️ Acceptance test missing storyId:', test.id);
+      error('⚠️ Acceptance test missing storyId:', test.id);
       return;
     }
     // Normalize field names for frontend compatibility
@@ -549,7 +564,7 @@ async function getMainBranchSha(owner, repo, token) {
 }
 
 const server = http.createServer(async (req, res) => {
-  console.log(`📥 Request: ${req.method} ${req.url}`);
+  log(`📥 Request: ${req.method} ${req.url}`);
   try {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
@@ -598,7 +613,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', () => {
       try {
         const statusData = JSON.parse(body);
-        console.log('📥 Code generation status received:', statusData);
+        log('📥 Code generation status received:', statusData);
         
         // Store status for retrieval (simple in-memory storage)
         if (!global.codeGenerationStatus) {
@@ -609,7 +624,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ received: true }));
       } catch (error) {
-        console.error('❌ Code generation status error:', error.message);
+        error('❌ Code generation status error:', error.message);
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -624,7 +639,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', () => {
       try {
         const gwtData = JSON.parse(body);
-        console.log('📊 Received GWT analysis from Kiro CLI:', gwtData);
+        log('📊 Received GWT analysis from Kiro CLI:', gwtData);
         
         // Store the analysis with timestamp
         global.latestGwtAnalysis = {
@@ -635,7 +650,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ received: true }));
       } catch (error) {
-        console.error('Error parsing GWT response:', error);
+        error('Error parsing GWT response:', error);
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid JSON' }));
       }
@@ -673,7 +688,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const investData = JSON.parse(body);
-        console.log('📊 Received INVEST analysis from Kiro CLI:', investData);
+        log('📊 Received INVEST analysis from Kiro CLI:', investData);
         
         // Handle Kiro sending "id" instead of "storyId"
         if (investData.id && !investData.storyId) {
@@ -681,7 +696,7 @@ const server = http.createServer(async (req, res) => {
           const idStr = String(investData.id);
           const match = idStr.match(/US-0*(\d+)/);
           investData.storyId = match ? parseInt(match[1]) : parseInt(idStr);
-          console.log(`⚠️ Mapped id "${investData.id}" to storyId ${investData.storyId}`);
+          log(`⚠️ Mapped id "${investData.id}" to storyId ${investData.storyId}`);
         }
         
         // Store in memory for backward compatibility
@@ -708,13 +723,13 @@ const server = http.createServer(async (req, res) => {
               ':updated': new Date().toISOString()
             }
           }));
-          console.log(`✅ Saved INVEST analysis for story ${investData.storyId}`);
+          log(`✅ Saved INVEST analysis for story ${investData.storyId}`);
         }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ received: true }));
       } catch (error) {
-        console.error('Error processing INVEST response:', error);
+        error('Error processing INVEST response:', error);
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -757,12 +772,12 @@ const server = http.createServer(async (req, res) => {
         }
         
         // All retries failed
-        console.error('Failed to forward draft to backend after 3 attempts:', lastError);
+        error('Failed to forward draft to backend after 3 attempts:', lastError);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Failed to forward to backend' }));
         
       } catch (error) {
-        console.error('Error in draft-response:', error);
+        error('Error in draft-response:', error);
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -782,7 +797,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ received: true }));
       } catch (error) {
-        console.error('Error in acceptance test draft-response:', error);
+        error('Error in acceptance test draft-response:', error);
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -886,7 +901,7 @@ Execute the template instructions exactly as written.`;
     });
     
     try {
-      console.log('📊 INVEST SSE request for story:', storyId);
+      log('📊 INVEST SSE request for story:', storyId);
       
       // Extract numeric story ID
       const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
@@ -901,9 +916,9 @@ Execute the template instructions exactly as written.`;
       
       res.write(`data: ${JSON.stringify({ status: 'started', message: 'Analyzing INVEST criteria...' })}\n\n`);
       
-      console.log('📤 Sending to Kiro:', prompt.substring(0, 100) + '...');
+      log('📤 Sending to Kiro:', prompt.substring(0, 100) + '...');
       await sendToKiro(prompt);
-      console.log('✅ Sent to Kiro, waiting for response...');
+      log('✅ Sent to Kiro, waiting for response...');
       
       // Poll for result
       const maxAttempts = 180;
@@ -916,7 +931,7 @@ Execute the template instructions exactly as written.`;
           const analysisResponse = global.latestInvestAnalysis;
           global.latestInvestAnalysis = null;
           
-          console.log('✅ Got INVEST analysis response');
+          log('✅ Got INVEST analysis response');
           res.write(`data: ${JSON.stringify({ 
             status: 'complete',
             success: true,
@@ -1018,11 +1033,11 @@ Execute the template instructions exactly as written.`;
 
   // Generate draft endpoint (Legacy - for frontend Generate button)
   if (url.pathname === '/api/generate-draft' && req.method === 'POST') {
-    console.log('📝 Generate draft endpoint called');
+    log('📝 Generate draft endpoint called');
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
-      console.log('📝 Request body received:', body);
+      log('📝 Request body received:', body);
       try {
         const { feature_description = 'user login system', parentId = null, requestId } = JSON.parse(body);
         
@@ -1044,7 +1059,7 @@ Execute the template instructions exactly as written.`;
         
         // Execute KIRO CLI via session pool (don't wait for completion)
         sendToKiro(prompt).catch(err => {
-          console.error('Error executing Kiro CLI:', err);
+          error('Error executing Kiro CLI:', err);
         });
         
         // Immediately respond (draft will come via callback)
@@ -1052,7 +1067,7 @@ Execute the template instructions exactly as written.`;
         res.end(JSON.stringify({ status: 'processing', requestId }));
         
       } catch (error) {
-        console.error('Error in generate-draft:', error);
+        error('Error in generate-draft:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message || error.toString() }));
       }
@@ -1182,7 +1197,7 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
             const draftResponse = global.latestAcceptanceTestDraft;
             global.latestAcceptanceTestDraft = null; // Clear after use
             
-            console.log(`✅ Draft received after ${attempts} seconds`);
+            log(`✅ Draft received after ${attempts} seconds`);
             
             // Return draft data WITHOUT saving to database
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1192,7 +1207,7 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
         }
         
         // Timeout - no draft received
-        console.log(`⏱️ Draft timeout after ${maxAttempts} seconds`);
+        log(`⏱️ Draft timeout after ${maxAttempts} seconds`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false, 
@@ -1213,7 +1228,7 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(stories));
     } catch (error) {
-      console.error('Error in GET /api/stories:', error);
+      error('Error in GET /api/stories:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
     }
@@ -1232,7 +1247,7 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
           throw new Error('Missing required field: idea');
         }
         
-        console.log(`📥 Story draft request: ${idea.substring(0, 50)}...`);
+        log(`📥 Story draft request: ${idea.substring(0, 50)}...`);
         
         // Get parent context if needed
         let parentContext = '';
@@ -1246,7 +1261,7 @@ Execute the template instructions exactly as written. Generate 1-2 new tests tha
               parentContext = ` (child of: ${parent.title})`;
             }
           } catch (e) {
-            console.warn('Could not fetch parent story:', e.message);
+            error('Could not fetch parent story:', e.message);
           }
         }
         
@@ -1263,7 +1278,7 @@ Generate the fields and immediately place them into this JSON template:
         res.end(JSON.stringify(enhancedStory));
         
       } catch (error) {
-        console.error(`❌ Story draft error: ${error.message}`);
+        error(`❌ Story draft error: ${error.message}`);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false, 
@@ -1361,7 +1376,7 @@ Generate the fields and immediately place them into this JSON template:
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ id, ...updates }));
       } catch (error) {
-        console.error('❌ Update story error:', error);
+        error('❌ Update story error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -1387,7 +1402,7 @@ Generate the fields and immediately place them into this JSON template:
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ message: 'Story deleted successfully' }));
     } catch (error) {
-      console.error('❌ Delete story error:', error);
+      error('❌ Delete story error:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
     }
@@ -1409,13 +1424,13 @@ Generate the fields and immediately place them into this JSON template:
         // Remove storyId if present (use id instead)
         delete story.storyId;
         
-        console.log('📝 Creating story with ID:', numericId);
+        log('📝 Creating story with ID:', numericId);
         
         const createdStory = await createStory(story);
         res.writeHead(201, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(createdStory));
       } catch (error) {
-        console.error('❌ Create story error:', error);
+        error('❌ Create story error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -1431,9 +1446,9 @@ Generate the fields and immediately place them into this JSON template:
       try {
         const { storyId, branchName, prTitle, prBody, story: storyData } = JSON.parse(body);
         
-        console.log('📝 Creating GitHub PR for story:', storyId);
-        console.log('📝 Branch name:', branchName);
-        console.log('📝 PR title:', prTitle);
+        log('📝 Creating GitHub PR for story:', storyId);
+        log('📝 Branch name:', branchName);
+        log('📝 PR title:', prTitle);
         
         // Create actual GitHub PR using GitHub API
         const githubToken = process.env.GITHUB_TOKEN;
@@ -1441,7 +1456,7 @@ Generate the fields and immediately place them into this JSON template:
         const repo = 'aipm';
         
         if (!githubToken) {
-          console.log('⚠️ No GitHub token found, creating PR card only');
+          log('⚠️ No GitHub token found, creating PR card only');
           // Fallback to creating just a PR card
           const prNumber = Math.floor(Math.random() * 1000) + 1;
           const prUrl = `https://github.com/${owner}/${repo}/pull/${prNumber}`;
@@ -1566,7 +1581,7 @@ ${new Date().toISOString()}
           }
           
           const prData = await prResponse.json();
-          console.log('✅ Created GitHub PR:', prData.html_url);
+          log('✅ Created GitHub PR:', prData.html_url);
           
           // Create PR entry that matches frontend expectations
           const prEntry = {
@@ -1616,7 +1631,7 @@ ${new Date().toISOString()}
           res.end(JSON.stringify(prResponseData));
           
         } catch (githubError) {
-          console.error('❌ GitHub API error:', githubError);
+          error('❌ GitHub API error:', githubError);
           // Fallback to creating just a PR card
           const prNumber = Math.floor(Math.random() * 1000) + 1;
           const prUrl = `https://github.com/${owner}/${repo}/pull/${prNumber}`;
@@ -1659,7 +1674,7 @@ ${new Date().toISOString()}
           res.end(JSON.stringify({ success: true, prEntry, note: 'Created PR card only due to GitHub API error' }));
         }
       } catch (error) {
-        console.error('❌ Create PR error:', error);
+        error('❌ Create PR error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -1690,7 +1705,7 @@ ${new Date().toISOString()}
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(prs));
       } catch (error) {
-        console.error('❌ Update story PRs error:', error);
+        error('❌ Update story PRs error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -1730,7 +1745,7 @@ ${new Date().toISOString()}
         res.end(JSON.stringify({ error: 'Story or PR not found' }));
       }
     } catch (error) {
-      console.error('❌ Delete PR error:', error);
+      error('❌ Delete PR error:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
     }
@@ -1751,7 +1766,7 @@ ${new Date().toISOString()}
           return;
         }
         
-        console.log('🤖 Kiro chat request:', message.substring(0, 100) + '...');
+        log('🤖 Kiro chat request:', message.substring(0, 100) + '...');
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
@@ -1761,7 +1776,7 @@ ${new Date().toISOString()}
         }));
         
       } catch (error) {
-        console.error('❌ Kiro chat error:', error);
+        error('❌ Kiro chat error:', error);
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid JSON' }));
       }
@@ -1787,7 +1802,7 @@ ${new Date().toISOString()}
             outputSchema: template.output.schema
           });
         } catch (error) {
-          console.warn(`Could not load template ${file}:`, error.message);
+          error(`Could not load template ${file}:`, error.message);
         }
       }
       
@@ -1890,7 +1905,7 @@ ${new Date().toISOString()}
           }
         }
 
-        console.log(`🤖 Template: ${templateId}, Input:`, Object.keys(input));
+        log(`🤖 Template: ${templateId}, Input:`, Object.keys(input));
         
         // Send to Kiro CLI and wait for completion
         const enhancedResult = await sendToKiro(prompt);
@@ -1913,10 +1928,10 @@ ${new Date().toISOString()}
             if (storyData.id && !storyData.storyId) {
               storyData.storyId = storyData.id;
             }
-            console.log('✅ Extracted story data:', storyData.title);
+            log('✅ Extracted story data:', storyData.title);
           }
         } catch (e) {
-          console.warn('Could not parse story data from Kiro response:', e.message);
+          error('Could not parse story data from Kiro response:', e.message);
         }
         
         // Post story to backend if extraction successful (disabled for markdown templates - Kiro CLI posts directly)
@@ -1931,12 +1946,12 @@ ${new Date().toISOString()}
             
             if (postResponse.ok) {
               postResult = await postResponse.json();
-              console.log('✅ Posted story to backend:', postResult.id);
+              log('✅ Posted story to backend:', postResult.id);
             } else {
-              console.error('❌ Failed to post story:', postResponse.status);
+              error('❌ Failed to post story:', postResponse.status);
             }
           } catch (postError) {
-            console.error('❌ Error posting story:', postError.message);
+            error('❌ Error posting story:', postError.message);
           }
         }
         
@@ -1951,7 +1966,7 @@ ${new Date().toISOString()}
         }));
         
       } catch (error) {
-        console.error('❌ Template enhance error:', error);
+        error('❌ Template enhance error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -1967,14 +1982,14 @@ ${new Date().toISOString()}
       try {
         const { contractId, inputJson } = JSON.parse(body);
         
-        console.log('🔄 Kiro v3 transform request:', contractId);
-        console.log('📝 Input:', inputJson);
+        log('🔄 Kiro v3 transform request:', contractId);
+        log('📝 Input:', inputJson);
         
         if (contractId === 'generate-code-v1') {
           const { taskId, prompt, prNumber, branchName, storyId, storyTitle } = inputJson;
           
-          console.log('🤖 Code generation for PR:', prNumber);
-          console.log('📝 Prompt:', prompt?.substring(0, 100) + '...');
+          log('🤖 Code generation for PR:', prNumber);
+          log('📝 Prompt:', prompt?.substring(0, 100) + '...');
           
           // Call Kiro CLI for code generation - let it do the work directly
           try {
@@ -1997,7 +2012,7 @@ Please:
 
 Return: {"status": "Success", "message": "Code generated and pushed successfully"} or {"status": "Fail", "message": "Error description"}`;
 
-            console.log('📤 Calling Kiro CLI for code generation...');
+            log('📤 Calling Kiro CLI for code generation...');
             
             // Initialize the response object
             const transformResult = {
@@ -2018,7 +2033,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
             
             // Send to Kiro CLI and wait for JSON response
             sendToKiroWithStatus(kiroPrompt).then(statusResult => {
-              console.log('📥 Code generation status:', statusResult);
+              log('📥 Code generation status:', statusResult);
               if (statusResult.status === 'Success') {
                 transformResult.outputJson.status = 'completed';
                 transformResult.outputJson.summary = statusResult.message || 'Code generated and pushed successfully';
@@ -2028,7 +2043,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
                 transformResult.success = false;
               }
             }).catch(error => {
-              console.log('⚠️ Code generation error:', error.message);
+              log('⚠️ Code generation error:', error.message);
               transformResult.outputJson.status = 'failed';
               transformResult.outputJson.summary = `Error: ${error.message}`;
               transformResult.success = false;
@@ -2057,18 +2072,18 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
                     }
                   }));
                   
-                  console.log('✅ Updated PR status - Kiro CLI is working on:', prNumber);
+                  log('✅ Updated PR status - Kiro CLI is working on:', prNumber);
                 }
               }
             } catch (error) {
-              console.warn('⚠️ Could not update PR status:', error.message);
+              error('⚠️ Could not update PR status:', error.message);
             }
             
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(transformResult));
             
           } catch (error) {
-            console.error('❌ Kiro CLI code generation failed:', error);
+            error('❌ Kiro CLI code generation failed:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ 
               success: false,
@@ -2083,7 +2098,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           }));
         }
       } catch (error) {
-        console.error('❌ Kiro v3 transform error:', error);
+        error('❌ Kiro v3 transform error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false,
@@ -2103,9 +2118,9 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         const payload = JSON.parse(body);
         const { owner, repo, storyId, taskTitle, objective, constraints, acceptanceCriteria, enableGatingTests, deployToDev, maxIterations } = payload;
         
-        console.log('🤖 Code generation request for story:', storyId);
-        console.log('📝 Task title:', taskTitle);
-        console.log('🎯 Objective:', objective?.substring(0, 100) + '...');
+        log('🤖 Code generation request for story:', storyId);
+        log('📝 Task title:', taskTitle);
+        log('🎯 Objective:', objective?.substring(0, 100) + '...');
         
         // Generate a mock PR number and branch name
         const prNumber = Math.floor(Math.random() * 1000) + 1;
@@ -2170,16 +2185,16 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
               }
             }));
             
-            console.log('✅ Generated PR added to story:', storyId, 'PR:', prNumber);
+            log('✅ Generated PR added to story:', storyId, 'PR:', prNumber);
           }
         } catch (error) {
-          console.warn('⚠️ Could not add generated PR to story:', error.message);
+          error('⚠️ Could not add generated PR to story:', error.message);
         }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(codeGenResponse));
       } catch (error) {
-        console.error('❌ Code generation error:', error);
+        error('❌ Code generation error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false,
@@ -2266,7 +2281,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           res.end(JSON.stringify(story));
         }
       } catch (error) {
-        console.error('Error in health-check:', error);
+        error('Error in health-check:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -2309,7 +2324,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           test: acceptanceTest
         }));
       } catch (error) {
-        console.error('Error creating acceptance test:', error);
+        error('Error creating acceptance test:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
@@ -2373,7 +2388,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
             workflowUrl: 'https://github.com/demian7575/aipm/actions'
           }));
         } catch (githubError) {
-          console.error('GitHub Actions trigger error:', githubError);
+          error('GitHub Actions trigger error:', githubError);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ 
             success: false, 
@@ -2382,7 +2397,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         }
         
       } catch (error) {
-        console.error('Deploy PR error:', error);
+        error('Deploy PR error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: error.message }));
       }
@@ -2418,7 +2433,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
       try {
         const { storyId, prNumber, prompt, originalBranch } = JSON.parse(body);
         
-        console.log('🔧 Code generation request for PR:', prNumber);
+        log('🔧 Code generation request for PR:', prNumber);
         
         // Extract numeric story ID for MCP
         const numericStoryId = parseInt(storyId.toString().replace(/^US-/, ''), 10);
@@ -2426,7 +2441,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
         // Single-line prompt with all parameters
         const kiroPrompt = `Execute template ./templates/code-generation.md with storyId=${numericStoryId}, branchName="${originalBranch}", prNumber=${prNumber}`;
 
-        console.log('📤 Calling Kiro CLI with code generation contract...');
+        log('📤 Calling Kiro CLI with code generation contract...');
         
         // Send to Kiro CLI
         const result = await sendToKiro(kiroPrompt);
@@ -2439,7 +2454,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           branchName: originalBranch
         }));
       } catch (error) {
-        console.error('❌ Generate code branch error:', error);
+        error('❌ Generate code branch error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false,
@@ -2459,7 +2474,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
       try {
         const { storyId, updatedStory } = JSON.parse(body);
         
-        console.log('📝 Updating Task Specification for story:', storyId);
+        log('📝 Updating Task Specification for story:', storyId);
         
         // Find existing Task Specification files
         const fs = await import('fs');
@@ -2479,7 +2494,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           // Commit the update to git if in a PR branch
           await commitTaskSpecUpdate(taskFileName, storyId);
           
-          console.log(`✅ Updated Task Specification file: ${taskFileName}`);
+          log(`✅ Updated Task Specification file: ${taskFileName}`);
         }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -2489,7 +2504,7 @@ Return: {"status": "Success", "message": "Code generated and pushed successfully
           storyId: storyId
         }));
       } catch (error) {
-        console.error('❌ Update Task Specification error:', error);
+        error('❌ Update Task Specification error:', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
           success: false,
@@ -2557,7 +2572,7 @@ Execute the template instructions exactly as written.`;
   }
 
   if (url.pathname.startsWith('/api/')) {
-    console.log('⚠️ Missing API endpoint:', req.method, url.pathname);
+    log('⚠️ Missing API endpoint:', req.method, url.pathname);
     res.writeHead(501, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       error: 'Endpoint not implemented yet',
@@ -2571,7 +2586,7 @@ Execute the template instructions exactly as written.`;
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
   } catch (error) {
-    console.error('❌ Unhandled error in request handler:', error);
+    error('❌ Unhandled error in request handler:', error);
     if (!res.headersSent) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error', details: error.message }));
@@ -2646,10 +2661,10 @@ async function commitTaskSpecUpdate(taskFileName, storyId) {
       await execCommand(`git add ${taskFileName}`);
       await execCommand(`git commit -m "Update Task Specification for story ${storyId}"`);
       await execCommand(`git push origin ${branchName.trim()}`);
-      console.log(`✅ Committed Task Specification update to branch: ${branchName.trim()}`);
+      log(`✅ Committed Task Specification update to branch: ${branchName.trim()}`);
     }
   } catch (error) {
-    console.log('⚠️ Could not commit Task Specification update:', error.message);
+    log('⚠️ Could not commit Task Specification update:', error.message);
   }
 }
 
@@ -2670,12 +2685,12 @@ async function notifyBackendPRUpdate(storyId, newPRNumber, newPRUrl) {
     });
     
     if (response.ok) {
-      console.log('✅ Notified backend about PR update');
+      log('✅ Notified backend about PR update');
     } else {
-      console.log('⚠️ Failed to notify backend about PR update:', response.status);
+      log('⚠️ Failed to notify backend about PR update:', response.status);
     }
   } catch (error) {
-    console.log('⚠️ Error notifying backend about PR update:', error.message);
+    log('⚠️ Error notifying backend about PR update:', error.message);
   }
 }
 
@@ -2684,11 +2699,11 @@ async function notifyBackendPRUpdate(storyId, newPRNumber, newPRUrl) {
 
 const PORT = process.env.KIRO_API_PORT || 8081;
 server.listen(PORT, () => {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`🚀 Kiro API Server V4 (Full Stack)`);
-  console.log(`📡 Port: ${PORT}`);
-  console.log(`🔗 Health: http://localhost:${PORT}/health`);
-  console.log(`🔗 Stories: GET/POST http://localhost:${PORT}/api/stories`);
-  console.log(`🔗 Draft: POST http://localhost:${PORT}/api/stories/draft`);
-  console.log(`${'='.repeat(60)}\n`);
+  log(`\n${'='.repeat(60)}`);
+  log(`🚀 Kiro API Server V4 (Full Stack)`);
+  log(`📡 Port: ${PORT}`);
+  log(`🔗 Health: http://localhost:${PORT}/health`);
+  log(`🔗 Stories: GET/POST http://localhost:${PORT}/api/stories`);
+  log(`🔗 Draft: POST http://localhost:${PORT}/api/stories/draft`);
+  log(`${'='.repeat(60)}\n`);
 });
