@@ -5170,6 +5170,53 @@ function renderStoryDetailsWithCompleteData(story) {
 
   addTestBtn.addEventListener('click', () => openAcceptanceTestModal(story.id));
 
+  // PR Section
+  const prSection = document.createElement('section');
+  const prHeading = document.createElement('div');
+  prHeading.className = 'section-heading';
+  const prTitle = document.createElement('h3');
+  prTitle.textContent = 'Pull Requests';
+  prHeading.appendChild(prTitle);
+  prSection.appendChild(prHeading);
+
+  const prList = document.createElement('div');
+  prList.className = 'record-list';
+  if (story.prs && story.prs.length) {
+    story.prs.forEach((pr) => {
+      const table = document.createElement('table');
+      table.className = 'vertical-table';
+      const tbody = document.createElement('tbody');
+      table.appendChild(tbody);
+
+      const rows = [
+        { label: 'PR #', value: pr.number || pr.targetNumber },
+        { label: 'Title', value: escapeHtml(pr.taskTitle || pr.title || 'N/A') },
+        { label: 'Branch', value: escapeHtml(pr.branchName || pr.branch || 'N/A') },
+        { label: 'Status', value: pr.state || pr.target || 'open' },
+        { label: 'URL', value: pr.prUrl || pr.htmlUrl ? `<a href="${pr.prUrl || pr.htmlUrl}" target="_blank" rel="noopener noreferrer">View PR</a>` : 'N/A' }
+      ];
+
+      rows.forEach((row) => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.scope = 'row';
+        th.textContent = row.label;
+        const td = document.createElement('td');
+        td.innerHTML = row.value;
+        tr.appendChild(th);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      });
+
+      prList.appendChild(table);
+    });
+  } else {
+    prList.innerHTML = '<p class=\"empty-state\">No pull requests yet.</p>';
+  }
+
+  prSection.appendChild(prList);
+  detailsContent.appendChild(prSection);
+
   const tasksSection = document.createElement('section');
   tasksSection.innerHTML = `
     <div class="section-heading">
