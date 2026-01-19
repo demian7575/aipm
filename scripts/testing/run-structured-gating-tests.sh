@@ -105,6 +105,8 @@ phase_summary() {
 
 # Main execution
 main() {
+    local test_start=$(date +%s)
+    
     echo "🧪 AIPM Structured Gating Tests"
     echo "Based on systematic architecture analysis"
     echo ""
@@ -118,10 +120,14 @@ main() {
     # Phase 1: Critical Security & Data Safety
     if should_run_phase 1; then
         log_phase "🔴 PHASE 1: Critical Security & Data Safety"
+        local phase1_start=$(date +%s)
         
         export PHASE_PASSED PHASE_FAILED
         if source ./scripts/testing/phase1-security-data-safety.sh; then
+            local phase1_end=$(date +%s)
+            local phase1_duration=$((phase1_end - phase1_start))
             phase_summary "Phase 1"
+            echo "⏱️  Phase 1 Duration: ${phase1_duration}s"
         else
             phase_summary "Phase 1"
             echo "🚫 BLOCKING DEPLOYMENT - Critical security/data issues detected"
@@ -132,10 +138,14 @@ main() {
     # Phase 2-1: Kiro CLI Mock Tests
     if should_run_phase 2.1 || should_run_phase 2; then
         log_phase "🧪 PHASE 2-1: Kiro CLI Mock Tests"
+        local phase21_start=$(date +%s)
         
         export PHASE_PASSED PHASE_FAILED
         if source ./scripts/testing/phase2-1-kiro-mock-tests.sh; then
+            local phase21_end=$(date +%s)
+            local phase21_duration=$((phase21_end - phase21_start))
             phase_summary "Phase 2-1"
+            echo "⏱️  Phase 2-1 Duration: ${phase21_duration}s"
         else
             phase_summary "Phase 2-1"
             echo "⚠️  Mock test issues detected - check endpoint availability"
@@ -145,10 +155,14 @@ main() {
     # Phase 2: Complete User Workflow
     if should_run_phase 2; then
         log_phase "🎯 PHASE 2: Complete User Workflow (Step-by-Step)"
+        local phase2_start=$(date +%s)
         
         export PHASE_PASSED PHASE_FAILED
         if source ./scripts/testing/phase2-performance-api.sh; then
+            local phase2_end=$(date +%s)
+            local phase2_duration=$((phase2_end - phase2_start))
             phase_summary "Phase 2"
+            echo "⏱️  Phase 2 Duration: ${phase2_duration}s"
         else
             phase_summary "Phase 2"
             echo "⚠️  Workflow issues detected - review complete workflow"
@@ -156,6 +170,9 @@ main() {
     fi
     
     # Final summary
+    local test_end=$(date +%s)
+    local total_duration=$((test_end - test_start))
+    
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "📊 FINAL GATING TEST RESULTS"
@@ -163,6 +180,7 @@ main() {
     echo "✅ Total Tests Passed: $TOTAL_PASSED"
     echo "❌ Total Tests Failed: $TOTAL_FAILED"
     echo "📈 Total Tests Run: $((TOTAL_PASSED + TOTAL_FAILED))"
+    echo "⏱️  Total Duration: ${total_duration}s ($(printf '%dm %ds' $((total_duration/60)) $((total_duration%60))))"
     echo ""
     
     if [[ $TOTAL_FAILED -eq 0 ]]; then
