@@ -129,29 +129,29 @@ main() {
         fi
     fi
     
-    # Phase 2: API Functionality & Workflow Tests
+    # Phase 2-1: Kiro CLI Mock Tests
+    if should_run_phase 2.1 || should_run_phase 2; then
+        log_phase "🧪 PHASE 2-1: Kiro CLI Mock Tests"
+        
+        export PHASE_PASSED PHASE_FAILED
+        if source ./scripts/testing/phase2-1-kiro-mock-tests.sh; then
+            phase_summary "Phase 2-1"
+        else
+            phase_summary "Phase 2-1"
+            echo "⚠️  Mock test issues detected - check endpoint availability"
+        fi
+    fi
+    
+    # Phase 2: Complete User Workflow
     if should_run_phase 2; then
-        log_phase "🟡 PHASE 2: API Functionality & Workflow Tests"
+        log_phase "🎯 PHASE 2: Complete User Workflow (Step-by-Step)"
         
         export PHASE_PASSED PHASE_FAILED
         if source ./scripts/testing/phase2-performance-api.sh; then
             phase_summary "Phase 2"
         else
             phase_summary "Phase 2"
-            echo "⚠️  API/Workflow issues detected - consider fixing before deployment"
-        fi
-    fi
-    
-    # Phase 3: Complete End-to-End User Journey
-    if should_run_phase 3; then
-        log_phase "🎯 PHASE 3: Complete End-to-End User Journey"
-        
-        export PHASE_PASSED PHASE_FAILED
-        if source ./scripts/testing/phase3-complete-e2e.sh; then
-            phase_summary "Phase 3"
-        else
-            phase_summary "Phase 3"
-            echo "⚠️  End-to-end journey issues detected - review complete workflow"
+            echo "⚠️  Workflow issues detected - review complete workflow"
         fi
     fi
     
