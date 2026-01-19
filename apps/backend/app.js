@@ -6824,9 +6824,11 @@ export async function createApp() {
           });
         }
         const warnings = analysis.warnings;
+        const score = analysis.ai?.score || 0;
         
-        // If warnings exist, delete story and return error
-        if (warnings.length > 0) {
+        // Only block story creation if score is below threshold (80)
+        const INVEST_SCORE_THRESHOLD = 80;
+        if (score > 0 && score < INVEST_SCORE_THRESHOLD) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
             const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -6842,8 +6844,10 @@ export async function createApp() {
           }
           
           sendJson(res, 409, {
-            code: 'INVEST_WARNINGS',
-            message: 'User story does not meet INVEST criteria.',
+            code: 'INVEST_SCORE_TOO_LOW',
+            message: `User story INVEST score (${score}) is below threshold (${INVEST_SCORE_THRESHOLD}).`,
+            score,
+            threshold: INVEST_SCORE_THRESHOLD,
             warnings,
             analysis: {
               source: analysis.source,
