@@ -113,7 +113,7 @@ main() {
         log_phase "🔴 PHASE 1: Critical Security & Data Safety"
         
         export PHASE_PASSED PHASE_FAILED
-        if ./scripts/testing/phase1-security-data-safety.sh; then
+        if source ./scripts/testing/phase1-security-data-safety.sh; then
             phase_summary "Phase 1"
         else
             phase_summary "Phase 1"
@@ -127,7 +127,7 @@ main() {
         log_phase "🟡 PHASE 2: Performance & API Safety"
         
         export PHASE_PASSED PHASE_FAILED
-        if ./scripts/testing/phase2-performance-api.sh; then
+        if source ./scripts/testing/phase2-performance-api.sh; then
             phase_summary "Phase 2"
         else
             phase_summary "Phase 2"
@@ -140,7 +140,7 @@ main() {
         log_phase "🟢 PHASE 3: Infrastructure & Monitoring"
         
         export PHASE_PASSED PHASE_FAILED
-        if ./scripts/testing/phase3-infrastructure-monitoring.sh; then
+        if source ./scripts/testing/phase3-infrastructure-monitoring.sh; then
             phase_summary "Phase 3"
         else
             phase_summary "Phase 3"
@@ -153,7 +153,7 @@ main() {
         log_phase "🔄 PHASE 4: End-to-End Workflow Validation"
         
         export PHASE_PASSED PHASE_FAILED
-        if ./scripts/testing/phase4-workflow-validation.sh; then
+        if source ./scripts/testing/phase4-workflow-validation.sh; then
             phase_summary "Phase 4"
         else
             phase_summary "Phase 4"
@@ -166,7 +166,7 @@ main() {
         log_phase "🎯 PHASE 5: Complete End-to-End User Journey"
         
         export PHASE_PASSED PHASE_FAILED
-        if ./scripts/testing/phase5-complete-e2e.sh; then
+        if source ./scripts/testing/phase5-complete-e2e.sh; then
             phase_summary "Phase 5"
         else
             phase_summary "Phase 5"

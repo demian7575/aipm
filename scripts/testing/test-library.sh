@@ -2,9 +2,27 @@
 # Test Suite Library - Reusable test modules
 # Usage: source this file and call individual test functions
 
-# Import base functions
+# Import base functions from test-functions.sh
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+
+# Save exported functions if they exist
+_SAVED_PASS_TEST=$(declare -f pass_test 2>/dev/null)
+_SAVED_FAIL_TEST=$(declare -f fail_test 2>/dev/null)
+_SAVED_LOG_TEST=$(declare -f log_test 2>/dev/null)
+
+# Source test-functions.sh for helper functions
 source "$SCRIPT_DIR/test-functions.sh"
+
+# Restore saved functions if they existed
+if [[ -n "$_SAVED_PASS_TEST" ]]; then
+    eval "$_SAVED_PASS_TEST"
+fi
+if [[ -n "$_SAVED_FAIL_TEST" ]]; then
+    eval "$_SAVED_FAIL_TEST"
+fi
+if [[ -n "$_SAVED_LOG_TEST" ]]; then
+    eval "$_SAVED_LOG_TEST"
+fi
 
 # Initialize counters if not set
 PHASE_PASSED=${PHASE_PASSED:-0}
