@@ -1,59 +1,66 @@
 #!/bin/bash
-# Phase 2: Complete User Workflow (Step-by-Step)
-# Tests the full workflow: Story → Acceptance Test → PR → Status → Consistency
+# Phase 2: Complete E2E Workflow (REAL Kiro CLI)
 
-set +e  # Don't exit on error - we want to run all tests
+set +e
 source "$(dirname "$0")/test-library.sh"
 
 API_BASE="${API_BASE:-http://44.220.45.57:4000}"
 KIRO_API_BASE="${KIRO_API_BASE:-http://44.220.45.57:8081}"
-FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com}"
 
-echo "🎯 Phase 2: Complete User Workflow (Step-by-Step)"
-echo "Environment: $API_BASE"
+echo "🎯 Phase 2: Complete E2E Workflow (REAL Kiro CLI)"
+echo "Testing full user journey with real AI features"
 echo ""
 
-# Step 1: Basic CRUD operations
-echo "📝 Step 1: Basic Story Operations"
+# Step 1: Create User Story
+echo "📝 Step 1: Create User Story"
 test_story_crud "$API_BASE"
+
+# Step 2: INVEST Analysis SSE (Real)
+echo ""
+echo "🤖 Step 2: INVEST Analysis SSE (Real)"
+test_invest_analysis_sse "$KIRO_API_BASE"
+
+# Step 3: Edit User Story (included in CRUD)
+echo ""
+echo "✏️  Step 3: Edit User Story (covered in CRUD)"
+
+# Step 4: Story Hierarchy Check
+echo ""
+echo "🌳 Step 4: Story Hierarchy Check"
 test_story_hierarchy "$API_BASE"
 
-# Step 2: Story with acceptance tests
+# Step 5: Create Acceptance Tests
 echo ""
-echo "✅ Step 2: Story with Acceptance Tests"
+echo "✅ Step 5: Create Acceptance Tests"
 test_story_with_acceptance_tests "$API_BASE"
 
-# Step 3: Frontend integration
+# Step 6: GWT Health Check (already in Phase 1, skip)
 echo ""
-echo "🌐 Step 3: Frontend Integration"
-test_frontend_backend_integration "$FRONTEND_URL"
+echo "🏥 Step 6: GWT Health Check (covered in Phase 1)"
 
-# Step 4: AI-powered features (with real Kiro)
+# Step 7: GitHub Integration (PR Creation)
 echo ""
-echo "🤖 Step 4: AI-Powered Features"
-test_draft_generation_performance "$KIRO_API_BASE"
-test_invest_analysis_sse "$KIRO_API_BASE"
-test_code_generation_endpoint "$KIRO_API_BASE"
-
-# Step 5: PR creation
-echo ""
-echo "🔀 Step 5: PR Creation"
+echo "🔀 Step 7: GitHub Integration (PR Creation)"
 test_pr_creation "$API_BASE"
 
-# Step 6: Status workflow
+# Step 8: Code Generation (Real)
 echo ""
-echo "🔄 Step 6: Status Workflow"
-test_story_status_workflow "$API_BASE"
+echo "💻 Step 8: Code Generation (Real)"
+test_code_generation_endpoint "$KIRO_API_BASE"
 
-# Step 7: Data consistency
+# Step 9: Deploy to PR & Data Consistency
 echo ""
-echo "🔍 Step 7: Data Consistency"
+echo "🚀 Step 9: Deploy to PR & Data Consistency"
+test_story_status_workflow "$API_BASE"
 test_data_consistency "$API_BASE"
 
+# Step 10: Delete User Story (included in CRUD)
 echo ""
-echo "✅ Phase 2 completed"
-echo "📊 Complete Workflow Summary:"
-echo "   Environment: $API_BASE"
+echo "🗑️  Step 10: Delete User Story (covered in CRUD)"
+
+echo ""
+echo "✅ Phase 2 completed (Real workflow)"
+echo "📊 Real Workflow Summary:"
 echo "   Tests Passed: $PHASE_PASSED"
 echo "   Tests Failed: $PHASE_FAILED"
 

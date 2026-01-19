@@ -22,10 +22,14 @@ test_environment_health "$API_BASE" "$TARGET_ENV"
 
 # Frontend & S3
 test_frontend_availability "$FRONTEND_URL"
+test_frontend_backend_integration "$FRONTEND_URL"
 test_s3_config "$FRONTEND_URL"
 test_network_connectivity "$API_BASE"
 
 # Security
 test_api_security_headers "$API_BASE"
+
+# Code Generation Health
+test_code_generation_endpoint "$KIRO_API_BASE"
 
 echo "✅ Phase 1 completed"
