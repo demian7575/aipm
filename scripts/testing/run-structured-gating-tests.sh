@@ -28,13 +28,15 @@ source "$(dirname "$0")/test-functions.sh"
 
 # Configuration based on target environment
 if [[ "$TARGET_ENV" == "dev" ]]; then
-    API_BASE="http://44.222.168.46:4000"
-    KIRO_API_BASE="http://44.222.168.46:8081"
+    SSH_HOST="44.222.168.46"
+    API_BASE="http://localhost:4000"
+    KIRO_API_BASE="http://localhost:8081"
     FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
     echo "🔧 Target Environment: DEVELOPMENT"
 else
-    API_BASE="http://44.220.45.57:4000"
-    KIRO_API_BASE="http://44.220.45.57:8081"
+    SSH_HOST="44.220.45.57"
+    API_BASE="http://localhost:4000"
+    KIRO_API_BASE="http://localhost:8081"
     FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
     echo "🔧 Target Environment: PRODUCTION"
 fi
@@ -46,7 +48,12 @@ PROD_FRONTEND_URL="$FRONTEND_URL"
 DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
 
 # Export for phase scripts
-export API_BASE KIRO_API_BASE FRONTEND_URL TARGET_ENV
+export API_BASE KIRO_API_BASE FRONTEND_URL TARGET_ENV SSH_HOST
+
+# Helper to run commands on remote server
+run_remote() {
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "$@" 2>/dev/null
+}
 
 # Test counters
 TOTAL_PASSED=0

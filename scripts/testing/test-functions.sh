@@ -33,7 +33,14 @@ test_endpoint() {
     local url=$2
     local expected=$3
     
-    if curl -s -m 10 "$url" | grep -q "$expected"; then
+    local response
+    if [[ -n "$SSH_HOST" ]]; then
+        response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "curl -s -m 10 '$url'" 2>/dev/null)
+    else
+        response=$(curl -s -m 10 "$url")
+    fi
+    
+    if echo "$response" | grep -q "$expected"; then
         pass_test "$name"
     else
         fail_test "$name"
@@ -45,7 +52,14 @@ test_api_json() {
     local name=$1
     local url=$2
     
-    if curl -s -m 10 "$url" | jq -e . > /dev/null 2>&1; then
+    local response
+    if [[ -n "$SSH_HOST" ]]; then
+        response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "curl -s -m 10 '$url'" 2>/dev/null)
+    else
+        response=$(curl -s -m 10 "$url")
+    fi
+    
+    if echo "$response" | jq -e . > /dev/null 2>&1; then
         pass_test "$name"
     else
         fail_test "$name"
