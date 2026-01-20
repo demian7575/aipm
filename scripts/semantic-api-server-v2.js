@@ -175,15 +175,22 @@ const server = http.createServer(async (req, res) => {
       // Generate requestId if not provided
       const requestId = parameters.requestId || crypto.randomUUID();
       
-      // Build prompt with template path and parameters
+      // Build prompt with template path and ALL parameters
+      let parameterLines = [];
+      for (const [key, value] of Object.entries(parameters)) {
+        if (key !== 'requestId') {
+          const formattedValue = typeof value === 'object' ? JSON.stringify(value) : value;
+          parameterLines.push(`${key}: ${formattedValue}`);
+        }
+      }
+      
       const prompt = `Read the template file at ${templatePath} and generate output using this input data:
 
-Feature description: "${parameters.featureDescription || 'user login system'}"
-Parent ID: ${parameters.parentId || null}
-Components: ${JSON.stringify(parameters.components || [])}
+${parameterLines.join('\n')}
 Request ID: ${requestId}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId})...`);
+      console.log(`📋 Parameters: ${parameterLines.join(', ')}`);
       
       // Create promise for response
       const responsePromise = new Promise((resolve, reject) => {
