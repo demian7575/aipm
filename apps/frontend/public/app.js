@@ -6575,6 +6575,13 @@ function openChildStoryModal(parentId) {
       // Generate draft data only (no database save)
       const apiBaseUrl = getApiBaseUrl();
       
+      // Get components from form if available
+      const componentsField = container.querySelector('#child-components-display');
+      let components = ['WorkModel']; // default
+      if (componentsField && componentsField.value.trim()) {
+        components = componentsField.value.split(',').map(c => c.trim()).filter(c => c);
+      }
+      
       // Generate draft data only (no database save) - use Backend server
       const response = await fetch(`${apiBaseUrl}/api/generate-draft`, {
         method: 'POST',
@@ -6582,7 +6589,8 @@ function openChildStoryModal(parentId) {
         body: JSON.stringify({ 
           templateId: 'user-story-generation',
           feature_description: idea,
-          parentId: String(parentId)
+          parentId: String(parentId),
+          components: components
         })
       });
 
