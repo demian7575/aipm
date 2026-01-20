@@ -95,11 +95,12 @@
       const hostname = window.location.hostname;
       let configFile;
       
-      if (hostname.includes('aipm-dev-frontend-hosting') || hostname.includes('dev')) {
+      if (hostname.includes('aipm-dev-frontend-hosting.s3-website-us-east-1')) {
         configFile = 'config-dev.js';
-      } else {
-        // Default to production config for all other cases
+      } else if (hostname.includes('aipm-static-hosting-demo.s3-website-us-east-1')) {
         configFile = 'config-prod.js';
+      } else {
+        throw new Error(`Unknown environment: ${hostname}. Expected 'aipm-dev-frontend-hosting.s3-website-us-east-1' or 'aipm-static-hosting-demo.s3-website-us-east-1'`);
       }
       
       // Load external config first, then load app.js
