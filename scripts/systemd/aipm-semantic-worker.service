@@ -1,0 +1,22 @@
+[Unit]
+Description=AIPM Semantic Kiro Worker
+After=network.target aipm-semantic-api.service
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+Environment="NODE_ENV=production"
+Environment="SEMANTIC_QUEUE_TABLE=aipm-semantic-api-queue"
+Environment="SEMANTIC_API_URL=http://localhost:8082"
+Environment="AWS_REGION=us-east-1"
+Environment="POLL_INTERVAL=5000"
+ExecStart=/usr/bin/node scripts/semantic-kiro-worker.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aipm-semantic-worker
+
+[Install]
+WantedBy=multi-user.target
