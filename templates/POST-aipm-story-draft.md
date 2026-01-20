@@ -1,24 +1,20 @@
-# Generate AIPM User Story Draft
+# Generate User Story Draft
 
-## Context
-You are generating a user story draft for the AI Project Manager (AIPM) system.
+Generate a user story following INVEST principles.
 
-## Input Parameters
-- `featureDescription`: Description of the feature to implement
-- `parentId`: Parent story ID (number or null)
-- `components`: Array of component names (default: ["WorkModel"])
+## Input
+- featureDescription: Feature to implement
+- parentId: Parent story ID (or null)
+- components: Component array
 
-## Task
-Generate a complete user story following INVEST principles with acceptance tests.
-
-## Output Format
-Return a JSON object with this exact structure:
+## Output
+Return ONLY this JSON (no explanations):
 
 ```json
 {
-  "title": "Brief story title",
+  "title": "Brief title",
   "description": "Detailed description",
-  "asA": "User persona",
+  "asA": "User role",
   "iWant": "User goal",
   "soThat": "User benefit",
   "components": ["WorkModel"],
@@ -28,7 +24,7 @@ Return a JSON object with this exact structure:
   "acceptWarnings": true,
   "acceptanceTests": [
     {
-      "title": "Test scenario title",
+      "title": "Test title",
       "given": "Precondition",
       "when": "Action",
       "then": "Expected result",
@@ -38,13 +34,4 @@ Return a JSON object with this exact structure:
 }
 ```
 
-## Requirements
-1. Story must follow INVEST principles (Independent, Negotiable, Valuable, Estimable, Small, Testable)
-2. Generate 1-2 acceptance tests in Given-When-Then format
-3. Story points should be 1-8 based on complexity
-4. All acceptance tests start with status "Draft"
-5. Use the provided parentId value
-6. Use the provided components array
-
-## Execution
-Based on the feature description, generate the complete user story JSON and return it.
+Generate 1-2 acceptance tests. Story points: 1-8. Use provided parentId and components.
