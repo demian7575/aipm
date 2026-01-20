@@ -114,8 +114,8 @@ class KiroSession {
       clearTimeout(this.idleCheckHandle);
     }
     
-    // Only check if we have an active request
-    if (!this.currentResolve || !this.busy) {
+    // Only check if busy
+    if (!this.busy) {
       return;
     }
     
@@ -126,7 +126,14 @@ class KiroSession {
       // If no output for IDLE_DETECTION_TIME and we have some output, consider complete
       if (timeSinceLastOutput >= IDLE_DETECTION_TIME && this.outputBuffer.length > 0) {
         this.log(`Idle detection: completing after ${timeSinceLastOutput}ms of no output`);
-        this.complete();
+        
+        // If we have a resolver (execute mode), resolve it
+        if (this.currentResolve) {
+          this.complete();
+        } else {
+          // Fire-and-forget mode (send), just cleanup
+          this.cleanup();
+        }
       }
     }, IDLE_DETECTION_TIME);
   }
@@ -382,6 +389,14 @@ const server = http.createServer(async (req, res) => {
         session.currentPrompt = prompt;
         session.outputBuffer = '';
         session.lastOutputTime = Date.now();
+        
+        // Set timeout for stuck detection
+        session.timeoutHandle = setTimeout(() => {
+          if (session.busy) {
+            session.log(`⚠️  Session ${session.id} timeout in fire-and-forget mode`);
+            session.cleanup();
+          }
+        }, SESSION_TIMEOUT);
         
         session.log(`\n=== COMMAND ===\n${prompt}\n=== END ===\n`);
         session.process.stdin.write(prompt + '\n');
