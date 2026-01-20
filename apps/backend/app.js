@@ -6401,7 +6401,7 @@ export async function createApp() {
         // Call Semantic API for code generation
         const semanticResponse = await fetch('http://localhost:8083/aipm/code-generation', {
           method: 'POST',
-          headers: { 'Content-Type': application/json' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             requestId,
             storyId: storyId,
