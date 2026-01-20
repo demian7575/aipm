@@ -7,7 +7,7 @@ Type=simple
 User=ec2-user
 WorkingDirectory=/home/ec2-user/aipm
 Environment="NODE_ENV=production"
-Environment="SEMANTIC_API_PORT=8082"
+Environment="SEMANTIC_API_PORT=8083"
 Environment="SEMANTIC_QUEUE_TABLE=aipm-semantic-api-queue"
 Environment="AWS_REGION=us-east-1"
 ExecStart=/usr/bin/node scripts/semantic-api-server.js
