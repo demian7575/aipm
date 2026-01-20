@@ -139,6 +139,10 @@ EOF
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/env_config.sh ec2-user@$HOST:/tmp/
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/env_config.sh
     
+    # Replace version placeholder in backend app.js
+    echo "🔄 Updating backend version..."
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm/apps/backend && sed -i.bak 's/DEPLOYMENT_VERSION_PLACEHOLDER/${DEPLOY_VERSION}/g' app.js && rm -f app.js.bak"
+    
     # Restart services
     echo "🔄 Restarting services..."
     SERVICE_NAME="aipm-${ENV}-backend.service"
@@ -175,11 +179,18 @@ fi
 # Deploy frontend
 echo "🌐 Deploying frontend..."
 
-# Copy correct config file for environment
+# Copy correct config file for environment and replace version
 if [[ "$ENV" == "prod" ]]; then
     cp apps/frontend/public/config-prod.js apps/frontend/public/config.js
+    # Replace version placeholder with actual deployment version
+    sed -i.bak "s/DEPLOYMENT_VERSION_PLACEHOLDER/${DEPLOY_VERSION}/g" apps/frontend/public/config.js
+    rm -f apps/frontend/public/config.js.bak
 else
     cp apps/frontend/public/config-dev.js apps/frontend/public/config.js
+    # For dev, use timestamp
+    DEV_VERSION="dev-$(date +%Y%m%d-%H%M%S)"
+    sed -i.bak "s/dev-TIMESTAMP/${DEV_VERSION}/g" apps/frontend/public/config.js
+    rm -f apps/frontend/public/config.js.bak
 fi
 
 # Upload to S3
