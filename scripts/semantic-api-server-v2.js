@@ -53,11 +53,8 @@ const server = http.createServer(async (req, res) => {
     try {
       const parameters = body ? JSON.parse(body) : Object.fromEntries(url.searchParams);
       
-      // Read template
-      const templateContent = await readFile(templatePath, 'utf-8');
-      
-      // Build prompt
-      const prompt = `${templateContent}\n\n## Input Data\n${JSON.stringify(parameters, null, 2)}\n\nGenerate the output and return ONLY the JSON object, no explanations.`;
+      // Build prompt with template path
+      const prompt = `Read the template file at ${templatePath} and generate output using this input data:\n${JSON.stringify(parameters, null, 2)}\n\nReturn ONLY the JSON object, no explanations.`;
       
       console.log(`🤖 Sending to session pool...`);
       

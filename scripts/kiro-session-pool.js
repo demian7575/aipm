@@ -71,9 +71,14 @@ class KiroSession {
   }
   
   log(message) {
-    const timestamp = new Date().toISOString();
-    const prefix = `[Session-${this.id}] [${timestamp}] `;
-    this.logStream.write(prefix + message);
+    // Only log session ID prefix for commands, not for output chunks
+    if (message.includes('===') || message.includes('Starting') || message.includes('closed') || message.includes('stuck') || message.includes('Sent Ctrl+C')) {
+      const timestamp = new Date().toISOString();
+      this.logStream.write(`[Session-${this.id}] [${timestamp}] ${message}`);
+    } else {
+      // Raw output without prefix
+      this.logStream.write(message);
+    }
   }
   
   async execute(prompt) {
