@@ -14,11 +14,29 @@ import { spawn } from 'child_process';
 import { createWriteStream } from 'fs';
 import http from 'http';
 
-const POOL_SIZE = 4;
+const POOL_SIZE = 2;
 const SESSION_TIMEOUT = 180000; // 180 seconds
 const IDLE_DETECTION_TIME = 2000; // 2 seconds of no output = complete
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
 const LOG_FILE = '/tmp/kiro-cli-live.log';
+
+// Cleanup existing kiro-cli processes before starting
+async function cleanupExistingKiroProcesses() {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+  
+  try {
+    console.log('🧹 Cleaning up existing kiro-cli processes...');
+    await execAsync('pkill -f "kiro-cli chat --trust-all-tools"');
+    // Wait for processes to terminate
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('✅ Cleanup completed');
+  } catch (error) {
+    // Ignore error if no processes found
+    console.log('ℹ️  No existing kiro-cli processes to clean up');
+  }
+}
 
 class KiroSession {
   constructor(id, logStream) {
@@ -332,6 +350,8 @@ class KiroSessionPool {
 }
 
 // Create pool
+// Cleanup and initialize pool
+await cleanupExistingKiroProcesses();
 const pool = new KiroSessionPool(POOL_SIZE);
 
 // HTTP Server
