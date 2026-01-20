@@ -15,7 +15,7 @@ import { createWriteStream } from 'fs';
 import http from 'http';
 
 const POOL_SIZE = 2;
-const SESSION_TIMEOUT = 90000; // 90 seconds
+const SESSION_TIMEOUT = 180000; // 180 seconds
 const IDLE_DETECTION_TIME = 2000; // 2 seconds of no output = complete
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
 const LOG_FILE = '/tmp/kiro-cli-live.log';
