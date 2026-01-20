@@ -1,8 +1,0 @@
-{
-  "description": "Development PR test configuration",
-  "tests": [
-    "security_data_validation",
-    "deployment_safety",
-    "workflow_validation"
-  ]
-}

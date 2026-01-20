@@ -1,7 +1,0 @@
-{
-  "description": "Quick smoke test configuration",
-  "tests": [
-    "security_data_validation",
-    "deployment_safety"
-  ]
-}

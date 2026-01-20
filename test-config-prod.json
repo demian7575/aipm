@@ -1,9 +1,0 @@
-{
-  "description": "Production deployment test configuration",
-  "tests": [
-    "security_data_validation",
-    "deployment_safety",
-    "performance_api_safety",
-    "workflow_validation"
-  ]
-}
