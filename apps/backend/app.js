@@ -6091,51 +6091,31 @@ export async function createApp() {
           const { randomUUID } = await import('crypto');
           const requestId = randomUUID();
           
-          // Initialize pending requests
-          if (!global.pendingRequests) {
-            global.pendingRequests = {};
-          }
-          
-          // Create promise for draft response
-          const draftPromise = new Promise((resolve, reject) => {
-            global.pendingRequests[requestId] = { 
-              resolve, 
-              reject,
-              createdAt: Date.now()
-            };
-            
-            // Timeout after 90 seconds
-            setTimeout(() => {
-              if (global.pendingRequests[requestId]) {
-                delete global.pendingRequests[requestId];
-                reject(new Error('Timeout after 90 seconds'));
-              }
-            }, 90000);
-          });
-          
-          // Call Kiro API
+          // Call Semantic API
           try {
-            const kiroResponse = await fetch('http://localhost:8081/api/generate-draft', {
+            const semanticResponse = await fetch('http://localhost:8083/aipm/story/draft', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ feature_description, parentId, requestId })
+              body: JSON.stringify({ 
+                featureDescription: feature_description, 
+                parentId, 
+                requestId,
+                components: payload.components || ['WorkModel']
+              })
             });
             
-            if (!kiroResponse.ok) {
-              throw new Error(`Kiro API error: ${kiroResponse.status}`);
+            if (!semanticResponse.ok) {
+              throw new Error(`Semantic API error: ${semanticResponse.status}`);
             }
+            
+            // Semantic API returns the draft directly
+            const draft = await semanticResponse.json();
+            console.error('✅ Draft received:', JSON.stringify(draft).substring(0, 100));
+            sendJson(res, 200, { success: true, draft });
+            
           } catch (err) {
-            if (global.pendingRequests[requestId]) {
-              global.pendingRequests[requestId].reject(err);
-              delete global.pendingRequests[requestId];
-            }
             throw err;
           }
-          
-          // Wait for draft response
-          const draft = await draftPromise;
-          console.error('✅ Draft received:', JSON.stringify(draft).substring(0, 100));
-          sendJson(res, 200, { success: true, draft });
           
         } catch (error) {
           console.error('❌ generate-draft error:', error.message, error.stack);
