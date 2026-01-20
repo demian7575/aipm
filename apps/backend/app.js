@@ -4935,10 +4935,36 @@ function normalizeGeneratedSteps(value) {
 
 
 async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' } = {}) {
-  // Use heuristic generation - Kiro CLI can enhance via terminal interaction
-  const result = defaultAcceptanceTestDraft(story, ordinal, reason, idea);
-  console.log('generateAcceptanceTestDraft result:', JSON.stringify(result));
-  return result;
+  // Call Semantic API for AI-powered test generation
+  try {
+    const response = await fetch('http://localhost:8083/aipm/acceptance-test-draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storyTitle: story.title,
+        storyDescription: story.description || '',
+        asA: story.asA || '',
+        iWant: story.iWant || '',
+        soThat: story.soThat || '',
+        idea: idea || '',
+        ordinal: ordinal
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Semantic API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('generateAcceptanceTestDraft result:', JSON.stringify(result));
+    return result;
+  } catch (error) {
+    console.error('Semantic API failed, using fallback:', error);
+    // Fallback to heuristic
+    const result = defaultAcceptanceTestDraft(story, ordinal, reason, idea);
+    console.log('generateAcceptanceTestDraft result:', JSON.stringify(result));
+    return result;
+  }
 }
 
 async function createAutomaticAcceptanceTest(db, story, { reason = 'create', existingCount = null } = {}) {
