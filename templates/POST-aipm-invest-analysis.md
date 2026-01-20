@@ -46,10 +46,12 @@
 - **Testable**: Has clear acceptance criteria
 
 ### Output Schema
-```yaml
-overall: string (pass|fail)
-issues: [string]
-suggestions: [string]
+```json
+{
+  "overall": "pass",
+  "issues": ["issue1", "issue2"],
+  "suggestions": ["suggestion1", "suggestion2"]
+}
 ```
 
 ### Command

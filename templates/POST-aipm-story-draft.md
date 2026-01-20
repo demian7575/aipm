@@ -36,23 +36,24 @@
 ## Technical Specifications
 
 ### Output Schema
-```yaml
-title: string
-description: string
-asA: string
-iWant: string
-soThat: string
-components: [string]
-storyPoint: number
-assigneeEmail: string
-parentId: number|null
-acceptWarnings: boolean
-acceptanceTests: [object]
-  - title: string
-  - given: string
-  - when: string
-  - then: string
-  - status: string (always "Draft")
+```json
+```json
+title: "string"
+description: "string"
+asA: "string"
+iWant: "string"
+soThat: "string"
+components: ["string"]
+storyPoint: 0
+assigneeEmail: "string"
+parentId: 0|null
+acceptWarnings: true
+acceptanceTests: [{}]
+  - title: "string"
+  - given: "string"
+  - when: "string"
+  - then: "string"
+  - status: "string" (always "Draft")
 ```
 
 ### INVEST Principles

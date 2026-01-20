@@ -35,11 +35,13 @@
 ## Technical Specifications
 
 ### Output Schema
-```yaml
-health: string (good|fair|poor)
-score: number (0-100)
-suggestions: [string]
-summary: string
+```json
+{
+  "health": "good",
+  "score": 85,
+  "suggestions": ["Suggestion 1", "Suggestion 2"],
+  "summary": "Overall assessment"
+}
 ```
 
 ### Command

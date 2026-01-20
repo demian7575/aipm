@@ -39,11 +39,13 @@
 ## Technical Specifications
 
 ### Output Schema
-```yaml
-status: string (success|failed)
-filesModified: [string]
-summary: string
-testResults: string
+```json
+{
+  "status": "success",
+  "filesModified": ["file1.js", "file2.js"],
+  "summary": "Implementation summary",
+  "testResults": "Test execution results"
+}
 ```
 
 ### Command

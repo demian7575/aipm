@@ -40,13 +40,15 @@
 ## Technical Specifications
 
 ### Output Schema
-```yaml
-title: string
-given: [string]
-when: [string]
-then: [string]
-source: string (always "ai")
-summary: string
+```json
+{
+  "title": "Test title",
+  "given": ["precondition 1", "precondition 2"],
+  "when": ["action 1", "action 2"],
+  "then": ["expected result 1", "expected result 2"],
+  "source": "ai",
+  "summary": "Brief explanation"
+}
 ```
 
 ### Command
