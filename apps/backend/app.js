@@ -6085,23 +6085,6 @@ export async function createApp() {
         return;
       }
 
-      if (pathname === '/api/draft-response' && method === 'POST') {
-        try {
-          const payload = await parseJson(req);
-          const { requestId, ...draft } = payload;
-          
-          if (global.pendingRequests && global.pendingRequests[requestId]) {
-            global.pendingRequests[requestId].resolve(draft);
-            delete global.pendingRequests[requestId];
-          }
-          
-          sendJson(res, 200, { received: true });
-        } catch (error) {
-          sendJson(res, 500, { error: error.message });
-        }
-        return;
-      }
-
       if (pathname === '/health' && method === 'GET') {
         res.writeHead(200, {
           'Content-Type': 'application/json',
@@ -7093,71 +7076,6 @@ export async function createApp() {
       return;
     }
     
-    // Kiro CLI callback endpoint
-    if (pathname === '/api/kiro/callback' && method === 'POST') {
-      try {
-        const result = await parseJson(req);
-        
-        // Handle different types of callbacks
-        if (result.files && result.commitMessage) {
-          // Code generation callback
-          console.log('📨 Code generation callback received');
-          console.log('✅ Files generated:', result.files.length);
-          console.log('✅ Commit message:', result.commitMessage);
-          console.log('✅ PR URL:', result.prUrl);
-          
-          sendJson(res, 200, { 
-            success: true, 
-            message: 'Code generation completed',
-            files: result.files.length,
-            committed: result.committed,
-            prUrl: result.prUrl
-          });
-          
-        } else if (result.storyId) {
-          // Story enhancement callback
-          console.log('📨 Story enhancement callback received:', result.title);
-          console.log('✅ Enhanced story:', JSON.stringify(result, null, 2));
-          
-          sendJson(res, 200, { 
-            success: true, 
-            message: 'Enhanced story received',
-            storyId: result.storyId
-          });
-          
-        } else {
-          // Generic callback
-          console.log('📨 Generic callback received:', JSON.stringify(result, null, 2));
-          
-          sendJson(res, 200, { 
-            success: true, 
-            message: 'Callback received',
-            data: result
-          });
-        }
-        
-      } catch (error) {
-        console.error('❌ Kiro callback error:', error.message);
-        sendJson(res, 400, { 
-          success: false, 
-          error: error.message 
-        });
-      }
-      return;
-    }
-
-    // Legacy endpoint - no longer used with local Kiro workers
-    if (pathname === '/api/kiro-callback' && method === 'POST') {
-      sendJson(res, 200, { success: true, message: 'Legacy endpoint - using local Kiro workers' });
-      return;
-    }
-    
-    // Legacy endpoint - no longer used with local Kiro workers  
-    if (pathname.startsWith('/api/kiro-status/') && method === 'GET') {
-      sendJson(res, 404, { message: 'Legacy endpoint - using local Kiro workers' });
-      return;
-    }
-
     const storyIdMatch = pathname.match(/^\/api\/stories\/(\d+)$/);
     if (storyIdMatch && method === 'GET') {
       const storyId = Number(storyIdMatch[1]);
@@ -8250,18 +8168,6 @@ export async function startServer(port = 4000) {
       console.log(`🚀 AIPM Backend Server started on port ${port}`);
       debugLog(`Debug logging enabled: ${DEBUG}`);
       debugLog(`Environment: ${process.env.NODE_ENV || 'production'}`);
-      
-      // Memory leak prevention: Clean up expired pending requests every minute
-      setInterval(() => {
-        if (!global.pendingRequests) return;
-        const now = Date.now();
-        for (const [id, req] of Object.entries(global.pendingRequests)) {
-          if (now - req.createdAt > 300000) {  // 5 minutes
-            req.reject(new Error('Request expired'));
-            delete global.pendingRequests[id];
-          }
-        }
-      }, 60000);
       
       resolve(app);
     });

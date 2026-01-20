@@ -7705,42 +7705,6 @@ async function sendJson(url, options = {}) {
   return data;
 }
 
-function pollKiroResult(requestId, onComplete, maxAttempts = 60) {
-  let attempts = 0;
-  
-  const poll = async () => {
-    attempts++;
-    
-    try {
-      const status = await sendJson(resolveApiUrl(`/api/kiro-status/${requestId}`));
-      
-      if (status.status === 'completed' && status.result) {
-        console.log('✨ Kiro enhancement completed:', status.result);
-        onComplete(status.result);
-        return;
-      }
-      
-      if (status.status === 'failed') {
-        console.error('❌ Kiro enhancement failed:', status.error);
-        return;
-      }
-      
-      // Still pending or processing, poll again
-      if (attempts < maxAttempts) {
-        setTimeout(poll, 5000); // Poll every 5 seconds
-      } else {
-        console.warn('⏰ Kiro polling timeout after', maxAttempts * 5, 'seconds');
-      }
-    } catch (error) {
-      console.error('Kiro polling error:', error);
-      // Don't retry on error
-    }
-  };
-  
-  // Start polling after 5 seconds (give Kiro time to start)
-  setTimeout(poll, 5000);
-}
-
 function splitLines(value) {
   return value
     .split(/\r?\n/)
