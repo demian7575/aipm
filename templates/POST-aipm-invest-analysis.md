@@ -48,9 +48,13 @@
 ### Output Schema
 ```json
 {
-  "overall": "pass",
-  "issues": ["issue1", "issue2"],
-  "suggestions": ["suggestion1", "suggestion2"]
+  "storyId": 101,
+  "summary": "your analysis summary here",
+  "score": 75,
+  "warnings": [{"criterion": "Estimable", "message": "...", "suggestion": "..."}],
+  "strengths": ["strength 1", "strength 2"],
+  "source": "ai",
+  "model": "kiro-cli"
 }
 ```
 
@@ -60,9 +64,13 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
   -d '{
     "requestId": "REQUEST_ID_VALUE",
-    "overall": "PASS_OR_FAIL",
-    "issues": ["ISSUE_LIST"],
-    "suggestions": ["SUGGESTION_LIST"]
+    "storyId": STORY_ID_VALUE,
+    "summary": "ANALYSIS_SUMMARY",
+    "score": SCORE_VALUE,
+    "warnings": [{"criterion": "CRITERION", "message": "MESSAGE", "suggestion": "SUGGESTION"}],
+    "strengths": ["STRENGTH_LIST"],
+    "source": "ai",
+    "model": "kiro-cli"
   }'
 ```
 
@@ -78,13 +86,20 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
 
 **STEP 3**: Replace ALL placeholders in the curl command:
   - REQUEST_ID_VALUE → the UUID from "Request ID:" line
-  - PASS_OR_FAIL → "pass" or "fail"
-  - ISSUE_LIST → array of identified issues
-  - SUGGESTION_LIST → array of improvement suggestions
+  - STORY_ID_VALUE → the story ID from input
+  - ANALYSIS_SUMMARY → brief summary of the analysis
+  - SCORE_VALUE → numeric score 0-100 (100 = perfect, 0 = many issues)
+  - CRITERION → INVEST principle name (Independent, Negotiable, Valuable, Estimable, Small, Testable)
+  - MESSAGE → description of the issue
+  - SUGGESTION → how to fix the issue
+  - STRENGTH_LIST → array of what the story does well
 
 **STEP 4**: Execute the curl command using bash tool
 
 **CRITICAL**: 
 - The requestId MUST be the exact UUID from the "Request ID:" line
+- The storyId MUST be the story ID from the input
 - You MUST execute the curl command
-- Overall must be either "pass" or "fail"
+- Score must be 0-100 (higher is better)
+- Warnings array can be empty if story is perfect
+- Source must be "ai" and model must be "kiro-cli"

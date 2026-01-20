@@ -3182,11 +3182,15 @@ async function analyzeInvest(story, options = {}) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         requestId,
+        id: story.id,
         title: story.title,
         description: story.description,
         asA: story.asA,
         iWant: story.iWant,
-        soThat: story.soThat
+        soThat: story.soThat,
+        storyPoint: story.storyPoint,
+        components: story.components || [],
+        acceptanceTests: story.acceptanceTests || []
       })
     });
     
