@@ -172,8 +172,19 @@ EOF
     echo "✅ Backend deployed successfully"
 fi
 
-# Note: Frontend deployment is handled separately by the workflow
-echo "ℹ️  Frontend deployment will be handled by the workflow"
+# Deploy frontend
+echo "🌐 Deploying frontend..."
+
+# Copy correct config file for environment
+if [[ "$ENV" == "prod" ]]; then
+    cp apps/frontend/public/config-prod.js apps/frontend/public/config.js
+else
+    cp apps/frontend/public/config-dev.js apps/frontend/public/config.js
+fi
+
+# Upload to S3
+aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET/ --exclude "*.md" --exclude ".DS_Store" --exclude "config-*.js"
+echo "✅ Frontend deployed to S3"
 
 # Verify deployment
 echo "🔍 Verifying deployment..."
