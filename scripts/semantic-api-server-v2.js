@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import http from 'http';
-import { existsSync, readFile } from 'fs';
+import { existsSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -53,7 +54,7 @@ const server = http.createServer(async (req, res) => {
       const parameters = body ? JSON.parse(body) : Object.fromEntries(url.searchParams);
       
       // Read template
-      const templateContent = await readFile(templatePath, { encoding: 'utf-8' });
+      const templateContent = await readFile(templatePath, 'utf-8');
       
       // Build prompt
       const prompt = `${templateContent}\n\n## Input Data\n${JSON.stringify(parameters, null, 2)}\n\nGenerate the output and return ONLY the JSON object, no explanations.`;
