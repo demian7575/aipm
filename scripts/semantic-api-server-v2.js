@@ -39,8 +39,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Response endpoint for Kiro curl callbacks
-  if (url.pathname === '/api/draft-response' && req.method === 'POST') {
+  // Generic response endpoint for all Kiro curl callbacks
+  if (url.pathname.startsWith('/api/') && url.pathname.endsWith('-response') && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -48,7 +48,7 @@ const server = http.createServer(async (req, res) => {
         const response = JSON.parse(body);
         const requestId = response.requestId;
         
-        console.log(`📥 Received draft-response for requestId: ${requestId}`);
+        console.log(`📥 Received ${url.pathname} for requestId: ${requestId}`);
         
         // Find pending request and resolve it
         const pending = pendingRequests.get(requestId);
@@ -62,91 +62,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'received' }));
       } catch (error) {
-        console.error(`❌ Error processing draft-response:`, error.message);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message }));
-      }
-    });
-    return;
-  }
-
-  // Acceptance test response endpoint
-  if (url.pathname === '/api/acceptance-test-response' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const response = JSON.parse(body);
-        const requestId = response.requestId;
-        
-        console.log(`📥 Received acceptance-test-response for requestId: ${requestId}`);
-        
-        const pending = pendingRequests.get(requestId);
-        if (pending) {
-          pending.resolve(response);
-          pendingRequests.delete(requestId);
-        }
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'received' }));
-      } catch (error) {
-        console.error(`❌ Error processing acceptance-test-response:`, error.message);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message }));
-      }
-    });
-    return;
-  }
-
-  // INVEST analysis response endpoint
-  if (url.pathname === '/api/invest-response' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const response = JSON.parse(body);
-        const requestId = response.requestId;
-        
-        console.log(`📥 Received invest-response for requestId: ${requestId}`);
-        
-        const pending = pendingRequests.get(requestId);
-        if (pending) {
-          pending.resolve(response);
-          pendingRequests.delete(requestId);
-        }
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'received' }));
-      } catch (error) {
-        console.error(`❌ Error processing invest-response:`, error.message);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message }));
-      }
-    });
-    return;
-  }
-
-  // GWT analysis response endpoint
-  if (url.pathname === '/api/gwt-response' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const response = JSON.parse(body);
-        const requestId = response.requestId;
-        
-        console.log(`📥 Received gwt-response for requestId: ${requestId}`);
-        
-        const pending = pendingRequests.get(requestId);
-        if (pending) {
-          pending.resolve(response);
-          pendingRequests.delete(requestId);
-        }
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'received' }));
-      } catch (error) {
-        console.error(`❌ Error processing gwt-response:`, error.message);
+        console.error(`❌ Error processing ${url.pathname}:`, error.message);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message }));
       }
