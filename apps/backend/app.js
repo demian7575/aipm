@@ -6054,7 +6054,7 @@ export async function createApp() {
           
           // Call Semantic API
           try {
-            const semanticResponse = await fetch('http://localhost:8083/aipm/story/draft', {
+            const semanticResponse = await fetch('http://localhost:8083/aipm/story-draft', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 

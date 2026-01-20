@@ -25,7 +25,7 @@ Analyze acceptance test quality (Given-When-Then format).
 
 ## Command
 ```bash
-curl -X POST http://localhost:8083/api/gwt-response \
+curl -X POST http://localhost:8083/api/gwt-analysis-response \
   -H 'Content-Type: application/json' \
   -d '{
     "requestId": "REQUEST_ID",

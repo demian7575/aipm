@@ -27,7 +27,7 @@ Generate acceptance tests in Given-When-Then format.
 
 ## Command
 ```bash
-curl -X POST http://localhost:8083/api/acceptance-test-response \
+curl -X POST http://localhost:8083/api/acceptance-test-draft-response \
   -H 'Content-Type: application/json' \
   -d '{
     "requestId": "REQUEST_ID",

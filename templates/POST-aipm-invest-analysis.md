@@ -28,7 +28,7 @@ Analyze user story against INVEST principles.
 
 ## Command
 ```bash
-curl -X POST http://localhost:8083/api/invest-response \
+curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
   -d '{
     "requestId": "REQUEST_ID",

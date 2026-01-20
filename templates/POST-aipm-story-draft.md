@@ -64,9 +64,9 @@ Generate stories that are: Independent, Negotiable, Valuable, Estimable, Small, 
 - Tests should verify the user story functionality
 - All tests start with status "Draft"
 
-### Command Template
+### Command
 ```bash
-curl -X POST http://localhost:8083/api/draft-response \
+curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
   -d '{
     "requestId": "REQUEST_ID_VALUE",
