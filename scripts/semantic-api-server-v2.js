@@ -115,7 +115,7 @@ Request ID: ${requestId}`;
       });
       
       // Send to session pool (don't wait for completion)
-      fetch(`${SESSION_POOL_URL}/execute`, {
+      fetch(`${SESSION_POOL_URL}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })

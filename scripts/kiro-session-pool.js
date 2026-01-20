@@ -349,6 +349,56 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   
+  // Send endpoint (fire-and-forget, no response wait)
+  if (url.pathname === '/send' && req.method === 'POST') {
+    let body = '';
+    
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', async () => {
+      try {
+        const { prompt } = JSON.parse(body);
+        
+        if (!prompt) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Prompt is required' }));
+          return;
+        }
+        
+        // Find available session
+        const session = pool.sessions.find(s => !s.busy && !s.stuck);
+        
+        if (!session) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'All sessions busy' }));
+          return;
+        }
+        
+        // Send prompt without waiting for response
+        session.busy = true;
+        session.lastUsed = Date.now();
+        session.currentPrompt = prompt;
+        session.outputBuffer = '';
+        session.lastOutputTime = Date.now();
+        
+        session.log(`\n=== COMMAND ===\n${prompt}\n=== END ===\n`);
+        session.process.stdin.write(prompt + '\n');
+        
+        // Return immediately
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'sent', sessionId: session.id }));
+        
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    
+    return;
+  }
+  
   // Execute endpoint
   if (url.pathname === '/execute' && req.method === 'POST') {
     let body = '';
