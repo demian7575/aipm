@@ -4,7 +4,7 @@ This repository contains a self-hosted mindmap and outline workspace for managin
 
 ## 📚 Development Documentation
 
-**[📖 Complete Development Guide](DevelopmentBackground.md)** - Comprehensive documentation including:
+**[📖 Complete Development Guide](docs/DevelopmentBackground.md)** - Comprehensive documentation including:
 - Critical development principles (MUST READ before any changes)
 - Core principles and regulations
 - Complete code structure and AWS architecture
@@ -50,14 +50,14 @@ frontend:
 
 > **Note**: If you encounter dependency conflicts, the script automatically handles `npm install --legacy-peer-deps`.
 
-For detailed deployment instructions and troubleshooting, see the [Development Guide](DevelopmentBackground.md).
+For detailed deployment instructions and troubleshooting, see the [Development Guide](docs/DevelopmentBackground.md).
 
 ## 📚 Additional Documentation
 
-- **[🎓 Lessons Learned](LESSONS_LEARNED.md)** - Critical development lessons and best practices
-- **[🏗️ Current Architecture](ARCHITECTURE_CURRENT_2025.md)** - Dual EC2 architecture overview
-- **[🚀 Deployment Guide](DEPLOYMENT_GUIDE_2025.md)** - Updated deployment procedures
-- **[📁 Code Structure](CODE_STRUCTURE_2025.md)** - Comprehensive code analysis
+- **[🎓 Lessons Learned](docs/LESSONS_LEARNED.md)** - Critical development lessons and best practices
+- **[🏗️ Current Architecture](docs/ARCHITECTURE_CURRENT_2025.md)** - Dual EC2 architecture overview
+- **[🚀 Deployment Guide](docs/DEPLOYMENT_GUIDE_2025.md)** - Updated deployment procedures
+- **[📁 Code Structure](docs/CODE_STRUCTURE_2025.md)** - Comprehensive code analysis
 
 ## Requirements
 
