@@ -175,22 +175,19 @@ const server = http.createServer(async (req, res) => {
       // Generate requestId if not provided
       const requestId = parameters.requestId || crypto.randomUUID();
       
-      // Build prompt with template path and ALL parameters
-      let parameterLines = [];
+      // Build prompt with template path and ALL parameters (single line)
+      let parameterPairs = [];
       for (const [key, value] of Object.entries(parameters)) {
         if (key !== 'requestId') {
           const formattedValue = typeof value === 'object' ? JSON.stringify(value) : value;
-          parameterLines.push(`${key}: ${formattedValue}`);
+          parameterPairs.push(`${key}: ${formattedValue}`);
         }
       }
       
-      const prompt = `Read the template file at ${templatePath} and generate output using this input data:
-
-${parameterLines.join('\n')}
-Request ID: ${requestId}`;
+      const prompt = `Read the template file at ${templatePath} and generate output using this input data: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId})...`);
-      console.log(`📋 Parameters: ${parameterLines.join(', ')}`);
+      console.log(`📋 Parameters: ${parameterPairs.join(', ')}`);
       
       // Create promise for response
       const responsePromise = new Promise((resolve, reject) => {
