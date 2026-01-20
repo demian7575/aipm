@@ -6679,6 +6679,9 @@ export async function createApp() {
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
         const acceptanceTests = payload.acceptanceTests || [];
+        // Allow bypassing INVEST validation via header or payload
+        const skipInvestValidation = payload.skipInvestValidation === true || 
+                                     req.headers['x-skip-invest-validation'] === 'true';
         
         // Create story first
         const timestamp = now();
@@ -6826,9 +6829,9 @@ export async function createApp() {
         const warnings = analysis.warnings;
         const score = analysis.ai?.score || 0;
         
-        // Only block story creation if score is below threshold (80)
+        // Only block story creation if score is below threshold (80) and not skipped
         const INVEST_SCORE_THRESHOLD = 80;
-        if (score > 0 && score < INVEST_SCORE_THRESHOLD) {
+        if (!skipInvestValidation && score > 0 && score < INVEST_SCORE_THRESHOLD) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
             const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
