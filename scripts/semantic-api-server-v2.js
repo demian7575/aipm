@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import http from 'http';
+import crypto from 'crypto';
 import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -53,8 +54,18 @@ const server = http.createServer(async (req, res) => {
     try {
       const parameters = body ? JSON.parse(body) : Object.fromEntries(url.searchParams);
       
-      // Build prompt with template path
-      const prompt = `Read the template file at ${templatePath} and generate output using this input data:\n${JSON.stringify(parameters, null, 2)}\n\nReturn ONLY the JSON object, no explanations.`;
+      // Generate requestId if not provided
+      const requestId = parameters.requestId || crypto.randomUUID();
+      
+      // Build prompt with template path and parameters
+      const prompt = `Read the template file at ${templatePath} and generate output using this input data:
+
+Feature description: "${parameters.featureDescription || 'user login system'}"
+Parent ID: ${parameters.parentId || null}
+Components: ${JSON.stringify(parameters.components || [])}
+Request ID: ${requestId}
+
+Return ONLY the JSON object, no explanations.`;
       
       console.log(`🤖 Sending to session pool...`);
       
