@@ -66,7 +66,7 @@ Generate stories that are: Independent, Negotiable, Valuable, Estimable, Small, 
 
 ### Command Template
 ```bash
-curl -X POST http://localhost:8081/api/draft-response \
+curl -X POST http://localhost:8083/api/draft-response \
   -H 'Content-Type: application/json' \
   -d '{
     "requestId": "REQUEST_ID_VALUE",
