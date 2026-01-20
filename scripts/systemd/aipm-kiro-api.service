@@ -1,0 +1,26 @@
+[Unit]
+Description=AIPM Kiro API Server
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+Environment=PATH=/home/ec2-user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=NODE_ENV=production
+Environment=KIRO_API_PORT=8081
+Environment=API_PORT=8081
+Environment=STORIES_TABLE=aipm-backend-dev-stories
+Environment=ACCEPTANCE_TESTS_TABLE=aipm-backend-dev-acceptance-tests
+Environment=PRS_TABLE=aipm-backend-dev-prs
+ExecStart=/usr/bin/node scripts/kiro-api-server-v4.js
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aipm-kiro-api
+
+[Install]
+WantedBy=multi-user.target
