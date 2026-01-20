@@ -6392,31 +6392,38 @@ export async function createApp() {
 
         // Use existing PR branch
         const prBranch = originalBranch || `feature-story-${storyId}`;
+        
+        // Get story details for context
+        const story = await db.getStory(storyId);
+        const { randomUUID } = await import('crypto');
+        const requestId = randomUUID();
 
-        // Call Kiro API for code generation
-        const kiroResponse = await fetch('http://localhost:8081/api/generate-code-branch', {
+        // Call Semantic API for code generation
+        const semanticResponse = await fetch('http://localhost:8083/aipm/code-generation', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': application/json' },
           body: JSON.stringify({ 
+            requestId,
             storyId: storyId,
-            prNumber: prNumber,
-            prompt: prompt,
-            originalBranch: prBranch
-          }),
-          signal: AbortSignal.timeout(30000) // 30 second timeout
+            storyTitle: story.title,
+            storyDescription: story.description,
+            acceptanceTests: story.acceptanceTests || [],
+            branchName: prBranch,
+            prNumber: prNumber
+          })
         });
 
-        if (!kiroResponse.ok) {
-          throw new Error(`Kiro API failed: ${kiroResponse.statusText}`);
+        if (!semanticResponse.ok) {
+          throw new Error(`Semantic API failed: ${semanticResponse.statusText}`);
         }
 
-        const kiroResult = await kiroResponse.json();
+        const result = await semanticResponse.json();
 
         sendJson(res, 200, {
           success: true,
           branch: prBranch,
           prUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/pull/${prNumber}`,
-          generatedCode: kiroResult.enhanced || kiroResult.code || 'Generated code'
+          generatedCode: result.summary || 'Code generated'
         });
 
       } catch (error) {
