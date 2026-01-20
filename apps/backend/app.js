@@ -6407,7 +6407,7 @@ export async function createApp() {
         const prBranch = originalBranch || `feature-story-${storyId}`;
         
         // Get story details for context
-        const story = await db.getStory(storyId);
+        const story = await loadStoryWithDetails(db, storyId);
         const { randomUUID } = await import('crypto');
         const requestId = randomUUID();
 
