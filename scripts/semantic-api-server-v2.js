@@ -97,9 +97,7 @@ const server = http.createServer(async (req, res) => {
 Feature description: "${parameters.featureDescription || 'user login system'}"
 Parent ID: ${parameters.parentId || null}
 Components: ${JSON.stringify(parameters.components || [])}
-Request ID: ${requestId}
-
-Return ONLY the JSON object, no explanations.`;
+Request ID: ${requestId}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId})...`);
       
