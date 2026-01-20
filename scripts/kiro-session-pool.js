@@ -42,7 +42,7 @@ class KiroSession {
   start() {
     this.log(`Starting Kiro CLI session ${this.id}`);
     
-    this.process = spawn('kiro-cli', ['chat', '--trust-all-tools'], {
+    this.process = spawn('kiro-cli', ['chat', '--trust-all-tools', '--no-interactive'], {
       stdio: ['pipe', 'pipe', 'pipe']
     });
   
