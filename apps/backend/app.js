@@ -6770,7 +6770,7 @@ export async function createApp() {
                 Item: {
                   id: testId,
                   storyId: newStoryId,
-                  title: test.title,
+                  title: test.title || '',
                   given: Array.isArray(test.given) ? test.given : [test.given],
                   whenStep: Array.isArray(test.when) ? test.when : [test.when],
                   thenStep: Array.isArray(test.then) ? test.then : [test.then],
@@ -6786,7 +6786,7 @@ export async function createApp() {
               await stmt.run(
                 testId,
                 newStoryId,
-                test.title,
+                test.title || '',
                 JSON.stringify(Array.isArray(test.given) ? test.given : [test.given]),
                 JSON.stringify(Array.isArray(test.when) ? test.when : [test.when]),
                 JSON.stringify(Array.isArray(test.then) ? test.then : [test.then]),
