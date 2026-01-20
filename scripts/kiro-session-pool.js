@@ -14,7 +14,7 @@ import { spawn } from 'child_process';
 import { createWriteStream } from 'fs';
 import http from 'http';
 
-const POOL_SIZE = 2;
+const POOL_SIZE = 4;
 const SESSION_TIMEOUT = 180000; // 180 seconds
 const IDLE_DETECTION_TIME = 2000; // 2 seconds of no output = complete
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
