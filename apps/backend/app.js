@@ -3171,82 +3171,43 @@ async function requestInvestAnalysisFromAi(story, options, config) {
 async function analyzeInvest(story, options = {}) {
   const baseline = markBaselineWarnings(baselineInvestWarnings(story, options));
   
-  // Try AI analysis via Kiro API SSE endpoint
+  // Try AI analysis via Semantic API
   try {
-    const storyId = story.id;
-    console.log('🤖 Attempting AI INVEST analysis via SSE for story:', storyId);
-    const kiroApiUrl = 'http://localhost:8081';
-    const http = await import('http');
+    console.log('🤖 Attempting AI INVEST analysis for story:', story.id);
+    const { randomUUID } = await import('crypto');
+    const requestId = randomUUID();
     
-    return await new Promise((resolve, reject) => {
-      const url = `${kiroApiUrl}/api/analyze-invest-stream?storyId=${storyId}`;
-      console.log('🤖 SSE URL:', url);
-      
-      const timeout = setTimeout(() => {
-        req.destroy();
-        reject(new Error('AI analysis timeout after 90 seconds'));
-      }, 90000); // Increased from 45s to 90s
-      
-      const req = http.get(url, (res) => {
-        let buffer = '';
-        
-        res.on('data', (chunk) => {
-          buffer += chunk.toString();
-          const lines = buffer.split('\n\n');
-          buffer = lines.pop() || '';
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                
-                if (data.status === 'complete' && data.success && data.analysis) {
-                  clearTimeout(timeout);
-                  req.destroy();
-                  
-                  let aiAnalysis = typeof data.analysis === 'string' ? 
-                    JSON.parse(data.analysis) : data.analysis;
-                  
-                  console.log('🤖 AI analysis successful via SSE');
-                  resolve({
-                    warnings: aiAnalysis.warnings || baseline,
-                    source: 'ai',
-                    summary: aiAnalysis.summary || '',
-                    ai: {
-                      summary: aiAnalysis.summary || '',
-                      warnings: aiAnalysis.warnings || [],
-                      model: 'kiro-cli',
-                      score: aiAnalysis.score || 0
-                    }
-                  });
-                } else if (data.status === 'timeout' || data.error) {
-                  clearTimeout(timeout);
-                  req.destroy();
-                  reject(new Error(data.error || 'AI analysis timeout'));
-                }
-              } catch (parseError) {
-                console.warn('🤖 Failed to parse SSE data:', parseError.message);
-              }
-            }
-          }
-        });
-        
-        res.on('end', () => {
-          clearTimeout(timeout);
-          reject(new Error('SSE stream ended without result'));
-        });
-        
-        res.on('error', (error) => {
-          clearTimeout(timeout);
-          reject(error);
-        });
-      });
-      
-      req.on('error', (error) => {
-        clearTimeout(timeout);
-        reject(error);
-      });
+    const response = await fetch('http://localhost:8083/aipm/invest-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestId,
+        title: story.title,
+        description: story.description,
+        asA: story.asA,
+        iWant: story.iWant,
+        soThat: story.soThat
+      })
     });
+    
+    if (!response.ok) {
+      throw new Error(`Semantic API error: ${response.status}`);
+    }
+    
+    const aiAnalysis = await response.json();
+    console.log('🤖 AI INVEST analysis successful');
+    
+    return {
+      warnings: aiAnalysis.issues || baseline,
+      source: 'ai',
+      summary: aiAnalysis.suggestions?.join(' ') || '',
+      ai: {
+        summary: aiAnalysis.suggestions?.join(' ') || '',
+        warnings: aiAnalysis.issues || [],
+        model: 'kiro-cli',
+        score: aiAnalysis.overall === 'pass' ? 100 : 50
+      }
+    };
   } catch (error) {
     console.warn('🤖 AI INVEST analysis failed:', error.message);
     throw error;
