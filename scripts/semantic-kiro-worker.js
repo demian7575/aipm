@@ -3,7 +3,6 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { spawn } from 'child_process';
 import { readFile } from 'fs/promises';
-import fetch from 'node-fetch';
 
 const QUEUE_TABLE = process.env.SEMANTIC_QUEUE_TABLE || 'aipm-semantic-api-queue';
 const CALLBACK_URL = process.env.SEMANTIC_API_URL || 'http://localhost:8082';
@@ -71,7 +70,7 @@ async function processTask(task) {
     console.log(`🤖 Executing Kiro CLI...`);
 
     // Execute Kiro CLI
-    const kiro = spawn('kiro-cli', ['chat', '--trust-all-tools'], {
+    const kiro = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
       stdio: ['pipe', 'pipe', 'pipe']
     });
 
@@ -132,8 +131,11 @@ async function processTask(task) {
     await dynamodb.send(new UpdateCommand({
       TableName: QUEUE_TABLE,
       Key: { id: task.id },
-      UpdateExpression: 'SET #status = :failed, error = :error, failedAt = :failedAt',
-      ExpressionAttributeNames: { '#status': 'status' },
+      UpdateExpression: 'SET #status = :failed, #error = :error, failedAt = :failedAt',
+      ExpressionAttributeNames: { 
+        '#status': 'status',
+        '#error': 'error'
+      },
       ExpressionAttributeValues: { 
         ':failed': 'failed',
         ':error': error.message,
