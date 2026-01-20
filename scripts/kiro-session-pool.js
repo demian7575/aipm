@@ -119,7 +119,7 @@ class KiroSession {
       const timeSinceLastOutput = Date.now() - this.lastOutputTime;
       
       // If no output for IDLE_DETECTION_TIME and we have some output, consider complete
-      if (timeSinceLastOutput >= IDLE_DETECTION_TIME && this.outputBuffer.length > 50) {
+      if (timeSinceLastOutput >= IDLE_DETECTION_TIME && this.outputBuffer.length > 0) {
         this.log(`Idle detection: completing after ${timeSinceLastOutput}ms of no output`);
         this.complete();
       }
