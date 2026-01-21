@@ -175,8 +175,8 @@ jobs:
           echo "📝 Creating development configuration..."
           cat > apps/frontend/public/config.js << EOF
           window.CONFIG = {
-            API_BASE_URL: 'http://44.222.168.46',
-            apiEndpoint: 'http://44.222.168.46:8081',
+            API_BASE_URL: 'http://44.222.168.46:4000',
+            apiEndpoint: 'http://44.222.168.46:4000',
             EC2_TERMINAL_URL: 'ws://44.222.168.46:8080',
             GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
             PROD_VERSION: '4.0.0-dev',
@@ -265,7 +265,7 @@ jobs:
           echo "🔍 Verifying deployment..."
           
           # Check backend health
-          if curl -sf http://44.222.168.46/health | jq -e '.status == "running"' > /dev/null; then
+          if curl -sf http://44.222.168.46:4000/health | jq -e '.status == "running"' > /dev/null; then
             echo "✅ Backend is healthy"
           else
             echo "❌ Backend health check failed"
