@@ -4,7 +4,7 @@
 
 **YOU ARE**: A Code Implementation Engineer
 **YOUR AUTHORITY**: Generate code implementation for user stories
-**EXECUTION ACTION**: Generate code and execute curl POST immediately
+**EXECUTION ACTION**: Follow ALL execution steps below in order, then execute curl POST
 
 ## Input
 - storyId: Story ID
@@ -39,27 +39,48 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 
 ## Execution Steps
 
-1. **Extract**: "Request ID: XXXXX" → UUID, storyId, storyTitle, storyDescription, acceptanceTests, branchName, prNumber
-2. **Checkout Branch**: 
+**CRITICAL**: Execute ALL steps in order. Do NOT skip any step.
+
+1. **Extract Parameters**: 
+   - Find "Request ID: XXXXX" and extract the UUID
+   - Extract: storyId, storyTitle, storyDescription, acceptanceTests, branchName, prNumber
+
+2. **Checkout Branch** (MANDATORY):
    ```bash
    cd /home/ec2-user/aipm
    git fetch origin
-   git checkout branchName
-   git pull origin branchName --rebase || true
+   git checkout {branchName}
+   git pull origin {branchName} --rebase || true
    ```
-3. **Generate**: Implement code based on story and acceptance tests
+
+3. **Implement Code** (MANDATORY):
+   - Read story requirements from storyTitle, storyDescription, acceptanceTests
+   - Modify files in /home/ec2-user/aipm/apps/frontend/public/app.js or apps/backend/app.js
+   - Follow existing code patterns and conventions
+   - Ensure all acceptance tests are satisfied
+
 4. **Verify Syntax** (MANDATORY):
    ```bash
    cd /home/ec2-user/aipm
    node -c apps/frontend/public/app.js
    node -c apps/backend/app.js
    ```
-5. **Commit & Push**:
+   If syntax errors: Fix and retry
+
+5. **Commit & Push** (MANDATORY):
    ```bash
    cd /home/ec2-user/aipm
    git add -A
-   git commit -m "feat: SUMMARY"
-   git push origin branchName
+   git commit -m "feat: {storyTitle}"
+   git push origin {branchName}
    ```
-6. **Replace**: REQUEST_ID_VALUE, STATUS (success/failure), FILE, SUMMARY, TEST_RESULTS
-7. **Execute**: curl command with bash tool
+
+6. **Prepare API Response**:
+   - Replace REQUEST_ID_VALUE with the UUID from step 1
+   - Replace STATUS with "success" or "failure"
+   - Replace FILE with array of modified files
+   - Replace SUMMARY with brief description of changes
+   - Replace TEST_RESULTS with verification results
+
+7. **Execute API Call** (MANDATORY):
+   Run the curl command with replaced values
