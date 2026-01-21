@@ -7665,22 +7665,9 @@ export async function createApp() {
       try {
         console.log(`🗑️  Starting delete for story ${storyId}`);
         
-        // Get story PRs and acceptance tests before deletion
-        let storyPRs = [];
-        try {
-          console.log(`  Fetching PRs...`);
-          storyPRs = await getStoryPRs(db, storyId);
-          console.log(`  Found ${storyPRs.length} PRs`);
-        } catch (prError) {
-          console.log(`⚠️  Could not fetch PRs for story ${storyId}:`, prError.message);
-        }
-        
-        console.log(`  Fetching acceptance tests...`);
-        const acceptanceTests = await getAcceptanceTests(db, storyId);
-        console.log(`  Found ${acceptanceTests.length} acceptance tests`);
-        
-        // Delete acceptance tests first
+        // Delete acceptance tests first (DynamoDB only)
         if (db.constructor.name === 'DynamoDBDataLayer') {
+          console.log(`  Using DynamoDB for deletion`);
           const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
           const { DynamoDBDocumentClient, DeleteCommand, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
           const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
@@ -7688,6 +7675,7 @@ export async function createApp() {
           
           // Query and delete all acceptance tests for this story
           const testsTableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+          console.log(`  Querying acceptance tests from ${testsTableName}...`);
           const queryResult = await docClient.send(new QueryCommand({
             TableName: testsTableName,
             IndexName: 'storyId-index',
@@ -7697,6 +7685,7 @@ export async function createApp() {
             }
           }));
           
+          console.log(`  Found ${queryResult.Items?.length || 0} acceptance tests`);
           if (queryResult.Items && queryResult.Items.length > 0) {
             for (const test of queryResult.Items) {
               await docClient.send(new DeleteCommand({
@@ -7709,10 +7698,12 @@ export async function createApp() {
           
           // Delete the story
           const storiesTableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          console.log(`  Deleting story from ${storiesTableName}...`);
           await docClient.send(new DeleteCommand({
             TableName: storiesTableName,
             Key: { id: storyId }
           }));
+          console.log(`✅ Deleted story ${storyId}`);
           
         } else {
           // SQLite: Delete acceptance tests
@@ -7732,19 +7723,7 @@ export async function createApp() {
           }
         }
         
-        // Delete associated PRs from database
-        if (storyPRs && storyPRs.length > 0) {
-          if (db.constructor.name === 'DynamoDBDataLayer') {
-            // DynamoDB PR deletion would go here if we had a PRs table
-            console.log(`🗑️ Would delete ${storyPRs.length} associated PRs for story ${storyId}`);
-          } else {
-            const deletePRStatement = db.prepare('DELETE FROM story_prs WHERE storyId = ?');
-            deletePRStatement.run(storyId);
-            console.log(`🗑️ Deleted ${storyPRs.length} associated PRs for story ${storyId}`);
-          }
-        }
-        
-        console.log(`✅ Deleted story ${storyId} with ${acceptanceTests.length} acceptance tests and ${storyPRs.length} PRs`);
+        console.log(`✅ Successfully deleted story ${storyId}`);
         sendJson(res, 204, {});
       } catch (error) {
         const errorLog = `[${new Date().toISOString()}] Error deleting story ${storyId}: ${error.message}\nStack: ${error.stack}\n`;
