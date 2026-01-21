@@ -62,8 +62,8 @@ jobs:
             exit 1
           fi
 
-  # Phase 2: Performance & API Safety (WARNS on failure)
-  phase2-performance:
+  # Phase 2: Complete E2E Workflow (BLOCKS deployment)
+  phase2-e2e:
     runs-on: ubuntu-latest
     needs: phase1-critical
     if: (github.event.inputs.phase == 'all' || github.event.inputs.phase == '2' || github.event.inputs.phase == '') && needs.phase1-critical.outputs.phase1-status == 'success'
@@ -86,24 +86,39 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Run Phase 2 - Performance & API Safety
-        id: phase2
+      - name: Setup SSH for EC2 access
         run: |
-          echo "🟡 Running Phase 2: Performance & API Safety"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 3.92.96.67 >> ~/.ssh/known_hosts
+      
+      - name: Run Phase 2 - Complete E2E Workflow
+        id: phase2
+        env:
+          TEST_DB_ENV: dev
+          TEST_USE_MOCK_GITHUB: true
+          TEST_SSH_HOST: 3.92.96.67
+          USE_KIRO_MOCK: false
+        run: |
+          echo "🟡 Running Phase 2: Complete E2E Workflow"
+          echo "   Database: Dev (safe)"
+          echo "   GitHub: Mock (no real PRs)"
+          echo "   Kiro: Real (Semantic API)"
           
-          if ./scripts/testing/phase2-performance-api.sh; then
-            echo "✅ Phase 2 PASSED"
+          if timeout 120 ./scripts/testing/phase2-optimized.sh; then
+            echo "✅ Phase 2 PASSED - E2E workflow validated"
             echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "⚠️  Phase 2 FAILED - Performance/API issues detected"
+            echo "❌ Phase 2 FAILED - BLOCKING DEPLOYMENT"
             echo "status=failure" >> $GITHUB_OUTPUT
-            # Don't exit 1 - this is a warning, not blocking
+            exit 1
           fi
 
   # Phase 3: Infrastructure & Monitoring (INFORMATIONAL)
   phase3-infrastructure:
     runs-on: ubuntu-latest
-    needs: [phase1-critical, phase2-performance]
+    needs: [phase1-critical, phase2-e2e]
     if: (github.event.inputs.phase == 'all' || github.event.inputs.phase == '3' || github.event.inputs.phase == '') && needs.phase1-critical.outputs.phase1-status == 'success'
     outputs:
       phase3-status: ${{ steps.phase3.outputs.status }}
@@ -143,7 +158,7 @@ jobs:
   # Generate comprehensive test report
   generate-report:
     runs-on: ubuntu-latest
-    needs: [phase1-critical, phase2-performance, phase3-infrastructure]
+    needs: [phase1-critical, phase2-e2e, phase3-infrastructure]
     if: always()
     
     steps:
@@ -167,7 +182,7 @@ jobs:
           | Phase | Priority | Status | Impact |
           |-------|----------|--------|---------|
           | Phase 1: Security & Data Safety | 🔴 Critical | ${{ needs.phase1-critical.outputs.phase1-status || 'skipped' }} | ${{ needs.phase1-critical.outputs.phase1-status == 'success' && 'Deployment Approved' || 'BLOCKS Deployment' }} |
-          | Phase 2: Performance & API | 🟡 High | ${{ needs.phase2-performance.outputs.phase2-status || 'skipped' }} | ${{ needs.phase2-performance.outputs.phase2-status == 'success' && 'Performance Validated' || 'Performance Warning' }} |
+          | Phase 2: Complete E2E Workflow | 🔴 Critical | ${{ needs.phase2-e2e.outputs.phase2-status || 'skipped' }} | ${{ needs.phase2-e2e.outputs.phase2-status == 'success' && 'E2E Validated' || 'BLOCKS Deployment' }} |
           | Phase 3: Infrastructure & Monitoring | 🟢 Medium | ${{ needs.phase3-infrastructure.outputs.phase3-status || 'skipped' }} | ${{ needs.phase3-infrastructure.outputs.phase3-status == 'success' && 'Infrastructure Healthy' || 'Infrastructure Issues (Info)' }} |
           
           ## Overall Assessment
@@ -175,16 +190,10 @@ jobs:
           EOF
           
           # Determine overall status
-          if [[ "${{ needs.phase1-critical.outputs.phase1-status }}" == "success" ]]; then
+          if [[ "${{ needs.phase1-critical.outputs.phase1-status }}" == "success" ]] && [[ "${{ needs.phase2-e2e.outputs.phase2-status }}" == "success" ]]; then
             echo "✅ **DEPLOYMENT APPROVED**" >> gating-test-report.md
             echo "" >> gating-test-report.md
-            echo "Critical security and data safety requirements met." >> gating-test-report.md
-            
-            if [[ "${{ needs.phase2-performance.outputs.phase2-status }}" == "success" ]]; then
-              echo "✅ Performance and API requirements also met." >> gating-test-report.md
-            else
-              echo "⚠️  Performance/API issues detected - consider addressing." >> gating-test-report.md
-            fi
+            echo "Critical security, data safety, and E2E workflow requirements met." >> gating-test-report.md
             
             if [[ "${{ needs.phase3-infrastructure.outputs.phase3-status }}" == "success" ]]; then
               echo "✅ Infrastructure and monitoring fully validated." >> gating-test-report.md
@@ -194,17 +203,32 @@ jobs:
           else
             echo "❌ **DEPLOYMENT BLOCKED**" >> gating-test-report.md
             echo "" >> gating-test-report.md
-            echo "Critical security or data safety issues must be resolved before deployment." >> gating-test-report.md
+            if [[ "${{ needs.phase1-critical.outputs.phase1-status }}" != "success" ]]; then
+              echo "Critical security or data safety issues must be resolved." >> gating-test-report.md
+            fi
+            if [[ "${{ needs.phase2-e2e.outputs.phase2-status }}" != "success" ]]; then
+              echo "E2E workflow validation failed - system not ready for deployment." >> gating-test-report.md
+            fi
           fi
           
           echo "" >> gating-test-report.md
           echo "## Test Coverage" >> gating-test-report.md
+          echo "" >> gating-test-report.md
+          echo "### Phase 1: Security & Data Safety" >> gating-test-report.md
           echo "- 🔒 Security validation (GitHub tokens, AWS IAM, secrets)" >> gating-test-report.md
           echo "- 🗄️ Database integrity (schema, consistency, billing)" >> gating-test-report.md
           echo "- 🔄 Deployment safety (git state, artifacts, service health)" >> gating-test-report.md
-          echo "- ⚡ Performance validation (response times, concurrency)" >> gating-test-report.md
-          echo "- 📋 API contract validation (schema, versioning, CORS)" >> gating-test-report.md
-          echo "- 📊 Resource limits (throttling, rate limiting, payload size)" >> gating-test-report.md
+          echo "" >> gating-test-report.md
+          echo "### Phase 2: Complete E2E Workflow" >> gating-test-report.md
+          echo "- 📝 Story Draft Generation (AI)" >> gating-test-report.md
+          echo "- ✏️  Acceptance Test Draft (AI)" >> gating-test-report.md
+          echo "- 🔀 GitHub Integration (Mock)" >> gating-test-report.md
+          echo "- 💻 Code Generation (Real Semantic API)" >> gating-test-report.md
+          echo "- 🚀 Story Status Workflow" >> gating-test-report.md
+          echo "- 🔍 Data Consistency Verification" >> gating-test-report.md
+          echo "- 🗑️  Cascade Delete Validation" >> gating-test-report.md
+          echo "" >> gating-test-report.md
+          echo "### Phase 3: Infrastructure & Monitoring" >> gating-test-report.md
           echo "- 🌐 Network infrastructure (DNS, connectivity, SSL)" >> gating-test-report.md
           echo "- 📊 Monitoring integration (health endpoints, logs, CloudWatch)" >> gating-test-report.md
           echo "- 🔗 System integration (GitHub API, frontend-backend, templates)" >> gating-test-report.md
@@ -235,7 +259,7 @@ jobs:
       - name: Set Final Status
         if: always()
         run: |
-          if [[ "${{ needs.phase1-critical.outputs.phase1-status }}" == "success" ]]; then
+          if [[ "${{ needs.phase1-critical.outputs.phase1-status }}" == "success" ]] && [[ "${{ needs.phase2-e2e.outputs.phase2-status }}" == "success" ]]; then
             echo "🎉 Structured gating tests completed successfully!"
             echo "✅ System approved for deployment"
             exit 0
