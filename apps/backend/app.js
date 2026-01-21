@@ -6460,7 +6460,8 @@ export async function createApp() {
             storyDescription: story.description,
             acceptanceTests: story.acceptanceTests || [],
             branchName: prBranch,
-            prNumber: prNumber
+            prNumber: prNumber,
+            prompt: prompt
           })
         });
 
