@@ -7735,6 +7735,12 @@ export async function createApp() {
         console.log(`✅ Deleted story ${storyId} with ${acceptanceTests.length} acceptance tests and ${storyPRs.length} PRs`);
         sendJson(res, 204, {});
       } catch (error) {
+        const errorLog = `[${new Date().toISOString()}] Error deleting story ${storyId}: ${error.message}\nStack: ${error.stack}\n`;
+        try {
+          await writeFile('/tmp/aipm-delete-error.log', errorLog, { flag: 'a' });
+        } catch (e) {
+          // Ignore file write errors
+        }
         console.error('Error deleting story and associated data:', error);
         console.error('Error stack:', error.stack);
         console.error('Error details:', JSON.stringify(error, null, 2));
