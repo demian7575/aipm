@@ -176,7 +176,6 @@ jobs:
           cat > apps/frontend/public/config.js << EOF
           window.CONFIG = {
             API_BASE_URL: 'http://44.222.168.46:4000',
-            apiEndpoint: 'http://44.222.168.46:4000',
             EC2_TERMINAL_URL: 'ws://44.222.168.46:8080',
             GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
             PROD_VERSION: '4.0.0-dev',
