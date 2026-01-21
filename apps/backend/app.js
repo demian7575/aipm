@@ -7664,7 +7664,13 @@ export async function createApp() {
       
       try {
         // Get story PRs and acceptance tests before deletion
-        const storyPRs = await getStoryPRs(db, storyId);
+        let storyPRs = [];
+        try {
+          storyPRs = await getStoryPRs(db, storyId);
+        } catch (prError) {
+          console.log(`⚠️  Could not fetch PRs for story ${storyId}:`, prError.message);
+        }
+        
         const acceptanceTests = await getAcceptanceTests(db, storyId);
         
         // Delete acceptance tests first
