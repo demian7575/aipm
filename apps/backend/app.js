@@ -7663,15 +7663,21 @@ export async function createApp() {
       const storyId = Number(storyIdMatch[1]);
       
       try {
+        console.log(`🗑️  Starting delete for story ${storyId}`);
+        
         // Get story PRs and acceptance tests before deletion
         let storyPRs = [];
         try {
+          console.log(`  Fetching PRs...`);
           storyPRs = await getStoryPRs(db, storyId);
+          console.log(`  Found ${storyPRs.length} PRs`);
         } catch (prError) {
           console.log(`⚠️  Could not fetch PRs for story ${storyId}:`, prError.message);
         }
         
+        console.log(`  Fetching acceptance tests...`);
         const acceptanceTests = await getAcceptanceTests(db, storyId);
+        console.log(`  Found ${acceptanceTests.length} acceptance tests`);
         
         // Delete acceptance tests first
         if (db.constructor.name === 'DynamoDBDataLayer') {
