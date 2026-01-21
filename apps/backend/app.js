@@ -7141,6 +7141,9 @@ export async function createApp() {
     }
     
     const storyIdMatch = pathname.match(/^\/api\/stories\/(\d+)$/);
+    if (method === 'DELETE') {
+      await writeFile('/tmp/aipm-delete-method.log', `DELETE method detected, pathname: ${pathname}, match: ${!!storyIdMatch}\n`, { flag: 'a' });
+    }
     if (storyIdMatch && method === 'GET') {
       const storyId = Number(storyIdMatch[1]);
       try {
