@@ -21,6 +21,62 @@ async function batchWrite(tableName, items) {
 }
 
 async function sync() {
+  console.log('🔄 Starting Prod → Dev sync...');
+  
+  // Clear dev tables first
+  console.log('🗑️ Clearing dev tables...');
+  
+  const devStories = await client.send(new ScanCommand({
+    TableName: 'aipm-backend-dev-stories'
+  }));
+  if (devStories.Items.length > 0) {
+    const deleteRequests = devStories.Items.map(item => ({
+      DeleteRequest: { Key: { id: item.id } }
+    }));
+    for (let i = 0; i < deleteRequests.length; i += 25) {
+      await client.send(new BatchWriteItemCommand({
+        RequestItems: {
+          'aipm-backend-dev-stories': deleteRequests.slice(i, i + 25)
+        }
+      }));
+    }
+    console.log(`  Deleted ${devStories.Items.length} stories from dev`);
+  }
+  
+  const devTests = await client.send(new ScanCommand({
+    TableName: 'aipm-backend-dev-acceptance-tests'
+  }));
+  if (devTests.Items.length > 0) {
+    const deleteRequests = devTests.Items.map(item => ({
+      DeleteRequest: { Key: { id: item.id } }
+    }));
+    for (let i = 0; i < deleteRequests.length; i += 25) {
+      await client.send(new BatchWriteItemCommand({
+        RequestItems: {
+          'aipm-backend-dev-acceptance-tests': deleteRequests.slice(i, i + 25)
+        }
+      }));
+    }
+    console.log(`  Deleted ${devTests.Items.length} tests from dev`);
+  }
+  
+  const devPRs = await client.send(new ScanCommand({
+    TableName: 'aipm-backend-dev-prs'
+  }));
+  if (devPRs.Items.length > 0) {
+    const deleteRequests = devPRs.Items.map(item => ({
+      DeleteRequest: { Key: { id: item.id } }
+    }));
+    for (let i = 0; i < deleteRequests.length; i += 25) {
+      await client.send(new BatchWriteItemCommand({
+        RequestItems: {
+          'aipm-backend-dev-prs': deleteRequests.slice(i, i + 25)
+        }
+      }));
+    }
+    console.log(`  Deleted ${devPRs.Items.length} PRs from dev`);
+  }
+  
   // Scan prod stories
   const stories = await client.send(new ScanCommand({
     TableName: 'aipm-backend-prod-stories'
