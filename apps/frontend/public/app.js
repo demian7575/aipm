@@ -1964,22 +1964,11 @@ function renderCodeWhispererSectionList(container, story) {
     const actions = document.createElement('div');
     actions.className = 'codewhisperer-task-actions';
 
-    // Add Generate Code button for each task (only if PR exists)
+    // Add Generate Code button for each task
     const generateCodeBtn = document.createElement('button');
     generateCodeBtn.type = 'button';
     generateCodeBtn.className = 'button secondary';
-    
-    // Check if PR exists
-    const hasPR = entry && (entry.number || entry.targetNumber || entry.prNumber);
-    
-    if (!hasPR) {
-      generateCodeBtn.textContent = 'Create PR First';
-      generateCodeBtn.disabled = true;
-      generateCodeBtn.title = 'Create a Pull Request before generating code';
-    } else {
-      generateCodeBtn.textContent = 'Generate Code';
-    }
-    
+    generateCodeBtn.textContent = 'Generate Code';
     generateCodeBtn.addEventListener('click', async () => {
       console.log('🔘 Generate Code button clicked for story:', story?.id);
       console.log('🔘 Entry data passed to button:', entry);
@@ -2010,8 +1999,6 @@ function renderCodeWhispererSectionList(container, story) {
         if (!entry || !prNumber || prNumber <= 0) {
           console.error('❌ Invalid PR data. Entry:', entry, 'PR Number:', prNumber);
           showToast('No valid PR found to update. Create a PR first.', 'error');
-          generateCodeBtn.disabled = false;
-          generateCodeBtn.textContent = 'Generate Code';
           return;
         }
         
@@ -2019,8 +2006,6 @@ function renderCodeWhispererSectionList(container, story) {
         if (!entry.branchName) {
           console.error('❌ No branch name found in entry:', entry);
           showToast('PR missing branch information. Cannot generate code.', 'error');
-          generateCodeBtn.disabled = false;
-          generateCodeBtn.textContent = 'Generate Code';
           return;
         }
         
