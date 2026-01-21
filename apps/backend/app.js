@@ -7661,8 +7661,10 @@ export async function createApp() {
 
     if (storyIdMatch && method === 'DELETE') {
       const storyId = Number(storyIdMatch[1]);
+      await writeFile('/tmp/aipm-delete-start.log', `DELETE started for story ${storyId} at ${new Date().toISOString()}\n`, { flag: 'a' });
       
       try {
+        await writeFile('/tmp/aipm-delete-try.log', `Inside try block for story ${storyId}\n`, { flag: 'a' });
         console.log(`🗑️  Starting delete for story ${storyId}`);
         
         // Delete acceptance tests first (DynamoDB only)
