@@ -6026,6 +6026,10 @@ export async function createApp() {
       const pathname = url.pathname;
       const method = req.method ?? 'GET';
 
+      if (method === 'DELETE' && pathname.includes('/api/stories/')) {
+        await writeFile('/tmp/aipm-request-received.log', `${new Date().toISOString()} - ${method} ${pathname}\n`, { flag: 'a' });
+      }
+
       debugLog(`${method} ${pathname}`, url.search ? `query: ${url.search}` : '');
 
       if (method === 'OPTIONS') {
