@@ -36,13 +36,20 @@ git pull origin {branchName} --rebase || true
 ### 4. Implement
 Write code following story requirements and existing patterns
 
-### 5. Verify Code (MANDATORY)
+Add Phase 4 gating tests based on acceptance tests from the story:
 ```bash
 cd /home/ec2-user/aipm
-node -c apps/frontend/public/app.js
-node -c apps/backend/app.js
+# Create test file: scripts/testing/phase4-story-{storyId}.sh
+# Test should verify acceptance criteria from the story
 ```
-If fails: Fix and retry (max 3 attempts)
+
+### 5. Run Gating Tests (MANDATORY)
+```bash
+cd /home/ec2-user/aipm
+bash scripts/testing/run-structured-gating-tests.sh --phases 1,2,3,4 2>&1 | tail -100
+```
+Check output for: "ALL GATING TESTS PASSED"
+If fails: Fix code and return to step 4 (max 3 attempts)
 
 ### 6. Commit & Push
 ```bash
