@@ -7736,7 +7736,9 @@ export async function createApp() {
         sendJson(res, 204, {});
       } catch (error) {
         console.error('Error deleting story and associated data:', error);
-        sendJson(res, 500, { message: 'Failed to delete story and associated data' });
+        console.error('Error stack:', error.stack);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        sendJson(res, 500, { message: 'Failed to delete story and associated data', error: error.message });
       }
       return;
     }
