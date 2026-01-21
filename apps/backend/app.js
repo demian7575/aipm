@@ -6472,6 +6472,7 @@ export async function createApp() {
 
         sendJson(res, 200, {
           success: true,
+          prNumber: prNumber,
           branch: prBranch,
           prUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/pull/${prNumber}`,
           generatedCode: result.summary || 'Code generated'
