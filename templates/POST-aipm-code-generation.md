@@ -58,9 +58,22 @@ cp scripts/testing/phase4-story-template.sh scripts/testing/phase4-story-{storyI
 ### 5. Run Gating Tests (MANDATORY)
 ```bash
 cd /home/ec2-user/aipm
-bash scripts/testing/run-structured-gating-tests.sh --phases 1,2,3,4 2>&1 | tail -100
+
+# Run Phase 1 and 2 - MUST PASS
+bash scripts/testing/run-structured-gating-tests.sh --phases 1,2 2>&1 | tail -100
+
+# Check Phase 1,2 passed
+if ! grep -q "ALL GATING TESTS PASSED" <(bash scripts/testing/run-structured-gating-tests.sh --phases 1,2 2>&1); then
+    echo "Phase 1,2 failed - fix and retry"
+    exit 1
+fi
+
+# Run only the newly created Phase 4 test for this story
+bash scripts/testing/phase4-story-{storyId}.sh
+
+# If new test passes, proceed to commit
 ```
-Check output for: "ALL GATING TESTS PASSED"
+Check output for: "ALL GATING TESTS PASSED" (Phase 1,2) and story test passes
 If fails: Fix code and return to step 4 (max 3 attempts)
 
 ### 6. Commit & Push
