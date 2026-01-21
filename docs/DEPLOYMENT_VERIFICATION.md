@@ -28,14 +28,14 @@ aws s3 sync apps/frontend/public/ s3://aipm-dev-frontend-hosting/
 ### 3. EC2 Instance Status
 ```
 Instance ID: i-016241c7a18884e80
-Public IP: 44.220.45.57
+Public IP: 3.92.96.67
 State: running ✅
 ```
 
 ### 4. EC2 Terminal Server
 **Status:** ⚠️ **NOT RESPONDING**  
 **Port:** 8080  
-**Health Endpoint:** http://44.220.45.57:8080/health
+**Health Endpoint:** http://3.92.96.67:8080/health
 
 **Issue:** Terminal server not responding on port 8080
 
@@ -51,10 +51,10 @@ The enhanced worker pool code needs to be deployed to EC2:
 
 # Option 2: Manual deployment
 # Step 1: Copy file
-scp scripts/workers/terminal-server.js ec2-user@44.220.45.57:/home/ec2-user/aipm/scripts/workers/
+scp scripts/workers/terminal-server.js ec2-user@3.92.96.67:/home/ec2-user/aipm/scripts/workers/
 
 # Step 2: SSH to EC2
-ssh ec2-user@44.220.45.57
+ssh ec2-user@3.92.96.67
 
 # Step 3: Pull latest code
 cd /home/ec2-user/aipm
@@ -94,7 +94,7 @@ tail -f /tmp/terminal-server.log
 
 ### 1. Health Check
 ```bash
-curl http://44.220.45.57:8080/health | jq
+curl http://3.92.96.67:8080/health | jq
 ```
 
 **Expected:**
@@ -123,7 +123,7 @@ curl http://44.220.45.57:8080/health | jq
 
 ### 2. Worker Logs
 ```bash
-ssh ec2-user@44.220.45.57
+ssh ec2-user@3.92.96.67
 tail -f /tmp/terminal-server.log
 ```
 
@@ -155,7 +155,7 @@ tail -f /tmp/terminal-server.log
 ### 4. Monitor Worker Health
 ```bash
 # Watch worker status
-watch -n 5 'curl -s http://44.220.45.57:8080/health | jq ".workers"'
+watch -n 5 'curl -s http://3.92.96.67:8080/health | jq ".workers"'
 ```
 
 ## 📈 New Features to Verify

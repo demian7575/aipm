@@ -16,7 +16,7 @@
 ./scripts/deployment/deploy-kiro-api.sh
 
 # Option B: Manual deployment
-ssh ec2-user@44.220.45.57
+ssh ec2-user@3.92.96.67
 cd ~/aipm
 git pull origin develop
 bash scripts/deployment/setup-kiro-api-service.sh
@@ -26,7 +26,7 @@ bash scripts/deployment/setup-kiro-api-service.sh
 
 ```bash
 # Check health endpoint
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 
 # Expected response:
 # {"status":"running","activeRequests":0,"uptime":123.45}
@@ -41,20 +41,20 @@ curl http://44.220.45.57:8081/health
 5. Fill in form and submit
 6. Verify:
    - PR is created on GitHub
-   - Kiro API logs show activity: `ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"`
+   - Kiro API logs show activity: `ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-api-server.log"`
    - Code is generated and pushed to PR branch
 
 ### 4. Monitor and Debug
 
 ```bash
 # Check service status
-ssh ec2-user@44.220.45.57 "sudo systemctl status kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl status kiro-api-server"
 
 # View logs
-ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"
+ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-api-server.log"
 
 # Restart if needed
-ssh ec2-user@44.220.45.57 "sudo systemctl restart kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl restart kiro-api-server"
 ```
 
 ### 5. Deploy Backend to Development
@@ -89,20 +89,20 @@ aws lambda update-function-code \
 
 ```bash
 # Check if service is running
-ssh ec2-user@44.220.45.57 "sudo systemctl status kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl status kiro-api-server"
 
 # Check logs for errors
-ssh ec2-user@44.220.45.57 "tail -100 /tmp/kiro-api-server.log"
+ssh ec2-user@3.92.96.67 "tail -100 /tmp/kiro-api-server.log"
 
 # Restart service
-ssh ec2-user@44.220.45.57 "sudo systemctl restart kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl restart kiro-api-server"
 ```
 
 ### Kiro CLI not found
 
 ```bash
 # Verify PATH in service file
-ssh ec2-user@44.220.45.57 "cat /etc/systemd/system/kiro-api-server.service | grep PATH"
+ssh ec2-user@3.92.96.67 "cat /etc/systemd/system/kiro-api-server.service | grep PATH"
 
 # Should include: /home/ec2-user/.local/bin
 ```
@@ -133,11 +133,11 @@ If issues occur:
 2. Or manually change in `apps/backend/app.js`:
    ```javascript
    // Change from:
-   const kiroApiUrl = process.env.KIRO_API_URL || 'http://44.220.45.57:8081';
+   const kiroApiUrl = process.env.KIRO_API_URL || 'http://3.92.96.67:8081';
    fetch(`${kiroApiUrl}/execute`, ...)
    
    // Back to:
-   const ec2Url = process.env.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
+   const ec2Url = process.env.EC2_TERMINAL_URL || 'http://3.92.96.67:8080';
    fetch(`${ec2Url}/generate-code`, ...)
    ```
 

@@ -161,8 +161,8 @@ All suites support environment variables:
 
 ```bash
 # Target environment
-export API_BASE="http://44.220.45.57:4000"
-export KIRO_API_BASE="http://44.220.45.57:8081"
+export API_BASE="http://3.92.96.67:4000"
+export KIRO_API_BASE="http://3.92.96.67:8081"
 export FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
 export TARGET_ENV="prod"
 

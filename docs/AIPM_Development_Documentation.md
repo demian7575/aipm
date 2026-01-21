@@ -79,7 +79,7 @@ AIPM follows a cloud-native three-tier architecture:
 ```
 
 **Dual Environment Setup:**
-- **Production**: EC2 (44.220.45.57) + S3 (aipm-static-hosting-demo)
+- **Production**: EC2 (3.92.96.67) + S3 (aipm-static-hosting-demo)
 - **Development**: EC2 (44.222.168.46) + S3 (aipm-dev-frontend-hosting)
 - **Kiro API**: Port 8081 on development server for AI code generation
 
@@ -141,7 +141,7 @@ Production Environment:
 │  ┌─────────────────┐    ┌─────────────────┐                │
 │  │   S3 Bucket     │    │   EC2 Instance  │                │
 │  │   Frontend      │    │   Backend API   │                │
-│  │   44.220.45.57  │    │   44.220.45.57  │                │
+│  │   3.92.96.67  │    │   3.92.96.67  │                │
 │  └─────────────────┘    └─────────────────┘                │
 │           │                       │                        │
 │           └───────────────────────┼────────────────────┐   │
@@ -1063,7 +1063,7 @@ AIPM uses a dual-environment deployment strategy:
 
 **Production Environment:**
 - Frontend: S3 static hosting (`aipm-static-hosting-demo`)
-- Backend: EC2 instance (`44.220.45.57`)
+- Backend: EC2 instance (`3.92.96.67`)
 - Database: DynamoDB production tables
 
 **Development Environment:**
@@ -1097,7 +1097,7 @@ AIPM uses a dual-environment deployment strategy:
 
 2. **Verify Deployment:**
 ```bash
-curl http://44.220.45.57/health
+curl http://3.92.96.67/health
 curl http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com
 ```
 
@@ -1144,7 +1144,7 @@ set -e
 
 ENV=$1
 if [[ "$ENV" == "prod" ]]; then
-    HOST="44.220.45.57"
+    HOST="3.92.96.67"
     FRONTEND_BUCKET="aipm-static-hosting-demo"
 elif [[ "$ENV" == "dev" ]]; then
     HOST="44.222.168.46"
@@ -1229,8 +1229,8 @@ aws s3 sync apps/frontend/public/ s3://aipm-static-hosting-demo/ --cache-control
 
 2. **Backend Hotfix:**
 ```bash
-scp apps/backend/app.js ec2-user@44.220.45.57:aipm/apps/backend/app.js
-ssh ec2-user@44.220.45.57 "sudo systemctl restart aipm-backend"
+scp apps/backend/app.js ec2-user@3.92.96.67:aipm/apps/backend/app.js
+ssh ec2-user@3.92.96.67 "sudo systemctl restart aipm-backend"
 ```
 
 3. **Database Migration:**
@@ -1259,8 +1259,8 @@ aws s3 cp app.js s3://aipm-static-hosting-demo/app.js
 ```bash
 # Restore from git
 git checkout HEAD~1 -- apps/backend/app.js
-scp apps/backend/app.js ec2-user@44.220.45.57:aipm/apps/backend/app.js
-ssh ec2-user@44.220.45.57 "sudo systemctl restart aipm-backend"
+scp apps/backend/app.js ec2-user@3.92.96.67:aipm/apps/backend/app.js
+ssh ec2-user@3.92.96.67 "sudo systemctl restart aipm-backend"
 ```
 
 ---
@@ -1296,7 +1296,7 @@ The AIPM testing framework uses structured gating tests organized into phases:
 **GitHub Token Permissions:**
 ```bash
 # Test GitHub token has required permissions
-GITHUB_STATUS=$(curl -s "http://44.220.45.57/api/github-status" | jq -r '.hasValidToken')
+GITHUB_STATUS=$(curl -s "http://3.92.96.67/api/github-status" | jq -r '.hasValidToken')
 if [[ "$GITHUB_STATUS" == "true" ]]; then
     pass_test "GitHub token has required permissions"
 else
@@ -1338,7 +1338,7 @@ fi
 ```bash
 # Test stories API performance
 START_TIME=$(date +%s%N)
-curl -s "http://44.220.45.57/api/stories" > /dev/null
+curl -s "http://3.92.96.67/api/stories" > /dev/null
 END_TIME=$(date +%s%N)
 RESPONSE_TIME=$(( (END_TIME - START_TIME) / 1000000 ))
 
@@ -1353,7 +1353,7 @@ fi
 ```bash
 # Test concurrent request handling
 for i in {1..5}; do
-    curl -s "http://44.220.45.57/api/stories" > /tmp/response_$i.json &
+    curl -s "http://3.92.96.67/api/stories" > /tmp/response_$i.json &
 done
 wait
 
@@ -1394,7 +1394,7 @@ fi
 **EC2 Instance Connectivity:**
 ```bash
 # Test production EC2 instance
-if curl -s --max-time 5 "http://44.220.45.57/health" >/dev/null 2>&1; then
+if curl -s --max-time 5 "http://3.92.96.67/health" >/dev/null 2>&1; then
     pass_test "Production EC2 instance reachable"
 else
     fail_test "Production EC2 instance unreachable"
@@ -1414,7 +1414,7 @@ fi
 ```bash
 # Test story creation workflow
 STORY_DATA='{"title":"Test Story","description":"Test Description","asA":"tester","iWant":"to test","soThat":"testing works"}'
-RESPONSE=$(curl -s -X POST "http://44.220.45.57/api/stories" \
+RESPONSE=$(curl -s -X POST "http://3.92.96.67/api/stories" \
     -H "Content-Type: application/json" \
     -d "$STORY_DATA")
 
@@ -1423,7 +1423,7 @@ if [[ "$STORY_ID" != "null" && "$STORY_ID" != "" ]]; then
     pass_test "Story creation workflow successful (ID: $STORY_ID)"
     
     # Test story retrieval
-    RETRIEVED_STORY=$(curl -s "http://44.220.45.57/api/stories/$STORY_ID")
+    RETRIEVED_STORY=$(curl -s "http://3.92.96.67/api/stories/$STORY_ID")
     if echo "$RETRIEVED_STORY" | jq -e '.title == "Test Story"' >/dev/null; then
         pass_test "Story retrieval workflow successful"
     else
@@ -1431,7 +1431,7 @@ if [[ "$STORY_ID" != "null" && "$STORY_ID" != "" ]]; then
     fi
     
     # Cleanup test data
-    curl -s -X DELETE "http://44.220.45.57/api/stories/$STORY_ID" >/dev/null
+    curl -s -X DELETE "http://3.92.96.67/api/stories/$STORY_ID" >/dev/null
 else
     fail_test "Story creation workflow failed"
 fi

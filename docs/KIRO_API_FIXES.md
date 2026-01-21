@@ -131,7 +131,7 @@ console.log('✅ Completion detected: Git operations + 10s idle');
 
 ```bash
 # Monitor Kiro API logs
-ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"
+ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-api-server.log"
 ```
 
 Expected log output:
@@ -151,7 +151,7 @@ Expected log output:
 Simulate a task that doesn't output completion signals:
 
 ```bash
-curl -X POST http://44.220.45.57:8081/execute \
+curl -X POST http://3.92.96.67:8081/execute \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "echo test && sleep 65",
@@ -237,13 +237,13 @@ aws lambda update-function-code \
 
 ```bash
 # Check health
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 
 # Test task creation
 # (Use AIPM UI to create a task)
 
 # Monitor logs
-ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"
+ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-api-server.log"
 ```
 
 ## Troubleshooting

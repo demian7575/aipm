@@ -8,7 +8,7 @@ echo "🔧 Phase 5: Code Generation & Acceptance Tests Workflow"
 
 # Get Test Root
 TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
-echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+echo "📍 Using Test Parent ID: $TEST_ROOT_ID"
 
 # Test 1: Create story and acceptance test, then clean up
 echo "  🧪 Testing code generation workflow with cleanup..."

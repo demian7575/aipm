@@ -6,13 +6,13 @@ source "$(dirname "$0")/test-functions.sh"
 
 echo "🔴 Phase 1: Real Security & Data Safety Tests"
 
-# Get or create Test Root
+# Verify Test Parent exists
 TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
 if [[ -z "$TEST_ROOT_ID" ]]; then
-  fail_test "Failed to get/create Test Root"
+  fail_test "Test Parent story not found"
   exit 1
 fi
-echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+echo "📍 Using Test Parent ID: $TEST_ROOT_ID"
 
 # Test 1: Front page loading test
 echo "  🧪 Testing front page loading..."
@@ -85,7 +85,7 @@ fi
 # Test 3: Test real draft generation with actual content validation
 echo "  🧪 Testing real draft generation workflow..."
 DRAFT_REQUEST='{"templateId":"user-story-generation","feature_description":"user authentication system","parentId":"1"}'
-DRAFT_RESPONSE=$(curl -s -X POST "$PROD_API_BASE:8081/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST")
+DRAFT_RESPONSE=$(curl -s -X POST "$PROD_API_BASE:8083/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST")
 
 DRAFT_SUCCESS=$(echo "$DRAFT_RESPONSE" | jq -r '.success // false')
 DRAFT_TITLE=$(echo "$DRAFT_RESPONSE" | jq -r '.draft.title // empty')

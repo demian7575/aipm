@@ -22,7 +22,7 @@
   "ACCEPTANCE_TESTS_TABLE": "aipm-backend-dev-acceptance-tests",
   "GITHUB_REPO": "aipm",
   "GITHUB_OWNER": "demian7575",
-  "KIRO_API_URL": "http://44.220.45.57:8081",
+  "KIRO_API_URL": "http://3.92.96.67:8081",
   "STAGE": "dev",
   "NODE_ENV": "production"
 }
@@ -46,7 +46,7 @@
 
 ### ✅ Kiro API (Shared)
 
-**URL:** http://44.220.45.57:8081  
+**URL:** http://3.92.96.67:8081  
 **Status:** Running  
 **Serves:** Both production and development
 
@@ -57,7 +57,7 @@
 aws lambda update-function-configuration \
   --function-name aipm-backend-dev-api \
   --environment Variables='{
-    "KIRO_API_URL":"http://44.220.45.57:8081",
+    "KIRO_API_URL":"http://3.92.96.67:8081",
     ...
   }'
 ```
@@ -120,7 +120,7 @@ http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
 
 ### Kiro API Test
 ```bash
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 ```
 **Result:** ✅ Returns running status
 

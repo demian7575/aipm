@@ -20,13 +20,13 @@
 
 ```bash
 # Check EC2 server
-curl http://44.220.45.57:8080/health
+curl http://3.92.96.67:8080/health
 
 # Watch logs in real-time
-ssh ec2-user@44.220.45.57 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 
 # Check Kiro process
-ssh ec2-user@44.220.45.57 'ps aux | grep kiro-cli'
+ssh ec2-user@3.92.96.67 'ps aux | grep kiro-cli'
 ```
 
 ## 🔧 Troubleshooting
@@ -38,18 +38,18 @@ ssh ec2-user@44.220.45.57 'ps aux | grep kiro-cli'
 
 ### Check Recent Activity
 ```bash
-ssh ec2-user@44.220.45.57 'tail -50 /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'tail -50 /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 ```
 
 ### Manual Push (if needed)
 ```bash
-ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git status && git push origin <branch>'
+ssh ec2-user@3.92.96.67 'cd /home/ec2-user/aipm && git status && git push origin <branch>'
 ```
 
 ## 🏗️ Architecture
 
 ```
-AIPM UI → Backend API → EC2 (44.220.45.57:8080) → Kiro CLI → GitHub PR
+AIPM UI → Backend API → EC2 (3.92.96.67:8080) → Kiro CLI → GitHub PR
 ```
 
 ## 📝 Form Fields
@@ -73,16 +73,16 @@ AIPM UI → Backend API → EC2 (44.220.45.57:8080) → Kiro CLI → GitHub PR
 ./diagnose-generate-flow.sh
 
 # Check server health
-curl http://44.220.45.57:8080/health
+curl http://3.92.96.67:8080/health
 
 # Restart server
 ./scripts/workers/start-kiro-terminal.sh
 
 # View logs
-ssh ec2-user@44.220.45.57 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 
 # Check git status on EC2
-ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git status'
+ssh ec2-user@3.92.96.67 'cd /home/ec2-user/aipm && git status'
 ```
 
 ## 🎯 Best Practices

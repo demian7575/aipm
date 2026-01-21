@@ -49,7 +49,7 @@ on:
 **Production Config**
 ```javascript
 {
-  API_BASE_URL: 'http://44.220.45.57',
+  API_BASE_URL: 'http://3.92.96.67',
   ENVIRONMENT: 'production',
   stage: 'prod',
   storiesTable: 'aipm-backend-prod-stories',
@@ -74,7 +74,7 @@ on:
 
 | Component | Production | Development |
 |-----------|-----------|-------------|
-| **EC2 Server** | 44.220.45.57 | 44.222.168.46 |
+| **EC2 Server** | 3.92.96.67 | 44.222.168.46 |
 | **S3 Bucket** | aipm-static-hosting-demo | aipm-dev-frontend-hosting |
 | **S3 URL** | aipm-static-hosting-demo.s3-website... | aipm-dev-frontend-hosting.s3-website... |
 | **DynamoDB Stories** | aipm-backend-prod-stories | aipm-backend-dev-stories |
@@ -130,7 +130,7 @@ Tests pass? → Yes → Deploy
                     → Yes → Deploy (with warning)
                     → No  → Block deployment
   ↓
-Deploy to prod EC2 (44.220.45.57)
+Deploy to prod EC2 (3.92.96.67)
   ↓
 Deploy to prod S3
   ↓

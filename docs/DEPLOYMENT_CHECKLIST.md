@@ -71,7 +71,7 @@ If you need more control:
 
 - [ ] Health check returns 200
   ```bash
-  curl http://44.220.45.57:8081/health
+  curl http://3.92.96.67:8081/health
   ```
 
 - [ ] Gating tests pass
@@ -81,7 +81,7 @@ If you need more control:
 
 - [ ] Service is running
   ```bash
-  ssh ec2-user@44.220.45.57 "sudo systemctl status kiro-api-server"
+  ssh ec2-user@3.92.96.67 "sudo systemctl status kiro-api-server"
   ```
 
 ### Functional Testing
@@ -90,7 +90,7 @@ If you need more control:
 - [ ] Verify Development Task card appears
 - [ ] Monitor Kiro API logs
   ```bash
-  ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"
+  ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-api-server.log"
   ```
 - [ ] Verify code is generated and pushed
 - [ ] Check PR on GitHub
@@ -127,7 +127,7 @@ aws ec2 authorize-security-group-ingress \
 
 **Manual Fix:**
 ```bash
-ssh ec2-user@44.220.45.57 "cd ~/aipm && git stash && git checkout develop && git reset --hard origin/develop"
+ssh ec2-user@3.92.96.67 "cd ~/aipm && git stash && git checkout develop && git reset --hard origin/develop"
 ```
 
 ### Issue: Service Not Running
@@ -139,7 +139,7 @@ ssh ec2-user@44.220.45.57 "cd ~/aipm && git stash && git checkout develop && git
 
 **Manual Fix:**
 ```bash
-ssh ec2-user@44.220.45.57 "sudo systemctl restart kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl restart kiro-api-server"
 ```
 
 ### Issue: Gating Tests Fail
@@ -161,13 +161,13 @@ If deployment fails:
 
 1. **Check what failed:**
    ```bash
-   ssh ec2-user@44.220.45.57 "tail -100 /tmp/kiro-api-server.log"
+   ssh ec2-user@3.92.96.67 "tail -100 /tmp/kiro-api-server.log"
    ```
 
 2. **Rollback to previous version:**
    ```bash
-   ssh ec2-user@44.220.45.57 "cd ~/aipm && git reset --hard <previous-commit>"
-   ssh ec2-user@44.220.45.57 "sudo systemctl restart kiro-api-server"
+   ssh ec2-user@3.92.96.67 "cd ~/aipm && git reset --hard <previous-commit>"
+   ssh ec2-user@3.92.96.67 "sudo systemctl restart kiro-api-server"
    ```
 
 3. **Verify rollback:**
@@ -229,13 +229,13 @@ After each deployment:
 ./scripts/testing/test-kiro-api-gating.sh
 
 # Check service
-ssh ec2-user@44.220.45.57 "sudo systemctl status kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl status kiro-api-server"
 
 # View logs
-ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"
+ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-api-server.log"
 
 # Restart service
-ssh ec2-user@44.220.45.57 "sudo systemctl restart kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl restart kiro-api-server"
 ```
 
 ## Remember

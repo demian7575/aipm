@@ -193,15 +193,15 @@ git checkout -b hotfix/critical-issue
 ./bin/startup
 
 # Check specific services
-curl http://44.220.45.57:8080/health  # Terminal server
-curl http://44.220.45.57:8081/health  # Kiro API
+curl http://3.92.96.67:8080/health  # Terminal server
+curl http://3.92.96.67:8081/health  # Kiro API
 ```
 
 #### Service Restart
 ```bash
 # Restart EC2 services
-ssh ec2-user@44.220.45.57 'sudo systemctl restart aipm-terminal-server'
-ssh ec2-user@44.220.45.57 'sudo systemctl restart kiro-api-server'
+ssh ec2-user@3.92.96.67 'sudo systemctl restart aipm-terminal-server'
+ssh ec2-user@3.92.96.67 'sudo systemctl restart kiro-api-server'
 ```
 
 #### Queue Management
@@ -312,12 +312,12 @@ bin/
 
 # Health monitoring
 ./bin/startup         # Check all services
-curl http://44.220.45.57:8080/health  # Worker pool
-curl http://44.220.45.57:8081/health  # Kiro API
+curl http://3.92.96.67:8080/health  # Worker pool
+curl http://3.92.96.67:8081/health  # Kiro API
 
 # Service management
-ssh ec2-user@44.220.45.57 'sudo systemctl status aipm-terminal-server'
-ssh ec2-user@44.220.45.57 'sudo systemctl restart kiro-api-server'
+ssh ec2-user@3.92.96.67 'sudo systemctl status aipm-terminal-server'
+ssh ec2-user@3.92.96.67 'sudo systemctl restart kiro-api-server'
 ```
 
 ### Environment URLs

@@ -3,7 +3,7 @@
 ## ✅ Deployed Successfully
 
 Date: 2025-12-18  
-Location: EC2 instance (44.220.45.57)  
+Location: EC2 instance (3.92.96.67)  
 Service: kiro-api-v3
 
 ## Files Created
@@ -101,7 +101,7 @@ const enhancePrompt = PROMPTS.enhanceStory
 
 To modify prompts:
 1. Edit files in `scripts/prompts/`
-2. Deploy: `scp -r scripts/prompts ec2-user@44.220.45.57:/home/ec2-user/aipm/scripts/`
-3. Restart: `ssh ec2-user@44.220.45.57 'sudo systemctl restart kiro-api-v3'`
+2. Deploy: `scp -r scripts/prompts ec2-user@3.92.96.67:/home/ec2-user/aipm/scripts/`
+3. Restart: `ssh ec2-user@3.92.96.67 'sudo systemctl restart kiro-api-v3'`
 
 No code changes needed for prompt modifications!

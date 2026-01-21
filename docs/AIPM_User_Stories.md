@@ -8,7 +8,7 @@ This document decomposes AIPM requirements into detailed, testable user stories 
   **Acceptance Criteria:** Diagram or text lists S3-hosted frontend, EC2 backend (port 4000 via nginx 80), Kiro API (8081), terminal server (8080), DynamoDB tables (`stories`, `acceptance-tests`), and legacy Lambda/API Gateway presence.
 - **Story A2: Environment endpoints**  
   As an operator, I need production and development endpoint URLs documented so I can verify deployments.  
-  **Acceptance Criteria:** Production backend/frontend URLs (44.220.45.57, `aipm-static-hosting-demo` S3) and development backend/frontend URLs (44.222.168.46, `aipm-dev-frontend-hosting` S3) are explicitly listed.
+  **Acceptance Criteria:** Production backend/frontend URLs (3.92.96.67, `aipm-static-hosting-demo` S3) and development backend/frontend URLs (44.222.168.46, `aipm-dev-frontend-hosting` S3) are explicitly listed.
 - **Story A3: Legacy compatibility**  
   As a platform owner, I need Lambda/serverless compatibility documented so I can decide on cleanup or rollback.  
   **Acceptance Criteria:** `handler.mjs` usage via `@vendia/serverless-express` is described; note that EC2 is primary and Lambda is deprecated but functional.
@@ -106,7 +106,7 @@ This document decomposes AIPM requirements into detailed, testable user stories 
 ## 8. Deployment & Release Management
 - **Story H1: Production deploy**  
   As DevOps, I need repeatable prod deployment steps.  
-  **Acceptance Criteria:** Scripts `scripts/deployment/deploy-prod-full.sh` (and variants) are referenced; validation via `curl` to root and `/api/stories` on 44.220.45.57; `deploy-config.yaml` governs stage/region/bucket.
+  **Acceptance Criteria:** Scripts `scripts/deployment/deploy-prod-full.sh` (and variants) are referenced; validation via `curl` to root and `/api/stories` on 3.92.96.67; `deploy-config.yaml` governs stage/region/bucket.
 - **Story H2: Development deploy**  
   As DevOps, I need dev deployment parity.  
   **Acceptance Criteria:** Scripts `deploy-dev-ec2.sh`, `deploy-dev-full.sh`, `deploy-dev-direct.sh` are referenced; dev endpoints (44.222.168.46, dev S3 bucket) stated.

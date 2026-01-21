@@ -109,7 +109,7 @@ node scripts/testing/test-kiro-api-gating.cjs
   run: |
     ./scripts/testing/run-all-gating-tests.sh
   env:
-    KIRO_API_URL: http://44.220.45.57:8081
+    KIRO_API_URL: http://3.92.96.67:8081
 ```
 
 ## Test Coverage
@@ -140,7 +140,7 @@ node scripts/testing/test-kiro-api-gating.cjs
 
 ```
 🧪 Kiro API Gating Tests
-API: http://44.220.45.57:8081
+API: http://3.92.96.67:8081
 
 📋 FR-2.1: Health Endpoint Returns Status
    ✅ Health check returns 200 with running status
@@ -195,7 +195,7 @@ API: http://44.220.45.57:8081
 ### Health Check
 
 ```bash
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 ```
 
 Expected:
@@ -212,7 +212,7 @@ Expected:
 ### Execute Request
 
 ```bash
-curl -X POST http://44.220.45.57:8081/execute \
+curl -X POST http://3.92.96.67:8081/execute \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "List files in current directory",
@@ -234,7 +234,7 @@ Expected:
 ### Missing Prompt (Error)
 
 ```bash
-curl -X POST http://44.220.45.57:8081/execute \
+curl -X POST http://3.92.96.67:8081/execute \
   -H "Content-Type: application/json" \
   -d '{"context": "test"}'
 ```
@@ -249,7 +249,7 @@ Expected:
 ### CORS Preflight
 
 ```bash
-curl -X OPTIONS http://44.220.45.57:8081/execute -I
+curl -X OPTIONS http://3.92.96.67:8081/execute -I
 ```
 
 Expected:
@@ -268,7 +268,7 @@ Access-Control-Allow-Headers: Content-Type
 
 **Solution:**
 ```bash
-ssh ec2-user@44.220.45.57
+ssh ec2-user@3.92.96.67
 sudo systemctl status kiro-api-server
 sudo systemctl start kiro-api-server
 ```
@@ -279,7 +279,7 @@ sudo systemctl start kiro-api-server
 
 **Solution:**
 ```bash
-ssh ec2-user@44.220.45.57
+ssh ec2-user@3.92.96.67
 sudo systemctl restart kiro-api-server
 tail -f /tmp/kiro-api-server.log
 ```
@@ -291,10 +291,10 @@ tail -f /tmp/kiro-api-server.log
 **Solution:**
 ```bash
 # Check server version
-ssh ec2-user@44.220.45.57 "cd ~/aipm && git log -1 --oneline"
+ssh ec2-user@3.92.96.67 "cd ~/aipm && git log -1 --oneline"
 
 # Update server
-ssh ec2-user@44.220.45.57 "cd ~/aipm && git pull && sudo systemctl restart kiro-api-server"
+ssh ec2-user@3.92.96.67 "cd ~/aipm && git pull && sudo systemctl restart kiro-api-server"
 ```
 
 ## Adding New Tests

@@ -9,7 +9,7 @@
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| EC2 Terminal Server | ✅ Running | http://44.220.45.57:8080 |
+| EC2 Terminal Server | ✅ Running | http://3.92.96.67:8080 |
 | Kiro CLI | ✅ Active | PID 34198, persistent session |
 | Repository on EC2 | ✅ Present | /home/ec2-user/aipm |
 | GitHub Token | ✅ Valid | Authenticated and authorized |
@@ -34,7 +34,7 @@
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              EC2 Terminal Server (Node.js)                   │
-│  IP: 44.220.45.57:8080                                      │
+│  IP: 3.92.96.67:8080                                      │
 │  Endpoint: POST /generate-code                              │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │         Persistent Kiro CLI Session                  │   │
@@ -72,7 +72,7 @@
    - ✅ PR created with description
 
 4. **EC2 Trigger**: Backend calls EC2 terminal server
-   - ✅ Fire-and-forget HTTP POST to `http://44.220.45.57:8080/generate-code`
+   - ✅ Fire-and-forget HTTP POST to `http://3.92.96.67:8080/generate-code`
    - ✅ Payload includes: branch, taskDescription, prNumber
 
 5. **Code Generation**: Kiro CLI generates code
@@ -112,7 +112,7 @@
 **Backend (Lambda)**:
 ```bash
 GITHUB_TOKEN=<token>                    # Required
-EC2_TERMINAL_URL=http://44.220.45.57:8080  # Optional (has default)
+EC2_TERMINAL_URL=http://3.92.96.67:8080  # Optional (has default)
 ```
 
 **EC2 Server**:
@@ -150,7 +150,7 @@ npx serverless deploy --stage prod
 ### Manual Test
 ```bash
 # 1. Check server health
-curl http://44.220.45.57:8080/health
+curl http://3.92.96.67:8080/health
 # Expected: {"status":"running","kiro":{"pid":34198,"running":true}}
 
 # 2. Test delegation endpoint (creates real PR!)
@@ -175,17 +175,17 @@ curl -X POST https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/per
 
 ### Real-Time Logs
 ```bash
-ssh ec2-user@44.220.45.57 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 ```
 
 ### Check Kiro Process
 ```bash
-ssh ec2-user@44.220.45.57 'ps aux | grep kiro-cli'
+ssh ec2-user@3.92.96.67 'ps aux | grep kiro-cli'
 ```
 
 ### Check Git Status
 ```bash
-ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git status'
+ssh ec2-user@3.92.96.67 'cd /home/ec2-user/aipm && git status'
 ```
 
 ## Known Behaviors
@@ -220,12 +220,12 @@ ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git status'
 
 ### Update Repository on EC2
 ```bash
-ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git pull origin main'
+ssh ec2-user@3.92.96.67 'cd /home/ec2-user/aipm && git pull origin main'
 ```
 
 ### Check Server Uptime
 ```bash
-ssh ec2-user@44.220.45.57 'uptime'
+ssh ec2-user@3.92.96.67 'uptime'
 ```
 
 ## Security
@@ -264,7 +264,7 @@ See [GENERATE_CODE_PR_GUIDE.md](docs/GENERATE_CODE_PR_GUIDE.md) for detailed tro
 |-------|---------|
 | Server not responding | `./scripts/workers/start-kiro-terminal.sh` |
 | Kiro stuck | `./scripts/workers/start-kiro-terminal.sh` |
-| Git push failed | `ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git push origin <branch>'` |
+| Git push failed | `ssh ec2-user@3.92.96.67 'cd /home/ec2-user/aipm && git push origin <branch>'` |
 
 ## Conclusion
 

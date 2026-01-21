@@ -22,8 +22,8 @@ AIPM is a distributed web application for managing user stories with AI-powered 
 **Configuration:**
 ```javascript
 window.CONFIG = {
-  API_BASE_URL: 'http://44.220.45.57',        // Production EC2
-  EC2_TERMINAL_URL: 'ws://44.220.45.57:8080', // WebSocket terminal
+  API_BASE_URL: 'http://3.92.96.67',        // Production EC2
+  EC2_TERMINAL_URL: 'ws://3.92.96.67:8080', // WebSocket terminal
   ENVIRONMENT: 'production',
   storiesTable: 'aipm-backend-prod-stories',
   acceptanceTestsTable: 'aipm-backend-prod-acceptance-tests'
@@ -34,7 +34,7 @@ window.CONFIG = {
 
 #### 2.1 Main Backend Server
 **Location:** `apps/backend/`  
-**Hosting:** EC2 Instance (44.220.45.57:80 prod, 44.222.168.46:80 dev)  
+**Hosting:** EC2 Instance (3.92.96.67:80 prod, 44.222.168.46:80 dev)  
 **Technology:** Node.js HTTP Server  
 **Primary Purpose:** Story management, data persistence, GitHub integration
 
@@ -114,7 +114,7 @@ GET  /api/stories              - Story management (duplicate)
 ### 6. AWS Infrastructure
 
 #### 6.1 EC2 Instances
-**Production:** `44.220.45.57`
+**Production:** `3.92.96.67`
 - Main Backend Server (Port 80)
 - Kiro API Server (Port 8081)
 - WebSocket Terminal (Port 8080)

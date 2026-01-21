@@ -24,7 +24,7 @@ Developer reviews and merges PR
 
 All prerequisites are already configured:
 
-- ✅ EC2 instance running at `44.220.45.57:8080`
+- ✅ EC2 instance running at `3.92.96.67:8080`
 - ✅ Kiro CLI installed and running persistently
 - ✅ GitHub token configured
 - ✅ Repository cloned on EC2
@@ -57,7 +57,7 @@ All prerequisites are already configured:
 
 - PR is created immediately with TASK.md placeholder
 - Kiro CLI starts generating code (takes 2-10 minutes)
-- Monitor progress: `ssh ec2-user@44.220.45.57 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'`
+- Monitor progress: `ssh ec2-user@3.92.96.67 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'`
 
 ### Step 4: Review and Merge
 
@@ -71,7 +71,7 @@ All prerequisites are already configured:
 ### Check EC2 Terminal Server Status
 
 ```bash
-curl http://44.220.45.57:8080/health
+curl http://3.92.96.67:8080/health
 ```
 
 Expected response:
@@ -82,13 +82,13 @@ Expected response:
 ### View Real-Time Logs
 
 ```bash
-ssh ec2-user@44.220.45.57 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 ```
 
 ### Check Kiro Process
 
 ```bash
-ssh ec2-user@44.220.45.57 'ps aux | grep kiro-cli'
+ssh ec2-user@3.92.96.67 'ps aux | grep kiro-cli'
 ```
 
 ## Troubleshooting
@@ -100,10 +100,10 @@ ssh ec2-user@44.220.45.57 'ps aux | grep kiro-cli'
 **Diagnosis**:
 ```bash
 # Check if EC2 server is running
-curl http://44.220.45.57:8080/health
+curl http://3.92.96.67:8080/health
 
 # Check logs for errors
-ssh ec2-user@44.220.45.57 'tail -50 /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'tail -50 /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 ```
 
 **Solutions**:
@@ -133,7 +133,7 @@ ssh ec2-user@44.220.45.57 'tail -50 /home/ec2-user/aipm/scripts/workers/terminal
 **Solution**:
 ```bash
 # Check what Kiro is doing
-ssh ec2-user@44.220.45.57 'tail -100 /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'tail -100 /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 
 # Restart if needed
 ./scripts/workers/start-kiro-terminal.sh
@@ -145,13 +145,13 @@ ssh ec2-user@44.220.45.57 'tail -100 /home/ec2-user/aipm/scripts/workers/termina
 
 **Diagnosis**:
 ```bash
-ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git status'
+ssh ec2-user@3.92.96.67 'cd /home/ec2-user/aipm && git status'
 ```
 
 **Solution**:
 ```bash
 # Manually push
-ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git push origin <branch-name>'
+ssh ec2-user@3.92.96.67 'cd /home/ec2-user/aipm && git push origin <branch-name>'
 ```
 
 ## Maintenance
@@ -171,13 +171,13 @@ This script:
 ### Update Repository on EC2
 
 ```bash
-ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git pull origin main'
+ssh ec2-user@3.92.96.67 'cd /home/ec2-user/aipm && git pull origin main'
 ```
 
 ### Check Server Logs
 
 ```bash
-ssh ec2-user@44.220.45.57 'cat /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'cat /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 ```
 
 ## Architecture
@@ -197,7 +197,7 @@ ssh ec2-user@44.220.45.57 'cat /home/ec2-user/aipm/scripts/workers/terminal-serv
    - Runs persistent Kiro CLI session
    - Handles `/generate-code` endpoint
    - Located: `scripts/workers/terminal-server.js`
-   - IP: `44.220.45.57:8080`
+   - IP: `3.92.96.67:8080`
 
 4. **Kiro CLI**
    - Generates code based on task description
@@ -214,7 +214,7 @@ AIPM UI → Backend API → EC2 Server → Kiro CLI → Git Push → GitHub PR
 
 **Backend (Lambda)**:
 - `GITHUB_TOKEN`: GitHub personal access token
-- `EC2_TERMINAL_URL`: EC2 server URL (default: `http://44.220.45.57:8080`)
+- `EC2_TERMINAL_URL`: EC2 server URL (default: `http://3.92.96.67:8080`)
 
 **EC2 Server**:
 - `REPO_PATH`: Repository path (default: `/home/ec2-user/aipm`)

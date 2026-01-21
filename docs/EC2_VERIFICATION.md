@@ -11,7 +11,7 @@ Run the automated verification script:
 ## EC2 Instance Details
 
 - **Instance ID:** i-016241c7a18884e80
-- **Public IP:** 44.220.45.57
+- **Public IP:** 3.92.96.67
 - **Type:** t3.small
 - **Region:** us-east-1
 
@@ -19,17 +19,17 @@ Run the automated verification script:
 
 ### 1. Terminal Server (Port 8080)
 **Purpose:** Kiro CLI terminal server for code generation
-**Health Check:** `curl http://44.220.45.57:8080/health`
+**Health Check:** `curl http://3.92.96.67:8080/health`
 **Expected Response:** `{"status":"running","kiro":{"pid":...,"running":true}}`
 
 ### 2. Kiro API (Port 8081)
 **Purpose:** REST API for Kiro CLI interactions
-**Health Check:** `curl http://44.220.45.57:8081/health`
+**Health Check:** `curl http://3.92.96.67:8081/health`
 **Expected Response:** `{"status":"ok"}`
 
 ### 3. PR Processor (Port 8082)
 **Purpose:** GitHub PR creation and management
-**Health Check:** `curl http://44.220.45.57:8082/health`
+**Health Check:** `curl http://3.92.96.67:8082/health`
 **Expected Response:** `{"status":"ok","uptime":...}`
 
 ## Manual Verification Steps
@@ -38,19 +38,19 @@ Run the automated verification script:
 
 ```bash
 # Terminal Server
-curl http://44.220.45.57:8080/health
+curl http://3.92.96.67:8080/health
 
 # Kiro API
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 
 # PR Processor
-curl http://44.220.45.57:8082/health
+curl http://3.92.96.67:8082/health
 ```
 
 ### 2. SSH to EC2
 
 ```bash
-ssh ec2-user@44.220.45.57
+ssh ec2-user@3.92.96.67
 ```
 
 ### 3. Check Service Status
@@ -110,7 +110,7 @@ This includes:
 
 2. **SSH to EC2 and check services:**
    ```bash
-   ssh ec2-user@44.220.45.57
+   ssh ec2-user@3.92.96.67
    sudo systemctl status kiro-terminal
    ```
 
@@ -133,7 +133,7 @@ This includes:
 
 2. **Verify ports are listening:**
    ```bash
-   ssh ec2-user@44.220.45.57 "sudo netstat -tlnp | grep -E '8080|8081|8082'"
+   ssh ec2-user@3.92.96.67 "sudo netstat -tlnp | grep -E '8080|8081|8082'"
    ```
 
 ## Current Status

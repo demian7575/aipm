@@ -2,10 +2,13 @@
 # Shared test functions library - define once, use everywhere
 
 # Configuration
-PROD_API_BASE="http://44.220.45.57"
+PROD_API_BASE="http://3.92.96.67"
 DEV_API_BASE="http://44.222.168.46"
 PROD_FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
 DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
+
+# Test story parent ID - all test stories should be created under this parent
+TEST_PARENT_ID=1768631018504
 
 # Helper to execute curl via SSH if needed
 curl_api() {
@@ -16,24 +19,34 @@ curl_api() {
     fi
 }
 
+# Test counter files for parallel execution
+TEST_COUNTER_DIR="${TEST_COUNTER_DIR:-/tmp/aipm-test-$$}"
+mkdir -p "$TEST_COUNTER_DIR"
+
 # Test utilities
 pass_test() {
     echo "    ✅ $1"
-    if [[ -n "$PHASE_PASSED" ]]; then
-        PHASE_PASSED=$((PHASE_PASSED + 1))
-    elif [[ -n "$TESTS_PASSED" ]]; then
-        TESTS_PASSED=$((TESTS_PASSED + 1))
-    fi
+    echo "1" >> "$TEST_COUNTER_DIR/passed"
 }
 
 fail_test() {
     echo "    ❌ $1"
-    if [[ -n "$PHASE_FAILED" ]]; then
-        PHASE_FAILED=$((PHASE_FAILED + 1))
-    elif [[ -n "$TESTS_FAILED" ]]; then
-        TESTS_FAILED=$((TESTS_FAILED + 1))
-    fi
+    echo "1" >> "$TEST_COUNTER_DIR/failed"
     return 1
+}
+
+# Get test counts
+get_passed_count() {
+    [[ -f "$TEST_COUNTER_DIR/passed" ]] && wc -l < "$TEST_COUNTER_DIR/passed" || echo 0
+}
+
+get_failed_count() {
+    [[ -f "$TEST_COUNTER_DIR/failed" ]] && wc -l < "$TEST_COUNTER_DIR/failed" || echo 0
+}
+
+# Reset counters
+reset_test_counters() {
+    rm -f "$TEST_COUNTER_DIR/passed" "$TEST_COUNTER_DIR/failed"
 }
 
 # Basic endpoint test

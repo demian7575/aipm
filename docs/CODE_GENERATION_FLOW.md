@@ -19,7 +19,7 @@ Direct synchronous API call from Backend to EC2 for code generation.
        │
        ├─→ 1. Create GitHub PR + branch
        │
-       └─→ 2. POST http://44.220.45.57:8080/generate-code
+       └─→ 2. POST http://3.92.96.67:8080/generate-code
                 {
                   "branch": "feature/xyz-123",
                   "taskDescription": "Add login validation",
@@ -87,7 +87,7 @@ const pr = await githubRequest('/repos/.../pulls', {
 ### 3. Backend Calls EC2
 ```javascript
 // Direct HTTP call to EC2
-const response = await fetch('http://44.220.45.57:8080/generate-code', {
+const response = await fetch('http://3.92.96.67:8080/generate-code', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -166,7 +166,7 @@ execSync(`cd ${REPO_PATH} && git add . && git commit -m "feat: ${taskDescription
 
 ### Backend Environment Variables
 ```bash
-EC2_TERMINAL_URL=http://44.220.45.57:8080  # EC2 server URL
+EC2_TERMINAL_URL=http://3.92.96.67:8080  # EC2 server URL
 ```
 
 ### EC2 Environment Variables
@@ -212,17 +212,17 @@ REPO_PATH=/home/ec2-user/aipm     # Git repository path
 
 ### Check EC2 Server Status
 ```bash
-ssh ec2-user@44.220.45.57 "ps aux | grep terminal-server"
+ssh ec2-user@3.92.96.67 "ps aux | grep terminal-server"
 ```
 
 ### View EC2 Logs
 ```bash
-ssh ec2-user@44.220.45.57 "tail -f terminal-server.log"
+ssh ec2-user@3.92.96.67 "tail -f terminal-server.log"
 ```
 
 ### Test Endpoint
 ```bash
-curl -X POST http://44.220.45.57:8080/generate-code \
+curl -X POST http://3.92.96.67:8080/generate-code \
   -H "Content-Type: application/json" \
   -d '{"branch":"test-branch","taskDescription":"Add test","prNumber":1}'
 ```

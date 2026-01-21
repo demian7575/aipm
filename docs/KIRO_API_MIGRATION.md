@@ -9,12 +9,12 @@ Migrated the "Generate Code & PR" flow from the PTY-based EC2 terminal server to
 ### 1. Backend Update (`apps/backend/app.js`)
 
 **Before:**
-- Called EC2 terminal server at `http://44.220.45.57:8080/generate-code`
+- Called EC2 terminal server at `http://3.92.96.67:8080/generate-code`
 - Sent: `{ branch, taskDescription, prNumber }`
 - Complex PTY-based approach with terminal output parsing
 
 **After:**
-- Calls Kiro API server at `http://44.220.45.57:8081/execute`
+- Calls Kiro API server at `http://3.92.96.67:8081/execute`
 - Sends: `{ prompt, context, timeoutMs }`
 - Clean REST API with JSON input/output
 
@@ -55,7 +55,7 @@ This will:
 
 ```bash
 # SSH to EC2
-ssh ec2-user@44.220.45.57
+ssh ec2-user@3.92.96.67
 
 # Navigate to repo
 cd ~/aipm
@@ -73,7 +73,7 @@ tail -f /tmp/kiro-api-server.log
 ## Environment Variables
 
 Backend (`apps/backend/app.js`):
-- `KIRO_API_URL` - Kiro API endpoint (default: `http://44.220.45.57:8081`)
+- `KIRO_API_URL` - Kiro API endpoint (default: `http://3.92.96.67:8081`)
 
 Kiro API Server:
 - `KIRO_API_PORT` - Port to listen on (default: `8081`)
@@ -92,7 +92,7 @@ Kiro API Server:
 ### Test Kiro API Health
 
 ```bash
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 ```
 
 Expected response:
@@ -107,7 +107,7 @@ Expected response:
 ### Test Code Generation
 
 ```bash
-curl -X POST http://44.220.45.57:8081/execute \
+curl -X POST http://3.92.96.67:8081/execute \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "Add a console.log statement to app.js",
@@ -123,7 +123,7 @@ curl -X POST http://44.220.45.57:8081/execute \
 3. Click "Generate Code & PR"
 4. Fill in the form and submit
 5. Check that PR is created on GitHub
-6. Monitor Kiro API logs: `ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"`
+6. Monitor Kiro API logs: `ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-api-server.log"`
 
 ## Rollback
 
@@ -131,11 +131,11 @@ If issues occur, revert to EC2 terminal server:
 
 ```bash
 # In apps/backend/app.js, change:
-const kiroApiUrl = process.env.KIRO_API_URL || 'http://44.220.45.57:8081';
+const kiroApiUrl = process.env.KIRO_API_URL || 'http://3.92.96.67:8081';
 fetch(`${kiroApiUrl}/execute`, ...)
 
 # Back to:
-const ec2Url = process.env.EC2_TERMINAL_URL || 'http://44.220.45.57:8080';
+const ec2Url = process.env.EC2_TERMINAL_URL || 'http://3.92.96.67:8080';
 fetch(`${ec2Url}/generate-code`, ...)
 ```
 

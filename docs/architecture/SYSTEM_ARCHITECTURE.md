@@ -50,7 +50,7 @@ graph TB
 graph TB
     subgraph "Production Environment"
         ProdFE[S3: aipm-static-hosting-demo]
-        ProdBE[EC2: 44.220.45.57]
+        ProdBE[EC2: 3.92.96.67]
         ProdDDB[DynamoDB: aipm-backend-prod-*]
     end
     

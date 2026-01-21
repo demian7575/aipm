@@ -70,7 +70,7 @@ Step 2: Create ONE Pull Request
 
 Step 3: Send to EC2 (ONE request)
 ┌─────────────────────────────────────┐
-│ POST http://44.220.45.57:8080/      │
+│ POST http://3.92.96.67:8080/      │
 │      generate-code                  │
 │                                     │
 │ {                                   │

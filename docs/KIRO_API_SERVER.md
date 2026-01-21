@@ -14,11 +14,11 @@ POST /execute → Send prompt → Get JSON response
 
 ```bash
 # Deploy to EC2
-scp scripts/workers/kiro-api-server.js ec2-user@44.220.45.57:/home/ec2-user/aipm/scripts/workers/
-scp scripts/deployment/setup-kiro-api-service.sh ec2-user@44.220.45.57:/home/ec2-user/aipm/scripts/deployment/
+scp scripts/workers/kiro-api-server.js ec2-user@3.92.96.67:/home/ec2-user/aipm/scripts/workers/
+scp scripts/deployment/setup-kiro-api-service.sh ec2-user@3.92.96.67:/home/ec2-user/aipm/scripts/deployment/
 
 # SSH and setup
-ssh ec2-user@44.220.45.57
+ssh ec2-user@3.92.96.67
 cd /home/ec2-user/aipm
 bash scripts/deployment/setup-kiro-api-service.sh
 ```

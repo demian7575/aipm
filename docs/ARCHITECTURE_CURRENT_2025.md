@@ -19,7 +19,7 @@ S3 Static Hosting
 ### Backend Layer - **MIGRATED TO EC2**
 ```
 Dual EC2 Architecture
-├── Production EC2: 44.220.45.57 (aipm-docker-builder-v2)
+├── Production EC2: 3.92.96.67 (aipm-docker-builder-v2)
 │   ├── Backend API: Port 80 (nginx → Node.js:4000)
 │   ├── Kiro API: Port 8081 (Code generation)
 │   ├── Terminal Server: Port 8080 (Worker pool)
@@ -69,7 +69,7 @@ DynamoDB Tables (Unchanged)
 - **Cost**: Predictable EC2 costs vs Lambda per-request
 
 ### Current Status
-- ✅ **Production**: http://44.220.45.57 (EC2 backend)
+- ✅ **Production**: http://3.92.96.67 (EC2 backend)
 - ✅ **Development**: http://44.222.168.46 (EC2 backend)
 - ❌ **Lambda APIs**: Deprecated but still deployed
 
@@ -77,7 +77,7 @@ DynamoDB Tables (Unchanged)
 
 ## 📋 Service Configuration
 
-### Production EC2 (44.220.45.57)
+### Production EC2 (3.92.96.67)
 ```bash
 # Services
 sudo systemctl status aipm-main-backend    # Port 4000 → nginx:80
@@ -149,7 +149,7 @@ ACCEPTANCE_TESTS_TABLE=aipm-backend-dev-acceptance-tests
 
 | Environment | Backend | Stories | Status |
 |-------------|---------|---------|--------|
-| Production | 44.220.45.57 | 4 active | ✅ Working |
+| Production | 3.92.96.67 | 4 active | ✅ Working |
 | Development | 44.222.168.46 | 4 active | ✅ Working |
 | Lambda Prod | wk6h5fkqk9... | N/A | ⚠️ Deprecated |
 | Lambda Dev | eppae4ae82... | N/A | ❌ Broken (VPC timeout) |

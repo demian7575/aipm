@@ -16,10 +16,10 @@ fi
 
 # Environment configuration
 if [[ "$ENV" == "prod" ]]; then
-    HOST="44.220.45.57"
+    HOST="3.92.96.67"
     SERVICE="aipm-backend"
     FRONTEND_BUCKET="aipm-static-hosting-demo"
-    API_URL="http://44.220.45.57"
+    API_URL="http://3.92.96.67"
     STORIES_TABLE="aipm-backend-prod-stories"
     TESTS_TABLE="aipm-backend-prod-acceptance-tests"
     PRS_TABLE="aipm-backend-prod-prs"

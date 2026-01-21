@@ -59,7 +59,7 @@ if (worker.consecutiveFailures >= 3) {
 **Provides:** Detailed worker status
 
 ```bash
-curl http://44.220.45.57:8080/health
+curl http://3.92.96.67:8080/health
 ```
 
 ```json
@@ -211,22 +211,22 @@ Worker 1 healthy again ✅
 
 ### Check Worker Health
 ```bash
-curl http://44.220.45.57:8080/health | jq
+curl http://3.92.96.67:8080/health | jq
 ```
 
 ### Watch Worker Status (Live)
 ```bash
-watch -n 5 'curl -s http://44.220.45.57:8080/health | jq ".workers"'
+watch -n 5 'curl -s http://3.92.96.67:8080/health | jq ".workers"'
 ```
 
 ### Check Specific Worker
 ```bash
-curl -s http://44.220.45.57:8080/health | jq '.workers.worker1'
+curl -s http://3.92.96.67:8080/health | jq '.workers.worker1'
 ```
 
 ### Check for Unhealthy Workers
 ```bash
-curl -s http://44.220.45.57:8080/health | jq '.workers | to_entries[] | select(.value.healthy == false)'
+curl -s http://3.92.96.67:8080/health | jq '.workers | to_entries[] | select(.value.healthy == false)'
 ```
 
 ## Logs to Watch For

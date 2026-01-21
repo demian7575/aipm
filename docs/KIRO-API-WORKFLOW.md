@@ -19,7 +19,7 @@
 │  4. Store PR in DynamoDB                                    │
 │  5. Call EC2 PR Processor (fire-and-forget)                │
 └──────┬──────────────────────────────────────────────────────┘
-       │ POST http://44.220.45.57:8082/api/process-pr
+       │ POST http://3.92.96.67:8082/api/process-pr
        │ { prNumber, branch, repo, owner, taskDetails }
        ▼
 ┌─────────────────────────────────────────────────────────────┐
@@ -117,7 +117,7 @@ const pr = await githubRequest(`${repoPath}/pulls`, {
 });
 
 // 4. Call EC2 (fire-and-forget)
-fetch(`http://44.220.45.57:8082/api/process-pr`, {
+fetch(`http://3.92.96.67:8082/api/process-pr`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ prNumber: pr.number, branch: branchName, repo, owner, taskDetails })
@@ -343,7 +343,7 @@ PR: https://github.com/demian7575/aipm/pull/346
 
 **3. Lambda Calls EC2:**
 ```http
-POST http://44.220.45.57:8082/api/process-pr
+POST http://3.92.96.67:8082/api/process-pr
 {
   "prNumber": 346,
   "branch": "feature/add-export-button-1733420400000",
@@ -410,19 +410,19 @@ PR #346 now contains:
 ### Check System Status
 ```bash
 # Worker Pool
-curl -s http://44.220.45.57:8081/health | jq '.'
+curl -s http://3.92.96.67:8081/health | jq '.'
 
 # PR Processor
-curl -s http://44.220.45.57:8082/health | jq '.'
+curl -s http://3.92.96.67:8082/health | jq '.'
 ```
 
 ### Watch Logs
 ```bash
 # PR Processor logs
-ssh ec2-user@44.220.45.57 "tail -f /tmp/pr-processor.log"
+ssh ec2-user@3.92.96.67 "tail -f /tmp/pr-processor.log"
 
 # Worker Pool logs (shows Kiro output)
-ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-worker-pool.log"
+ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-worker-pool.log"
 
 # Lambda logs
 aws logs tail /aws/lambda/aipm-backend-prod-api --follow
@@ -430,7 +430,7 @@ aws logs tail /aws/lambda/aipm-backend-prod-api --follow
 
 ### Check Worker Status
 ```bash
-curl -s http://44.220.45.57:8081/health | jq '.workers[] | {id, busy, ready, currentTask}'
+curl -s http://3.92.96.67:8081/health | jq '.workers[] | {id, busy, ready, currentTask}'
 ```
 
 **Output:**
@@ -481,7 +481,7 @@ curl -s http://44.220.45.57:8081/health | jq '.workers[] | {id, busy, ready, cur
 
 **Lambda:**
 ```bash
-EC2_PR_PROCESSOR_URL=http://44.220.45.57:8082  # Optional, defaults to this
+EC2_PR_PROCESSOR_URL=http://3.92.96.67:8082  # Optional, defaults to this
 ```
 
 **EC2:**
@@ -510,14 +510,14 @@ npx serverless deploy --stage prod
 ### Deploy EC2 Workers
 ```bash
 # Copy files
-scp kiro-api-server-pool.js ec2-user@44.220.45.57:/home/ec2-user/aipm/scripts/workers/
-scp pr-processor-api.js ec2-user@44.220.45.57:/home/ec2-user/aipm/scripts/workers/
+scp kiro-api-server-pool.js ec2-user@3.92.96.67:/home/ec2-user/aipm/scripts/workers/
+scp pr-processor-api.js ec2-user@3.92.96.67:/home/ec2-user/aipm/scripts/workers/
 
 # Install dependencies
-ssh ec2-user@44.220.45.57 "cd /home/ec2-user/aipm/scripts/workers && npm install node-pty"
+ssh ec2-user@3.92.96.67 "cd /home/ec2-user/aipm/scripts/workers && npm install node-pty"
 
 # Start services
-ssh ec2-user@44.220.45.57 << 'ENDSSH'
+ssh ec2-user@3.92.96.67 << 'ENDSSH'
 cd /home/ec2-user/aipm
 pkill -f kiro-api-server-pool
 pkill -f pr-processor-api

@@ -14,9 +14,9 @@ The AIPM frontend uses environment-specific configuration files to handle differ
 
 | Property | Description | Example |
 |----------|-------------|---------|
-| `API_BASE_URL` | Base URL for API calls | `http://44.220.45.57` |
-| `API_END_POINT` | API endpoint URL (same as API_BASE_URL) | `http://44.220.45.57` |
-| `EC2_TERMINAL_URL` | WebSocket URL for terminal access | `ws://44.220.45.57:8080` |
+| `API_BASE_URL` | Base URL for API calls | `http://3.92.96.67` |
+| `API_END_POINT` | API endpoint URL (same as API_BASE_URL) | `http://3.92.96.67` |
+| `EC2_TERMINAL_URL` | WebSocket URL for terminal access | `ws://3.92.96.67:8080` |
 | `ENVIRONMENT` | Current environment | `prod` or `dev` |
 | `stage` | Deployment stage | `prod` or `dev` |
 | `region` | AWS region | `us-east-1` |
@@ -29,9 +29,9 @@ The AIPM frontend uses environment-specific configuration files to handle differ
 ### Production (`config.prod.js`)
 ```javascript
 window.CONFIG = {
-  API_BASE_URL: 'http://44.220.45.57',
-  API_END_POINT: 'http://44.220.45.57',
-  EC2_TERMINAL_URL: 'ws://44.220.45.57:8080',
+  API_BASE_URL: 'http://3.92.96.67',
+  API_END_POINT: 'http://3.92.96.67',
+  EC2_TERMINAL_URL: 'ws://3.92.96.67:8080',
   ENVIRONMENT: 'prod',
   stage: 'prod',
   region: 'us-east-1',

@@ -33,8 +33,8 @@
 - **Cost**: Pay-per-request (free tier: 1M requests/month)
 
 #### EC2 Kiro API (Full Integration)
-- **Endpoint**: http://44.220.45.57:8081
-- **Health**: http://44.220.45.57:8081/health
+- **Endpoint**: http://3.92.96.67:8081
+- **Health**: http://3.92.96.67:8081/health
 - **Status**: ✅ Running (actual Kiro CLI integration)
 - **Queue Metrics**: 
   - Active Requests: 0
@@ -48,8 +48,8 @@
   - POST /kiro/generate-code
 
 ### EC2 Supporting Services
-- **Terminal Server**: http://44.220.45.57:8080 ✅
-- **PR Processor**: http://44.220.45.57:8082 ✅
+- **Terminal Server**: http://3.92.96.67:8080 ✅
+- **PR Processor**: http://3.92.96.67:8082 ✅
 
 ## 📝 Recent Fixes (2025-12-17)
 
@@ -102,11 +102,11 @@ npm test
 ### Test Individual Components
 ```bash
 # Health checks
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 curl https://kwn4mp7z5c.execute-api.us-east-1.amazonaws.com/dev/health
 
 # Chat endpoint
-curl -X POST http://44.220.45.57:8081/kiro/chat \
+curl -X POST http://3.92.96.67:8081/kiro/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"Hello"}'
 ```
@@ -119,7 +119,7 @@ curl -X POST http://44.220.45.57:8081/kiro/chat \
 aws logs tail /aws/lambda/kiro-api-dev --follow
 
 # EC2 Kiro API
-ssh ec2-user@44.220.45.57 "tail -f /home/ec2-user/aipm/kiro-api.log"
+ssh ec2-user@3.92.96.67 "tail -f /home/ec2-user/aipm/kiro-api.log"
 ```
 
 ## 🔄 Deployment Commands

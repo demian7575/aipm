@@ -33,7 +33,7 @@
 ## ❌ **Tests That CANNOT Run as GitHub Actions**
 
 ### 1. **Private Network Tests**
-- ❌ EC2 instance internal health checks (`http://44.220.45.57:8081/health`)
+- ❌ EC2 instance internal health checks (`http://3.92.96.67:8081/health`)
 - ❌ Private VPC resource testing
 - ❌ Internal service communication validation
 - ❌ Database connection testing (private subnets)
@@ -131,7 +131,7 @@ jobs:
 
 ### **1. Public Endpoints for Private Services**
 ```bash
-# Instead of: curl http://44.220.45.57:8081/health
+# Instead of: curl http://3.92.96.67:8081/health
 # Use: curl https://api.aipm.example.com/health (with API Gateway)
 ```
 

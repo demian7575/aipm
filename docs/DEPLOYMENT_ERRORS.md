@@ -6,7 +6,7 @@
 
 **Error:**
 ```bash
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 # Timeout - no response
 ```
 
@@ -67,7 +67,7 @@ The following hook(s)/validation failed: [AWS::EarlyValidation::ResourceExistenc
 
 **Error:**
 ```bash
-ssh ec2-user@44.220.45.57 "cd ~/aipm && git pull origin develop"
+ssh ec2-user@3.92.96.67 "cd ~/aipm && git pull origin develop"
 
 fatal: Need to specify how to reconcile divergent branches.
 ```
@@ -189,7 +189,7 @@ git checkout develop
 
 3. **Clean up EC2 stashed changes**
    ```bash
-   ssh ec2-user@44.220.45.57 "cd ~/aipm && git stash list"
+   ssh ec2-user@3.92.96.67 "cd ~/aipm && git stash list"
    # Review and drop if not needed
    ```
 

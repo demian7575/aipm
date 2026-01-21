@@ -8,7 +8,7 @@ echo "🟡 Phase 2: Real Performance & API Workflow Tests"
 
 # Get Test Root
 TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
-echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+echo "📍 Using Test Parent ID: $TEST_ROOT_ID"
 
 # Test 1: Real performance test with actual story operations
 echo "  🧪 Testing real API performance under load..."
@@ -45,9 +45,9 @@ echo "  🧪 Testing real concurrent draft generation..."
 DRAFT_REQUEST='{"templateId":"user-story-generation","feature_description":"concurrent test","parentId":"1"}'
 
 # Start 3 concurrent draft generations
-curl -s -X POST "$PROD_API_BASE:8081/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST" > /tmp/draft1.json &
-curl -s -X POST "$PROD_API_BASE:8081/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST" > /tmp/draft2.json &
-curl -s -X POST "$PROD_API_BASE:8081/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST" > /tmp/draft3.json &
+curl -s -X POST "$PROD_API_BASE:8083/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST" > /tmp/draft1.json &
+curl -s -X POST "$PROD_API_BASE:8083/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST" > /tmp/draft2.json &
+curl -s -X POST "$PROD_API_BASE:8083/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST" > /tmp/draft3.json &
 
 wait
 

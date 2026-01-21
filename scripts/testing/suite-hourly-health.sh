@@ -6,8 +6,8 @@ set -e
 source "$(dirname "$0")/test-library.sh"
 
 # Configuration
-API_BASE="${API_BASE:-http://44.220.45.57:4000}"
-KIRO_API_BASE="${KIRO_API_BASE:-http://44.220.45.57:8081}"
+API_BASE="${API_BASE:-http://3.92.96.67:4000}"
+SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://3.92.96.67:8083}"
 FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com}"
 
 echo "⏰ Hourly Health Check - $(date)"
@@ -18,7 +18,7 @@ test_api_security_headers "$API_BASE"
 test_database_connection "$API_BASE"
 test_api_response_time "$API_BASE" 5
 test_frontend_availability "$FRONTEND_URL"
-test_kiro_api_health "$KIRO_API_BASE"
+test_semantic_api_health "$SEMANTIC_API_BASE"
 
 # Summary
 echo ""

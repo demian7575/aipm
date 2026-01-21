@@ -5,7 +5,7 @@
 ### ✅ EC2 Kiro API Server
 
 **Status:** Running and Updated  
-**Host:** 44.220.45.57:8081  
+**Host:** 3.92.96.67:8081  
 **Branch:** develop  
 **Commit:** 8f41d3e (latest)  
 **Service:** active (running)  

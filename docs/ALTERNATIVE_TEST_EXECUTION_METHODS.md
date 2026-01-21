@@ -10,7 +10,7 @@
 
 ### Setup on EC2 Instance
 ```bash
-# On EC2 instance (44.220.45.57 or 44.222.168.46)
+# On EC2 instance (3.92.96.67 or 44.222.168.46)
 cd /home/ec2-user
 mkdir actions-runner && cd actions-runner
 
@@ -162,7 +162,7 @@ jobs:
         run: |
           curl -X POST "https://api.pingdom.com/api/3.1/checks" \
             -H "Authorization: Bearer ${{ secrets.PINGDOM_TOKEN }}" \
-            -d "name=AIPM-Gating-Test&type=http&host=44.220.45.57&url=/health"
+            -d "name=AIPM-Gating-Test&type=http&host=3.92.96.67&url=/health"
 ```
 
 ## 🛠️ **Solution 5: Container-Based Testing**
@@ -268,7 +268,7 @@ Resources:
 
 ### **Today: Self-Hosted Runner Setup**
 ```bash
-# On production EC2 (44.220.45.57)
+# On production EC2 (3.92.96.67)
 cd /home/ec2-user
 curl -o actions-runner-linux-x64-2.311.0.tar.gz -L \
   https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz

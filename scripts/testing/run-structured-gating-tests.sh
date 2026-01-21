@@ -26,17 +26,22 @@ done
 # Import shared test functions
 source "$(dirname "$0")/test-functions.sh"
 
+# Initialize test counter directory
+export TEST_COUNTER_DIR="/tmp/aipm-test-$$"
+mkdir -p "$TEST_COUNTER_DIR"
+reset_test_counters
+
 # Configuration based on target environment
 if [[ "$TARGET_ENV" == "dev" ]]; then
     SSH_HOST="44.222.168.46"
     API_BASE="http://localhost:4000"
-    KIRO_API_BASE="http://localhost:8081"
+    SEMANTIC_API_BASE="http://localhost:8083"
     FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
     echo "🔧 Target Environment: DEVELOPMENT"
 else
     SSH_HOST="3.92.96.67"
     API_BASE="http://localhost:4000"
-    KIRO_API_BASE="http://localhost:8081"
+    SEMANTIC_API_BASE="http://localhost:8083"
     FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
     echo "🔧 Target Environment: PRODUCTION"
 fi
@@ -48,18 +53,12 @@ PROD_FRONTEND_URL="$FRONTEND_URL"
 DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
 
 # Export for phase scripts
-export API_BASE KIRO_API_BASE FRONTEND_URL TARGET_ENV SSH_HOST
+export API_BASE SEMANTIC_API_BASE FRONTEND_URL TARGET_ENV SSH_HOST
 
 # Helper to run commands on remote server
 run_remote() {
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "$@" 2>/dev/null
 }
-
-# Test counters
-TOTAL_PASSED=0
-TOTAL_FAILED=0
-PHASE_PASSED=0
-PHASE_FAILED=0
 
 # Utility functions
 log_phase() {
@@ -67,39 +66,21 @@ log_phase() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "$1"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    PHASE_PASSED=0
-    PHASE_FAILED=0
+    reset_test_counters
 }
-
-# Override shared functions to use TOTAL counters
-pass_test() {
-    echo "    ✅ $1"
-    TOTAL_PASSED=$((TOTAL_PASSED + 1))
-    PHASE_PASSED=$((PHASE_PASSED + 1))
-}
-
-fail_test() {
-    echo "    ❌ $1"
-    TOTAL_FAILED=$((TOTAL_FAILED + 1))
-    PHASE_FAILED=$((PHASE_FAILED + 1))
-    return 1
-}
-
-# Export functions and variables so phase scripts use them
-export -f pass_test fail_test
-export TOTAL_PASSED TOTAL_FAILED PHASE_PASSED PHASE_FAILED
 
 phase_summary() {
     local phase_name=$1
-    echo ""
-    echo "📊 $phase_name Summary: ✅ $PHASE_PASSED passed, ❌ $PHASE_FAILED failed"
+    local phase_passed=$(get_passed_count)
+    local phase_failed=$(get_failed_count)
     
-    if [[ $PHASE_FAILED -gt 0 ]]; then
+    echo ""
+    echo "📊 $phase_name Summary: ✅ $phase_passed passed, ❌ $phase_failed failed"
+    
+    if [[ $phase_failed -gt 0 ]]; then
         echo "⚠️  $phase_name has failures - review before proceeding"
-        return 1
     else
         echo "🎉 $phase_name completed successfully"
-        return 0
     fi
 }
 
@@ -122,7 +103,6 @@ main() {
         log_phase "🔴 PHASE 1: Critical Security & Data Safety"
         local phase1_start=$(date +%s)
         
-        export PHASE_PASSED PHASE_FAILED
         if source ./scripts/testing/phase1-security-data-safety.sh; then
             local phase1_end=$(date +%s)
             local phase1_duration=$((phase1_end - phase1_start))
@@ -140,7 +120,6 @@ main() {
         log_phase "🧪 PHASE 2-1: Kiro CLI Mock Tests"
         local phase21_start=$(date +%s)
         
-        export PHASE_PASSED PHASE_FAILED
         if source ./scripts/testing/phase2-1-kiro-mock-tests.sh; then
             local phase21_end=$(date +%s)
             local phase21_duration=$((phase21_end - phase21_start))
@@ -157,7 +136,6 @@ main() {
         log_phase "🎯 PHASE 2: Complete User Workflow (Step-by-Step)"
         local phase2_start=$(date +%s)
         
-        export PHASE_PASSED PHASE_FAILED
         if source ./scripts/testing/phase2-performance-api.sh; then
             local phase2_end=$(date +%s)
             local phase2_duration=$((phase2_end - phase2_start))
@@ -172,18 +150,23 @@ main() {
     # Final summary
     local test_end=$(date +%s)
     local total_duration=$((test_end - test_start))
+    local total_passed=$(get_passed_count)
+    local total_failed=$(get_failed_count)
     
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "📊 FINAL GATING TEST RESULTS"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "✅ Total Tests Passed: $TOTAL_PASSED"
-    echo "❌ Total Tests Failed: $TOTAL_FAILED"
-    echo "📈 Total Tests Run: $((TOTAL_PASSED + TOTAL_FAILED))"
+    echo "✅ Total Tests Passed: $total_passed"
+    echo "❌ Total Tests Failed: $total_failed"
+    echo "📈 Total Tests Run: $((total_passed + total_failed))"
     echo "⏱️  Total Duration: ${total_duration}s ($(printf '%dm %ds' $((total_duration/60)) $((total_duration%60))))"
     echo ""
     
-    if [[ $TOTAL_FAILED -eq 0 ]]; then
+    # Cleanup
+    rm -rf "$TEST_COUNTER_DIR"
+    
+    if [[ $total_failed -eq 0 ]]; then
         echo "🎉 ALL GATING TESTS PASSED!"
         echo "✅ System approved for deployment"
         exit 0

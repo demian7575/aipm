@@ -11,7 +11,7 @@
 - **GSI**: `status-createdAt-index` for efficient pending task queries
 
 ### 2. Kiro API Server V3
-- **Location**: EC2 (44.220.45.57:8081)
+- **Location**: EC2 (3.92.96.67:8081)
 - **Service**: `kiro-api-v3.service` (systemd)
 - **Status**: ✅ Running
 - **Version**: 3.0
@@ -22,7 +22,7 @@
   - analyze-invest-v1
 
 ### 3. Kiro Worker V3
-- **Location**: EC2 (44.220.45.57)
+- **Location**: EC2 (3.92.96.67)
 - **Service**: `kiro-worker-v3.service` (systemd)
 - **Status**: ✅ Running
 - **Poll Interval**: 1 second
@@ -124,31 +124,31 @@
 ### Kiro API V3
 ```bash
 # Status
-ssh ec2-user@44.220.45.57 'sudo systemctl status kiro-api-v3'
+ssh ec2-user@3.92.96.67 'sudo systemctl status kiro-api-v3'
 
 # Logs
-ssh ec2-user@44.220.45.57 'sudo journalctl -u kiro-api-v3 -f'
+ssh ec2-user@3.92.96.67 'sudo journalctl -u kiro-api-v3 -f'
 
 # Restart
-ssh ec2-user@44.220.45.57 'sudo systemctl restart kiro-api-v3'
+ssh ec2-user@3.92.96.67 'sudo systemctl restart kiro-api-v3'
 ```
 
 ### Kiro Worker V3
 ```bash
 # Status
-ssh ec2-user@44.220.45.57 'sudo systemctl status kiro-worker-v3'
+ssh ec2-user@3.92.96.67 'sudo systemctl status kiro-worker-v3'
 
 # Logs
-ssh ec2-user@44.220.45.57 'sudo journalctl -u kiro-worker-v3 -f'
+ssh ec2-user@3.92.96.67 'sudo journalctl -u kiro-worker-v3 -f'
 
 # Restart
-ssh ec2-user@44.220.45.57 'sudo systemctl restart kiro-worker-v3'
+ssh ec2-user@3.92.96.67 'sudo systemctl restart kiro-worker-v3'
 ```
 
 ## Endpoints
 
-- **Health**: http://44.220.45.57:8081/health
-- **Transform**: POST http://44.220.45.57:8081/kiro/v3/transform
+- **Health**: http://3.92.96.67:8081/health
+- **Transform**: POST http://3.92.96.67:8081/kiro/v3/transform
 
 ## Queue Table
 

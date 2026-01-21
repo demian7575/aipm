@@ -8,7 +8,7 @@ echo "🔄 Phase 4: Real End-to-End Workflow Tests"
 
 # Get Test Root
 TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
-echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+echo "📍 Using Test Parent ID: $TEST_ROOT_ID"
 
 # Test 1: Complete story lifecycle workflow
 echo "  🧪 Testing complete story lifecycle workflow..."
@@ -52,7 +52,7 @@ fi
 echo "  🧪 Testing real draft-to-story workflow..."
 # Generate draft -> Create story from draft -> Verify content matches
 DRAFT_REQUEST='{"templateId":"user-story-generation","feature_description":"payment processing system","parentId":"1"}'
-DRAFT_RESPONSE=$(curl -s -X POST "$PROD_API_BASE:8081/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST")
+DRAFT_RESPONSE=$(curl -s -X POST "$PROD_API_BASE:8083/api/generate-draft" -H "Content-Type: application/json" -d "$DRAFT_REQUEST")
 
 DRAFT_TITLE=$(echo "$DRAFT_RESPONSE" | jq -r '.draft.title // empty')
 DRAFT_DESC=$(echo "$DRAFT_RESPONSE" | jq -r '.draft.description // empty')

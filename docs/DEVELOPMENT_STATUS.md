@@ -16,7 +16,7 @@
 - `STORIES_TABLE`: aipm-backend-dev-stories
 - `ACCEPTANCE_TESTS_TABLE`: aipm-backend-dev-acceptance-tests
 - `STAGE`: dev
-- `EC2_TERMINAL_URL`: http://44.220.45.57:8080 (legacy)
+- `EC2_TERMINAL_URL`: http://3.92.96.67:8080 (legacy)
 
 **⚠️ Note:** Still has `EC2_TERMINAL_URL` instead of `KIRO_API_URL`
 
@@ -32,7 +32,7 @@
 **Note:** Kiro API runs on EC2 and serves both prod and dev
 
 **Current Configuration:**
-- EC2 Kiro API: http://44.220.45.57:8081
+- EC2 Kiro API: http://3.92.96.67:8081
 - Serves all environments (no separate dev instance)
 - Development backend should call same Kiro API
 
@@ -118,7 +118,7 @@ aws lambda update-function-code \
        "STORIES_TABLE":"aipm-backend-dev-stories",
        "ACCEPTANCE_TESTS_TABLE":"aipm-backend-dev-acceptance-tests",
        "STAGE":"dev",
-       "KIRO_API_URL":"http://44.220.45.57:8081",
+       "KIRO_API_URL":"http://3.92.96.67:8081",
        "GITHUB_REPO":"aipm",
        "GITHUB_OWNER":"demian7575",
        "GITHUB_TOKEN":"...",
@@ -156,7 +156,7 @@ curl https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/stories
 
 ```bash
 # Same for all environments
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 ```
 
 ## Summary

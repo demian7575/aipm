@@ -35,7 +35,7 @@
 
 
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         EC2 Instance (44.220.45.57)                              │
+│                         EC2 Instance (3.92.96.67)                              │
 │                                                                                   │
 │  ┌───────────────────────────────────────────────────────────────────────────┐  │
 │  │                    Kiro API Server (Port 8081)                            │  │
@@ -242,7 +242,7 @@ Frontend                    Terminal Server              Kiro CLI
 
 ### HTTP REST API (Kiro API Server)
 
-**Base URL**: `http://44.220.45.57:8081`
+**Base URL**: `http://3.92.96.67:8081`
 
 #### Health Check
 ```http
@@ -429,7 +429,7 @@ Content-Type: application/json
 
 ### WebSocket Protocol (Terminal Server)
 
-**Base URL**: `ws://44.220.45.57:8080`
+**Base URL**: `ws://3.92.96.67:8080`
 
 #### Connect
 ```
@@ -586,12 +586,12 @@ This context is displayed in the modal and available for user to reference when 
 
 **Kiro API Server**:
 ```bash
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 ```
 
 **Terminal Server**:
 ```bash
-curl http://44.220.45.57:8080/health
+curl http://3.92.96.67:8080/health
 ```
 
 ### Logs

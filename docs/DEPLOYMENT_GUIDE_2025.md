@@ -6,7 +6,7 @@
 
 ### Production Environment
 - **Frontend**: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
-- **Backend**: http://44.220.45.57 (EC2 instance)
+- **Backend**: http://3.92.96.67 (EC2 instance)
 - **Services**: Backend API (port 80), Kiro API (port 8081), Terminal (port 8080)
 
 ### Development Environment  
@@ -41,8 +41,8 @@
 ### Check Backend Status
 ```bash
 # Production
-curl http://44.220.45.57/
-curl http://44.220.45.57/api/stories
+curl http://3.92.96.67/
+curl http://3.92.96.67/api/stories
 
 # Development  
 curl http://44.222.168.46/
@@ -51,9 +51,9 @@ curl http://44.222.168.46/api/stories
 
 ### Check Services on EC2
 ```bash
-# Production (44.220.45.57)
-ssh ec2-user@44.220.45.57 "sudo systemctl status aipm-main-backend"
-ssh ec2-user@44.220.45.57 "sudo systemctl status kiro-api-v4"
+# Production (3.92.96.67)
+ssh ec2-user@3.92.96.67 "sudo systemctl status aipm-main-backend"
+ssh ec2-user@3.92.96.67 "sudo systemctl status kiro-api-v4"
 
 # Development (44.222.168.46)
 ssh ec2-user@44.222.168.46 "sudo systemctl status aipm-dev-backend"

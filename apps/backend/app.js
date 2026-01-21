@@ -11,6 +11,16 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 // Removed delegation imports - now using direct PR creation
 
+// Global DynamoDB client for reuse
+let dynamoClient = null;
+async function getDynamoClient() {
+  if (!dynamoClient && process.env.NODE_ENV !== 'test' && process.env.STORIES_TABLE && process.env.AWS_REGION) {
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+  }
+  return dynamoClient;
+}
+
 // Load environment variables from .env file
 try {
   const envFile = readFileSync('.env', 'utf8');
@@ -279,7 +289,7 @@ async function handleUpdateStoryPRRequest(req, res) {
 async function updateTaskSpecificationFile(storyId, updatedStory) {
   try {
     // Notify Kiro API server to update Task Specification
-    const response = await fetch('http://44.220.45.57:8081/api/update-task-spec', {
+    const response = await fetch('http://3.92.96.67:8081/api/update-task-spec', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -476,7 +486,7 @@ Acceptance Criteria: ${acceptanceCriteria?.join(', ') || 'None specified'}
 
 Project context: AIPM is a vanilla JavaScript project with Express backend. Include proper error handling and JSDoc comments. Return only the code, no explanations.`;
 
-    const response = await fetch('http://44.220.45.57:8081/execute', {
+    const response = await fetch('http://3.92.96.67:8081/execute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt }),
@@ -681,7 +691,7 @@ async function performDelegation(payload) {
 - Test the functionality works correctly`;
     }
     
-    const prProcessorUrl = process.env.EC2_PR_PROCESSOR_URL || 'http://44.220.45.57:8082';
+    const prProcessorUrl = process.env.EC2_PR_PROCESSOR_URL || 'http://3.92.96.67:8082';
     
     console.log(`🤖 Calling PR Processor: ${prProcessorUrl}/api/process-pr for PR #${pr.number}`);
     
@@ -7042,9 +7052,9 @@ export async function createApp() {
     // Configuration endpoint - return EC2 endpoints without proxying
     if (pathname === '/api/config/endpoints' && method === 'GET') {
       sendJson(res, 200, {
-        ec2Backend: 'http://44.220.45.57:4000',
-        kiroApi: 'http://44.220.45.57:8081',
-        terminal: 'ws://44.220.45.57:8080'
+        ec2Backend: 'http://3.92.96.67:4000',
+        kiroApi: 'http://3.92.96.67:8081',
+        terminal: 'ws://3.92.96.67:8080'
       });
       return;
     }
@@ -7166,8 +7176,14 @@ export async function createApp() {
     }
     if (storyIdMatch && method === 'PATCH') {
       const storyId = Number(storyIdMatch[1]);
+      const patchStartTime = Date.now();
+      const timings = [];
+      timings.push(`PATCH /api/stories/${storyId} started`);
+      
       try {
         const payload = await parseJson(req);
+        timings.push(`Parse JSON: ${Date.now() - patchStartTime}ms`);
+        
         const title = String(payload.title ?? '').trim();
         if (!title) {
           throw Object.assign(new Error('Title is required'), { statusCode: 400 });
@@ -7181,6 +7197,8 @@ export async function createApp() {
 
         const existingStmt = db.prepare('SELECT * FROM user_stories WHERE id = ?');
         const existing = existingStmt.get(storyId);
+        timings.push(`  Get existing story: ${Date.now() - patchStartTime}ms`);
+        
         if (!existing) {
           throw Object.assign(new Error('Story not found'), { statusCode: 404 });
         }
@@ -7198,17 +7216,39 @@ export async function createApp() {
         const nextStatus =
           payload.status === undefined ? currentStatus : normalizeStoryStatus(payload.status);
 
-        const storyForValidation = {
-          title,
-          asA: asA ?? existing.as_a,
-          iWant: iWant ?? existing.i_want,
-          soThat: soThat ?? existing.so_that,
-          description: description || existing.description || '',
-          storyPoint,
-          components,
-        };
-        const analysis = await analyzeInvest(storyForValidation);
-        const warnings = analysis.warnings;
+        // Check if INVEST validation should be skipped
+        const skipInvestValidation = 
+          req.headers['x-skip-invest-validation'] === 'true' || 
+          payload.skipInvestValidation === true;
+
+        let analysis;
+        let warnings = [];
+        
+        if (skipInvestValidation) {
+          // Skip INVEST analysis for test scenarios
+          analysis = {
+            warnings: [],
+            source: 'skipped',
+            summary: 'INVEST validation skipped'
+          };
+          timings.push(`  INVEST analysis skipped: ${Date.now() - patchStartTime}ms`);
+        } else {
+          // Run INVEST analysis
+          const storyForValidation = {
+            title,
+            asA: asA ?? existing.as_a,
+            iWant: iWant ?? existing.i_want,
+            soThat: soThat ?? existing.so_that,
+            description: description || existing.description || '',
+            storyPoint,
+            components,
+          };
+          const investStartTime = Date.now();
+          analysis = await analyzeInvest(storyForValidation);
+          timings.push(`  INVEST analysis completed: ${Date.now() - investStartTime}ms (total: ${Date.now() - patchStartTime}ms)`);
+          warnings = analysis.warnings;
+        }
+        
         if (warnings.length > 0 && !payload.acceptWarnings) {
           sendJson(res, 409, {
             code: 'INVEST_WARNINGS',
@@ -7240,6 +7280,8 @@ export async function createApp() {
         const titleChanged = title !== existing.title;
         const componentsChanged =
           JSON.stringify(components) !== JSON.stringify(normalizedExistingComponents);
+        
+        // Only consider content changed if fields other than status are modified
         const contentChanged =
           titleChanged ||
           descriptionChanged ||
@@ -7253,11 +7295,12 @@ export async function createApp() {
         // For DynamoDB, use direct update to ensure status change works
         if (process.env.NODE_ENV !== 'test' && process.env.STORIES_TABLE && process.env.AWS_REGION) {
           // Direct DynamoDB update for status change
-          const { DynamoDBClient, UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
-          const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const dynamoStartTime = Date.now();
+          const { UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
+          const client = await getDynamoClient();
           
           try {
-            await dynamoClient.send(new UpdateItemCommand({
+            await client.send(new UpdateItemCommand({
               TableName: process.env.STORIES_TABLE,
               Key: { id: { N: String(storyId) } },
               UpdateExpression: 'SET #status = :status, updated_at = :updatedAt',
@@ -7267,7 +7310,7 @@ export async function createApp() {
                 ':updatedAt': { S: now() }
               }
             }));
-            console.log(`✅ DynamoDB status updated to ${nextStatus} for story ${storyId}`);
+            timings.push(`DynamoDB update: ${Date.now() - dynamoStartTime}ms`);
           } catch (dynamoError) {
             console.error('❌ DynamoDB direct update failed:', dynamoError);
             // Fall back to SQLite emulation
@@ -7277,6 +7320,7 @@ export async function createApp() {
         const update = db.prepare(
           'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
         );
+        const sqliteStartTime = Date.now();
         update.run(
           title,
           description,
@@ -7297,6 +7341,7 @@ export async function createApp() {
           }),
           storyId
         );
+        timings.push(`SQLite update: ${Date.now() - sqliteStartTime}ms`);
 
         if (contentChanged) {
           const existingTestCountRow =
@@ -7307,23 +7352,33 @@ export async function createApp() {
           if (Number(existingTestCountRow.count ?? 0) > 0) {
             markAcceptanceTestsForReview(db, storyId);
           }
-          await createAutomaticAcceptanceTest(
-            db,
-            {
-              id: storyId,
-              title,
-              asA: nextAsA,
-              iWant: nextIWant,
-              soThat: nextSoThat,
-              components,
-            },
-            { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
-          );
+          // Only create automatic acceptance test if not skipping INVEST validation
+          if (!skipInvestValidation) {
+            await createAutomaticAcceptanceTest(
+              db,
+              {
+                id: storyId,
+                title,
+                asA: nextAsA,
+                iWant: nextIWant,
+                soThat: nextSoThat,
+                components,
+              },
+              { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
+            );
+          }
         }
+        
+        const loadStartTime = Date.now();
         const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
+        timings.push(`  loadStories: ${Date.now() - loadStartTime}ms (total: ${Date.now() - patchStartTime}ms)`);
+        
         if (updated) {
           applyInvestAnalysisToStory(updated, analysis);
         }
+        timings.push(`PATCH completed: ${Date.now() - patchStartTime}ms`);
+        const timingLog = `⏱️  PATCH Timing: ${timings.join(' | ')}`;
+        console.error(timingLog);  // Use stderr to ensure it's logged
         sendJson(res, 200, updated ?? null);
       } catch (error) {
         const status = error.statusCode ?? 500;
@@ -7479,7 +7534,7 @@ export async function createApp() {
         
         try {
           // Fetch production stories
-          const prodResponse = await fetch('http://44.220.45.57/api/stories');
+          const prodResponse = await fetch('http://3.92.96.67/api/stories');
           if (prodResponse.ok) {
             const prodStories = await prodResponse.json();
             console.log(`Found ${prodStories.length} top-level stories in production`);
@@ -7584,29 +7639,80 @@ export async function createApp() {
       const storyId = Number(storyIdMatch[1]);
       
       try {
-        // Get story PRs before deletion
+        // Get story PRs and acceptance tests before deletion
         const storyPRs = await getStoryPRs(db, storyId);
+        const acceptanceTests = await getAcceptanceTests(db, storyId);
         
-        // Delete the story
-        const statement = db.prepare('DELETE FROM user_stories WHERE id = ?');
-        const result = statement.run(storyId);
-        
-        if (result.changes === 0) {
-          sendJson(res, 404, { message: 'Story not found' });
-          return;
+        // Delete acceptance tests first
+        if (db.constructor.name === 'DynamoDBDataLayer') {
+          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, DeleteCommand, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const docClient = DynamoDBDocumentClient.from(client);
+          
+          // Query and delete all acceptance tests for this story
+          const testsTableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+          const queryResult = await docClient.send(new QueryCommand({
+            TableName: testsTableName,
+            IndexName: 'storyId-index',
+            KeyConditionExpression: 'storyId = :storyId',
+            ExpressionAttributeValues: {
+              ':storyId': storyId
+            }
+          }));
+          
+          if (queryResult.Items && queryResult.Items.length > 0) {
+            for (const test of queryResult.Items) {
+              await docClient.send(new DeleteCommand({
+                TableName: testsTableName,
+                Key: { id: test.id }
+              }));
+            }
+            console.log(`🗑️ Deleted ${queryResult.Items.length} acceptance tests for story ${storyId}`);
+          }
+          
+          // Delete the story
+          const storiesTableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          await docClient.send(new DeleteCommand({
+            TableName: storiesTableName,
+            Key: { id: storyId }
+          }));
+          
+        } else {
+          // SQLite: Delete acceptance tests
+          const deleteTestsStmt = db.prepare('DELETE FROM acceptance_tests WHERE story_id = ?');
+          const testsResult = deleteTestsStmt.run(storyId);
+          if (testsResult.changes > 0) {
+            console.log(`🗑️ Deleted ${testsResult.changes} acceptance tests for story ${storyId}`);
+          }
+          
+          // Delete the story
+          const statement = db.prepare('DELETE FROM user_stories WHERE id = ?');
+          const result = statement.run(storyId);
+          
+          if (result.changes === 0) {
+            sendJson(res, 404, { message: 'Story not found' });
+            return;
+          }
         }
         
         // Delete associated PRs from database
         if (storyPRs && storyPRs.length > 0) {
-          const deletePRStatement = db.prepare('DELETE FROM story_prs WHERE storyId = ?');
-          deletePRStatement.run(storyId);
-          console.log(`🗑️ Deleted ${storyPRs.length} associated PRs for story ${storyId}`);
+          if (db.constructor.name === 'DynamoDBDataLayer') {
+            // DynamoDB PR deletion would go here if we had a PRs table
+            console.log(`🗑️ Would delete ${storyPRs.length} associated PRs for story ${storyId}`);
+          } else {
+            const deletePRStatement = db.prepare('DELETE FROM story_prs WHERE storyId = ?');
+            deletePRStatement.run(storyId);
+            console.log(`🗑️ Deleted ${storyPRs.length} associated PRs for story ${storyId}`);
+          }
         }
         
+        console.log(`✅ Deleted story ${storyId} with ${acceptanceTests.length} acceptance tests and ${storyPRs.length} PRs`);
         sendJson(res, 204, {});
       } catch (error) {
-        console.error('Error deleting story and PRs:', error);
-        sendJson(res, 500, { message: 'Failed to delete story and associated PRs' });
+        console.error('Error deleting story and associated data:', error);
+        sendJson(res, 500, { message: 'Failed to delete story and associated data' });
       }
       return;
     }

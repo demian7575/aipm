@@ -79,11 +79,11 @@ Open ports 8081 and 8082 in EC2 security group.
 
 ```bash
 # Check worker status
-curl -s http://44.220.45.57:8081/health | jq '.workers'
+curl -s http://3.92.96.67:8081/health | jq '.workers'
 
 # Watch logs
-ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-worker-pool.log"
-ssh ec2-user@44.220.45.57 "tail -f /tmp/pr-processor.log"
+ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-worker-pool.log"
+ssh ec2-user@3.92.96.67 "tail -f /tmp/pr-processor.log"
 ```
 
 ## Benefits
@@ -111,7 +111,7 @@ ssh ec2-user@44.220.45.57 "tail -f /tmp/pr-processor.log"
 
 ✅ **Deployed to Production**
 - Lambda: `aipm-backend-prod-api`
-- EC2: `44.220.45.57` (ports 8081, 8082)
+- EC2: `3.92.96.67` (ports 8081, 8082)
 - Frontend: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
 
 ## Next Steps

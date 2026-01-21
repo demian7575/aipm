@@ -6,8 +6,8 @@ set -e
 source "$(dirname "$0")/test-library.sh"
 
 # Configuration
-API_BASE="${API_BASE:-http://44.220.45.57:4000}"
-KIRO_API_BASE="${KIRO_API_BASE:-http://44.220.45.57:8081}"
+API_BASE="${API_BASE:-http://3.92.96.67:4000}"
+SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://3.92.96.67:8083}"
 FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com}"
 TARGET_ENV="${TARGET_ENV:-prod}"
 
@@ -29,8 +29,8 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "🟡 Phase 2: Performance & API"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 test_api_response_time "$API_BASE" 5
-test_kiro_api_health "$KIRO_API_BASE"
-test_draft_generation_performance "$KIRO_API_BASE"
+test_semantic_api_health "$SEMANTIC_API_BASE"
+test_draft_generation_performance "$SEMANTIC_API_BASE"
 
 # Phase 3: Infrastructure
 echo ""
@@ -47,9 +47,9 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "🔄 Phase 4: Workflows"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 test_story_crud "$API_BASE"
-test_invest_analysis "$API_BASE" "$KIRO_API_BASE"
+test_invest_analysis "$API_BASE" "$SEMANTIC_API_BASE"
 test_health_check "$API_BASE"
-test_code_generation_endpoint "$KIRO_API_BASE"
+test_code_generation_endpoint "$SEMANTIC_API_BASE"
 
 # Phase 5: End-to-End Journey
 echo ""

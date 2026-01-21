@@ -10,7 +10,7 @@
 
 ### 1. Kiro API Server (EC2) ✅
 
-**Location:** http://44.220.45.57:8081  
+**Location:** http://3.92.96.67:8081  
 **Status:** Running  
 **Service:** systemd (kiro-api-server.service)
 
@@ -49,7 +49,7 @@
 ### Kiro API Health Check
 
 ```bash
-curl http://44.220.45.57:8081/health
+curl http://3.92.96.67:8081/health
 ```
 
 **Response:**
@@ -112,7 +112,7 @@ curl http://44.220.45.57:8081/health
 
 **Check Kiro API logs:**
 ```bash
-ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"
+ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-api-server.log"
 ```
 
 **Expected output:**
@@ -135,13 +135,13 @@ ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"
 
 ```bash
 # Service status
-ssh ec2-user@44.220.45.57 "sudo systemctl status kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl status kiro-api-server"
 
 # Restart if needed
-ssh ec2-user@44.220.45.57 "sudo systemctl restart kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl restart kiro-api-server"
 
 # View logs
-ssh ec2-user@44.220.45.57 "tail -100 /tmp/kiro-api-server.log"
+ssh ec2-user@3.92.96.67 "tail -100 /tmp/kiro-api-server.log"
 ```
 
 ## Architecture
@@ -185,7 +185,7 @@ ssh ec2-user@44.220.45.57 "tail -100 /tmp/kiro-api-server.log"
 
 **Backend (Lambda):**
 ```bash
-KIRO_API_URL=http://44.220.45.57:8081  # Default
+KIRO_API_URL=http://3.92.96.67:8081  # Default
 ```
 
 **Kiro API (EC2):**
@@ -223,14 +223,14 @@ curl https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod/api/stories
 ### Code Not Generated
 
 **Check:**
-1. Kiro API is running: `curl http://44.220.45.57:8081/health`
-2. Check logs: `ssh ec2-user@44.220.45.57 "tail -f /tmp/kiro-api-server.log"`
+1. Kiro API is running: `curl http://3.92.96.67:8081/health`
+2. Check logs: `ssh ec2-user@3.92.96.67 "tail -f /tmp/kiro-api-server.log"`
 3. Verify git operations detected (look for 📝 and 🚀)
 
 **Fix:**
 ```bash
 # Restart service
-ssh ec2-user@44.220.45.57 "sudo systemctl restart kiro-api-server"
+ssh ec2-user@3.92.96.67 "sudo systemctl restart kiro-api-server"
 ```
 
 ### Completion Not Detected
@@ -292,7 +292,7 @@ Set up for:
 **Issues?** Check:
 1. Service status: `sudo systemctl status kiro-api-server`
 2. Logs: `tail -f /tmp/kiro-api-server.log`
-3. Health check: `curl http://44.220.45.57:8081/health`
+3. Health check: `curl http://3.92.96.67:8081/health`
 4. Gating tests: `./scripts/testing/test-kiro-api-gating.sh`
 
 **Contact:** Check logs first, then restart service if needed.

@@ -31,7 +31,7 @@ This single command handles:
 - ✅ Deployment verification
 
 **Live Demo**: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
-**API Endpoint**: http://44.220.45.57 (EC2 Backend)
+**API Endpoint**: http://3.92.96.67 (EC2 Backend)
 
 **Development Environment**: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
 **Dev API Endpoint**: http://44.222.168.46 (EC2 Backend)

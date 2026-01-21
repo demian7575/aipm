@@ -4,8 +4,8 @@
 set +e
 source "$(dirname "$0")/test-library.sh"
 
-API_BASE="${API_BASE:-http://44.220.45.57:4000}"
-KIRO_API_BASE="${KIRO_API_BASE:-http://44.220.45.57:8081}"
+API_BASE="${API_BASE:-http://3.92.96.67:4000}"
+SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://3.92.96.67:8083}"
 
 # Enable Kiro Mock Mode
 export USE_KIRO_MOCK=true
@@ -14,18 +14,26 @@ echo "🧪 Phase 2-1: Complete E2E Workflow (MOCK Kiro CLI)"
 echo "Testing full user journey with mocked AI features"
 echo ""
 
+# Step 0: Story Draft Generation (Mock)
+echo "📝 Step 0: Story Draft Generation (Mock)"
+step_start=$(date +%s)
+test_story_draft_generation "$SEMANTIC_API_BASE"
+step_end=$(date +%s)
+echo "   ⏱️  Step 0 Duration: $((step_end - step_start))s"
+
 # Step 1: Create User Story
+echo ""
 echo "📝 Step 1: Create User Story"
 step_start=$(date +%s)
 test_story_crud "$API_BASE"
 step_end=$(date +%s)
 echo "   ⏱️  Step 1 Duration: $((step_end - step_start))s"
 
-# Step 2: INVEST Analysis SSE (Mock)
+# Step 2: INVEST Analysis (Mock)
 echo ""
-echo "🤖 Step 2: INVEST Analysis SSE (Mock)"
+echo "🤖 Step 2: INVEST Analysis (Mock)"
 step_start=$(date +%s)
-test_invest_analysis_sse "$API_BASE" "$KIRO_API_BASE"
+test_invest_analysis "$API_BASE" "$SEMANTIC_API_BASE"
 step_end=$(date +%s)
 echo "   ⏱️  Step 2 Duration: $((step_end - step_start))s"
 
@@ -65,7 +73,7 @@ echo "   ⏱️  Step 7 Duration: $((step_end - step_start))s"
 echo ""
 echo "💻 Step 8: Code Generation (Mock)"
 step_start=$(date +%s)
-test_code_generation_endpoint "$KIRO_API_BASE"
+test_code_generation_endpoint "$SEMANTIC_API_BASE"
 step_end=$(date +%s)
 echo "   ⏱️  Step 8 Duration: $((step_end - step_start))s"
 

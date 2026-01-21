@@ -10,7 +10,7 @@ The "Generate Code & PR" feature is **working correctly** and ready for producti
 ## What Was Verified
 
 ### ✅ Infrastructure
-- EC2 terminal server running at 44.220.45.57:8080
+- EC2 terminal server running at 3.92.96.67:8080
 - Kiro CLI installed and active (PID 34198)
 - Repository cloned on EC2 at /home/ec2-user/aipm
 - GitHub token configured and valid
@@ -41,7 +41,7 @@ open http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com
 # 3. Select a story → Click "Generate Code & PR" → Fill form → Submit
 
 # 4. Monitor (optional)
-ssh ec2-user@44.220.45.57 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 ```
 
 ### Test the Flow
@@ -65,7 +65,7 @@ User (AIPM UI)
     ↓
 Backend API (Lambda)
     ↓
-EC2 Terminal Server (44.220.45.57:8080)
+EC2 Terminal Server (3.92.96.67:8080)
     ↓
 Kiro CLI (Persistent Session)
     ↓
@@ -84,16 +84,16 @@ GitHub PR (with generated code)
 
 ```bash
 # Check server health
-curl http://44.220.45.57:8080/health
+curl http://3.92.96.67:8080/health
 
 # Watch logs
-ssh ec2-user@44.220.45.57 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
+ssh ec2-user@3.92.96.67 'tail -f /home/ec2-user/aipm/scripts/workers/terminal-server.log'
 
 # Check Kiro process
-ssh ec2-user@44.220.45.57 'ps aux | grep kiro-cli'
+ssh ec2-user@3.92.96.67 'ps aux | grep kiro-cli'
 
 # Check git status
-ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git status'
+ssh ec2-user@3.92.96.67 'cd /home/ec2-user/aipm && git status'
 ```
 
 ## Troubleshooting
@@ -101,7 +101,7 @@ ssh ec2-user@44.220.45.57 'cd /home/ec2-user/aipm && git status'
 ### If Something Goes Wrong
 
 1. **Run diagnostics**: `./diagnose-generate-flow.sh`
-2. **Check logs**: `ssh ec2-user@44.220.45.57 'tail -50 /home/ec2-user/aipm/scripts/workers/terminal-server.log'`
+2. **Check logs**: `ssh ec2-user@3.92.96.67 'tail -50 /home/ec2-user/aipm/scripts/workers/terminal-server.log'`
 3. **Restart server**: `./scripts/workers/start-kiro-terminal.sh`
 
 ### Common Issues

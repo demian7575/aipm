@@ -88,7 +88,7 @@ Step 5: Create Pull Request
 
 Step 6: Trigger code generation (fire-and-forget)
 ┌────────────────────────────────────────┐
-│ fetch('http://44.220.45.57:8080/      │
+│ fetch('http://3.92.96.67:8080/      │
 │       generate-code', {               │
 │   branch: "feature/add-export-...123",│
 │   taskDescription: "...",             │
@@ -253,12 +253,12 @@ Time    User A                          User B
 ### Production
 - **Frontend:** http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com
 - **Backend:** https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod
-- **EC2:** http://44.220.45.57:8080
+- **EC2:** http://3.92.96.67:8080
 
 ### Development
 - **Frontend:** http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com
 - **Backend:** https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod
-- **EC2:** http://44.220.45.57:8080
+- **EC2:** http://3.92.96.67:8080
 
 ## Timing
 

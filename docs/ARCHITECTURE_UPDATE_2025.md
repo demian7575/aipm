@@ -32,7 +32,7 @@ AWS Lambda + API Gateway + DynamoDB
 
 ### Code Generation Layer - EC2
 ```
-EC2 Instance (44.220.45.57)
+EC2 Instance (3.92.96.67)
 ├── Terminal Server: Port 8080 (Worker Pool)
 ├── Kiro API Server: Port 8081 (V4 - Direct Post)
 ├── Queue Manager: DynamoDB-based async processing
@@ -249,8 +249,8 @@ provider:
 ### Production URLs
 - **Frontend**: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
 - **API**: https://wk6h5fkqk9.execute-api.us-east-1.amazonaws.com/prod
-- **Terminal Server**: http://44.220.45.57:8080/health
-- **Kiro API**: http://44.220.45.57:8081/health
+- **Terminal Server**: http://3.92.96.67:8080/health
+- **Kiro API**: http://3.92.96.67:8081/health
 
 ### Development URLs
 - **Frontend**: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
@@ -268,8 +268,8 @@ provider:
 ./bin/deploy-prod
 
 # Check EC2 services
-ssh ec2-user@44.220.45.57 'sudo systemctl status aipm-terminal-server'
-ssh ec2-user@44.220.45.57 'sudo systemctl status kiro-api-server'
+ssh ec2-user@3.92.96.67 'sudo systemctl status aipm-terminal-server'
+ssh ec2-user@3.92.96.67 'sudo systemctl status kiro-api-server'
 ```
 
 ### DynamoDB Tables

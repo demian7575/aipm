@@ -129,12 +129,12 @@ cd /repo/ebaejun/tools/aws/aipm
 
 ### Check Server Status
 ```bash
-ssh ec2-user@44.220.45.57 "ps aux | grep terminal-server"
+ssh ec2-user@3.92.96.67 "ps aux | grep terminal-server"
 ```
 
 ### View Logs
 ```bash
-ssh ec2-user@44.220.45.57 "tail -f terminal-server.log"
+ssh ec2-user@3.92.96.67 "tail -f terminal-server.log"
 ```
 
 ### Check Queue
@@ -148,7 +148,7 @@ aws dynamodb scan \
 ### Manual Task Processing
 ```bash
 # SSH to EC2
-ssh ec2-user@44.220.45.57
+ssh ec2-user@3.92.96.67
 
 # Check pending tasks
 aws dynamodb scan --table-name aipm-amazon-q-queue \
@@ -179,7 +179,7 @@ AWS_REGION=us-east-1               # DynamoDB region
 ### EC2 Instance
 - **Instance ID:** i-016241c7a18884e80
 - **Type:** t3.small (2 vCPU, 2GB RAM)
-- **IP:** 44.220.45.57 (changes on restart)
+- **IP:** 3.92.96.67 (changes on restart)
 - **Cost:** ~$15/month
 
 ## Troubleshooting
@@ -187,13 +187,13 @@ AWS_REGION=us-east-1               # DynamoDB region
 ### Server Not Processing Tasks
 ```bash
 # Check if server is running
-ssh ec2-user@44.220.45.57 "ps aux | grep terminal-server"
+ssh ec2-user@3.92.96.67 "ps aux | grep terminal-server"
 
 # Restart server
 ./scripts/workers/start-kiro-terminal.sh
 
 # Check logs
-ssh ec2-user@44.220.45.57 "tail -50 terminal-server.log"
+ssh ec2-user@3.92.96.67 "tail -50 terminal-server.log"
 ```
 
 ### Tasks Stuck in "processing"

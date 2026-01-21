@@ -3,7 +3,7 @@
  */
 export class TerminalController {
   constructor(config = {}) {
-    this.baseUrl = this.normalizeBaseUrl(config.baseUrl || window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.220.45.57:8080');
+    this.baseUrl = this.normalizeBaseUrl(config.baseUrl || window.CONFIG?.EC2_TERMINAL_URL || 'ws://3.92.96.67:8080');
     this.httpBase = this.toHttpUrl(this.baseUrl);
     this.wsBase = this.toWsUrl(this.baseUrl);
     this.token = config.token || null;

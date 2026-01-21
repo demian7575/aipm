@@ -87,9 +87,9 @@ Frontend (S3) → EC2 Backend → DynamoDB
 
 ### Environment Configurations
 ```javascript
-// Production (44.220.45.57)
+// Production (3.92.96.67)
 window.CONFIG = {
-  API_BASE_URL: 'http://44.220.45.57',
+  API_BASE_URL: 'http://3.92.96.67',
   ENVIRONMENT: 'production',
   storiesTable: 'aipm-backend-prod-stories'
 }
@@ -123,7 +123,7 @@ window.CONFIG = {
 
 ## 📋 Service Dependencies
 
-### Production EC2 (44.220.45.57)
+### Production EC2 (3.92.96.67)
 - **aipm-main-backend**: Main API service
 - **kiro-api-v4**: Code generation
 - **aipm-terminal-server**: WebSocket terminal

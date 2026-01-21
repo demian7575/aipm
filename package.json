@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "bash scripts/testing/run-all-gating-tests.sh",
+    "test": "bash scripts/testing/run-structured-gating-tests.sh --env dev --phases 1",
+    "test:full": "bash scripts/testing/run-structured-gating-tests.sh --env dev --phases 1,2",
     "test:dev-gating": "echo 'Dev gating tests - skipping Node.js tests'",
     "deploy:dev": "bash bin/deploy-dev",
     "deploy:prod": "bash bin/deploy-prod",

@@ -41,7 +41,7 @@ When Kiro is not running, a **"Start Kiro CLI"** button appears:
 **Click Flow**:
 1. User clicks "Start Kiro CLI"
 2. Button shows "Starting..."
-3. Calls `POST http://44.220.45.57:8080/restart-kiro`
+3. Calls `POST http://3.92.96.67:8080/restart-kiro`
 4. Server restarts (takes ~10 seconds)
 5. Status automatically rechecks
 6. Green banner appears when ready
@@ -59,7 +59,7 @@ function addStartButton() {
   startBtn.textContent = 'Start Kiro CLI';
   
   startBtn.addEventListener('click', async () => {
-    const res = await fetch('http://44.220.45.57:8080/restart-kiro', { 
+    const res = await fetch('http://3.92.96.67:8080/restart-kiro', { 
       method: 'POST' 
     });
     // Wait 10 seconds and recheck
@@ -123,7 +123,7 @@ The server is managed by a process manager that automatically restarts it.
 ### Test Auto-Start (Optional)
 ```bash
 # Stop Kiro (for testing only!)
-ssh ec2-user@44.220.45.57 'pkill -f kiro-cli'
+ssh ec2-user@3.92.96.67 'pkill -f kiro-cli'
 
 # Open modal - should show yellow banner with Start button
 # Click Start button - should restart and show green after 10s
@@ -136,7 +136,7 @@ ssh ec2-user@44.220.45.57 'pkill -f kiro-cli'
 ```
 Modal opens
     ↓
-Fetch http://44.220.45.57:8080/health
+Fetch http://3.92.96.67:8080/health
     ↓
 Check response.kiro.running
     ↓
@@ -144,7 +144,7 @@ If false → Show Start button
     ↓
 User clicks Start
     ↓
-POST http://44.220.45.57:8080/restart-kiro
+POST http://3.92.96.67:8080/restart-kiro
     ↓
 Server exits (process manager restarts it)
     ↓
@@ -221,7 +221,7 @@ If auto-start fails:
 
 1. **Check EC2 instance**:
    ```bash
-   ssh ec2-user@44.220.45.57 'uptime'
+   ssh ec2-user@3.92.96.67 'uptime'
    ```
 
 2. **Manual restart**:
@@ -231,7 +231,7 @@ If auto-start fails:
 
 3. **Check process manager**:
    ```bash
-   ssh ec2-user@44.220.45.57 'ps aux | grep terminal-server'
+   ssh ec2-user@3.92.96.67 'ps aux | grep terminal-server'
    ```
 
 ---

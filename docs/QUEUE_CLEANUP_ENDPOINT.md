@@ -24,7 +24,7 @@ POST /kiro/v3/queue/cleanup
 
 ## Usage
 ```bash
-curl -X POST http://44.220.45.57:8081/kiro/v3/queue/cleanup \
+curl -X POST http://3.92.96.67:8081/kiro/v3/queue/cleanup \
   -H "Content-Type: application/json"
 ```
 

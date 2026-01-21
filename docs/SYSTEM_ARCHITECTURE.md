@@ -22,11 +22,11 @@
 └────────────────────────────────┬────────────────────────────────────────────────────┘
                                  │
                                  │ API Calls (HTTP POST/GET/PUT/DELETE)
-                                 │ http://44.220.45.57/api/*
+                                 │ http://3.92.96.67/api/*
                                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
 │                         AWS EC2 INSTANCE (Backend API)                              │
-│  IP: 44.220.45.57                                                                   │
+│  IP: 3.92.96.67                                                                   │
 │  Port: 8081 (internal) → 80 (nginx proxy)                                          │
 │  Region: us-east-1                                                                  │
 │  ┌───────────────────────────────────────────────────────────────────────────────┐ │
@@ -280,7 +280,7 @@ Browser → S3 Static Website
 
 API ROUTING (Backend)
 ──────────────────────
-Browser → EC2 Public IP (44.220.45.57:80)
+Browser → EC2 Public IP (3.92.96.67:80)
   ↓
 NGINX Reverse Proxy
   - Listen on :80

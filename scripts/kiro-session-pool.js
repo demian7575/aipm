@@ -410,16 +410,13 @@ const server = http.createServer(async (req, res) => {
         session.outputBuffer = '';
         session.lastOutputTime = Date.now();
         
-        // Set timeout for stuck detection
-        session.timeoutHandle = setTimeout(() => {
-          if (session.busy) {
-            session.log(`⚠️  Session ${session.id} timeout in fire-and-forget mode`);
-            session.cleanup();
-          }
-        }, SESSION_TIMEOUT);
-        
         session.log(`\n=== COMMAND ===\n${prompt}\n=== END ===\n`);
         session.process.stdin.write(prompt + '\n');
+        
+        // Fire-and-forget: cleanup immediately after sending
+        setTimeout(() => {
+          session.cleanup();
+        }, 1000); // Give 1 second for command to be written
         
         // Return immediately
         res.writeHead(200, { 'Content-Type': 'application/json' });

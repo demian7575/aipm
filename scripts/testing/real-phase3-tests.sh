@@ -8,7 +8,7 @@ echo "🟢 Phase 3: Real Infrastructure & Integration Tests"
 
 # Get Test Root
 TEST_ROOT_ID=$(bash "$(dirname "$0")/create-test-root.sh")
-echo "📍 Using Test Root ID: $TEST_ROOT_ID"
+echo "📍 Using Test Parent ID: $TEST_ROOT_ID"
 
 # Test 1: Real frontend-backend integration
 echo "  🧪 Testing real frontend-backend integration..."
