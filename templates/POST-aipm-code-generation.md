@@ -40,6 +40,9 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 ## Execution Steps
 
 1. **Extract**: "Request ID: XXXXX" → UUID, storyId, storyTitle, storyDescription, acceptanceTests, branchName, prNumber
-2. **Generate**: Implement code based on story and acceptance tests
-3. **Replace**: REQUEST_ID_VALUE, STATUS (success/failure), FILE, SUMMARY, TEST_RESULTS
-4. **Execute**: curl command with bash tool
+2. **Checkout Branch**: `cd /home/ec2-user/aipm && git checkout branchName`
+3. **Generate**: Implement code based on story and acceptance tests
+4. **Commit**: `git add . && git commit -m "feat: SUMMARY"`
+5. **Push**: `git push origin branchName`
+6. **Replace**: REQUEST_ID_VALUE, STATUS (success/failure), FILE, SUMMARY, TEST_RESULTS
+7. **Execute**: curl command with bash tool
