@@ -50,6 +50,9 @@ jobs:
         id: gating
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_BASE: http://3.92.96.67:4000
+          SEMANTIC_API_BASE: http://3.92.96.67:8083
+          TARGET_ENV: prod
         run: |
           echo "🧪 Running Pre-Production Gating Tests"
           export PHASE="pre-production"
