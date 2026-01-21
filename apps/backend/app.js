@@ -21,6 +21,30 @@ async function getDynamoClient() {
   return dynamoClient;
 }
 
+// Helper function to get acceptance tests for a story
+async function getAcceptanceTests(db, storyId) {
+  if (db.constructor.name === 'DynamoDBDataLayer') {
+    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    const result = await docClient.send(new QueryCommand({
+      TableName: process.env.ACCEPTANCE_TESTS_TABLE,
+      IndexName: 'storyId-index',
+      KeyConditionExpression: 'storyId = :storyId',
+      ExpressionAttributeValues: {
+        ':storyId': storyId
+      }
+    }));
+    
+    return result.Items || [];
+  } else {
+    const stmt = db.prepare('SELECT * FROM acceptance_tests WHERE story_id = ?');
+    return stmt.all(storyId);
+  }
+}
+
 // Load environment variables from .env file
 try {
   const envFile = readFileSync('.env', 'utf8');
