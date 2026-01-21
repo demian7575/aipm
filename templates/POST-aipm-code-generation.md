@@ -36,11 +36,23 @@ git pull origin {branchName} --rebase || true
 ### 4. Implement
 Write code following story requirements and existing patterns
 
-Add Phase 4 gating tests based on acceptance tests from the story:
+Create Phase 4 gating test based on acceptance tests from the story:
 ```bash
 cd /home/ec2-user/aipm
-# Create test file: scripts/testing/phase4-story-{storyId}.sh
-# Test should verify acceptance criteria from the story
+
+# Copy template and customize for this story
+cp scripts/testing/phase4-story-template.sh scripts/testing/phase4-story-{storyId}.sh
+
+# Edit the test file to:
+# 1. Set STORY_ID and STORY_TITLE
+# 2. Add verification logic for each acceptance test
+# 3. Verify Given-When-Then conditions are met
+# 4. Make test executable: chmod +x scripts/testing/phase4-story-{storyId}.sh
+
+# Example test structure:
+# - Test 1: Verify Given conditions
+# - Test 2: Execute When actions  
+# - Test 3: Verify Then outcomes
 ```
 
 ### 5. Run Gating Tests (MANDATORY)

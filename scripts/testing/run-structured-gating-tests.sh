@@ -147,6 +147,82 @@ main() {
         fi
     fi
     
+    # Phase 3: Real Integration Tests
+    if should_run_phase 3; then
+        log_phase "🔗 PHASE 3: Real Integration Tests"
+        local phase3_start=$(date +%s)
+        
+        if source ./scripts/testing/real-phase3-tests.sh; then
+            local phase3_end=$(date +%s)
+            local phase3_duration=$((phase3_end - phase3_start))
+            phase_summary "Phase 3"
+            echo "⏱️  Phase 3 Duration: ${phase3_duration}s"
+        else
+            phase_summary "Phase 3"
+            echo "⚠️  Integration issues detected"
+        fi
+    fi
+    
+    # Phase 4: End-to-End Workflow Tests + Story-specific Tests
+    if should_run_phase 4; then
+        log_phase "🔄 PHASE 4: End-to-End Workflow Tests"
+        local phase4_start=$(date +%s)
+        
+        # Run base Phase 4 tests
+        if source ./scripts/testing/real-phase4-tests.sh; then
+            phase_summary "Phase 4 (Base)"
+        else
+            phase_summary "Phase 4 (Base)"
+            echo "⚠️  Base workflow issues detected"
+        fi
+        
+        # Run story-specific Phase 4 tests
+        echo ""
+        echo "🧪 Running story-specific acceptance tests..."
+        local story_tests_passed=0
+        local story_tests_failed=0
+        
+        for test_file in ./scripts/testing/phase4-story-*.sh; do
+            if [[ -f "$test_file" ]]; then
+                local story_id=$(basename "$test_file" | sed 's/phase4-story-\(.*\)\.sh/\1/')
+                echo "  📝 Testing story $story_id..."
+                
+                if bash "$test_file"; then
+                    ((story_tests_passed++))
+                else
+                    ((story_tests_failed++))
+                fi
+            fi
+        done
+        
+        if [[ $story_tests_passed -gt 0 || $story_tests_failed -gt 0 ]]; then
+            echo "  ✅ Story tests passed: $story_tests_passed"
+            echo "  ❌ Story tests failed: $story_tests_failed"
+        else
+            echo "  ℹ️  No story-specific tests found"
+        fi
+        
+        local phase4_end=$(date +%s)
+        local phase4_duration=$((phase4_end - phase4_start))
+        echo "⏱️  Phase 4 Duration: ${phase4_duration}s"
+    fi
+    
+    # Phase 5: Code Generation Workflow
+    if should_run_phase 5; then
+        log_phase "🤖 PHASE 5: Code Generation Workflow"
+        local phase5_start=$(date +%s)
+        
+        if source ./scripts/testing/real-phase5-tests.sh; then
+            local phase5_end=$(date +%s)
+            local phase5_duration=$((phase5_end - phase5_start))
+            phase_summary "Phase 5"
+            echo "⏱️  Phase 5 Duration: ${phase5_duration}s"
+        else
+            phase_summary "Phase 5"
+            echo "⚠️  Code generation issues detected"
+        fi
+    fi
+    
     # Final summary
     local test_end=$(date +%s)
     local total_duration=$((test_end - test_start))
