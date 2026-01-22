@@ -1,6 +1,6 @@
 // Production environment configuration
 window.CONFIG = {
   ENVIRONMENT: 'production',
-  KIRO_API_URL: 'http://3.92.96.67',
-  BACKEND_API_URL: 'http://3.92.96.67'
+  KIRO_API_URL: 'http://44.197.204.18',
+  BACKEND_API_URL: 'http://44.197.204.18'
 };

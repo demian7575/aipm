@@ -59,17 +59,17 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 3.92.96.67 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 44.197.204.18 >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
       - name: Run Pre-Production Gating Tests
         id: gating
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          API_BASE: http://3.92.96.67:4000
-          SEMANTIC_API_BASE: http://3.92.96.67:8083
+          API_BASE: http://44.197.204.18:4000
+          SEMANTIC_API_BASE: http://44.197.204.18:8083
           TARGET_ENV: prod
-          SSH_HOST: 3.92.96.67
+          SSH_HOST: 44.197.204.18
         run: |
           echo "🧪 Running Pre-Production Gating Tests"
           export PHASE="pre-production"
@@ -131,7 +131,7 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 3.92.96.67 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 44.197.204.18 >> ~/.ssh/known_hosts
           ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured and validated" || (echo "❌ SSH key validation failed" && exit 1)
       
@@ -143,8 +143,8 @@ jobs:
           echo "📝 Creating production configuration..."
           cat > apps/frontend/public/config.js << EOF
           window.CONFIG = {
-            API_BASE_URL: 'http://3.92.96.67:4000',
-            EC2_TERMINAL_URL: 'ws://3.92.96.67:8080',
+            API_BASE_URL: 'http://44.197.204.18:4000',
+            EC2_TERMINAL_URL: 'ws://44.197.204.18:8080',
             GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
             PROD_VERSION: '4.0.0',
             ENVIRONMENT: 'production',
@@ -176,10 +176,10 @@ jobs:
         id: post_deployment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          API_BASE: http://3.92.96.67:4000
-          SEMANTIC_API_BASE: http://3.92.96.67:8083
+          API_BASE: http://44.197.204.18:4000
+          SEMANTIC_API_BASE: http://44.197.204.18:8083
           TARGET_ENV: prod
-          SSH_HOST: 3.92.96.67
+          SSH_HOST: 44.197.204.18
         run: |
           echo "🔍 Running Post-Deployment Validation"
           
@@ -198,7 +198,7 @@ jobs:
           fi
           
           # Backend API health
-          if curl -s "http://3.92.96.67/api/version" | grep -q "version"; then
+          if curl -s "http://44.197.204.18/api/version" | grep -q "version"; then
             echo "✅ Production backend healthy"
           else
             echo "❌ Production backend not healthy"

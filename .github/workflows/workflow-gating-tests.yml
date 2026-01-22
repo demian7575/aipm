@@ -50,8 +50,8 @@ jobs:
         id: phase1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          API_BASE: http://3.92.96.67:4000
-          SEMANTIC_API_BASE: http://3.92.96.67:8083
+          API_BASE: http://44.197.204.18:4000
+          SEMANTIC_API_BASE: http://44.197.204.18:8083
           TARGET_ENV: prod
         run: |
           echo "🔴 Running Phase 1: Critical Security & Data Safety"
@@ -94,17 +94,17 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 3.92.96.67 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 44.197.204.18 >> ~/.ssh/known_hosts
       
       - name: Run Phase 2 - Complete E2E Workflow
         id: phase2
         env:
           TEST_DB_ENV: dev
           TEST_USE_MOCK_GITHUB: true
-          TEST_SSH_HOST: 3.92.96.67
+          TEST_SSH_HOST: 44.197.204.18
           USE_KIRO_MOCK: false
-          API_BASE: http://3.92.96.67:4000
-          SEMANTIC_API_BASE: http://3.92.96.67:8083
+          API_BASE: http://44.197.204.18:4000
+          SEMANTIC_API_BASE: http://44.197.204.18:8083
           TARGET_ENV: prod
         run: |
           echo "🟡 Running Phase 2: Complete E2E Workflow"

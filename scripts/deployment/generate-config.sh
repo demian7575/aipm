@@ -9,22 +9,22 @@ ENV=${1:-prod}
 
 if [ "$ENV" = "prod" ]; then
   # Use EC2 endpoint for production (current architecture)
-  API_URL="http://3.92.96.67"
+  API_URL="http://44.197.204.18"
   ENVIRONMENT="production"
   STAGE="prod"
   STORIES_TABLE="aipm-backend-prod-stories"
   TESTS_TABLE="aipm-backend-prod-acceptance-tests"
   DEBUG="false"
-  EC2_TERMINAL_URL="ws://3.92.96.67:8080"
+  EC2_TERMINAL_URL="ws://44.197.204.18:8080"
 elif [ "$ENV" = "dev" ]; then
   # Use EC2 endpoint for development (AI flow enabled)
-  API_URL="http://3.92.96.67:4000"
+  API_URL="http://44.197.204.18:4000"
   ENVIRONMENT="development"
   STAGE="dev"
   STORIES_TABLE="aipm-backend-dev-stories"
   TESTS_TABLE="aipm-backend-dev-acceptance-tests"
   DEBUG="true"
-  EC2_TERMINAL_URL="ws://3.92.96.67:8080"
+  EC2_TERMINAL_URL="ws://44.197.204.18:8080"
 else
   echo "Error: Invalid environment. Use 'prod' or 'dev'"
   exit 1
