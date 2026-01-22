@@ -7323,6 +7323,7 @@ export async function createApp() {
         const iWant = payload.iWant != null ? String(payload.iWant).trim() : undefined;
         const soThat = payload.soThat != null ? String(payload.soThat).trim() : undefined;
         const requestedComponents = payload.components;
+        const parentId = payload.parentId !== undefined ? (payload.parentId === null ? null : Number(payload.parentId)) : undefined;
 
         const existingStmt = db.prepare('SELECT * FROM user_stories WHERE id = ?');
         const existing = existingStmt.get(storyId);
@@ -7409,6 +7410,7 @@ export async function createApp() {
         const titleChanged = title !== existing.title;
         const componentsChanged =
           JSON.stringify(components) !== JSON.stringify(normalizedExistingComponents);
+        const parentIdChanged = parentId !== undefined && parentId !== existing.parent_id;
         
         // Only consider content changed if fields other than status are modified
         const contentChanged =
@@ -7419,7 +7421,8 @@ export async function createApp() {
           asAChanged ||
           iWantChanged ||
           soThatChanged ||
-          componentsChanged;
+          componentsChanged ||
+          parentIdChanged;
 
         // For DynamoDB, use direct update to ensure status change works
         if (process.env.NODE_ENV !== 'test' && process.env.STORIES_TABLE && process.env.AWS_REGION) {
@@ -7429,15 +7432,27 @@ export async function createApp() {
           const client = await getDynamoClient();
           
           try {
+            const updateExpr = ['#status = :status', 'updated_at = :updatedAt'];
+            const attrValues = {
+              ':status': { S: nextStatus },
+              ':updatedAt': { S: now() }
+            };
+            
+            if (parentIdChanged) {
+              if (parentId === null) {
+                updateExpr.push('REMOVE parent_id');
+              } else {
+                updateExpr.push('parent_id = :parentId');
+                attrValues[':parentId'] = { N: String(parentId) };
+              }
+            }
+            
             await client.send(new UpdateItemCommand({
               TableName: process.env.STORIES_TABLE,
               Key: { id: { N: String(storyId) } },
-              UpdateExpression: 'SET #status = :status, updated_at = :updatedAt',
+              UpdateExpression: 'SET ' + updateExpr.join(', '),
               ExpressionAttributeNames: { '#status': 'status' },
-              ExpressionAttributeValues: {
-                ':status': { S: nextStatus },
-                ':updatedAt': { S: now() }
-              }
+              ExpressionAttributeValues: attrValues
             }));
             timings.push(`DynamoDB update: ${Date.now() - dynamoStartTime}ms`);
           } catch (dynamoError) {
@@ -7446,8 +7461,9 @@ export async function createApp() {
           }
         }
 
+        const finalParentId = parentId !== undefined ? parentId : existing.parent_id;
         const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
+          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, parent_id = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
         );
         const sqliteStartTime = Date.now();
         update.run(
@@ -7460,11 +7476,11 @@ export async function createApp() {
           nextIWant,
           nextSoThat,
           nextStatus,
+          finalParentId,
           now(),
           JSON.stringify(warnings),
           JSON.stringify({
             source: analysis.source,
-            summary: analysis.summary,
             summary: analysis.summary,
             model: analysis.ai?.model || null,
           }),
