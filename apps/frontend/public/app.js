@@ -58,7 +58,6 @@ const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
 const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
-const hideCompletedBtn = document.getElementById('hide-completed-btn');
 const filterBtn = document.getElementById('filter-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
@@ -122,7 +121,6 @@ const STORAGE_KEYS = {
   version: 'aiPm.version',
   stories: 'aiPm.stories',
   lastBackup: 'aiPm.lastBackup',
-  hideCompleted: 'aiPm.hideCompleted',
   filters: 'aiPm.filters',
 };
 
@@ -299,9 +297,6 @@ function getVisibleMindmapStories(stories) {
     return entries
       .filter((story) => {
         if (!story) return false;
-        
-        // Apply hide completed filter
-        if (state.hideCompleted && story.status === 'Done') return false;
         
         // Apply status filter
         if (state.filters.status.length > 0 && !state.filters.status.includes(story.status)) {
@@ -486,7 +481,6 @@ const state = {
   manualPositions: {},
   autoLayout: true,
   showDependencies: false,
-  hideCompleted: false,
   filters: {
     status: [],
     component: [],
@@ -692,17 +686,6 @@ function syncDependencyOverlayControls() {
   });
 }
 
-function syncHideCompletedControls() {
-  if (hideCompletedBtn) {
-    hideCompletedBtn.classList.toggle('is-active', state.hideCompleted);
-    hideCompletedBtn.setAttribute('aria-pressed', state.hideCompleted ? 'true' : 'false');
-    hideCompletedBtn.setAttribute(
-      'title',
-      state.hideCompleted ? 'Show completed stories' : 'Hide completed stories'
-    );
-  }
-}
-
 function setDependencyOverlayVisible(visible) {
   const next = Boolean(visible);
   if (state.showDependencies === next) {
@@ -731,16 +714,6 @@ if (referenceBtn) {
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
-  });
-}
-
-if (hideCompletedBtn) {
-  hideCompletedBtn.addEventListener('click', () => {
-    state.hideCompleted = !state.hideCompleted;
-    syncHideCompletedControls();
-    persistHideCompleted();
-    renderOutline();
-    renderMindmap();
   });
 }
 
@@ -1244,15 +1217,6 @@ function loadPreferences() {
   }
 
   try {
-    const hideCompletedRaw = localStorage.getItem(STORAGE_KEYS.hideCompleted);
-    if (hideCompletedRaw) {
-      state.hideCompleted = JSON.parse(hideCompletedRaw);
-    }
-  } catch (error) {
-    console.error('Failed to load hide completed preference', error);
-  }
-
-  try {
     const filtersRaw = localStorage.getItem(STORAGE_KEYS.filters);
     if (filtersRaw) {
       const filters = JSON.parse(filtersRaw);
@@ -1316,10 +1280,6 @@ function persistMindmap() {
 
 function persistPanels() {
   localStorage.setItem(STORAGE_KEYS.panels, JSON.stringify(state.panelVisibility));
-}
-
-function persistHideCompleted() {
-  localStorage.setItem(STORAGE_KEYS.hideCompleted, JSON.stringify(state.hideCompleted));
 }
 
 /**
