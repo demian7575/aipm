@@ -58,7 +58,6 @@ const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
 const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
-const hideCompletedBtn = document.getElementById('hide-completed-btn');
 const filterBtn = document.getElementById('filter-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
@@ -299,9 +298,6 @@ function getVisibleMindmapStories(stories) {
     return entries
       .filter((story) => {
         if (!story) return false;
-        
-        // Apply hide completed filter
-        if (state.hideCompleted && story.status === 'Done') return false;
         
         // Apply status filter
         if (state.filters.status.length > 0 && !state.filters.status.includes(story.status)) {
@@ -692,17 +688,6 @@ function syncDependencyOverlayControls() {
   });
 }
 
-function syncHideCompletedControls() {
-  if (hideCompletedBtn) {
-    hideCompletedBtn.classList.toggle('is-active', state.hideCompleted);
-    hideCompletedBtn.setAttribute('aria-pressed', state.hideCompleted ? 'true' : 'false');
-    hideCompletedBtn.setAttribute(
-      'title',
-      state.hideCompleted ? 'Show completed stories' : 'Hide completed stories'
-    );
-  }
-}
-
 function setDependencyOverlayVisible(visible) {
   const next = Boolean(visible);
   if (state.showDependencies === next) {
@@ -731,16 +716,6 @@ if (referenceBtn) {
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
-  });
-}
-
-if (hideCompletedBtn) {
-  hideCompletedBtn.addEventListener('click', () => {
-    state.hideCompleted = !state.hideCompleted;
-    syncHideCompletedControls();
-    persistHideCompleted();
-    renderOutline();
-    renderMindmap();
   });
 }
 
@@ -1244,15 +1219,6 @@ function loadPreferences() {
   }
 
   try {
-    const hideCompletedRaw = localStorage.getItem(STORAGE_KEYS.hideCompleted);
-    if (hideCompletedRaw) {
-      state.hideCompleted = JSON.parse(hideCompletedRaw);
-    }
-  } catch (error) {
-    console.error('Failed to load hide completed preference', error);
-  }
-
-  try {
     const filtersRaw = localStorage.getItem(STORAGE_KEYS.filters);
     if (filtersRaw) {
       const filters = JSON.parse(filtersRaw);
@@ -1316,10 +1282,6 @@ function persistMindmap() {
 
 function persistPanels() {
   localStorage.setItem(STORAGE_KEYS.panels, JSON.stringify(state.panelVisibility));
-}
-
-function persistHideCompleted() {
-  localStorage.setItem(STORAGE_KEYS.hideCompleted, JSON.stringify(state.hideCompleted));
 }
 
 /**
@@ -2758,9 +2720,12 @@ function updateWorkspaceColumns() {
   workspaceEl.style.gridTemplateColumns = columns.join(' ');
 }
 
+/**
+ * Get stories filtered by current filter state
+ * @returns {Array} Filtered stories
+ */
 function getVisibleStories() {
-  if (!state.hideCompleted) return state.stories;
-  return state.stories.filter(story => story.status !== 'Done');
+  return state.stories;
 }
 
 function renderOutline() {
@@ -2809,8 +2774,7 @@ function renderOutline() {
     list.appendChild(row);
 
     if (story.children && story.children.length > 0 && state.expanded.has(story.id)) {
-      const visibleChildren = state.hideCompleted ? story.children.filter(child => child.status !== 'Done') : story.children;
-      visibleChildren.forEach((child) => renderNode(child, depth + 1));
+      story.children.forEach((child) => renderNode(child, depth + 1));
     }
   }
 
@@ -7774,7 +7738,6 @@ function initialize() {
   localStorage.setItem('aipm_environment', currentEnv);
   
   loadPreferences();
-  syncHideCompletedControls();
   initializeCodeWhispererDelegations();
   updateWorkspaceColumns();
   renderOutline();
