@@ -2,6 +2,19 @@
 # Phase 1: Critical Infrastructure & Health Checks
 
 set -e
+
+# Debug: Show current directory and file existence
+echo "📍 Current directory: $(pwd)"
+echo "📍 Script location: $(dirname "$0")"
+echo "📍 Checking test-library.sh..."
+if [ -f "$(dirname "$0")/test-library.sh" ]; then
+  echo "✅ test-library.sh found"
+else
+  echo "❌ test-library.sh NOT found"
+  ls -la "$(dirname "$0")" | head -20
+  exit 1
+fi
+
 source "$(dirname "$0")/test-library.sh"
 
 # Use variables from parent script
