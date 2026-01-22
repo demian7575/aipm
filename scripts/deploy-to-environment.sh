@@ -120,6 +120,9 @@ EOF
     # Update environment configuration
     echo "⚙️ Updating environment configuration..."
     
+    # Generate version string
+    VERSION_STRING="${DEPLOY_VERSION}-${COMMIT_HASH}"
+    
     # Copy static environment file and add dynamic variables
     cat > /tmp/env_config.sh << EOF
 cd aipm
@@ -132,6 +135,10 @@ echo "PROD_VERSION=$DEPLOY_VERSION" >> .env
 echo "BASE_VERSION=$DEPLOY_VERSION" >> .env
 echo "PR_NUMBER=$PR_NUMBER" >> .env
 echo "GITHUB_TOKEN=\${GITHUB_TOKEN:-PLACEHOLDER_TOKEN}" >> .env
+
+# Replace version placeholder in backend code
+sed -i "s/DEPLOYMENT_VERSION_PLACEHOLDER/$VERSION_STRING/g" apps/backend/app.js
+echo "✅ Updated version to: $VERSION_STRING"
 EOF
     
     # Copy static environment file to server
