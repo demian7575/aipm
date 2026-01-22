@@ -2166,7 +2166,7 @@ Execute the template instructions exactly as written.`;
           if (!checkResult.upToDate) {
             mergeBtn.disabled = false;
             mergeBtn.textContent = 'Merge PR';
-            alert('The code base is outdated. Click \'Test in Dev\' again to rebase to origin/main before main.');
+            alert('This PR is behind main branch. Click "Test in Dev" to rebase and test, then try merging again.');
             return;
           }
         } catch (error) {
