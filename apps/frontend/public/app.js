@@ -4800,6 +4800,12 @@ function renderStoryDetailsWithCompleteData(story) {
             </select>
           </div>
           <div class="form-group">
+            <label>Parent Story:</label>
+            <select name="parentId" id="parent-story-select">
+              <option value="">Root Level</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label>Components:</label>
             <div id="modal-components-display" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 40px; cursor: pointer; background: #f8f9fa;">
               ${story.components && story.components.length > 0 ? story.components.join(', ') : 'Click to select'}
@@ -4817,6 +4823,31 @@ function renderStoryDetailsWithCompleteData(story) {
     
     let modalComponents = Array.isArray(story.components) ? [...story.components] : [];
     const componentsDisplay = modal.querySelector('#modal-components-display');
+    const parentSelect = modal.querySelector('#parent-story-select');
+    
+    // Populate parent story options
+    const allStories = [];
+    const collectStories = (nodes) => {
+      nodes.forEach(node => {
+        if (node.id !== story.id) { // Exclude current story
+          allStories.push(node);
+        }
+        if (node.children && node.children.length > 0) {
+          collectStories(node.children);
+        }
+      });
+    };
+    collectStories(state.stories);
+    
+    allStories.forEach(s => {
+      const option = document.createElement('option');
+      option.value = s.id;
+      option.textContent = `${s.id} - ${s.title}`;
+      if (story.parentId === s.id) {
+        option.selected = true;
+      }
+      parentSelect.appendChild(option);
+    });
     
     const updateComponentsDisplay = () => {
       componentsDisplay.textContent = modalComponents.length > 0 ? modalComponents.join(', ') : 'Click to select';
@@ -4844,6 +4875,7 @@ function renderStoryDetailsWithCompleteData(story) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
+      const parentIdValue = formData.get('parentId');
       const updates = {
         title: formData.get('title'),
         asA: formData.get('asA'),
@@ -4853,7 +4885,8 @@ function renderStoryDetailsWithCompleteData(story) {
         storyPoint: parseInt(formData.get('storyPoint')) || 0,
         assigneeEmail: formData.get('assigneeEmail'),
         status: formData.get('status'),
-        components: modalComponents
+        components: modalComponents,
+        parentId: parentIdValue === '' ? null : parseInt(parentIdValue)
       };
       
       try {

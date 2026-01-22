@@ -7009,6 +7009,10 @@ export async function createApp() {
             updateExpressions.push('components = :components');
             expressionAttributeValues[':components'] = JSON.stringify(payload.components || []);
           }
+          if (payload.parentId !== undefined) {
+            updateExpressions.push('parentId = :parentId');
+            expressionAttributeValues[':parentId'] = payload.parentId;
+          }
           
           if (updateExpressions.length === 0) {
             sendJson(res, 400, { message: 'No fields to update' });
@@ -7046,7 +7050,8 @@ export async function createApp() {
             storyPoints: payload.storyPoint ?? existing.storyPoint,
             assigneeEmail: payload.assigneeEmail ?? existing.assigneeEmail,
             status: payload.status ?? existing.status,
-            components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]'))
+            components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]')),
+            parentId: payload.parentId !== undefined ? payload.parentId : existing.parentId
           };
           
           await new Promise((resolve, reject) => {
