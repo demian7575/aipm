@@ -3,7 +3,7 @@
 
 set -e
 
-API_URL="${API_URL:-http://3.92.96.67}"
+API_URL="${API_URL:-http://44.197.204.18}"
 STORY_ID="${STORY_ID:-1768631018504}"
 
 echo "🧪 Testing Code Generation Workflow"

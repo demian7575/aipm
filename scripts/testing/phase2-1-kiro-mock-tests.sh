@@ -4,8 +4,8 @@
 set +e
 source "$(dirname "$0")/test-library.sh"
 
-API_BASE="${API_BASE:-http://3.92.96.67:4000}"
-SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://3.92.96.67:8083}"
+API_BASE="${API_BASE:-http://44.197.204.18:4000}"
+SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.197.204.18:8083}"
 
 # Enable Kiro Mock Mode
 export USE_KIRO_MOCK=true

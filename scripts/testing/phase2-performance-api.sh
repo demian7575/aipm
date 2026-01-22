@@ -4,7 +4,7 @@
 set +e
 source "$(dirname "$0")/test-library.sh"
 
-API_BASE="${API_BASE:-http://3.92.96.67:4000}"
+API_BASE="${API_BASE:-http://44.197.204.18:4000}"
 KIRO_API_BASE="${KIRO_API_BASE:-http://100.28.131.76:8081}"
 
 # Disable Kiro Mock Mode (use real Kiro CLI)

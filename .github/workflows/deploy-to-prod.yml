@@ -46,6 +46,15 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
+      - name: Load environment configuration
+        run: |
+          source scripts/utilities/load-env-config.sh production
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "API_BASE=$API_BASE" >> $GITHUB_ENV
+          echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
+          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "S3_URL=$S3_URL" >> $GITHUB_ENV
+      
       - name: Setup SSH key for testing
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -59,17 +68,15 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 44.197.204.18 >> ~/.ssh/known_hosts
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
       - name: Run Pre-Production Gating Tests
         id: gating
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          API_BASE: http://44.197.204.18:4000
-          SEMANTIC_API_BASE: http://44.197.204.18:8083
           TARGET_ENV: prod
-          SSH_HOST: 44.197.204.18
+          SSH_HOST: ${{ env.EC2_IP }}
         run: |
           echo "🧪 Running Pre-Production Gating Tests"
           export PHASE="pre-production"
@@ -117,6 +124,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
+      - name: Load environment configuration
+        run: |
+          source scripts/utilities/load-env-config.sh production
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "API_BASE=$API_BASE" >> $GITHUB_ENV
+          echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
+          echo "TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
+          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "S3_URL=$S3_URL" >> $GITHUB_ENV
+          echo "DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
+          echo "DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
+          
+          # Load dev config for SSH known_hosts
+          source scripts/utilities/load-env-config.sh development
+          echo "DEV_EC2_IP=$EC2_IP" >> $GITHUB_ENV
+      
       - name: Setup SSH key for deployment
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -131,8 +154,8 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 44.197.204.18 >> ~/.ssh/known_hosts
-          ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
+          ssh-keyscan -H $DEV_EC2_IP >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured and validated" || (echo "❌ SSH key validation failed" && exit 1)
       
       - name: Deploy to production environment
@@ -143,16 +166,16 @@ jobs:
           echo "📝 Creating production configuration..."
           cat > apps/frontend/public/config.js << EOF
           window.CONFIG = {
-            API_BASE_URL: 'http://44.197.204.18:4000',
-            EC2_TERMINAL_URL: 'ws://44.197.204.18:8080',
+            API_BASE_URL: '${{ env.API_BASE }}',
+            EC2_TERMINAL_URL: '${{ env.TERMINAL_URL }}',
             GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
             PROD_VERSION: '4.0.0',
             ENVIRONMENT: 'production',
             environment: 'production',
             stage: 'prod',
             region: 'us-east-1',
-            storiesTable: 'aipm-backend-prod-stories',
-            acceptanceTestsTable: 'aipm-backend-prod-acceptance-tests',
+            storiesTable: '${{ env.DYNAMODB_STORIES_TABLE }}',
+            acceptanceTestsTable: '${{ env.DYNAMODB_TESTS_TABLE }}',
             DEBUG: false
           };
           EOF
@@ -169,17 +192,15 @@ jobs:
       - name: Deploy frontend to S3
         run: |
           echo "📦 Deploying frontend to production S3..."
-          aws s3 sync apps/frontend/public/ s3://aipm-static-hosting-demo --delete --cache-control no-cache
+          aws s3 sync apps/frontend/public/ s3://${{ env.S3_BUCKET }} --delete --cache-control no-cache
           echo "✅ Frontend deployed to production S3"
       
       - name: Run Post-Deployment Validation
         id: post_deployment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          API_BASE: http://44.197.204.18:4000
-          SEMANTIC_API_BASE: http://44.197.204.18:8083
           TARGET_ENV: prod
-          SSH_HOST: 44.197.204.18
+          SSH_HOST: ${{ env.EC2_IP }}
         run: |
           echo "🔍 Running Post-Deployment Validation"
           
@@ -190,7 +211,7 @@ jobs:
           echo "Testing production environment..."
           
           # Frontend accessibility
-          if curl -s "http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com" | grep -q "AI Project Manager"; then
+          if curl -s "${{ env.S3_URL }}" | grep -q "AI Project Manager"; then
             echo "✅ Production frontend accessible"
           else
             echo "❌ Production frontend not accessible"
@@ -198,7 +219,7 @@ jobs:
           fi
           
           # Backend API health
-          if curl -s "http://44.197.204.18/api/version" | grep -q "version"; then
+          if curl -s "${{ env.API_BASE }}/api/version" | grep -q "version"; then
             echo "✅ Production backend healthy"
           else
             echo "❌ Production backend not healthy"

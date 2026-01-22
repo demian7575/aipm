@@ -3,7 +3,7 @@
 
 set -e
 
-EC2_HOST="3.92.96.67"
+EC2_HOST="44.197.204.18"
 PASSED=0
 FAILED=0
 

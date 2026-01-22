@@ -313,7 +313,7 @@ async function handleUpdateStoryPRRequest(req, res) {
 async function updateTaskSpecificationFile(storyId, updatedStory) {
   try {
     // Notify Kiro API server to update Task Specification
-    const response = await fetch('http://3.92.96.67:8081/api/update-task-spec', {
+    const response = await fetch('http://44.197.204.18:8081/api/update-task-spec', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -510,7 +510,7 @@ Acceptance Criteria: ${acceptanceCriteria?.join(', ') || 'None specified'}
 
 Project context: AIPM is a vanilla JavaScript project with Express backend. Include proper error handling and JSDoc comments. Return only the code, no explanations.`;
 
-    const response = await fetch('http://3.92.96.67:8081/execute', {
+    const response = await fetch('http://44.197.204.18:8081/execute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt }),
@@ -715,7 +715,7 @@ async function performDelegation(payload) {
 - Test the functionality works correctly`;
     }
     
-    const prProcessorUrl = process.env.EC2_PR_PROCESSOR_URL || 'http://3.92.96.67:8082';
+    const prProcessorUrl = process.env.EC2_PR_PROCESSOR_URL || 'http://44.197.204.18:8082';
     
     console.log(`🤖 Calling PR Processor: ${prProcessorUrl}/api/process-pr for PR #${pr.number}`);
     
@@ -7081,9 +7081,9 @@ export async function createApp() {
     // Configuration endpoint - return EC2 endpoints without proxying
     if (pathname === '/api/config/endpoints' && method === 'GET') {
       sendJson(res, 200, {
-        ec2Backend: 'http://3.92.96.67:4000',
-        kiroApi: 'http://3.92.96.67:8081',
-        terminal: 'ws://3.92.96.67:8080'
+        ec2Backend: 'http://44.197.204.18:4000',
+        kiroApi: 'http://44.197.204.18:8081',
+        terminal: 'ws://44.197.204.18:8080'
       });
       return;
     }
@@ -7566,7 +7566,7 @@ export async function createApp() {
         
         try {
           // Fetch production stories
-          const prodResponse = await fetch('http://3.92.96.67/api/stories');
+          const prodResponse = await fetch('http://44.197.204.18/api/stories');
           if (prodResponse.ok) {
             const prodStories = await prodResponse.json();
             console.log(`Found ${prodStories.length} top-level stories in production`);

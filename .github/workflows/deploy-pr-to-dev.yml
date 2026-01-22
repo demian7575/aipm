@@ -152,6 +152,16 @@ jobs:
         run: npm install --legacy-peer-deps
       
       - name: Configure AWS credentials
+      
+      - name: Load environment configuration
+        run: |
+          source scripts/utilities/load-env-config.sh development
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "API_BASE=$API_BASE" >> $GITHUB_ENV
+          echo "TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
+          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
+          echo "DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -172,7 +182,7 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
       - name: Create development config
@@ -180,16 +190,16 @@ jobs:
           echo "📝 Creating development configuration..."
           cat > apps/frontend/public/config.js << EOF
           window.CONFIG = {
-            API_BASE_URL: 'http://44.222.168.46:4000',
-            EC2_TERMINAL_URL: 'ws://44.222.168.46:8080',
+            API_BASE_URL: '${{ env.API_BASE }}',
+            EC2_TERMINAL_URL: '${{ env.TERMINAL_URL }}',
             GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
             PROD_VERSION: '4.0.0-dev',
             ENVIRONMENT: 'development',
             environment: 'development',
             stage: 'dev',
             region: 'us-east-1',
-            storiesTable: 'aipm-backend-dev-stories',
-            acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
+            storiesTable: '${{ env.DYNAMODB_STORIES_TABLE }}',
+            acceptanceTestsTable: '${{ env.DYNAMODB_TESTS_TABLE }}',
             DEBUG: true
           };
           EOF

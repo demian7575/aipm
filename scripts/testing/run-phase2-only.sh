@@ -7,8 +7,8 @@ SCRIPT_DIR="$(dirname "$0")"
 source "$SCRIPT_DIR/test-functions.sh"
 
 # Configuration
-API_BASE="${API_BASE:-http://3.92.96.67:4000}"
-SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://3.92.96.67:8083}"
+API_BASE="${API_BASE:-http://44.197.204.18:4000}"
+SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.197.204.18:8083}"
 TARGET_ENV="${TARGET_ENV:-prod}"
 
 if [[ "$TARGET_ENV" == "dev" ]]; then
@@ -16,7 +16,7 @@ if [[ "$TARGET_ENV" == "dev" ]]; then
     API_BASE="http://localhost:4000"
     SEMANTIC_API_BASE="http://localhost:8083"
 else
-    SSH_HOST="3.92.96.67"
+    SSH_HOST="44.197.204.18"
     API_BASE="http://localhost:4000"
     SEMANTIC_API_BASE="http://localhost:8083"
 fi
