@@ -1,7 +1,8 @@
 #!/bin/bash
 # Phase 1: Critical Infrastructure & Health Checks
 
-set -e
+# Don't use set -e - let tests report their own failures
+set +e
 
 # Debug: Show current directory and file existence
 echo "📍 Current directory: $(pwd)"
@@ -16,6 +17,10 @@ else
 fi
 
 source "$(dirname "$0")/test-library.sh"
+if [ $? -ne 0 ]; then
+  echo "❌ Failed to source test-library.sh"
+  exit 1
+fi
 
 # Use variables from parent script
 API_BASE="${API_BASE:-http://3.92.96.67:4000}"
@@ -42,4 +47,11 @@ echo "🔴 Phase 1: Critical Infrastructure & Health Checks"
 # Wait for all parallel tests to complete
 wait
 
-echo "✅ Phase 1 completed"
+# Check if any tests failed
+if [ $PHASE_FAILED -gt 0 ]; then
+  echo "❌ Phase 1 failed: $PHASE_FAILED tests failed, $PHASE_PASSED tests passed"
+  exit 1
+fi
+
+echo "✅ Phase 1 completed: $PHASE_PASSED tests passed"
+exit 0
