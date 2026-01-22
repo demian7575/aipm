@@ -50,6 +50,9 @@ jobs:
         id: phase1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_BASE: http://3.92.96.67:4000
+          SEMANTIC_API_BASE: http://3.92.96.67:8083
+          TARGET_ENV: prod
         run: |
           echo "🔴 Running Phase 1: Critical Security & Data Safety"
           
@@ -100,6 +103,9 @@ jobs:
           TEST_USE_MOCK_GITHUB: true
           TEST_SSH_HOST: 3.92.96.67
           USE_KIRO_MOCK: false
+          API_BASE: http://3.92.96.67:4000
+          SEMANTIC_API_BASE: http://3.92.96.67:8083
+          TARGET_ENV: prod
         run: |
           echo "🟡 Running Phase 2: Complete E2E Workflow"
           echo "   Database: Dev (safe)"
