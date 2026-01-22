@@ -131,7 +131,7 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 44.220.45.57 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 3.92.96.67 >> ~/.ssh/known_hosts
           ssh-keyscan -H 44.222.168.46 >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured and validated" || (echo "❌ SSH key validation failed" && exit 1)
       
