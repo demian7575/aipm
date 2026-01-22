@@ -31,17 +31,27 @@ export TEST_COUNTER_DIR="/tmp/aipm-test-$$"
 mkdir -p "$TEST_COUNTER_DIR"
 reset_test_counters
 
+# Validate required environment variables
+if [[ -z "$API_BASE" ]]; then
+    echo "❌ Error: API_BASE environment variable is not set"
+    exit 1
+fi
+
+if [[ -z "$SEMANTIC_API_BASE" ]]; then
+    echo "❌ Error: SEMANTIC_API_BASE environment variable is not set"
+    exit 1
+fi
+
+if [[ -z "$TARGET_ENV" ]]; then
+    echo "❌ Error: TARGET_ENV environment variable is not set"
+    exit 1
+fi
+
 # Configuration based on target environment
 if [[ "$TARGET_ENV" == "dev" ]]; then
-    SSH_HOST="${SSH_HOST:-44.222.168.46}"
-    API_BASE="${API_BASE:-http://localhost:4000}"
-    SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://localhost:8083}"
     FRONTEND_URL="${FRONTEND_URL:-http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com}"
     echo "🔧 Target Environment: DEVELOPMENT"
 else
-    SSH_HOST="${SSH_HOST:-3.92.96.67}"
-    API_BASE="${API_BASE:-http://localhost:4000}"
-    SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://localhost:8083}"
     FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com}"
     echo "🔧 Target Environment: PRODUCTION"
 fi
