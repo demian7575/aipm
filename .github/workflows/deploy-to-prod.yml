@@ -198,7 +198,7 @@ jobs:
           fi
           
           # Backend API health
-          if curl -s "http://44.220.45.57/api/version" | grep -q "version"; then
+          if curl -s "http://3.92.96.67/api/version" | grep -q "version"; then
             echo "✅ Production backend healthy"
           else
             echo "❌ Production backend not healthy"
