@@ -53,6 +53,7 @@ jobs:
           API_BASE: http://3.92.96.67:4000
           SEMANTIC_API_BASE: http://3.92.96.67:8083
           TARGET_ENV: prod
+          SSH_HOST: 3.92.96.67
         run: |
           echo "🧪 Running Pre-Production Gating Tests"
           export PHASE="pre-production"
@@ -159,6 +160,10 @@ jobs:
         id: post_deployment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_BASE: http://3.92.96.67:4000
+          SEMANTIC_API_BASE: http://3.92.96.67:8083
+          TARGET_ENV: prod
+          SSH_HOST: 3.92.96.67
         run: |
           echo "🔍 Running Post-Deployment Validation"
           
