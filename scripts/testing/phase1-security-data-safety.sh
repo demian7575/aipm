@@ -30,28 +30,32 @@ TARGET_ENV="${TARGET_ENV:-prod}"
 
 echo "🔴 Phase 1: Critical Infrastructure & Health Checks"
 
-# Run tests in parallel
-(test_version_endpoint "$API_BASE") &
-(test_database_connection "$API_BASE") &
-(test_api_response_time "$API_BASE") &
-(test_semantic_api_health "$SEMANTIC_API_BASE") &
-(test_health_check_endpoint "$API_BASE") &
-(test_environment_health "$API_BASE" "$TARGET_ENV") &
-(test_frontend_availability "$FRONTEND_URL") &
-(test_frontend_backend_integration "$FRONTEND_URL") &
-(test_s3_config "$FRONTEND_URL") &
-(test_network_connectivity "$API_BASE") &
-(test_api_security_headers "$API_BASE") &
-(test_code_generation_endpoint "$SEMANTIC_API_BASE") &
+# Run tests in parallel and capture exit codes
+pids=()
+(test_version_endpoint "$API_BASE") & pids+=($!)
+(test_database_connection "$API_BASE") & pids+=($!)
+(test_api_response_time "$API_BASE") & pids+=($!)
+(test_semantic_api_health "$SEMANTIC_API_BASE") & pids+=($!)
+(test_health_check_endpoint "$API_BASE") & pids+=($!)
+(test_environment_health "$API_BASE" "$TARGET_ENV") & pids+=($!)
+(test_frontend_availability "$FRONTEND_URL") & pids+=($!)
+(test_frontend_backend_integration "$FRONTEND_URL") & pids+=($!)
+(test_s3_config "$FRONTEND_URL") & pids+=($!)
+(test_network_connectivity "$API_BASE") & pids+=($!)
+(test_api_security_headers "$API_BASE") & pids+=($!)
+(test_code_generation_endpoint "$SEMANTIC_API_BASE") & pids+=($!)
 
 # Wait for all parallel tests to complete
-wait
+failed=0
+for pid in "${pids[@]}"; do
+  wait $pid || ((failed++))
+done
 
 # Check if any tests failed
-if [ $PHASE_FAILED -gt 0 ]; then
-  echo "❌ Phase 1 failed: $PHASE_FAILED tests failed, $PHASE_PASSED tests passed"
+if [ $failed -gt 0 ]; then
+  echo "❌ Phase 1 failed: $failed tests failed"
   exit 1
 fi
 
-echo "✅ Phase 1 completed: $PHASE_PASSED tests passed"
+echo "✅ Phase 1 completed: all tests passed"
 exit 0
