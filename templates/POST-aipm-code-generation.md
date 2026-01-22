@@ -36,30 +36,52 @@ git pull origin {branchName} --rebase || true
 ### 4. Implement
 Write code following story requirements and existing patterns
 
-Create Phase 4 gating test based on acceptance tests from the story:
+Add Phase 4 gating test to the accumulated test file:
 ```bash
 cd /home/ec2-user/aipm
 
-# Generate safe filename from story title (lowercase, replace spaces with hyphens)
-STORY_TITLE_SAFE=$(echo "{storyTitle}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+# Generate safe function name from story title
+STORY_FUNC=$(echo "{storyTitle}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/__*/_/g' | sed 's/^_//' | sed 's/_$//')
 
-# Copy template and customize for this story
-cp scripts/testing/phase4-story-template.sh scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
+# Add test function to phase4-functionality.sh before "ADD NEW STORY TESTS" marker
+cat >> /tmp/new_test.sh << 'TESTEOF'
 
-# Edit the test file to:
-# 1. Set STORY_ID="{storyId}" and STORY_TITLE="{storyTitle}"
-# 2. Add verification logic for each acceptance test
-# 3. Verify Given-When-Then conditions are met
-sed -i "s/STORY_ID=\"PLACEHOLDER\"/STORY_ID=\"{storyId}\"/" scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
-sed -i "s/STORY_TITLE=\"Placeholder Story\"/STORY_TITLE=\"{storyTitle}\"/" scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
+# =============================================================================
+# Story: {storyTitle}
+# ID: {storyId}
+# Merged: $(date +%Y-%m-%d)
+# =============================================================================
+test_${STORY_FUNC}() {
+    log_test "{storyTitle}"
+    
+    # Test 1: [Add your first acceptance test verification]
+    # Example: Check if feature exists in code
+    # if ! grep -q "expectedFeature" apps/frontend/public/app.js; then
+    #     fail_test "Feature not implemented"
+    #     return 1
+    # fi
+    
+    # Test 2: [Add your second acceptance test verification]
+    # Test 3: [Add more tests as needed]
+    
+    pass_test "{storyTitle}"
+    return 0
+}
+TESTEOF
 
-# Make test executable
-chmod +x scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
+# Insert before "ADD NEW STORY TESTS" line
+sed -i '/# ADD NEW STORY TESTS BELOW THIS LINE/r /tmp/new_test.sh' scripts/testing/phase4-functionality.sh
 
-# Example test structure:
-# - Test 1: Verify Given conditions
-# - Test 2: Execute When actions  
-# - Test 3: Verify Then outcomes
+# Add function call before "ADD NEW TEST FUNCTION CALLS" line
+sed -i '/# ADD NEW TEST FUNCTION CALLS HERE/i\
+if test_'"${STORY_FUNC}"'; then\
+    ((PHASE4_PASSED++))\
+else\
+    ((PHASE4_FAILED++))\
+fi\
+' scripts/testing/phase4-functionality.sh
+
+echo "✅ Added test_${STORY_FUNC} to phase4-functionality.sh"
 ```
 
 ### 5. Run Gating Tests (MANDATORY)
@@ -75,9 +97,8 @@ if ! grep -q "ALL GATING TESTS PASSED" <(bash scripts/testing/run-structured-gat
     exit 1
 fi
 
-# Run only the newly created Phase 4 test for this story
-STORY_TITLE_SAFE=$(echo "{storyTitle}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
-bash scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
+# Run Phase 4 to test your new functionality
+bash scripts/testing/phase4-functionality.sh
 
 # If new test passes, proceed to commit
 ```

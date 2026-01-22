@@ -186,35 +186,19 @@ main() {
             echo "⚠️  Base workflow issues detected"
         fi
         
-        # Run story-specific Phase 4 tests
+        # Run accumulated Phase 4 functionality tests
         echo ""
-        echo "🧪 Running story-specific acceptance tests..."
-        local story_tests_passed=0
-        local story_tests_failed=0
+        echo "🧪 Running Phase 4 Functionality Tests..."
         
-        for test_file in ./scripts/testing/phase4-*.sh; do
-            # Skip template file
-            if [[ "$test_file" == *"template"* ]]; then
-                continue
+        if [[ -f ./scripts/testing/phase4-functionality.sh ]]; then
+            if bash ./scripts/testing/phase4-functionality.sh; then
+                echo "✅ Phase 4 Functionality Tests passed"
+            else
+                echo "❌ Phase 4 Functionality Tests failed"
+                ((PHASE_FAILED++))
             fi
-            
-            if [[ -f "$test_file" ]]; then
-                local test_name=$(basename "$test_file" .sh | sed 's/phase4-//')
-                echo "  📝 Testing: $test_name..."
-                
-                if bash "$test_file"; then
-                    ((story_tests_passed++))
-                else
-                    ((story_tests_failed++))
-                fi
-            fi
-        done
-        
-        if [[ $story_tests_passed -gt 0 || $story_tests_failed -gt 0 ]]; then
-            echo "  ✅ Story tests passed: $story_tests_passed"
-            echo "  ❌ Story tests failed: $story_tests_failed"
         else
-            echo "  ℹ️  No story-specific tests found"
+            echo "⚠️  Phase 4 functionality test file not found"
         fi
         
         local phase4_end=$(date +%s)
