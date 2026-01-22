@@ -2254,6 +2254,41 @@ const ACCEPTANCE_TEST_STATUS_REVIEW = 'Need review with update';
 
 let acceptanceTestsHasTitleColumn = true;
 
+// Semantic API configuration
+const SEMANTIC_API_URL = process.env.SEMANTIC_API_URL || 'http://localhost:8083';
+
+/**
+ * Call Semantic API with standardized error handling
+ * @param {string} endpoint - API endpoint path (e.g., '/aipm/story-draft')
+ * @param {object} payload - Request payload
+ * @param {object} options - Additional options (method, headers)
+ * @returns {Promise<object>} API response
+ */
+async function callSemanticApi(endpoint, payload, options = {}) {
+  const { randomUUID } = await import('crypto');
+  const requestId = payload.requestId || randomUUID();
+  
+  const url = `${SEMANTIC_API_URL}${endpoint}`;
+  const method = options.method || 'POST';
+  
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+      body: method !== 'GET' ? JSON.stringify({ ...payload, requestId }) : undefined
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Semantic API ${endpoint} failed: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`❌ Semantic API error [${endpoint}]:`, error.message);
+    throw error;
+  }
+}
+
 const INVEST_DEPENDENCY_HINTS = [
   'blocked by',
   'depends on',
@@ -3300,42 +3335,30 @@ async function analyzeInvest(story, options = {}) {
   // Try AI analysis via Semantic API
   try {
     console.log('🤖 Attempting AI INVEST analysis for story:', story.id);
-    const { randomUUID } = await import('crypto');
-    const requestId = randomUUID();
     
-    const response = await fetch('http://localhost:8083/aipm/invest-analysis', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestId,
-        id: story.id,
-        title: story.title,
-        description: story.description,
-        asA: story.asA,
-        iWant: story.iWant,
-        soThat: story.soThat,
-        storyPoint: story.storyPoint,
-        components: story.components || [],
-        acceptanceTests: story.acceptanceTests || []
-      })
+    const result = await callSemanticApi('/aipm/invest-analysis', {
+      id: story.id,
+      title: story.title,
+      description: story.description,
+      asA: story.asA,
+      iWant: story.iWant,
+      soThat: story.soThat,
+      storyPoint: story.storyPoint,
+      components: story.components || [],
+      acceptanceTests: story.acceptanceTests || []
     });
     
-    if (!response.ok) {
-      throw new Error(`Semantic API error: ${response.status}`);
-    }
-    
-    const aiAnalysis = await response.json();
     console.log('🤖 AI INVEST analysis successful');
     
     return {
-      warnings: aiAnalysis.issues || baseline,
+      warnings: result.issues || baseline,
       source: 'ai',
-      summary: aiAnalysis.suggestions?.join(' ') || '',
+      summary: result.suggestions?.join(' ') || '',
       ai: {
-        summary: aiAnalysis.suggestions?.join(' ') || '',
-        warnings: aiAnalysis.issues || [],
+        summary: result.suggestions?.join(' ') || '',
+        warnings: result.issues || [],
         model: 'kiro-cli',
-        score: aiAnalysis.overall === 'pass' ? 100 : 50
+        score: result.overall === 'pass' ? 100 : 50
       }
     };
   } catch (error) {
@@ -5067,25 +5090,16 @@ function normalizeGeneratedSteps(value) {
 async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' } = {}) {
   // Call Semantic API for AI-powered test generation
   try {
-    const response = await fetch('http://localhost:8083/aipm/acceptance-test-draft', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        storyTitle: story.title,
-        storyDescription: story.description || '',
-        asA: story.asA || '',
-        iWant: story.iWant || '',
-        soThat: story.soThat || '',
-        idea: idea || '',
-        ordinal: ordinal
-      })
+    const result = await callSemanticApi('/aipm/acceptance-test-draft', {
+      storyTitle: story.title,
+      storyDescription: story.description || '',
+      asA: story.asA || '',
+      iWant: story.iWant || '',
+      soThat: story.soThat || '',
+      idea: idea || '',
+      ordinal: ordinal
     });
 
-    if (!response.ok) {
-      throw new Error(`Semantic API error: ${response.status}`);
-    }
-
-    const result = await response.json();
     console.log('generateAcceptanceTestDraft result:', JSON.stringify(result));
     return result;
   } catch (error) {
@@ -6214,23 +6228,12 @@ export async function createApp() {
           
           // Call Semantic API
           try {
-            const semanticResponse = await fetch('http://localhost:8083/aipm/story-draft', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                featureDescription: feature_description, 
-                parentId, 
-                requestId,
-                components: payload.components || ['WorkModel']
-              })
+            const draft = await callSemanticApi('/aipm/story-draft', {
+              featureDescription: feature_description, 
+              parentId, 
+              components: payload.components || ['WorkModel']
             });
             
-            if (!semanticResponse.ok) {
-              throw new Error(`Semantic API error: ${semanticResponse.status}`);
-            }
-            
-            // Semantic API returns the draft directly
-            const draft = await semanticResponse.json();
             console.error('✅ Draft received:', JSON.stringify(draft).substring(0, 100));
             sendJson(res, 200, { success: true, draft });
             
@@ -6543,29 +6546,16 @@ export async function createApp() {
         
         // Get story details for context
         const story = await loadStoryWithDetails(db, storyId);
-        const { randomUUID } = await import('crypto');
-        const requestId = randomUUID();
 
         // Call Semantic API for code generation
-        const semanticResponse = await fetch('http://localhost:8083/aipm/code-generation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            requestId,
-            storyId: storyId,
-            storyTitle: story.title,
-            storyDescription: story.description,
-            acceptanceTests: story.acceptanceTests || [],
-            branchName: prBranch,
-            prNumber: prNumber
-          })
+        const result = await callSemanticApi('/aipm/code-generation', {
+          storyId: storyId,
+          storyTitle: story.title,
+          storyDescription: story.description,
+          acceptanceTests: story.acceptanceTests || [],
+          branchName: prBranch,
+          prNumber: prNumber
         });
-
-        if (!semanticResponse.ok) {
-          throw new Error(`Semantic API failed: ${semanticResponse.statusText}`);
-        }
-
-        const result = await semanticResponse.json();
 
         sendJson(res, 200, {
           success: true,
@@ -7213,8 +7203,7 @@ export async function createApp() {
       try {
         sendEvent({ status: 'started', message: 'Connecting to Semantic API...' });
 
-        const semanticApiUrl = process.env.SEMANTIC_API_URL || 'http://localhost:8083';
-        const response = await fetch(`${semanticApiUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
+        const response = await fetch(`${SEMANTIC_API_URL}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
         
         if (!response.ok) {
           throw new Error(`Semantic API returned ${response.status}`);
