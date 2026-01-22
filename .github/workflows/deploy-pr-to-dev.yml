@@ -152,6 +152,11 @@ jobs:
         run: npm install --legacy-peer-deps
       
       - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
       
       - name: Load environment configuration
         run: |
@@ -162,11 +167,6 @@ jobs:
           echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
           echo "DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
           echo "DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
       
       - name: Setup SSH key for deployment
         env:
