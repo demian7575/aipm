@@ -2090,6 +2090,13 @@ Execute the template instructions exactly as written.`;
       runInStagingBtn.type = 'button';
       runInStagingBtn.className = 'button secondary run-in-staging-btn';
       runInStagingBtn.textContent = 'Test in Dev';
+      
+      // Disable button if PR is merged or closed
+      if (entry.state === 'MERGED' || entry.state === 'CLOSED') {
+        runInStagingBtn.disabled = true;
+        runInStagingBtn.title = 'Cannot test merged or closed PRs';
+      }
+      
       runInStagingBtn.addEventListener('click', async () => {
         runInStagingBtn.disabled = true;
         runInStagingBtn.textContent = 'Triggering Deployment...';
