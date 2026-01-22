@@ -33,16 +33,16 @@ reset_test_counters
 
 # Configuration based on target environment
 if [[ "$TARGET_ENV" == "dev" ]]; then
-    SSH_HOST="44.222.168.46"
-    API_BASE="http://localhost:4000"
-    SEMANTIC_API_BASE="http://localhost:8083"
-    FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
+    SSH_HOST="${SSH_HOST:-44.222.168.46}"
+    API_BASE="${API_BASE:-http://localhost:4000}"
+    SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://localhost:8083}"
+    FRONTEND_URL="${FRONTEND_URL:-http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com}"
     echo "🔧 Target Environment: DEVELOPMENT"
 else
-    SSH_HOST="3.92.96.67"
-    API_BASE="http://localhost:4000"
-    SEMANTIC_API_BASE="http://localhost:8083"
-    FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
+    SSH_HOST="${SSH_HOST:-3.92.96.67}"
+    API_BASE="${API_BASE:-http://localhost:4000}"
+    SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://localhost:8083}"
+    FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com}"
     echo "🔧 Target Environment: PRODUCTION"
 fi
 
