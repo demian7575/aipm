@@ -2718,9 +2718,12 @@ function updateWorkspaceColumns() {
   workspaceEl.style.gridTemplateColumns = columns.join(' ');
 }
 
+/**
+ * Get stories filtered by current filter state
+ * @returns {Array} Filtered stories
+ */
 function getVisibleStories() {
-  if (!state.hideCompleted) return state.stories;
-  return state.stories.filter(story => story.status !== 'Done');
+  return state.stories;
 }
 
 function renderOutline() {
@@ -2769,8 +2772,7 @@ function renderOutline() {
     list.appendChild(row);
 
     if (story.children && story.children.length > 0 && state.expanded.has(story.id)) {
-      const visibleChildren = state.hideCompleted ? story.children.filter(child => child.status !== 'Done') : story.children;
-      visibleChildren.forEach((child) => renderNode(child, depth + 1));
+      story.children.forEach((child) => renderNode(child, depth + 1));
     }
   }
 
@@ -7734,7 +7736,6 @@ function initialize() {
   localStorage.setItem('aipm_environment', currentEnv);
   
   loadPreferences();
-  syncHideCompletedControls();
   initializeCodeWhispererDelegations();
   updateWorkspaceColumns();
   renderOutline();
