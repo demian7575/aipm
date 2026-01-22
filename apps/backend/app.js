@@ -2779,6 +2779,98 @@ async function handleMergePR(req, res) {
       }
     }
     
+    // Add Phase 4 test for merged story
+    console.log('📝 Adding Phase 4 test for merged story...');
+    try {
+      // Get story details
+      const storyResponse = await fetch(`${API_BASE}/api/stories/${storyId}`);
+      if (storyResponse.ok) {
+        const story = await storyResponse.json();
+        
+        // Generate function name from story title
+        const funcName = story.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '');
+        
+        // Create test function
+        const testFunction = `
+# =============================================================================
+# Story: ${story.title}
+# ID: ${story.id}
+# Merged: ${new Date().toISOString().split('T')[0]}
+# =============================================================================
+test_${funcName}() {
+    log_test "${story.title}"
+    
+    # TODO: Add acceptance test verification based on story requirements
+    # This is a placeholder - update with actual test logic
+    
+    pass_test "${story.title}"
+    return 0
+}
+`;
+        
+        const testCall = `
+if test_${funcName}; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+`;
+        
+        // Add to phase4-functionality.sh via GitHub API
+        const phase4Path = 'scripts/testing/phase4-functionality.sh';
+        const fileResponse = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${phase4Path}`,
+          {
+            headers: {
+              'Authorization': `token ${GITHUB_TOKEN}`,
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          }
+        );
+        
+        if (fileResponse.ok) {
+          const fileData = await fileResponse.json();
+          const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+          
+          // Insert test function before marker
+          const updatedContent = content.replace(
+            '# ADD NEW STORY TESTS BELOW THIS LINE',
+            `# ADD NEW STORY TESTS BELOW THIS LINE${testFunction}`
+          ).replace(
+            '# ADD NEW TEST FUNCTION CALLS HERE',
+            `# ADD NEW TEST FUNCTION CALLS HERE${testCall}`
+          );
+          
+          // Commit updated file
+          await fetch(
+            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${phase4Path}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                message: `Add Phase 4 test for story: ${story.title}`,
+                content: Buffer.from(updatedContent).toString('base64'),
+                sha: fileData.sha,
+                branch: 'main'
+              })
+            }
+          );
+          
+          console.log('✅ Phase 4 test added for story:', story.title);
+        }
+      }
+    } catch (testError) {
+      console.warn('⚠️  Failed to add Phase 4 test:', testError.message);
+      // Don't fail the merge if test addition fails
+    }
+    
     // Trigger production deployment after successful merge
     console.log('✅ PR merged successfully, triggering production deployment...');
     try {
