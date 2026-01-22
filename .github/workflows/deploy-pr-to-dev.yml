@@ -65,6 +65,11 @@ jobs:
           
           echo "✅ PR branch rebased onto latest main"
           
+          # Push rebased branch back to GitHub
+          echo "📤 Pushing rebased branch to GitHub..."
+          git push origin HEAD:$BRANCH_NAME --force-with-lease
+          echo "✅ Rebased branch pushed to GitHub"
+          
           # Verify we're deploying the rebased code
           echo "🔍 Verifying deployment source..."
           CURRENT_BRANCH=$(git branch --show-current)
