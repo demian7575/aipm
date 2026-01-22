@@ -70,12 +70,25 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
     COMMIT_HASH=$(git rev-parse --short HEAD)
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
     
-    # Extract PR number if available
-    PR_NUMBER="$ENV"
+    # Extract PR number from branch name or GitHub environment
+    PR_NUMBER=""
     if [[ -n "$GITHUB_HEAD_REF" ]]; then
-        PR_NUMBER=$(echo "$GITHUB_HEAD_REF" | grep -o '[0-9]\+' | head -1 || echo "$ENV")
-    elif [[ "$TARGET_BRANCH" =~ [0-9]+ ]]; then
-        PR_NUMBER=$(echo "$TARGET_BRANCH" | grep -o '[0-9]\+' | head -1 || echo "$ENV")
+        # GitHub Actions: extract from GITHUB_HEAD_REF
+        # Branch format: feature-name-STORYID or pr-NUMBER-feature-name-STORYID
+        if [[ "$GITHUB_HEAD_REF" =~ pr-([0-9]+)- ]]; then
+            PR_NUMBER="${BASH_REMATCH[1]}"
+        elif [[ "$GITHUB_HEAD_REF" =~ -([0-9]{10,})$ ]]; then
+            # Story ID at end (13 digits), not PR number
+            PR_NUMBER=""
+        fi
+    elif [[ "$TARGET_BRANCH" =~ ^pr-([0-9]+)- ]]; then
+        # Local: branch starts with pr-NUMBER-
+        PR_NUMBER="${BASH_REMATCH[1]}"
+    fi
+    
+    # If no PR number found, leave empty
+    if [[ -z "$PR_NUMBER" ]]; then
+        PR_NUMBER="none"
     fi
     
     echo "🔄 Simplified deployment to $HOST..."

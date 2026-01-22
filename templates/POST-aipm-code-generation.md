@@ -40,14 +40,21 @@ Create Phase 4 gating test based on acceptance tests from the story:
 ```bash
 cd /home/ec2-user/aipm
 
+# Generate safe filename from story title (lowercase, replace spaces with hyphens)
+STORY_TITLE_SAFE=$(echo "{storyTitle}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+
 # Copy template and customize for this story
-cp scripts/testing/phase4-story-template.sh scripts/testing/phase4-story-{storyId}.sh
+cp scripts/testing/phase4-story-template.sh scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
 
 # Edit the test file to:
-# 1. Set STORY_ID and STORY_TITLE
+# 1. Set STORY_ID="{storyId}" and STORY_TITLE="{storyTitle}"
 # 2. Add verification logic for each acceptance test
 # 3. Verify Given-When-Then conditions are met
-# 4. Make test executable: chmod +x scripts/testing/phase4-story-{storyId}.sh
+sed -i "s/STORY_ID=\"PLACEHOLDER\"/STORY_ID=\"{storyId}\"/" scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
+sed -i "s/STORY_TITLE=\"Placeholder Story\"/STORY_TITLE=\"{storyTitle}\"/" scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
+
+# Make test executable
+chmod +x scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
 
 # Example test structure:
 # - Test 1: Verify Given conditions
@@ -69,7 +76,8 @@ if ! grep -q "ALL GATING TESTS PASSED" <(bash scripts/testing/run-structured-gat
 fi
 
 # Run only the newly created Phase 4 test for this story
-bash scripts/testing/phase4-story-{storyId}.sh
+STORY_TITLE_SAFE=$(echo "{storyTitle}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+bash scripts/testing/phase4-${STORY_TITLE_SAFE}.sh
 
 # If new test passes, proceed to commit
 ```

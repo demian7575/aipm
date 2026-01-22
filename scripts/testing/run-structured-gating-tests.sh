@@ -192,10 +192,15 @@ main() {
         local story_tests_passed=0
         local story_tests_failed=0
         
-        for test_file in ./scripts/testing/phase4-story-*.sh; do
+        for test_file in ./scripts/testing/phase4-*.sh; do
+            # Skip template file
+            if [[ "$test_file" == *"template"* ]]; then
+                continue
+            fi
+            
             if [[ -f "$test_file" ]]; then
-                local story_id=$(basename "$test_file" | sed 's/phase4-story-\(.*\)\.sh/\1/')
-                echo "  📝 Testing story $story_id..."
+                local test_name=$(basename "$test_file" .sh | sed 's/phase4-//')
+                echo "  📝 Testing: $test_name..."
                 
                 if bash "$test_file"; then
                     ((story_tests_passed++))
