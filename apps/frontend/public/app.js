@@ -6882,11 +6882,11 @@ function openAcceptanceTestModal(storyId, options = {}) {
       const idea = ideaField ? ideaField.value.trim() : '';
       generateBtn.disabled = true;
       generateBtn.textContent = 'Generating…';
-      if (draftStatus) draftStatus.textContent = 'Connecting to Kiro CLI...';
+      if (draftStatus) draftStatus.textContent = 'Connecting to Semantic API...';
       
       try {
-        const kiroApiUrl = window.CONFIG?.KIRO_API_URL || 'http://localhost:8081';
-        const eventSource = new EventSource(`${kiroApiUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
+        const apiBaseUrl = getApiBaseUrl();
+        const eventSource = new EventSource(`${apiBaseUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
         
         eventSource.onmessage = (event) => {
           const data = JSON.parse(event.data);

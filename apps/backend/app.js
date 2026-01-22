@@ -7195,6 +7195,51 @@ export async function createApp() {
       return;
     }
 
+    const generateDraftStreamMatch = pathname.match(/^\/api\/stories\/([^/]+)\/tests\/generate-draft-stream$/);
+    if (generateDraftStreamMatch && method === 'GET') {
+      const storyId = generateDraftStreamMatch[1];
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const idea = url.searchParams.get('idea') || '';
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+      });
+
+      const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+      try {
+        sendEvent({ status: 'started', message: 'Connecting to Semantic API...' });
+
+        const semanticApiUrl = process.env.SEMANTIC_API_URL || 'http://localhost:8083';
+        const response = await fetch(`${semanticApiUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
+        
+        if (!response.ok) {
+          throw new Error(`Semantic API returned ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          res.write(chunk);
+        }
+
+        res.end();
+      } catch (error) {
+        console.error('SSE proxy error:', error);
+        sendEvent({ status: 'error', message: error.message });
+        res.end();
+      }
+      return;
+    }
+
     if (pathname === '/api/stories/draft' && method === 'POST') {
       try {
         const payload = await parseJson(req);
