@@ -6236,7 +6236,12 @@ export async function createApp() {
       const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
       
       // Version is replaced during deployment by deploy-to-environment.sh
-      const version = { version: 'DEPLOYMENT_VERSION_PLACEHOLDER' };
+      const version = { 
+        version: 'DEPLOYMENT_VERSION_PLACEHOLDER',
+        prNumber: process.env.PR_NUMBER || null,
+        environment: process.env.NODE_ENV || 'production',
+        deployTime: process.env.DEPLOY_VERSION || null
+      };
       
       sendJson(res, 200, version);
       return;

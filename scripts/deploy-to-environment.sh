@@ -153,6 +153,21 @@ EOF
         SERVICE_NAME="aipm-backend.service"
     fi
     
+    # Update systemd service file with environment variables
+    cat > /tmp/update_service.sh << EOF
+cd aipm
+
+# Update service file with current deployment info
+sudo sed -i '/^Environment=DEPLOY_VERSION=/d' /etc/systemd/system/$SERVICE_NAME
+sudo sed -i '/^Environment=COMMIT_HASH=/d' /etc/systemd/system/$SERVICE_NAME
+sudo sed -i '/^Environment=PR_NUMBER=/d' /etc/systemd/system/$SERVICE_NAME
+sudo sed -i '/^\[Service\]/a Environment=DEPLOY_VERSION=$DEPLOY_VERSION' /etc/systemd/system/$SERVICE_NAME
+sudo sed -i '/^\[Service\]/a Environment=COMMIT_HASH=$COMMIT_HASH' /etc/systemd/system/$SERVICE_NAME
+sudo sed -i '/^\[Service\]/a Environment=PR_NUMBER=$PR_NUMBER' /etc/systemd/system/$SERVICE_NAME
+
+sudo systemctl daemon-reload
+EOF
+    
     cat > /tmp/restart_services.sh << EOF
 cd aipm
 echo 'Restarting $SERVICE_NAME...'
@@ -173,6 +188,9 @@ sleep 5
 sudo systemctl status $SERVICE_NAME --no-pager
 echo 'Service restarted successfully'
 EOF
+    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/update_service.sh ec2-user@$HOST:/tmp/
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/update_service.sh
+    
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/restart_services.sh ec2-user@$HOST:/tmp/
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/restart_services.sh
     
