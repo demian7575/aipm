@@ -47,6 +47,46 @@ test_remove_hide_completed_button() {
 # =============================================================================
 # ADD NEW STORY TESTS BELOW THIS LINE
 # Template:
+
+# =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769158322769
+# Merged: 2026-01-23
+# =============================================================================
+test_updated_user_authentication_with_oauth2() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: OAuth2 module exists
+    if [[ ! -f "apps/backend/oauth.js" ]]; then
+        fail_test "OAuth2 module not found"
+        return 1
+    fi
+    
+    # Test 2: OAuth2 module exports required functions
+    if ! grep -q "getAuthorizationUrl" apps/backend/oauth.js; then
+        fail_test "getAuthorizationUrl function not found"
+        return 1
+    fi
+    
+    if ! grep -q "exchangeCodeForToken" apps/backend/oauth.js; then
+        fail_test "exchangeCodeForToken function not found"
+        return 1
+    fi
+    
+    if ! grep -q "validateSession" apps/backend/oauth.js; then
+        fail_test "validateSession function not found"
+        return 1
+    fi
+    
+    # Test 3: OAuth2 supports multiple providers
+    if ! grep -q "google\|github\|microsoft" apps/backend/oauth.js; then
+        fail_test "OAuth2 providers not configured"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
 # =============================================================================
 # Story: [Story Title]
 # ID: [Story ID]
@@ -74,6 +114,12 @@ else
 fi
 
 # ADD NEW TEST FUNCTION CALLS HERE
+if test_updated_user_authentication_with_oauth2; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
 # if test_your_story_name; then
 #     ((PHASE4_PASSED++))
 # else
