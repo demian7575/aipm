@@ -531,3 +531,11 @@ echo "   Tests Failed: $PHASE_FAILED"
 echo "   Total Duration: $((phase6_end - phase6_start))s"
 echo "   Environment: Development (Data Isolation)"
 echo ""
+
+# Exit with failure if any tests failed
+if [[ $PHASE_FAILED -gt 0 ]]; then
+    echo "❌ Phase 6 FAILED: $PHASE_FAILED test(s) failed"
+    exit 1
+fi
+
+exit 0
