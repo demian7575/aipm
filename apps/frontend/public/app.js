@@ -42,6 +42,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const oauth2LoginBtn = document.getElementById('oauth2-login-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -7749,6 +7750,78 @@ function initialize() {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
+
+  oauth2LoginBtn?.addEventListener('click', () => {
+    showOAuth2LoginModal();
+  });
+
+  /**
+   * Show OAuth2 login modal with provider selection
+   */
+  function showOAuth2LoginModal() {
+    const container = document.createElement('div');
+    container.innerHTML = `
+      <p>Select an OAuth2 provider to authenticate:</p>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+        <button id="oauth2-google" class="primary" style="padding: 12px;">
+          🔵 Sign in with Google
+        </button>
+        <button id="oauth2-github" class="primary" style="padding: 12px;">
+          ⚫ Sign in with GitHub
+        </button>
+        <button id="oauth2-microsoft" class="primary" style="padding: 12px;">
+          🔷 Sign in with Microsoft
+        </button>
+      </div>
+      <div id="oauth2-status" style="margin-top: 20px; color: #666;"></div>
+    `;
+
+    const handleProviderClick = async (provider) => {
+      const statusEl = container.querySelector('#oauth2-status');
+      statusEl.textContent = `Redirecting to ${provider}...`;
+      
+      try {
+        const authUrl = resolveApiUrl(`/api/auth/oauth2/authorize?provider=${provider}`);
+        window.location.href = authUrl;
+      } catch (error) {
+        statusEl.textContent = `Error: ${error.message}`;
+        statusEl.style.color = 'red';
+      }
+    };
+
+    container.querySelector('#oauth2-google').addEventListener('click', () => handleProviderClick('google'));
+    container.querySelector('#oauth2-github').addEventListener('click', () => handleProviderClick('github'));
+    container.querySelector('#oauth2-microsoft').addEventListener('click', () => handleProviderClick('microsoft'));
+
+    openModal({
+      title: 'OAuth2 Authentication',
+      content: container,
+      cancelLabel: 'Close'
+    });
+  }
+
+  /**
+   * Check current OAuth2 session on page load
+   */
+  async function checkOAuth2Session() {
+    try {
+      const response = await fetch(resolveApiUrl('/api/auth/session'), {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const session = await response.json();
+        if (oauth2LoginBtn) {
+          oauth2LoginBtn.textContent = `👤 ${session.email}`;
+          oauth2LoginBtn.title = `Logged in via ${session.provider}`;
+        }
+      }
+    } catch (error) {
+      console.log('No active OAuth2 session');
+    }
+  }
+
+  checkOAuth2Session();
 
 
 

@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
+import { getAuthorizationUrl, exchangeCodeForToken, getUserInfo, verifyState, createSession, validateSession, destroySession } from './oauth2.js';
 // Removed delegation imports - now using direct PR creation
 
 // Global DynamoDB client for reuse
@@ -6194,6 +6195,126 @@ export async function createApp() {
           }
         } catch (error) {
           sendJson(res, 500, { success: false, error: error.message });
+        }
+        return;
+      }
+
+      // OAuth2 authentication endpoints
+      if (pathname === '/api/auth/oauth2/authorize' && method === 'GET') {
+        try {
+          const provider = url.searchParams.get('provider');
+          const clientId = process.env[`OAUTH2_${provider.toUpperCase()}_CLIENT_ID`];
+          const redirectUri = process.env.OAUTH2_REDIRECT_URI || 'http://localhost:4000/api/auth/oauth2/callback';
+
+          if (!clientId) {
+            sendJson(res, 400, { error: `OAuth2 provider ${provider} not configured` });
+            return;
+          }
+
+          const authUrl = getAuthorizationUrl(provider, clientId, redirectUri);
+          res.writeHead(302, { 'Location': authUrl });
+          res.end();
+        } catch (error) {
+          sendJson(res, 400, { error: error.message });
+        }
+        return;
+      }
+
+      if (pathname === '/api/auth/oauth2/callback' && method === 'GET') {
+        try {
+          const code = url.searchParams.get('code');
+          const state = url.searchParams.get('state');
+          const error = url.searchParams.get('error');
+
+          if (error) {
+            sendJson(res, 400, { error: `OAuth2 error: ${error}` });
+            return;
+          }
+
+          if (!verifyState(state)) {
+            sendJson(res, 400, { error: 'Invalid or expired state parameter' });
+            return;
+          }
+
+          // Extract provider from state (simplified - in production, store with state)
+          const provider = url.searchParams.get('provider') || 'google';
+          const clientId = process.env[`OAUTH2_${provider.toUpperCase()}_CLIENT_ID`];
+          const clientSecret = process.env[`OAUTH2_${provider.toUpperCase()}_CLIENT_SECRET`];
+          const redirectUri = process.env.OAUTH2_REDIRECT_URI || 'http://localhost:4000/api/auth/oauth2/callback';
+
+          const tokenData = await exchangeCodeForToken(provider, code, clientId, clientSecret, redirectUri);
+          const userInfo = await getUserInfo(provider, tokenData.access_token);
+
+          const { sessionId, expiresAt } = createSession(
+            userInfo.id || userInfo.sub,
+            userInfo.email,
+            provider,
+            tokenData.access_token,
+            tokenData.expires_in
+          );
+
+          res.writeHead(302, {
+            'Location': '/',
+            'Set-Cookie': `sessionId=${sessionId}; HttpOnly; Max-Age=${tokenData.expires_in || 3600}; Path=/`
+          });
+          res.end();
+        } catch (error) {
+          sendJson(res, 500, { error: error.message });
+        }
+        return;
+      }
+
+      if (pathname === '/api/auth/session' && method === 'GET') {
+        try {
+          const cookies = req.headers.cookie?.split(';').reduce((acc, cookie) => {
+            const [key, value] = cookie.trim().split('=');
+            acc[key] = value;
+            return acc;
+          }, {});
+
+          const sessionId = cookies?.sessionId;
+          if (!sessionId) {
+            sendJson(res, 401, { error: 'No session found' });
+            return;
+          }
+
+          const session = validateSession(sessionId);
+          if (!session) {
+            sendJson(res, 401, { error: 'Invalid or expired session' });
+            return;
+          }
+
+          sendJson(res, 200, {
+            userId: session.userId,
+            email: session.userEmail,
+            provider: session.provider
+          });
+        } catch (error) {
+          sendJson(res, 500, { error: error.message });
+        }
+        return;
+      }
+
+      if (pathname === '/api/auth/logout' && method === 'POST') {
+        try {
+          const cookies = req.headers.cookie?.split(';').reduce((acc, cookie) => {
+            const [key, value] = cookie.trim().split('=');
+            acc[key] = value;
+            return acc;
+          }, {});
+
+          const sessionId = cookies?.sessionId;
+          if (sessionId) {
+            destroySession(sessionId);
+          }
+
+          res.writeHead(200, {
+            'Set-Cookie': 'sessionId=; HttpOnly; Max-Age=0; Path=/',
+            'Content-Type': 'application/json'
+          });
+          res.end(JSON.stringify({ success: true }));
+        } catch (error) {
+          sendJson(res, 500, { error: error.message });
         }
         return;
       }
