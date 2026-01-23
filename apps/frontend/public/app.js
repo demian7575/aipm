@@ -5466,6 +5466,55 @@ function openModal({
     delete modal.dataset.size;
   }
 
+  // Enable modal dragging
+  const modalContent = modal.querySelector('.modal-content');
+  const modalHeader = modal.querySelector('.modal-header');
+  let dragCleanup = null;
+  
+  if (modalHeader && modalContent) {
+    let isDragging = false;
+    let currentX, currentY, initialX, initialY;
+    
+    const dragStart = (e) => {
+      if (e.target.id === 'modal-close') return;
+      
+      initialX = e.clientX - (parseInt(modalContent.style.left) || 0);
+      initialY = e.clientY - (parseInt(modalContent.style.top) || 0);
+      isDragging = true;
+      modalHeader.style.cursor = 'grabbing';
+    };
+    
+    const drag = (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      currentX = e.clientX - initialX;
+      currentY = e.clientY - initialY;
+      modalContent.style.position = 'absolute';
+      modalContent.style.left = currentX + 'px';
+      modalContent.style.top = currentY + 'px';
+    };
+    
+    const dragEnd = () => {
+      isDragging = false;
+      modalHeader.style.cursor = 'grab';
+    };
+    
+    modalHeader.style.cursor = 'grab';
+    modalHeader.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+    
+    dragCleanup = () => {
+      modalHeader.removeEventListener('mousedown', dragStart);
+      document.removeEventListener('mousemove', drag);
+      document.removeEventListener('mouseup', dragEnd);
+      modalContent.style.position = '';
+      modalContent.style.left = '';
+      modalContent.style.top = '';
+      modalHeader.style.cursor = '';
+    };
+  }
+
   const cancelBtn = document.createElement('button');
   cancelBtn.type = 'button';
   cancelBtn.textContent = cancelLabel;
@@ -5494,6 +5543,11 @@ function openModal({
   }
 
   modalTeardown = () => {
+    // Remove drag listeners
+    if (dragCleanup) {
+      dragCleanup();
+    }
+    
     if (typeof onClose === 'function') {
       try {
         onClose();

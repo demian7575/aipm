@@ -7208,7 +7208,7 @@ export async function createApp() {
         }
 
         // Call Semantic API with stream endpoint
-        const response = await fetch(`${SEMANTIC_API_URL}/aipm/acceptance-test-draft-stream?stream=true`, {
+        const response = await fetch(`${SEMANTIC_API_URL}/aipm/acceptance-test-draft?stream=true`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
