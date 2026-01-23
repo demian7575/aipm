@@ -22,10 +22,13 @@ if ! grep -q 'Root Level' apps/frontend/public/app.js; then
   fail_test "Root Level option not found in parent selector"
 fi
 
-# Test 2: Verify backend handles parentId
+# Test 2: Verify backend handles parentId updates
 echo "    ✓ Verifying backend accepts parentId updates..."
-if ! grep -q 'payload.parentId' apps/backend/app.js; then
-  fail_test "Backend does not extract parentId from payload"
+if ! grep -q 'parentId = :parentId' apps/backend/app.js; then
+  fail_test "Backend DynamoDB update does not include parentId"
+fi
+if ! grep -q 'parent_id = \\?' apps/backend/app.js; then
+  fail_test "Backend SQLite update does not include parent_id"
 fi
 
 # Test 3: Verify parent dropdown is populated

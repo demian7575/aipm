@@ -73,6 +73,16 @@ test_enable_connection_to_parent_user_story() {
         return 1
     fi
     
+    # Test 4: Verify backend update supports parentId
+    if ! grep -q 'parentId = :parentId' apps/backend/app.js; then
+        fail_test "Backend DynamoDB update does not include parentId"
+        return 1
+    fi
+    if ! grep -q 'parent_id = \\?' apps/backend/app.js; then
+        fail_test "Backend SQLite update does not include parent_id"
+        return 1
+    fi
+    
     pass_test "Enable connection to parent User Story"
     return 0
 }
