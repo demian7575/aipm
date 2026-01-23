@@ -675,3 +675,21 @@ source "$SCRIPT_DIR/test-functions.sh"
 # Initialize counters if not set
 PHASE_PASSED=${PHASE_PASSED:-0}
 PHASE_FAILED=${PHASE_FAILED:-0}
+
+# Test result functions
+pass_test() {
+    local test_name="$1"
+    echo "    ✅ $test_name"
+    ((PHASE_PASSED++))
+}
+
+fail_test() {
+    local test_name="$1"
+    echo "    ❌ $test_name"
+    ((PHASE_FAILED++))
+}
+
+log_test() {
+    local test_name="$1"
+    echo "  🧪 $test_name"
+}

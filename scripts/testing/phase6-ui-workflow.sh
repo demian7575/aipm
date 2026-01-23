@@ -9,6 +9,10 @@ source "$(dirname "$0")/test-library.sh"
 API_BASE="${API_BASE:-http://44.222.168.46:4000}"
 SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.197.204.18:8083}"
 
+# Initialize test counters
+PHASE_PASSED=0
+PHASE_FAILED=0
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🎯 PHASE 6: UI-Driven Complete Workflow"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
