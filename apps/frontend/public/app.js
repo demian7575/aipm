@@ -4770,6 +4770,13 @@ function renderStoryDetailsWithCompleteData(story) {
               ${story.components && story.components.length > 0 ? story.components.join(', ') : 'Click to select'}
             </div>
           </div>
+          <div class="form-group">
+            <label>Parent Story:</label>
+            <select name="parentId" id="parent-story-select">
+              <option value="">Root Level</option>
+            </select>
+            <input type="number" name="parentIdInput" id="parent-id-input" placeholder="Or type parent ID" style="margin-top: 8px; width: 100%;" />
+          </div>
           <div class="modal-actions">
             <button type="submit" class="btn-primary">Save Changes</button>
             <button type="button" class="btn-secondary" id="cancel-edit">Cancel</button>
@@ -4782,10 +4789,44 @@ function renderStoryDetailsWithCompleteData(story) {
     
     let modalComponents = Array.isArray(story.components) ? [...story.components] : [];
     const componentsDisplay = modal.querySelector('#modal-components-display');
+    const parentSelect = modal.querySelector('#parent-story-select');
+    const parentInput = modal.querySelector('#parent-id-input');
     
     const updateComponentsDisplay = () => {
       componentsDisplay.textContent = modalComponents.length > 0 ? modalComponents.join(', ') : 'Click to select';
     };
+    
+    // Populate parent story dropdown
+    const allStories = flattenStories(state.stories);
+    allStories.forEach((s) => {
+      if (s.id !== story.id) {
+        const option = document.createElement('option');
+        option.value = s.id;
+        option.textContent = s.title;
+        if (story.parentId === s.id) {
+          option.selected = true;
+        }
+        parentSelect.appendChild(option);
+      }
+    });
+    
+    // Set input value if parent exists
+    if (story.parentId) {
+      parentInput.value = story.parentId;
+    }
+    
+    // Sync dropdown and input
+    parentSelect.addEventListener('change', () => {
+      parentInput.value = parentSelect.value;
+    });
+    
+    parentInput.addEventListener('input', () => {
+      if (parentInput.value) {
+        parentSelect.value = parentInput.value;
+      } else {
+        parentSelect.value = '';
+      }
+    });
     
     componentsDisplay.addEventListener('click', async () => {
       const picked = await openComponentPicker(modalComponents, { title: 'Select Components' });
@@ -4809,6 +4850,7 @@ function renderStoryDetailsWithCompleteData(story) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
+      const parentIdValue = formData.get('parentIdInput') || formData.get('parentId');
       const updates = {
         title: formData.get('title'),
         asA: formData.get('asA'),
@@ -4818,7 +4860,8 @@ function renderStoryDetailsWithCompleteData(story) {
         storyPoint: parseInt(formData.get('storyPoint')) || 0,
         assigneeEmail: formData.get('assigneeEmail'),
         status: formData.get('status'),
-        components: modalComponents
+        components: modalComponents,
+        parentId: parentIdValue ? parseInt(parentIdValue) : null
       };
       
       try {

@@ -7096,6 +7096,11 @@ export async function createApp() {
             updateExpressions.push('components = :components');
             expressionAttributeValues[':components'] = JSON.stringify(payload.components || []);
           }
+          if (payload.parentId !== undefined) {
+            updateExpressions.push('parentId = :parentId');
+            expressionAttributeValues[':parentId'] =
+              payload.parentId == null ? null : Number(payload.parentId);
+          }
           
           if (updateExpressions.length === 0) {
             sendJson(res, 400, { message: 'No fields to update' });
@@ -7130,20 +7135,21 @@ export async function createApp() {
             iWant: payload.iWant ?? existing.iWant,
             soThat: payload.soThat ?? existing.soThat,
             description: payload.description ?? existing.description,
-            storyPoints: payload.storyPoint ?? existing.storyPoint,
+            storyPoint: payload.storyPoint ?? existing.storyPoint,
             assigneeEmail: payload.assigneeEmail ?? existing.assigneeEmail,
             status: payload.status ?? existing.status,
-            components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]'))
+            components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]')),
+            parentId: payload.parentId ?? existing.parent_id
           };
           
           await new Promise((resolve, reject) => {
             db.run(
               `UPDATE user_stories SET 
                 title = ?, asA = ?, iWant = ?, soThat = ?, description = ?,
-                story_point = ?, assigneeEmail = ?, status = ?, components = ?
+                story_point = ?, assigneeEmail = ?, status = ?, components = ?, parent_id = ?
               WHERE id = ?`,
               [updates.title, updates.asA, updates.iWant, updates.soThat, updates.description,
-               updates.storyPoint, updates.assigneeEmail, updates.status, updates.components, storyId],
+               updates.storyPoint, updates.assigneeEmail, updates.status, updates.components, updates.parentId, storyId],
               (err) => {
                 if (err) reject(err);
                 else resolve();
