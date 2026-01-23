@@ -5,7 +5,7 @@
 set -e
 
 # Parse command line arguments
-PHASES_TO_RUN="1,2,3,4,5"
+PHASES_TO_RUN="1,2,3,4,5,6"
 TARGET_ENV="prod"
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -63,12 +63,7 @@ PROD_FRONTEND_URL="$FRONTEND_URL"
 DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
 
 # Export for phase scripts
-export API_BASE SEMANTIC_API_BASE FRONTEND_URL TARGET_ENV SSH_HOST
-
-# Helper to run commands on remote server
-run_remote() {
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "$@" 2>/dev/null
-}
+export API_BASE SEMANTIC_API_BASE FRONTEND_URL TARGET_ENV
 
 # Utility functions
 log_phase() {
@@ -122,22 +117,6 @@ main() {
             phase_summary "Phase 1"
             echo "🚫 BLOCKING DEPLOYMENT - Critical security/data issues detected"
             exit 1
-        fi
-    fi
-    
-    # Phase 2-1: Kiro CLI Mock Tests
-    if should_run_phase 2.1 || should_run_phase 2; then
-        log_phase "🧪 PHASE 2-1: Kiro CLI Mock Tests"
-        local phase21_start=$(date +%s)
-        
-        if source ./scripts/testing/phase2-1-kiro-mock-tests.sh; then
-            local phase21_end=$(date +%s)
-            local phase21_duration=$((phase21_end - phase21_start))
-            phase_summary "Phase 2-1"
-            echo "⏱️  Phase 2-1 Duration: ${phase21_duration}s"
-        else
-            phase_summary "Phase 2-1"
-            echo "⚠️  Mock test issues detected - check endpoint availability"
         fi
     fi
     
@@ -219,6 +198,22 @@ main() {
         else
             phase_summary "Phase 5"
             echo "⚠️  Code generation issues detected"
+        fi
+    fi
+    
+    # Phase 6: UI-Driven Complete Workflow
+    if should_run_phase 6; then
+        log_phase "🎯 PHASE 6: UI-Driven Complete Workflow"
+        local phase6_start=$(date +%s)
+        
+        if source ./scripts/testing/phase6-ui-workflow.sh; then
+            local phase6_end=$(date +%s)
+            local phase6_duration=$((phase6_end - phase6_start))
+            phase_summary "Phase 6"
+            echo "⏱️  Phase 6 Duration: ${phase6_duration}s"
+        else
+            phase_summary "Phase 6"
+            echo "⚠️  UI workflow issues detected"
         fi
     fi
     

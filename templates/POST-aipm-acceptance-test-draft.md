@@ -6,6 +6,8 @@
 **YOUR AUTHORITY**: Generate Given-When-Then acceptance tests
 **EXECUTION ACTION**: Generate acceptance test and execute curl POST immediately
 
+**CRITICAL**: This template is used in GATING TESTS to verify the acceptance test generation functionality. You MUST generate REAL, SPECIFIC, and TESTABLE acceptance tests that can be validated programmatically. Generic or placeholder tests will cause gating test failures.
+
 ## Input
 - storyTitle: User story title
 - storyDescription: User story description
@@ -30,6 +32,9 @@
 **Guidelines**: Follow `templates/ACCEPTANCE_TEST_GUIDELINES.md`
 - Arrays must have min 1 item each
 - Be specific and measurable
+- Include concrete values, endpoints, or UI elements
+- Avoid generic phrases like "system works" or "feature is available"
+- Make assertions verifiable (e.g., "API returns 200 status" not "API works")
 
 ## API Command
 ```bash
@@ -37,6 +42,7 @@ curl -X POST http://localhost:8083/api/acceptance-test-draft-response \
   -H 'Content-Type: application/json' \
   -d '{
     "requestId": "REQUEST_ID_VALUE",
+    "status": "complete",
     "title": "TEST_TITLE",
     "given": ["GIVEN"],
     "when": ["WHEN"],
@@ -49,6 +55,6 @@ curl -X POST http://localhost:8083/api/acceptance-test-draft-response \
 ## Execution Steps
 
 1. **Extract**: "Request ID: XXXXX" → UUID, storyTitle, storyDescription, asA, iWant, soThat, idea, ordinal
-2. **Generate**: Acceptance test based on user story (arrays with min 1 item each)
+2. **Generate**: SPECIFIC acceptance test based on user story (arrays with min 1 item each)
 3. **Replace**: REQUEST_ID_VALUE, TEST_TITLE, GIVEN, WHEN, THEN, TEST_SUMMARY
 4. **Execute**: curl command with bash tool

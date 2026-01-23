@@ -7187,7 +7187,7 @@ export async function createApp() {
 
     const generateDraftStreamMatch = pathname.match(/^\/api\/stories\/([^/]+)\/tests\/generate-draft-stream$/);
     if (generateDraftStreamMatch && method === 'GET') {
-      const storyId = generateDraftStreamMatch[1];
+      const storyId = Number(generateDraftStreamMatch[1]);
       const url = new URL(req.url, `http://${req.headers.host}`);
       const idea = url.searchParams.get('idea') || '';
 
@@ -7198,32 +7198,48 @@ export async function createApp() {
         'Access-Control-Allow-Origin': '*',
       });
 
-      const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
-
       try {
-        sendEvent({ status: 'started', message: 'Connecting to Semantic API...' });
+        // Load story
+        const story = await loadStoryWithDetails(db, storyId);
+        if (!story) {
+          res.write(`data: ${JSON.stringify({ status: 'error', message: 'Story not found' })}\n\n`);
+          res.end();
+          return;
+        }
 
-        const response = await fetch(`${SEMANTIC_API_URL}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
+        // Call Semantic API with stream endpoint
+        const response = await fetch(`${SEMANTIC_API_URL}/aipm/acceptance-test-draft-stream?stream=true`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storyTitle: story.title,
+            storyDescription: story.description || '',
+            asA: story.asA || '',
+            iWant: story.iWant || '',
+            soThat: story.soThat || '',
+            idea: idea || '',
+            ordinal: (story.acceptanceTests?.length || 0) + 1
+          })
+        });
         
         if (!response.ok) {
           throw new Error(`Semantic API returned ${response.status}`);
         }
 
+        // Proxy SSE stream
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          
-          const chunk = decoder.decode(value, { stream: true });
-          res.write(chunk);
+          res.write(decoder.decode(value, { stream: true }));
         }
 
         res.end();
       } catch (error) {
         console.error('SSE proxy error:', error);
-        sendEvent({ status: 'error', message: error.message });
+        res.write(`data: ${JSON.stringify({ status: 'error', message: error.message })}\n\n`);
         res.end();
       }
       return;

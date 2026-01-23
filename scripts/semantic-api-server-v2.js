@@ -8,12 +8,31 @@ import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const TEMPLATES_DIR = join(__dirname, '../templates');
+const TEMPLATES_DIR = join(__dirname, '..', 'templates');
 const PORT = process.env.SEMANTIC_API_PORT || 8083;
 const SESSION_POOL_URL = process.env.SESSION_POOL_URL || 'http://localhost:8082';
 
 // Store pending requests
 const pendingRequests = new Map();
+
+// Notify Session Pool that request is complete
+async function notifySessionPoolComplete(requestId) {
+  try {
+    const response = await fetch(`${SESSION_POOL_URL}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId })
+    });
+    
+    if (response.ok) {
+      console.log(`✅ Notified Session Pool: requestId ${requestId} complete`);
+    } else {
+      console.log(`⚠️  Failed to notify Session Pool: ${response.status}`);
+    }
+  } catch (error) {
+    console.log(`⚠️  Error notifying Session Pool: ${error.message}`);
+  }
+}
 
 console.log(`🚀 Semantic API v2 starting...`);
 console.log(`📁 Templates: ${TEMPLATES_DIR}`);
@@ -50,11 +69,45 @@ const server = http.createServer(async (req, res) => {
         
         console.log(`📥 Received ${url.pathname} for requestId: ${requestId}`);
         
-        // Find pending request and resolve it
+        // Find pending request
         const pending = pendingRequests.get(requestId);
         if (pending) {
-          pending.resolve(response);
-          pendingRequests.delete(requestId);
+          // Check if this is SSE mode
+          if (pending.isSSE) {
+            // Transform response for frontend compatibility
+            let transformedResponse = response;
+            
+            // If response has title/given/when/then, wrap it for frontend
+            if (response.title && response.given && !response.status) {
+              transformedResponse = {
+                status: 'complete',
+                success: true,
+                acceptanceTests: [{
+                  title: response.title,
+                  given: response.given,
+                  when: response.when,
+                  then: response.then
+                }],
+                elapsed: 0
+              };
+            }
+            
+            // Send SSE event
+            pending.res.write(`data: ${JSON.stringify(transformedResponse)}\n\n`);
+            
+            // If complete, close connection and cleanup
+            if (transformedResponse.status === 'complete' || transformedResponse.status === 'error') {
+              pending.res.end();
+              pendingRequests.delete(requestId);
+              
+              // Notify Session Pool that Kiro is done
+              notifySessionPoolComplete(requestId);
+            }
+          } else {
+            // Regular mode - resolve promise
+            pending.resolve(response);
+            pendingRequests.delete(requestId);
+          }
         } else {
           console.warn(`⚠️  No pending request found for requestId: ${requestId}`);
         }
@@ -91,10 +144,13 @@ const server = http.createServer(async (req, res) => {
       // Generate requestId if not provided
       const requestId = parameters.requestId || crypto.randomUUID();
       
+      // Check if SSE mode requested
+      const isSSE = url.searchParams.get('stream') === 'true' || parameters.stream === true;
+      
       // Build prompt with template path and ALL parameters (single line)
       let parameterPairs = [];
       for (const [key, value] of Object.entries(parameters)) {
-        if (key !== 'requestId') {
+        if (key !== 'requestId' && key !== 'stream') {
           const formattedValue = typeof value === 'object' ? JSON.stringify(value) : value;
           parameterPairs.push(`${key}: ${formattedValue}`);
         }
@@ -102,41 +158,80 @@ const server = http.createServer(async (req, res) => {
       
       const prompt = `Read the template file at ${templatePath} and generate output using this input data: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
       
-      console.log(`🤖 Sending to session pool (requestId: ${requestId})...`);
+      console.log(`🤖 Sending to session pool (requestId: ${requestId}, SSE: ${isSSE})...`);
       console.log(`📋 Parameters: ${parameterPairs.join(', ')}`);
       
-      // Create promise for response
-      const responsePromise = new Promise((resolve, reject) => {
-        pendingRequests.set(requestId, { resolve, reject });
+      if (isSSE) {
+        // SSE mode - keep connection open
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        });
+        
+        // Store response object for SSE
+        pendingRequests.set(requestId, { res, isSSE: true });
         
         // Timeout after 120 seconds
         setTimeout(() => {
           if (pendingRequests.has(requestId)) {
+            res.write(`data: ${JSON.stringify({ status: 'error', message: 'Request timeout' })}\n\n`);
+            res.end();
             pendingRequests.delete(requestId);
-            reject(new Error('Request timeout'));
           }
         }, 120000);
-      });
+        
+      } else {
+        // Regular mode - create promise and wait for response
+        const responsePromise = new Promise((resolve, reject) => {
+          pendingRequests.set(requestId, { resolve, reject, isSSE: false });
+          
+          setTimeout(() => {
+            if (pendingRequests.has(requestId)) {
+              pendingRequests.delete(requestId);
+              reject(new Error('Request timeout'));
+            }
+          }, 120000);
+        });
+        
+        // Send to session pool
+        fetch(`${SESSION_POOL_URL}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        }).catch(err => {
+          console.error('Error sending to session pool:', err);
+          if (pendingRequests.has(requestId)) {
+            const pending = pendingRequests.get(requestId);
+            pending.reject(err);
+            pendingRequests.delete(requestId);
+          }
+        });
+        
+        // Wait for response
+        const result = await responsePromise;
+        console.log(`✅ Response received for requestId: ${requestId}`);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      }
       
-      // Send to session pool (don't wait for completion)
-      fetch(`${SESSION_POOL_URL}/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      }).catch(err => {
-        console.error('Error sending to session pool:', err);
-        if (pendingRequests.has(requestId)) {
-          pendingRequests.get(requestId).reject(err);
-          pendingRequests.delete(requestId);
-        }
-      });
-
-      // Wait for Kiro to curl back with response
-      const result = await responsePromise;
-      console.log(`✅ Response received for requestId: ${requestId}`);
-      
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
+      // For SSE mode, send to session pool (response handled by callback endpoint)
+      if (isSSE) {
+        fetch(`${SESSION_POOL_URL}/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, requestId })
+        }).catch(err => {
+          console.error('Error sending to session pool:', err);
+          if (pendingRequests.has(requestId)) {
+            const pending = pendingRequests.get(requestId);
+            pending.res.write(`data: ${JSON.stringify({ status: 'error', message: err.message })}\n\n`);
+            pending.res.end();
+            pendingRequests.delete(requestId);
+          }
+        });
+      }
 
     } catch (error) {
       console.error(`❌ Error:`, error.message);

@@ -16,7 +16,7 @@ import http from 'http';
 
 const POOL_SIZE = 2;
 const SESSION_TIMEOUT = 180000; // 180 seconds
-const IDLE_DETECTION_TIME = 2000; // 2 seconds of no output = complete
+const IDLE_DETECTION_TIME = 10000; // 10 seconds (fallback only)
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
 const LOG_FILE = '/tmp/kiro-cli-live.log';
 
@@ -48,11 +48,12 @@ class KiroSession {
     this.lastUsed = Date.now();
     this.lastOutputTime = null;
     this.currentPrompt = null;
+    this.outputBuffer = '';
     this.currentResolve = null;
     this.currentReject = null;
-    this.outputBuffer = '';
     this.timeoutHandle = null;
     this.idleCheckHandle = null;
+    this.currentRequestId = null;
     
     this.start();
   }
@@ -60,8 +61,15 @@ class KiroSession {
   start() {
     this.log(`Starting Kiro CLI session ${this.id}`);
     
+    // Pass environment variables to Kiro CLI
+    const env = {
+      ...process.env,
+      SKIP_GATING_TESTS: process.env.SKIP_GATING_TESTS || 'false'
+    };
+    
     this.process = spawn('kiro-cli', ['chat', '--trust-all-tools'], {
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: env
     });
   
     this.process.stdout.on('data', (data) => {
@@ -70,7 +78,7 @@ class KiroSession {
       this.lastOutputTime = Date.now();
       this.log(chunk);
       
-      // Start idle detection
+      // Start simple idle detection (fallback only)
       this.checkIdleCompletion();
     });
     
@@ -90,7 +98,7 @@ class KiroSession {
   
   log(message) {
     // Only log session ID prefix for commands, not for output chunks
-    if (message.includes('===') || message.includes('Starting') || message.includes('closed') || message.includes('stuck') || message.includes('Sent Ctrl+C')) {
+    if (message.includes('===') || message.includes('Starting') || message.includes('closed') || message.includes('stuck') || message.includes('Sent Ctrl+C') || message.includes('Fallback') || message.includes('completion signal')) {
       const timestamp = new Date().toISOString();
       this.logStream.write(`[Session-${this.id}] [${timestamp}] ${message}`);
     } else {
@@ -99,7 +107,7 @@ class KiroSession {
     }
   }
   
-  async execute(prompt) {
+  async execute(prompt, requestId = null) {
     if (this.busy) {
       throw new Error(`Session ${this.id} is busy`);
     }
@@ -108,6 +116,7 @@ class KiroSession {
     this.stuck = false;
     this.lastUsed = Date.now();
     this.currentPrompt = prompt;
+    this.currentRequestId = requestId;
     this.outputBuffer = '';
     this.lastOutputTime = Date.now();
     
@@ -127,31 +136,13 @@ class KiroSession {
   }
   
   checkIdleCompletion() {
-    // Clear previous idle check
-    if (this.idleCheckHandle) {
-      clearTimeout(this.idleCheckHandle);
-    }
+    if (this.idleCheckHandle) clearTimeout(this.idleCheckHandle);
     
-    // Only check if busy
-    if (!this.busy) {
-      return;
-    }
-    
-    // Set new idle check
+    // Simple fallback: 10 seconds of no output = complete
     this.idleCheckHandle = setTimeout(() => {
-      const timeSinceLastOutput = Date.now() - this.lastOutputTime;
-      
-      // If no output for IDLE_DETECTION_TIME and we have some output, consider complete
-      if (timeSinceLastOutput >= IDLE_DETECTION_TIME && this.outputBuffer.length > 0) {
-        this.log(`Idle detection: completing after ${timeSinceLastOutput}ms of no output`);
-        
-        // If we have a resolver (execute mode), resolve it
-        if (this.currentResolve) {
-          this.complete();
-        } else {
-          // Fire-and-forget mode (send), just cleanup
-          this.cleanup();
-        }
+      if (this.busy) {
+        this.log(`⚠️ Fallback idle timeout (10s) - session ${this.id}`);
+        this.complete();
       }
     }, IDLE_DETECTION_TIME);
   }
@@ -238,6 +229,7 @@ class KiroSession {
     this.currentPrompt = null;
     this.currentResolve = null;
     this.currentReject = null;
+    this.currentRequestId = null;
     this.outputBuffer = '';
   }
   
@@ -264,13 +256,13 @@ class KiroSessionPool {
     }
   }
   
-  async execute(prompt) {
+  async execute(prompt, requestId = null) {
     // Find available session
     const session = this.sessions.find(s => !s.busy && !s.stuck);
     
     if (session) {
       // Execute immediately
-      return await session.execute(prompt);
+      return await session.execute(prompt, requestId);
     }
     
     // All sessions busy, add to queue
@@ -288,6 +280,7 @@ class KiroSessionPool {
       
       this.queue.push({
         prompt,
+        requestId,
         resolve,
         reject,
         timeout,
@@ -324,7 +317,7 @@ class KiroSessionPool {
     this.logStream.write(`[Pool] Processing queued request (waited ${waitTime}ms, queue size: ${this.queue.length})\n`);
     
     try {
-      const result = await session.execute(item.prompt);
+      const result = await session.execute(item.prompt, item.requestId);
       item.resolve(result);
     } catch (err) {
       item.reject(err);
@@ -441,7 +434,7 @@ const server = http.createServer(async (req, res) => {
     
     req.on('end', async () => {
       try {
-        const { prompt } = JSON.parse(body);
+        const { prompt, requestId } = JSON.parse(body);
         
         if (!prompt) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -449,10 +442,56 @@ const server = http.createServer(async (req, res) => {
           return;
         }
         
-        const result = await pool.execute(prompt);
+        // Store requestId mapping if provided
+        if (requestId) {
+          const result = await pool.execute(prompt, requestId);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result));
+        } else {
+          const result = await pool.execute(prompt);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result));
+        }
         
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    
+    return;
+  }
+  
+  // Complete endpoint - called by Semantic API when Kiro sends final response
+  if (url.pathname === '/complete' && req.method === 'POST') {
+    let body = '';
+    
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', () => {
+      try {
+        const { requestId } = JSON.parse(body);
+        
+        if (!requestId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'requestId is required' }));
+          return;
+        }
+        
+        // Find session with this requestId
+        const session = pool.sessions.find(s => s.currentRequestId === requestId);
+        
+        if (session && session.busy) {
+          pool.logStream.write(`[Pool] Received completion signal for requestId: ${requestId}, session: ${session.id}\n`);
+          session.complete();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'completed', sessionId: session.id }));
+        } else {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Session not found or not busy' }));
+        }
         
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });

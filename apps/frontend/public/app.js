@@ -6890,31 +6890,40 @@ function openAcceptanceTestModal(storyId, options = {}) {
         
         eventSource.onmessage = (event) => {
           const data = JSON.parse(event.data);
-          if (data.status === 'started' || data.status === 'progress') {
+          console.log('SSE message:', data);
+          
+          if (data.status === 'progress') {
             if (draftStatus) draftStatus.textContent = data.message;
-          } else if (data.status === 'complete' && data.success) {
+          } else if (data.status === 'complete') {
             eventSource.close();
-            const drafts = data.acceptanceTests;
-            if (drafts && drafts.length > 0) {
-              // Clear existing tests and reset counter
+            
+            // Handle both formats: wrapped in acceptanceTests array or direct
+            const tests = data.acceptanceTests || [data];
+            
+            if (tests && tests.length > 0) {
               acceptanceTestsList.innerHTML = '';
               testCounter = 0;
-              // Add generated tests
-              drafts.forEach((draft) => {
-                addTestToList({ title: draft.title, given: draft.given, when: draft.when, then: draft.then });
+              tests.forEach((test) => {
+                addTestToList({ 
+                  title: test.title || '', 
+                  given: test.given || [], 
+                  when: test.when || [], 
+                  then: test.then || [] 
+                });
               });
-              if (draftStatus) draftStatus.textContent = `${drafts.length} test(s) generated in ${data.elapsed}s!`;
-              showToast(`${drafts.length} test(s) added to Acceptance Tests!`, 'success');
+              if (draftStatus) draftStatus.textContent = `${tests.length} test(s) generated!`;
+              showToast(`${tests.length} test(s) added!`, 'success');
             }
             generateBtn.disabled = false;
             generateBtn.textContent = 'Generate Tests';
-          } else if (data.status === 'timeout' || data.error) {
+          } else if (data.status === 'error') {
             eventSource.close();
-            throw new Error(data.error || 'Draft generation timeout');
+            throw new Error(data.message || 'Generation failed');
           }
         };
         
-        eventSource.onerror = () => {
+        eventSource.onerror = (error) => {
+          console.error('EventSource error:', error);
           eventSource.close();
           if (draftStatus) draftStatus.textContent = 'Connection error. Please try again.';
           showToast('Failed to connect to Kiro CLI', 'error');
