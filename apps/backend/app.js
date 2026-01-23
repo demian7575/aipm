@@ -6218,6 +6218,67 @@ export async function createApp() {
         return;
       }
 
+      // OAuth2 authentication endpoints
+      if (pathname === '/api/oauth/authorize' && method === 'GET') {
+        try {
+          const { getAuthorizationUrl } = await import('./oauth.js');
+          const provider = url.searchParams.get('provider');
+          const clientId = process.env[`OAUTH_${provider.toUpperCase()}_CLIENT_ID`];
+          const redirectUri = process.env.OAUTH_REDIRECT_URI || 'http://localhost:4000/api/oauth/callback';
+          const state = randomUUID();
+          
+          if (!clientId) {
+            sendJson(res, 400, { error: `OAuth provider ${provider} not configured` });
+            return;
+          }
+          
+          const authUrl = getAuthorizationUrl(provider, clientId, redirectUri, state);
+          sendJson(res, 200, { authUrl, state });
+        } catch (error) {
+          sendJson(res, 500, { error: error.message });
+        }
+        return;
+      }
+
+      if (pathname === '/api/oauth/callback' && method === 'GET') {
+        try {
+          const { exchangeCodeForToken, getUserProfile } = await import('./oauth.js');
+          const code = url.searchParams.get('code');
+          const state = url.searchParams.get('state');
+          const provider = url.searchParams.get('provider') || 'google';
+          
+          const clientId = process.env[`OAUTH_${provider.toUpperCase()}_CLIENT_ID`];
+          const clientSecret = process.env[`OAUTH_${provider.toUpperCase()}_CLIENT_SECRET`];
+          const redirectUri = process.env.OAUTH_REDIRECT_URI || 'http://localhost:4000/api/oauth/callback';
+          
+          const tokenData = await exchangeCodeForToken(provider, code, clientId, clientSecret, redirectUri);
+          const userProfile = await getUserProfile(provider, tokenData.access_token);
+          
+          sendJson(res, 200, { 
+            accessToken: tokenData.access_token,
+            profile: userProfile,
+            provider
+          });
+        } catch (error) {
+          sendJson(res, 500, { error: error.message });
+        }
+        return;
+      }
+
+      if (pathname === '/api/oauth/validate' && method === 'POST') {
+        try {
+          const { validateToken } = await import('./oauth.js');
+          const payload = await parseJson(req);
+          const { token } = payload;
+          
+          const isValid = validateToken(token);
+          sendJson(res, 200, { valid: isValid });
+        } catch (error) {
+          sendJson(res, 401, { valid: false, error: error.message });
+        }
+        return;
+      }
+
       if (pathname === '/api/generate-draft' && method === 'POST') {
         try {
           const payload = await parseJson(req);

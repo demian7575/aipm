@@ -46,6 +46,61 @@ test_remove_hide_completed_button() {
 
 # =============================================================================
 # ADD NEW STORY TESTS BELOW THIS LINE
+
+# =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769154656309
+# Merged: 2026-01-23
+# =============================================================================
+test_updated_user_authentication_with_oauth2() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: OAuth module exists
+    if [ ! -f "apps/backend/oauth.js" ]; then
+        fail_test "OAuth module not found"
+        return 1
+    fi
+    
+    # Test 2: OAuth routes exist in backend
+    if ! grep -q "'/api/oauth/authorize'" apps/backend/app.js; then
+        fail_test "OAuth authorize route not implemented"
+        return 1
+    fi
+    
+    if ! grep -q "'/api/oauth/callback'" apps/backend/app.js; then
+        fail_test "OAuth callback route not implemented"
+        return 1
+    fi
+    
+    if ! grep -q "'/api/oauth/validate'" apps/backend/app.js; then
+        fail_test "OAuth validate route not implemented"
+        return 1
+    fi
+    
+    # Test 3: OAuth functions exported
+    if ! grep -q "export function getAuthorizationUrl" apps/backend/oauth.js; then
+        fail_test "getAuthorizationUrl function not exported"
+        return 1
+    fi
+    
+    if ! grep -q "export async function exchangeCodeForToken" apps/backend/oauth.js; then
+        fail_test "exchangeCodeForToken function not exported"
+        return 1
+    fi
+    
+    if ! grep -q "export async function getUserProfile" apps/backend/oauth.js; then
+        fail_test "getUserProfile function not exported"
+        return 1
+    fi
+    
+    if ! grep -q "export function validateToken" apps/backend/oauth.js; then
+        fail_test "validateToken function not exported"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -68,6 +123,12 @@ echo "Running all Phase 4 functionality tests..."
 echo ""
 
 if test_remove_hide_completed_button; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_updated_user_authentication_with_oauth2; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
