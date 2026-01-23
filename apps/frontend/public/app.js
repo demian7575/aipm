@@ -72,14 +72,15 @@ let modalDragState = null;
 
 // Make modals draggable by their h2 header
 function initModalDrag() {
-  const modalContent = modal.querySelector('.modal-content');
-  if (!modalContent) return;
+  const modalShell = modal.querySelector('.modal-shell');
+  const modalHeader = modal.querySelector('.modal-header');
+  if (!modalShell || !modalHeader) return;
   
-  modalContent.addEventListener('mousedown', (e) => {
-    if (e.target.tagName !== 'H2') return;
+  modalHeader.addEventListener('mousedown', (e) => {
+    if (e.target.closest('#modal-close')) return;
     e.preventDefault();
     
-    const rect = modalContent.getBoundingClientRect();
+    const rect = modalShell.getBoundingClientRect();
     modalDragState = {
       startX: e.clientX,
       startY: e.clientY,
@@ -87,21 +88,21 @@ function initModalDrag() {
       initialTop: rect.top
     };
     
-    modalContent.style.position = 'fixed';
-    modalContent.style.left = rect.left + 'px';
-    modalContent.style.top = rect.top + 'px';
-    modalContent.style.margin = '0';
+    modalShell.style.position = 'fixed';
+    modalShell.style.left = rect.left + 'px';
+    modalShell.style.top = rect.top + 'px';
+    modalShell.style.margin = '0';
   });
   
   document.addEventListener('mousemove', (e) => {
     if (!modalDragState) return;
     
-    const modalContent = modal.querySelector('.modal-content');
+    const modalShell = modal.querySelector('.modal-shell');
     const dx = e.clientX - modalDragState.startX;
     const dy = e.clientY - modalDragState.startY;
     
-    modalContent.style.left = (modalDragState.initialLeft + dx) + 'px';
-    modalContent.style.top = (modalDragState.initialTop + dy) + 'px';
+    modalShell.style.left = (modalDragState.initialLeft + dx) + 'px';
+    modalShell.style.top = (modalDragState.initialTop + dy) + 'px';
   });
   
   document.addEventListener('mouseup', () => {
@@ -5459,6 +5460,13 @@ function openModal({
   modalBody.innerHTML = '';
   modalBody.appendChild(content);
   modalFooter.innerHTML = '';
+  const modalShell = modal.querySelector('.modal-shell');
+  if (modalShell) {
+    modalShell.style.position = '';
+    modalShell.style.left = '';
+    modalShell.style.top = '';
+    modalShell.style.margin = '';
+  }
 
   if (size && size !== 'default') {
     modal.dataset.size = size;
