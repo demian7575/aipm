@@ -48,6 +48,80 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 # Template:
 # =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769152369940
+# Merged: 2026-01-23
+# =============================================================================
+test_updated_user_authentication_with_oauth2() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: OAuth module exists
+    if [ ! -f "apps/backend/oauth.js" ]; then
+        fail_test "OAuth module not found"
+        return 1
+    fi
+    
+    # Test 2: OAuth functions exported
+    if ! grep -q "export function getAuthUrl" apps/backend/oauth.js; then
+        fail_test "getAuthUrl function not exported"
+        return 1
+    fi
+    
+    if ! grep -q "export function exchangeCodeForToken" apps/backend/oauth.js; then
+        fail_test "exchangeCodeForToken function not exported"
+        return 1
+    fi
+    
+    if ! grep -q "export function getUserProfile" apps/backend/oauth.js; then
+        fail_test "getUserProfile function not exported"
+        return 1
+    fi
+    
+    # Test 3: OAuth endpoints in backend
+    if ! grep -q "/api/auth/login" apps/backend/app.js; then
+        fail_test "OAuth login endpoint not found"
+        return 1
+    fi
+    
+    if ! grep -q "/api/auth/callback" apps/backend/app.js; then
+        fail_test "OAuth callback endpoint not found"
+        return 1
+    fi
+    
+    # Test 4: Frontend OAuth UI exists
+    if ! grep -q "auth-overlay" apps/frontend/public/index.html; then
+        fail_test "OAuth UI overlay not found"
+        return 1
+    fi
+    
+    if ! grep -q "handleOAuthLogin" apps/frontend/public/app.js; then
+        fail_test "OAuth login handler not found"
+        return 1
+    fi
+    
+    # Test 5: OAuth providers configured
+    if ! grep -q "google" apps/backend/oauth.js; then
+        fail_test "Google OAuth provider not configured"
+        return 1
+    fi
+    
+    if ! grep -q "github" apps/backend/oauth.js; then
+        fail_test "GitHub OAuth provider not configured"
+        return 1
+    fi
+    
+    if ! grep -q "microsoft" apps/backend/oauth.js; then
+        fail_test "Microsoft OAuth provider not configured"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
+
+# =============================================================================
+# Template:
+# =============================================================================
 # Story: [Story Title]
 # ID: [Story ID]
 # Merged: [Date]
@@ -74,6 +148,12 @@ else
 fi
 
 # ADD NEW TEST FUNCTION CALLS HERE
+if test_updated_user_authentication_with_oauth2; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
 # if test_your_story_name; then
 #     ((PHASE4_PASSED++))
 # else

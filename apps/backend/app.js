@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
+import { getAuthUrl, exchangeCodeForToken, getUserProfile, validateToken } from './oauth.js';
 // Removed delegation imports - now using direct PR creation
 
 // Global DynamoDB client for reuse
@@ -6740,6 +6741,67 @@ export async function createApp() {
         shell: 'lambda-runtime',
         environment: 'aws-lambda'
       });
+      return;
+    }
+
+    // OAuth2 authentication endpoints
+    if (pathname === '/api/auth/login' && method === 'POST') {
+      try {
+        const { provider } = await parseJson(req);
+        const clientId = process.env[`OAUTH_${provider.toUpperCase()}_CLIENT_ID`];
+        const redirectUri = process.env.OAUTH_REDIRECT_URI || 'http://localhost:4000/api/auth/callback';
+        const state = randomUUID();
+        
+        if (!clientId) {
+          sendJson(res, 400, { error: `OAuth provider ${provider} not configured` });
+          return;
+        }
+        
+        const authUrl = getAuthUrl(provider, clientId, redirectUri, state);
+        sendJson(res, 200, { authUrl, state });
+      } catch (error) {
+        sendJson(res, 500, { error: error.message });
+      }
+      return;
+    }
+
+    if (pathname === '/api/auth/callback' && method === 'GET') {
+      try {
+        const code = url.searchParams.get('code');
+        const state = url.searchParams.get('state');
+        const provider = url.searchParams.get('provider') || 'google';
+        
+        if (!code) {
+          sendJson(res, 400, { error: 'Authorization code missing' });
+          return;
+        }
+        
+        const clientId = process.env[`OAUTH_${provider.toUpperCase()}_CLIENT_ID`];
+        const clientSecret = process.env[`OAUTH_${provider.toUpperCase()}_CLIENT_SECRET`];
+        const redirectUri = process.env.OAUTH_REDIRECT_URI || 'http://localhost:4000/api/auth/callback';
+        
+        const tokenData = await exchangeCodeForToken(provider, code, clientId, clientSecret, redirectUri);
+        const userProfile = await getUserProfile(provider, tokenData.access_token);
+        
+        sendJson(res, 200, { 
+          accessToken: tokenData.access_token,
+          user: userProfile,
+          provider
+        });
+      } catch (error) {
+        sendJson(res, 500, { error: error.message });
+      }
+      return;
+    }
+
+    if (pathname === '/api/auth/validate' && method === 'POST') {
+      try {
+        const { token } = await parseJson(req);
+        const isValid = validateToken(token);
+        sendJson(res, 200, { valid: isValid });
+      } catch (error) {
+        sendJson(res, 500, { error: error.message });
+      }
       return;
     }
 

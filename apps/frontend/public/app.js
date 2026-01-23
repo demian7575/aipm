@@ -8199,6 +8199,126 @@ function openCreatePRModal(story, taskEntry = null) {
 
 initialize();
 
+// OAuth2 Authentication
+const authOverlay = document.getElementById('auth-overlay');
+const authStatus = document.getElementById('auth-status');
+const authGoogleBtn = document.getElementById('auth-google-btn');
+const authGithubBtn = document.getElementById('auth-github-btn');
+const authMicrosoftBtn = document.getElementById('auth-microsoft-btn');
+
+/**
+ * Check if user is authenticated
+ */
+function checkAuth() {
+  const token = localStorage.getItem('oauth_token');
+  if (!token) {
+    showAuthOverlay();
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Show authentication overlay
+ */
+function showAuthOverlay() {
+  if (authOverlay) {
+    authOverlay.style.display = 'flex';
+  }
+}
+
+/**
+ * Hide authentication overlay
+ */
+function hideAuthOverlay() {
+  if (authOverlay) {
+    authOverlay.style.display = 'none';
+  }
+}
+
+/**
+ * Handle OAuth2 login
+ */
+async function handleOAuthLogin(provider) {
+  try {
+    authStatus.textContent = 'Redirecting to ' + provider + '...';
+    authStatus.className = 'auth-status';
+    authStatus.style.display = 'block';
+
+    const response = await fetch(resolveApiUrl('/api/auth/login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider })
+    });
+
+    if (!response.ok) {
+      throw new Error('Authentication failed');
+    }
+
+    const { authUrl, state } = await response.json();
+    localStorage.setItem('oauth_state', state);
+    localStorage.setItem('oauth_provider', provider);
+    window.location.href = authUrl;
+  } catch (error) {
+    authStatus.textContent = 'Error: ' + error.message;
+    authStatus.className = 'auth-status error';
+  }
+}
+
+/**
+ * Handle OAuth2 callback
+ */
+async function handleOAuthCallback() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+  const state = urlParams.get('state');
+  const provider = localStorage.getItem('oauth_provider');
+
+  if (code && state) {
+    const savedState = localStorage.getItem('oauth_state');
+    if (state !== savedState) {
+      showToast('Authentication failed: Invalid state', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch(resolveApiUrl(`/api/auth/callback?code=${code}&state=${state}&provider=${provider}`));
+      const data = await response.json();
+
+      if (data.accessToken) {
+        localStorage.setItem('oauth_token', data.accessToken);
+        localStorage.setItem('oauth_user', JSON.stringify(data.user));
+        localStorage.removeItem('oauth_state');
+        localStorage.removeItem('oauth_provider');
+        
+        window.history.replaceState({}, document.title, window.location.pathname);
+        hideAuthOverlay();
+        showToast('Successfully authenticated with ' + provider, 'success');
+      }
+    } catch (error) {
+      showToast('Authentication failed: ' + error.message, 'error');
+    }
+  }
+}
+
+// Attach event listeners
+if (authGoogleBtn) {
+  authGoogleBtn.addEventListener('click', () => handleOAuthLogin('google'));
+}
+if (authGithubBtn) {
+  authGithubBtn.addEventListener('click', () => handleOAuthLogin('github'));
+}
+if (authMicrosoftBtn) {
+  authMicrosoftBtn.addEventListener('click', () => handleOAuthLogin('microsoft'));
+}
+
+// Check for OAuth callback on page load
+handleOAuthCallback();
+
+// Check authentication status
+// Commented out for development - uncomment to enable auth requirement
+// checkAuth();
+
 // Global function to clean up Kiro API queue (accessible from browser console)
 window.cleanupKiroQueue = async function() {
   try {
