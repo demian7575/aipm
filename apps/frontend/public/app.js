@@ -7789,6 +7789,54 @@ function initialize() {
     closeModal();
   });
 
+  // Make modal draggable
+  let isDragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+  const modalContent = modal.querySelector('.modal-content');
+  const modalHeader = modal.querySelector('.modal-header');
+  
+  // Load saved position from sessionStorage
+  const savedPosition = sessionStorage.getItem('modalPosition');
+  if (savedPosition) {
+    const { left, top } = JSON.parse(savedPosition);
+    modalContent.style.left = left;
+    modalContent.style.top = top;
+    modalContent.style.transform = 'none';
+  }
+  
+  modalHeader.addEventListener('mousedown', (e) => {
+    if (e.target.closest('button')) return; // Don't drag when clicking buttons
+    isDragging = true;
+    const rect = modalContent.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    modalHeader.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const left = e.clientX - dragOffsetX;
+    const top = e.clientY - dragOffsetY;
+    modalContent.style.left = `${left}px`;
+    modalContent.style.top = `${top}px`;
+    modalContent.style.transform = 'none';
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      modalHeader.style.cursor = 'grab';
+      // Save position to sessionStorage
+      const rect = modalContent.getBoundingClientRect();
+      sessionStorage.setItem('modalPosition', JSON.stringify({
+        left: modalContent.style.left,
+        top: modalContent.style.top
+      }));
+    }
+  });
+
   if (runtimeDataLink) {
     runtimeDataLink.href = resolveApiUrl('/api/runtime-data');
   }

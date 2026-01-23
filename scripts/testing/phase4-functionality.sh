@@ -46,6 +46,36 @@ test_remove_hide_completed_button() {
 
 # =============================================================================
 # ADD NEW STORY TESTS BELOW THIS LINE
+
+# =============================================================================
+# Story: Draggable Create Child Story Modal
+# ID: 1768623553588
+# Merged: 2026-01-23
+# =============================================================================
+test_draggable_create_child_story_modal() {
+    log_test "Draggable Create Child Story Modal"
+    
+    # Test 1: Modal header has draggable cursor style
+    if ! grep -q "cursor: grab" apps/frontend/public/styles.css; then
+        fail_test "Modal header cursor style not found"
+        return 1
+    fi
+    
+    # Test 2: Modal drag event listeners exist
+    if ! grep -q "mousedown.*isDragging" apps/frontend/public/app.js; then
+        fail_test "Modal drag event listeners not found"
+        return 1
+    fi
+    
+    # Test 3: Position persistence with sessionStorage
+    if ! grep -q "sessionStorage.*modalPosition" apps/frontend/public/app.js; then
+        fail_test "Modal position persistence not implemented"
+        return 1
+    fi
+    
+    pass_test "Draggable Create Child Story Modal"
+    return 0
+}
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -68,6 +98,12 @@ echo "Running all Phase 4 functionality tests..."
 echo ""
 
 if test_remove_hide_completed_button; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_draggable_create_child_story_modal; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))

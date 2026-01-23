@@ -1730,6 +1730,8 @@ dialog[data-size='content'] .modal-shell {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #e5e9f5;
+  cursor: grab;
+  user-select: none;
 }
 
 .modal-body {
@@ -2220,7 +2222,7 @@ dialog[data-size='content'] .modal-shell {
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   width: 90%;
-  position: relative;
+  position: absolute;
 }
 
 .modal-content h2 {
