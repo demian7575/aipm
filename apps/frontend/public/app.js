@@ -4774,6 +4774,7 @@ function renderStoryDetailsWithCompleteData(story) {
             <select name="parentId" id="parent-story-select">
               <option value="">Root Level</option>
             </select>
+            <input type="number" name="parentIdInput" id="parent-id-input" placeholder="Or type parent ID" style="margin-top: 8px; width: 100%;" />
           </div>
           <div class="modal-actions">
             <button type="submit" class="btn-primary">Save Changes</button>
@@ -4794,6 +4795,7 @@ function renderStoryDetailsWithCompleteData(story) {
     
     // Populate parent story dropdown
     const parentSelect = modal.querySelector('#parent-story-select');
+    const parentInput = modal.querySelector('#parent-id-input');
     const allStories = flattenStories(state.stories);
     allStories.forEach(s => {
       if (s.id !== story.id) {
@@ -4804,6 +4806,24 @@ function renderStoryDetailsWithCompleteData(story) {
           option.selected = true;
         }
         parentSelect.appendChild(option);
+      }
+    });
+    
+    // Set input value if parent exists
+    if (story.parentId) {
+      parentInput.value = story.parentId;
+    }
+    
+    // Sync dropdown and input
+    parentSelect.addEventListener('change', () => {
+      parentInput.value = parentSelect.value;
+    });
+    
+    parentInput.addEventListener('input', () => {
+      if (parentInput.value) {
+        parentSelect.value = parentInput.value;
+      } else {
+        parentSelect.value = '';
       }
     });
     
@@ -4829,7 +4849,7 @@ function renderStoryDetailsWithCompleteData(story) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
-      const parentIdValue = formData.get('parentId');
+      const parentIdValue = formData.get('parentIdInput') || formData.get('parentId');
       const updates = {
         title: formData.get('title'),
         asA: formData.get('asA'),
