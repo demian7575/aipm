@@ -46,6 +46,36 @@ test_remove_hide_completed_button() {
 
 # =============================================================================
 # ADD NEW STORY TESTS BELOW THIS LINE
+
+# =============================================================================
+# Story: Enable connection to parent User Story
+# ID: 1768490120028
+# Merged: 2026-01-23
+# =============================================================================
+test_enable_connection_to_parent_user_story() {
+    log_test "Enable connection to parent User Story"
+    
+    # Test 1: Verify parent ID input field exists in frontend
+    if ! grep -q 'id="parent-id-input"' apps/frontend/public/app.js; then
+        fail_test "Parent ID input field not found in frontend"
+        return 1
+    fi
+    
+    # Test 2: Verify input field syncs with dropdown
+    if ! grep -q 'parentInput.addEventListener' apps/frontend/public/app.js; then
+        fail_test "Parent ID input sync logic not implemented"
+        return 1
+    fi
+    
+    # Test 3: Verify form submission uses typed parent ID
+    if ! grep -q "formData.get('parentIdInput')" apps/frontend/public/app.js; then
+        fail_test "Form submission does not use typed parent ID"
+        return 1
+    fi
+    
+    pass_test "Enable connection to parent User Story"
+    return 0
+}
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -68,6 +98,12 @@ echo "Running all Phase 4 functionality tests..."
 echo ""
 
 if test_remove_hide_completed_button; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_enable_connection_to_parent_user_story; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
