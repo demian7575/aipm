@@ -6766,9 +6766,6 @@ export async function createApp() {
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
         const acceptanceTests = payload.acceptanceTests || [];
-        // Allow bypassing INVEST validation via header or payload
-        const skipInvestValidation = payload.skipInvestValidation === true || 
-                                     req.headers['x-skip-invest-validation'] === 'true';
         
         // Create story first
         const timestamp = now();
@@ -6916,9 +6913,9 @@ export async function createApp() {
         const warnings = analysis.warnings;
         const score = analysis.ai?.score || 0;
         
-        // Only block story creation if score is below threshold (80) and not skipped
+        // Only block story creation if score is below threshold (80)
         const INVEST_SCORE_THRESHOLD = 80;
-        if (!skipInvestValidation && score > 0 && score < INVEST_SCORE_THRESHOLD) {
+        if (score > 0 && score < INVEST_SCORE_THRESHOLD) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
             const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -7401,38 +7398,23 @@ export async function createApp() {
         const nextStatus =
           payload.status === undefined ? currentStatus : normalizeStoryStatus(payload.status);
 
-        // Check if INVEST validation should be skipped
-        const skipInvestValidation = 
-          req.headers['x-skip-invest-validation'] === 'true' || 
-          payload.skipInvestValidation === true;
-
         let analysis;
         let warnings = [];
         
-        if (skipInvestValidation) {
-          // Skip INVEST analysis for test scenarios
-          analysis = {
-            warnings: [],
-            source: 'skipped',
-            summary: 'INVEST validation skipped'
-          };
-          timings.push(`  INVEST analysis skipped: ${Date.now() - patchStartTime}ms`);
-        } else {
-          // Run INVEST analysis
-          const storyForValidation = {
-            title,
-            asA: asA ?? existing.as_a,
-            iWant: iWant ?? existing.i_want,
-            soThat: soThat ?? existing.so_that,
-            description: description || existing.description || '',
-            storyPoint,
-            components,
-          };
-          const investStartTime = Date.now();
-          analysis = await analyzeInvest(storyForValidation);
-          timings.push(`  INVEST analysis completed: ${Date.now() - investStartTime}ms (total: ${Date.now() - patchStartTime}ms)`);
-          warnings = analysis.warnings;
-        }
+        // Run INVEST analysis
+        const storyForValidation = {
+          title,
+          asA: asA ?? existing.as_a,
+          iWant: iWant ?? existing.i_want,
+          soThat: soThat ?? existing.so_that,
+          description: description || existing.description || '',
+          storyPoint,
+          components,
+        };
+        const investStartTime = Date.now();
+        analysis = await analyzeInvest(storyForValidation);
+        timings.push(`  INVEST analysis completed: ${Date.now() - investStartTime}ms (total: ${Date.now() - patchStartTime}ms)`);
+        warnings = analysis.warnings;
         
         if (warnings.length > 0 && !payload.acceptWarnings) {
           sendJson(res, 409, {
@@ -7537,21 +7519,18 @@ export async function createApp() {
           if (Number(existingTestCountRow.count ?? 0) > 0) {
             markAcceptanceTestsForReview(db, storyId);
           }
-          // Only create automatic acceptance test if not skipping INVEST validation
-          if (!skipInvestValidation) {
-            await createAutomaticAcceptanceTest(
-              db,
-              {
-                id: storyId,
-                title,
-                asA: nextAsA,
-                iWant: nextIWant,
-                soThat: nextSoThat,
-                components,
-              },
-              { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
-            );
-          }
+          await createAutomaticAcceptanceTest(
+            db,
+            {
+              id: storyId,
+              title,
+              asA: nextAsA,
+              iWant: nextIWant,
+              soThat: nextSoThat,
+              components,
+            },
+            { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
+          );
         }
         
         const loadStartTime = Date.now();

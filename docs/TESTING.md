@@ -209,7 +209,8 @@ ssh ubuntu@44.197.204.18 'kiro-cli --version'
 
 **INVEST score too low**:
 - This is expected if AI generates low-quality story
-- Tests use `skipInvestValidation=true` to focus on workflow
+- Tests validate complete workflow including INVEST validation
+- INVEST score threshold is 80 for story creation
 - Production still enforces 80+ threshold
 
 ## Test Counter Bug

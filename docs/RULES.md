@@ -14,7 +14,8 @@
 
 ### INVEST Validation
 - ❌ Stories with score < 80 are **REJECTED** in production
-- ✅ Use `skipInvestValidation=true` only in tests
+- ✅ Always run INVEST validation for story creation
+- ✅ INVEST score must be >= 80 for story creation
 - ✅ AI-generated stories must meet quality threshold
 - 📍 **Why**: Ensures story quality and prevents poorly defined work
 
@@ -88,9 +89,9 @@
 
 ### Development Practices
 
-**✅ DO: Use skipInvestValidation in tests**
-- **Lesson**: AI-generated stories have unpredictable scores
-- **Solution**: Skip validation in test environment
+**✅ DO: Ensure INVEST validation in all environments**
+- **Lesson**: INVEST validation ensures story quality
+- **Solution**: Always run INVEST validation, improve story templates for better scores
 - **Date**: 2026-01
 - **Impact**: Tests no longer flaky
 

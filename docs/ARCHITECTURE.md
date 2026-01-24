@@ -175,7 +175,7 @@ See [CONFIGURATION.md](CONFIGURATION.md) for details.
 2. Frontend POSTs to `/api/stories`
 3. Backend validates INVEST score (calls Semantic API if needed)
 4. If score < 80, reject with error
-5. If score >= 80 or `skipInvestValidation=true`, create story
+5. If score >= 80, create story
 6. Store in DynamoDB
 7. Return story to frontend
 
