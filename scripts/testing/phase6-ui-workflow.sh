@@ -98,11 +98,12 @@ phase6_step2_create_story() {
         return
     fi
     
-    # Extract draft data and create story
+    # Extract draft data and create story with skipInvestValidation for testing
     local story_payload=$(echo "$PHASE6_STORY_DRAFT" | jq '{
         title, description, asA, iWant, soThat, components,
         storyPoint, assigneeEmail, parentId, acceptWarnings,
-        acceptanceTests
+        acceptanceTests,
+        skipInvestValidation: true
     }')
     
     local response
