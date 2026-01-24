@@ -2722,11 +2722,16 @@ function updateWorkspaceColumns() {
 }
 
 /**
- * Get stories filtered by current filter state
- * @returns {Array} Filtered stories
+ * Get stories filtered by current filter state and sorted by priority
+ * @returns {Array} Filtered and sorted stories
  */
 function getVisibleStories() {
-  return state.stories;
+  const priorityOrder = { high: 0, medium: 1, low: 2 };
+  return state.stories.slice().sort((a, b) => {
+    const aPriority = priorityOrder[a.priority] ?? 1;
+    const bPriority = priorityOrder[b.priority] ?? 1;
+    return aPriority - bPriority;
+  });
 }
 
 function renderOutline() {
@@ -2768,7 +2773,8 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityLabel = story.priority ? ` [${story.priority.toUpperCase()}]` : '';
+    title.textContent = `${story.title}${priorityLabel}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
