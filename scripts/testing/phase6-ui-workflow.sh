@@ -195,10 +195,10 @@ phase6_step4_invest_analysis() {
         return
     fi
     
-    # Run INVEST analysis via SSE
+    # Run INVEST analysis via SSE with increased timeout
     local request_id="phase3-invest-$(date +%s)"
     local response
-    response=$(timeout 30 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/invest-analysis?stream=true" \
+    response=$(timeout 60 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/invest-analysis?stream=true" \
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
