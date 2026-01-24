@@ -489,6 +489,7 @@ const state = {
     component: [],
     assignee: []
   },
+  sortBy: 'priority', // 'priority', 'status', 'title', 'storyPoint'
   mindmapZoom: 1,
   panelVisibility: {
     outline: true,
@@ -2722,11 +2723,45 @@ function updateWorkspaceColumns() {
 }
 
 /**
+ * Get priority value for sorting (High=3, Medium=2, Low=1, undefined=0)
+ * @param {Object} story - Story object
+ * @returns {number} Priority value
+ */
+function getPriorityValue(story) {
+  const priority = story.priority?.toLowerCase();
+  if (priority === 'high') return 3;
+  if (priority === 'medium') return 2;
+  if (priority === 'low') return 1;
+  return 0;
+}
+
+/**
+ * Sort stories based on current sort setting
+ * @param {Array} stories - Stories to sort
+ * @returns {Array} Sorted stories
+ */
+function sortStories(stories) {
+  const sorted = [...stories];
+  
+  if (state.sortBy === 'priority') {
+    sorted.sort((a, b) => getPriorityValue(b) - getPriorityValue(a));
+  } else if (state.sortBy === 'status') {
+    sorted.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+  } else if (state.sortBy === 'title') {
+    sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  } else if (state.sortBy === 'storyPoint') {
+    sorted.sort((a, b) => (b.storyPoint || 0) - (a.storyPoint || 0));
+  }
+  
+  return sorted;
+}
+
+/**
  * Get stories filtered by current filter state
  * @returns {Array} Filtered stories
  */
 function getVisibleStories() {
-  return state.stories;
+  return sortStories(state.stories);
 }
 
 function renderOutline() {
@@ -2768,7 +2803,16 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    
+    // Add priority badge if priority exists
+    let titleText = story.title;
+    if (story.priority) {
+      const priorityBadge = `[${story.priority.toUpperCase()}] `;
+      titleText = priorityBadge + titleText;
+    }
+    titleText += story.storyPoint != null ? ` (SP ${story.storyPoint})` : '';
+    
+    title.textContent = titleText;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
