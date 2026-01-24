@@ -96,7 +96,7 @@ jobs:
       
       - name: Load environment configuration
         run: |
-          source scripts/utilities/load-env-config.sh development
+          source scripts/utilities/load-env-config.sh production
           echo "API_BASE=$API_BASE" >> $GITHUB_ENV
           echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
           echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
@@ -111,14 +111,14 @@ jobs:
       - name: Run Phase 2 - Complete E2E Workflow
         id: phase2
         env:
-          TEST_DB_ENV: dev
+          TEST_DB_ENV: prod
           TEST_USE_MOCK_GITHUB: true
           TEST_SSH_HOST: ${{ env.EC2_IP }}
           USE_KIRO_MOCK: false
           TARGET_ENV: prod
         run: |
           echo "🟡 Running Phase 6: UI-Driven Complete Workflow"
-          echo "   Database: Dev (safe)"
+          echo "   Database: Prod"
           echo "   GitHub: Real PRs"
           echo "   Kiro: Real (Semantic API)"
           
