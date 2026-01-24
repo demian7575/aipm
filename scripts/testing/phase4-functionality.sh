@@ -48,6 +48,42 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769221712232
+# Merged: 2026-01-24
+# =============================================================================
+test_updated_user_authentication_with_oauth2() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: Verify priority-based sorting in getVisibleStories
+    if ! grep -q "priorityOrder.*high.*medium.*low" apps/frontend/public/app.js; then
+        fail_test "Priority sorting not implemented in getVisibleStories"
+        return 1
+    fi
+    
+    # Test 2: Verify priority field displayed in story title
+    if ! grep -q "story.priority" apps/frontend/public/app.js; then
+        fail_test "Priority not displayed in story title"
+        return 1
+    fi
+    
+    # Test 3: Verify priority field in edit form
+    if ! grep -q 'name="priority"' apps/frontend/public/app.js; then
+        fail_test "Priority field not in edit form"
+        return 1
+    fi
+    
+    # Test 4: Verify priority handled in backend PATCH
+    if ! grep -q "payload.priority" apps/backend/app.js; then
+        fail_test "Priority not handled in backend"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -120,6 +156,12 @@ else
 fi
 
 # ADD NEW TEST FUNCTION CALLS HERE
+if test_updated_user_authentication_with_oauth2; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
 # if test_your_story_name; then
 #     ((PHASE4_PASSED++))
 # else

@@ -2722,11 +2722,16 @@ function updateWorkspaceColumns() {
 }
 
 /**
- * Get stories filtered by current filter state
- * @returns {Array} Filtered stories
+ * Get stories filtered by current filter state, sorted by priority
+ * @returns {Array} Filtered stories sorted by priority (high to low)
  */
 function getVisibleStories() {
-  return state.stories;
+  const priorityOrder = { high: 3, medium: 2, low: 1 };
+  return [...state.stories].sort((a, b) => {
+    const aPriority = priorityOrder[a.priority] || 0;
+    const bPriority = priorityOrder[b.priority] || 0;
+    return bPriority - aPriority;
+  });
 }
 
 function renderOutline() {
@@ -2768,7 +2773,8 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityLabel = story.priority ? ` [${story.priority.toUpperCase()}]` : '';
+    title.textContent = `${story.title}${priorityLabel}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
@@ -4755,6 +4761,15 @@ function renderStoryDetailsWithCompleteData(story) {
             <input type="number" name="storyPoint" value="${story.storyPoint || 0}" min="0">
           </div>
           <div class="form-group">
+            <label>Priority:</label>
+            <select name="priority">
+              <option value="">Not set</option>
+              <option value="high" ${story.priority === 'high' ? 'selected' : ''}>High</option>
+              <option value="medium" ${story.priority === 'medium' ? 'selected' : ''}>Medium</option>
+              <option value="low" ${story.priority === 'low' ? 'selected' : ''}>Low</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label>Assignee Email:</label>
             <input type="email" name="assigneeEmail" value="${escapeHtml(story.assigneeEmail || '')}">
           </div>
@@ -4858,6 +4873,7 @@ function renderStoryDetailsWithCompleteData(story) {
         soThat: formData.get('soThat'),
         description: formData.get('description'),
         storyPoint: parseInt(formData.get('storyPoint')) || 0,
+        priority: formData.get('priority') || null,
         assigneeEmail: formData.get('assigneeEmail'),
         status: formData.get('status'),
         components: modalComponents,

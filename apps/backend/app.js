@@ -7083,6 +7083,10 @@ export async function createApp() {
             updateExpressions.push('storyPoint = :storyPoint');
             expressionAttributeValues[':storyPoint'] = payload.storyPoint;
           }
+          if (payload.priority !== undefined) {
+            updateExpressions.push('priority = :priority');
+            expressionAttributeValues[':priority'] = payload.priority;
+          }
           if (payload.assigneeEmail !== undefined) {
             updateExpressions.push('assigneeEmail = :assigneeEmail');
             expressionAttributeValues[':assigneeEmail'] = payload.assigneeEmail;
