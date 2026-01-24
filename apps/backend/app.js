@@ -5478,6 +5478,7 @@ async function loadStories(db, options = {}) {
       components,
       storyPoint: row.storyPoint ?? row.story_point ?? 0,
       assigneeEmail: row.assigneeEmail ?? row.assignee_email ?? '',
+      priority: row.priority || 'medium',
       status: safeNormalizeStoryStatus(row.status),
       createdAt: row.createdAt ?? row.created_at,
       updatedAt: row.updatedAt ?? row.updated_at,
@@ -6745,7 +6746,19 @@ export async function createApp() {
 
     if (pathname === '/api/stories' && method === 'GET') {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
+      const sortBy = url.searchParams.get('sortBy');
       const stories = await loadStories(db, { includeAiInvest });
+      
+      // Sort by priority if requested
+      if (sortBy === 'priority') {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        stories.sort((a, b) => {
+          const aPriority = priorityOrder[a.priority || 'medium'];
+          const bPriority = priorityOrder[b.priority || 'medium'];
+          return aPriority - bPriority;
+        });
+      }
+      
       sendJson(res, 200, stories);
       return;
     }
@@ -6799,6 +6812,7 @@ export async function createApp() {
             components: serializeComponents(components),
             storyPoint: storyPoint,
             assigneeEmail: assigneeEmail,
+            priority: payload.priority || 'medium',
             status: 'Draft',
             createdAt: timestamp,
             updatedAt: timestamp,

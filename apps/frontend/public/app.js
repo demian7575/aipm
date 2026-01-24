@@ -714,6 +714,20 @@ if (referenceBtn) {
   });
 }
 
+const priorityViewBtn = document.getElementById('priority-view-btn');
+if (priorityViewBtn) {
+  priorityViewBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories?sortBy=priority'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      openPriorityViewModal(stories);
+    } catch (err) {
+      showToast('Failed to load priority view: ' + err.message, 'error');
+    }
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
@@ -7340,6 +7354,48 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+/**
+ * Opens modal displaying stories sorted by priority
+ * @param {Array} stories - Stories sorted by priority
+ */
+function openPriorityViewModal(stories) {
+  const priorityBadge = (priority) => {
+    const colors = { high: '#e74c3c', medium: '#f39c12', low: '#95a5a6' };
+    return `<span style="background: ${colors[priority] || colors.medium}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.85em;">${priority || 'medium'}</span>`;
+  };
+
+  const rows = stories.length === 0 
+    ? '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">No stories found</td></tr>'
+    : stories.map(s => `
+        <tr>
+          <td>${priorityBadge(s.priority)}</td>
+          <td>${s.title}</td>
+          <td>${s.status}</td>
+          <td>${s.storyPoint || 0}</td>
+        </tr>
+      `).join('');
+
+  const html = `
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+          <th style="padding: 10px; text-align: left;">Priority</th>
+          <th style="padding: 10px; text-align: left;">Title</th>
+          <th style="padding: 10px; text-align: left;">Status</th>
+          <th style="padding: 10px; text-align: left;">Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
+
+  openModal('Priority View', html, [
+    { label: 'Close', action: closeModal }
+  ]);
 }
 
 function openReferenceModal(storyId) {
