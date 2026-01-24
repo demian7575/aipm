@@ -5,6 +5,14 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Environment to test (production or development)'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - development
       phase:
         description: 'Test phase to run (1, 2, 3, or all)'
         required: false
@@ -48,18 +56,20 @@ jobs:
       
       - name: Load environment configuration
         run: |
-          source scripts/utilities/load-env-config.sh production
+          ENV="${{ github.event.inputs.environment || 'production' }}"
+          source scripts/utilities/load-env-config.sh $ENV
           echo "API_BASE=$API_BASE" >> $GITHUB_ENV
           echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
           echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "TARGET_ENV=$ENV" >> $GITHUB_ENV
       
       - name: Run Phase 1 - Critical Security & Data Safety
         id: phase1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TARGET_ENV: prod
         run: |
           echo "🔴 Running Phase 1: Critical Security & Data Safety"
+          echo "   Environment: $TARGET_ENV"
           
           if ./scripts/testing/phase1-security-data-safety.sh; then
             echo "✅ Phase 1 PASSED - Deployment approved"
@@ -96,10 +106,12 @@ jobs:
       
       - name: Load environment configuration
         run: |
-          source scripts/utilities/load-env-config.sh production
+          ENV="${{ github.event.inputs.environment || 'production' }}"
+          source scripts/utilities/load-env-config.sh $ENV
           echo "API_BASE=$API_BASE" >> $GITHUB_ENV
           echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
           echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "TARGET_ENV=$ENV" >> $GITHUB_ENV
       
       - name: Setup SSH for EC2 access
         run: |
@@ -111,14 +123,12 @@ jobs:
       - name: Run Phase 2 - Complete E2E Workflow
         id: phase2
         env:
-          TEST_DB_ENV: prod
           TEST_USE_MOCK_GITHUB: true
           TEST_SSH_HOST: ${{ env.EC2_IP }}
           USE_KIRO_MOCK: false
-          TARGET_ENV: prod
         run: |
           echo "🟡 Running Phase 6: UI-Driven Complete Workflow"
-          echo "   Database: Prod"
+          echo "   Environment: $TARGET_ENV"
           echo "   GitHub: Real PRs"
           echo "   Kiro: Real (Semantic API)"
           
