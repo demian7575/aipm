@@ -122,15 +122,9 @@ jobs:
       
       - name: Run Phase 2 - Complete E2E Workflow
         id: phase2
-        env:
-          TEST_USE_MOCK_GITHUB: true
-          TEST_SSH_HOST: ${{ env.EC2_IP }}
-          USE_KIRO_MOCK: false
         run: |
           echo "🟡 Running Phase 6: UI-Driven Complete Workflow"
           echo "   Environment: $TARGET_ENV"
-          echo "   GitHub: Real PRs"
-          echo "   Kiro: Real (Semantic API)"
           
           if timeout 300 ./scripts/testing/phase6-ui-workflow.sh; then
             echo "✅ Phase 6 PASSED - E2E workflow validated"
