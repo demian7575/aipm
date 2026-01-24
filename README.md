@@ -1,53 +1,73 @@
-# AI Project Manager Mindmap
+# AI Project Manager (AIPM)
 
-This repository contains a self-hosted mindmap and outline workspace for managing merge-request user stories, acceptance tests, and reference documentation. A Node.js backend exposes a SQLite-backed REST API and serves a vanilla JavaScript frontend that renders a right-expanding mindmap, outline tree, and detail panel with modal-driven editing flows.
+Self-hosted mindmap and outline workspace for managing user stories, acceptance tests, and AI-powered code generation.
 
-## 📚 Development Documentation
+## 🚀 Quick Start
 
-**[📖 Complete Development Guide](docs/DevelopmentBackground.md)** - Comprehensive documentation including:
-- Critical development principles (MUST READ before any changes)
-- Core principles and regulations
-- Complete code structure and AWS architecture
-- API reference and workflow instructions
-- Testing, troubleshooting, and lessons learned
-- AI assistant integration guide
+### Prerequisites
 
-## 🚀 Quick Deploy to AWS
+- **Node.js 18+**
+- **AWS CLI** configured with credentials
+- **Kiro CLI** (for AI features)
 
-Deploy the complete AIPM web service with comprehensive testing:
+### 1. Clone and Install
 
 ```bash
-./bin/deploy-prod prod  # Production
-./bin/deploy-prod dev   # Development
+git clone https://github.com/demian7575/aipm.git
+cd aipm
+npm install
 ```
 
-This single command handles:
-- ✅ Backend infrastructure (EC2 + DynamoDB)
-- ✅ Frontend deployment (S3 static hosting)
-- ✅ Configuration updates
-- ✅ Health checks
-- ✅ Production gating tests
-- ✅ Deployment verification
+### 2. Configure Environment
 
-**Live Demo**: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
-**API Endpoint**: http://44.197.204.18:4000 (EC2 Backend)
-
-**Development Environment**: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
-**Dev API Endpoint**: http://44.222.168.46:4000 (EC2 Backend)
-
-> **Note**: All environment configuration is centralized in `config/environments.yaml`. Update IPs and ports there only.
-
-### Configuration
-
-All deployment settings are managed in `config/environments.yaml`:
+All configuration is in `config/environments.yaml`:
 
 ```yaml
 production:
   ec2_ip: "44.197.204.18"
   api_port: 4000
   semantic_api_port: 8083
-  # ... other settings
+  # ...
 ```
+
+### 3. Run Locally
+
+```bash
+# Start backend API + frontend
+npm run dev
+```
+
+Access at: http://localhost:4000
+
+### 4. Deploy to AWS
+
+```bash
+./bin/deploy-prod prod  # Production
+./bin/deploy-prod dev   # Development
+```
+
+## 📖 Documentation
+
+- **[🚀 Getting Started](docs/GETTING_STARTED.md)** - Complete setup guide for Kiro
+- **[Documentation Index](docs/README.md)** - All documentation
+- **[Configuration](docs/CONFIGURATION.md)** - Environment setup
+- **[Architecture](docs/ARCHITECTURE.md)** - System design
+- **[Development](docs/DEVELOPMENT.md)** - Development workflow
+- **[Deployment](docs/DEPLOYMENT.md)** - Deployment guide
+- **[Testing](docs/TESTING.md)** - Testing strategy
+- **[API Reference](docs/API_REFERENCE.md)** - API endpoints
+
+## 🌐 Live Environments
+
+**Production:**
+- Frontend: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
+- API: http://44.197.204.18:4000
+- Semantic API: http://44.197.204.18:8083
+
+**Development:**
+- Frontend: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
+- API: http://44.222.168.46:4000
+- Semantic API: http://44.222.168.46:8083
 
 The deployment script automatically reads from this centralized configuration.
 

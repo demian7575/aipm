@@ -4,7 +4,7 @@
 
 ## 📖 Quick Links
 
-- **[Getting Started](../README.md)** - Installation and quick start
+- **[🚀 Getting Started](GETTING_STARTED.md)** - Complete setup guide for Kiro
 - **[Configuration](CONFIGURATION.md)** - Environment setup and configuration
 - **[Architecture](ARCHITECTURE.md)** - System design and components
 - **[API Reference](API_REFERENCE.md)** - REST API endpoints
