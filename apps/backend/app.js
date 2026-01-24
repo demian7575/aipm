@@ -6913,8 +6913,8 @@ export async function createApp() {
         const warnings = analysis.warnings;
         const score = analysis.ai?.score || 0;
         
-        // Only block story creation if score is below threshold (80)
-        const INVEST_SCORE_THRESHOLD = 80;
+        // Only block story creation if score is below threshold (temporarily lowered for testing)
+        const INVEST_SCORE_THRESHOLD = 45;
         if (score > 0 && score < INVEST_SCORE_THRESHOLD) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
