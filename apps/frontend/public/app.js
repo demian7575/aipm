@@ -2768,19 +2768,32 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityLabel = story.priority ? ` [${story.priority.toUpperCase()}]` : '';
+    title.textContent = `${story.title}${priorityLabel}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
     list.appendChild(row);
 
     if (story.children && story.children.length > 0 && state.expanded.has(story.id)) {
-      story.children.forEach((child) => renderNode(child, depth + 1));
+      const sortedChildren = [...story.children].sort((a, b) => {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        const aPriority = priorityOrder[a.priority] ?? 1;
+        const bPriority = priorityOrder[b.priority] ?? 1;
+        return aPriority - bPriority;
+      });
+      sortedChildren.forEach((child) => renderNode(child, depth + 1));
     }
   }
 
   const visibleStories = getVisibleStories();
-  visibleStories.forEach((story) => renderNode(story, 0));
+  const sortedStories = [...visibleStories].sort((a, b) => {
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    const aPriority = priorityOrder[a.priority] ?? 1;
+    const bPriority = priorityOrder[b.priority] ?? 1;
+    return aPriority - bPriority;
+  });
+  sortedStories.forEach((story) => renderNode(story, 0));
   outlineTreeEl.appendChild(list);
 }
 

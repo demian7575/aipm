@@ -5478,6 +5478,7 @@ async function loadStories(db, options = {}) {
       components,
       storyPoint: row.storyPoint ?? row.story_point ?? 0,
       assigneeEmail: row.assigneeEmail ?? row.assignee_email ?? '',
+      priority: row.priority ?? 'medium',
       status: safeNormalizeStoryStatus(row.status),
       createdAt: row.createdAt ?? row.created_at,
       updatedAt: row.updatedAt ?? row.updated_at,
@@ -6764,6 +6765,7 @@ export async function createApp() {
         const components = normalizeComponentsInput(payload.components, { strict: true });
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
+        const priority = payload.priority && ['high', 'medium', 'low'].includes(payload.priority) ? payload.priority : 'medium';
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
         const acceptanceTests = payload.acceptanceTests || [];
         // Allow bypassing INVEST validation via header or payload
@@ -6799,6 +6801,7 @@ export async function createApp() {
             components: serializeComponents(components),
             storyPoint: storyPoint,
             assigneeEmail: assigneeEmail,
+            priority: priority,
             status: 'Draft',
             createdAt: timestamp,
             updatedAt: timestamp,
