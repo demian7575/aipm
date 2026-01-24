@@ -46,13 +46,15 @@ pids=()
 (test_code_generation_endpoint "$SEMANTIC_API_BASE") & pids+=($!)
 
 # Wait for all parallel tests to complete
-failed=0
 for pid in "${pids[@]}"; do
-  wait $pid || ((failed++))
+  wait $pid
 done
 
+# Check test results from counter
+failed=$(cat "$TEST_COUNTER_DIR/failed" 2>/dev/null || echo "0")
+
 # Check if any tests failed
-if [ $failed -gt 0 ]; then
+if [ "$failed" -gt 0 ]; then
   echo "❌ Phase 1 failed: $failed tests failed"
   exit 1
 fi

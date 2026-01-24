@@ -14,30 +14,19 @@ if [[ -z "$ENV" ]]; then
     exit 1
 fi
 
-# Environment configuration
-if [[ "$ENV" == "prod" ]]; then
-    HOST="44.197.204.18"
-    SERVICE="aipm-backend"
-    FRONTEND_BUCKET="aipm-static-hosting-demo"
-    API_URL="http://44.197.204.18"
-    STORIES_TABLE="aipm-backend-prod-stories"
-    TESTS_TABLE="aipm-backend-prod-acceptance-tests"
-    PRS_TABLE="aipm-backend-prod-prs"
-    SEMANTIC_QUEUE_TABLE="aipm-semantic-api-queue-prod"
-elif [[ "$ENV" == "dev" ]]; then
-    HOST="44.222.168.46"
-    SERVICE="aipm-backend"
-    FRONTEND_BUCKET="aipm-dev-frontend-hosting"
-    API_URL="http://44.222.168.46"
-    STORIES_TABLE="aipm-backend-dev-stories"
-    TESTS_TABLE="aipm-backend-dev-acceptance-tests"
-    PRS_TABLE="aipm-backend-dev-prs"
-    SEMANTIC_QUEUE_TABLE="aipm-semantic-api-queue-dev"
-else
-    echo "❌ Invalid environment: $ENV"
-    echo "Valid environments: prod, dev"
-    exit 1
-fi
+# Load environment configuration from centralized YAML
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../scripts/utilities/load-env-config.sh" "$ENV"
+
+# Map to deployment variables
+HOST="$EC2_IP"
+SERVICE="aipm-backend"
+FRONTEND_BUCKET="$S3_BUCKET"
+API_URL="$API_BASE"
+STORIES_TABLE="$DYNAMODB_STORIES_TABLE"
+TESTS_TABLE="$DYNAMODB_TESTS_TABLE"
+PRS_TABLE="$DYNAMODB_PRS_TABLE"
+SEMANTIC_QUEUE_TABLE="aipm-semantic-api-queue-${ENV}"
 
 echo "🚀 Deploying to $ENV environment..."
 echo "📍 Host: $HOST"

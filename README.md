@@ -17,9 +17,8 @@ This repository contains a self-hosted mindmap and outline workspace for managin
 Deploy the complete AIPM web service with comprehensive testing:
 
 ```bash
-./bin/deploy-prod
-# or
-./scripts/deploymen./bin/deploy-prod
+./bin/deploy-prod prod  # Production
+./bin/deploy-prod dev   # Development
 ```
 
 This single command handles:
@@ -31,22 +30,26 @@ This single command handles:
 - ✅ Deployment verification
 
 **Live Demo**: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
-**API Endpoint**: http://44.197.204.18 (EC2 Backend)
+**API Endpoint**: http://44.197.204.18:4000 (EC2 Backend)
 
 **Development Environment**: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
-**Dev API Endpoint**: http://44.222.168.46 (EC2 Backend)
+**Dev API Endpoint**: http://44.222.168.46:4000 (EC2 Backend)
+
+> **Note**: All environment configuration is centralized in `config/environments.yaml`. Update IPs and ports there only.
 
 ### Configuration
 
-Customize deployment settings in `deploy-config.yaml`:
+All deployment settings are managed in `config/environments.yaml`:
 
 ```yaml
-deployment:
-  stage: "prod"
-  region: "us-east-1"
-frontend:
-  s3Bucket: "your-bucket-name"
+production:
+  ec2_ip: "44.197.204.18"
+  api_port: 4000
+  semantic_api_port: 8083
+  # ... other settings
 ```
+
+The deployment script automatically reads from this centralized configuration.
 
 > **Note**: If you encounter dependency conflicts, the script automatically handles `npm install --legacy-peer-deps`.
 
@@ -96,22 +99,24 @@ To run just one component, use `npm run serve:api` (workspace API + frontend) or
 
 ### Kiro Worker for AI Code Generation
 
-The workspace includes a local worker that polls DynamoDB for code generation tasks and uses Kiro CLI to implement features automatically.
+The workspace includes a semantic API server that handles code generation tasks using Kiro CLI.
 
-#### Starting the Worker
+#### Starting the Services
 
 ```bash
-# Start the Kiro worker (runs continuously)
-./scripts/workers/kiro-worker.sh
+# Start the Semantic API server (runs continuously)
+node scripts/semantic-api-server-v2.js
+
+# Start the Session Pool (manages Kiro CLI sessions)
+node scripts/kiro-session-pool.js
 ```
 
-The worker:
-- Polls `aipm-amazon-q-queue` DynamoDB table every 1 second
-- Finds pending code generation tasks
-- Checks out the PR branch
-- Runs `kiro-cli chat` to generate code
-- Commits and pushes changes to the PR
-- Updates task status in DynamoDB
+The services:
+- Poll `aipm-semantic-api-queue-*` DynamoDB table for tasks
+- Find pending code generation tasks
+- Use Kiro CLI to generate code
+- Stream responses back to the frontend
+- Update task status in DynamoDB
 
 #### Workflow
 

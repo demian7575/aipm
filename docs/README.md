@@ -1,45 +1,54 @@
-# AIPM System Documentation
+# Documentation Update - January 24, 2026
 
-## 📚 Documentation Index
+## Recent Changes
 
-### Core Architecture
-- [System Architecture Overview](docs/architecture/SYSTEM_ARCHITECTURE.md)
-- [Component Block Diagrams](docs/architecture/BLOCK_DIAGRAMS.md)
-- [Data Flow Diagrams](docs/architecture/DATA_FLOW.md)
-- [API Architecture](docs/architecture/API_ARCHITECTURE.md)
+### Configuration Centralization
+- All environment configuration moved to `config/environments.yaml`
+- Single source of truth for IPs, ports, and resource names
+- See [CONFIGURATION.md](CONFIGURATION.md) for details
 
-### Workflows & Processes
-- [User Story Workflow](docs/workflows/USER_STORY_WORKFLOW.md)
-- [PR Creation & Code Generation](docs/workflows/PR_CODE_GENERATION.md)
-- [Development Tasks Management](docs/workflows/DEVELOPMENT_TASKS.md)
-- [Deployment Workflows](docs/workflows/DEPLOYMENT_WORKFLOWS.md)
+### Repository Cleanup
+- Removed ~620 outdated files
+- Cleaned up conversation archives
+- Removed Lambda deployment artifacts (using EC2 only)
+- Removed sample data scripts
 
-### Technical Implementation
-- [Frontend Architecture](docs/technical/FRONTEND_ARCHITECTURE.md)
-- [Backend Architecture](docs/technical/BACKEND_ARCHITECTURE.md)
-- [Database Design](docs/technical/DATABASE_DESIGN.md)
-- [Integration Points](docs/technical/INTEGRATIONS.md)
+### API Architecture
+- Using Semantic API (port 8083) for AI features
+- Session Pool (port 8082) manages Kiro CLI sessions
+- Backend API on port 4000
 
-### Operations & Maintenance
-- [Deployment Guide](docs/operations/DEPLOYMENT_GUIDE.md)
-- [Monitoring & Logging](docs/operations/MONITORING.md)
-- [Troubleshooting Guide](docs/operations/TROUBLESHOOTING.md)
-- [Performance Optimization](docs/operations/PERFORMANCE.md)
+### Current Endpoints
 
-### Lessons Learned & Rules
-- [Development Lessons](docs/lessons/DEVELOPMENT_LESSONS.md)
-- [Architecture Decisions](docs/lessons/ARCHITECTURE_DECISIONS.md)
-- [Best Practices](docs/lessons/BEST_PRACTICES.md)
-- [Common Pitfalls](docs/lessons/COMMON_PITFALLS.md)
+**Production:**
+- Frontend: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
+- API: http://44.197.204.18:4000
+- Semantic API: http://44.197.204.18:8083
 
-### Reference
-- [API Reference](docs/reference/API_REFERENCE.md)
-- [Configuration Reference](docs/reference/CONFIGURATION.md)
-- [Error Codes](docs/reference/ERROR_CODES.md)
-- [Glossary](docs/reference/GLOSSARY.md)
+**Development:**
+- Frontend: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
+- API: http://44.222.168.46:4000
+- Semantic API: http://44.222.168.46:8083
 
----
+## Outdated Documentation
 
-**Last Updated**: December 29, 2025  
-**Version**: 4.0.6  
-**Maintainer**: AIPM Development Team
+The following documents reference old architecture (KIRO API, old IPs):
+- Most files in `docs/` with "KIRO_API" in the name
+- Files referencing IP `44.220.45.57` (old, no longer valid)
+
+These are kept for historical reference but should not be used for current development.
+
+## Current Documentation
+
+**Start here:**
+- [README.md](../README.md) - Main documentation
+- [CONFIGURATION.md](CONFIGURATION.md) - Configuration guide
+- [DevelopmentBackground.md](DevelopmentBackground.md) - Development guide (needs update)
+
+**Deployment:**
+- Use `./bin/deploy-prod prod` or `./bin/deploy-prod dev`
+- Configuration in `config/environments.yaml`
+
+**Testing:**
+- Gating tests: `./scripts/testing/run-structured-gating-tests.sh`
+- Load config first: `source scripts/utilities/load-env-config.sh production`
