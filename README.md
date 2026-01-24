@@ -46,6 +46,38 @@ Access at: http://localhost:4000
 ./bin/deploy-prod dev   # Development
 ```
 
+## 🤖 Using Kiro CLI
+
+This project includes `.kirocontext` for automatic project context loading.
+
+### Start Kiro
+
+```bash
+# In project directory
+kiro-cli chat
+
+# Kiro automatically loads .kirocontext with project info
+# You can immediately ask questions like:
+# - "How do I add a new API endpoint?"
+# - "Where is the INVEST validation logic?"
+# - "How do I run the tests?"
+```
+
+### Useful Kiro Commands
+
+```bash
+# Start chat session
+kiro-cli chat
+
+# Generate code with context
+kiro-cli chat "Add a new endpoint to list stories by status"
+
+# Review code
+kiro-cli chat "Review the changes in apps/backend/app.js"
+```
+
+**Note**: Kiro has full repository context and knows the project structure from `.kirocontext`.
+
 ## 📖 Documentation
 
 - **[🚀 Getting Started](docs/GETTING_STARTED.md)** - Complete setup guide for Kiro

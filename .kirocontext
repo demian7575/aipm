@@ -1,0 +1,114 @@
+# AIPM Project Context for Kiro CLI
+
+## Project Overview
+AI Project Manager (AIPM) - Self-hosted mindmap workspace for managing user stories with AI-powered code generation.
+
+## Tech Stack
+- **Backend**: Node.js 18+ with DynamoDB
+- **Frontend**: Vanilla JavaScript (no framework)
+- **AI Integration**: Semantic API + Kiro CLI
+- **Deployment**: AWS EC2 + S3
+- **Region**: us-east-1
+
+## Key Files to Know
+
+### Backend
+- `apps/backend/app.js` - Main API server (REST endpoints, INVEST validation)
+- `apps/backend/dynamodb.js` - DynamoDB data layer
+- `apps/backend/server.js` - Server entry point
+
+### Frontend
+- `apps/frontend/public/app.js` - Frontend logic (mindmap, outline, details)
+- `apps/frontend/public/index.html` - Main HTML
+- `apps/frontend/public/styles.css` - Styling
+
+### Configuration
+- `config/environments.yaml` - **SINGLE SOURCE OF TRUTH** for all IPs/ports/tables
+- `scripts/utilities/load-env-config.sh` - Loads config into environment
+
+### AI/Semantic API
+- `scripts/semantic-api-server-v2.js` - Semantic API server (port 8083)
+- `scripts/kiro-session-pool.js` - Kiro session manager (port 8082)
+- `templates/POST-aipm-*.md` - AI prompt templates
+
+### Testing
+- `scripts/testing/phase1-security-data-safety.sh` - Critical infrastructure tests
+- `scripts/testing/phase6-ui-workflow.sh` - E2E workflow tests
+- `.github/workflows/workflow-gating-tests.yml` - GitHub Actions tests
+
+## Architecture
+
+```
+Frontend (S3) → Backend API (EC2:4000) → DynamoDB
+                     ↓
+              Semantic API (EC2:8083) → Session Pool (EC2:8082) → Kiro CLI
+```
+
+## Important Rules
+
+1. **Configuration**: NEVER hardcode IPs/ports. Always use `config/environments.yaml`
+2. **INVEST Validation**: Stories must score 80+ or use `skipInvestValidation=true`
+3. **Testing**: Run Phase 1 tests before any deployment
+4. **Documentation**: Keep docs/ up to date with code changes
+
+## Current Endpoints
+
+**Production:**
+- Frontend: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
+- API: http://44.197.204.18:4000
+- Semantic API: http://44.197.204.18:8083
+
+**Development:**
+- Frontend: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
+- API: http://44.222.168.46:4000
+- Semantic API: http://44.222.168.46:8083
+
+## Common Tasks
+
+### Start Development
+```bash
+npm run dev  # Starts backend on localhost:4000
+```
+
+### Deploy
+```bash
+./bin/deploy-prod prod  # Production
+./bin/deploy-prod dev   # Development
+```
+
+### Run Tests
+```bash
+source scripts/utilities/load-env-config.sh production
+./scripts/testing/run-structured-gating-tests.sh
+```
+
+## Code Style
+
+- Use async/await (not callbacks)
+- Prefer `const` over `let`
+- Use template literals for strings
+- Add JSDoc comments for functions
+- Keep functions small and focused
+
+## When Making Changes
+
+1. Check if it affects `config/environments.yaml`
+2. Update relevant docs in `docs/`
+3. Run tests locally
+4. Update API_REFERENCE.md if adding endpoints
+5. Commit with conventional commit messages (feat:, fix:, docs:, etc.)
+
+## Documentation
+
+- `docs/GETTING_STARTED.md` - Setup guide
+- `docs/DAILY_WORKFLOW.md` - Daily development workflow
+- `docs/ARCHITECTURE.md` - System architecture
+- `docs/DEPLOYMENT.md` - Deployment guide
+- `docs/TESTING.md` - Testing guide
+- `docs/API_REFERENCE.md` - API documentation
+
+## Need Help?
+
+- Check `docs/` directory for detailed guides
+- Run `npm run` to see available commands
+- Check GitHub issues for known problems

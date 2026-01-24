@@ -148,7 +148,23 @@ kiro-cli auth login
 # Follow the browser authentication flow
 ```
 
-### 2. Start Semantic API Services
+### 2. Verify Kiro Context
+
+The project includes `.kirocontext` file that Kiro automatically loads:
+
+```bash
+# Start Kiro in project directory
+cd aipm
+kiro-cli chat
+
+# Kiro will automatically load project context
+# Try asking:
+# - "What is this project?"
+# - "How do I add a new API endpoint?"
+# - "Where is the INVEST validation?"
+```
+
+### 3. Start Semantic API Services (For Full AI Features)
 
 ```bash
 # Terminal 1: Start Semantic API
@@ -161,9 +177,15 @@ node scripts/kiro-session-pool.js
 npm run dev
 ```
 
-### 3. Test AI Features
+### 4. Test AI Features
 
-In the AIPM UI:
+**In Kiro CLI:**
+```bash
+kiro-cli chat "Add a new endpoint to get stories by status"
+kiro-cli chat "Review the INVEST validation logic"
+```
+
+**In AIPM UI:**
 - Click "Create Child Story" → "Generate" with an idea
 - Click "Run AI Check" on a story for INVEST analysis
 - Click "Generate Test" for acceptance test generation
