@@ -7884,6 +7884,57 @@ function initialize() {
     });
   });
 
+  // Priority List View button handler
+  const priorityListBtn = document.getElementById('priority-list-btn');
+  if (priorityListBtn) {
+    priorityListBtn.addEventListener('click', async () => {
+      try {
+        const response = await fetch(resolveApiUrl('/api/stories?sortBy=priority'));
+        if (!response.ok) throw new Error('Failed to fetch stories');
+        const stories = await response.json();
+        
+        const container = document.createElement('div');
+        container.className = 'priority-list-container';
+        
+        if (stories.length === 0) {
+          container.innerHTML = '<p class="empty-state">No user stories exist in the system</p>';
+        } else {
+          const table = document.createElement('table');
+          table.className = 'priority-list-table';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Title</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${stories.map(story => `
+                <tr>
+                  <td><span class="priority-badge priority-${(story.priority || 'Low').toLowerCase()}">${story.priority || 'Low'}</span></td>
+                  <td>${escapeHtml(story.title)}</td>
+                  <td>${escapeHtml(story.status)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          `;
+          container.appendChild(table);
+        }
+        
+        openModal({
+          title: 'Stories by Priority',
+          content: container,
+          cancelLabel: 'Close',
+          size: 'large'
+        });
+      } catch (error) {
+        console.error('Error loading priority list:', error);
+        showToast('Failed to load priority list', 'error');
+      }
+    });
+  }
+
   autoLayoutToggle.addEventListener('click', () => {
     if (state.autoLayout) {
       seedManualPositionsFromAutoLayout();

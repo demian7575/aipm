@@ -6745,7 +6745,19 @@ export async function createApp() {
 
     if (pathname === '/api/stories' && method === 'GET') {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
+      const sortBy = url.searchParams.get('sortBy');
       const stories = await loadStories(db, { includeAiInvest });
+      
+      // Sort by priority if requested
+      if (sortBy === 'priority') {
+        const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+        stories.sort((a, b) => {
+          const aPriority = priorityOrder[a.priority] || 999;
+          const bPriority = priorityOrder[b.priority] || 999;
+          return aPriority - bPriority;
+        });
+      }
+      
       sendJson(res, 200, stories);
       return;
     }
