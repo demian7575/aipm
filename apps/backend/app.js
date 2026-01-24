@@ -58,6 +58,50 @@ try {
   console.log('No .env file found, using system environment variables');
 }
 
+// OAuth2 session storage
+const oauthSessions = new Map();
+
+/**
+ * Generate OAuth2 authorization URL for Google provider
+ * @param {string} clientId - Google OAuth2 client ID
+ * @param {string} redirectUri - Callback URL
+ * @param {string} state - CSRF protection token
+ * @returns {string} Authorization URL
+ */
+function generateOAuth2Url(clientId, redirectUri, state) {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'email profile',
+    state: state
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+/**
+ * Exchange authorization code for access token
+ * @param {string} code - Authorization code
+ * @param {string} clientId - Google OAuth2 client ID
+ * @param {string} clientSecret - Google OAuth2 client secret
+ * @param {string} redirectUri - Callback URL
+ * @returns {Promise<object>} Token response
+ */
+async function exchangeOAuth2Code(code, clientId, clientSecret, redirectUri) {
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code'
+    })
+  });
+  return response.json();
+}
+
 // Require environment variables
 if (!process.env.STORIES_TABLE) {
   throw new Error('STORIES_TABLE environment variable is required');
@@ -6740,6 +6784,67 @@ export async function createApp() {
         shell: 'lambda-runtime',
         environment: 'aws-lambda'
       });
+      return;
+    }
+
+    // OAuth2 initiate endpoint
+    if (pathname === '/api/auth/oauth2/initiate' && method === 'POST') {
+      try {
+        const clientId = process.env.OAUTH2_CLIENT_ID;
+        const redirectUri = process.env.OAUTH2_REDIRECT_URI || 'http://localhost:4000/api/auth/oauth2/callback';
+        
+        if (!clientId) {
+          sendJson(res, 400, { error: 'OAuth2 not configured' });
+          return;
+        }
+
+        const state = randomUUID();
+        oauthSessions.set(state, { createdAt: Date.now() });
+        
+        const authUrl = generateOAuth2Url(clientId, redirectUri, state);
+        sendJson(res, 200, { authUrl, state });
+      } catch (err) {
+        sendJson(res, 500, { error: err.message });
+      }
+      return;
+    }
+
+    // OAuth2 callback endpoint
+    if (pathname === '/api/auth/oauth2/callback' && method === 'GET') {
+      try {
+        const code = url.searchParams.get('code');
+        const state = url.searchParams.get('state');
+        
+        if (!code || !state) {
+          sendJson(res, 400, { error: 'Missing code or state' });
+          return;
+        }
+
+        if (!oauthSessions.has(state)) {
+          sendJson(res, 400, { error: 'Invalid state' });
+          return;
+        }
+
+        oauthSessions.delete(state);
+
+        const clientId = process.env.OAUTH2_CLIENT_ID;
+        const clientSecret = process.env.OAUTH2_CLIENT_SECRET;
+        const redirectUri = process.env.OAUTH2_REDIRECT_URI || 'http://localhost:4000/api/auth/oauth2/callback';
+
+        const tokenData = await exchangeOAuth2Code(code, clientId, clientSecret, redirectUri);
+        
+        if (tokenData.error) {
+          sendJson(res, 400, { error: tokenData.error });
+          return;
+        }
+
+        sendJson(res, 200, { 
+          accessToken: tokenData.access_token,
+          expiresIn: tokenData.expires_in 
+        });
+      } catch (err) {
+        sendJson(res, 500, { error: err.message });
+      }
       return;
     }
 

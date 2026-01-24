@@ -704,6 +704,37 @@ function toggleDependencyOverlay() {
   setDependencyOverlayVisible(!state.showDependencies);
 }
 
+/**
+ * Handle OAuth2 login flow
+ */
+async function handleOAuth2Login() {
+  try {
+    const response = await fetch(resolveApiUrl('/api/auth/oauth2/initiate'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to initiate OAuth2 flow');
+    }
+    
+    const { authUrl, state } = await response.json();
+    
+    // Store state for verification
+    sessionStorage.setItem('oauth2_state', state);
+    
+    // Redirect to Google authorization page
+    window.location.href = authUrl;
+  } catch (error) {
+    showToast(`OAuth2 error: ${error.message}`, 'error');
+  }
+}
+
+const oauth2LoginBtn = document.getElementById('oauth2-login-btn');
+if (oauth2LoginBtn) {
+  oauth2LoginBtn.addEventListener('click', handleOAuth2Login);
+}
+
 if (referenceBtn) {
   referenceBtn.addEventListener('click', () => {
     if (state.selectedStoryId == null) {

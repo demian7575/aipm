@@ -48,6 +48,42 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769219000009
+# Merged: $(date +%Y-%m-%d)
+# =============================================================================
+test_updated_user_authentication_with_oauth2() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: OAuth2 initiate endpoint exists
+    if ! grep -q "'/api/auth/oauth2/initiate'" apps/backend/app.js; then
+        fail_test "OAuth2 initiate endpoint not implemented"
+        return 1
+    fi
+    
+    # Test 2: OAuth2 callback endpoint exists
+    if ! grep -q "'/api/auth/oauth2/callback'" apps/backend/app.js; then
+        fail_test "OAuth2 callback endpoint not implemented"
+        return 1
+    fi
+    
+    # Test 3: Frontend OAuth2 button exists
+    if ! grep -q "oauth2-login-btn" apps/frontend/public/index.html; then
+        fail_test "OAuth2 login button not added to frontend"
+        return 1
+    fi
+    
+    # Test 4: OAuth2 helper functions exist
+    if ! grep -q "generateOAuth2Url" apps/backend/app.js; then
+        fail_test "OAuth2 helper functions not implemented"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +150,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_updated_user_authentication_with_oauth2; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
