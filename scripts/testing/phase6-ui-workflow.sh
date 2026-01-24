@@ -48,14 +48,14 @@ phase6_step1_story_draft_generation() {
     PHASE6_PARENT_STORY_ID="$parent_story"
     echo "   📍 Parent Story ID: $PHASE6_PARENT_STORY_ID"
     
-    # Generate story draft via SSE with INVEST-compliant idea
+    # Generate story draft via SSE with simple, INVEST-compliant idea
     local request_id="phase6-story-draft-$(date +%s)"
     local response
     response=$(timeout 30 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/story-draft?stream=true" \
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"featureDescription\":\"As a user, I want to log in using my Google account via OAuth2, so that I can access the system securely without creating a new password. The login button should redirect to Google's OAuth consent screen, and upon successful authentication, create or update the user profile in our database with their email and name.\",
+            \"featureDescription\":\"As a project manager, I want to see a list of all user stories sorted by priority, so that I can quickly identify which stories need attention first. The list should display story title, status, and priority level, with high priority stories at the top.\",
             \"parentId\":$PHASE6_PARENT_STORY_ID,
             \"components\":[\"WorkModel\"]
         }" 2>&1)
