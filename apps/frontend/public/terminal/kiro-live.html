@@ -46,7 +46,7 @@
 
     async function fetchLog() {
       try {
-        const response = await fetch('http://44.220.45.57/api/kiro-live-log');
+        const response = await fetch('http://44.197.204.18:4000/api/kiro-live-log');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         
@@ -122,7 +122,7 @@
       sendBtn.textContent = 'Sending...';
       
       try {
-        const response = await fetch('http://44.220.45.57:8081/kiro/v4/enhance', {
+        const response = await fetch('http://44.197.204.18:8083/kiro/v4/enhance', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

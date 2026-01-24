@@ -63,7 +63,7 @@
       
       try {
         // Use EC2 Kiro API with actual Kiro CLI integration
-        const kiroApiUrl = 'http://44.220.45.57:8081';
+        const kiroApiUrl = 'http://44.197.204.18:8083';
         const response = await fetch(kiroApiUrl + '/kiro/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -97,7 +97,7 @@
     input.focus();
     
     // Test connection on load
-    const kiroApiUrl = 'http://44.220.45.57:8081';
+    const kiroApiUrl = 'http://44.197.204.18:8083';
     fetch(kiroApiUrl + '/health')
       .then(r => r.json())
       .then(data => {
