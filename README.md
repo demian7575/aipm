@@ -49,6 +49,7 @@ Access at: http://localhost:4000
 ## 📖 Documentation
 
 - **[🚀 Getting Started](docs/GETTING_STARTED.md)** - Complete setup guide for Kiro
+- **[🔄 Daily Workflow](docs/DAILY_WORKFLOW.md)** - Continue your work efficiently
 - **[Documentation Index](docs/README.md)** - All documentation
 - **[Configuration](docs/CONFIGURATION.md)** - Environment setup
 - **[Architecture](docs/ARCHITECTURE.md)** - System design
