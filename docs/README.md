@@ -1,24 +1,27 @@
-# Documentation Update - January 24, 2026
+# AIPM Documentation
 
-## Recent Changes
+**AI Project Manager** - Self-hosted mindmap and outline workspace for managing user stories, acceptance tests, and AI-powered code generation.
 
-### Configuration Centralization
-- All environment configuration moved to `config/environments.yaml`
-- Single source of truth for IPs, ports, and resource names
-- See [CONFIGURATION.md](CONFIGURATION.md) for details
+## 📖 Quick Links
 
-### Repository Cleanup
-- Removed ~620 outdated files
-- Cleaned up conversation archives
-- Removed Lambda deployment artifacts (using EC2 only)
-- Removed sample data scripts
+- **[Getting Started](../README.md)** - Installation and quick start
+- **[Configuration](CONFIGURATION.md)** - Environment setup and configuration
+- **[Architecture](ARCHITECTURE.md)** - System design and components
+- **[API Reference](API_REFERENCE.md)** - REST API endpoints
+- **[Development](DEVELOPMENT.md)** - Development workflow and guidelines
+- **[Deployment](DEPLOYMENT.md)** - Deployment procedures
+- **[Testing](TESTING.md)** - Testing strategy and gating tests
 
-### API Architecture
-- Using Semantic API (port 8083) for AI features
-- Session Pool (port 8082) manages Kiro CLI sessions
-- Backend API on port 4000
+## 🏗️ System Overview
 
-### Current Endpoints
+AIPM is a full-stack application for managing software projects with AI assistance:
+
+- **Frontend**: Vanilla JavaScript with mindmap visualization
+- **Backend**: Node.js REST API with DynamoDB storage
+- **AI Integration**: Semantic API with Kiro CLI for code generation
+- **Deployment**: AWS EC2 + S3 static hosting
+
+## 🚀 Current Endpoints
 
 **Production:**
 - Frontend: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
@@ -30,25 +33,19 @@
 - API: http://44.222.168.46:4000
 - Semantic API: http://44.222.168.46:8083
 
-## Outdated Documentation
+## 📚 Additional Resources
 
-The following documents reference old architecture (KIRO API, old IPs):
-- Most files in `docs/` with "KIRO_API" in the name
-- Files referencing IP `44.220.45.57` (old, no longer valid)
+- **[Lessons Learned](lessons/BEST_PRACTICES.md)** - Development best practices
+- **[AI Assistant Guidelines](AI_ASSISTANT_GUIDELINES.md)** - Working with AI tools
+- **[User Stories](user-stories.md)** - Project user stories
 
-These are kept for historical reference but should not be used for current development.
+## 🗂️ Archive
 
-## Current Documentation
+Historical documentation is preserved in `archive/` for reference:
+- `archive/kiro-api/` - Old KIRO API architecture
+- `archive/legacy/` - Legacy implementation docs
+- `archive/outdated-2025/` - Superseded 2025 documentation
 
-**Start here:**
-- [README.md](../README.md) - Main documentation
-- [CONFIGURATION.md](CONFIGURATION.md) - Configuration guide
-- [DevelopmentBackground.md](DevelopmentBackground.md) - Development guide (needs update)
+## 🔄 Last Updated
 
-**Deployment:**
-- Use `./bin/deploy-prod prod` or `./bin/deploy-prod dev`
-- Configuration in `config/environments.yaml`
-
-**Testing:**
-- Gating tests: `./scripts/testing/run-structured-gating-tests.sh`
-- Load config first: `source scripts/utilities/load-env-config.sh production`
+January 24, 2026 - Documentation consolidated and updated to reflect current system state.
