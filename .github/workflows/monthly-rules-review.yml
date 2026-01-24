@@ -1,0 +1,80 @@
+name: Monthly Rules Review Reminder
+
+on:
+  schedule:
+    # Run on 1st of every month at 9:00 AM UTC (6:00 PM KST)
+    - cron: '0 9 1 * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  review-reminder:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Run Rules Review Script
+        id: review
+        run: |
+          chmod +x scripts/review-rules.sh
+          ./scripts/review-rules.sh > review-output.txt
+          cat review-output.txt
+          echo "REVIEW_OUTPUT<<EOF" >> $GITHUB_OUTPUT
+          cat review-output.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Create Review Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('review-output.txt', 'utf8');
+            
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📅 Monthly Rules Review - ${new Date().toISOString().slice(0, 7)}`,
+              body: `## Monthly Rules Review
+            
+            It's time for the monthly review of project rules, constraints, and lessons learned!
+            
+            ### Review Output
+            
+            \`\`\`
+            ${output}
+            \`\`\`
+            
+            ### Action Items
+            
+            - [ ] Review all rules in \`docs/RULES.md\`
+            - [ ] Update lessons learned with recent insights
+            - [ ] Check if constraints need adjustment
+            - [ ] Update \`.kirocontext\` if rules changed
+            - [ ] Update documentation
+            - [ ] Update "Last Updated" date
+            - [ ] Close this issue when complete
+            
+            ### Quick Commands
+            
+            \`\`\`bash
+            # Review recent changes
+            git log --since="30 days ago" --oneline --grep="fix:\|feat:"
+            
+            # Ask Kiro for suggestions
+            kiro-cli chat "Review recent incidents and suggest rule updates"
+            
+            # Update rules
+            vim docs/RULES.md
+            git add docs/RULES.md
+            git commit -m "docs: monthly rules review $(date +%Y-%m)"
+            git push
+            \`\`\`
+            
+            **Assigned to**: @all-contributors
+            **Due**: End of this week
+            `,
+              labels: ['documentation', 'maintenance', 'monthly-review']
+            });
+            
+            console.log(`Created issue #${issue.data.number}`);

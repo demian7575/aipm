@@ -50,6 +50,9 @@ Frontend (S3) → Backend API (EC2:4000) → DynamoDB
 2. **INVEST Validation**: Stories must score 80+ or use `skipInvestValidation=true`
 3. **Testing**: Run Phase 1 tests before any deployment
 4. **Documentation**: Keep docs/ up to date with code changes
+5. **Git Workflow**: Never commit directly to main, always use feature branches
+
+**Full Rules**: See `docs/RULES.md` for complete list and lessons learned
 
 ## Current Endpoints
 
