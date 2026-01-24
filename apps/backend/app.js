@@ -3349,16 +3349,21 @@ async function analyzeInvest(story, options = {}) {
     });
     
     console.log('🤖 AI INVEST analysis successful');
+    console.log('🔍 AI Response:', JSON.stringify(result, null, 2));
+    
+    // Use actual score from AI response, fallback to 50 if not provided
+    const aiScore = typeof result.score === 'number' ? result.score : 
+                    (result.overall === 'pass' ? 100 : 50);
     
     return {
-      warnings: result.issues || baseline,
+      warnings: result.warnings || result.issues || baseline,
       source: 'ai',
-      summary: result.suggestions?.join(' ') || '',
+      summary: result.summary || result.suggestions?.join(' ') || '',
       ai: {
-        summary: result.suggestions?.join(' ') || '',
-        warnings: result.issues || [],
-        model: 'kiro-cli',
-        score: result.overall === 'pass' ? 100 : 50
+        summary: result.summary || result.suggestions?.join(' ') || '',
+        warnings: result.warnings || result.issues || [],
+        model: result.model || 'kiro-cli',
+        score: aiScore
       }
     };
   } catch (error) {
@@ -6913,8 +6918,8 @@ export async function createApp() {
         const warnings = analysis.warnings;
         const score = analysis.ai?.score || 0;
         
-        // Only block story creation if score is below threshold (temporarily lowered for testing)
-        const INVEST_SCORE_THRESHOLD = 45;
+        // Only block story creation if score is below threshold (80)
+        const INVEST_SCORE_THRESHOLD = 80;
         if (score > 0 && score < INVEST_SCORE_THRESHOLD) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
