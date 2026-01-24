@@ -278,8 +278,11 @@ jobs:
         run: |
           echo "🔍 Verifying deployment..."
           
+          # Load dev environment config
+          source scripts/utilities/load-env-config.sh development
+          
           # Check backend health
-          if curl -sf http://44.222.168.46:4000/health | jq -e '.status == "running"' > /dev/null; then
+          if curl -sf ${API_BASE}/health | jq -e '.status == "running"' > /dev/null; then
             echo "✅ Backend is healthy"
           else
             echo "❌ Backend health check failed"

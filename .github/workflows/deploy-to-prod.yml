@@ -246,5 +246,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Environment URLs:**" >> $GITHUB_STEP_SUMMARY
           echo "- 🔗 Frontend: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔗 Backend API: http://44.220.45.57" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔗 Kiro API: http://44.220.45.57:8081" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔗 Backend API: http://44.197.204.18:4000" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔗 Semantic API: http://44.197.204.18:8083" >> $GITHUB_STEP_SUMMARY
