@@ -5343,6 +5343,7 @@ async function loadStories(db, options = {}) {
       components,
       storyPoint: row.storyPoint ?? row.story_point ?? 0,
       assigneeEmail: row.assigneeEmail ?? row.assignee_email ?? '',
+      priority: row.priority ?? 'Medium',
       status: safeNormalizeStoryStatus(row.status),
       createdAt: row.createdAt ?? row.created_at,
       updatedAt: row.updatedAt ?? row.updated_at,
@@ -6630,6 +6631,7 @@ export async function createApp() {
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
+        const priority = String(payload.priority ?? 'Medium').trim();
         const acceptanceTests = payload.acceptanceTests || [];
         
         // Create story first
@@ -6661,6 +6663,7 @@ export async function createApp() {
             components: serializeComponents(components),
             storyPoint: storyPoint,
             assigneeEmail: assigneeEmail,
+            priority: priority,
             status: 'Draft',
             createdAt: timestamp,
             updatedAt: timestamp,
@@ -7234,6 +7237,7 @@ export async function createApp() {
         }
         const description = String(payload.description ?? '').trim();
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
+        const priority = payload.priority != null ? String(payload.priority).trim() : undefined;
         const asA = payload.asA != null ? String(payload.asA).trim() : undefined;
         const iWant = payload.iWant != null ? String(payload.iWant).trim() : undefined;
         const soThat = payload.soThat != null ? String(payload.soThat).trim() : undefined;
@@ -7309,6 +7313,7 @@ export async function createApp() {
         const nextSoThat = soThat ?? existing.so_that ?? '';
         const descriptionChanged = description !== (existing.description ?? '');
         const assigneeChanged = assigneeEmail !== (existing.assignee_email ?? '');
+        const priorityChanged = priority !== undefined && priority !== (existing.priority ?? 'Medium');
         const storyPointChanged = (storyPoint ?? null) !== (existing.story_point ?? null);
         const asAChanged = nextAsA !== (existing.as_a ?? '');
         const iWantChanged = nextIWant !== (existing.i_want ?? '');
@@ -7322,6 +7327,7 @@ export async function createApp() {
           titleChanged ||
           descriptionChanged ||
           assigneeChanged ||
+          priorityChanged ||
           storyPointChanged ||
           asAChanged ||
           iWantChanged ||
@@ -7339,10 +7345,11 @@ export async function createApp() {
             await client.send(new UpdateItemCommand({
               TableName: process.env.STORIES_TABLE,
               Key: { id: { N: String(storyId) } },
-              UpdateExpression: 'SET #status = :status, updated_at = :updatedAt',
-              ExpressionAttributeNames: { '#status': 'status' },
+              UpdateExpression: 'SET #status = :status, #priority = :priority, updated_at = :updatedAt',
+              ExpressionAttributeNames: { '#status': 'status', '#priority': 'priority' },
               ExpressionAttributeValues: {
                 ':status': { S: nextStatus },
+                ':priority': { S: priority ?? existing.priority ?? 'Medium' },
                 ':updatedAt': { S: now() }
               }
             }));

@@ -2957,7 +2957,13 @@ function initializePanelResizers() {
  * @returns {Array} Filtered stories
  */
 function getVisibleStories() {
-  return state.stories;
+  const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+  const sorted = [...state.stories].sort((a, b) => {
+    const aPriority = priorityOrder[a.priority] || 2;
+    const bPriority = priorityOrder[b.priority] || 2;
+    return aPriority - bPriority;
+  });
+  return sorted;
 }
 
 function renderOutline() {
@@ -2999,7 +3005,8 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityBadge = story.priority && story.priority !== 'Medium' ? ` [${story.priority}]` : '';
+    title.textContent = `${story.title}${priorityBadge}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
@@ -4898,6 +4905,20 @@ function renderStoryDetailsWithCompleteData(story) {
     pointRow.appendChild(pointHeader);
     pointRow.appendChild(pointCell);
     storyBriefBody.appendChild(pointRow);
+
+    const priorityRow = document.createElement('tr');
+    priorityRow.className = 'story-priority-row';
+    const priorityHeader = document.createElement('th');
+    priorityHeader.scope = 'row';
+    priorityHeader.textContent = 'Priority';
+    const priorityCell = document.createElement('td');
+    const priorityDisplay = document.createElement('span');
+    priorityDisplay.className = 'story-text priority-badge';
+    priorityDisplay.textContent = story.priority || 'Medium';
+    priorityCell.appendChild(priorityDisplay);
+    priorityRow.appendChild(priorityHeader);
+    priorityRow.appendChild(priorityCell);
+    storyBriefBody.appendChild(priorityRow);
   }
 
   detailsContent.appendChild(form);
