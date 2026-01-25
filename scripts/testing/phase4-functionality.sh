@@ -48,6 +48,36 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769310026459
+# Merged: 2026-01-25
+# =============================================================================
+test_updated_user_authentication_with_oauth2_1769310026459() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: Verify priority sorting function exists
+    if ! grep -q "sortStoriesByPriority" apps/frontend/public/app.js; then
+        fail_test "Priority sorting function not implemented"
+        return 1
+    fi
+    
+    # Test 2: Verify priority normalization in backend
+    if ! grep -q "normalizePriority" apps/backend/app.js; then
+        fail_test "Priority normalization not implemented"
+        return 1
+    fi
+    
+    # Test 3: Verify priority label display
+    if ! grep -q "priorityLabel" apps/frontend/public/app.js; then
+        fail_test "Priority label not displayed"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +144,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_updated_user_authentication_with_oauth2_1769310026459; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
