@@ -2662,6 +2662,8 @@ async function loadStories(preserveSelection = true) {
     // Use API data or create root story if empty
     if (apiStories.length > 0) {
       state.stories = apiStories;
+      // Sort stories by priority
+      sortStoriesByPriority();
       rebuildStoryIndex();
       console.log('Stories loaded from API, count:', apiStories.length);
       // Auto-backup after successful API load
@@ -2694,6 +2696,18 @@ async function loadStories(preserveSelection = true) {
   mindmapHasCentered = false;
   console.log('Calling renderAll...');
   renderAll();
+}
+
+/**
+ * Sort stories by priority (High > Medium > Low)
+ */
+function sortStoriesByPriority() {
+  const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+  state.stories.sort((a, b) => {
+    const aPriority = priorityOrder[a.priority] || 999;
+    const bPriority = priorityOrder[b.priority] || 999;
+    return aPriority - bPriority;
+  });
 }
 
 function renderAll() {
