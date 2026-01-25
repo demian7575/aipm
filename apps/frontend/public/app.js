@@ -2768,7 +2768,8 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityLabel = story.priority ? ` [${story.priority}]` : '';
+    title.textContent = `${story.title}${priorityLabel}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
@@ -4667,6 +4668,19 @@ function renderStoryDetailsWithCompleteData(story) {
     pointRow.appendChild(pointHeader);
     pointRow.appendChild(pointCell);
     storyBriefBody.appendChild(pointRow);
+
+    const priorityRow = document.createElement('tr');
+    const priorityHeader = document.createElement('th');
+    priorityHeader.scope = 'row';
+    priorityHeader.textContent = 'Priority';
+    const priorityCell = document.createElement('td');
+    const priorityDisplay = document.createElement('span');
+    priorityDisplay.className = 'story-text';
+    priorityDisplay.textContent = story.priority || 'Not set';
+    priorityCell.appendChild(priorityDisplay);
+    priorityRow.appendChild(priorityHeader);
+    priorityRow.appendChild(priorityCell);
+    storyBriefBody.appendChild(priorityRow);
   }
 
   detailsContent.appendChild(form);
