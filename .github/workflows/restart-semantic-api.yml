@@ -22,7 +22,13 @@ jobs:
       - name: Load environment configuration
         run: |
           ENV_NAME="${{ github.event.inputs.environment }}"
-          source scripts/load-env-config.sh "$ENV_NAME"
+          
+          # Load configuration from YAML
+          EC2_IP=$(yq eval ".${ENV_NAME}.ec2_ip" config/environments.yaml)
+          
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "Environment: $ENV_NAME"
+          echo "EC2 IP: $EC2_IP"
 
       - name: Setup SSH key
         run: |
