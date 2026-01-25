@@ -184,14 +184,16 @@ EOF
     cat > /tmp/restart_services.sh << EOF
 cd aipm
 
-echo 'Force killing all Node.js processes...'
-sudo pkill -f 'node.*app.js' || true
-sudo pkill -f semantic-api-server || true
-sudo pkill -f kiro-session-pool || true
-sleep 2
+echo 'Stopping all services...'
+sudo systemctl stop $SERVICE_NAME || true
+sudo systemctl stop kiro-session-pool || true
+sudo systemctl stop aipm-kiro-cli || true
+sudo systemctl stop aipm-kiro-api || true
+sudo systemctl stop aipm-semantic-api || true
 
-echo 'Restarting $SERVICE_NAME...'
-sudo systemctl restart $SERVICE_NAME || echo "⚠️  Backend restart failed, continuing..."
+echo 'Force killing all Node.js processes...'
+sudo pkill -9 -f 'node' || true
+sleep 3
 
 echo 'Installing/updating Kiro services...'
 sudo cp scripts/systemd/aipm-kiro-api.service /etc/systemd/system/
@@ -201,7 +203,8 @@ sudo cp scripts/systemd/aipm-semantic-api.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool aipm-semantic-api
 
-echo 'Starting services...'
+echo 'Starting all services...'
+sudo systemctl start $SERVICE_NAME
 sudo systemctl start kiro-session-pool
 sudo systemctl start aipm-kiro-cli
 sudo systemctl start aipm-kiro-api
