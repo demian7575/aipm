@@ -7263,8 +7263,14 @@ export async function createApp() {
         let analysis;
         let warnings = [];
         
+        // Load acceptance tests for INVEST analysis
+        const acceptanceTests = db.prepare(
+          'SELECT id, title, given, when, then, status FROM acceptance_tests WHERE story_id = ?'
+        ).all(id);
+        
         // Run INVEST analysis
         const storyForValidation = {
+          id,
           title,
           asA: asA ?? existing.as_a,
           iWant: iWant ?? existing.i_want,
@@ -7272,6 +7278,7 @@ export async function createApp() {
           description: description || existing.description || '',
           storyPoint,
           components,
+          acceptanceTests,
         };
         const investStartTime = Date.now();
         analysis = await analyzeInvest(storyForValidation);
