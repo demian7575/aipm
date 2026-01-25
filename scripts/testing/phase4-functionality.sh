@@ -48,6 +48,36 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769314071125
+# Merged: 2026-01-25
+# =============================================================================
+test_updated_user_authentication_with_oauth2() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: Verify priority sorting is implemented
+    if ! grep -q "sortBy.*priority" apps/frontend/public/app.js; then
+        fail_test "Priority sorting not implemented in frontend"
+        return 1
+    fi
+    
+    # Test 2: Verify priority field in backend
+    if ! grep -q "priority" apps/backend/app.js; then
+        fail_test "Priority field not added to backend"
+        return 1
+    fi
+    
+    # Test 3: Verify getVisibleStories includes sorting logic
+    if ! grep -q "priorityOrder" apps/frontend/public/app.js; then
+        fail_test "Priority sorting logic not found in getVisibleStories"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -120,6 +150,11 @@ else
 fi
 
 # ADD NEW TEST FUNCTION CALLS HERE
+if test_updated_user_authentication_with_oauth2; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
 # if test_your_story_name; then
 #     ((PHASE4_PASSED++))
 # else

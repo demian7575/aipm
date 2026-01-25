@@ -496,6 +496,8 @@ const state = {
     details: true,
   },
   codewhispererDelegations: new Map(),
+  sortBy: 'priority',
+  sortDirection: 'desc',
 };
 
 const storyIndex = new Map();
@@ -2722,11 +2724,23 @@ function updateWorkspaceColumns() {
 }
 
 /**
- * Get stories filtered by current filter state
- * @returns {Array} Filtered stories
+ * Get stories filtered and sorted by current state
+ * @returns {Array} Filtered and sorted stories
  */
 function getVisibleStories() {
-  return state.stories;
+  let stories = state.stories;
+  
+  // Apply sorting
+  if (state.sortBy === 'priority') {
+    const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+    stories = [...stories].sort((a, b) => {
+      const aPriority = priorityOrder[a.priority] || 0;
+      const bPriority = priorityOrder[b.priority] || 0;
+      return state.sortDirection === 'desc' ? bPriority - aPriority : aPriority - bPriority;
+    });
+  }
+  
+  return stories;
 }
 
 function renderOutline() {
@@ -2768,7 +2782,8 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityBadge = story.priority ? `[${story.priority}] ` : '';
+    title.textContent = `${priorityBadge}${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));

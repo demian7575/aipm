@@ -6627,6 +6627,7 @@ export async function createApp() {
             components: serializeComponents(components),
             storyPoint: storyPoint,
             assigneeEmail: assigneeEmail,
+            priority: payload.priority || 'Medium',
             status: 'Draft',
             createdAt: timestamp,
             updatedAt: timestamp,
