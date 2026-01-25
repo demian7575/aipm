@@ -6190,6 +6190,49 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/auth/google' && method === 'GET') {
+      const { getAuthorizationUrl } = await import('./oauth2.js');
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${req.headers.origin}/auth/callback`;
+      
+      if (!clientId) {
+        sendJson(res, 500, { error: 'OAuth2 not configured' });
+        return;
+      }
+      
+      const authUrl = getAuthorizationUrl(clientId, redirectUri);
+      sendJson(res, 200, { authUrl });
+      return;
+    }
+
+    if (pathname === '/api/auth/callback' && method === 'POST') {
+      try {
+        const { code } = await parseJson(req);
+        const { exchangeCodeForTokens, getUserProfile } = await import('./oauth2.js');
+        
+        const clientId = process.env.GOOGLE_CLIENT_ID;
+        const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+        const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+        
+        if (!clientId || !clientSecret) {
+          throw new Error('OAuth2 not configured');
+        }
+        
+        const tokens = await exchangeCodeForTokens(code, clientId, clientSecret, redirectUri);
+        const profile = await getUserProfile(tokens.access_token);
+        
+        sendJson(res, 200, { 
+          success: true,
+          user: profile,
+          sessionToken: randomUUID()
+        });
+      } catch (error) {
+        console.error('OAuth2 callback error:', error);
+        sendJson(res, 500, { error: error.message });
+      }
+      return;
+    }
+
     if (pathname === '/api/stories/restore' && method === 'GET') {
       const stories = await getAllStories(db);
       sendJson(res, 200, { stories });
