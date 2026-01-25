@@ -6576,7 +6576,19 @@ export async function createApp() {
 
     if (pathname === '/api/stories' && method === 'GET') {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
-      const stories = await loadStories(db, { includeAiInvest });
+      const sortBy = url.searchParams.get('sortBy');
+      let stories = await loadStories(db, { includeAiInvest });
+      
+      // Sort by priority if requested
+      if (sortBy === 'priority') {
+        const priorityOrder = { high: 1, medium: 2, low: 3 };
+        stories.sort((a, b) => {
+          const aPriority = priorityOrder[a.priority] || 4;
+          const bPriority = priorityOrder[b.priority] || 4;
+          return aPriority - bPriority;
+        });
+      }
+      
       sendJson(res, 200, stories);
       return;
     }
@@ -6628,6 +6640,7 @@ export async function createApp() {
             storyPoint: storyPoint,
             assigneeEmail: assigneeEmail,
             status: 'Draft',
+            priority: payload.priority || 'medium',
             createdAt: timestamp,
             updatedAt: timestamp,
             investWarnings: '[]',
@@ -7206,6 +7219,7 @@ export async function createApp() {
         const asA = payload.asA != null ? String(payload.asA).trim() : undefined;
         const iWant = payload.iWant != null ? String(payload.iWant).trim() : undefined;
         const soThat = payload.soThat != null ? String(payload.soThat).trim() : undefined;
+        const priority = payload.priority;
         const requestedComponents = payload.components;
 
         const existingStmt = db.prepare('SELECT * FROM user_stories WHERE id = ?');
@@ -7316,7 +7330,7 @@ export async function createApp() {
         }
 
         const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
+          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, priority = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
         );
         const sqliteStartTime = Date.now();
         update.run(
@@ -7324,6 +7338,12 @@ export async function createApp() {
           description,
           serializeComponents(components),
           storyPoint,
+          assigneeEmail,
+          nextAsA,
+          nextIWant,
+          nextSoThat,
+          nextStatus,
+          priority !== undefined ? priority : (existing.priority || 'medium'),
           assigneeEmail,
           nextAsA,
           nextIWant,

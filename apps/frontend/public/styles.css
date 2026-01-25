@@ -2438,3 +2438,28 @@ dialog[data-size='content'] .modal-shell {
 .filter-form .checkbox-list input[type="checkbox"] {
   cursor: pointer;
 }
+
+
+/* Priority badges */
+.priority-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.priority-high {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.priority-medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.priority-low {
+  background: #dbeafe;
+  color: #1e40af;
+}

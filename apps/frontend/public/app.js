@@ -4667,6 +4667,21 @@ function renderStoryDetailsWithCompleteData(story) {
     pointRow.appendChild(pointHeader);
     pointRow.appendChild(pointCell);
     storyBriefBody.appendChild(pointRow);
+
+    // Add priority row
+    const priorityRow = document.createElement('tr');
+    priorityRow.className = 'priority-row';
+    const priorityHeader = document.createElement('th');
+    priorityHeader.scope = 'row';
+    priorityHeader.textContent = 'Priority';
+    const priorityCell = document.createElement('td');
+    const priorityDisplay = document.createElement('span');
+    priorityDisplay.className = 'story-text priority-badge priority-' + (story.priority || 'medium');
+    priorityDisplay.textContent = (story.priority || 'medium').charAt(0).toUpperCase() + (story.priority || 'medium').slice(1);
+    priorityCell.appendChild(priorityDisplay);
+    priorityRow.appendChild(priorityHeader);
+    priorityRow.appendChild(priorityCell);
+    storyBriefBody.appendChild(priorityRow);
   }
 
   detailsContent.appendChild(form);
