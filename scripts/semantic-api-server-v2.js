@@ -129,7 +129,7 @@ const server = http.createServer(async (req, res) => {
   const templateName = `${req.method}${cleanPath.replace(/\//g, '-')}.md`;
   const templatePath = join(TEMPLATES_DIR, templateName);
 
-  console.log(`📝 ${req.method} ${url.pathname} → ${templateName}`);
+  console.log(`📝 ${req.method} ${url.pathname} → ${templateName} (v2.1 - ${new Date().toISOString()})`);
 
   if (!existsSync(templatePath)) {
     res.writeHead(404, { 'Content-Type': 'application/json' });
