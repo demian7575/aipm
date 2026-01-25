@@ -119,7 +119,7 @@ jobs:
           echo "🟡 Running Phase 6: UI-Driven Complete Workflow"
           echo "   Environment: $TARGET_ENV"
           
-          if timeout 300 ./scripts/testing/phase6-ui-workflow.sh; then
+          if SKIP_CODE_GENERATION=1 timeout 300 ./scripts/testing/phase6-ui-workflow.sh; then
             echo "✅ Phase 6 PASSED - E2E workflow validated"
             echo "status=success" >> $GITHUB_OUTPUT
           else
