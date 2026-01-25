@@ -1,0 +1,36 @@
+name: Restart Semantic API
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to restart'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - dev
+
+jobs:
+  restart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load environment configuration
+        run: |
+          ENV_NAME="${{ github.event.inputs.environment }}"
+          source scripts/load-env-config.sh "$ENV_NAME"
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Restart Semantic API
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
+            'bash -s' < scripts/restart-semantic-api.sh
