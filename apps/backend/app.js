@@ -5282,7 +5282,7 @@ async function loadStories(db, options = {}) {
   const { includeAiInvest = false } = options;
   const storyRows = await safeSelectAll(
     db,
-    'SELECT * FROM user_stories ORDER BY (parent_id IS NOT NULL), parent_id, id'
+    'SELECT * FROM user_stories ORDER BY CASE WHEN priority = \'high\' THEN 1 WHEN priority = \'medium\' THEN 2 WHEN priority = \'low\' THEN 3 ELSE 4 END, (parent_id IS NOT NULL), parent_id, id'
   );
   const testRows = await safeSelectAll(db, 'SELECT * FROM acceptance_tests ORDER BY story_id, id');
   console.log('📋 Loaded acceptance tests:', testRows.length);
@@ -5310,6 +5310,7 @@ async function loadStories(db, options = {}) {
       storyPoint: row.storyPoint ?? row.story_point ?? 0,
       assigneeEmail: row.assigneeEmail ?? row.assignee_email ?? '',
       status: safeNormalizeStoryStatus(row.status),
+      priority: row.priority ?? 'medium',
       createdAt: row.createdAt ?? row.created_at,
       updatedAt: row.updatedAt ?? row.updated_at,
       acceptanceTests: [],
@@ -6596,6 +6597,7 @@ export async function createApp() {
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
+        const priority = ['high', 'medium', 'low'].includes(payload.priority) ? payload.priority : 'medium';
         const acceptanceTests = payload.acceptanceTests || [];
         
         // Create story first
@@ -6628,6 +6630,7 @@ export async function createApp() {
             storyPoint: storyPoint,
             assigneeEmail: assigneeEmail,
             status: 'Draft',
+            priority: priority,
             createdAt: timestamp,
             updatedAt: timestamp,
             investWarnings: '[]',
@@ -7315,9 +7318,10 @@ export async function createApp() {
         }
 
         const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
+          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, priority = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
         );
         const sqliteStartTime = Date.now();
+        const nextPriority = payload.priority && ['high', 'medium', 'low'].includes(payload.priority) ? payload.priority : (existing.priority || 'medium');
         update.run(
           title,
           description,
@@ -7328,6 +7332,7 @@ export async function createApp() {
           nextIWant,
           nextSoThat,
           nextStatus,
+          nextPriority,
           now(),
           JSON.stringify(warnings),
           JSON.stringify({

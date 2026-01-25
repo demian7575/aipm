@@ -2768,7 +2768,8 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityBadge = story.priority && story.priority !== 'medium' ? ` [${story.priority.toUpperCase()}]` : '';
+    title.textContent = `${story.title}${priorityBadge}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
