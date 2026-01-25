@@ -117,7 +117,13 @@ jobs:
         id: phase2
         run: |
           echo "🟡 Running Phase 2: Complete E2E Workflow"
-          echo "   Environment: $TARGET_ENV"
+          echo "   Testing: Production code (same deployment)"
+          echo "   Data: Development tables (isolated from production)"
+          echo "   Note: Uses Development environment to test production code with isolated data"
+          
+          # Override to use Development environment for data isolation
+          export API_BASE="http://44.222.168.46:4000"
+          export SEMANTIC_API_BASE="http://44.222.168.46:8083"
           
           if timeout 300 ./scripts/testing/phase2-e2e-workflow.sh; then
             echo "✅ Phase 2 PASSED - E2E workflow validated"

@@ -6,7 +6,8 @@
 set +e
 source "$(dirname "$0")/test-library.sh"
 
-# Use Development environment for data isolation
+# IMPORTANT: Use Development environment to avoid polluting Production data
+# This tests the same code (deployed to both environments) but with isolated data
 API_BASE="${API_BASE:-http://44.222.168.46:4000}"
 SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.222.168.46:8083}"
 
