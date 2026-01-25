@@ -5310,6 +5310,7 @@ async function loadStories(db, options = {}) {
       storyPoint: row.storyPoint ?? row.story_point ?? 0,
       assigneeEmail: row.assigneeEmail ?? row.assignee_email ?? '',
       status: safeNormalizeStoryStatus(row.status),
+      priority: row.priority ?? 'medium',
       createdAt: row.createdAt ?? row.created_at,
       updatedAt: row.updatedAt ?? row.updated_at,
       acceptanceTests: [],
@@ -5492,6 +5493,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     storyPoint: row.story_point ?? row.storyPoint ?? 0,
     assigneeEmail: row.assignee_email ?? row.assigneeEmail ?? '',
     status: safeNormalizeStoryStatus(row.status),
+    priority: row.priority ?? 'medium',
     createdAt: row.created_at ?? row.createdAt,
     updatedAt: row.updated_at ?? row.updatedAt,
     acceptanceTests: [],
@@ -6628,6 +6630,7 @@ export async function createApp() {
             storyPoint: storyPoint,
             assigneeEmail: assigneeEmail,
             status: 'Draft',
+            priority: payload.priority || 'medium',
             createdAt: timestamp,
             updatedAt: timestamp,
             investWarnings: '[]',
@@ -6926,6 +6929,10 @@ export async function createApp() {
           if (payload.assigneeEmail !== undefined) {
             updateExpressions.push('assigneeEmail = :assigneeEmail');
             expressionAttributeValues[':assigneeEmail'] = payload.assigneeEmail;
+          }
+          if (payload.priority !== undefined) {
+            updateExpressions.push('priority = :priority');
+            expressionAttributeValues[':priority'] = payload.priority;
           }
           if (payload.status !== undefined) {
             updateExpressions.push('#status = :status');

@@ -2729,6 +2729,20 @@ function getVisibleStories() {
   return state.stories;
 }
 
+/**
+ * Sort stories by priority (high > medium > low)
+ * @param {Array} stories - Stories to sort
+ * @returns {Array} Sorted stories
+ */
+function sortStoriesByPriority(stories) {
+  const priorityOrder = { high: 0, medium: 1, low: 2 };
+  return [...stories].sort((a, b) => {
+    const aPriority = priorityOrder[a.priority] ?? 3;
+    const bPriority = priorityOrder[b.priority] ?? 3;
+    return aPriority - bPriority;
+  });
+}
+
 function renderOutline() {
   outlineTreeEl.innerHTML = '';
   const list = document.createDocumentFragment();
@@ -2768,18 +2782,20 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityLabel = story.priority ? ` [${story.priority.toUpperCase()}]` : '';
+    title.textContent = `${story.title}${priorityLabel}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
     list.appendChild(row);
 
     if (story.children && story.children.length > 0 && state.expanded.has(story.id)) {
-      story.children.forEach((child) => renderNode(child, depth + 1));
+      const sortedChildren = sortStoriesByPriority(story.children);
+      sortedChildren.forEach((child) => renderNode(child, depth + 1));
     }
   }
 
-  const visibleStories = getVisibleStories();
+  const visibleStories = sortStoriesByPriority(getVisibleStories());
   visibleStories.forEach((story) => renderNode(story, 0));
   outlineTreeEl.appendChild(list);
 }
