@@ -187,11 +187,8 @@ jobs:
           echo "🚀 Deploying to production environment using unified script..."
           ./scripts/deploy-to-environment.sh prod
           
-          echo "🔄 Restarting Semantic API to clear template cache..."
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ env.EC2_IP }} 'sudo systemctl restart kiro-session-pool aipm-semantic-api && sleep 3'
-          echo "✅ Kiro services restarted"
-          
           echo "✅ Backend deployed to production EC2"
+          echo "ℹ️  Templates updated - Kiro will read from disk on next request"
       
       - name: Deploy frontend to S3
         run: |
