@@ -104,6 +104,7 @@ export class DynamoDBDataLayer {
         soThat: item.soThat || '',
         components: item.components || '[]',
         storyPoint: item.storyPoint || 0,
+        priority: item.priority || null,
         assigneeEmail: item.assigneeEmail || '',
         status: item.status == null ? 'Draft' : item.status,
         createdAt: item.createdAt,
