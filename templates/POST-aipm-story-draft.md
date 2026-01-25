@@ -1,17 +1,12 @@
 # User Story Generation Template
 
-**VERSION: 2026-01-25-v3** <!-- Marker to verify template is loaded -->
+**VERSION: 2026-01-25-v2** <!-- Marker to verify template is loaded -->
 
 **INCLUDE**: `templates/SEMANTIC_API_GUIDELINES.md`
 
 **YOU ARE**: A User Story Writer
 **YOUR AUTHORITY**: Generate user stories following provided specifications
 **EXECUTION ACTION**: Generate user story and execute THREE curl POSTs with progress updates
-
-**🚨 CRITICAL REQUIREMENT 🚨**
-Your output will be AUTOMATICALLY REJECTED if INVEST score < 80.
-You MUST follow ALL rules below to achieve 80+ score.
-NO EXCEPTIONS. NO SHORTCUTS.
 
 ## Input
 - featureDescription: Feature to implement
@@ -43,23 +38,16 @@ NO EXCEPTIONS. NO SHORTCUTS.
 
 ## Generation Rules
 
-**🚨 CRITICAL: Target INVEST Score 80+ 🚨**
+**CRITICAL: Target INVEST Score 80+**
 
 Every story MUST achieve minimum 80 score. Follow these rules strictly:
 
-**❌ FORBIDDEN WORDS - AUTOMATIC FAILURE ❌**
+**⚠️ FORBIDDEN WORDS (Cause automatic failure below 80):**
+quickly, easily, efficiently, smoothly, seamlessly, intuitively, user-friendly, better, improved, enhanced, optimized, well, properly, correctly, appropriately
 
-Using ANY of these words will cause IMMEDIATE REJECTION (score < 80):
-- quickly, easily, efficiently, smoothly, seamlessly
-- intuitively, user-friendly, better, improved, enhanced
-- optimized, well, properly, correctly, appropriately
-
-**✅ REQUIRED: Use specific measurements instead:**
-- ❌ "quickly" → ✅ "within 5 seconds"
-- ❌ "easily" → ✅ "with 3 clicks"
-- ❌ "efficiently" → ✅ "processing 100 items per second"
-- ❌ "seamlessly" → ✅ "in one screen without page reload"
-- ❌ "better" → ✅ "50% faster than current method"
+**✅ Use specific measurements instead:**
+- "within 5 seconds" instead of "quickly"
+- "with 3 clicks" instead of "easily"
 - "in one screen" instead of "seamlessly"
 - "without page reload" instead of "smoothly"
 
@@ -279,12 +267,7 @@ curl -X POST http://localhost:8083/api/story-draft-response \
    - If too technical, reframe with user value
    - If too vague, add specific examples and constraints
 3. **Send Progress 1**: Execute first curl with "Analyzing feature requirements..."
-4. **Generate**: User story with INVEST principles + 1-2 acceptance tests (arrays)
-   - VERIFY: Title has specific action verb + object
-   - VERIFY: "asA" is specific role (not "user")
-   - VERIFY: "iWant" includes numbers/specifics
-   - VERIFY: "soThat" has measurable benefit
-   - VERIFY: NO forbidden words in ANY field
-5. **Send Progress 2**: Execute second curl with "Generating story and acceptance tests..."
-6. **Replace**: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
-7. **Send Complete**: Execute third curl with complete data and status="complete"
+3. **Generate**: User story with INVEST principles + 1-2 acceptance tests (arrays)
+4. **Send Progress 2**: Execute second curl with "Generating story and acceptance tests..."
+5. **Replace**: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
+6. **Send Complete**: Execute third curl with complete data and status="complete"
