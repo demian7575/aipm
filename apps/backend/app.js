@@ -6730,22 +6730,20 @@ export async function createApp() {
             components,
           });
         } catch (error) {
-          console.warn('🤖 AI analysis failed, using baseline:', error.message);
-          analysis = buildBaselineInvestAnalysis({
-            title,
-            asA,
-            iWant,
-            soThat,
-            description,
-            storyPoint,
-            components,
-          });
+          console.error('❌ AI analysis failed:', error.message);
+          // Return 0 score on failure - will trigger threshold check
+          analysis = {
+            warnings: [],
+            ai: { score: 0 },
+            source: 'failed',
+            summary: `AI analysis failed: ${error.message}`
+          };
         }
         const warnings = analysis.warnings;
         const score = analysis.ai?.score || 0;
         
         const INVEST_SCORE_THRESHOLD = 80;
-        if (score > 0 && score < INVEST_SCORE_THRESHOLD) {
+        if (score < INVEST_SCORE_THRESHOLD) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
             const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
