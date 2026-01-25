@@ -33,9 +33,11 @@ Use INVEST scoring rules to evaluate story quality. Target score: 80+.
 }
 ```
 
-## API Commands (Execute in sequence)
+## Execution Steps
 
-### 1. Progress Update (Send immediately)
+1. Extract: "Request ID: XXXXX" → UUID, storyId, title, description, asA, iWant, soThat
+
+2. Send Progress: Execute this curl command immediately:
 ```bash
 curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
@@ -46,7 +48,11 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
   }'
 ```
 
-### 2. Final Result (Complete analysis)
+3. Analyze: Evaluate against INVEST principles (score 0-100, warnings array, strengths array)
+
+4. Replace placeholders: REQUEST_ID_VALUE, STORY_ID, SUMMARY, SCORE, warnings array, strengths array
+
+5. Send Final: Execute this curl command with complete analysis:
 ```bash
 curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
@@ -63,12 +69,4 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
   }'
 ```
 
-## Execution Steps
-
-1. Extract: "Request ID: XXXXX" → UUID, storyId, title, description, asA, iWant, soThat
-2. Send Progress: Execute curl #1 with "Analyzing INVEST principles..."
-3. Analyze: Evaluate against INVEST principles (score 0-100, warnings array, strengths array)
-4. Replace placeholders: REQUEST_ID_VALUE, STORY_ID, SUMMARY, SCORE, warnings array, strengths array
-5. Send Final: Execute curl #2 with status="complete" and all analysis data
-
-**CRITICAL**: You MUST execute BOTH curl commands using bash tool - progress AND final complete response
+**CRITICAL**: You MUST execute BOTH curl commands using bash tool
