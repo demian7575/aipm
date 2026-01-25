@@ -484,6 +484,8 @@ const state = {
   autoLayout: true,
   showDependencies: false,
   hideCompleted: false,
+  sortBy: 'priority',
+  sortOrder: 'desc',
   filters: {
     status: [],
     component: [],
@@ -2645,7 +2647,9 @@ async function loadStories(preserveSelection = true) {
   
   // Load from API only
   try {
-    const url = resolveApiUrl('/api/stories');
+    const sortBy = state.sortBy || 'id';
+    const sortOrder = state.sortOrder || 'asc';
+    const url = resolveApiUrl(`/api/stories?sortBy=${sortBy}&sortOrder=${sortOrder}`);
     console.log('Fetching from API:', url);
     const response = await fetch(url, { cache: 'no-store' });
     console.log('API response status:', response.status);
@@ -2768,7 +2772,8 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityBadge = story.priority ? ` [${story.priority}]` : '';
+    title.textContent = `${story.title}${priorityBadge}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
