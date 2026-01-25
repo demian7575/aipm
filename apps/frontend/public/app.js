@@ -49,6 +49,8 @@ const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
+const outlineResizer = document.getElementById('outline-resizer');
+const detailsResizer = document.getElementById('details-resizer');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
@@ -118,6 +120,7 @@ const STORAGE_KEYS = {
   layout: 'aiPm.layout',
   mindmap: 'aiPm.mindmap',
   panels: 'aiPm.panels',
+  panelSizes: 'aiPm.panelSizes',
   codewhispererDelegations: 'aiPm.codewhispererDelegations',
   version: 'aiPm.version',
   stories: 'aiPm.stories',
@@ -138,6 +141,21 @@ const MINDMAP_ZOOM_STEP = 0.1;
 const MINDMAP_PAN_THRESHOLD = 5;
 const HORIZONTAL_STEP = 240;
 const AUTO_LAYOUT_HORIZONTAL_GAP = 80;
+const PANEL_DEFAULT_WIDTHS = {
+  outline: 320,
+  details: 720,
+};
+const PANEL_MIN_WIDTHS = {
+  outline: 240,
+  details: 320,
+};
+const PANEL_MAX_WIDTHS = {
+  outline: 520,
+  details: 960,
+};
+const RESIZE_HANDLE_WIDTH = 12;
+const MINDMAP_MIN_WIDTH = 320;
+const RESIZE_KEY_STEP = 24;
 const X_OFFSET = 80;
 const Y_OFFSET = 80;
 const MINDMAP_STAGE_MIN_WIDTH = 1600;
@@ -495,6 +513,10 @@ const state = {
     mindmap: true,
     details: true,
   },
+  panelSizes: {
+    outline: PANEL_DEFAULT_WIDTHS.outline,
+    details: PANEL_DEFAULT_WIDTHS.details,
+  },
   codewhispererDelegations: new Map(),
 };
 
@@ -503,6 +525,7 @@ const parentById = new Map();
 let toastTimeout = null;
 let mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
 let mindmapHasCentered = false;
+let panelResizeState = null;
 const mindmapPanState = {
   pointerId: null,
   startX: 0,
@@ -1220,6 +1243,23 @@ function loadPreferences() {
   }
 
   try {
+    const sizesRaw = localStorage.getItem(STORAGE_KEYS.panelSizes);
+    if (sizesRaw) {
+      const sizes = JSON.parse(sizesRaw);
+      const outlineWidth = Number(sizes.outline);
+      const detailsWidth = Number(sizes.details);
+      if (Number.isFinite(outlineWidth)) {
+        state.panelSizes.outline = clampPanelWidth(outlineWidth, PANEL_MIN_WIDTHS.outline, PANEL_MAX_WIDTHS.outline);
+      }
+      if (Number.isFinite(detailsWidth)) {
+        state.panelSizes.details = clampPanelWidth(detailsWidth, PANEL_MIN_WIDTHS.details, PANEL_MAX_WIDTHS.details);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load panel sizes', error);
+  }
+
+  try {
     const filtersRaw = localStorage.getItem(STORAGE_KEYS.filters);
     if (filtersRaw) {
       const filters = JSON.parse(filtersRaw);
@@ -1283,6 +1323,16 @@ function persistMindmap() {
 
 function persistPanels() {
   localStorage.setItem(STORAGE_KEYS.panels, JSON.stringify(state.panelVisibility));
+}
+
+function persistPanelSizes() {
+  localStorage.setItem(
+    STORAGE_KEYS.panelSizes,
+    JSON.stringify({
+      outline: state.panelSizes.outline,
+      details: state.panelSizes.details,
+    })
+  );
 }
 
 /**
@@ -2703,22 +2753,203 @@ function renderAll() {
   renderDetails();
 }
 
-function updateWorkspaceColumns() {
-  const columns = [];
-  outlinePanel.classList.toggle('hidden', !state.panelVisibility.outline);
-  mindmapPanel.classList.toggle('hidden', !state.panelVisibility.mindmap);
-  detailsPanel.classList.toggle('hidden', !state.panelVisibility.details);
+function isSingleColumnLayout() {
+  return window.matchMedia('(max-width: 960px)').matches;
+}
 
-  if (state.panelVisibility.outline) {
-    columns.push('320px');
+function clampPanelWidth(value, minWidth, maxWidth) {
+  const clampedMax = Math.max(minWidth, maxWidth);
+  return Math.min(Math.max(value, minWidth), clampedMax);
+}
+
+function getWorkspaceWidth() {
+  return workspaceEl?.clientWidth ?? 0;
+}
+
+function getResizeHandleWidthTotal() {
+  let total = 0;
+  if (state.panelVisibility.outline && (state.panelVisibility.mindmap || state.panelVisibility.details)) {
+    total += RESIZE_HANDLE_WIDTH;
+  }
+  if (state.panelVisibility.mindmap && state.panelVisibility.details) {
+    total += RESIZE_HANDLE_WIDTH;
+  }
+  return total;
+}
+
+function getMaxOutlineWidth() {
+  const workspaceWidth = getWorkspaceWidth();
+  let remaining = workspaceWidth - getResizeHandleWidthTotal();
+  if (state.panelVisibility.details) {
+    remaining -= state.panelSizes.details;
   }
   if (state.panelVisibility.mindmap) {
-    columns.push('minmax(0, 1fr)');
+    remaining -= MINDMAP_MIN_WIDTH;
   }
-  if (state.panelVisibility.details) {
-    columns.push('720px');
+  return Math.min(PANEL_MAX_WIDTHS.outline, Math.max(PANEL_MIN_WIDTHS.outline, remaining));
+}
+
+function getMaxDetailsWidth() {
+  const workspaceWidth = getWorkspaceWidth();
+  let remaining = workspaceWidth - getResizeHandleWidthTotal();
+  if (state.panelVisibility.outline) {
+    remaining -= state.panelSizes.outline;
+  }
+  if (state.panelVisibility.mindmap) {
+    remaining -= MINDMAP_MIN_WIDTH;
+  }
+  return Math.min(PANEL_MAX_WIDTHS.details, Math.max(PANEL_MIN_WIDTHS.details, remaining));
+}
+
+function applyPanelSize(type, nextWidth) {
+  if (type === 'outline') {
+    const maxWidth = getMaxOutlineWidth();
+    state.panelSizes.outline = clampPanelWidth(nextWidth, PANEL_MIN_WIDTHS.outline, maxWidth);
+  }
+  if (type === 'details') {
+    const maxWidth = getMaxDetailsWidth();
+    state.panelSizes.details = clampPanelWidth(nextWidth, PANEL_MIN_WIDTHS.details, maxWidth);
+  }
+  updateWorkspaceColumns();
+}
+
+function updateWorkspaceColumns() {
+  const columns = [];
+  const showOutline = state.panelVisibility.outline;
+  const showMindmap = state.panelVisibility.mindmap;
+  const showDetails = state.panelVisibility.details;
+  const singleColumn = isSingleColumnLayout();
+
+  outlinePanel.classList.toggle('hidden', !showOutline);
+  mindmapPanel.classList.toggle('hidden', !showMindmap);
+  detailsPanel.classList.toggle('hidden', !showDetails);
+
+  const showOutlineResizer = !singleColumn && showOutline && (showMindmap || showDetails);
+  const showDetailsResizer = !singleColumn && showDetails && showMindmap;
+  outlineResizer?.classList.toggle('hidden', !showOutlineResizer);
+  detailsResizer?.classList.toggle('hidden', !showDetailsResizer);
+
+  if (singleColumn) {
+    workspaceEl.style.gridTemplateColumns = 'minmax(0, 1fr)';
+    return;
+  }
+
+  if (showOutline) {
+    state.panelSizes.outline = clampPanelWidth(
+      state.panelSizes.outline,
+      PANEL_MIN_WIDTHS.outline,
+      getMaxOutlineWidth()
+    );
+  }
+  if (showDetails) {
+    state.panelSizes.details = clampPanelWidth(
+      state.panelSizes.details,
+      PANEL_MIN_WIDTHS.details,
+      getMaxDetailsWidth()
+    );
+  }
+
+  if (showOutline) {
+    columns.push(`${state.panelSizes.outline}px`);
+    if (showOutlineResizer) {
+      columns.push(`${RESIZE_HANDLE_WIDTH}px`);
+    }
+  }
+  if (showMindmap) {
+    columns.push('minmax(0, 1fr)');
+    if (showDetailsResizer) {
+      columns.push(`${RESIZE_HANDLE_WIDTH}px`);
+    }
+  }
+  if (showDetails) {
+    columns.push(`${state.panelSizes.details}px`);
   }
   workspaceEl.style.gridTemplateColumns = columns.join(' ');
+}
+
+function handlePanelResizePointerDown(event, type) {
+  if (!workspaceEl || isSingleColumnLayout()) {
+    return;
+  }
+  if (event.pointerType === 'mouse' && event.button !== 0) {
+    return;
+  }
+  event.preventDefault();
+  panelResizeState = {
+    type,
+    startX: event.clientX,
+    startWidth: type === 'outline' ? state.panelSizes.outline : state.panelSizes.details,
+  };
+  document.body.classList.add('is-resizing');
+  document.addEventListener('pointermove', handlePanelResizePointerMove);
+  document.addEventListener('pointerup', handlePanelResizePointerUp);
+  document.addEventListener('pointercancel', handlePanelResizePointerUp);
+}
+
+function handlePanelResizePointerMove(event) {
+  if (!panelResizeState) {
+    return;
+  }
+  const delta = event.clientX - panelResizeState.startX;
+  const nextWidth =
+    panelResizeState.type === 'outline'
+      ? panelResizeState.startWidth + delta
+      : panelResizeState.startWidth - delta;
+  applyPanelSize(panelResizeState.type, nextWidth);
+}
+
+function handlePanelResizePointerUp() {
+  if (!panelResizeState) {
+    return;
+  }
+  panelResizeState = null;
+  document.body.classList.remove('is-resizing');
+  document.removeEventListener('pointermove', handlePanelResizePointerMove);
+  document.removeEventListener('pointerup', handlePanelResizePointerUp);
+  document.removeEventListener('pointercancel', handlePanelResizePointerUp);
+  persistPanelSizes();
+}
+
+function handlePanelResizeKeydown(event, type) {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+    return;
+  }
+  event.preventDefault();
+  const direction = event.key === 'ArrowLeft' ? -1 : 1;
+  const currentWidth = type === 'outline' ? state.panelSizes.outline : state.panelSizes.details;
+  const nextWidth =
+    type === 'outline'
+      ? currentWidth + direction * RESIZE_KEY_STEP
+      : currentWidth - direction * RESIZE_KEY_STEP;
+  applyPanelSize(type, nextWidth);
+  persistPanelSizes();
+}
+
+function initializePanelResizers() {
+  if (outlineResizer) {
+    outlineResizer.addEventListener('pointerdown', (event) =>
+      handlePanelResizePointerDown(event, 'outline')
+    );
+    outlineResizer.addEventListener('keydown', (event) =>
+      handlePanelResizeKeydown(event, 'outline')
+    );
+  }
+  if (detailsResizer) {
+    detailsResizer.addEventListener('pointerdown', (event) =>
+      handlePanelResizePointerDown(event, 'details')
+    );
+    detailsResizer.addEventListener('keydown', (event) =>
+      handlePanelResizeKeydown(event, 'details')
+    );
+  }
+  window.addEventListener('resize', () => {
+    if (isSingleColumnLayout()) {
+      updateWorkspaceColumns();
+      return;
+    }
+    applyPanelSize('outline', state.panelSizes.outline);
+    applyPanelSize('details', state.panelSizes.details);
+  });
 }
 
 /**
@@ -7853,6 +8084,7 @@ function initialize() {
   
   loadPreferences();
   initializeCodeWhispererDelegations();
+  initializePanelResizers();
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();
