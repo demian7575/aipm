@@ -321,3 +321,4 @@ The frontend surfaces whether the feedback came from ChatGPT or the local rule e
 
 The system uses DynamoDB for data storage and provides real-time updates across all connected clients.
 # Test commit Sun Jan 11 15:01:50 KST 2026
+# Trigger deployment
