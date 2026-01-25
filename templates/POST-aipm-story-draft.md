@@ -138,7 +138,7 @@ quickly, easily, efficiently, smoothly, seamlessly, intuitively, user-friendly, 
   "title": "Display User Stories in Priority-Sorted List View",
   "asA": "project manager",
   "iWant": "to view all user stories in a sortable list showing title, status, and priority level with high-priority items displayed first",
-  "soThat": "I can quickly identify which stories require immediate attention without manually searching through the entire backlog",
+  "soThat": "I can identify critical work items within 5 seconds instead of manually searching through the entire backlog",
   "description": "Create a list view displaying user stories with three columns: title, status, and priority. Stories are sorted by priority (High, Medium, Low) with high-priority items at the top. The list shows a maximum of 20 stories per page with pagination controls. Users can click on any story to view details.",
   "storyPoint": 3,
   "components": ["WorkModel"]
