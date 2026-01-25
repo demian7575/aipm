@@ -4765,6 +4765,14 @@ function renderStoryDetailsWithCompleteData(story) {
             </select>
           </div>
           <div class="form-group">
+            <label>Priority:</label>
+            <select name="priority">
+              <option value="High" ${story.priority === 'High' ? 'selected' : ''}>High</option>
+              <option value="Medium" ${story.priority === 'Medium' || !story.priority ? 'selected' : ''}>Medium</option>
+              <option value="Low" ${story.priority === 'Low' ? 'selected' : ''}>Low</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label>Components:</label>
             <div id="modal-components-display" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 40px; cursor: pointer; background: #f8f9fa;">
               ${story.components && story.components.length > 0 ? story.components.join(', ') : 'Click to select'}
@@ -4860,6 +4868,7 @@ function renderStoryDetailsWithCompleteData(story) {
         storyPoint: parseInt(formData.get('storyPoint')) || 0,
         assigneeEmail: formData.get('assigneeEmail'),
         status: formData.get('status'),
+        priority: formData.get('priority'),
         components: modalComponents,
         parentId: parentIdValue ? parseInt(parentIdValue) : null
       };

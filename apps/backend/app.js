@@ -961,6 +961,7 @@ try:
           story_point INTEGER,
           assignee_email TEXT DEFAULT '',
           status TEXT DEFAULT 'Draft',
+          priority TEXT DEFAULT 'Medium',
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           FOREIGN KEY(parent_id) REFERENCES user_stories(id) ON DELETE CASCADE
@@ -5344,6 +5345,7 @@ async function loadStories(db, options = {}) {
       storyPoint: row.storyPoint ?? row.story_point ?? 0,
       assigneeEmail: row.assigneeEmail ?? row.assignee_email ?? '',
       status: safeNormalizeStoryStatus(row.status),
+      priority: row.priority ?? 'Medium',
       createdAt: row.createdAt ?? row.created_at,
       updatedAt: row.updatedAt ?? row.updated_at,
       acceptanceTests: [],
@@ -6683,7 +6685,7 @@ export async function createApp() {
         } else {
           // SQLite implementation
           const statement = db.prepare(
-            'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at, invest_warnings, invest_analysis) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
+            'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, priority, created_at, updated_at, invest_warnings, invest_analysis) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
           );
           const { lastInsertRowid } = await statement.run(
             parentId,
@@ -6696,6 +6698,7 @@ export async function createApp() {
             storyPoint,
             assigneeEmail,
             'Draft',
+            'Medium',
             timestamp,
             timestamp,
             '[]',
@@ -7249,6 +7252,7 @@ export async function createApp() {
 
         const storyPoint =
           payload.storyPoint === undefined ? existing.story_point : normalizeStoryPoint(payload.storyPoint);
+        const priority = payload.priority !== undefined ? payload.priority : (existing.priority ?? 'Medium');
         const existingComponents = parseJsonArray(existing.components);
         const normalizedExistingComponents = normalizeComponentsInput(existingComponents);
         const components =
@@ -7354,7 +7358,7 @@ export async function createApp() {
         }
 
         const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
+          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, priority = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
         );
         const sqliteStartTime = Date.now();
         update.run(
@@ -7367,6 +7371,7 @@ export async function createApp() {
           nextIWant,
           nextSoThat,
           nextStatus,
+          priority,
           now(),
           JSON.stringify(warnings),
           JSON.stringify({
