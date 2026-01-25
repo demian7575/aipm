@@ -15,12 +15,10 @@
 - soThat: User benefit
 
 ## INVEST Principles
-- **Independent**: Can be developed independently
-- **Negotiable**: Details can be discussed
-- **Valuable**: Provides value to users
-- **Estimable**: Can be estimated
-- **Small**: Can be completed in one sprint
-- **Testable**: Has clear acceptance criteria
+
+**INCLUDE**: `templates/INVEST_SCORING_RULES.md`
+
+Use INVEST scoring rules to evaluate story quality. Target score: 80+.
 
 ## Output Schema
 ```json
