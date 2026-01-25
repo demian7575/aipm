@@ -3236,6 +3236,17 @@ function applyInvestAnalysisToStory(story, analysis) {
   };
 }
 
+function normalizePriority(value) {
+  if (value == null || value === '') {
+    return 'Medium';
+  }
+  const normalized = String(value).trim();
+  if (['High', 'Medium', 'Low'].includes(normalized)) {
+    return normalized;
+  }
+  return 'Medium';
+}
+
 function normalizeStoryPoint(value) {
   if (value == null || value === '') {
     return null;
@@ -5309,6 +5320,7 @@ async function loadStories(db, options = {}) {
       components,
       storyPoint: row.storyPoint ?? row.story_point ?? 0,
       assigneeEmail: row.assigneeEmail ?? row.assignee_email ?? '',
+      priority: row.priority ?? 'Medium',
       status: safeNormalizeStoryStatus(row.status),
       createdAt: row.createdAt ?? row.created_at,
       updatedAt: row.updatedAt ?? row.updated_at,
@@ -6595,6 +6607,7 @@ export async function createApp() {
         const components = normalizeComponentsInput(payload.components, { strict: true });
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
+        const priority = normalizePriority(payload.priority);
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
         const acceptanceTests = payload.acceptanceTests || [];
         
@@ -6627,6 +6640,7 @@ export async function createApp() {
             components: serializeComponents(components),
             storyPoint: storyPoint,
             assigneeEmail: assigneeEmail,
+            priority: priority,
             status: 'Draft',
             createdAt: timestamp,
             updatedAt: timestamp,
