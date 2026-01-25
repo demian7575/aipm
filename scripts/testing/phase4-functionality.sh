@@ -48,6 +48,36 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769316700443
+# Merged: 2026-01-25
+# =============================================================================
+test_updated_user_authentication_with_oauth2() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: OAuth module exists
+    if [ ! -f "apps/backend/oauth.js" ]; then
+        fail_test "OAuth module not found"
+        return 1
+    fi
+    
+    # Test 2: OAuth endpoints in backend
+    if ! grep -q "'/api/auth/google'" apps/backend/app.js; then
+        fail_test "OAuth endpoints not implemented"
+        return 1
+    fi
+    
+    # Test 3: Google sign-in button in frontend
+    if ! grep -q "google-signin-btn" apps/frontend/public/index.html; then
+        fail_test "Google sign-in button not found"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +144,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_updated_user_authentication_with_oauth2; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))

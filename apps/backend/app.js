@@ -6096,6 +6096,59 @@ export async function createApp() {
         return;
       }
 
+      if (pathname === '/api/auth/google' && method === 'GET') {
+        try {
+          const { getAuthUrl } = await import('./oauth.js');
+          const clientId = process.env.GOOGLE_CLIENT_ID;
+          const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:4000/api/auth/google/callback';
+          const state = randomUUID();
+          
+          if (!clientId) {
+            sendJson(res, 500, { error: 'Google OAuth not configured' });
+            return;
+          }
+          
+          const authUrl = getAuthUrl(clientId, redirectUri, state);
+          res.writeHead(302, { Location: authUrl });
+          res.end();
+        } catch (error) {
+          sendJson(res, 500, { error: error.message });
+        }
+        return;
+      }
+
+      if (pathname === '/api/auth/google/callback' && method === 'GET') {
+        try {
+          const { exchangeCodeForToken, getUserProfile } = await import('./oauth.js');
+          const code = url.searchParams.get('code');
+          const clientId = process.env.GOOGLE_CLIENT_ID;
+          const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+          const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:4000/api/auth/google/callback';
+          
+          if (!code) {
+            sendJson(res, 400, { error: 'Authorization code missing' });
+            return;
+          }
+          
+          const tokenData = await exchangeCodeForToken(code, clientId, clientSecret, redirectUri);
+          const profile = await getUserProfile(tokenData.access_token);
+          
+          sendJson(res, 200, {
+            success: true,
+            accessToken: tokenData.access_token,
+            profile: {
+              id: profile.id,
+              email: profile.email,
+              name: profile.name,
+              picture: profile.picture
+            }
+          });
+        } catch (error) {
+          sendJson(res, 500, { error: error.message });
+        }
+        return;
+      }
+
       if (pathname === '/api/github-status' && method === 'GET') {
         try {
           const token = process.env.GITHUB_TOKEN;

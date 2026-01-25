@@ -42,6 +42,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const googleSigninBtn = document.getElementById('google-signin-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -7864,6 +7865,14 @@ function initialize() {
     window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
 
+  googleSigninBtn?.addEventListener('click', async () => {
+    try {
+      const authUrl = resolveApiUrl('/api/auth/google');
+      window.location.href = authUrl;
+    } catch (error) {
+      showToast('OAuth2 login failed: ' + error.message, 'error');
+    }
+  });
 
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
