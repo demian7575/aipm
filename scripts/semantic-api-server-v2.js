@@ -158,7 +158,13 @@ const server = http.createServer(async (req, res) => {
         }
       }
       
-      const prompt = `IMPORTANT: Read the template file at ${templatePath} from disk again. Generate output using this input data: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
+      const prompt = `CRITICAL: Your output will be REJECTED if INVEST score < 80.
+Read the template file at ${templatePath} from disk again.
+Follow ALL rules in the template EXACTLY.
+NEVER use forbidden words: quickly, easily, efficiently, smoothly, seamlessly, intuitively, user-friendly, better, improved, enhanced, optimized.
+ALWAYS use specific measurements: "within 5 seconds", "with 3 clicks", "in one screen".
+Generate output using this input data: ${parameterPairs.join(', ')}.
+Request ID: ${requestId}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId}, SSE: ${isSSE})...`);
       console.log(`📋 Parameters: ${parameterPairs.join(', ')}`);
