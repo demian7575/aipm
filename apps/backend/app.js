@@ -4415,7 +4415,8 @@ function prepareStoriesForDocument(context = {}) {
     id: story.id,
     title: story.title || '',
     status: story.status || '',
-    storyPoint: story.storyPoint ?? null,
+    story.storyPoint: story.storyPoint ?? 0,
+    priority: story.priority || null,
     components: Array.isArray(story.components) ? story.components : [],
     assigneeEmail: story.assigneeEmail || '',
     path: buildStoryPathLabel(story, storyMap),
@@ -5308,6 +5309,7 @@ async function loadStories(db, options = {}) {
       soThat: row.soThat ?? row.so_that ?? '',
       components,
       storyPoint: row.storyPoint ?? row.story_point ?? 0,
+      priority: row.priority || null,
       assigneeEmail: row.assigneeEmail ?? row.assignee_email ?? '',
       status: safeNormalizeStoryStatus(row.status),
       createdAt: row.createdAt ?? row.created_at,
@@ -5490,6 +5492,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     soThat: row.so_that ?? row.soThat ?? '',
     components: normalizeComponentsInput(parseJsonArray(row.components)),
     storyPoint: row.story_point ?? row.storyPoint ?? 0,
+    priority: row.priority || null,
     assigneeEmail: row.assignee_email ?? row.assigneeEmail ?? '',
     status: safeNormalizeStoryStatus(row.status),
     createdAt: row.created_at ?? row.createdAt,
@@ -6626,6 +6629,7 @@ export async function createApp() {
             soThat: soThat,
             components: serializeComponents(components),
             storyPoint: storyPoint,
+            priority: payload.priority || null,
             assigneeEmail: assigneeEmail,
             status: 'Draft',
             createdAt: timestamp,
@@ -6922,6 +6926,10 @@ export async function createApp() {
           if (payload.storyPoint !== undefined) {
             updateExpressions.push('storyPoint = :storyPoint');
             expressionAttributeValues[':storyPoint'] = payload.storyPoint;
+          }
+          if (payload.priority !== undefined) {
+            updateExpressions.push('priority = :priority');
+            expressionAttributeValues[':priority'] = payload.priority;
           }
           if (payload.assigneeEmail !== undefined) {
             updateExpressions.push('assigneeEmail = :assigneeEmail');

@@ -2729,6 +2729,18 @@ function getVisibleStories() {
   return state.stories;
 }
 
+/**
+ * Sort stories by priority (High > Medium > Low)
+ */
+function sortStoriesByPriority(stories) {
+  const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+  return [...stories].sort((a, b) => {
+    const aPriority = priorityOrder[a.priority] || 0;
+    const bPriority = priorityOrder[b.priority] || 0;
+    return bPriority - aPriority;
+  });
+}
+
 function renderOutline() {
   outlineTreeEl.innerHTML = '';
   const list = document.createDocumentFragment();
@@ -2768,18 +2780,20 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityBadge = story.priority ? ` [${story.priority}]` : '';
+    title.textContent = `${story.title}${priorityBadge}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
     list.appendChild(row);
 
     if (story.children && story.children.length > 0 && state.expanded.has(story.id)) {
-      story.children.forEach((child) => renderNode(child, depth + 1));
+      const sortedChildren = sortStoriesByPriority(story.children);
+      sortedChildren.forEach((child) => renderNode(child, depth + 1));
     }
   }
 
-  const visibleStories = getVisibleStories();
+  const visibleStories = sortStoriesByPriority(getVisibleStories());
   visibleStories.forEach((story) => renderNode(story, 0));
   outlineTreeEl.appendChild(list);
 }
