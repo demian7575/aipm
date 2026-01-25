@@ -161,7 +161,7 @@ const server = http.createServer(async (req, res) => {
       // CRITICAL: Pass template PATH, NOT content
       // Kiro CLI MUST read the template file itself
       // DO NOT embed template content in prompt - it makes prompt too large
-      const prompt = `Read template at ${templatePath} from disk. Input: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
+      const prompt = `Read template at ${templatePath}. Input: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId}, SSE: ${isSSE})...`);
       console.log(`📋 Template: ${templatePath}`);
