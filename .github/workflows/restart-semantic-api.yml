@@ -34,12 +34,19 @@ jobs:
           echo "EC2 IP: $EC2_IP"
 
       - name: Setup SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          if echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_rsa 2>/dev/null; then
+            echo "✅ Decoded base64 SSH key"
+          else
+            echo "📝 Using raw SSH key"
+            printf '%s' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          fi
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Restart Semantic API
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ubuntu@$EC2_IP \
-            'bash -s' < scripts/restart-semantic-api.sh
+          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_IP 'bash -s' < scripts/restart-semantic-api.sh
