@@ -1,17 +1,15 @@
 #!/bin/bash
 # Phase 2: UI-Driven Complete E2E Workflow (Real System Simulation)
 # Tests complete user journey through UI button interactions
-# Uses Development tables for data isolation
+# Uses Development environment for data isolation
 
 set +e
 source "$(dirname "$0")/test-library.sh"
 
-# Use Production Backend but with Development tables (via header)
-API_BASE="${API_BASE:-http://44.197.204.18:4000}"
-SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.197.204.18:8083}"
-
-# Header to tell Production Backend to use Development tables
-export CURL_HEADERS="-H 'X-Use-Dev-Tables: true'"
+# IMPORTANT: Use Development environment to avoid polluting Production data
+# This tests the same code (deployed to both environments) but with isolated data
+API_BASE="${API_BASE:-http://44.222.168.46:4000}"
+SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.222.168.46:8083}"
 
 # Initialize test counters
 PHASE_PASSED=0
@@ -21,8 +19,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Testing full user journey via UI button clicks"
-echo "Backend: Production (44.197.204.18)"
-echo "Tables: Development (data isolation)"
+echo "Environment: Development (Data Isolation)"
 echo ""
 
 # Global variables for story tracking
@@ -45,7 +42,7 @@ phase6_step1_story_draft_generation() {
     log_test "Story Draft Generation (SSE)"
     
     # Get parent story ID
-    local parent_story=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories" | jq -r '.[0] | select(.id != null) | .id')
+    local parent_story=$(curl -s "$API_BASE/api/stories" | jq -r '.[0] | select(.id != null) | .id')
     if [[ -z "$parent_story" ]]; then
         fail_test "Story Draft Generation (No parent story found)"
         return
@@ -192,7 +189,7 @@ phase6_step4_invest_analysis() {
     fi
     
     # Get story data
-    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_data=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if ! json_check "$story_data" '.id'; then
         fail_test "INVEST Analysis (Story not found)"
@@ -253,7 +250,7 @@ phase6_step5_acceptance_test_draft() {
     fi
     
     # Get story data
-    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_data=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     # Generate acceptance test draft via SSE
     local request_id="phase3-at-draft-$(date +%s)"
@@ -307,7 +304,7 @@ phase6_step6_create_pr() {
     fi
     
     # Get story data for PR
-    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_data=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     local story_title=$(echo "$story_data" | jq -r '.title')
     
     # Generate branch name
@@ -432,7 +429,7 @@ phase6_step8_test_in_dev() {
     fi
     
     # Check data consistency
-    local story_check=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_check=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if json_check "$story_check" '.id' && json_check "$story_check" '.title'; then
         pass_test "Deploy to Dev & Data Consistency"
@@ -470,7 +467,7 @@ phase6_step9_stop_tracking() {
     
     # Verify PR was deleted
     sleep 2
-    local verify=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID/prs")
+    local verify=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID/prs")
     
     if ! echo "$verify" | jq -e ".[] | select(.number == $PHASE2_PR_NUMBER)" > /dev/null 2>&1; then
         pass_test "Stop Tracking (Delete PR)"
@@ -508,7 +505,7 @@ phase6_step10_delete_story() {
     
     # Verify deletion
     sleep 1
-    local verify=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local verify=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if json_check "$verify" '.message' '"Story not found"' || json_check "$verify" '.error' || [[ "$verify" == "null" ]] || [[ -z "$verify" ]]; then
         pass_test "Delete Story"

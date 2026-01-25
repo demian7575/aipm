@@ -5997,16 +5997,6 @@ export async function createApp() {
       const pathname = url.pathname;
       const method = req.method ?? 'GET';
 
-      // Check for test environment headers to use Development tables
-      const useDevTables = req.headers['x-use-dev-tables'] === 'true';
-      if (useDevTables) {
-        const { setRequestContext } = await import('./dynamodb.js');
-        setRequestContext({
-          storiesTable: 'aipm-backend-dev-stories',
-          acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests'
-        });
-      }
-
       if (method === 'DELETE' && pathname.includes('/api/stories/')) {
         await writeFile('/tmp/aipm-request-received.log', `${new Date().toISOString()} - ${method} ${pathname}\n`, { flag: 'a' });
       }
@@ -6017,7 +6007,7 @@ export async function createApp() {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, X-Use-Dev-Tables',
+          'Access-Control-Allow-Headers': 'Content-Type',
         });
         res.end();
         return;
