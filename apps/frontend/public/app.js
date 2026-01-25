@@ -59,6 +59,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const priorityViewBtn = document.getElementById('priority-view-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -723,6 +724,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (priorityViewBtn) {
+  priorityViewBtn.addEventListener('click', () => {
+    openPriorityViewModal();
   });
 }
 
@@ -4667,6 +4674,20 @@ function renderStoryDetailsWithCompleteData(story) {
     pointRow.appendChild(pointHeader);
     pointRow.appendChild(pointCell);
     storyBriefBody.appendChild(pointRow);
+    
+    const priorityRow = document.createElement('tr');
+    priorityRow.className = 'priority-row';
+    const priorityHeader = document.createElement('th');
+    priorityHeader.scope = 'row';
+    priorityHeader.textContent = 'Priority';
+    const priorityCell = document.createElement('td');
+    const priorityDisplay = document.createElement('span');
+    priorityDisplay.className = 'story-text priority-' + (story.priority || 'none').toLowerCase();
+    priorityDisplay.textContent = story.priority || 'Medium';
+    priorityCell.appendChild(priorityDisplay);
+    priorityRow.appendChild(priorityHeader);
+    priorityRow.appendChild(priorityCell);
+    storyBriefBody.appendChild(priorityRow);
   }
 
   detailsContent.appendChild(form);
@@ -7337,6 +7358,91 @@ function openFilterModal() {
           showToast('Filters applied', 'success');
           return true;
         }
+      }
+    ]
+  });
+}
+
+/**
+ * Opens priority view modal showing all stories sorted by priority
+ */
+function openPriorityViewModal() {
+  const container = document.createElement('div');
+  container.className = 'priority-view-container';
+  
+  // Get all stories recursively
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  // Map priority values to numeric for sorting (high=3, medium=2, low=1, none=0)
+  const priorityValue = (priority) => {
+    if (!priority) return 0;
+    const p = String(priority).toLowerCase();
+    if (p === 'high') return 3;
+    if (p === 'medium') return 2;
+    if (p === 'low') return 1;
+    return 0;
+  };
+  
+  // Sort by priority (high to low), then by title
+  const sortedStories = allStories.sort((a, b) => {
+    const priorityDiff = priorityValue(b.priority) - priorityValue(a.priority);
+    if (priorityDiff !== 0) return priorityDiff;
+    return (a.title || '').localeCompare(b.title || '');
+  });
+  
+  if (sortedStories.length === 0) {
+    container.innerHTML = '<p class="empty-state">No user stories exist in the system</p>';
+  } else {
+    const table = document.createElement('table');
+    table.className = 'table-list priority-table';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${sortedStories.map(story => `
+          <tr data-story-id="${story.id}" class="priority-row">
+            <td class="story-title">${escapeHtml(story.title || 'Untitled')}</td>
+            <td>${escapeHtml(story.status || 'Draft')}</td>
+            <td class="priority-${(story.priority || 'none').toLowerCase()}">${escapeHtml(story.priority || 'None')}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    container.appendChild(table);
+    
+    // Add click handlers to navigate to story
+    table.querySelectorAll('.priority-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = Number(row.getAttribute('data-story-id'));
+        const story = storyIndex.get(storyId);
+        if (story) {
+          handleStorySelection(story);
+          closeModal();
+        }
+      });
+    });
+  }
+  
+  openModal({
+    title: 'Priority-based Story List',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
       }
     ]
   });

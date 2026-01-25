@@ -48,6 +48,48 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769317332757
+# Merged: 2026-01-25
+# =============================================================================
+test_updated_user_authentication_with_oauth2() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: Verify priority view button exists in HTML
+    if ! grep -q 'id="priority-view-btn"' apps/frontend/public/index.html; then
+        fail_test "Priority view button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify priority view modal function exists
+    if ! grep -q 'function openPriorityViewModal' apps/frontend/public/app.js; then
+        fail_test "openPriorityViewModal function not implemented"
+        return 1
+    fi
+    
+    # Test 3: Verify priority field is displayed in story details
+    if ! grep -q 'priorityRow' apps/frontend/public/app.js; then
+        fail_test "Priority field not displayed in story details"
+        return 1
+    fi
+    
+    # Test 4: Verify priority sorting logic exists
+    if ! grep -q 'priorityValue' apps/frontend/public/app.js; then
+        fail_test "Priority sorting logic not implemented"
+        return 1
+    fi
+    
+    # Test 5: Verify empty state handling
+    if ! grep -q 'empty-state' apps/frontend/public/app.js; then
+        fail_test "Empty state handling not implemented"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -108,6 +150,12 @@ echo "Running all Phase 4 functionality tests..."
 echo ""
 
 if test_remove_hide_completed_button; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_updated_user_authentication_with_oauth2; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))

@@ -1671,6 +1671,51 @@ body.is-mindmap-panning {
   gap: 0.5rem;
 }
 
+/* Priority view styles */
+.priority-view-container {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.priority-table .priority-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.priority-table .priority-row:hover {
+  background-color: #e8f4f8 !important;
+}
+
+.priority-table .story-title {
+  font-weight: 500;
+}
+
+.priority-high {
+  color: #d32f2f;
+  font-weight: 600;
+}
+
+.priority-medium {
+  color: #f57c00;
+  font-weight: 500;
+}
+
+.priority-low {
+  color: #388e3c;
+}
+
+.priority-none {
+  color: #757575;
+  font-style: italic;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #757575;
+  font-style: italic;
+}
+
 .form-hint {
   font-size: 0.85rem;
   color: #4b5563;

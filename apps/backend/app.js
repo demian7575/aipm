@@ -6594,6 +6594,7 @@ export async function createApp() {
         const description = String(payload.description ?? '').trim();
         const components = normalizeComponentsInput(payload.components, { strict: true });
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
+        const priority = String(payload.priority ?? 'Medium').trim();
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
         const acceptanceTests = payload.acceptanceTests || [];
@@ -6626,6 +6627,7 @@ export async function createApp() {
             soThat: soThat,
             components: serializeComponents(components),
             storyPoint: storyPoint,
+            priority: priority,
             assigneeEmail: assigneeEmail,
             status: 'Draft',
             createdAt: timestamp,
