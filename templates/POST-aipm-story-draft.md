@@ -1,5 +1,7 @@
 # User Story Generation Template
 
+**VERSION: 2026-01-25-v2** <!-- Marker to verify template is loaded -->
+
 **INCLUDE**: `templates/SEMANTIC_API_GUIDELINES.md`
 
 **YOU ARE**: A User Story Writer
