@@ -1,13 +1,14 @@
 #!/bin/bash
 # Phase 2: UI-Driven Complete E2E Workflow (Real System Simulation)
 # Tests complete user journey through UI button interactions
-# Uses Development environment tables for data isolation
+# Uses Development environment for data isolation
 
 set +e
 source "$(dirname "$0")/test-library.sh"
 
+# Use Development environment for data isolation
 API_BASE="${API_BASE:-http://44.222.168.46:4000}"
-SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.197.204.18:8083}"
+SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.222.168.46:8083}"
 
 # Initialize test counters
 PHASE_PASSED=0
