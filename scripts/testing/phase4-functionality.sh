@@ -48,6 +48,36 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769314571059
+# Merged: 2026-01-25
+# =============================================================================
+test_updated_user_authentication_with_oauth2_1769314571059() {
+    log_test "Updated: User Authentication with OAuth2 (1769314571059)"
+    
+    # Test 1: Verify priority sort toggle button exists
+    if ! grep -q 'id="priority-sort-toggle"' apps/frontend/public/index.html; then
+        fail_test "Priority sort toggle button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify sort direction toggle logic
+    if ! grep -q "sortDirection === 'desc' ? 'asc' : 'desc'" apps/frontend/public/app.js; then
+        fail_test "Sort direction toggle logic not implemented"
+        return 1
+    fi
+    
+    # Test 3: Verify button text updates with arrow indicator
+    if ! grep -q "Priority.*↓.*↑" apps/frontend/public/app.js; then
+        fail_test "Priority button arrow indicator not implemented"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2 (1769314571059)"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +144,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_updated_user_authentication_with_oauth2_1769314571059; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))

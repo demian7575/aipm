@@ -40,6 +40,7 @@ const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
+const prioritySortToggleBtn = document.getElementById('priority-sort-toggle');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
@@ -7868,6 +7869,13 @@ function initialize() {
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
+
+  prioritySortToggleBtn.addEventListener('click', () => {
+    state.sortDirection = state.sortDirection === 'desc' ? 'asc' : 'desc';
+    prioritySortToggleBtn.textContent = `Priority ${state.sortDirection === 'desc' ? '↓' : '↑'}`;
+    renderOutline();
+    renderMindmap();
+  });
 
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
