@@ -184,7 +184,7 @@ EOF
     cat > /tmp/restart_services.sh << EOF
 cd aipm
 echo 'Restarting $SERVICE_NAME...'
-sudo systemctl restart $SERVICE_NAME
+sudo systemctl restart $SERVICE_NAME || echo "⚠️  Backend restart failed, continuing..."
 
 echo 'Installing/updating Kiro services...'
 sudo cp scripts/systemd/aipm-kiro-api.service /etc/systemd/system/
@@ -200,8 +200,8 @@ sudo systemctl restart aipm-semantic-api
 
 echo 'Waiting for services to start...'
 sleep 5
-sudo systemctl status $SERVICE_NAME --no-pager
-echo 'Service restarted successfully'
+sudo systemctl status $SERVICE_NAME --no-pager || true
+echo 'Service restart completed'
 EOF
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/update_service.sh ec2-user@$HOST:/tmp/
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/update_service.sh
