@@ -3372,25 +3372,19 @@ async function analyzeInvest(story, options = {}) {
   }
 }
 
-function buildBaselineInvestAnalysis(story, options = {}) {
-  const warnings = markBaselineWarnings(baselineInvestWarnings(story, options));
-  return {
-    warnings,
-    source: 'heuristic',
-    summary: ''
-  };
-}
-
 async function evaluateInvestAnalysis(story, options = {}, controls = {}) {
   const includeAiInvest = controls?.includeAiInvest === true;
-  console.log('🔍 evaluateInvestAnalysis called with includeAiInvest:', includeAiInvest);
   
   if (includeAiInvest) {
-    console.log('🔍 Calling analyzeInvest for AI analysis');
     return analyzeInvest(story, options);
   }
-  console.log('🔍 Using baseline analysis (no AI)');
-  return buildBaselineInvestAnalysis(story, options);
+  
+  // Return empty analysis (don't calculate heuristic for GET requests)
+  return {
+    warnings: [],
+    source: 'none',
+    summary: ''
+  };
 }
 
 function applyInvestAnalysisToStory(story, analysis) {
