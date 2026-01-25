@@ -172,14 +172,14 @@ const server = http.createServer(async (req, res) => {
         // Store response object for SSE
         pendingRequests.set(requestId, { res, isSSE: true });
         
-        // Timeout after 120 seconds
+        // Timeout after 180 seconds (code generation can take time)
         setTimeout(() => {
           if (pendingRequests.has(requestId)) {
             res.write(`data: ${JSON.stringify({ status: 'error', message: 'Request timeout' })}\n\n`);
             res.end();
             pendingRequests.delete(requestId);
           }
-        }, 120000);
+        }, 180000);
         
       } else {
         // Regular mode - create promise and wait for response
@@ -191,7 +191,7 @@ const server = http.createServer(async (req, res) => {
               pendingRequests.delete(requestId);
               reject(new Error('Request timeout'));
             }
-          }, 120000);
+          }, 180000);
         });
         
         // Send to session pool
