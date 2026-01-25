@@ -106,6 +106,7 @@ export class DynamoDBDataLayer {
         storyPoint: item.storyPoint || 0,
         assigneeEmail: item.assigneeEmail || '',
         status: item.status == null ? 'Draft' : item.status,
+        priority: item.priority || 'Medium',
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         investAnalysis: item.investAnalysis,
@@ -143,6 +144,7 @@ export class DynamoDBDataLayer {
         title: story.title || '',
         description: story.description || '',
         status: story.status || 'Draft',
+        priority: story.priority || 'Medium',
         parentId: story.parentId || null,
         createdAt: story.createdAt || new Date().toISOString(),
         updatedAt: story.updatedAt || new Date().toISOString()

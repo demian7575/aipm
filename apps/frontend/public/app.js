@@ -2733,6 +2733,15 @@ function renderOutline() {
   outlineTreeEl.innerHTML = '';
   const list = document.createDocumentFragment();
 
+  function sortByPriority(stories) {
+    const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+    return [...stories].sort((a, b) => {
+      const aPriority = priorityOrder[a.priority] || 2;
+      const bPriority = priorityOrder[b.priority] || 2;
+      return aPriority - bPriority;
+    });
+  }
+
   function renderNode(story, depth) {
     const row = document.createElement('div');
     row.className = 'outline-item';
@@ -2775,12 +2784,14 @@ function renderOutline() {
     list.appendChild(row);
 
     if (story.children && story.children.length > 0 && state.expanded.has(story.id)) {
-      story.children.forEach((child) => renderNode(child, depth + 1));
+      const sortedChildren = sortByPriority(story.children);
+      sortedChildren.forEach((child) => renderNode(child, depth + 1));
     }
   }
 
   const visibleStories = getVisibleStories();
-  visibleStories.forEach((story) => renderNode(story, 0));
+  const sortedStories = sortByPriority(visibleStories);
+  sortedStories.forEach((story) => renderNode(story, 0));
   outlineTreeEl.appendChild(list);
 }
 
@@ -4667,6 +4678,20 @@ function renderStoryDetailsWithCompleteData(story) {
     pointRow.appendChild(pointHeader);
     pointRow.appendChild(pointCell);
     storyBriefBody.appendChild(pointRow);
+
+    const priorityRow = document.createElement('tr');
+    priorityRow.className = 'story-priority-row';
+    const priorityHeader = document.createElement('th');
+    priorityHeader.scope = 'row';
+    priorityHeader.textContent = 'Priority';
+    const priorityCell = document.createElement('td');
+    const priorityDisplay = document.createElement('span');
+    priorityDisplay.className = 'story-text';
+    priorityDisplay.textContent = story.priority || 'Medium';
+    priorityCell.appendChild(priorityDisplay);
+    priorityRow.appendChild(priorityHeader);
+    priorityRow.appendChild(priorityCell);
+    storyBriefBody.appendChild(priorityRow);
   }
 
   detailsContent.appendChild(form);
@@ -4753,6 +4778,14 @@ function renderStoryDetailsWithCompleteData(story) {
           <div class="form-group">
             <label>Story Points:</label>
             <input type="number" name="storyPoint" value="${story.storyPoint || 0}" min="0">
+          </div>
+          <div class="form-group">
+            <label>Priority:</label>
+            <select name="priority">
+              <option value="High" ${story.priority === 'High' ? 'selected' : ''}>High</option>
+              <option value="Medium" ${story.priority === 'Medium' || !story.priority ? 'selected' : ''}>Medium</option>
+              <option value="Low" ${story.priority === 'Low' ? 'selected' : ''}>Low</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Assignee Email:</label>
@@ -4858,6 +4891,7 @@ function renderStoryDetailsWithCompleteData(story) {
         soThat: formData.get('soThat'),
         description: formData.get('description'),
         storyPoint: parseInt(formData.get('storyPoint')) || 0,
+        priority: formData.get('priority') || 'Medium',
         assigneeEmail: formData.get('assigneeEmail'),
         status: formData.get('status'),
         components: modalComponents,
