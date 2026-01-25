@@ -149,10 +149,6 @@ const server = http.createServer(async (req, res) => {
       // Check if SSE mode requested
       const isSSE = url.searchParams.get('stream') === 'true' || parameters.stream === true;
       
-      // Read template content from disk
-      const templateContent = await readFile(templatePath, 'utf-8');
-      console.log(`📄 Template loaded: ${templateName} (${templateContent.length} chars)`);
-      
       // Build prompt with template path and ALL parameters (single line)
       let parameterPairs = [];
       for (const [key, value] of Object.entries(parameters)) {
@@ -162,14 +158,13 @@ const server = http.createServer(async (req, res) => {
         }
       }
       
-      const prompt = `Follow this template:
-
-${templateContent}
-
-Input data: ${parameterPairs.join(', ')}
-Request ID: ${requestId}`;
+      // CRITICAL: Pass template PATH, NOT content
+      // Kiro CLI MUST read the template file itself
+      // DO NOT embed template content in prompt - it makes prompt too large
+      const prompt = `Read template at ${templatePath} from disk. Input: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId}, SSE: ${isSSE})...`);
+      console.log(`📋 Template: ${templatePath}`);
       console.log(`📋 Parameters: ${parameterPairs.join(', ')}`);
       
       if (isSSE) {
