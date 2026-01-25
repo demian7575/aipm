@@ -156,7 +156,7 @@ const server = http.createServer(async (req, res) => {
         }
       }
       
-      const prompt = `Read the template file at ${templatePath} and generate output using this input data: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
+      const prompt = `IMPORTANT: Read the template file at ${templatePath} from disk (do not use cached version). Generate output using this input data: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId}, SSE: ${isSSE})...`);
       console.log(`📋 Parameters: ${parameterPairs.join(', ')}`);
