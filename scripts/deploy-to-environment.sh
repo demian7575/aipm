@@ -194,8 +194,9 @@ sudo cp scripts/systemd/aipm-semantic-api.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool aipm-semantic-api
 
-echo 'Stopping services...'
-sudo systemctl stop kiro-session-pool aipm-kiro-cli aipm-kiro-api aipm-semantic-api || true
+echo 'Force killing Node.js processes...'
+sudo pkill -f semantic-api-server || true
+sudo pkill -f kiro-session-pool || true
 sleep 2
 
 echo 'Starting services...'
