@@ -5,7 +5,7 @@
 set -e
 
 # Parse command line arguments
-PHASES_TO_RUN="1,3,4,5,6"
+PHASES_TO_RUN="1,2"
 TARGET_ENV="prod"
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -120,18 +120,18 @@ main() {
         fi
     fi
     
-    # Phase 6: UI-Driven Complete Workflow
-    if should_run_phase 6; then
-        log_phase "🎯 PHASE 6: UI-Driven Complete Workflow"
-        local phase6_start=$(date +%s)
+    # Phase 2: UI-Driven Complete E2E Workflow
+    if should_run_phase 2; then
+        log_phase "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
+        local phase2_start=$(date +%s)
         
-        if source ./scripts/testing/phase6-ui-workflow.sh; then
-            local phase6_end=$(date +%s)
-            local phase6_duration=$((phase6_end - phase6_start))
-            phase_summary "Phase 6"
-            echo "⏱️  Phase 6 Duration: ${phase6_duration}s"
+        if source ./scripts/testing/phase2-e2e-workflow.sh; then
+            local phase2_end=$(date +%s)
+            local phase2_duration=$((phase2_end - phase2_start))
+            phase_summary "Phase 2"
+            echo "⏱️  Phase 2 Duration: ${phase2_duration}s"
         else
-            phase_summary "Phase 6"
+            phase_summary "Phase 2"
             echo "⚠️  Workflow issues detected - review complete workflow"
         fi
     fi

@@ -80,7 +80,7 @@ jobs:
             exit 1
           fi
 
-  # Phase 6: UI-Driven Complete Workflow (BLOCKS deployment)
+  # Phase 2: Complete E2E Workflow (BLOCKS deployment)
   phase2-e2e:
     runs-on: ubuntu-latest
     needs: phase1-critical
@@ -116,14 +116,14 @@ jobs:
       - name: Run Phase 2 - Complete E2E Workflow
         id: phase2
         run: |
-          echo "🟡 Running Phase 6: UI-Driven Complete Workflow"
+          echo "🟡 Running Phase 2: Complete E2E Workflow"
           echo "   Environment: $TARGET_ENV"
           
-          if timeout 300 ./scripts/testing/phase6-ui-workflow.sh; then
-            echo "✅ Phase 6 PASSED - E2E workflow validated"
+          if timeout 300 ./scripts/testing/phase2-e2e-workflow.sh; then
+            echo "✅ Phase 2 PASSED - E2E workflow validated"
             echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "❌ Phase 6 FAILED - BLOCKING DEPLOYMENT"
+            echo "❌ Phase 2 FAILED - BLOCKING DEPLOYMENT"
             echo "status=failure" >> $GITHUB_OUTPUT
             exit 1
           fi
@@ -155,7 +155,7 @@ jobs:
           | Phase | Priority | Status | Impact |
           |-------|----------|--------|---------|
           | Phase 1: Security & Data Safety | 🔴 Critical | ${{ needs.phase1-critical.outputs.phase1-status || 'skipped' }} | ${{ needs.phase1-critical.outputs.phase1-status == 'success' && 'Deployment Approved' || 'BLOCKS Deployment' }} |
-          | Phase 6: UI-Driven Complete Workflow | 🔴 Critical | ${{ needs.phase2-e2e.outputs.phase2-status || 'skipped' }} | ${{ needs.phase2-e2e.outputs.phase2-status == 'success' && 'E2E Validated' || 'BLOCKS Deployment' }} |
+          | Phase 2: Complete E2E Workflow | 🔴 Critical | ${{ needs.phase2-e2e.outputs.phase2-status || 'skipped' }} | ${{ needs.phase2-e2e.outputs.phase2-status == 'success' && 'E2E Validated' || 'BLOCKS Deployment' }} |
           
           ## Overall Assessment
           
@@ -192,7 +192,7 @@ jobs:
           echo "- 🔄 Deployment safety (git state, artifacts, service health)" >> gating-test-report.md
           echo "- 🌐 Infrastructure health (API, Semantic API, Frontend)" >> gating-test-report.md
           echo "" >> gating-test-report.md
-          echo "### Phase 6: UI-Driven Complete Workflow" >> gating-test-report.md
+          echo "### Phase 2: Complete E2E Workflow" >> gating-test-report.md
           echo "- 📝 Story Draft Generation (SSE)" >> gating-test-report.md
           echo "- ✏️  Story Creation & Editing" >> gating-test-report.md
           echo "- 🤖 INVEST Analysis (SSE)" >> gating-test-report.md

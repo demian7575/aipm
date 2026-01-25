@@ -1,5 +1,5 @@
 #!/bin/bash
-# Phase 6: UI-Driven Complete Workflow (Real System Simulation)
+# Phase 2: UI-Driven Complete E2E Workflow (Real System Simulation)
 # Tests complete user journey through UI button interactions
 # Uses Development environment tables for data isolation
 
@@ -14,19 +14,19 @@ PHASE_PASSED=0
 PHASE_FAILED=0
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🎯 PHASE 6: UI-Driven Complete Workflow"
+echo "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Testing full user journey via UI button clicks"
 echo "Environment: Development (Data Isolation)"
 echo ""
 
 # Global variables for story tracking
-PHASE6_PARENT_STORY_ID=""
-PHASE6_CHILD_STORY_ID=""
-PHASE6_STORY_DRAFT=""
-PHASE6_ACCEPTANCE_TEST_DRAFT=""
-PHASE6_PR_NUMBER=""
-PHASE6_BRANCH_NAME=""
+PHASE2_PARENT_STORY_ID=""
+PHASE2_CHILD_STORY_ID=""
+PHASE2_STORY_DRAFT=""
+PHASE2_ACCEPTANCE_TEST_DRAFT=""
+PHASE2_PR_NUMBER=""
+PHASE2_BRANCH_NAME=""
 
 # ============================================================================
 # Step 1: Story Draft Generation
@@ -45,8 +45,8 @@ phase6_step1_story_draft_generation() {
         fail_test "Story Draft Generation (No parent story found)"
         return
     fi
-    PHASE6_PARENT_STORY_ID="$parent_story"
-    echo "   📍 Parent Story ID: $PHASE6_PARENT_STORY_ID"
+    PHASE2_PARENT_STORY_ID="$parent_story"
+    echo "   📍 Parent Story ID: $PHASE2_PARENT_STORY_ID"
     
     # Generate story draft via SSE with simple, INVEST-compliant idea
     local request_id="phase6-story-draft-$(date +%s)"
@@ -56,7 +56,7 @@ phase6_step1_story_draft_generation() {
         -d "{
             \"requestId\":\"$request_id\",
             \"featureDescription\":\"As a project manager, I want to see a list of all user stories sorted by priority, so that I can quickly identify which stories need attention first. The list should display story title, status, and priority level, with high priority stories at the top.\",
-            \"parentId\":$PHASE6_PARENT_STORY_ID,
+            \"parentId\":$PHASE2_PARENT_STORY_ID,
             \"components\":[\"WorkModel\"]
         }" 2>&1)
     
@@ -69,7 +69,7 @@ phase6_step1_story_draft_generation() {
     local draft_data=$(echo "$response" | parse_sse_response)
     
     if json_check "$draft_data" '.title' && json_check "$draft_data" '.status' '"complete"'; then
-        PHASE6_STORY_DRAFT="$draft_data"
+        PHASE2_STORY_DRAFT="$draft_data"
         pass_test "Story Draft Generation (SSE)"
         echo "   ✅ Draft Title: $(echo "$draft_data" | jq -r '.title')"
     else
@@ -93,13 +93,13 @@ phase6_step2_create_story() {
     
     log_test "Create Story from Draft"
     
-    if [[ -z "$PHASE6_STORY_DRAFT" ]]; then
+    if [[ -z "$PHASE2_STORY_DRAFT" ]]; then
         fail_test "Create Story from Draft (No draft available)"
         return
     fi
     
     # Extract draft data and create story
-    local story_payload=$(echo "$PHASE6_STORY_DRAFT" | jq '{
+    local story_payload=$(echo "$PHASE2_STORY_DRAFT" | jq '{
         title, description, asA, iWant, soThat, components,
         storyPoint, assigneeEmail, parentId, acceptWarnings,
         acceptanceTests
@@ -111,9 +111,9 @@ phase6_step2_create_story() {
         -d "$story_payload")
     
     if json_check "$response" '.id'; then
-        PHASE6_CHILD_STORY_ID=$(echo "$response" | jq -r '.id')
+        PHASE2_CHILD_STORY_ID=$(echo "$response" | jq -r '.id')
         pass_test "Create Story from Draft"
-        echo "   ✅ Story ID: $PHASE6_CHILD_STORY_ID"
+        echo "   ✅ Story ID: $PHASE2_CHILD_STORY_ID"
         echo "   ✅ Title: $(echo "$response" | jq -r '.title')"
     else
         fail_test "Create Story from Draft (Creation failed)"
@@ -136,7 +136,7 @@ phase6_step3_edit_story() {
     
     log_test "Edit Story"
     
-    if [[ -z "$PHASE6_CHILD_STORY_ID" ]]; then
+    if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
         fail_test "Edit Story (No story ID)"
         return
     fi
@@ -153,7 +153,7 @@ EOF
 )
     
     local response
-    response=$(curl -s -X PUT "$API_BASE/api/stories/$PHASE6_CHILD_STORY_ID" \
+    response=$(curl -s -X PUT "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID" \
         -H 'Content-Type: application/json' \
         -d "$updated_payload")
     
@@ -181,13 +181,13 @@ phase6_step4_invest_analysis() {
     
     log_test "INVEST Analysis (SSE)"
     
-    if [[ -z "$PHASE6_CHILD_STORY_ID" ]]; then
+    if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
         fail_test "INVEST Analysis (No story ID)"
         return
     fi
     
     # Get story data
-    local story_data=$(curl -s "$API_BASE/api/stories/$PHASE6_CHILD_STORY_ID")
+    local story_data=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if ! json_check "$story_data" '.id'; then
         fail_test "INVEST Analysis (Story not found)"
@@ -201,7 +201,7 @@ phase6_step4_invest_analysis() {
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"storyId\":$PHASE6_CHILD_STORY_ID,
+            \"storyId\":$PHASE2_CHILD_STORY_ID,
             \"title\":$(echo "$story_data" | jq -c '.title'),
             \"description\":$(echo "$story_data" | jq -c '.description'),
             \"asA\":$(echo "$story_data" | jq -c '.asA'),
@@ -242,13 +242,13 @@ phase6_step5_acceptance_test_draft() {
     
     log_test "Acceptance Test Draft Generation (SSE)"
     
-    if [[ -z "$PHASE6_CHILD_STORY_ID" ]]; then
+    if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
         fail_test "Acceptance Test Draft (No story ID)"
         return
     fi
     
     # Get story data
-    local story_data=$(curl -s "$API_BASE/api/stories/$PHASE6_CHILD_STORY_ID")
+    local story_data=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     # Generate acceptance test draft via SSE
     local request_id="phase3-at-draft-$(date +%s)"
@@ -257,7 +257,7 @@ phase6_step5_acceptance_test_draft() {
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"storyId\":$PHASE6_CHILD_STORY_ID,
+            \"storyId\":$PHASE2_CHILD_STORY_ID,
             \"title\":$(echo "$story_data" | jq -c '.title'),
             \"description\":$(echo "$story_data" | jq -c '.description'),
             \"idea\":\"Test OAuth2 login flow with Google provider\"
@@ -272,7 +272,7 @@ phase6_step5_acceptance_test_draft() {
     local draft_data=$(echo "$response" | parse_sse_response)
     
     if json_check "$draft_data" '.title' && json_check "$draft_data" '.status' '"complete"'; then
-        PHASE6_ACCEPTANCE_TEST_DRAFT="$draft_data"
+        PHASE2_ACCEPTANCE_TEST_DRAFT="$draft_data"
         pass_test "Acceptance Test Draft Generation (SSE)"
         echo "   ✅ Test Title: $(echo "$draft_data" | jq -r '.title')"
     else
@@ -296,25 +296,25 @@ phase6_step6_create_pr() {
     
     log_test "Create PR (Real GitHub)"
     
-    if [[ -z "$PHASE6_CHILD_STORY_ID" ]]; then
+    if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
         fail_test "Create PR (No story ID)"
         return
     fi
     
     # Get story data for PR
-    local story_data=$(curl -s "$API_BASE/api/stories/$PHASE6_CHILD_STORY_ID")
+    local story_data=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     local story_title=$(echo "$story_data" | jq -r '.title')
     
     # Generate branch name
-    PHASE6_BRANCH_NAME="feature/story-$PHASE6_CHILD_STORY_ID"
+    PHASE2_BRANCH_NAME="feature/story-$PHASE2_CHILD_STORY_ID"
     
     # Create PR via API
     local pr_payload=$(cat <<EOF
 {
-    "storyId": $PHASE6_CHILD_STORY_ID,
-    "branchName": "$PHASE6_BRANCH_NAME",
+    "storyId": $PHASE2_CHILD_STORY_ID,
+    "branchName": "$PHASE2_BRANCH_NAME",
     "prTitle": "feat: $story_title",
-    "prBody": "Implements story #$PHASE6_CHILD_STORY_ID\n\n$story_title"
+    "prBody": "Implements story #$PHASE2_CHILD_STORY_ID\n\n$story_title"
 }
 EOF
 )
@@ -325,11 +325,11 @@ EOF
         -d "$pr_payload")
     
     if json_check "$response" '.success' 'true' && json_check "$response" '.prNumber'; then
-        PHASE6_PR_NUMBER=$(echo "$response" | jq -r '.prNumber')
+        PHASE2_PR_NUMBER=$(echo "$response" | jq -r '.prNumber')
         local pr_url=$(echo "$response" | jq -r '.prUrl')
         pass_test "Create PR (Real GitHub)"
-        echo "   ✅ PR #$PHASE6_PR_NUMBER created"
-        echo "   ✅ Branch: $PHASE6_BRANCH_NAME"
+        echo "   ✅ PR #$PHASE2_PR_NUMBER created"
+        echo "   ✅ Branch: $PHASE2_BRANCH_NAME"
         echo "   ✅ URL: $pr_url"
     else
         fail_test "Create PR (Creation failed)"
@@ -363,12 +363,12 @@ phase6_step7_generate_code() {
     
     log_test "Generate Code (Real)"
     
-    if [[ -z "$PHASE6_CHILD_STORY_ID" ]]; then
+    if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
         fail_test "Generate Code (No story ID)"
         return
     fi
     
-    if [[ -z "$PHASE6_PR_NUMBER" ]] || [[ -z "$PHASE6_BRANCH_NAME" ]]; then
+    if [[ -z "$PHASE2_PR_NUMBER" ]] || [[ -z "$PHASE2_BRANCH_NAME" ]]; then
         fail_test "Generate Code (No PR information)"
         return
     fi
@@ -377,16 +377,16 @@ phase6_step7_generate_code() {
     local request_id="phase6-codegen-$(date +%s)"
     local response
     
-    echo "   📍 Generating code for PR #$PHASE6_PR_NUMBER"
-    echo "   📍 Branch: $PHASE6_BRANCH_NAME"
+    echo "   📍 Generating code for PR #$PHASE2_PR_NUMBER"
+    echo "   📍 Branch: $PHASE2_BRANCH_NAME"
     
     response=$(timeout 180 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/code-generation?stream=true" \
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"storyId\":$PHASE6_CHILD_STORY_ID,
-            \"branchName\":\"$PHASE6_BRANCH_NAME\",
-            \"prNumber\":$PHASE6_PR_NUMBER
+            \"storyId\":$PHASE2_CHILD_STORY_ID,
+            \"branchName\":\"$PHASE2_BRANCH_NAME\",
+            \"prNumber\":$PHASE2_PR_NUMBER
         }" 2>&1)
     
     if [[ $? -ne 0 ]]; then
@@ -399,7 +399,7 @@ phase6_step7_generate_code() {
     
     if json_check "$code_data" '.status' '"complete"' || json_check "$code_data" '.status' '"success"'; then
         pass_test "Generate Code (Real)"
-        echo "   ✅ Code generated and committed to PR #$PHASE6_PR_NUMBER"
+        echo "   ✅ Code generated and committed to PR #$PHASE2_PR_NUMBER"
     else
         fail_test "Generate Code (Invalid response)"
         echo "   ❌ Response: $response"
@@ -421,13 +421,13 @@ phase6_step8_test_in_dev() {
     
     log_test "Deploy to Dev & Data Consistency"
     
-    if [[ -z "$PHASE6_CHILD_STORY_ID" ]]; then
+    if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
         fail_test "Test in Dev (No story ID)"
         return
     fi
     
     # Check data consistency
-    local story_check=$(curl -s "$API_BASE/api/stories/$PHASE6_CHILD_STORY_ID")
+    local story_check=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if json_check "$story_check" '.id' && json_check "$story_check" '.title'; then
         pass_test "Deploy to Dev & Data Consistency"
@@ -454,22 +454,22 @@ phase6_step9_stop_tracking() {
     
     log_test "Stop Tracking (Delete PR)"
     
-    if [[ -z "$PHASE6_CHILD_STORY_ID" ]] || [[ -z "$PHASE6_PR_NUMBER" ]]; then
+    if [[ -z "$PHASE2_CHILD_STORY_ID" ]] || [[ -z "$PHASE2_PR_NUMBER" ]]; then
         fail_test "Stop Tracking (No story or PR information)"
         return
     fi
     
     # Delete PR via API (closes GitHub PR and removes from DB)
     local response
-    response=$(curl -s -X DELETE "$API_BASE/api/stories/$PHASE6_CHILD_STORY_ID/prs/$PHASE6_PR_NUMBER")
+    response=$(curl -s -X DELETE "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID/prs/$PHASE2_PR_NUMBER")
     
     # Verify PR was deleted
     sleep 2
-    local verify=$(curl -s "$API_BASE/api/stories/$PHASE6_CHILD_STORY_ID/prs")
+    local verify=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID/prs")
     
-    if ! echo "$verify" | jq -e ".[] | select(.number == $PHASE6_PR_NUMBER)" > /dev/null 2>&1; then
+    if ! echo "$verify" | jq -e ".[] | select(.number == $PHASE2_PR_NUMBER)" > /dev/null 2>&1; then
         pass_test "Stop Tracking (Delete PR)"
-        echo "   ✅ PR #$PHASE6_PR_NUMBER deleted"
+        echo "   ✅ PR #$PHASE2_PR_NUMBER deleted"
         echo "   ✅ GitHub PR closed"
     else
         fail_test "Stop Tracking (PR still exists)"
@@ -492,18 +492,18 @@ phase6_step10_delete_story() {
     
     log_test "Delete Story"
     
-    if [[ -z "$PHASE6_CHILD_STORY_ID" ]]; then
+    if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
         fail_test "Delete Story (No story ID)"
         return
     fi
     
     # Delete story
     local response
-    response=$(curl -s -X DELETE "$API_BASE/api/stories/$PHASE6_CHILD_STORY_ID")
+    response=$(curl -s -X DELETE "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     # Verify deletion
     sleep 1
-    local verify=$(curl -s "$API_BASE/api/stories/$PHASE6_CHILD_STORY_ID")
+    local verify=$(curl -s "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if json_check "$verify" '.message' '"Story not found"' || json_check "$verify" '.error' || [[ "$verify" == "null" ]] || [[ -z "$verify" ]]; then
         pass_test "Delete Story"
@@ -538,9 +538,9 @@ phase6_step10_delete_story
 phase6_end=$(date +%s)
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✅ Phase 6 completed"
+echo "✅ Phase 2 completed"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📊 Phase 6 Summary:"
+echo "📊 Phase 2 Summary:"
 echo "   Tests Passed: $PHASE_PASSED"
 echo "   Tests Failed: $PHASE_FAILED"
 echo "   Total Duration: $((phase6_end - phase6_start))s"
@@ -549,7 +549,7 @@ echo ""
 
 # Exit with failure if any tests failed
 if [[ $PHASE_FAILED -gt 0 ]]; then
-    echo "❌ Phase 6 FAILED: $PHASE_FAILED test(s) failed"
+    echo "❌ Phase 2 FAILED: $PHASE_FAILED test(s) failed"
     exit 1
 fi
 

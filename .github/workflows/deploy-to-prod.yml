@@ -78,11 +78,11 @@ jobs:
           TARGET_ENV: prod
           SSH_HOST: ${{ env.EC2_IP }}
         run: |
-          echo "🧪 Running Pre-Production Gating Tests (Phase 1 + Phase 6)"
+          echo "🧪 Running Pre-Production Gating Tests (Phase 1 + Phase 2)"
           export PHASE="pre-production"
           
-          # Run Phase 1 (Security & Data Safety) and Phase 6 (E2E Workflow)
-          if ./scripts/testing/run-structured-gating-tests.sh --phases "1,6"; then
+          # Run Phase 1 (Security & Data Safety) and Phase 2 (E2E Workflow)
+          if ./scripts/testing/run-structured-gating-tests.sh --phases "1,2"; then
             echo "✅ Gating tests passed - production deployment approved"
             echo "status=success" >> $GITHUB_OUTPUT
           else
@@ -228,9 +228,9 @@ jobs:
             exit 1
           fi
           
-          # Run post-deployment gating tests (Phase 1 + Phase 6)
+          # Run post-deployment gating tests (Phase 1 + Phase 2)
           export PHASE="post-production"
-          if ./scripts/testing/run-structured-gating-tests.sh --phases "1,6"; then
+          if ./scripts/testing/run-structured-gating-tests.sh --phases "1,2"; then
             echo "✅ Post-deployment validation passed"
           else
             echo "❌ Post-deployment validation failed"
