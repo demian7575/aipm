@@ -124,7 +124,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Generic template-based endpoint
-  const templateName = `${req.method}${url.pathname.replace(/\//g, '-')}.md`;
+  // Remove /api/ prefix from pathname before converting to template name
+  const cleanPath = url.pathname.replace(/^\/api/, '');
+  const templateName = `${req.method}${cleanPath.replace(/\//g, '-')}.md`;
   const templatePath = join(TEMPLATES_DIR, templateName);
 
   console.log(`📝 ${req.method} ${url.pathname} → ${templateName}`);
