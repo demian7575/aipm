@@ -59,6 +59,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const priorityListBtn = document.getElementById('priority-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -723,6 +724,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (priorityListBtn) {
+  priorityListBtn.addEventListener('click', () => {
+    openPriorityListModal();
   });
 }
 
@@ -7233,6 +7240,71 @@ function openTaskModal(storyId, task = null) {
   
   // Trigger resize after modal is rendered
   setTimeout(autoResize, 10);
+}
+
+/**
+ * Opens priority list modal showing stories sorted by priority
+ */
+async function openPriorityListModal() {
+  try {
+    const response = await fetch(resolveApiUrl('/api/stories?sortByPriority=true'));
+    if (!response.ok) throw new Error('Failed to fetch stories');
+    const stories = await response.json();
+    
+    const container = document.createElement('div');
+    container.className = 'priority-list-container';
+    
+    const table = document.createElement('table');
+    table.className = 'priority-list-table';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Priority</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    
+    const tbody = table.querySelector('tbody');
+    const flatStories = [];
+    
+    function flattenStories(storyList) {
+      storyList.forEach(story => {
+        flatStories.push(story);
+        if (story.children && story.children.length > 0) {
+          flattenStories(story.children);
+        }
+      });
+    }
+    
+    flattenStories(stories);
+    
+    flatStories.forEach(story => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${story.title || 'Untitled'}</td>
+        <td>${story.status || 'Draft'}</td>
+        <td>${story.priority || 'Medium'}</td>
+      `;
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => {
+        handleStorySelection(story);
+        closeModal();
+      });
+      tbody.appendChild(row);
+    });
+    
+    container.appendChild(table);
+    
+    openModal('Priority-Sorted Story List', container, [
+      { label: 'Close', className: 'secondary', onClick: closeModal }
+    ]);
+  } catch (error) {
+    console.error('Failed to load priority list:', error);
+    showToast('Failed to load priority list', 'error');
+  }
 }
 
 /**

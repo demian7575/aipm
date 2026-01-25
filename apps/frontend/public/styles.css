@@ -1671,6 +1671,34 @@ body.is-mindmap-panning {
   gap: 0.5rem;
 }
 
+.priority-list-container {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.priority-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.priority-list-table th,
+.priority-list-table td {
+  border: 1px solid #e5e9f5;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.priority-list-table thead th {
+  background: #f4f6ff;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.priority-list-table tbody tr:hover {
+  background: #f8fafc;
+}
+
 .form-hint {
   font-size: 0.85rem;
   color: #4b5563;
