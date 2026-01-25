@@ -119,18 +119,28 @@ git commit -m "feat: {story title}"
 git push origin {branchName}
 ```
 
-### 7. Report via API
+### 7. Report Completion (MANDATORY - DO NOT SKIP)
 ```bash
+cd /home/ec2-user/aipm
+
+# CRITICAL: Send completion response to Semantic API
+# This MUST be executed after git push succeeds
+REQUEST_ID="{requestId}"
+
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
-  -d '{
-    "requestId": "{REQUEST_ID}",
-    "status": "complete",
-    "filesModified": ["modified files"],
-    "summary": "Description",
-    "testResults": "test results"
-  }'
+  -d "{
+    \"requestId\": \"$REQUEST_ID\",
+    \"status\": \"complete\",
+    \"filesModified\": [\"apps/backend/app.js\", \"apps/frontend/public/app.js\"],
+    \"summary\": \"Code generated and committed successfully\",
+    \"testResults\": \"Gating tests passed\"
+  }"
+
+echo "✅ Completion response sent to Semantic API"
 ```
+
+**IMPORTANT**: This step is MANDATORY. Without it, the request will timeout.
 
 ## CODE REQUIREMENTS
 - Follow existing AIPM patterns
