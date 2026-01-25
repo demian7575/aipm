@@ -2268,7 +2268,7 @@ async function callSemanticApi(endpoint, payload, options = {}) {
   const { randomUUID } = await import('crypto');
   const requestId = payload.requestId || randomUUID();
   
-  const url = `${SEMANTIC_API_URL}${endpoint}`;
+  const url = `${SEMANTIC_API_URL}${endpoint}?stream=true`;
   const method = options.method || 'POST';
   
   try {
@@ -2282,7 +2282,41 @@ async function callSemanticApi(endpoint, payload, options = {}) {
       throw new Error(`Semantic API ${endpoint} failed: ${response.status} ${response.statusText}`);
     }
     
-    return await response.json();
+    // Read SSE stream
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let result = null;
+    let buffer = '';
+    
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep incomplete line in buffer
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.status === 'complete') {
+              result = data;
+            } else if (data.status === 'progress') {
+              console.log(`📊 Progress: ${data.message}`);
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+    
+    if (!result) {
+      throw new Error('No complete response received from SSE stream');
+    }
+    
+    return result;
   } catch (error) {
     console.error(`❌ Semantic API error [${endpoint}]:`, error.message);
     throw error;

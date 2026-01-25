@@ -72,41 +72,16 @@ const server = http.createServer(async (req, res) => {
         // Find pending request
         const pending = pendingRequests.get(requestId);
         if (pending) {
-          // Check if this is SSE mode
-          if (pending.isSSE) {
-            // Transform response for frontend compatibility
-            let transformedResponse = response;
-            
-            // If response has title/given/when/then, wrap it for frontend
-            if (response.title && response.given && !response.status) {
-              transformedResponse = {
-                status: 'complete',
-                success: true,
-                acceptanceTests: [{
-                  title: response.title,
-                  given: response.given,
-                  when: response.when,
-                  then: response.then
-                }],
-                elapsed: 0
-              };
-            }
-            
-            // Send SSE event
-            pending.res.write(`data: ${JSON.stringify(transformedResponse)}\n\n`);
-            
-            // If complete, close connection and cleanup
-            if (transformedResponse.status === 'complete' || transformedResponse.status === 'error') {
-              pending.res.end();
-              pendingRequests.delete(requestId);
-              
-              // Notify Session Pool that Kiro is done
-              notifySessionPoolComplete(requestId);
-            }
-          } else {
-            // Regular mode - resolve promise
-            pending.resolve(response);
+          // Send SSE event
+          pending.res.write(`data: ${JSON.stringify(response)}\n\n`);
+          
+          // If complete, close connection and cleanup
+          if (response.status === 'complete' || response.status === 'error') {
+            pending.res.end();
             pendingRequests.delete(requestId);
+            
+            // Notify Session Pool that Kiro is done
+            notifySessionPoolComplete(requestId);
           }
         } else {
           console.warn(`⚠️  No pending request found for requestId: ${requestId}`);
@@ -123,13 +98,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Generic template-based endpoint
-  // Remove /api/ prefix from pathname before converting to template name
+  // Generic template-based endpoint (SSE only)
   const cleanPath = url.pathname.replace(/^\/api/, '');
   const templateName = `${req.method}${cleanPath.replace(/\//g, '-')}.md`;
   const templatePath = join(TEMPLATES_DIR, templateName);
 
-  console.log(`📝 ${req.method} ${url.pathname} → ${templateName} (v2.1 - ${new Date().toISOString()})`);
+  console.log(`📝 ${req.method} ${url.pathname} → ${templateName} (SSE mode)`);
 
   if (!existsSync(templatePath)) {
     res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -146,10 +120,7 @@ const server = http.createServer(async (req, res) => {
       // Generate requestId if not provided
       const requestId = parameters.requestId || crypto.randomUUID();
       
-      // Check if SSE mode requested
-      const isSSE = url.searchParams.get('stream') === 'true' || parameters.stream === true;
-      
-      // Build prompt with template path and ALL parameters (single line)
+      // Build prompt with template path and ALL parameters
       let parameterPairs = [];
       for (const [key, value] of Object.entries(parameters)) {
         if (key !== 'requestId' && key !== 'stream') {
@@ -158,86 +129,44 @@ const server = http.createServer(async (req, res) => {
         }
       }
       
-      // CRITICAL: Pass template PATH, NOT content
-      // Kiro CLI MUST read the template file itself
-      // DO NOT embed template content in prompt - it makes prompt too large
       const prompt = `Read and execute template at ${templatePath}. Input: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
       
-      console.log(`🤖 Sending to session pool (requestId: ${requestId}, SSE: ${isSSE})...`);
+      console.log(`🤖 Sending to session pool (requestId: ${requestId})...`);
       console.log(`📋 Template: ${templatePath}`);
-      console.log(`📋 Parameters: ${parameterPairs.join(', ')}`);
       
-      if (isSSE) {
-        // SSE mode - keep connection open
-        res.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive'
-        });
-        
-        // Store response object for SSE
-        pendingRequests.set(requestId, { res, isSSE: true });
-        
-        // Timeout after 180 seconds (code generation can take time)
-        setTimeout(() => {
-          if (pendingRequests.has(requestId)) {
-            res.write(`data: ${JSON.stringify({ status: 'error', message: 'Request timeout' })}\n\n`);
-            res.end();
-            pendingRequests.delete(requestId);
-          }
-        }, 180000);
-        
-      } else {
-        // Regular mode - create promise and wait for response
-        const responsePromise = new Promise((resolve, reject) => {
-          pendingRequests.set(requestId, { resolve, reject, isSSE: false });
-          
-          setTimeout(() => {
-            if (pendingRequests.has(requestId)) {
-              pendingRequests.delete(requestId);
-              reject(new Error('Request timeout'));
-            }
-          }, 180000);
-        });
-        
-        // Send to session pool
-        fetch(`${SESSION_POOL_URL}/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt })
-        }).catch(err => {
-          console.error('Error sending to session pool:', err);
-          if (pendingRequests.has(requestId)) {
-            const pending = pendingRequests.get(requestId);
-            pending.reject(err);
-            pendingRequests.delete(requestId);
-          }
-        });
-        
-        // Wait for response
-        const result = await responsePromise;
-        console.log(`✅ Response received for requestId: ${requestId}`);
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(result));
-      }
+      // SSE mode - keep connection open
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      });
       
-      // For SSE mode, send to session pool (response handled by callback endpoint)
-      if (isSSE) {
-        fetch(`${SESSION_POOL_URL}/execute`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, requestId })
-        }).catch(err => {
-          console.error('Error sending to session pool:', err);
-          if (pendingRequests.has(requestId)) {
-            const pending = pendingRequests.get(requestId);
-            pending.res.write(`data: ${JSON.stringify({ status: 'error', message: err.message })}\n\n`);
-            pending.res.end();
-            pendingRequests.delete(requestId);
-          }
-        });
-      }
+      // Store response object for SSE
+      pendingRequests.set(requestId, { res });
+      
+      // Timeout after 180 seconds
+      setTimeout(() => {
+        if (pendingRequests.has(requestId)) {
+          res.write(`data: ${JSON.stringify({ status: 'error', message: 'Request timeout' })}\n\n`);
+          res.end();
+          pendingRequests.delete(requestId);
+        }
+      }, 180000);
+      
+      // Send to session pool
+      fetch(`${SESSION_POOL_URL}/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, requestId })
+      }).catch(err => {
+        console.error('Error sending to session pool:', err);
+        if (pendingRequests.has(requestId)) {
+          const pending = pendingRequests.get(requestId);
+          pending.res.write(`data: ${JSON.stringify({ status: 'error', message: err.message })}\n\n`);
+          pending.res.end();
+          pendingRequests.delete(requestId);
+        }
+      });
 
     } catch (error) {
       console.error(`❌ Error:`, error.message);
