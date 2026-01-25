@@ -193,14 +193,21 @@ sudo cp scripts/systemd/kiro-session-pool.service /etc/systemd/system/
 sudo cp scripts/systemd/aipm-semantic-api.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool aipm-semantic-api
-sudo systemctl restart kiro-session-pool
-sudo systemctl restart aipm-kiro-cli
-sudo systemctl restart aipm-kiro-api
-sudo systemctl restart aipm-semantic-api
+
+echo 'Stopping services...'
+sudo systemctl stop kiro-session-pool aipm-kiro-cli aipm-kiro-api aipm-semantic-api || true
+sleep 2
+
+echo 'Starting services...'
+sudo systemctl start kiro-session-pool
+sudo systemctl start aipm-kiro-cli
+sudo systemctl start aipm-kiro-api
+sudo systemctl start aipm-semantic-api
 
 echo 'Waiting for services to start...'
 sleep 5
 sudo systemctl status $SERVICE_NAME --no-pager || true
+sudo systemctl status aipm-semantic-api --no-pager || true
 echo 'Service restart completed'
 EOF
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/update_service.sh ec2-user@$HOST:/tmp/
