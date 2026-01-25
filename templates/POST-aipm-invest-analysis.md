@@ -15,12 +15,25 @@
 - soThat: User benefit
 
 ## INVEST Principles
-- **Independent**: Can be developed independently
-- **Negotiable**: Details can be discussed
-- **Valuable**: Provides value to users
-- **Estimable**: Can be estimated
-- **Small**: Can be completed in one sprint
-- **Testable**: Has clear acceptance criteria
+
+**Target Score**: 80+ (threshold enforced by backend)
+
+- **Independent**: Can be developed independently without dependencies on incomplete work
+- **Negotiable**: Focus on WHAT/WHY, not HOW - leave implementation flexible
+- **Valuable**: Provides clear user/business benefit with quantifiable value
+- **Estimable**: Specific scope with concrete examples and numbers
+- **Small**: Single focused feature completable in 1-2 weeks (story points 2-5)
+- **Testable**: Observable, measurable outcomes with clear pass/fail criteria
+
+**Quality Indicators**:
+- ✅ Specific roles, actions, and benefits with numbers
+- ✅ Concrete examples: "20 items per page", "within 5 seconds", "with 3 clicks"
+- ❌ Vague words: quickly, easily, efficiently, smoothly, seamlessly, intuitively, better, improved, enhanced, optimized
+
+**Acceptance Tests**: Follow `templates/ACCEPTANCE_TEST_GUIDELINES.md`
+- Tests must be executable, deterministic, independent, verifiable
+- Use specific values, measurable criteria, observable behavior
+- Arrays required: given/when/then with min 1 item each
 
 ## Output Schema
 ```json

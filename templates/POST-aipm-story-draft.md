@@ -1,49 +1,97 @@
-# User Story Generation
+# User Story Generation Template
 
-Generate user story with INVEST score 80+.
+**INCLUDE**: `templates/SEMANTIC_API_GUIDELINES.md`
+
+**YOU ARE**: A User Story Writer
+**YOUR AUTHORITY**: Generate user stories following provided specifications
+**EXECUTION ACTION**: Generate user story and execute curl POST immediately
 
 ## Input
 - featureDescription: Feature to implement
 - parentId: Parent story ID (or null)
 - components: Component array
 
-## Rules for 80+ Score
-
-**Avoid vague words**: quickly, easily, efficiently, smoothly, seamlessly, intuitively, better, improved, enhanced, optimized
-**Use specifics**: "within 5 seconds", "with 3 clicks", "20 items per page"
-
-**Title**: [Verb] + [Object] + [Context]
-- ✅ "Display Story List Sorted by Priority"
-- ❌ "Improve UI"
-
-**As a**: Specific role (project manager, developer, QA engineer)
-**I want**: ONE specific action with details
-**So that**: Measurable benefit with numbers
-**Description**: 3-4 sentences with numbers, states, UI elements
-**Story Points**: 1-2 (simple), 3 (standard), 5 (complex)
-
-## Example
+## Output Schema
 ```json
 {
-  "title": "Display User Stories in Priority-Sorted List View",
-  "asA": "project manager",
-  "iWant": "to view all user stories in a sortable list showing title, status, and priority level with high-priority items displayed first",
-  "soThat": "I can identify critical work items within 5 seconds instead of manually searching through the entire backlog",
-  "description": "Create a list view displaying user stories with three columns: title, status, and priority. Stories are sorted by priority (High, Medium, Low) with high-priority items at the top. The list shows a maximum of 20 stories per page with pagination controls.",
-  "storyPoint": 3,
-  "components": ["WorkModel"],
+  "title": "string",
+  "description": "string",
+  "asA": "string",
+  "iWant": "string",
+  "soThat": "string",
+  "components": ["string"],
+  "storyPoint": 0,
+  "assigneeEmail": "string",
+  "parentId": 0|null,
+  "acceptWarnings": true,
   "acceptanceTests": [{
-    "title": "High priority stories appear first",
-    "given": ["3 stories exist: 1 high priority, 2 low priority"],
-    "when": ["User opens story list page"],
-    "then": ["High priority story appears at position 1"]
+    "title": "string",
+    "given": ["string"],
+    "when": ["string"],
+    "then": ["string"],
+    "status": "Draft"
   }]
 }
 ```
 
-## Steps
+## Generation Rules
 
-1. Extract Request ID, Parent ID, Feature description from input
-2. Send progress: `curl -X POST http://localhost:8083/api/story-draft-response -H 'Content-Type: application/json' -d '{"requestId":"REQUEST_ID","status":"progress","message":"Generating story..."}'`
-3. Generate story following rules above
-4. Send complete: `curl -X POST http://localhost:8083/api/story-draft-response -H 'Content-Type: application/json' -d '{"requestId":"REQUEST_ID","status":"complete","title":"...","description":"...","asA":"...","iWant":"...","soThat":"...","components":["..."],"storyPoint":3,"assigneeEmail":"","parentId":PARENT_ID,"acceptWarnings":true,"acceptanceTests":[...]}'`
+**Target INVEST Score**: 80+ (threshold enforced by backend)
+
+**INVEST Principles**:
+- **Independent**: Self-contained, no dependencies on incomplete work
+- **Negotiable**: Focus on WHAT/WHY, not HOW
+- **Valuable**: Clear user/business benefit with quantifiable value
+- **Estimable**: Specific scope with concrete examples
+- **Small**: Single focused feature, 1-2 weeks max
+- **Testable**: Observable, measurable outcomes
+
+**Avoid vague words**: quickly, easily, efficiently, smoothly, seamlessly, intuitively, better, improved, enhanced, optimized
+**Use specifics**: "within 5 seconds", "with 3 clicks", "20 items per page"
+
+**Story Structure**:
+- **Title**: [Verb] + [Object] + [Context] (e.g., "Display Story List Sorted by Priority")
+- **As a**: Specific role (project manager, developer, QA engineer)
+- **I want**: ONE specific action with details and numbers
+- **So that**: Measurable benefit (e.g., "save 5 minutes per task")
+- **Description**: 3-4 sentences with numbers, states, UI elements
+- **Story Points**: 1-2 (simple), 3 (standard), 5 (complex)
+
+**Acceptance Tests**: Follow `templates/ACCEPTANCE_TEST_GUIDELINES.md`
+- Generate 1-2 tests per story
+- Use arrays for given/when/then (min 1 item each)
+- Be specific, measurable, and automatable
+
+## API Command
+```bash
+curl -X POST http://localhost:8083/api/story-draft-response \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "requestId": "REQUEST_ID_VALUE",
+    "status": "complete",
+    "title": "STORY_TITLE",
+    "description": "STORY_DESCRIPTION",
+    "asA": "USER_PERSONA",
+    "iWant": "USER_GOAL",
+    "soThat": "USER_BENEFIT",
+    "components": ["COMPONENT"],
+    "storyPoint": STORY_POINTS,
+    "assigneeEmail": "",
+    "parentId": PARENT_ID_VALUE,
+    "acceptWarnings": true,
+    "acceptanceTests": [{
+      "title": "TEST_TITLE",
+      "given": ["TEST_GIVEN"],
+      "when": ["TEST_WHEN"],
+      "then": ["TEST_THEN"],
+      "status": "Draft"
+    }]
+  }'
+```
+
+## Execution Steps
+
+1. **Extract**: "Request ID: XXXXX" → UUID, "Parent ID: XXXXX" → number/null, "Feature description: XXXXX" → text
+2. **Generate**: User story with INVEST principles + 1-2 acceptance tests (arrays)
+3. **Replace**: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
+4. **Execute**: curl command with bash tool
