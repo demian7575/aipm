@@ -190,11 +190,13 @@ echo 'Installing/updating Kiro services...'
 sudo cp scripts/systemd/aipm-kiro-api.service /etc/systemd/system/
 sudo cp scripts/systemd/aipm-kiro-cli.service /etc/systemd/system/
 sudo cp scripts/systemd/kiro-session-pool.service /etc/systemd/system/
+sudo cp scripts/systemd/kiro-semantic-api.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool
+sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool kiro-semantic-api
 sudo systemctl restart kiro-session-pool
 sudo systemctl restart aipm-kiro-cli
 sudo systemctl restart aipm-kiro-api
+sudo systemctl restart kiro-semantic-api
 
 echo 'Waiting for services to start...'
 sleep 5
