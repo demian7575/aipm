@@ -107,13 +107,15 @@ curl -X POST http://localhost:8083/api/story-draft-response \
 
 ## Execution Steps
 
-1. **Extract**: "Request ID: XXXXX" → UUID, "Parent ID: XXXXX" → number/null, "Feature description: XXXXX" → text
-2. **Analyze**: Apply INVEST principles to scope the story appropriately
+1. Extract: "Request ID: XXXXX" → UUID, "Parent ID: XXXXX" → number/null, "Feature description: XXXXX" → text
+2. Analyze: Apply INVEST principles to scope the story appropriately
    - If description is too broad, narrow to ONE specific aspect
    - If too technical, reframe with user value
    - If too vague, add specific examples and constraints
-3. **Send Progress 1**: Execute first curl with "Analyzing feature requirements..."
-3. **Generate**: User story with INVEST principles + 1-2 acceptance tests (arrays)
-4. **Send Progress 2**: Execute second curl with "Generating story and acceptance tests..."
-5. **Replace**: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
-6. **Send Complete**: Execute third curl with complete data and status="complete"
+3. Send Progress 1: Execute first curl with "Analyzing feature requirements..."
+4. Generate: User story with INVEST principles + 1-2 acceptance tests (arrays)
+5. Send Progress 2: Execute second curl with "Generating story and acceptance tests..."
+6. Replace: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
+7. Send Complete: Execute third curl with complete data and status="complete"
+
+**CRITICAL**: You MUST execute ALL THREE curl commands using bash tool - two progress updates AND final complete response
