@@ -188,7 +188,7 @@ jobs:
           ./scripts/deploy-to-environment.sh prod
           
           echo "🔄 Restarting Semantic API to clear template cache..."
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ env.EC2_IP }} 'sudo systemctl stop aipm-semantic-api kiro-session-pool && sleep 2 && sudo systemctl start kiro-session-pool aipm-semantic-api && sudo systemctl is-active kiro-session-pool && sudo systemctl is-active aipm-semantic-api'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ env.EC2_IP }} 'sudo systemctl stop aipm-semantic-api kiro-session-pool && sleep 2 && sudo systemctl start kiro-session-pool aipm-semantic-api && sleep 5 && sudo systemctl is-active kiro-session-pool && sudo systemctl is-active aipm-semantic-api'
           
           echo "✅ Backend deployed to production EC2"
       
