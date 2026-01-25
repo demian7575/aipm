@@ -280,14 +280,11 @@ curl -X POST http://localhost:8083/api/story-draft-response \
    - If too vague, add specific examples and constraints
 3. **Send Progress 1**: Execute first curl with "Analyzing feature requirements..."
 4. **Generate**: User story with INVEST principles + 1-2 acceptance tests (arrays)
-5. **MANDATORY PRE-FLIGHT CHECK** - Verify BEFORE sending:
-   - ✅ Title has specific action verb + object (not vague)
-   - ✅ "asA" is specific role (not "user" or "person")
-   - ✅ "iWant" includes numbers/specifics (not vague)
-   - ✅ "soThat" has measurable benefit (not "better" or "improved")
-   - ✅ Description has 3-4 sentences with numbers
-   - ✅ NO forbidden words in ANY field
-   - ✅ Story points 1-5 (not 8+)
-6. **Send Progress 2**: Execute second curl with "Generating story and acceptance tests..."
-7. **Replace**: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
-8. **Send Complete**: Execute third curl with complete data and status="complete"
+   - VERIFY: Title has specific action verb + object
+   - VERIFY: "asA" is specific role (not "user")
+   - VERIFY: "iWant" includes numbers/specifics
+   - VERIFY: "soThat" has measurable benefit
+   - VERIFY: NO forbidden words in ANY field
+5. **Send Progress 2**: Execute second curl with "Generating story and acceptance tests..."
+6. **Replace**: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
+7. **Send Complete**: Execute third curl with complete data and status="complete"
