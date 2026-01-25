@@ -5308,6 +5308,7 @@ async function loadStories(db, options = {}) {
       soThat: row.soThat ?? row.so_that ?? '',
       components,
       storyPoint: row.storyPoint ?? row.story_point ?? 0,
+      priority: row.priority || 'Medium',
       assigneeEmail: row.assigneeEmail ?? row.assignee_email ?? '',
       status: safeNormalizeStoryStatus(row.status),
       createdAt: row.createdAt ?? row.created_at,
@@ -6576,7 +6577,19 @@ export async function createApp() {
 
     if (pathname === '/api/stories' && method === 'GET') {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
-      const stories = await loadStories(db, { includeAiInvest });
+      const sortBy = url.searchParams.get('sortBy');
+      let stories = await loadStories(db, { includeAiInvest });
+      
+      // Sort by priority if requested
+      if (sortBy === 'priority') {
+        const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+        stories.sort((a, b) => {
+          const aPriority = priorityOrder[a.priority] || 4;
+          const bPriority = priorityOrder[b.priority] || 4;
+          return aPriority - bPriority;
+        });
+      }
+      
       sendJson(res, 200, stories);
       return;
     }
@@ -6626,6 +6639,7 @@ export async function createApp() {
             soThat: soThat,
             components: serializeComponents(components),
             storyPoint: storyPoint,
+            priority: payload.priority || 'Medium',
             assigneeEmail: assigneeEmail,
             status: 'Draft',
             createdAt: timestamp,
@@ -6922,6 +6936,10 @@ export async function createApp() {
           if (payload.storyPoint !== undefined) {
             updateExpressions.push('storyPoint = :storyPoint');
             expressionAttributeValues[':storyPoint'] = payload.storyPoint;
+          }
+          if (payload.priority !== undefined) {
+            updateExpressions.push('priority = :priority');
+            expressionAttributeValues[':priority'] = payload.priority;
           }
           if (payload.assigneeEmail !== undefined) {
             updateExpressions.push('assigneeEmail = :assigneeEmail');

@@ -726,6 +726,24 @@ if (filterBtn) {
   });
 }
 
+const sortPriorityBtn = document.getElementById('sort-priority-btn');
+if (sortPriorityBtn) {
+  sortPriorityBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories?sortBy=priority'));
+      if (!response.ok) throw new Error('Failed to fetch sorted stories');
+      const stories = await response.json();
+      state.stories = stories;
+      renderOutline();
+      renderMindmap();
+      showToast('Stories sorted by priority');
+    } catch (error) {
+      console.error('Sort error:', error);
+      showToast('Failed to sort stories');
+    }
+  });
+}
+
 if (mindmapZoomInBtn) {
   mindmapZoomInBtn.addEventListener('click', () => {
     setMindmapZoom(state.mindmapZoom + MINDMAP_ZOOM_STEP);
@@ -2768,7 +2786,8 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityBadge = story.priority ? `[${story.priority}] ` : '';
+    title.textContent = `${priorityBadge}${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
@@ -4667,6 +4686,25 @@ function renderStoryDetailsWithCompleteData(story) {
     pointRow.appendChild(pointHeader);
     pointRow.appendChild(pointCell);
     storyBriefBody.appendChild(pointRow);
+    
+    const priorityRow = document.createElement('tr');
+    const priorityHeader = document.createElement('th');
+    priorityHeader.scope = 'row';
+    priorityHeader.textContent = 'Priority';
+    const priorityCell = document.createElement('td');
+    const prioritySelect = document.createElement('select');
+    prioritySelect.name = 'priority';
+    ['High', 'Medium', 'Low'].forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      if (p === (story.priority || 'Medium')) opt.selected = true;
+      prioritySelect.appendChild(opt);
+    });
+    priorityCell.appendChild(prioritySelect);
+    priorityRow.appendChild(priorityHeader);
+    priorityRow.appendChild(priorityCell);
+    storyBriefBody.appendChild(priorityRow);
   }
 
   detailsContent.appendChild(form);
