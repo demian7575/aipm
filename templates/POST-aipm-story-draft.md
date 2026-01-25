@@ -40,6 +40,15 @@
 
 Every story MUST achieve minimum 80 score. Follow these rules strictly:
 
+**⚠️ FORBIDDEN WORDS (Cause automatic failure below 80):**
+quickly, easily, efficiently, smoothly, seamlessly, intuitively, user-friendly, better, improved, enhanced, optimized, well, properly, correctly, appropriately
+
+**✅ Use specific measurements instead:**
+- "within 5 seconds" instead of "quickly"
+- "with 3 clicks" instead of "easily"
+- "in one screen" instead of "seamlessly"
+- "without page reload" instead of "smoothly"
+
 ### INVEST Principles (Each worth ~16 points)
 
 **1. Independent (I) - 16 points**:
@@ -83,6 +92,7 @@ Every story MUST achieve minimum 80 score. Follow these rules strictly:
 - Observable, measurable outcomes
 - Specific test scenarios
 - Clear pass/fail criteria
+- **FORBIDDEN WORDS** (cause automatic failure): quickly, easily, efficiently, smoothly, seamlessly, intuitively, user-friendly, better, improved, enhanced, optimized, well, properly, correctly, appropriately
 
 ### Mandatory Story Structure (For 80+ Score)
 
@@ -100,11 +110,13 @@ Every story MUST achieve minimum 80 score. Follow these rules strictly:
 - ✅ "to see a list of all stories sorted by priority with high-priority items at the top"
 - ❌ "to manage stories better"
 - Must include specific details (what, where, how many)
+- **NEVER use forbidden words**: quickly, easily, efficiently, smoothly, seamlessly, intuitively, user-friendly, better, improved, enhanced, optimized
 
 **So that**: Measurable business value
 - ✅ "I can identify critical work items within 5 seconds instead of scanning the entire list"
 - ❌ "things work better"
 - Include quantifiable benefit when possible
+- **NEVER use forbidden words**: quickly, easily, efficiently, smoothly, seamlessly, intuitively, user-friendly, better, improved, enhanced, optimized
 
 **Description**: 3-4 sentences with specifics
 - Sentence 1: What the feature does
@@ -178,6 +190,9 @@ Every story MUST achieve minimum 80 score. Follow these rules strictly:
 
 ❌ **No numbers**: "display some items"
 ✅ **With numbers**: "display 20 items per page"
+
+❌ **FORBIDDEN WORDS** (automatic score < 80): quickly, easily, efficiently, smoothly, seamlessly, intuitively, user-friendly, better, improved, enhanced, optimized, well, properly, correctly, appropriately
+✅ **Use instead**: "within 5 seconds", "with 3 clicks", "in one screen", "without page reload"
 
 ### Acceptance Test Requirements
 
