@@ -23,8 +23,11 @@ jobs:
         run: |
           ENV_NAME="${{ github.event.inputs.environment }}"
           
-          # Load configuration from YAML
-          EC2_IP=$(yq eval ".${ENV_NAME}.ec2_ip" config/environments.yaml)
+          if [ "$ENV_NAME" = "prod" ]; then
+            EC2_IP="44.197.204.18"
+          else
+            EC2_IP="44.222.168.46"
+          fi
           
           echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
           echo "Environment: $ENV_NAME"
