@@ -149,6 +149,10 @@ const server = http.createServer(async (req, res) => {
       // Check if SSE mode requested
       const isSSE = url.searchParams.get('stream') === 'true' || parameters.stream === true;
       
+      // Read template content from disk
+      const templateContent = await readFile(templatePath, 'utf-8');
+      console.log(`📄 Template loaded: ${templateName} (${templateContent.length} chars)`);
+      
       // Build prompt with template path and ALL parameters (single line)
       let parameterPairs = [];
       for (const [key, value] of Object.entries(parameters)) {
@@ -158,11 +162,11 @@ const server = http.createServer(async (req, res) => {
         }
       }
       
-      const prompt = `CRITICAL: Output will be REJECTED if INVEST score < 80.
-Read template at ${templatePath} from disk again.
-NEVER use: quickly, easily, efficiently, smoothly, seamlessly, intuitively, user-friendly, better, improved, enhanced, optimized.
-ALWAYS use measurements: "within 5 seconds", "with 3 clicks".
-Input: ${parameterPairs.join(', ')}.
+      const prompt = `Follow this template:
+
+${templateContent}
+
+Input data: ${parameterPairs.join(', ')}
 Request ID: ${requestId}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId}, SSE: ${isSSE})...`);
