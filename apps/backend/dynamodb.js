@@ -106,6 +106,7 @@ export class DynamoDBDataLayer {
         storyPoint: item.storyPoint || 0,
         assigneeEmail: item.assigneeEmail || '',
         status: item.status == null ? 'Draft' : item.status,
+        priority: item.priority || 'medium',
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         investAnalysis: item.investAnalysis,

@@ -2726,7 +2726,12 @@ function updateWorkspaceColumns() {
  * @returns {Array} Filtered stories
  */
 function getVisibleStories() {
-  return state.stories;
+  const priorityOrder = { high: 0, medium: 1, low: 2 };
+  return state.stories.slice().sort((a, b) => {
+    const aPriority = priorityOrder[a.priority] ?? 1;
+    const bPriority = priorityOrder[b.priority] ?? 1;
+    return aPriority - bPriority;
+  });
 }
 
 function renderOutline() {
@@ -2768,7 +2773,8 @@ function renderOutline() {
 
     const title = document.createElement('div');
     title.className = 'title';
-    title.textContent = `${story.title}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
+    const priorityBadge = story.priority ? ` [${story.priority.toUpperCase()}]` : '';
+    title.textContent = `${story.title}${priorityBadge}${story.storyPoint != null ? ` (SP ${story.storyPoint})` : ''}`;
     row.appendChild(title);
 
     row.addEventListener('click', () => handleStorySelection(story));
@@ -4667,6 +4673,20 @@ function renderStoryDetailsWithCompleteData(story) {
     pointRow.appendChild(pointHeader);
     pointRow.appendChild(pointCell);
     storyBriefBody.appendChild(pointRow);
+
+    const priorityRow = document.createElement('tr');
+    priorityRow.className = 'story-priority-row';
+    const priorityHeader = document.createElement('th');
+    priorityHeader.scope = 'row';
+    priorityHeader.textContent = 'Priority';
+    const priorityCell = document.createElement('td');
+    const priorityDisplay = document.createElement('span');
+    priorityDisplay.className = 'story-text';
+    priorityDisplay.textContent = story.priority ? story.priority.charAt(0).toUpperCase() + story.priority.slice(1) : 'Medium';
+    priorityCell.appendChild(priorityDisplay);
+    priorityRow.appendChild(priorityHeader);
+    priorityRow.appendChild(priorityCell);
+    storyBriefBody.appendChild(priorityRow);
   }
 
   detailsContent.appendChild(form);
@@ -4753,6 +4773,14 @@ function renderStoryDetailsWithCompleteData(story) {
           <div class="form-group">
             <label>Story Points:</label>
             <input type="number" name="storyPoint" value="${story.storyPoint || 0}" min="0">
+          </div>
+          <div class="form-group">
+            <label>Priority:</label>
+            <select name="priority">
+              <option value="high" ${story.priority === 'high' ? 'selected' : ''}>High</option>
+              <option value="medium" ${!story.priority || story.priority === 'medium' ? 'selected' : ''}>Medium</option>
+              <option value="low" ${story.priority === 'low' ? 'selected' : ''}>Low</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Assignee Email:</label>
@@ -4858,6 +4886,7 @@ function renderStoryDetailsWithCompleteData(story) {
         soThat: formData.get('soThat'),
         description: formData.get('description'),
         storyPoint: parseInt(formData.get('storyPoint')) || 0,
+        priority: formData.get('priority') || 'medium',
         assigneeEmail: formData.get('assigneeEmail'),
         status: formData.get('status'),
         components: modalComponents,
