@@ -159,11 +159,21 @@ sudo cp scripts/systemd/aipm-semantic-api.service /etc/systemd/system/
 sudo cp scripts/systemd/aipm-semantic-worker.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool aipm-semantic-api aipm-semantic-worker
-sudo systemctl restart kiro-session-pool
-sudo systemctl restart aipm-kiro-cli
-sudo systemctl restart aipm-kiro-api
-sudo systemctl restart aipm-semantic-api
-sudo systemctl restart aipm-semantic-worker
+
+echo 'Stopping Kiro services to clear template cache...'
+sudo systemctl stop kiro-session-pool aipm-kiro-cli aipm-kiro-api aipm-semantic-api aipm-semantic-worker
+sleep 2
+
+echo 'Starting Kiro services with fresh templates...'
+sudo systemctl start kiro-session-pool
+sudo systemctl start aipm-kiro-cli
+sudo systemctl start aipm-kiro-api
+sudo systemctl start aipm-semantic-api
+sudo systemctl start aipm-semantic-worker
+
+echo 'Verifying Kiro services...'
+sudo systemctl is-active kiro-session-pool || echo 'WARNING: kiro-session-pool not active'
+sudo systemctl is-active aipm-semantic-api || echo 'WARNING: aipm-semantic-api not active'
 
 echo 'Waiting for services to start...'
 sleep 5
