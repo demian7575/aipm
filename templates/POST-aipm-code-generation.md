@@ -12,9 +12,18 @@ The prompt provides these variables:
 
 ## WORKFLOW
 
+**IMPORTANT**: Send progress updates after each major step using curl to keep the connection alive.
+
 ### 1. Fetch Data
 ```bash
 cd /home/ec2-user/aipm
+
+# Send progress update
+REQUEST_ID="{requestId}"
+curl -X POST http://localhost:8083/api/code-generation-response \
+  -H 'Content-Type: application/json' \
+  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Fetching story data...\"}"
+
 curl -s http://localhost:4000/api/stories/{storyId}
 ```
 Parse JSON response to get story details and acceptance tests
@@ -22,6 +31,12 @@ Parse JSON response to get story details and acceptance tests
 ### 2. Prepare Git Branch
 ```bash
 cd /home/ec2-user/aipm
+
+# Send progress update
+curl -X POST http://localhost:8083/api/code-generation-response \
+  -H 'Content-Type: application/json' \
+  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Preparing git branch...\"}"
+
 git reset --hard HEAD
 git clean -fd
 git fetch origin
@@ -30,10 +45,22 @@ git pull origin {branchName} --rebase || true
 ```
 
 ### 3. Analyze Codebase
+```bash
+# Send progress update
+curl -X POST http://localhost:8083/api/code-generation-response \
+  -H 'Content-Type: application/json' \
+  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Analyzing codebase...\"}"
+```
 - Review: `apps/frontend/public/app.js`, `apps/backend/app.js`
 - Identify: Integration points, patterns, conventions
 
 ### 4. Implement
+```bash
+# Send progress update
+curl -X POST http://localhost:8083/api/code-generation-response \
+  -H 'Content-Type: application/json' \
+  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Generating code...\"}"
+```
 Write code following story requirements and existing patterns
 
 Add Phase 4 gating test to the accumulated test file:
@@ -88,6 +115,11 @@ echo "✅ Added test_${STORY_FUNC} to phase4-functionality.sh"
 ```bash
 cd /home/ec2-user/aipm
 
+# Send progress update
+curl -X POST http://localhost:8083/api/code-generation-response \
+  -H 'Content-Type: application/json' \
+  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
+
 # Check if gating tests should be skipped (for development/testing)
 if [[ "${SKIP_GATING_TESTS:-false}" == "true" ]]; then
     echo "⚠️  Skipping gating tests (SKIP_GATING_TESTS=true)"
@@ -114,6 +146,12 @@ If fails: Fix code and return to step 4 (max 3 attempts)
 ### 6. Commit & Push
 ```bash
 cd /home/ec2-user/aipm
+
+# Send progress update
+curl -X POST http://localhost:8083/api/code-generation-response \
+  -H 'Content-Type: application/json' \
+  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Committing and pushing code...\"}"
+
 git add -A
 git commit -m "feat: {story title}"
 git push origin {branchName}
