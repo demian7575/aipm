@@ -147,7 +147,10 @@ const server = http.createServer(async (req, res) => {
       // Check if SSE mode requested
       const isSSE = url.searchParams.get('stream') === 'true' || parameters.stream === true;
       
-      // Build prompt with template path and ALL parameters (single line)
+      // Read template content from disk (guarantees fresh content)
+      const templateContent = await readFile(templatePath, 'utf-8');
+      
+      // Build prompt with template content and parameters
       let parameterPairs = [];
       for (const [key, value] of Object.entries(parameters)) {
         if (key !== 'requestId' && key !== 'stream') {
@@ -156,10 +159,11 @@ const server = http.createServer(async (req, res) => {
         }
       }
       
-      const prompt = `IMPORTANT: Read the template file at ${templatePath} from disk (do not use cached version). Generate output using this input data: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
+      const prompt = `Follow this template exactly:\n\n${templateContent}\n\nInput data: ${parameterPairs.join(', ')}. Request ID: ${requestId}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId}, SSE: ${isSSE})...`);
       console.log(`📋 Parameters: ${parameterPairs.join(', ')}`);
+      console.log(`📄 Template: ${templateName} (${templateContent.length} chars)`);
       
       if (isSSE) {
         // SSE mode - keep connection open
