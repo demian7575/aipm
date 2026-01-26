@@ -46,6 +46,7 @@ const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
@@ -740,6 +741,12 @@ if (referenceBtn) {
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7464,6 +7471,99 @@ function openTaskModal(storyId, task = null) {
   
   // Trigger resize after modal is rendered
   setTimeout(autoResize, 10);
+}
+
+/**
+ * Opens story list modal showing all stories with title, description, and status
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  const allStories = state.stories.flatMap(s => getAllStoriesFlat(s));
+  const itemsPerPage = 20;
+  let currentPage = 1;
+  const totalPages = Math.ceil(allStories.length / itemsPerPage);
+  
+  function getAllStoriesFlat(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStoriesFlat(child)));
+    }
+    return stories;
+  }
+  
+  function renderPage() {
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = startIdx + itemsPerPage;
+    const pageStories = allStories.slice(startIdx, endIdx);
+    
+    container.innerHTML = `
+      <div class="story-list-table-wrapper">
+        <table class="story-list-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pageStories.map((story, idx) => `
+              <tr class="${idx % 2 === 0 ? 'even' : 'odd'}" data-story-id="${story.id}">
+                <td>${escapeHtml(story.title)}</td>
+                <td>${escapeHtml(story.description || '')}</td>
+                <td><span class="status-badge status-${story.status.toLowerCase()}">${escapeHtml(story.status)}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="story-list-pagination">
+        <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+      </div>
+    `;
+    
+    container.querySelectorAll('tr[data-story-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = Number(row.dataset.storyId);
+        closeModal();
+        selectStory(storyId);
+      });
+    });
+    
+    const prevBtn = container.querySelector('#prev-page');
+    const nextBtn = container.querySelector('#next-page');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPage();
+        }
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderPage();
+        }
+      });
+    }
+  }
+  
+  renderPage();
+  
+  openModal({
+    title: 'User Stories',
+    content: container,
+    actions: [],
+    size: 'large',
+  });
 }
 
 /**

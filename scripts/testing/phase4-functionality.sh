@@ -48,6 +48,42 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Display User Stories in Sortable List View with Status
+# ID: 1769417341916
+# Merged: $(date +%Y-%m-%d)
+# =============================================================================
+test_display_user_stories_in_sortable_list_view_with_status() {
+    log_test "Display User Stories in Sortable List View with Status"
+    
+    # Test 1: Check if story list button exists in HTML
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story list button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Check if openStoryListModal function exists
+    if ! grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not implemented"
+        return 1
+    fi
+    
+    # Test 3: Check if story list styles exist
+    if ! grep -q '.story-list-table' apps/frontend/public/styles.css; then
+        fail_test "Story list table styles not found"
+        return 1
+    fi
+    
+    # Test 4: Check if pagination is implemented
+    if ! grep -q 'itemsPerPage.*20' apps/frontend/public/app.js; then
+        fail_test "Pagination with 20 items per page not implemented"
+        return 1
+    fi
+    
+    pass_test "Display User Stories in Sortable List View with Status"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +150,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_user_stories_in_sortable_list_view_with_status; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
