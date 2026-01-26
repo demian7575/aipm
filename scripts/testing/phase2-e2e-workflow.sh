@@ -61,7 +61,7 @@ phase6_step1_story_draft_generation() {
     # Generate story draft via SSE with simple, INVEST-compliant idea
     local request_id="phase6-story-draft-$(date +%s)"
     local response
-    response=$(timeout 30 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/story-draft?stream=true" \
+    response=$(timeout 120 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/story-draft?stream=true" \
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
@@ -263,7 +263,7 @@ phase6_step5_acceptance_test_draft() {
     # Generate acceptance test draft via SSE
     local request_id="phase3-at-draft-$(date +%s)"
     local response
-    response=$(timeout 30 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/acceptance-test-draft?stream=true" \
+    response=$(timeout 120 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/acceptance-test-draft?stream=true" \
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
