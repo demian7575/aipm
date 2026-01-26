@@ -4,10 +4,10 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCo
 const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const DEFAULT_getStoriesTable() = process.env.getStoriesTable() || 'aipm-backend-prod-stories';
-const DEFAULT_getAcceptanceTestsTable() = process.env.getAcceptanceTestsTable() || 'aipm-backend-prod-acceptance-tests';
+const DEFAULT_STORIES_TABLE = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+const DEFAULT_ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
 
-console.log('DynamoDB: Default tables:', { DEFAULT_getStoriesTable(), DEFAULT_getAcceptanceTestsTable() });
+console.log('DynamoDB: Default tables:', { DEFAULT_STORIES_TABLE, DEFAULT_ACCEPTANCE_TESTS_TABLE });
 
 // Request context for per-request table override
 let requestContext = null;
