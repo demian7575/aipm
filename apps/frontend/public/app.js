@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -734,6 +735,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7469,6 +7476,146 @@ function openTaskModal(storyId, task = null) {
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
+/**
+ * Opens a modal displaying all user stories grouped by status
+ */
+function openStoryListModal() {
+  const STORIES_PER_PAGE = 20;
+  let currentPage = 1;
+  
+  function renderStoryList() {
+    const container = document.createElement('div');
+    container.className = 'story-list-container';
+    
+    // Get all stories flattened
+    const allStories = state.stories.flatMap(s => getAllStories(s));
+    
+    // Group stories by status
+    const statusGroups = {
+      'Draft': [],
+      'Ready': [],
+      'In Progress': [],
+      'Blocked': [],
+      'Approved': [],
+      'Done': []
+    };
+    
+    allStories.forEach(story => {
+      const status = story.status || 'Draft';
+      if (statusGroups[status]) {
+        statusGroups[status].push(story);
+      }
+    });
+    
+    // Flatten for pagination
+    const flatStories = [];
+    Object.entries(statusGroups).forEach(([status, stories]) => {
+      stories.forEach(story => flatStories.push({ ...story, groupStatus: status }));
+    });
+    
+    const totalPages = Math.ceil(flatStories.length / STORIES_PER_PAGE);
+    const startIdx = (currentPage - 1) * STORIES_PER_PAGE;
+    const endIdx = startIdx + STORIES_PER_PAGE;
+    const pageStories = flatStories.slice(startIdx, endIdx);
+    
+    // Group page stories by status
+    const pageGroups = {};
+    pageStories.forEach(story => {
+      const status = story.groupStatus;
+      if (!pageGroups[status]) pageGroups[status] = [];
+      pageGroups[status].push(story);
+    });
+    
+    // Build HTML
+    let html = '<div style="max-height: 500px; overflow-y: auto;">';
+    
+    Object.entries(pageGroups).forEach(([status, stories]) => {
+      html += `
+        <div class="status-group" style="margin-bottom: 24px;">
+          <h3 style="margin: 0 0 12px 0; padding: 8px; background: #f0f0f0; border-left: 4px solid #007bff;">${status} (${statusGroups[status].length})</h3>
+          <div class="story-entries">
+      `;
+      
+      stories.forEach(story => {
+        const truncatedDesc = (story.description || '').length > 100 
+          ? story.description.substring(0, 100) + '...' 
+          : (story.description || 'No description');
+        
+        html += `
+          <div class="story-entry" style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" data-story-id="${story.id}">
+            <div style="font-weight: bold; margin-bottom: 4px;">${escapeHtml(story.title || 'Untitled')}</div>
+            <div style="color: #666; font-size: 0.9em; margin-bottom: 4px;">${escapeHtml(truncatedDesc)}</div>
+            <span class="status-badge" style="display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 0.85em; background: #e0e0e0;">${status}</span>
+          </div>
+        `;
+      });
+      
+      html += `
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    
+    // Pagination controls
+    if (totalPages > 1) {
+      html += `
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
+          <button id="prev-page-btn" class="secondary" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+          <span>Page ${currentPage} of ${totalPages} (${flatStories.length} stories)</span>
+          <button id="next-page-btn" class="secondary" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+        </div>
+      `;
+    }
+    
+    if (flatStories.length === 0) {
+      html = '<p style="text-align: center; color: #666; padding: 40px;">No stories found.</p>';
+    }
+    
+    container.innerHTML = html;
+    
+    // Add click handlers
+    container.querySelectorAll('.story-entry').forEach(entry => {
+      entry.addEventListener('click', () => {
+        const storyId = parseInt(entry.dataset.storyId);
+        selectStory(storyId);
+        closeModal();
+      });
+    });
+    
+    const prevBtn = container.querySelector('#prev-page-btn');
+    const nextBtn = container.querySelector('#next-page-btn');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        currentPage--;
+        updateModalContent();
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        currentPage++;
+        updateModalContent();
+      });
+    }
+    
+    return container;
+  }
+  
+  function updateModalContent() {
+    const newContent = renderStoryList();
+    modalBody.innerHTML = '';
+    modalBody.appendChild(newContent);
+  }
+  
+  const initialContent = renderStoryList();
+  openModal('Story List', initialContent, [
+    { label: 'Close', className: 'secondary', onClick: closeModal }
+  ]);
+}
+
 function openFilterModal() {
   const container = document.createElement('div');
   container.className = 'modal-form filter-form';
