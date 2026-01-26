@@ -21,11 +21,11 @@ export function clearRequestContext() {
 }
 
 function getStoriesTable() {
-  return requestContext?.storiesTable || DEFAULT_getStoriesTable();
+  return requestContext?.storiesTable || DEFAULT_STORIES_TABLE;
 }
 
 function getAcceptanceTestsTable() {
-  return requestContext?.acceptanceTestsTable || DEFAULT_getAcceptanceTestsTable();
+  return requestContext?.acceptanceTestsTable || DEFAULT_ACCEPTANCE_TESTS_TABLE;
 }
 
 export class DynamoDBDataLayer {
