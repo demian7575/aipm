@@ -680,13 +680,13 @@ PHASE_FAILED=${PHASE_FAILED:-0}
 pass_test() {
     local test_name="$1"
     echo "    ✅ $test_name"
-    ((PHASE_PASSED++))
+    echo "1" >> "$TEST_COUNTER_DIR/passed"
 }
 
 fail_test() {
     local test_name="$1"
     echo "    ❌ $test_name"
-    ((PHASE_FAILED++))
+    echo "1" >> "$TEST_COUNTER_DIR/failed"
 }
 
 log_test() {
