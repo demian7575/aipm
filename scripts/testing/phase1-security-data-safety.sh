@@ -54,8 +54,8 @@ failed=$(cat "$TEST_COUNTER_DIR/failed" 2>/dev/null || echo "0")
 # Check if any tests failed
 if [ "$failed" -gt 0 ]; then
   echo "❌ Phase 1 failed: $failed tests failed"
-  exit 1
+  return 1
 fi
 
 echo "✅ Phase 1 completed: all tests passed"
-exit 0
+return 0

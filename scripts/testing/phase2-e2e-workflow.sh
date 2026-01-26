@@ -559,7 +559,7 @@ echo ""
 # Exit with failure if any tests failed
 if [[ $PHASE_FAILED -gt 0 ]]; then
     echo "❌ Phase 2 FAILED: $PHASE_FAILED test(s) failed"
-    exit 1
+    return 1
 fi
 
-exit 0
+return 0
