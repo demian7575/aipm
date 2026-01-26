@@ -64,7 +64,7 @@ phase6_step1_story_draft_generation() {
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"featureDescription\":\"As a project manager, I want to see a list of all user stories sorted by priority, so that I can quickly identify which stories need attention first. The list should display story title, status, and priority level, with high priority stories at the top.\",
+            \"featureDescription\":\"As a project manager, I want to see a list of all user stories with their current status, so that I can quickly review the progress of the project. The list should display story title, description, and status, with a clean and organized layout.\",
             \"parentId\":$PHASE2_PARENT_STORY_ID,
             \"components\":[\"WorkModel\"]
         }" 2>&1)
