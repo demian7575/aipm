@@ -119,7 +119,7 @@ test_story_crud() {
     local story_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
         -d "{\"title\":\"Verify API story management for test $timestamp\",\"description\":\"Automated test to verify that the API correctly handles story creation, retrieval, and deletion operations. This ensures the core CRUD functionality is working as expected.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to programmatically create, read, and delete test stories\",\"soThat\":\"I can verify the API endpoints are functioning correctly and maintain system quality\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":2,\"parentId\":1769055352018,\"acceptanceTests\":[{\"given\":[\"API server is running and accessible\"],\"when\":[\"POST request is sent to create a story\"],\"then\":[\"Story is created with unique ID and can be retrieved\"],\"status\":\"Pass\"},{\"given\":[\"Story exists in database\"],\"when\":[\"DELETE request is sent with story ID\"],\"then\":[\"Story is removed and no longer retrievable\"],\"status\":\"Pass\"}]}" \
-        | jq -r '.id' 2>/dev/null || echo "")
+        | jq -r '.id' || echo "")
     
     if [[ -n "$story_id" && "$story_id" != "null" ]]; then
         if curl_api -s "$api_base/api/stories/$story_id" | jq -e '.id' > /dev/null 2>&1; then
@@ -141,7 +141,7 @@ test_story_creation_only() {
     local story_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
         -d "{\"title\":\"Test story for E2E workflow $timestamp\",\"description\":\"Story created to test the complete workflow including acceptance tests and deletion\",\"asA\":\"QA engineer\",\"iWant\":\"to test the complete E2E workflow\",\"soThat\":\"I can verify all features work together correctly\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":3,\"acceptanceTests\":[{\"given\":[\"System is ready\"],\"when\":[\"Story is created\"],\"then\":[\"Story has acceptance test\"],\"status\":\"Pass\"}]}" \
-        | jq -r '.id' 2>/dev/null || echo "")
+        | jq -r '.id' || echo "")
     
     if [[ -n "$story_id" && "$story_id" != "null" ]]; then
         # Store for later steps
@@ -169,7 +169,7 @@ test_story_creation_from_draft() {
     local story_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
         -d "{\"title\":\"$title\",\"description\":\"$description\",\"asA\":\"$asA\",\"iWant\":\"$iWant\",\"soThat\":\"$soThat\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":3,\"acceptanceTests\":[{\"given\":[\"System is ready\"],\"when\":[\"Story is created from draft\"],\"then\":[\"Story has acceptance test\"],\"status\":\"Pass\"}]}" \
-        | jq -r '.id' 2>/dev/null || echo "")
+        | jq -r '.id' || echo "")
     
     if [[ -n "$story_id" && "$story_id" != "null" ]]; then
         export TEST_STORY_ID="$story_id"
@@ -227,11 +227,11 @@ test_story_status_update() {
     
     # Get current story data
     local story=$(curl_api -s "$api_base/api/stories/$TEST_STORY_ID")
-    local title=$(echo "$story" | jq -r '.title' 2>/dev/null || echo "")
-    local asA=$(echo "$story" | jq -r '.asA' 2>/dev/null || echo "")
-    local iWant=$(echo "$story" | jq -r '.iWant' 2>/dev/null || echo "")
-    local soThat=$(echo "$story" | jq -r '.soThat' 2>/dev/null || echo "")
-    local description=$(echo "$story" | jq -r '.description' 2>/dev/null || echo "")
+    local title=$(echo "$story" | jq -r '.title' || echo "")
+    local asA=$(echo "$story" | jq -r '.asA' || echo "")
+    local iWant=$(echo "$story" | jq -r '.iWant' || echo "")
+    local soThat=$(echo "$story" | jq -r '.soThat' || echo "")
+    local description=$(echo "$story" | jq -r '.description' || echo "")
     local storyPoint=$(echo "$story" | jq -r '.storyPoint' 2>/dev/null || echo "3")
     local components=$(echo "$story" | jq -c '.components' 2>/dev/null || echo '["WorkModel"]')
     
@@ -241,7 +241,7 @@ test_story_status_update() {
         -H "X-Skip-Invest-Validation: true" \
         -d "{\"title\":\"$title\",\"asA\":\"$asA\",\"iWant\":\"$iWant\",\"soThat\":\"$soThat\",\"description\":\"$description\",\"storyPoint\":$storyPoint,\"components\":$components,\"status\":\"Ready\",\"acceptWarnings\":true}")
     
-    local updated_status=$(echo "$response" | jq -r '.status' 2>/dev/null || echo "")
+    local updated_status=$(echo "$response" | jq -r '.status' || echo "")
     
     if [[ "$updated_status" == "Ready" ]]; then
         pass_test "Story Status Update (Draft → Ready)"
@@ -261,8 +261,8 @@ test_data_consistency_verification() {
     
     # Verify story data consistency without creating new story
     local fetched_story=$(curl_api -s "$api_base/api/stories/$TEST_STORY_ID")
-    local fetched_id=$(echo "$fetched_story" | jq -r '.id' 2>/dev/null || echo "")
-    local fetched_status=$(echo "$fetched_story" | jq -r '.status' 2>/dev/null || echo "")
+    local fetched_id=$(echo "$fetched_story" | jq -r '.id' || echo "")
+    local fetched_status=$(echo "$fetched_story" | jq -r '.status' || echo "")
     
     if [[ "$fetched_id" == "$TEST_STORY_ID" ]] && [[ "$fetched_status" == "Ready" ]]; then
         pass_test "Data Consistency (ID and Status verified)"
@@ -310,7 +310,7 @@ test_acceptance_test_creation() {
         local new_story_id=$(curl_api -s -X POST "$api_base/api/stories" \
             -H "Content-Type: application/json" \
             -d "{\"title\":\"Story with acceptance test $timestamp\",\"description\":\"Test story\",\"asA\":\"QA\",\"iWant\":\"test\",\"soThat\":\"verify\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"Story exists\"],\"when\":[\"Test is created\"],\"then\":[\"Test is linked\"],\"status\":\"Pass\"}]}" \
-            | jq -r '.id' 2>/dev/null || echo "")
+            | jq -r '.id' || echo "")
         
         if [[ -n "$new_story_id" && "$new_story_id" != "null" ]]; then
             # Cleanup
@@ -366,7 +366,7 @@ test_story_hierarchy() {
     local parent_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
         -d "{\"title\":\"Verify parent-child story relationships for test $timestamp\",\"description\":\"Test parent story to verify that the system correctly maintains hierarchical relationships between stories. This ensures epic/story/subtask structures work properly.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to create parent stories that can contain child stories\",\"soThat\":\"I can verify the hierarchical story structure is maintained correctly\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":3,\"acceptanceTests\":[{\"given\":[\"Parent story is created\"],\"when\":[\"Child story is created with parentId\"],\"then\":[\"Child story is linked to parent and appears in parent's children list\"],\"status\":\"Pass\"}]}" \
-        | jq -r '.id' 2>/dev/null || echo "")
+        | jq -r '.id' || echo "")
     
     if [[ -z "$parent_id" || "$parent_id" == "null" ]]; then
         fail_test "Story Hierarchy (Parent creation failed)"
@@ -377,7 +377,7 @@ test_story_hierarchy() {
     local child_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
         -d "{\"title\":\"Child story for hierarchy test $timestamp\",\"description\":\"Child story to verify parent-child relationship functionality. Tests that child stories correctly reference their parent and maintain the relationship.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to create child stories under a parent story\",\"soThat\":\"I can verify the system maintains proper story hierarchy\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"parentId\":$parent_id,\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"Parent story exists with ID $parent_id\"],\"when\":[\"Child story is created with parentId set\"],\"then\":[\"Child story is created and linked to parent\"],\"status\":\"Pass\"}]}" \
-        | jq -r '.id' 2>/dev/null || echo "")
+        | jq -r '.id' || echo "")
     
     # Cleanup
     [[ -n "$child_id" && "$child_id" != "null" ]] && curl_api -s -X DELETE "$api_base/api/stories/$child_id" > /dev/null 2>&1
@@ -428,7 +428,7 @@ test_health_check_endpoint() {
     log_test "Health Check Endpoint"
     
     # Get any existing story
-    local story_id=$(curl_api -s "$api_base/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
+    local story_id=$(curl_api -s "$api_base/api/stories" | jq -r '.[0].id' || echo "")
     
     if [[ -z "$story_id" || "$story_id" == "null" ]]; then
         fail_test "Health Check (No story found)"
@@ -521,7 +521,7 @@ test_story_with_acceptance_tests() {
         -H "Content-Type: application/json" \
         -d "{\"title\":\"E2E workflow test $timestamp\",\"description\":\"End-to-end test to verify complete story workflow with acceptance tests\",\"asA\":\"QA engineer\",\"iWant\":\"to test the complete workflow from story creation to acceptance test validation\",\"soThat\":\"I can ensure the system handles the full user journey correctly\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":3,\"acceptanceTests\":[{\"given\":[\"System is ready\"],\"when\":[\"Story is created with acceptance test\"],\"then\":[\"Story and test are both created successfully\"],\"status\":\"Pass\"}]}")
     
-    local story_id=$(echo "$story_response" | jq -r '.id' 2>/dev/null || echo "")
+    local story_id=$(echo "$story_response" | jq -r '.id' || echo "")
     
     if [[ -n "$story_id" && "$story_id" != "null" ]]; then
         # Verify acceptance tests
@@ -544,7 +544,7 @@ test_story_status_workflow() {
     local story_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
         -d "{\"title\":\"Verify story status workflow transitions for test $(date +%s)\",\"description\":\"Automated test to verify that story status can be updated from Draft to Ready. This ensures the status workflow is functioning correctly and state transitions are properly handled.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to programmatically test story status transitions\",\"soThat\":\"I can verify the status workflow operates correctly and maintains data integrity\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"Story exists in Draft status\"],\"when\":[\"Status is updated to Ready\"],\"then\":[\"Story status changes to Ready successfully\"],\"status\":\"Pass\"}]}" \
-        | jq -r '.id' 2>/dev/null || echo "")
+        | jq -r '.id' || echo "")
     
     if [[ -z "$story_id" || "$story_id" == "null" ]]; then
         fail_test "Story Status (Creation failed)"
@@ -559,8 +559,8 @@ test_story_status_workflow() {
         -d "{\"title\":\"$title\",\"status\":\"Ready\",\"acceptWarnings\":true}")
     
     # Check if update succeeded or if it's just AI timeout (which is OK)
-    local updated=$(echo "$response" | jq -r '.status' 2>/dev/null || echo "")
-    local message=$(echo "$response" | jq -r '.message' 2>/dev/null || echo "")
+    local updated=$(echo "$response" | jq -r '.status' || echo "")
+    local message=$(echo "$response" | jq -r '.message' || echo "")
     
     # Cleanup
     curl_api -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
@@ -577,7 +577,7 @@ test_pr_creation() {
     log_test "PR Creation"
     
     # Get any existing story
-    local story_id=$(curl_api -s "$api_base/api/stories" | jq -r '.[0].id' 2>/dev/null || echo "")
+    local story_id=$(curl_api -s "$api_base/api/stories" | jq -r '.[0].id' || echo "")
     
     if [[ -z "$story_id" || "$story_id" == "null" ]]; then
         fail_test "PR Creation (No story found)"
@@ -605,7 +605,7 @@ test_data_consistency() {
     local story_id=$(curl_api -s -X POST "$api_base/api/stories" \
         -H "Content-Type: application/json" \
         -d "{\"title\":\"Verify data consistency across API operations for test $timestamp\",\"description\":\"Automated test to verify that data remains consistent when creating and fetching stories. This ensures the API correctly stores and retrieves data without corruption or loss.\",\"asA\":\"QA automation engineer\",\"iWant\":\"to verify data consistency across create and read operations\",\"soThat\":\"I can ensure the system maintains data integrity throughout the workflow\",\"status\":\"Draft\",\"components\":[\"WorkModel\"],\"storyPoint\":2,\"acceptanceTests\":[{\"given\":[\"Story is created with specific data\"],\"when\":[\"Story is fetched from API\"],\"then\":[\"Fetched data matches created data exactly\"],\"status\":\"Pass\"}]}" \
-        | jq -r '.id' 2>/dev/null || echo "")
+        | jq -r '.id' || echo "")
     
     if [[ -z "$story_id" || "$story_id" == "null" ]]; then
         fail_test "Data Consistency (Creation failed)"
@@ -613,7 +613,7 @@ test_data_consistency() {
     fi
     
     # Verify data
-    local fetched_title=$(curl_api -s "$api_base/api/stories" | jq -r ".[] | select(.id == $story_id) | .title" 2>/dev/null || echo "")
+    local fetched_title=$(curl_api -s "$api_base/api/stories" | jq -r ".[] | select(.id == $story_id) | .title" || echo "")
     
     # Cleanup
     curl_api -s -X DELETE "$api_base/api/stories/$story_id" > /dev/null 2>&1
