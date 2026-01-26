@@ -44,6 +44,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -4221,6 +4222,105 @@ async function bedrockImplementation(prEntry) {
   }
 }
 
+/**
+ * Build story list table with pagination (20 items per page)
+ * @returns {HTMLElement} Modal content element
+ */
+function buildStoryListTableContent() {
+  const container = document.createElement('div');
+  container.style.cssText = 'padding: 16px;';
+
+  if (!state.stories.length) {
+    const placeholder = document.createElement('p');
+    placeholder.textContent = 'No stories available.';
+    container.appendChild(placeholder);
+    return container;
+  }
+
+  let currentPage = 1;
+  const itemsPerPage = 20;
+
+  function renderPage() {
+    container.innerHTML = '';
+
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = startIdx + itemsPerPage;
+    const pageStories = state.stories.slice(startIdx, endIdx);
+
+    const table = document.createElement('table');
+    table.style.cssText = 'width: 100%; border-collapse: collapse;';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    ['Title', 'Description', 'Status'].forEach(text => {
+      const th = document.createElement('th');
+      th.textContent = text;
+      th.style.cssText = 'text-align: left; padding: 8px; border-bottom: 2px solid #ddd; background: #f5f5f5;';
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    pageStories.forEach(story => {
+      const row = document.createElement('tr');
+      row.style.cssText = 'cursor: pointer; border-bottom: 1px solid #eee;';
+      row.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      row.addEventListener('mouseenter', () => row.style.background = '#f8f9fa');
+      row.addEventListener('mouseleave', () => row.style.background = 'white');
+
+      const titleCell = document.createElement('td');
+      titleCell.textContent = story.title;
+      titleCell.style.cssText = 'padding: 8px; font-weight: bold;';
+      row.appendChild(titleCell);
+
+      const descCell = document.createElement('td');
+      descCell.textContent = (story.description || '').substring(0, 100) + ((story.description || '').length > 100 ? '...' : '');
+      descCell.style.cssText = 'padding: 8px; color: #666;';
+      row.appendChild(descCell);
+
+      const statusCell = document.createElement('td');
+      statusCell.textContent = story.status || 'Draft';
+      statusCell.style.cssText = 'padding: 8px;';
+      row.appendChild(statusCell);
+
+      tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    container.appendChild(table);
+
+    const totalPages = Math.ceil(state.stories.length / itemsPerPage);
+    if (totalPages > 1) {
+      const pagination = document.createElement('div');
+      pagination.style.cssText = 'margin-top: 16px; display: flex; gap: 8px; align-items: center;';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = 'Previous';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => { currentPage--; renderPage(); };
+      pagination.appendChild(prevBtn);
+
+      const pageInfo = document.createElement('span');
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      pagination.appendChild(pageInfo);
+
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => { currentPage++; renderPage(); };
+      pagination.appendChild(nextBtn);
+
+      container.appendChild(pagination);
+    }
+  }
+
+  renderPage();
+  return container;
+}
+
 function buildHeatmapModalContent() {
   const container = document.createElement('div');
   container.className = 'heatmap-modal';
@@ -8113,6 +8213,16 @@ function initialize() {
       cancelLabel: 'Close',
       size: 'content',
       onClose,
+    });
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    const element = buildStoryListTableContent();
+    openModal({
+      title: 'Story List',
+      content: element,
+      cancelLabel: 'Close',
+      size: 'large',
     });
   });
 

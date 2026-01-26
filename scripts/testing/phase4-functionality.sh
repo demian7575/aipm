@@ -48,6 +48,42 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Display story list with title, description, and status
+# ID: 1769413498200
+# Merged: 2026-01-26
+# =============================================================================
+test_display_story_list_with_pagination() {
+    log_test "Display story list with title, description, and status"
+    
+    # Test 1: Verify Story List button exists
+    if ! grep -q "story-list-btn" apps/frontend/public/index.html; then
+        fail_test "Story List button not found"
+        return 1
+    fi
+    
+    # Test 2: Verify table builder function exists
+    if ! grep -q "function buildStoryListTableContent" apps/frontend/public/app.js; then
+        fail_test "buildStoryListTableContent function not found"
+        return 1
+    fi
+    
+    # Test 3: Verify pagination logic (20 items per page)
+    if ! grep -q "itemsPerPage = 20" apps/frontend/public/app.js; then
+        fail_test "Pagination with 20 items per page not found"
+        return 1
+    fi
+    
+    # Test 4: Verify event listener
+    if ! grep -q "storyListBtn.*addEventListener" apps/frontend/public/app.js; then
+        fail_test "Story list button event listener not found"
+        return 1
+    fi
+    
+    pass_test "Display story list with title, description, and status"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +150,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_story_list_with_pagination; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
