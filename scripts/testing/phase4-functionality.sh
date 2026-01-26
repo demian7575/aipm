@@ -48,6 +48,42 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Display User Stories in Status-Filtered List View
+# ID: 1769410811181
+# Merged: 2026-01-26
+# =============================================================================
+test_display_user_stories_in_status_filtered_list_view() {
+    log_test "Display User Stories in Status-Filtered List View"
+    
+    # Test 1: Check if story list button exists in HTML
+    if ! grep -q "story-list-btn" apps/frontend/public/index.html; then
+        fail_test "Story list button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Check if openStoryListModal function exists
+    if ! grep -q "function openStoryListModal" apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not implemented"
+        return 1
+    fi
+    
+    # Test 3: Check if pagination logic exists (20 items per page)
+    if ! grep -q "ITEMS_PER_PAGE = 20" apps/frontend/public/app.js; then
+        fail_test "Pagination with 20 items per page not implemented"
+        return 1
+    fi
+    
+    # Test 4: Check if status badge rendering exists
+    if ! grep -q "statusColors" apps/frontend/public/app.js; then
+        fail_test "Status badge color coding not implemented"
+        return 1
+    fi
+    
+    pass_test "Display User Stories in Status-Filtered List View"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +150,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_user_stories_in_status_filtered_list_view; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
