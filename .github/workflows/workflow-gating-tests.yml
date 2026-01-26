@@ -125,7 +125,7 @@ jobs:
           echo "   Backend: Production (with Development tables header)"
           echo "   Data: Development DynamoDB tables (isolated)"
           
-          if timeout 300 source ./scripts/testing/phase2-e2e-workflow.sh; then
+          if timeout 300 bash -c "source ./scripts/testing/phase2-e2e-workflow.sh"; then
             echo "✅ Phase 2 PASSED - E2E workflow validated"
             echo "status=success" >> $GITHUB_OUTPUT
           else
