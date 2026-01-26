@@ -118,30 +118,16 @@ cd /home/ec2-user/aipm
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
+  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Code changes ready for commit...\"}"
 
-# Check if gating tests should be skipped (for development/testing)
-if [[ "${SKIP_GATING_TESTS:-false}" == "true" ]]; then
-    echo "⚠️  Skipping gating tests (SKIP_GATING_TESTS=true)"
-else
-    # Run Phase 1 and 2 - MUST PASS (run once and save output)
-    GATING_OUTPUT=$(bash scripts/testing/run-structured-gating-tests.sh --phases 1,2 2>&1)
-    echo "$GATING_OUTPUT" | tail -100
+# Gating tests are run separately by the deployment workflow
+# Do not run them here to avoid nested execution and environment pollution
+echo "ℹ️  Gating tests will be run by the deployment workflow"
 
-    # Check Phase 1,2 passed
-    if ! echo "$GATING_OUTPUT" | grep -q "ALL GATING TESTS PASSED"; then
-        echo "Phase 1,2 failed - fix and retry"
-        exit 1
-    fi
-
-    # Run Phase 4 to test your new functionality
-    bash scripts/testing/phase4-functionality.sh
-fi
-
-# If tests passed or skipped, proceed to commit
+# If code is ready, proceed to commit
 ```
-Check output for: "ALL GATING TESTS PASSED" (Phase 1,2) and story test passes
-If fails: Fix code and return to step 4 (max 3 attempts)
+Check that code changes address the story requirements
+If issues found: Fix code and return to step 4 (max 3 attempts)
 
 ### 6. Commit & Push
 ```bash
