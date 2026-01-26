@@ -5233,9 +5233,13 @@ function renderStoryDetailsWithCompleteData(story) {
     groupEl.className = 'dependency-group';
     const groupHeader = document.createElement('div');
     groupHeader.className = 'dependency-group-header';
-    const groupHeading = document.createElement('h4');
-    groupHeading.textContent = group.title;
-    groupHeader.appendChild(groupHeading);
+    
+    // Only show heading for non-upstream groups (upstream = Dependencies section)
+    if (group.key !== 'upstream') {
+      const groupHeading = document.createElement('h4');
+      groupHeading.textContent = group.title;
+      groupHeader.appendChild(groupHeading);
+    }
 
     if (group.allowAdd) {
       const addBtn = document.createElement('button');
