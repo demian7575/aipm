@@ -42,6 +42,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -734,6 +735,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7568,6 +7575,119 @@ function openFilterModal() {
           showToast('Filters applied', 'success');
           return true;
         }
+      }
+    ]
+  });
+}
+
+/**
+ * Opens a modal displaying all user stories in a list view
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  const listEl = document.createElement('div');
+  listEl.className = 'story-list';
+  container.appendChild(listEl);
+  
+  const paginationEl = document.createElement('div');
+  paginationEl.className = 'story-list-pagination';
+  container.appendChild(paginationEl);
+  
+  let currentPage = 1;
+  const itemsPerPage = 20;
+  
+  function renderStoryList() {
+    const allStories = Array.from(storyIndex.values());
+    const totalPages = Math.ceil(allStories.length / itemsPerPage);
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = startIdx + itemsPerPage;
+    const pageStories = allStories.slice(startIdx, endIdx);
+    
+    if (pageStories.length === 0) {
+      listEl.innerHTML = '<p>No stories found.</p>';
+      paginationEl.innerHTML = '';
+      return;
+    }
+    
+    listEl.innerHTML = '';
+    const table = document.createElement('table');
+    table.className = 'story-list-table';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    
+    const tbody = table.querySelector('tbody');
+    pageStories.forEach(story => {
+      const row = document.createElement('tr');
+      row.className = 'story-list-row';
+      row.style.cursor = 'pointer';
+      
+      const titleCell = document.createElement('td');
+      titleCell.innerHTML = `<strong>${escapeHtml(story.title)}</strong>`;
+      
+      const descCell = document.createElement('td');
+      const truncatedDesc = story.description.length > 100 
+        ? story.description.substring(0, 100) + '...' 
+        : story.description;
+      descCell.textContent = truncatedDesc;
+      
+      const statusCell = document.createElement('td');
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `status-badge status-${story.status.toLowerCase().replace(/\s+/g, '-')}`;
+      statusBadge.textContent = story.status;
+      statusCell.appendChild(statusBadge);
+      
+      row.appendChild(titleCell);
+      row.appendChild(descCell);
+      row.appendChild(statusCell);
+      
+      row.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      
+      tbody.appendChild(row);
+    });
+    
+    listEl.appendChild(table);
+    
+    // Render pagination
+    if (totalPages > 1) {
+      paginationEl.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = i === currentPage ? 'active' : '';
+        btn.addEventListener('click', () => {
+          currentPage = i;
+          renderStoryList();
+        });
+        paginationEl.appendChild(btn);
+      }
+    } else {
+      paginationEl.innerHTML = '';
+    }
+  }
+  
+  renderStoryList();
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    size: 'large',
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
       }
     ]
   });
