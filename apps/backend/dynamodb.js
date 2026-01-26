@@ -4,8 +4,8 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCo
 const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const DEFAULT_STORIES_TABLE = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-const DEFAULT_ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+const DEFAULT_STORIES_TABLE = process.env.STORIES_TABLE;
+const DEFAULT_ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE;
 
 console.log('DynamoDB: Default tables:', { DEFAULT_STORIES_TABLE, DEFAULT_ACCEPTANCE_TESTS_TABLE });
 
@@ -21,11 +21,11 @@ export function clearRequestContext() {
 }
 
 function getStoriesTable() {
-  return requestContext?.storiesTable || DEFAULT_STORIES_TABLE;
+  return requestContext?.storiesTable ?? DEFAULT_STORIES_TABLE;
 }
 
 function getAcceptanceTestsTable() {
-  return requestContext?.acceptanceTestsTable || DEFAULT_ACCEPTANCE_TESTS_TABLE;
+  return requestContext?.acceptanceTestsTable ?? DEFAULT_ACCEPTANCE_TESTS_TABLE;
 }
 
 export class DynamoDBDataLayer {
