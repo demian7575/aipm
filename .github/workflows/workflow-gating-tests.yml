@@ -116,13 +116,13 @@ jobs:
       - name: Run Phase 2 - Complete E2E Workflow
         id: phase2
         env:
-          # Use Development environment for data isolation
-          # Production and Development run the same code, so this tests production code safely
-          API_BASE: http://44.222.168.46:4000
-          SEMANTIC_API_BASE: http://44.222.168.46:8083
+          # Use Production backend with Development tables (via X-Use-Dev-Tables header)
+          # This tests production code with isolated development data
+          API_BASE: http://44.197.204.18:4000
+          SEMANTIC_API_BASE: http://44.197.204.18:8083
         run: |
           echo "🟡 Running Phase 2: Complete E2E Workflow"
-          echo "   Testing: Production code (deployed to Development)"
+          echo "   Backend: Production (with Development tables header)"
           echo "   Data: Development DynamoDB tables (isolated)"
           
           if timeout 300 ./scripts/testing/phase2-e2e-workflow.sh; then
