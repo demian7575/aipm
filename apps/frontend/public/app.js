@@ -749,6 +749,12 @@ if (filterBtn) {
   });
 }
 
+if (statusOverviewBtn) {
+  statusOverviewBtn.addEventListener('click', () => {
+    openStatusOverviewModal();
+  });
+}
+
 if (mindmapZoomInBtn) {
   mindmapZoomInBtn.addEventListener('click', () => {
     setMindmapZoom(state.mindmapZoom + MINDMAP_ZOOM_STEP);
