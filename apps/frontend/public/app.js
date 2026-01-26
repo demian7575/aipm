@@ -5183,9 +5183,6 @@ function renderStoryDetailsWithCompleteData(story) {
   dependencySection.className = 'dependencies-section';
   const dependencyHeading = document.createElement('div');
   dependencyHeading.className = 'section-heading';
-  const dependencyTitle = document.createElement('h3');
-  dependencyTitle.textContent = 'Dependencies';
-  dependencyHeading.appendChild(dependencyTitle);
   const dependencyOverlayBtn = document.createElement('button');
   dependencyOverlayBtn.type = 'button';
   dependencyOverlayBtn.className = 'secondary dependency-overlay-toggle';
