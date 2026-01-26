@@ -48,6 +48,36 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Display User Stories in Status-Grouped List View
+# ID: 1769410354529
+# Merged: $(date +%Y-%m-%d)
+# =============================================================================
+test_display_user_stories_in_status_grouped_list_view() {
+    log_test "Display User Stories in Status-Grouped List View"
+    
+    # Test 1: Check if Story List button exists in HTML
+    if ! grep -q "story-list-btn" apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Check if story list modal function exists
+    if ! grep -q "openStoryListModal" apps/frontend/public/app.js; then
+        fail_test "Story list modal function not implemented"
+        return 1
+    fi
+    
+    # Test 3: Check if pagination is implemented
+    if ! grep -q "itemsPerPage.*20" apps/frontend/public/app.js; then
+        fail_test "Pagination with 20 items per page not found"
+        return 1
+    fi
+    
+    pass_test "Display User Stories in Status-Grouped List View"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +144,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_user_stories_in_status_grouped_list_view; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))

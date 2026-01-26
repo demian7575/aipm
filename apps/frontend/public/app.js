@@ -43,6 +43,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
@@ -8544,6 +8545,118 @@ function openCreatePRModal(story, taskEntry = null) {
 }
 
 initialize();
+
+/**
+ * Open story list modal showing all stories with pagination
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.cssText = 'max-height: 600px; overflow-y: auto;';
+  
+  const table = document.createElement('table');
+  table.style.cssText = 'width: 100%; border-collapse: collapse;';
+  table.innerHTML = `
+    <thead>
+      <tr style="background: #f1f5f9; position: sticky; top: 0;">
+        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Title</th>
+        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Description</th>
+        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Status</th>
+      </tr>
+    </thead>
+    <tbody id="story-list-tbody"></tbody>
+  `;
+  
+  container.appendChild(table);
+  
+  const paginationDiv = document.createElement('div');
+  paginationDiv.id = 'story-list-pagination';
+  paginationDiv.style.cssText = 'margin-top: 16px; text-align: center;';
+  container.appendChild(paginationDiv);
+  
+  let currentPage = 1;
+  const itemsPerPage = 20;
+  
+  function renderStoryList(page = 1) {
+    const tbody = document.getElementById('story-list-tbody');
+    const allStories = state.stories.flatMap(s => flattenStoryTree(s));
+    
+    const startIdx = (page - 1) * itemsPerPage;
+    const endIdx = startIdx + itemsPerPage;
+    const pageStories = allStories.slice(startIdx, endIdx);
+    
+    tbody.innerHTML = pageStories.map(story => {
+      const truncatedDesc = (story.description || '').substring(0, 100) + 
+        ((story.description || '').length > 100 ? '...' : '');
+      const statusColor = getStatusColor(story.status);
+      
+      return `
+        <tr style="cursor: pointer; border-bottom: 1px solid #e2e8f0;" 
+            onclick="window.selectStoryFromList(${story.id})">
+          <td style="padding: 12px;">${escapeHtml(story.title || '')}</td>
+          <td style="padding: 12px;">${escapeHtml(truncatedDesc)}</td>
+          <td style="padding: 12px;">
+            <span style="padding: 4px 8px; border-radius: 4px; background: ${statusColor}; color: white; font-size: 12px;">
+              ${escapeHtml(story.status || 'Draft')}
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+    
+    const totalPages = Math.ceil(allStories.length / itemsPerPage);
+    const paginationDiv = document.getElementById('story-list-pagination');
+    paginationDiv.innerHTML = `
+      <button ${page === 1 ? 'disabled' : ''} onclick="window.changeStoryListPage(${page - 1})">Previous</button>
+      <span style="margin: 0 16px;">Page ${page} of ${totalPages}</span>
+      <button ${page === totalPages ? 'disabled' : ''} onclick="window.changeStoryListPage(${page + 1})">Next</button>
+    `;
+  }
+  
+  window.changeStoryListPage = (page) => {
+    currentPage = page;
+    renderStoryList(page);
+  };
+  
+  window.selectStoryFromList = (storyId) => {
+    closeModal();
+    selectStory(storyId);
+  };
+  
+  renderStoryList(1);
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [],
+    size: 'large'
+  });
+}
+
+function getStatusColor(status) {
+  const colors = {
+    'Draft': '#64748b',
+    'Ready': '#3b82f6',
+    'In Progress': '#f59e0b',
+    'Blocked': '#ef4444',
+    'Approved': '#10b981',
+    'Done': '#22c55e'
+  };
+  return colors[status] || '#64748b';
+}
+
+function flattenStoryTree(story) {
+  const result = [story];
+  if (story.children) {
+    story.children.forEach(child => {
+      result.push(...flattenStoryTree(child));
+    });
+  }
+  return result;
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', openStoryListModal);
+}
 
 // Global function to clean up Kiro API queue (accessible from browser console)
 window.cleanupKiroQueue = async function() {
