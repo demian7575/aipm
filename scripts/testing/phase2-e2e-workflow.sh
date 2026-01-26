@@ -78,6 +78,13 @@ phase6_step1_story_draft_generation() {
     # Parse SSE response
     local draft_data=$(echo "$response" | parse_sse_response)
     
+    # Check for errors first
+    if json_check "$draft_data" '.error'; then
+        fail_test "Story Draft Generation (Error in response)"
+        echo "   ❌ Error: $(echo "$draft_data" | jq -r '.error // "Unknown error"')"
+        return
+    fi
+    
     if json_check "$draft_data" '.title' && json_check "$draft_data" '.status' '"complete"'; then
         PHASE2_STORY_DRAFT="$draft_data"
         pass_test "Story Draft Generation (SSE)"
@@ -227,6 +234,13 @@ phase6_step4_invest_analysis() {
     # Parse SSE response
     local analysis_data=$(echo "$response" | parse_sse_response)
     
+    # Check for errors first
+    if json_check "$analysis_data" '.error'; then
+        fail_test "INVEST Analysis (Error in response)"
+        echo "   ❌ Error: $(echo "$analysis_data" | jq -r '.error // "Unknown error"')"
+        return
+    fi
+    
     if json_check "$analysis_data" '.score' && json_check "$analysis_data" '.status' '"complete"'; then
         pass_test "INVEST Analysis (SSE)"
         echo "   ✅ Score: $(echo "$analysis_data" | jq -r '.score')"
@@ -280,6 +294,13 @@ phase6_step5_acceptance_test_draft() {
     
     # Parse SSE response
     local draft_data=$(echo "$response" | parse_sse_response)
+    
+    # Check for errors first
+    if json_check "$draft_data" '.error'; then
+        fail_test "Acceptance Test Draft (Error in response)"
+        echo "   ❌ Error: $(echo "$draft_data" | jq -r '.error // "Unknown error"')"
+        return
+    fi
     
     if json_check "$draft_data" '.title' && json_check "$draft_data" '.status' '"complete"'; then
         PHASE2_ACCEPTANCE_TEST_DRAFT="$draft_data"
@@ -395,6 +416,14 @@ phase6_step7_generate_code() {
     
     # Parse SSE response
     local code_data=$(echo "$response" | parse_sse_response)
+    
+    # Check for errors first
+    if json_check "$code_data" '.error'; then
+        fail_test "Generate Code (Error in response)"
+        echo "   ❌ Error: $(echo "$code_data" | jq -r '.error // "Unknown error"')"
+        echo "   ❌ Response: $response"
+        return
+    fi
     
     if json_check "$code_data" '.status' '"complete"' || json_check "$code_data" '.status' '"success"'; then
         pass_test "Generate Code (Real)"

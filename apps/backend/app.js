@@ -6378,6 +6378,67 @@ export async function createApp() {
       return;
     }
 
+    // SSE endpoint for code generation with real-time progress
+    const generateCodeStreamMatch = pathname.match(/^\/api\/stories\/([^/]+)\/generate-code-stream$/);
+    if (generateCodeStreamMatch && method === 'GET') {
+      const storyId = Number(generateCodeStreamMatch[1]);
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const prNumber = url.searchParams.get('prNumber');
+      const branchName = url.searchParams.get('branchName');
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+      });
+
+      try {
+        // Load story
+        const story = await loadStoryWithDetails(db, storyId);
+        if (!story) {
+          res.write(`data: ${JSON.stringify({ status: 'error', message: 'Story not found' })}\n\n`);
+          res.end();
+          return;
+        }
+
+        // Call Semantic API with stream endpoint
+        const response = await fetch(`${SEMANTIC_API_URL}/aipm/code-generation?stream=true`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storyId: storyId,
+            storyTitle: story.title,
+            storyDescription: story.description || '',
+            acceptanceTests: story.acceptanceTests || [],
+            branchName: branchName,
+            prNumber: parseInt(prNumber)
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Semantic API returned ${response.status}`);
+        }
+
+        // Proxy SSE stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(decoder.decode(value, { stream: true }));
+        }
+
+        res.end();
+      } catch (error) {
+        console.error('SSE proxy error:', error);
+        res.write(`data: ${JSON.stringify({ status: 'error', message: error.message })}\n\n`);
+        res.end();
+      }
+      return;
+    }
+
     if (pathname === '/api/generate-code-branch' && method === 'OPTIONS') {
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
@@ -6622,6 +6683,67 @@ export async function createApp() {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
       const stories = await loadStories(db, { includeAiInvest });
       sendJson(res, 200, stories);
+      return;
+    }
+
+    // SSE endpoint for INVEST analysis with real-time progress
+    const investAnalysisStreamMatch = pathname.match(/^\/api\/stories\/([^/]+)\/invest-analysis-stream$/);
+    if (investAnalysisStreamMatch && method === 'GET') {
+      const storyId = Number(investAnalysisStreamMatch[1]);
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+      });
+
+      try {
+        // Load story
+        const story = await loadStoryWithDetails(db, storyId);
+        if (!story) {
+          res.write(`data: ${JSON.stringify({ status: 'error', message: 'Story not found' })}\n\n`);
+          res.end();
+          return;
+        }
+
+        // Call Semantic API with stream endpoint
+        const response = await fetch(`${SEMANTIC_API_URL}/aipm/invest-analysis?stream=true`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: story.id,
+            title: story.title,
+            description: story.description,
+            asA: story.asA,
+            iWant: story.iWant,
+            soThat: story.soThat,
+            storyPoint: story.storyPoint,
+            components: story.components || [],
+            acceptanceTests: story.acceptanceTests || []
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Semantic API returned ${response.status}`);
+        }
+
+        // Proxy SSE stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(decoder.decode(value, { stream: true }));
+        }
+
+        res.end();
+      } catch (error) {
+        console.error('SSE proxy error:', error);
+        res.write(`data: ${JSON.stringify({ status: 'error', message: error.message })}\n\n`);
+        res.end();
+      }
       return;
     }
 
@@ -7047,6 +7169,69 @@ export async function createApp() {
         kiroApi: 'http://44.197.204.18:8081',
         terminal: 'ws://44.197.204.18:8080'
       });
+      return;
+    }
+
+    // SSE endpoint for story draft generation with real-time progress
+    const storyDraftStreamMatch = pathname.match(/^\/api\/stories\/draft-stream$/);
+    if (storyDraftStreamMatch && method === 'GET') {
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const idea = url.searchParams.get('idea') || '';
+      const parentId = url.searchParams.get('parentId');
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+      });
+
+      try {
+        if (!idea) {
+          res.write(`data: ${JSON.stringify({ status: 'error', message: 'Idea is required' })}\n\n`);
+          res.end();
+          return;
+        }
+
+        // Get parent story context if provided
+        let parent = null;
+        if (parentId) {
+          const stories = await getAllStories(db);
+          parent = flattenStories(stories).find((story) => story.id === Number(parentId)) ?? null;
+        }
+
+        // Call Semantic API with stream endpoint
+        const response = await fetch(`${SEMANTIC_API_URL}/aipm/story-draft?stream=true`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            featureDescription: idea,
+            parentId: parentId ? Number(parentId) : undefined,
+            parentTitle: parent?.title,
+            parentDescription: parent?.description
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Semantic API returned ${response.status}`);
+        }
+
+        // Proxy SSE stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(decoder.decode(value, { stream: true }));
+        }
+
+        res.end();
+      } catch (error) {
+        console.error('SSE proxy error:', error);
+        res.write(`data: ${JSON.stringify({ status: 'error', message: error.message })}\n\n`);
+        res.end();
+      }
       return;
     }
 

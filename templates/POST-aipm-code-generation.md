@@ -1,5 +1,7 @@
 # Code Generation Contract
 
+**INCLUDE**: `templates/SEMANTIC_API_GUIDELINES.md`
+
 ## INPUT VARIABLES
 The prompt provides these variables:
 - `storyId` - Story ID number
@@ -28,6 +30,8 @@ curl -s http://localhost:4000/api/stories/{storyId}
 ```
 Parse JSON response to get story details and acceptance tests
 
+
+
 ### 2. Prepare Git Branch
 ```bash
 cd /home/ec2-user/aipm
@@ -44,6 +48,8 @@ git checkout {branchName}
 git pull origin {branchName} --rebase || true
 ```
 
+
+
 ### 3. Analyze Codebase
 ```bash
 # Send progress update
@@ -51,8 +57,10 @@ curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Analyzing codebase...\"}"
 ```
-- Review: `apps/frontend/public/app.js`, `apps/backend/app.js`
-- Identify: Integration points, patterns, conventions
+
+Analayze Code Base and Identify Integration points, patterns, conventions
+
+
 
 ### 4. Implement
 ```bash
@@ -61,87 +69,30 @@ curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Generating code...\"}"
 ```
-Write code following story requirements and existing patterns
 
-Add Phase 4 gating test to the accumulated test file:
-```bash
-cd /home/ec2-user/aipm
-
-# Generate safe function name from story title
-STORY_FUNC=$(echo "{storyTitle}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/__*/_/g' | sed 's/^_//' | sed 's/_$//')
-
-# Add test function to phase4-functionality.sh before "ADD NEW STORY TESTS" marker
-cat >> /tmp/new_test.sh << 'TESTEOF'
-
-# =============================================================================
-# Story: {storyTitle}
-# ID: {storyId}
-# Merged: $(date +%Y-%m-%d)
-# =============================================================================
-test_${STORY_FUNC}() {
-    log_test "{storyTitle}"
-    
-    # Test 1: [Add your first acceptance test verification]
-    # Example: Check if feature exists in code
-    # if ! grep -q "expectedFeature" apps/frontend/public/app.js; then
-    #     fail_test "Feature not implemented"
-    #     return 1
-    # fi
-    
-    # Test 2: [Add your second acceptance test verification]
-    # Test 3: [Add more tests as needed]
-    
-    pass_test "{storyTitle}"
-    return 0
-}
-TESTEOF
-
-# Insert before "ADD NEW STORY TESTS" line
-sed -i '/# ADD NEW STORY TESTS BELOW THIS LINE/r /tmp/new_test.sh' scripts/testing/phase4-functionality.sh
-
-# Add function call before "ADD NEW TEST FUNCTION CALLS" line
-sed -i '/# ADD NEW TEST FUNCTION CALLS HERE/i\
-if test_'"${STORY_FUNC}"'; then\
-    ((PHASE4_PASSED++))\
-else\
-    ((PHASE4_FAILED++))\
-fi\
-' scripts/testing/phase4-functionality.sh
-
-echo "✅ Added test_${STORY_FUNC} to phase4-functionality.sh"
+Write code following story requirements to satisfy Acceptnace tests and existing patterns
+Implement acceptance tests to phase4-functionality.sh"
 ```
 
-### 5. Run Gating Tests (MANDATORY)
-```bash
-cd /home/ec2-user/aipm
 
+
+### 5. Run Gating Tests (MANDATORY)
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 
 # Check if gating tests should be skipped (for development/testing)
-if [[ "${SKIP_GATING_TESTS:-false}" == "true" ]]; then
-    echo "⚠️  Skipping gating tests (SKIP_GATING_TESTS=true)"
-else
-    # Run Phase 1 and 2 - MUST PASS (run once and save output)
-    GATING_OUTPUT=$(bash scripts/testing/run-structured-gating-tests.sh --phases 1,2 2>&1)
-    echo "$GATING_OUTPUT" | tail -100
-
-    # Check Phase 1,2 passed
-    if ! echo "$GATING_OUTPUT" | grep -q "ALL GATING TESTS PASSED"; then
-        echo "Phase 1,2 failed - fix and retry"
-        exit 1
-    fi
-
-    # Run Phase 4 to test your new functionality
-    bash scripts/testing/phase4-functionality.sh
+if "${SKIP_GATING_TESTS}" == "false"
+    Run Phase 1 and 2 and newly added Phase 4 tests.
+    If tests fails: Revert changes and return to step 4 (max 3 attempts)
 fi
 
 # If tests passed or skipped, proceed to commit
-```
 Check output for: "ALL GATING TESTS PASSED" (Phase 1,2) and story test passes
 If fails: Fix code and return to step 4 (max 3 attempts)
+
+
 
 ### 6. Commit & Push
 ```bash
@@ -188,11 +139,6 @@ echo "✅ Completion response sent to Semantic API"
 - Minimize duplication
 - Keep simple and clear
 
-## FILE STRUCTURE
-```
-apps/frontend/public/app.js    # Frontend logic
-apps/backend/app.js             # Backend API
-```
 
 ## INPUT
 Variables provided in the prompt:

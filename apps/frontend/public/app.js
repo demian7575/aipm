@@ -2050,70 +2050,47 @@ function renderCodeWhispererSectionList(container, story) {
         
         // Create code-focused prompt from story details
         const storyTitle = story?.title || 'Untitled Story';
-        const storyDesc = story?.description || '';
-        const asA = story?.asA || '';
-        const iWant = story?.iWant || '';
-        const soThat = story?.soThat || '';
-        
-        // Extract values dynamically from frontend data
-        const taskTitle = storyTitle;
-        const objective = iWant || storyDesc || 'Implement the requested feature';
-        const constraints = 'Follow AIPM patterns and maintain existing functionality';
         const prNum = parseInt(prNumber);
         const branchName = entry.branchName;
-        const language = 'javascript';
         
-        // Create template-based prompt with one-line parameters
-        const prompt = `Read and follow the template file: ./templates/code-generation.md
-
-taskTitle: "${taskTitle}", objective: "${objective}", constraints: "${constraints}", prNumber: ${prNum}, branchName: "${branchName}", language: "${language}"
-
-Execute the template instructions exactly as written.`;
+        console.log('🚀 Starting SSE-based code generation...');
+        console.log('📤 Parameters:', { storyId: story.id, prNum, branchName });
         
-        console.log('🚀 Starting template-based code generation...');
-        console.log('📤 Template values:', { taskTitle, objective, constraints, prNum, branchName, language });
+        // Use SSE for real-time progress updates
+        const apiBaseUrl = getApiBaseUrl();
+        const eventSource = new EventSource(`${apiBaseUrl}/api/stories/${story.id}/generate-code-stream?prNumber=${prNum}&branchName=${encodeURIComponent(branchName)}`);
         
-        const response = await fetch(resolveApiUrl('/api/generate-code-branch'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            storyId: story?.id,
-            prNumber: parseInt(prNumber),
-            prompt: prompt,
-            originalBranch: entry.branchName
-          })
-        });
-
-        console.log('📥 Response status:', response.status);
-        console.log('📥 Response ok:', response.ok);
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log('✅ Generation result:', result);
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          console.log('📊 SSE progress:', data);
           
-          if (result.success) {
-            if (result.newPRCreated) {
-              showToast(`🔄 Conflicts resolved! New PR #${result.prNumber} created. Code generation started.`, 'warning');
-              // Update the UI with new PR information
-              if (result.newPRUrl) {
-                // Refresh the story data to show updated PR links
-                await loadStories();
-              }
-            } else {
-              showToast(`Code generation started for PR #${result.prNumber}`, 'success');
-            }
-          } else {
-            showToast('Code generation failed', 'error');
+          if (data.status === 'progress') {
+            generateCodeBtn.textContent = data.message || 'Generating...';
+          } else if (data.status === 'complete') {
+            eventSource.close();
+            generateCodeBtn.disabled = false;
+            generateCodeBtn.textContent = 'Generate Code';
+            showToast(`Code generation completed for PR #${prNum}`, 'success');
+            loadStories(); // Refresh to show updates
+          } else if (data.status === 'error') {
+            eventSource.close();
+            generateCodeBtn.disabled = false;
+            generateCodeBtn.textContent = 'Generate Code';
+            showToast(`Code generation failed: ${data.message}`, 'error');
           }
-        } else {
-          const errorText = await response.text();
-          console.error('❌ HTTP error:', response.status, errorText);
-          showToast(`Code generation failed: ${response.status}`, 'error');
-        }
+        };
+        
+        eventSource.onerror = (error) => {
+          console.error('❌ SSE error:', error);
+          eventSource.close();
+          generateCodeBtn.disabled = false;
+          generateCodeBtn.textContent = 'Generate Code';
+          showToast('Connection error during code generation', 'error');
+        };
+        
       } catch (error) {
         console.error('❌ Exception during generation:', error);
         showToast('Error during code generation', 'error');
-      } finally {
         generateCodeBtn.disabled = false;
         generateCodeBtn.textContent = 'Generate Code';
       }

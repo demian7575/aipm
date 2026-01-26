@@ -501,7 +501,7 @@ test_frontend_backend_integration() {
     local html=$(curl -s "$frontend_url")
     local config=$(curl -s "$frontend_url/config.js")
     
-    if echo "$html" | grep -q "AI Project Manager" && echo "$config" | grep -q "API_BASE_URL"; then
+    if echo "$html" | grep -q "AI Project Manager" && echo "$config" | grep -q "BACKEND_API_URL"; then
         pass_test "Frontend-Backend Integration"
     else
         fail_test "Frontend-Backend Integration"
