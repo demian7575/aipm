@@ -6639,6 +6639,7 @@ export async function createApp() {
         const components = normalizeComponentsInput(payload.components, { strict: true });
         const storyPoint = normalizeStoryPoint(payload.storyPoint);
         const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
+        const priority = payload.priority && ['High', 'Medium', 'Low'].includes(payload.priority) ? payload.priority : 'Medium';
         const parentId = payload.parentId == null ? null : Number(payload.parentId);
         const acceptanceTests = payload.acceptanceTests || [];
         
@@ -6670,6 +6671,7 @@ export async function createApp() {
             soThat: soThat,
             components: serializeComponents(components),
             storyPoint: storyPoint,
+            priority: priority,
             assigneeEmail: assigneeEmail,
             status: 'Draft',
             createdAt: timestamp,
@@ -6951,6 +6953,10 @@ export async function createApp() {
           if (payload.storyPoint !== undefined) {
             updateExpressions.push('storyPoint = :storyPoint');
             expressionAttributeValues[':storyPoint'] = payload.storyPoint;
+          }
+          if (payload.priority !== undefined) {
+            updateExpressions.push('priority = :priority');
+            expressionAttributeValues[':priority'] = payload.priority;
           }
           if (payload.assigneeEmail !== undefined) {
             updateExpressions.push('assigneeEmail = :assigneeEmail');
