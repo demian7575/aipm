@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -4221,6 +4222,148 @@ async function bedrockImplementation(prEntry) {
   }
 }
 
+/**
+ * Opens a modal displaying all stories grouped by status
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.maxHeight = '600px';
+  container.style.overflowY = 'auto';
+
+  const allStories = [];
+  function collectStories(stories) {
+    for (const story of stories) {
+      allStories.push(story);
+      if (story.children?.length) {
+        collectStories(story.children);
+      }
+    }
+  }
+  collectStories(state.stories);
+
+  const statusGroups = {
+    'Draft': [],
+    'Ready': [],
+    'In Progress': [],
+    'Blocked': [],
+    'Approved': [],
+    'Done': []
+  };
+
+  for (const story of allStories) {
+    const status = story.status || 'Draft';
+    if (statusGroups[status]) {
+      statusGroups[status].push(story);
+    }
+  }
+
+  for (const [status, stories] of Object.entries(statusGroups)) {
+    if (stories.length === 0) continue;
+
+    const section = document.createElement('div');
+    section.className = 'story-list-section';
+    section.style.marginBottom = '20px';
+
+    const header = document.createElement('h3');
+    header.style.display = 'flex';
+    header.style.alignItems = 'center';
+    header.style.gap = '10px';
+    header.textContent = status;
+
+    const badge = document.createElement('span');
+    badge.className = 'status-badge';
+    badge.textContent = stories.length;
+    badge.style.fontSize = '0.9em';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '12px';
+    badge.style.backgroundColor = getStatusColor(status);
+    badge.style.color = 'white';
+    header.appendChild(badge);
+
+    section.appendChild(header);
+
+    const list = document.createElement('div');
+    list.className = 'story-list-items';
+
+    for (const story of stories) {
+      const item = document.createElement('div');
+      item.className = 'story-list-item';
+      item.style.padding = '12px';
+      item.style.marginBottom = '8px';
+      item.style.border = '1px solid #ddd';
+      item.style.borderRadius = '4px';
+      item.style.cursor = 'pointer';
+      item.style.transition = 'background-color 0.2s';
+
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = 'white';
+      });
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+
+      const titleEl = document.createElement('div');
+      titleEl.style.fontWeight = 'bold';
+      titleEl.style.marginBottom = '4px';
+      titleEl.textContent = story.title;
+
+      const descEl = document.createElement('div');
+      descEl.style.color = '#666';
+      descEl.style.fontSize = '0.9em';
+      const truncated = story.description.length > 100 
+        ? story.description.substring(0, 100) + '...' 
+        : story.description;
+      descEl.textContent = truncated;
+
+      const statusBadge = document.createElement('span');
+      statusBadge.className = 'status-badge';
+      statusBadge.textContent = story.status;
+      statusBadge.style.display = 'inline-block';
+      statusBadge.style.marginTop = '4px';
+      statusBadge.style.padding = '2px 8px';
+      statusBadge.style.fontSize = '0.8em';
+      statusBadge.style.borderRadius = '4px';
+      statusBadge.style.backgroundColor = getStatusColor(story.status);
+      statusBadge.style.color = 'white';
+
+      item.appendChild(titleEl);
+      item.appendChild(descEl);
+      item.appendChild(statusBadge);
+      list.appendChild(item);
+    }
+
+    section.appendChild(list);
+    container.appendChild(section);
+  }
+
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'large'
+  });
+}
+
+/**
+ * Returns color for status badge
+ */
+function getStatusColor(status) {
+  const colors = {
+    'Draft': '#6c757d',
+    'Ready': '#007bff',
+    'In Progress': '#ffc107',
+    'Blocked': '#dc3545',
+    'Approved': '#28a745',
+    'Done': '#17a2b8'
+  };
+  return colors[status] || '#6c757d';
+}
+
 function buildHeatmapModalContent() {
   const container = document.createElement('div');
   container.className = 'heatmap-modal';
@@ -8114,6 +8257,10 @@ function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {
