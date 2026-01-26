@@ -5216,7 +5216,7 @@ function renderStoryDetailsWithCompleteData(story) {
     },
     {
       key: 'upstream',
-      title: 'Dependencies',
+      title: '',
       items: supportingDependencies,
       empty: 'No upstream dependencies recorded.',
       context: 'upstream',
@@ -5236,9 +5236,12 @@ function renderStoryDetailsWithCompleteData(story) {
     groupEl.className = 'dependency-group';
     const groupHeader = document.createElement('div');
     groupHeader.className = 'dependency-group-header';
-    const groupHeading = document.createElement('h4');
-    groupHeading.textContent = group.title;
-    groupHeader.appendChild(groupHeading);
+    
+    if (group.title) {
+      const groupHeading = document.createElement('h4');
+      groupHeading.textContent = group.title;
+      groupHeader.appendChild(groupHeading);
+    }
 
     if (group.allowAdd) {
       const addBtn = document.createElement('button');
