@@ -157,6 +157,8 @@ git commit -m "feat: {story title}"
 git push origin {branchName}
 ```
 
+**IMPORTANT**: Do NOT run gating tests during code generation. The gating tests will be run separately by the CI/CD pipeline.
+
 ### 7. Report Completion (MANDATORY - DO NOT SKIP)
 ```bash
 cd /home/ec2-user/aipm
@@ -172,7 +174,7 @@ curl -X POST http://localhost:8083/api/code-generation-response \
     \"status\": \"complete\",
     \"filesModified\": [\"apps/backend/app.js\", \"apps/frontend/public/app.js\"],
     \"summary\": \"Code generated and committed successfully\",
-    \"testResults\": \"Gating tests passed\"
+    \"testResults\": \"Tests will be run by CI/CD pipeline\"
   }"
 
 echo "✅ Completion response sent to Semantic API"
