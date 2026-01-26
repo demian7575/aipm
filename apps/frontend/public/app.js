@@ -54,6 +54,10 @@ const detailsResizer = document.getElementById('details-resizer');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
+const toggleList = document.getElementById('toggle-list');
+const listPanel = document.getElementById('list-panel');
+const storyListBody = document.getElementById('story-list-body');
+const listPagination = document.getElementById('list-pagination');
 const mindmapPanel = document.getElementById('mindmap-panel');
 const mindmapWrapper = document.querySelector('.mindmap-wrapper');
 const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
@@ -512,6 +516,7 @@ const state = {
     outline: true,
     mindmap: true,
     details: true,
+    list: false,
   },
   panelSizes: {
     outline: PANEL_DEFAULT_WIDTHS.outline,
@@ -2818,11 +2823,13 @@ function updateWorkspaceColumns() {
   const showOutline = state.panelVisibility.outline;
   const showMindmap = state.panelVisibility.mindmap;
   const showDetails = state.panelVisibility.details;
+  const showList = state.panelVisibility.list;
   const singleColumn = isSingleColumnLayout();
 
   outlinePanel.classList.toggle('hidden', !showOutline);
   mindmapPanel.classList.toggle('hidden', !showMindmap);
   detailsPanel.classList.toggle('hidden', !showDetails);
+  listPanel.classList.toggle('hidden', !showList);
 
   const showOutlineResizer = !singleColumn && showOutline && (showMindmap || showDetails);
   const showDetailsResizer = !singleColumn && showDetails && showMindmap;
@@ -4507,6 +4514,50 @@ function detectStoryActivitiesForHeatmap(story) {
 
   return Array.from(detected);
 }
+
+/**
+ * Render story list with pagination
+ */
+let currentPage = 1;
+const ITEMS_PER_PAGE = 20;
+
+function renderStoryList() {
+  if (!state.panelVisibility.list) return;
+  
+  const allStories = flattenStories(state.stories);
+  const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIdx = startIdx + ITEMS_PER_PAGE;
+  const pageStories = allStories.slice(startIdx, endIdx);
+  
+  storyListBody.innerHTML = pageStories.map(story => `
+    <tr class="story-row" data-story-id="${story.id}">
+      <td>${escapeHtml(story.title)}</td>
+      <td>${escapeHtml(story.description)}</td>
+      <td>${escapeHtml(story.status)}</td>
+    </tr>
+  `).join('');
+  
+  listPagination.innerHTML = totalPages > 1 ? `
+    <button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">Previous</button>
+    <span>Page ${currentPage} of ${totalPages}</span>
+    <button ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">Next</button>
+  ` : '';
+  
+  document.querySelectorAll('.story-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const storyId = Number(row.dataset.storyId);
+      selectStory(storyId);
+      toggleDetails.checked = true;
+      setPanelVisibility('details', true);
+    });
+  });
+}
+
+window.changePage = function(page) {
+  currentPage = page;
+  renderStoryList();
+};
 
 let renderDetailsTimeout = null;
 
@@ -8104,6 +8155,10 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+  toggleList.addEventListener('change', (event) => {
+    setPanelVisibility('list', event.target.checked);
+    if (event.target.checked) renderStoryList();
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
