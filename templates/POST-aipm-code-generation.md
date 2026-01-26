@@ -120,9 +120,10 @@ curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 
-# Check if gating tests should be skipped (for development/testing)
-if [[ "${SKIP_GATING_TESTS:-false}" == "true" ]]; then
-    echo "⚠️  Skipping gating tests (SKIP_GATING_TESTS=true)"
+# Check if gating tests should be skipped
+# Skip if: SKIP_GATING_TESTS=true OR API_BASE is not set (not in gating test environment)
+if [[ "${SKIP_GATING_TESTS:-false}" == "true" ]] || [[ -z "${API_BASE}" ]]; then
+    echo "⚠️  Skipping gating tests (not in gating test environment)"
 else
     # Run Phase 1 and 2 - MUST PASS (run once and save output)
     GATING_OUTPUT=$(bash scripts/testing/run-structured-gating-tests.sh --phases 1,2 2>&1)
