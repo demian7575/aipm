@@ -43,6 +43,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
@@ -4221,6 +4222,136 @@ async function bedrockImplementation(prEntry) {
   }
 }
 
+/**
+ * Open story list modal with pagination
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  container.style.cssText = 'max-height: 600px; overflow-y: auto;';
+
+  const allStories = flattenStories(state.stories);
+  const itemsPerPage = 20;
+  let currentPage = 1;
+  const totalPages = Math.ceil(allStories.length / itemsPerPage);
+
+  function renderPage() {
+    container.innerHTML = '';
+
+    if (allStories.length === 0) {
+      const placeholder = document.createElement('p');
+      placeholder.className = 'placeholder';
+      placeholder.textContent = 'No user stories found.';
+      container.appendChild(placeholder);
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'story-list-table';
+    table.style.cssText = 'width: 100%; border-collapse: collapse;';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Title</th>
+        <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Description</th>
+        <th style="text-align: left; padding: 8px; border-bottom: 2px solid #ddd;">Status</th>
+      </tr>
+    `;
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = Math.min(startIdx + itemsPerPage, allStories.length);
+    const pageStories = allStories.slice(startIdx, endIdx);
+
+    pageStories.forEach(story => {
+      const row = document.createElement('tr');
+      row.style.cssText = 'cursor: pointer; border-bottom: 1px solid #eee;';
+      row.addEventListener('mouseenter', () => row.style.backgroundColor = '#f5f5f5');
+      row.addEventListener('mouseleave', () => row.style.backgroundColor = '');
+      row.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+
+      const titleCell = document.createElement('td');
+      titleCell.style.cssText = 'padding: 8px; font-weight: bold;';
+      titleCell.textContent = story.title;
+
+      const descCell = document.createElement('td');
+      descCell.style.cssText = 'padding: 8px;';
+      const truncatedDesc = story.description.length > 100 
+        ? story.description.substring(0, 100) + '...' 
+        : story.description;
+      descCell.textContent = truncatedDesc;
+
+      const statusCell = document.createElement('td');
+      statusCell.style.cssText = 'padding: 8px;';
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `status-badge status-${story.status.toLowerCase().replace(/\s+/g, '-')}`;
+      statusBadge.textContent = story.status;
+      statusBadge.style.cssText = 'padding: 4px 8px; border-radius: 4px; font-size: 12px;';
+      
+      const statusColors = {
+        'draft': '#6c757d',
+        'ready': '#007bff',
+        'in-progress': '#17a2b8',
+        'blocked': '#dc3545',
+        'approved': '#28a745',
+        'done': '#28a745'
+      };
+      const statusKey = story.status.toLowerCase().replace(/\s+/g, '-');
+      statusBadge.style.backgroundColor = statusColors[statusKey] || '#6c757d';
+      statusBadge.style.color = '#fff';
+      
+      statusCell.appendChild(statusBadge);
+
+      row.appendChild(titleCell);
+      row.appendChild(descCell);
+      row.appendChild(statusCell);
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+
+    if (totalPages > 1) {
+      const pagination = document.createElement('div');
+      pagination.style.cssText = 'margin-top: 16px; text-align: center;';
+      pagination.innerHTML = `
+        <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''} style="margin: 0 8px; padding: 4px 12px;">Previous</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''} style="margin: 0 8px; padding: 4px 12px;">Next</button>
+      `;
+      container.appendChild(pagination);
+
+      pagination.querySelector('#prev-page')?.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPage();
+        }
+      });
+
+      pagination.querySelector('#next-page')?.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderPage();
+        }
+      });
+    }
+  }
+
+  renderPage();
+
+  openModal({
+    title: 'User Stories',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'large',
+  });
+}
+
 function buildHeatmapModalContent() {
   const container = document.createElement('div');
   container.className = 'heatmap-modal';
@@ -8114,6 +8245,10 @@ function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {
