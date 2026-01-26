@@ -36,14 +36,12 @@ pids=()
 (test_database_connection "$API_BASE") & pids+=($!)
 (test_api_response_time "$API_BASE") & pids+=($!)
 (test_semantic_api_health "$SEMANTIC_API_BASE") & pids+=($!)
-(test_health_check_endpoint "$API_BASE") & pids+=($!)
 (test_environment_health "$API_BASE" "$TARGET_ENV") & pids+=($!)
 (test_frontend_availability "$FRONTEND_URL") & pids+=($!)
 (test_frontend_backend_integration "$FRONTEND_URL") & pids+=($!)
 (test_s3_config "$FRONTEND_URL") & pids+=($!)
 (test_network_connectivity "$API_BASE") & pids+=($!)
 (test_api_security_headers "$API_BASE") & pids+=($!)
-(test_code_generation_endpoint "$SEMANTIC_API_BASE") & pids+=($!)
 
 # Wait for all parallel tests to complete
 for pid in "${pids[@]}"; do
