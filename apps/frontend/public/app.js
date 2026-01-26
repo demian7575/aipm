@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const statusOverviewBtn = document.getElementById('status-overview-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -8100,6 +8101,14 @@ function initialize() {
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
+  
+  viewModeToggleBtn.addEventListener('click', () => {
+    state.outlineViewMode = state.outlineViewMode === 'tree' ? 'table' : 'tree';
+    viewModeToggleBtn.textContent = state.outlineViewMode === 'tree' ? 'Table View' : 'Tree View';
+    expandAllBtn.style.display = state.outlineViewMode === 'tree' ? '' : 'none';
+    collapseAllBtn.style.display = state.outlineViewMode === 'tree' ? '' : 'none';
+    renderOutline();
+  });
 
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));

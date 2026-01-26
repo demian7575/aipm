@@ -48,6 +48,96 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Updated: User Authentication with OAuth2
+# ID: 1769317755869
+# Merged: $(date +%Y-%m-%d)
+# =============================================================================
+test_updated_user_authentication_with_oauth2() {
+    log_test "Updated: User Authentication with OAuth2"
+    
+    # Test 1: Verify priority field exists in backend
+    if ! grep -q "priority" apps/backend/app.js; then
+        fail_test "Priority field not implemented in backend"
+        return 1
+    fi
+    
+    # Test 2: Verify priority sorting in loadStories
+    if ! grep -q "priority.*high.*medium.*low" apps/backend/app.js; then
+        fail_test "Priority sorting not implemented"
+        return 1
+    fi
+    
+    # Test 3: Verify priority display in frontend
+    if ! grep -q "priority" apps/frontend/public/app.js; then
+        fail_test "Priority display not implemented in frontend"
+        return 1
+    fi
+    
+    pass_test "Updated: User Authentication with OAuth2"
+    return 0
+}
+
+# =============================================================================
+# Story: Display User Stories in Priority-Sorted List View
+# ID: 1769407786130
+# Merged: 2026-01-26
+# =============================================================================
+test_display_user_stories_in_priority_sorted_list_view() {
+    log_test "Display User Stories in Priority-Sorted List View"
+    
+    # Test 1: Check priority field exists in frontend
+    if ! grep -q "priority" apps/frontend/public/app.js; then
+        fail_test "Priority field not found in frontend code"
+        return 1
+    fi
+    
+    # Test 2: Check priority sorting logic exists
+    if ! grep -q "priorityOrder" apps/frontend/public/app.js; then
+        fail_test "Priority sorting logic not implemented"
+        return 1
+    fi
+    
+    # Test 3: Check priority field in backend
+    if ! grep -q "priority" apps/backend/app.js; then
+        fail_test "Priority field not found in backend code"
+        return 1
+    fi
+    
+    pass_test "Display User Stories in Priority-Sorted List View"
+    return 0
+}
+
+# =============================================================================
+# Story: Display Story List with Title, Description, and Status
+# ID: 1769409159543
+# Merged: 2026-01-26
+# =============================================================================
+test_display_story_list_with_title_description_and_status() {
+    log_test "Display Story List with Title, Description, and Status"
+    
+    # Test 1: Check table view function exists
+    if ! grep -q "renderOutlineTable" apps/frontend/public/app.js; then
+        fail_test "Table view function not found"
+        return 1
+    fi
+    
+    # Test 2: Check table view toggle exists
+    if ! grep -q "view-mode-toggle" apps/frontend/public/index.html; then
+        fail_test "Table view toggle button not found"
+        return 1
+    fi
+    
+    # Test 3: Check table styles exist
+    if ! grep -q "story-list-table" apps/frontend/public/styles.css; then
+        fail_test "Table view styles not found"
+        return 1
+    fi
+    
+    pass_test "Display Story List with Title, Description, and Status"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +204,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_story_list_with_title_description_and_status; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
