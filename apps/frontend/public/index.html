@@ -29,6 +29,7 @@
         <label><input type="checkbox" id="toggle-outline" checked /> Outline</label>
         <label><input type="checkbox" id="toggle-mindmap" checked /> Mindmap</label>
         <label><input type="checkbox" id="toggle-details" checked /> Details</label>
+        <label><input type="checkbox" id="toggle-priority-list" /> Priority List</label>
       </div>
     </header>
 
@@ -88,6 +89,24 @@
         </div>
         <div id="details-content" class="details-content"></div>
         <div id="details-placeholder" class="placeholder">Select a user story to see its details.</div>
+      </section>
+
+      <section id="priority-list-panel" class="panel priority-list-panel" style="display: none;">
+        <div class="panel-header">
+          <h2>Priority List</h2>
+        </div>
+        <div id="priority-list-content" class="priority-list-content">
+          <table id="priority-list-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Priority</th>
+              </tr>
+            </thead>
+            <tbody id="priority-list-body"></tbody>
+          </table>
+        </div>
       </section>
     </main>
 

@@ -867,6 +867,37 @@ body.is-mindmap-panning {
   min-width: 0;
 }
 
+.priority-list-panel {
+  min-width: 0;
+}
+
+.priority-list-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+#priority-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#priority-list-table th {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 2px solid #cbd5f5;
+  font-weight: 600;
+}
+
+#priority-list-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+#priority-list-table tr:hover {
+  background: #f3f4f6;
+}
+
 .details-content {
   flex: 1;
   overflow: auto;

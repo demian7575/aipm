@@ -54,6 +54,41 @@ const detailsResizer = document.getElementById('details-resizer');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
+const togglePriorityList = document.getElementById('toggle-priority-list');
+const priorityListPanel = document.getElementById('priority-list-panel');
+
+/**
+ * Load and display priority-sorted story list
+ */
+async function loadPriorityList() {
+  try {
+    const response = await fetch(resolveApiUrl('/api/stories?sortBy=priority'));
+    if (!response.ok) throw new Error('Failed to load stories');
+    
+    const stories = await response.json();
+    const tbody = document.getElementById('priority-list-body');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    stories.slice(0, 20).forEach(story => {
+      const row = document.createElement('tr');
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => handleStorySelection(story));
+      
+      row.innerHTML = `
+        <td>${escapeHtml(story.title)}</td>
+        <td>${escapeHtml(story.status || 'Draft')}</td>
+        <td>${escapeHtml(story.priority || 'Medium')}</td>
+      `;
+      
+      tbody.appendChild(row);
+    });
+  } catch (error) {
+    console.error('Failed to load priority list:', error);
+    showToast('Failed to load priority list', 'error');
+  }
+}
 const mindmapPanel = document.getElementById('mindmap-panel');
 const mindmapWrapper = document.querySelector('.mindmap-wrapper');
 const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
@@ -512,6 +547,7 @@ const state = {
     outline: true,
     mindmap: true,
     details: true,
+    priorityList: false,
   },
   panelSizes: {
     outline: PANEL_DEFAULT_WIDTHS.outline,
@@ -2818,14 +2854,16 @@ function updateWorkspaceColumns() {
   const showOutline = state.panelVisibility.outline;
   const showMindmap = state.panelVisibility.mindmap;
   const showDetails = state.panelVisibility.details;
+  const showPriorityList = state.panelVisibility.priorityList;
   const singleColumn = isSingleColumnLayout();
 
   outlinePanel.classList.toggle('hidden', !showOutline);
   mindmapPanel.classList.toggle('hidden', !showMindmap);
   detailsPanel.classList.toggle('hidden', !showDetails);
+  priorityListPanel?.classList.toggle('hidden', !showPriorityList);
 
-  const showOutlineResizer = !singleColumn && showOutline && (showMindmap || showDetails);
-  const showDetailsResizer = !singleColumn && showDetails && showMindmap;
+  const showOutlineResizer = !singleColumn && showOutline && (showMindmap || showDetails || showPriorityList);
+  const showDetailsResizer = !singleColumn && showDetails && (showMindmap || showPriorityList);
   outlineResizer?.classList.toggle('hidden', !showOutlineResizer);
   detailsResizer?.classList.toggle('hidden', !showDetailsResizer);
 
@@ -8104,6 +8142,12 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+  togglePriorityList?.addEventListener('change', (event) => {
+    setPanelVisibility('priorityList', event.target.checked);
+    if (event.target.checked) {
+      loadPriorityList();
+    }
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
