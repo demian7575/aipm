@@ -48,6 +48,36 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Remove Dependencies Label from Story Details Panel
+# ID: 1769416505058
+# Merged: 2026-01-26
+# =============================================================================
+test_remove_dependencies_label_from_story_details_panel() {
+    log_test "Remove Dependencies Label from Story Details Panel"
+    
+    # Test 1: Verify upstream group has empty title
+    if ! grep -q "key: 'upstream'," apps/frontend/public/app.js; then
+        fail_test "Upstream dependency group not found"
+        return 1
+    fi
+    
+    # Test 2: Verify title is empty string for upstream group
+    if ! grep -A2 "key: 'upstream'," apps/frontend/public/app.js | grep -q "title: ''"; then
+        fail_test "Upstream group title should be empty string"
+        return 1
+    fi
+    
+    # Test 3: Verify conditional rendering of group title
+    if ! grep -q "if (group.title) {" apps/frontend/public/app.js; then
+        fail_test "Conditional check for group.title not found"
+        return 1
+    fi
+    
+    pass_test "Remove Dependencies Label from Story Details Panel"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +144,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_remove_dependencies_label_from_story_details_panel; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
