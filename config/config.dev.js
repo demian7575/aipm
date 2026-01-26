@@ -2,7 +2,7 @@
 module.exports = {
   environment: 'development',
   API_BASE_URL: 'http://:',
-  KIRO_API_URL: 'http://:',
+  SEMANTIC_API_URL: 'http://:',
   EC2_IP: '',
   S3_BUCKET: '',
   DYNAMODB_STORIES_TABLE: '',

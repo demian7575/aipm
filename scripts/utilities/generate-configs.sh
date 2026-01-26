@@ -14,7 +14,7 @@ cat > "$ROOT_DIR/apps/frontend/public/config-prod.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 window.CONFIG = {
   API_BASE_URL: '$API_BASE',
-  KIRO_API_URL: '${API_BASE%:*}:8081',
+  SEMANTIC_API_URL: '$SEMANTIC_API_BASE',
   EC2_TERMINAL_URL: '$TERMINAL_URL',
   ENVIRONMENT: 'production',
   S3_BUCKET: '$S3_BUCKET',
@@ -28,7 +28,7 @@ cat > "$ROOT_DIR/config/config.prod.js" << EOF
 module.exports = {
   environment: 'production',
   API_BASE_URL: '$API_BASE',
-  KIRO_API_URL: '$API_BASE',
+  SEMANTIC_API_URL: '$SEMANTIC_API_BASE',
   EC2_IP: '$EC2_IP',
   S3_BUCKET: '$S3_BUCKET',
   DYNAMODB_STORIES_TABLE: '$DYNAMODB_STORIES_TABLE',
@@ -46,7 +46,7 @@ cat > "$ROOT_DIR/apps/frontend/public/config-dev.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 window.CONFIG = {
   API_BASE_URL: '$API_BASE',
-  KIRO_API_URL: '${API_BASE%:*}:8081',
+  SEMANTIC_API_URL: '$SEMANTIC_API_BASE',
   EC2_TERMINAL_URL: '$TERMINAL_URL',
   ENVIRONMENT: 'development',
   S3_BUCKET: '$S3_BUCKET',
@@ -60,7 +60,7 @@ cat > "$ROOT_DIR/config/config.dev.js" << EOF
 module.exports = {
   environment: 'development',
   API_BASE_URL: '$API_BASE',
-  KIRO_API_URL: '$API_BASE',
+  SEMANTIC_API_URL: '$SEMANTIC_API_BASE',
   EC2_IP: '$EC2_IP',
   S3_BUCKET: '$S3_BUCKET',
   DYNAMODB_STORIES_TABLE: '$DYNAMODB_STORIES_TABLE',
