@@ -95,11 +95,7 @@ test_frontend_availability() {
 test_s3_config() {
     local frontend_url="${1:-$FRONTEND_URL}"
     local env="${2:-$TARGET_ENV}"
-    # Map 'production' to 'prod' for config file name
-    local config_env="${env}"
-    [[ "$env" == "production" ]] && config_env="prod"
-    [[ "$env" == "development" ]] && config_env="dev"
-    test_endpoint "S3 Config" "$frontend_url/config-${config_env}.js" "API_BASE_URL"
+    test_endpoint "S3 Config" "$frontend_url/config-${env}.js" "API_BASE_URL"
 }
 
 test_network_connectivity() {

@@ -23,7 +23,7 @@ npm install
 All configuration is in `config/environments.yaml`:
 
 ```yaml
-production:
+prod:
   ec2_ip: "44.197.204.18"
   api_port: 4000
   semantic_api_port: 8083

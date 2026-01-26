@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to test (production or development)'
+        description: 'Environment to test (prod or dev)'
         required: false
-        default: 'production'
+        default: 'prod'
         type: choice
         options:
-        - production
-        - development
+        - prod
+        - dev
       phase:
         description: 'Test phase to run (1, 2, 3, or all)'
         required: false
@@ -56,7 +56,7 @@ jobs:
       
       - name: Load environment configuration
         run: |
-          ENV="${{ github.event.inputs.environment || 'production' }}"
+          ENV="${{ github.event.inputs.environment || 'prod' }}"
           source scripts/utilities/load-env-config.sh $ENV
           echo "API_BASE=$API_BASE" >> $GITHUB_ENV
           echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
@@ -106,7 +106,7 @@ jobs:
       
       - name: Load environment configuration
         run: |
-          ENV="${{ github.event.inputs.environment || 'production' }}"
+          ENV="${{ github.event.inputs.environment || 'prod' }}"
           source scripts/utilities/load-env-config.sh $ENV
           echo "API_BASE=$API_BASE" >> $GITHUB_ENV
           echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV

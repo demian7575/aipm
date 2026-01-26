@@ -1,7 +1,7 @@
 # Single Source of Truth for all environment configurations
 # Update IPs here only - all scripts and workflows read from this file
 
-production:
+prod:
   ec2_ip: "44.197.204.18"
   api_port: 4000
   semantic_api_port: 8083
@@ -12,7 +12,7 @@ production:
   dynamodb_tests_table: "aipm-backend-prod-acceptance-tests"
   dynamodb_prs_table: "aipm-backend-prod-prs"
 
-development:
+dev:
   ec2_ip: "44.222.168.46"
   api_port: 4000
   semantic_api_port: 8083
