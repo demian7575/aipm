@@ -111,46 +111,37 @@ fi\
 echo "✅ Added test_${STORY_FUNC} to phase4-functionality.sh"
 ```
 
-### 5. Run Gating Tests (Conditional)
+### 5. Run Gating Tests (MANDATORY)
 ```bash
 cd /home/ec2-user/aipm
 
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Verifying implementation...\"}"
+  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 
-# IMPORTANT: Check if we're already running inside a gating test
-# If AIPM_GATING_TEST_RUNNING is set, skip to avoid nested test execution
-if [[ -n "${AIPM_GATING_TEST_RUNNING}" ]]; then
-    echo "⏭️  Skipping gating tests - already running in parent gating test context"
-    echo "✅ Code generation completed (tests will be verified by parent test)"
+# Check if gating tests should be skipped (for development/testing)
+if [[ "${SKIP_GATING_TESTS:-false}" == "true" ]]; then
+    echo "⚠️  Skipping gating tests (SKIP_GATING_TESTS=true)"
 else
-    # We're NOT in a gating test, so run verification
-    echo "🧪 Running gating tests to verify implementation..."
-    
-    # Run Phase 1 and 2 - MUST PASS
-    export API_BASE=http://localhost:4000
-    export SEMANTIC_API_BASE=http://localhost:8083
-    export TARGET_ENV=prod
-    
+    # Run Phase 1 and 2 - MUST PASS (run once and save output)
     GATING_OUTPUT=$(bash scripts/testing/run-structured-gating-tests.sh --phases 1,2 2>&1)
     echo "$GATING_OUTPUT" | tail -100
 
-    # Check if tests passed
-    if ! echo "$GATING_OUTPUT" | grep -q "ALL GATING TESTS PASSED\|Phase 1 completed successfully"; then
-        echo "❌ Gating tests failed - fix code and retry"
+    # Check Phase 1,2 passed
+    if ! echo "$GATING_OUTPUT" | grep -q "ALL GATING TESTS PASSED"; then
+        echo "Phase 1,2 failed - fix and retry"
         exit 1
     fi
-    
-    echo "✅ Gating tests passed"
-fi
-```
 
-**WHY THIS MATTERS**:
-- When running standalone: Kiro verifies code quality before committing
-- When running in gating test: Avoids nested test execution (parent test will verify)
-- Ensures code quality without redundant testing
+    # Run Phase 4 to test your new functionality
+    bash scripts/testing/phase4-functionality.sh
+fi
+
+# If tests passed or skipped, proceed to commit
+```
+Check output for: "ALL GATING TESTS PASSED" (Phase 1,2) and story test passes
+If fails: Fix code and return to step 4 (max 3 attempts)
 
 ### 6. Commit & Push
 ```bash
