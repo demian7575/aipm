@@ -7466,6 +7466,73 @@ function openTaskModal(storyId, task = null) {
   setTimeout(autoResize, 10);
 }
 
+async function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.innerHTML = `
+    <div class="story-list-table-wrapper">
+      <table class="story-list-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="story-list-tbody"></tbody>
+      </table>
+    </div>
+    <div class="story-list-pagination">
+      <button id="prev-page" class="secondary">Previous</button>
+      <span id="page-info"></span>
+      <button id="next-page" class="secondary">Next</button>
+    </div>
+  `;
+
+  let currentPage = 1;
+  const limit = 20;
+
+  const loadPage = async (page) => {
+    try {
+      const response = await fetch(resolveApiUrl(`/api/stories/list?page=${page}&limit=${limit}`));
+      const data = await response.json();
+      
+      const tbody = container.querySelector('#story-list-tbody');
+      tbody.innerHTML = data.stories.map(s => `
+        <tr data-story-id="${s.id}" style="cursor: pointer;">
+          <td>${escapeHtml(s.title)}</td>
+          <td>${escapeHtml(s.description || '')}</td>
+          <td><span class="status-badge ${getStatusClass(s.status)}">${s.status}</span></td>
+        </tr>
+      `).join('');
+      
+      tbody.querySelectorAll('tr').forEach(row => {
+        row.addEventListener('click', () => {
+          const storyId = Number(row.dataset.storyId);
+          const story = storyIndex.get(storyId);
+          if (story) {
+            handleStorySelection(story);
+            closeModal();
+          }
+        });
+      });
+      
+      container.querySelector('#page-info').textContent = `Page ${data.pagination.page} of ${data.pagination.totalPages} (${data.pagination.total} stories)`;
+      container.querySelector('#prev-page').disabled = page <= 1;
+      container.querySelector('#next-page').disabled = page >= data.pagination.totalPages;
+      currentPage = page;
+    } catch (error) {
+      showToast('Failed to load story list', 'error');
+    }
+  };
+
+  container.querySelector('#prev-page').addEventListener('click', () => loadPage(currentPage - 1));
+  container.querySelector('#next-page').addEventListener('click', () => loadPage(currentPage + 1));
+
+  openModal({ title: 'Story List', content: container, cancelLabel: 'Close' });
+  await loadPage(1);
+}
+
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
