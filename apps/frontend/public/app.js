@@ -54,6 +54,7 @@ const detailsResizer = document.getElementById('details-resizer');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
+const togglePrioritySort = document.getElementById('toggle-priority-sort');
 const mindmapPanel = document.getElementById('mindmap-panel');
 const mindmapWrapper = document.querySelector('.mindmap-wrapper');
 const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
@@ -518,6 +519,7 @@ const state = {
     details: PANEL_DEFAULT_WIDTHS.details,
   },
   codewhispererDelegations: new Map(),
+  prioritySortEnabled: false,
 };
 
 const storyIndex = new Map();
@@ -2957,7 +2959,18 @@ function initializePanelResizers() {
  * @returns {Array} Filtered stories
  */
 function getVisibleStories() {
-  return state.stories;
+  let stories = state.stories;
+  
+  if (state.prioritySortEnabled) {
+    const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+    stories = [...stories].sort((a, b) => {
+      const aPriority = priorityOrder[a.priority] || 999;
+      const bPriority = priorityOrder[b.priority] || 999;
+      return aPriority - bPriority;
+    });
+  }
+  
+  return stories;
 }
 
 function renderOutline() {
@@ -8104,6 +8117,12 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+
+  togglePrioritySort?.addEventListener('change', (event) => {
+    state.prioritySortEnabled = event.target.checked;
+    renderOutline();
+    renderMindmap();
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
