@@ -54,6 +54,7 @@ const detailsResizer = document.getElementById('details-resizer');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
+const viewListBtn = document.getElementById('view-list-btn');
 const mindmapPanel = document.getElementById('mindmap-panel');
 const mindmapWrapper = document.querySelector('.mindmap-wrapper');
 const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
@@ -5658,6 +5659,70 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+/**
+ * Open story list modal grouped by status
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.cssText = 'max-height: 70vh; overflow-y: auto;';
+
+  const statuses = ['Draft', 'Ready', 'In Progress', 'Blocked', 'Approved', 'Done'];
+  const allStories = flattenStories(state.stories);
+  
+  statuses.forEach(status => {
+    const storiesInStatus = allStories.filter(s => s.status === status);
+    if (storiesInStatus.length === 0) return;
+
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-bottom: 1.5rem;';
+    
+    const header = document.createElement('h3');
+    header.textContent = `${status} (${storiesInStatus.length})`;
+    header.style.cssText = 'margin-bottom: 0.5rem; color: #333;';
+    section.appendChild(header);
+
+    storiesInStatus.forEach(story => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding: 0.75rem; margin-bottom: 0.5rem; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: #fff;';
+      item.addEventListener('mouseenter', () => item.style.background = '#f5f5f5');
+      item.addEventListener('mouseleave', () => item.style.background = '#fff');
+      
+      const title = document.createElement('div');
+      title.style.cssText = 'font-weight: bold; margin-bottom: 0.25rem;';
+      title.textContent = story.title;
+      item.appendChild(title);
+
+      const desc = document.createElement('div');
+      desc.style.cssText = 'color: #666; font-size: 0.9rem;';
+      const truncated = (story.description || '').substring(0, 100);
+      desc.textContent = truncated + (story.description && story.description.length > 100 ? '...' : '');
+      item.appendChild(desc);
+
+      const badge = document.createElement('span');
+      badge.style.cssText = 'display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: #007bff; color: white; border-radius: 3px; font-size: 0.8rem;';
+      badge.textContent = status;
+      item.appendChild(badge);
+
+      item.addEventListener('click', () => {
+        handleStorySelection(story);
+        closeModal();
+      });
+
+      section.appendChild(item);
+    });
+
+    container.appendChild(section);
+  });
+
+  openModal({
+    title: 'User Stories by Status',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'large'
+  });
+}
+
 function formatMultilineText(value) {
   const lines = Array.isArray(value) ? value : [value ?? ''];
   const escaped = escapeHtml(lines.join('\n'));
@@ -8114,6 +8179,10 @@ function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  viewListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {
