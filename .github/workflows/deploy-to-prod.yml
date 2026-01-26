@@ -48,7 +48,7 @@ jobs:
       
       - name: Load environment configuration
         run: |
-          source scripts/utilities/load-env-config.sh production
+          source scripts/utilities/load-env-config.sh prod
           echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
           echo "API_BASE=$API_BASE" >> $GITHUB_ENV
           echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
@@ -127,7 +127,7 @@ jobs:
       
       - name: Load environment configuration
         run: |
-          source scripts/utilities/load-env-config.sh production
+          source scripts/utilities/load-env-config.sh prod
           echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
           echo "API_BASE=$API_BASE" >> $GITHUB_ENV
           echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
@@ -138,7 +138,7 @@ jobs:
           echo "DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
           
           # Load dev config for SSH known_hosts
-          source scripts/utilities/load-env-config.sh development
+          source scripts/utilities/load-env-config.sh dev
           echo "DEV_EC2_IP=$EC2_IP" >> $GITHUB_ENV
       
       - name: Setup SSH key for deployment
