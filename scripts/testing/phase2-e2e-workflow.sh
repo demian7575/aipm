@@ -353,22 +353,11 @@ EOF
 # ============================================================================
 # Step 7: Generate Code (Real commit to PR)
 # UI: "Generate Code" button
-# SKIP: Set SKIP_CODE_GENERATION=1 to skip this slow step (saves ~2 minutes)
 # ============================================================================
 phase6_step7_generate_code() {
     echo "💻 Step 7: Generate Code"
     echo "   UI: 'Generate Code' button"
     step_start=$(date +%s)
-    
-    # Skip code generation if requested (saves ~120 seconds)
-    if [[ "$SKIP_CODE_GENERATION" == "1" ]]; then
-        echo "   ⏭️  Skipping code generation (SKIP_CODE_GENERATION=1)"
-        pass_test "Generate Code (Skipped)"
-        step_end=$(date +%s)
-        echo "   ⏱️  Step 7 Duration: $((step_end - step_start))s"
-        echo ""
-        return
-    fi
     
     log_test "Generate Code (Real)"
     
