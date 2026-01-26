@@ -27,8 +27,8 @@ cat > "$ROOT_DIR/config/config.prod.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 module.exports = {
   environment: 'production',
+  API_BASE_URL: '$API_BASE',
   KIRO_API_URL: '$API_BASE',
-  BACKEND_API_URL: '$API_BASE',
   EC2_IP: '$EC2_IP',
   S3_BUCKET: '$S3_BUCKET',
   DYNAMODB_STORIES_TABLE: '$DYNAMODB_STORIES_TABLE',
@@ -59,8 +59,8 @@ cat > "$ROOT_DIR/config/config.dev.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 module.exports = {
   environment: 'development',
+  API_BASE_URL: '$API_BASE',
   KIRO_API_URL: '$API_BASE',
-  BACKEND_API_URL: '$API_BASE',
   EC2_IP: '$EC2_IP',
   S3_BUCKET: '$S3_BUCKET',
   DYNAMODB_STORIES_TABLE: '$DYNAMODB_STORIES_TABLE',
