@@ -54,6 +54,9 @@ const detailsResizer = document.getElementById('details-resizer');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
+const toggleStoryList = document.getElementById('toggle-story-list');
+const storyListPanel = document.getElementById('story-list-panel');
+const storyListTbody = document.getElementById('story-list-tbody');
 const mindmapPanel = document.getElementById('mindmap-panel');
 const mindmapWrapper = document.querySelector('.mindmap-wrapper');
 const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
@@ -5635,7 +5638,11 @@ function handleStorySelection(story) {
 function setPanelVisibility(panel, visible) {
   state.panelVisibility[panel] = visible;
   persistPanels();
-  renderAll();
+  if (panel === 'story-list') {
+    storyListPanel.style.display = visible ? 'flex' : 'none';
+  } else {
+    renderAll();
+  }
 }
 
 function setAllExpanded(expand) {
@@ -8104,6 +8111,12 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+  toggleStoryList?.addEventListener('change', (event) => {
+    setPanelVisibility('story-list', event.target.checked);
+    if (event.target.checked) {
+      loadStoryList();
+    }
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
@@ -8567,4 +8580,38 @@ window.cleanupKiroQueue = async function() {
     showToast(`Queue cleanup failed: ${error.message}`, 'error');
     throw error;
   }
-};
+}
+
+/**
+ * Load and display priority-sorted story list
+ */
+async function loadStoryList() {
+  try {
+    const url = resolveApiUrl('/api/stories?sortBy=priority');
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error('Failed to load stories');
+    
+    const stories = await response.json();
+    storyListTbody.innerHTML = '';
+    
+    stories.slice(0, 20).forEach(story => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${escapeHtml(story.title)}</td>
+        <td>${escapeHtml(story.status)}</td>
+        <td>${escapeHtml(story.priority || 'Medium')}</td>
+      `;
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => {
+        const fullStory = flattenStories(state.stories).find(s => s.id === story.id);
+        if (fullStory) {
+          handleStorySelection(fullStory);
+        }
+      });
+      storyListTbody.appendChild(row);
+    });
+  } catch (error) {
+    console.error('Failed to load story list:', error);
+    showToast('Failed to load story list', 'error');
+  }
+}
