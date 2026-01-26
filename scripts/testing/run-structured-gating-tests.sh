@@ -4,6 +4,10 @@
 
 set -e
 
+# Set flag to indicate we're running gating tests
+# This prevents nested test execution (e.g., code generation running tests again)
+export AIPM_GATING_TEST_RUNNING=1
+
 # Parse command line arguments
 PHASES_TO_RUN="1,2"
 TARGET_ENV="prod"
