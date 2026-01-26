@@ -4,10 +4,6 @@
 
 set -e
 
-# Prevent nested gating test execution
-# When code generation runs inside a gating test, skip its internal tests
-export SKIP_GATING_TESTS=true
-
 # Parse command line arguments
 PHASES_TO_RUN="1,2"
 TARGET_ENV="prod"
