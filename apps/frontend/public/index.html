@@ -24,6 +24,7 @@
         <button id="reference-btn" class="secondary">Reference Documents</button>
         <button id="dependency-toggle-btn" class="secondary" aria-pressed="false">Dependency</button>
         <button id="filter-btn" class="secondary">Filter</button>
+        <button id="story-list-btn" class="secondary">Story List</button>
       </div>
       <div class="panel-toggles" role="toolbar" aria-label="Panel visibility">
         <label><input type="checkbox" id="toggle-outline" checked /> Outline</label>
@@ -88,6 +89,25 @@
         </div>
         <div id="details-content" class="details-content"></div>
         <div id="details-placeholder" class="placeholder">Select a user story to see its details.</div>
+      </section>
+
+      <section id="list-panel" class="panel list-panel" style="display: none;">
+        <div class="panel-header">
+          <h2>Story List</h2>
+        </div>
+        <div class="list-view-container">
+          <table id="story-list-table" class="story-list-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="story-list-body"></tbody>
+          </table>
+          <div id="list-pagination" class="list-pagination"></div>
+        </div>
       </section>
     </main>
 

@@ -48,6 +48,36 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Display User Stories in Sortable List View with Status
+# ID: 1769409488281
+# Merged: 2026-01-26
+# =============================================================================
+test_display_user_stories_in_sortable_list_view_with_status() {
+    log_test "Display User Stories in Sortable List View with Status"
+    
+    # Test 1: Check if story list endpoint exists in backend
+    if ! grep -q "/api/stories/list" apps/backend/app.js; then
+        fail_test "Story list endpoint not implemented in backend"
+        return 1
+    fi
+    
+    # Test 2: Check if story list button exists in frontend
+    if ! grep -q "story-list-btn" apps/frontend/public/index.html; then
+        fail_test "Story list button not added to frontend"
+        return 1
+    fi
+    
+    # Test 3: Check if openStoryListModal function exists
+    if ! grep -q "openStoryListModal" apps/frontend/public/app.js; then
+        fail_test "Story list modal function not implemented"
+        return 1
+    fi
+    
+    pass_test "Display User Stories in Sortable List View with Status"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +144,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_user_stories_in_sortable_list_view_with_status; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))

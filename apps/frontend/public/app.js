@@ -46,6 +46,7 @@ const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
 const workspaceEl = document.getElementById('workspace');
@@ -54,6 +55,10 @@ const detailsResizer = document.getElementById('details-resizer');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
+const toggleList = document.getElementById('toggle-list');
+const listPanel = document.getElementById('list-panel');
+const storyListBody = document.getElementById('story-list-body');
+const listPagination = document.getElementById('list-pagination');
 const mindmapPanel = document.getElementById('mindmap-panel');
 const mindmapWrapper = document.querySelector('.mindmap-wrapper');
 const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
@@ -512,6 +517,7 @@ const state = {
     outline: true,
     mindmap: true,
     details: true,
+    list: false,
   },
   panelSizes: {
     outline: PANEL_DEFAULT_WIDTHS.outline,
@@ -746,6 +752,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -2818,14 +2830,16 @@ function updateWorkspaceColumns() {
   const showOutline = state.panelVisibility.outline;
   const showMindmap = state.panelVisibility.mindmap;
   const showDetails = state.panelVisibility.details;
+  const showList = state.panelVisibility.list;
   const singleColumn = isSingleColumnLayout();
 
   outlinePanel.classList.toggle('hidden', !showOutline);
   mindmapPanel.classList.toggle('hidden', !showMindmap);
   detailsPanel.classList.toggle('hidden', !showDetails);
+  listPanel?.classList.toggle('hidden', !showList);
 
-  const showOutlineResizer = !singleColumn && showOutline && (showMindmap || showDetails);
-  const showDetailsResizer = !singleColumn && showDetails && showMindmap;
+  const showOutlineResizer = !singleColumn && showOutline && (showMindmap || showDetails || showList);
+  const showDetailsResizer = !singleColumn && showDetails && (showMindmap || showList);
   outlineResizer?.classList.toggle('hidden', !showOutlineResizer);
   detailsResizer?.classList.toggle('hidden', !showDetailsResizer);
 
@@ -4520,6 +4534,82 @@ function renderDetails() {
     _renderDetailsImmediate();
   }, 10);
 }
+
+/**
+ * Render story list view with pagination
+ */
+const ITEMS_PER_PAGE = 20;
+let currentPage = 1;
+
+function renderStoryList() {
+  if (!listPanel || !storyListBody || !listPagination) return;
+  
+  const allStories = flattenStories(state.stories);
+  const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIdx = startIdx + ITEMS_PER_PAGE;
+  const pageStories = allStories.slice(startIdx, endIdx);
+  
+  storyListBody.innerHTML = '';
+  
+  pageStories.forEach(story => {
+    const row = document.createElement('tr');
+    row.onclick = () => handleStorySelection(story);
+    
+    const titleCell = document.createElement('td');
+    titleCell.className = 'story-title';
+    titleCell.textContent = story.title;
+    
+    const descCell = document.createElement('td');
+    descCell.className = 'story-description';
+    const desc = story.description || '';
+    descCell.textContent = desc.length > 100 ? desc.substring(0, 100) + '...' : desc;
+    
+    const statusCell = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = `story-status-badge status-${(story.status || 'draft').toLowerCase().replace(/\s+/g, '-')}`;
+    badge.textContent = story.status || 'Draft';
+    statusCell.appendChild(badge);
+    
+    row.appendChild(titleCell);
+    row.appendChild(descCell);
+    row.appendChild(statusCell);
+    storyListBody.appendChild(row);
+  });
+  
+  listPagination.innerHTML = '';
+  
+  if (totalPages > 1) {
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = 'Previous';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderStoryList();
+      }
+    };
+    
+    const pageInfo = document.createElement('span');
+    pageInfo.className = 'page-info';
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderStoryList();
+      }
+    };
+    
+    listPagination.appendChild(prevBtn);
+    listPagination.appendChild(pageInfo);
+    listPagination.appendChild(nextBtn);
+  }
+}
+
 
 function _renderDetailsImmediate() {
   console.log('🎯 _renderDetailsImmediate called');
@@ -7573,6 +7663,86 @@ function openFilterModal() {
   });
 }
 
+/**
+ * Opens story list modal with pagination
+ */
+async function openStoryListModal() {
+  let currentPage = 1;
+  const limit = 20;
+  
+  async function loadPage(page) {
+    const response = await fetch(resolveApiUrl(`/api/stories/list?page=${page}&limit=${limit}`));
+    const data = await response.json();
+    return data;
+  }
+  
+  async function renderList() {
+    const data = await loadPage(currentPage);
+    const totalPages = Math.ceil(data.total / limit);
+    
+    container.innerHTML = `
+      <table style="width:100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f5f5f5;">
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Title</th>
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Description</th>
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.stories.map((s, i) => `
+            <tr style="background: ${i % 2 === 0 ? '#fff' : '#f9f9f9'}; cursor: pointer;" data-story-id="${s.id}">
+              <td style="padding: 8px; border-bottom: 1px solid #eee;">${s.title}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #eee;">${s.description}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #eee;">${s.status}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+      </div>
+    `;
+    
+    container.querySelectorAll('tr[data-story-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = parseInt(row.dataset.storyId, 10);
+        selectStory(storyId);
+        closeModal();
+      });
+    });
+    
+    const prevBtn = container.querySelector('#prev-page');
+    const nextBtn = container.querySelector('#next-page');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        currentPage--;
+        renderList();
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        currentPage++;
+        renderList();
+      });
+    }
+  }
+  
+  const container = document.createElement('div');
+  await renderList();
+  
+  openModal({
+    title: 'User Stories',
+    content: container,
+    size: 'large',
+    actions: []
+  });
+}
+
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
   container.style.display = 'flex';
@@ -8104,6 +8274,12 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+  toggleList?.addEventListener('change', (event) => {
+    setPanelVisibility('list', event.target.checked);
+    if (event.target.checked) {
+      renderStoryList();
+    }
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();

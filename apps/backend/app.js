@@ -6618,6 +6618,28 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/stories/list' && method === 'GET') {
+      const page = parseInt(url.searchParams.get('page') || '1', 10);
+      const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+      const offset = (page - 1) * limit;
+      
+      const allStories = await loadStories(db, { includeAiInvest: false });
+      const flatStories = [];
+      function flatten(stories) {
+        stories.forEach(s => {
+          flatStories.push({ id: s.id, title: s.title, description: s.description, status: s.status });
+          if (s.children) flatten(s.children);
+        });
+      }
+      flatten(allStories);
+      
+      const total = flatStories.length;
+      const paginatedStories = flatStories.slice(offset, offset + limit);
+      
+      sendJson(res, 200, { stories: paginatedStories, total, page, limit });
+      return;
+    }
+
     if (pathname === '/api/stories' && method === 'GET') {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
       const stories = await loadStories(db, { includeAiInvest });
