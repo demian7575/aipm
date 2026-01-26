@@ -71,7 +71,7 @@ jobs:
           echo "🔴 Running Phase 1: Critical Security & Data Safety"
           echo "   Environment: $TARGET_ENV"
           
-          if ./scripts/testing/phase1-security-data-safety.sh; then
+          if source ./scripts/testing/phase1-security-data-safety.sh; then
             echo "✅ Phase 1 PASSED - Deployment approved"
             echo "status=success" >> $GITHUB_OUTPUT
           else
@@ -125,7 +125,7 @@ jobs:
           echo "   Backend: Production (with Development tables header)"
           echo "   Data: Development DynamoDB tables (isolated)"
           
-          if timeout 300 ./scripts/testing/phase2-e2e-workflow.sh; then
+          if timeout 300 source ./scripts/testing/phase2-e2e-workflow.sh; then
             echo "✅ Phase 2 PASSED - E2E workflow validated"
             echo "status=success" >> $GITHUB_OUTPUT
           else
