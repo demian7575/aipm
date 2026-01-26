@@ -54,6 +54,79 @@ a.button.secondary {
   color: #1f2937;
 }
 
+/* Story List Modal Styles */
+.story-list-container {
+  width: 100%;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.story-list-header {
+  padding: 0.5rem 0;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.story-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.story-list-table thead {
+  background: #f3f4f6;
+  position: sticky;
+  top: 0;
+}
+
+.story-list-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.story-list-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.story-list-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.story-list-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.story-title {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.story-description {
+  color: #6b7280;
+}
+
+.story-list-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.story-list-pagination button {
+  padding: 0.5rem 1rem;
+}
+
+.story-list-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 button.secondary.is-active,
 a.button.secondary.is-active {
   background: #dbeafe;

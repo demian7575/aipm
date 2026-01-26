@@ -737,6 +737,13 @@ if (referenceBtn) {
   });
 }
 
+const storyListBtn = document.getElementById('story-list-btn');
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
@@ -7469,6 +7476,108 @@ function openTaskModal(storyId, task = null) {
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
+/**
+ * Opens a modal displaying all user stories in a paginated list view
+ */
+function openStoryListModal() {
+  const ITEMS_PER_PAGE = 20;
+  let currentPage = 1;
+  
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  // Get all stories flattened
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+  
+  function renderPage() {
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    const pageStories = allStories.slice(startIdx, endIdx);
+    
+    container.innerHTML = `
+      <div class="story-list-header">
+        <p>Total Stories: ${allStories.length}</p>
+      </div>
+      <table class="story-list-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pageStories.map(story => `
+            <tr data-story-id="${story.id}">
+              <td class="story-title">${truncateText(story.title, 50)}</td>
+              <td class="story-description">${truncateText(story.description, 100)}</td>
+              <td><span class="status-badge status-${getStatusClass(story.status)}">${story.status}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div class="story-list-pagination">
+        <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+      </div>
+    `;
+    
+    // Add click handlers for pagination
+    const prevBtn = container.querySelector('#prev-page');
+    const nextBtn = container.querySelector('#next-page');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPage();
+        }
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderPage();
+        }
+      });
+    }
+    
+    // Add click handlers for story rows
+    container.querySelectorAll('tr[data-story-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = parseInt(row.dataset.storyId);
+        closeModal();
+        selectStory(storyId);
+      });
+    });
+  }
+  
+  function truncateText(text, maxLength) {
+    if (!text) return '';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  }
+  
+  renderPage();
+  
+  openModal({
+    title: 'User Stories List',
+    content: container,
+    actions: []
+  });
+}
+
 function openFilterModal() {
   const container = document.createElement('div');
   container.className = 'modal-form filter-form';
