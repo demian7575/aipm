@@ -4,7 +4,8 @@
 # Uses Development tables for data isolation
 
 set +e
-source "$(dirname "$0")/test-library.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/test-library.sh"
 
 # Default to Development environment, but can be overridden for post-deployment tests
 API_BASE="${API_BASE:-http://44.222.168.46:4000}"
