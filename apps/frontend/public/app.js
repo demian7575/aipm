@@ -737,6 +737,13 @@ if (referenceBtn) {
   });
 }
 
+const storyListBtn = document.getElementById('story-list-btn');
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
@@ -7701,6 +7708,103 @@ function openReferenceModal(storyId) {
   }
 
   openModal({ title: 'Reference Document List', content: container });
+}
+
+/**
+ * Opens a modal displaying all user stories in a paginated list view
+ */
+/**
+ * Opens story list modal showing all stories grouped by status
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.maxHeight = '70vh';
+  container.style.overflowY = 'auto';
+  
+  // Get all stories recursively
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  // Group by status
+  const statusGroups = {
+    'Draft': [],
+    'Ready': [],
+    'In Progress': [],
+    'Blocked': [],
+    'Approved': [],
+    'Done': []
+  };
+  
+  allStories.forEach(story => {
+    const status = story.status || 'Draft';
+    if (statusGroups[status]) {
+      statusGroups[status].push(story);
+    }
+  });
+  
+  // Build HTML
+  let html = '';
+  Object.entries(statusGroups).forEach(([status, stories]) => {
+    if (stories.length === 0) return;
+    
+    html += `
+      <div class="status-group">
+        <h3 class="status-label">${status} (${stories.length})</h3>
+        <div class="story-cards">
+    `;
+    
+    stories.forEach(story => {
+      const truncatedDesc = (story.description || '').substring(0, 100);
+      const descDisplay = truncatedDesc + ((story.description || '').length > 100 ? '...' : '');
+      
+      html += `
+        <div class="story-card" data-story-id="${story.id}">
+          <div class="story-title"><strong>${escapeHtml(story.title)}</strong></div>
+          <div class="story-description">${escapeHtml(descDisplay)}</div>
+          <div class="story-status-badge status-${status.toLowerCase().replace(/\s+/g, '-')}">${status}</div>
+        </div>
+      `;
+    });
+    
+    html += `
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  
+  // Add click handlers to navigate to story
+  container.addEventListener('click', (e) => {
+    const card = e.target.closest('.story-card');
+    if (card) {
+      const storyId = parseInt(card.dataset.storyId);
+      state.selectedStoryId = storyId;
+      expandAncestors(storyId);
+      persistSelection();
+      renderAll();
+      modal.remove();
+    }
+  });
+  
+  openModal({
+    title: 'User Stories by Status',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
+      }
+    ]
+  });
 }
 
 async function createRootStory() {

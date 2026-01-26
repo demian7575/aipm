@@ -119,12 +119,102 @@ else
     ((PHASE4_FAILED++))
 fi
 
+# =============================================================================
+# Story: Display User Stories in Status-Grouped List View
+# ID: 1769445830451
+# Merged: 2026-01-26
+# =============================================================================
+test_display_user_stories_in_status_grouped_list_view() {
+    log_test "Display User Stories in Status-Grouped List View"
+    
+    # Test 1: Verify status grouping implementation
+    if ! grep -q 'statusGroups' apps/frontend/public/app.js; then
+        fail_test "Status grouping logic not found"
+        return 1
+    fi
+    
+    # Test 2: Verify story card elements
+    if ! grep -q 'story-title' apps/frontend/public/app.js; then
+        fail_test "Story title element not found"
+        return 1
+    fi
+    if ! grep -q 'story-description' apps/frontend/public/app.js; then
+        fail_test "Story description element not found"
+        return 1
+    fi
+    if ! grep -q 'story-status-badge' apps/frontend/public/app.js; then
+        fail_test "Story status badge element not found"
+        return 1
+    fi
+    
+    # Test 3: Verify description truncation
+    if ! grep -q 'substring(0, 100)' apps/frontend/public/app.js; then
+        fail_test "Description truncation to 100 characters not implemented"
+        return 1
+    fi
+    
+    # Test 4: Verify Story List button
+    if ! grep -q 'story-list-btn' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 5: Verify CSS styles
+    if ! grep -q '.story-list-container' apps/frontend/public/styles.css; then
+        fail_test "Story list container styles not found"
+        return 1
+    fi
+    
+    pass_test "Display User Stories in Status-Grouped List View"
+    return 0
+}
+
+if test_display_user_stories_in_status_grouped_list_view; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
 # ADD NEW TEST FUNCTION CALLS HERE
 # if test_your_story_name; then
 #     ((PHASE4_PASSED++))
 # else
 #     ((PHASE4_FAILED++))
 # fi
+
+# Story 1769445696592: Display User Stories in Sortable List View with Status
+test_story_1769445696592_list_view() {
+    log_test "Story 1769445696592 - List View with Pagination"
+    
+    if ! grep -q "story-list-btn" apps/frontend/public/index.html 2>/dev/null; then
+        fail_test "Story List button not found"
+        return 1
+    fi
+    
+    if ! grep -q "function openStoryListModal" apps/frontend/public/app.js 2>/dev/null; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    if ! grep -q "const page = parseInt" apps/backend/app.js 2>/dev/null; then
+        fail_test "Pagination not implemented in backend"
+        return 1
+    fi
+    
+    if ! grep -q "const limit = 20" apps/frontend/public/app.js 2>/dev/null; then
+        fail_test "20 items per page limit not set"
+        return 1
+    fi
+    
+    pass_test "Story 1769445696592"
+    return 0
+}
+
+if test_story_1769445696592_list_view; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
 
 # Summary
 echo ""
