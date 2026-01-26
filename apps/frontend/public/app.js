@@ -7573,6 +7573,133 @@ function openFilterModal() {
   });
 }
 
+/**
+ * Opens story list modal showing all stories with pagination
+ */
+function openStoryListModal() {
+  const ITEMS_PER_PAGE = 20;
+  let currentPage = 1;
+  
+  const container = document.createElement('div');
+  container.style.cssText = 'display:flex;flex-direction:column;gap:1rem;max-height:70vh;';
+  
+  const tableContainer = document.createElement('div');
+  tableContainer.style.cssText = 'overflow-y:auto;flex:1;';
+  
+  const paginationContainer = document.createElement('div');
+  paginationContainer.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;';
+  
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+  
+  function renderTable() {
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    const pageStories = allStories.slice(startIdx, endIdx);
+    
+    const statusColors = {
+      'Draft': '#6b7280',
+      'Ready': '#3b82f6',
+      'In Progress': '#2563eb',
+      'Blocked': '#dc2626',
+      'Approved': '#059669',
+      'Done': '#10b981'
+    };
+    
+    tableContainer.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:#f3f4f6;text-align:left;">
+            <th style="padding:0.75rem;font-weight:600;border-bottom:2px solid #e5e7eb;">Title</th>
+            <th style="padding:0.75rem;font-weight:600;border-bottom:2px solid #e5e7eb;">Description</th>
+            <th style="padding:0.75rem;font-weight:600;border-bottom:2px solid #e5e7eb;width:120px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pageStories.map(story => {
+            const truncDesc = (story.description || '').length > 100 
+              ? story.description.substring(0, 100) + '...' 
+              : story.description || '';
+            const statusColor = statusColors[story.status] || '#6b7280';
+            return `
+              <tr style="cursor:pointer;border-bottom:1px solid #e5e7eb;" data-story-id="${story.id}">
+                <td style="padding:0.75rem;"><strong>${story.title}</strong></td>
+                <td style="padding:0.75rem;">${truncDesc}</td>
+                <td style="padding:0.75rem;">
+                  <span style="display:inline-block;padding:0.25rem 0.5rem;border-radius:4px;font-size:0.85rem;font-weight:600;color:white;background:${statusColor};">
+                    ${story.status}
+                  </span>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+    
+    tableContainer.querySelectorAll('tr[data-story-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = Number(row.dataset.storyId);
+        selectStory(storyId);
+        closeModal();
+      });
+    });
+    
+    paginationContainer.innerHTML = `
+      <span>Showing ${startIdx + 1}-${Math.min(endIdx, allStories.length)} of ${allStories.length} stories</span>
+      <div style="display:flex;gap:0.5rem;">
+        <button id="prev-page" class="secondary" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span style="padding:0.5rem;">Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page" class="secondary" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+      </div>
+    `;
+    
+    const prevBtn = paginationContainer.querySelector('#prev-page');
+    const nextBtn = paginationContainer.querySelector('#next-page');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+        }
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTable();
+        }
+      });
+    }
+  }
+  
+  renderTable();
+  container.appendChild(tableContainer);
+  container.appendChild(paginationContainer);
+  
+  openModal({
+    title: 'User Story List',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
+      }
+    ]
+  });
+}
+
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
   container.style.display = 'flex';
