@@ -4564,6 +4564,7 @@ function renderStoryDetailsWithCompleteData(story) {
   form.innerHTML = `
     <div class="form-toolbar">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
+      <button type="button" class="secondary" id="export-csv-btn">Export CSV</button>
       <button type="button" class="primary" id="mark-done-btn">Done</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
     </div>
@@ -5110,6 +5111,12 @@ function renderStoryDetailsWithCompleteData(story) {
   deleteButton?.addEventListener('click', (event) => {
     event.preventDefault();
     void confirmAndDeleteStory(story.id);
+  });
+
+  const exportCsvBtn = form.querySelector('#export-csv-btn');
+  exportCsvBtn?.addEventListener('click', (event) => {
+    event.preventDefault();
+    exportStoryToCSV(story);
   });
 
   const markDoneBtn = form.querySelector('#mark-done-btn');
@@ -7942,6 +7949,42 @@ function formatComponentsSummary(components) {
     .map((entry) => formatComponentLabel(entry))
     .filter((entry) => entry && entry.length > 0);
   return labels.length > 0 ? labels.join(', ') : 'Not specified';
+}
+
+/**
+ * Export story details to CSV file
+ * @param {Object} story - Story object to export
+ */
+function exportStoryToCSV(story) {
+  const csvRows = [];
+  csvRows.push(['Field', 'Value']);
+  csvRows.push(['ID', story.id]);
+  csvRows.push(['Title', story.title]);
+  csvRows.push(['Description', story.description || '']);
+  csvRows.push(['As a', story.asA || '']);
+  csvRows.push(['I want', story.iWant || '']);
+  csvRows.push(['So that', story.soThat || '']);
+  csvRows.push(['Status', story.status || 'Draft']);
+  csvRows.push(['Story Points', story.storyPoint || 0]);
+  csvRows.push(['Assignee', story.assigneeEmail || '']);
+  csvRows.push(['Components', (story.components || []).join('; ')]);
+  csvRows.push(['Created', story.createdAt || '']);
+  csvRows.push(['Updated', story.updatedAt || '']);
+
+  const csvContent = csvRows.map(row => 
+    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+  ).join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `story-${story.id}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('Story exported to CSV', 'success');
 }
 
 async function confirmAndDeleteStory(storyId, options = {}) {

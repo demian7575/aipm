@@ -70,6 +70,28 @@ else
   fail_test "Story list page not found" "Expected story-list.html to exist"
 fi
 
+# Story 1000: CSV Export Feature
+echo ""
+echo "Testing Story 1000: CSV Export Feature"
+echo "---------------------------------------"
+
+# Test 1: Export CSV button exists
+echo "Test 1: Export CSV button exists in story details"
+if grep -q "export-csv-btn" "$PROJECT_ROOT/apps/frontend/public/app.js"; then
+  pass_test "Export CSV button added to story details toolbar"
+else
+  fail_test "Export CSV button not found" "Expected export-csv-btn in app.js"
+fi
+
+# Test 2: CSV export function implemented
+echo "Test 2: CSV export function implemented"
+if grep -q "function exportStoryToCSV" "$PROJECT_ROOT/apps/frontend/public/app.js" && \
+   grep -q "text/csv" "$PROJECT_ROOT/apps/frontend/public/app.js"; then
+  pass_test "CSV export function implemented with proper MIME type"
+else
+  fail_test "CSV export function not properly implemented" "Expected exportStoryToCSV function with CSV MIME type"
+fi
+
 # Summary
 echo ""
 echo "========================================="
