@@ -6620,8 +6620,29 @@ export async function createApp() {
 
     if (pathname === '/api/stories' && method === 'GET') {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
+      const page = parseInt(url.searchParams.get('page')) || 1;
+      const limit = parseInt(url.searchParams.get('limit')) || 20;
+      
       const stories = await loadStories(db, { includeAiInvest });
-      sendJson(res, 200, stories);
+      
+      // If pagination params provided, return paginated response
+      if (url.searchParams.has('page') || url.searchParams.has('limit')) {
+        const startIdx = (page - 1) * limit;
+        const endIdx = startIdx + limit;
+        const paginatedStories = stories.slice(startIdx, endIdx);
+        
+        sendJson(res, 200, {
+          stories: paginatedStories,
+          pagination: {
+            page,
+            limit,
+            total: stories.length,
+            totalPages: Math.ceil(stories.length / limit)
+          }
+        });
+      } else {
+        sendJson(res, 200, stories);
+      }
       return;
     }
 

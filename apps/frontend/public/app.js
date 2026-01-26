@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -734,6 +735,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7570,6 +7577,154 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+/**
+ * Opens a modal displaying all user stories in a paginated list
+ */
+async function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+  container.style.minHeight = '500px';
+
+  const tableWrapper = document.createElement('div');
+  tableWrapper.style.overflowX = 'auto';
+  
+  const table = document.createElement('table');
+  table.className = 'story-list-table';
+  table.style.width = '100%';
+  table.style.borderCollapse = 'collapse';
+  
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr>
+      <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #ddd;">Title</th>
+      <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #ddd;">Description</th>
+      <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #ddd;">Status</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+  
+  const tbody = document.createElement('tbody');
+  table.appendChild(tbody);
+  tableWrapper.appendChild(table);
+  container.appendChild(tableWrapper);
+  
+  const paginationDiv = document.createElement('div');
+  paginationDiv.className = 'pagination-controls';
+  paginationDiv.style.display = 'flex';
+  paginationDiv.style.justifyContent = 'center';
+  paginationDiv.style.alignItems = 'center';
+  paginationDiv.style.gap = '1rem';
+  container.appendChild(paginationDiv);
+  
+  let currentPage = 1;
+  const limit = 20;
+  
+  const statusColors = {
+    'Draft': '#6c757d',
+    'In Progress': '#007bff',
+    'Ready': '#28a745',
+    'Done': '#6f42c1',
+    'Blocked': '#dc3545',
+    'Approved': '#17a2b8'
+  };
+  
+  async function loadPage(page) {
+    try {
+      const response = await fetch(resolveApiUrl(`/api/stories?page=${page}&limit=${limit}`));
+      if (!response.ok) throw new Error('Failed to load stories');
+      
+      const data = await response.json();
+      const { stories, pagination } = data;
+      
+      tbody.innerHTML = '';
+      
+      stories.forEach(story => {
+        const row = document.createElement('tr');
+        row.style.cursor = 'pointer';
+        row.style.borderBottom = '1px solid #eee';
+        
+        row.addEventListener('mouseenter', () => {
+          row.style.backgroundColor = '#f8f9fa';
+        });
+        row.addEventListener('mouseleave', () => {
+          row.style.backgroundColor = '';
+        });
+        row.addEventListener('click', () => {
+          selectStory(story.id);
+          closeModal();
+        });
+        
+        const titleCell = document.createElement('td');
+        titleCell.style.padding = '0.75rem 0.5rem';
+        titleCell.textContent = story.title;
+        titleCell.style.fontWeight = '500';
+        
+        const descCell = document.createElement('td');
+        descCell.style.padding = '0.75rem 0.5rem';
+        descCell.style.maxWidth = '300px';
+        descCell.style.overflow = 'hidden';
+        descCell.style.textOverflow = 'ellipsis';
+        descCell.style.whiteSpace = 'nowrap';
+        descCell.textContent = story.description || '';
+        
+        const statusCell = document.createElement('td');
+        statusCell.style.padding = '0.75rem 0.5rem';
+        const statusBadge = document.createElement('span');
+        statusBadge.textContent = story.status;
+        statusBadge.style.padding = '0.25rem 0.5rem';
+        statusBadge.style.borderRadius = '4px';
+        statusBadge.style.color = 'white';
+        statusBadge.style.fontSize = '0.875rem';
+        statusBadge.style.backgroundColor = statusColors[story.status] || '#6c757d';
+        statusCell.appendChild(statusBadge);
+        
+        row.appendChild(titleCell);
+        row.appendChild(descCell);
+        row.appendChild(statusCell);
+        tbody.appendChild(row);
+      });
+      
+      paginationDiv.innerHTML = '';
+      
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = '← Previous';
+      prevBtn.className = 'secondary';
+      prevBtn.disabled = page === 1;
+      prevBtn.addEventListener('click', () => loadPage(page - 1));
+      paginationDiv.appendChild(prevBtn);
+      
+      const pageInfo = document.createElement('span');
+      pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
+      pageInfo.style.fontWeight = '500';
+      paginationDiv.appendChild(pageInfo);
+      
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next →';
+      nextBtn.className = 'secondary';
+      nextBtn.disabled = page >= pagination.totalPages;
+      nextBtn.addEventListener('click', () => loadPage(page + 1));
+      paginationDiv.appendChild(nextBtn);
+      
+      currentPage = page;
+    } catch (error) {
+      console.error('Error loading story list:', error);
+      showToast('Failed to load story list', 'error');
+    }
+  }
+  
+  await loadPage(1);
+  
+  openModal({
+    title: 'User Story List',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'large'
   });
 }
 
