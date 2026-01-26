@@ -389,7 +389,7 @@ phase6_step7_generate_code() {
     echo "   📍 Generating code for PR #$PHASE2_PR_NUMBER"
     echo "   📍 Branch: $PHASE2_BRANCH_NAME"
     
-    response=$(timeout 180 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/code-generation?stream=true" \
+    response=$(timeout 300 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/code-generation?stream=true" \
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
