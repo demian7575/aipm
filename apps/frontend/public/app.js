@@ -4485,6 +4485,44 @@ function detectStoryActivitiesForHeatmap(story) {
   return Array.from(detected);
 }
 
+/**
+ * Update SSE status indicator
+ * @param {string} status - 'connecting', 'connected', or 'disconnected'
+ */
+let sseRetryTimeout = null;
+function updateSSEStatus(status) {
+  const indicator = document.getElementById('sse-status-indicator');
+  if (!indicator) return;
+  
+  indicator.className = `sse-status ${status}`;
+  const textEl = indicator.querySelector('.sse-text');
+  const retryBtn = indicator.querySelector('.sse-retry-btn');
+  
+  if (status === 'connecting') {
+    if (textEl) textEl.textContent = 'Connecting';
+    if (retryBtn) retryBtn.remove();
+    if (sseRetryTimeout) clearTimeout(sseRetryTimeout);
+  } else if (status === 'connected') {
+    if (textEl) textEl.textContent = 'Connected';
+    if (retryBtn) retryBtn.remove();
+    if (sseRetryTimeout) clearTimeout(sseRetryTimeout);
+  } else if (status === 'disconnected') {
+    if (textEl) textEl.textContent = 'Disconnected';
+    if (sseRetryTimeout) clearTimeout(sseRetryTimeout);
+    sseRetryTimeout = setTimeout(() => {
+      if (!indicator.querySelector('.sse-retry-btn')) {
+        const btn = document.createElement('button');
+        btn.className = 'sse-retry-btn';
+        btn.textContent = 'Retry';
+        btn.onclick = () => {
+          updateSSEStatus('connecting');
+        };
+        indicator.appendChild(btn);
+      }
+    }, 5000);
+  }
+}
+
 let renderDetailsTimeout = null;
 
 function renderDetails() {
@@ -5703,11 +5741,22 @@ function openModal({
   cancelLabel = 'Cancel',
   size = 'default',
   onClose = null,
+  sseStatus = false,
 }) {
   if (modal.style.display !== 'none' || typeof modalTeardown === 'function') {
     closeModal();
   }
   modalTitle.textContent = title;
+  
+  // Add SSE status indicator if requested
+  if (sseStatus) {
+    const statusEl = document.createElement('span');
+    statusEl.id = 'sse-status-indicator';
+    statusEl.className = 'sse-status connecting';
+    statusEl.innerHTML = '<span class="sse-dot"></span><span class="sse-text">Connecting</span>';
+    modalTitle.appendChild(statusEl);
+  }
+  
   modalBody.innerHTML = '';
   modalBody.appendChild(content);
   modalFooter.innerHTML = '';
@@ -6880,6 +6929,7 @@ function openChildStoryModal(parentId) {
     const restore = { text: generateBtn.textContent, disabled: generateBtn.disabled };
     generateBtn.textContent = 'Generating…';
     generateBtn.disabled = true;
+    updateSSEStatus('connecting');
     
     try {
       // Generate draft data only (no database save)
@@ -6903,6 +6953,8 @@ function openChildStoryModal(parentId) {
           components: components
         })
       });
+
+      updateSSEStatus('connected');
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -6982,6 +7034,7 @@ function openChildStoryModal(parentId) {
         }
       } catch (error) {
         console.error('Draft generation failed:', error);
+        updateSSEStatus('disconnected');
         showToast(`Draft generation failed: ${error.message}`, 'error');
       } finally {
         generateBtn.textContent = restore.text;
@@ -6992,6 +7045,7 @@ function openChildStoryModal(parentId) {
   openModal({
     title: 'Create Child Story',
     content: container,
+    sseStatus: true, // Enable SSE status indicator
     actions: [
       {
         label: 'Create Story',
