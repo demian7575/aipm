@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story List - AI Project Manager</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .story-list-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .story-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+    .story-table th,
+    .story-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .story-table th {
+      background-color: #f5f5f5;
+      font-weight: 600;
+    }
+    .story-table tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+    .story-table tr:hover {
+      background-color: #f0f0f0;
+      cursor: pointer;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .pagination button {
+      padding: 0.5rem 1rem;
+    }
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Story List</h1>
+    <a href="index.html" class="secondary">Back to Mindmap</a>
+  </header>
+
+  <main class="story-list-container">
+    <table class="story-table" id="story-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="story-table-body">
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      <button id="prev-page" class="secondary">Previous</button>
+      <span id="page-info">Page 1 of 1</span>
+      <button id="next-page" class="secondary">Next</button>
+    </div>
+  </main>
+
+  <script type="module">
+    const API_BASE_URL = window.location.hostname === 'localhost' 
+      ? 'http://localhost:4000' 
+      : 'http://44.197.204.18:4000';
+
+    let currentPage = 1;
+    const pageSize = 20;
+    let totalStories = 0;
+
+    async function loadStories(page = 1) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/stories`);
+        const allStories = await response.json();
+        
+        totalStories = allStories.length;
+        const totalPages = Math.ceil(totalStories / pageSize);
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize;
+        const stories = allStories.slice(start, end);
+
+        const tbody = document.getElementById('story-table-body');
+        tbody.innerHTML = '';
+
+        stories.forEach(story => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${escapeHtml(story.title)}</td>
+            <td>${escapeHtml(story.description || '')}</td>
+            <td>${escapeHtml(story.status || 'Draft')}</td>
+          `;
+          row.addEventListener('click', () => {
+            window.location.href = `index.html?story=${story.id}`;
+          });
+          tbody.appendChild(row);
+        });
+
+        document.getElementById('page-info').textContent = `Page ${page} of ${totalPages}`;
+        document.getElementById('prev-page').disabled = page === 1;
+        document.getElementById('next-page').disabled = page >= totalPages;
+        currentPage = page;
+      } catch (error) {
+        console.error('Failed to load stories:', error);
+        document.getElementById('story-table-body').innerHTML = 
+          '<tr><td colspan="3">Failed to load stories</td></tr>';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    document.getElementById('prev-page').addEventListener('click', () => {
+      if (currentPage > 1) {
+        loadStories(currentPage - 1);
+      }
+    });
+
+    document.getElementById('next-page').addEventListener('click', () => {
+      const totalPages = Math.ceil(totalStories / pageSize);
+      if (currentPage < totalPages) {
+        loadStories(currentPage + 1);
+      }
+    });
+
+    loadStories(1);
+  </script>
+</body>
+</html>
