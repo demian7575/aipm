@@ -4,10 +4,29 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCo
 const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const STORIES_TABLE = process.env.STORIES_TABLE || 'aipm-backend-dev-stories';
-const ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-dev-acceptance-tests';
+const DEFAULT_getStoriesTable() = process.env.getStoriesTable() || 'aipm-backend-prod-stories';
+const DEFAULT_getAcceptanceTestsTable() = process.env.getAcceptanceTestsTable() || 'aipm-backend-prod-acceptance-tests';
 
-console.log('DynamoDB: Using tables:', { STORIES_TABLE, ACCEPTANCE_TESTS_TABLE });
+console.log('DynamoDB: Default tables:', { DEFAULT_getStoriesTable(), DEFAULT_getAcceptanceTestsTable() });
+
+// Request context for per-request table override
+let requestContext = null;
+
+export function setRequestContext(context) {
+  requestContext = context;
+}
+
+export function clearRequestContext() {
+  requestContext = null;
+}
+
+function getStoriesTable() {
+  return requestContext?.storiesTable || DEFAULT_getStoriesTable();
+}
+
+function getAcceptanceTestsTable() {
+  return requestContext?.acceptanceTestsTable || DEFAULT_getAcceptanceTestsTable();
+}
 
 export class DynamoDBDataLayer {
   constructor() {
@@ -66,7 +85,7 @@ export class DynamoDBDataLayer {
   async getAllAcceptanceTests() {
     try {
       const result = await docClient.send(new ScanCommand({
-        TableName: ACCEPTANCE_TESTS_TABLE
+        TableName: getAcceptanceTestsTable()
       }));
       return (result.Items || []).map(item => ({
         id: item.id,
@@ -89,7 +108,7 @@ export class DynamoDBDataLayer {
   async getAllStories() {
     try {
       const result = await docClient.send(new ScanCommand({
-        TableName: STORIES_TABLE
+        TableName: getStoriesTable()
       }));
       console.log('DynamoDB: getAllStories result:', result.Items?.length || 0, 'items');
       
@@ -123,7 +142,7 @@ export class DynamoDBDataLayer {
   async getStoryById(id) {
     try {
       const result = await docClient.send(new GetCommand({
-        TableName: STORIES_TABLE,
+        TableName: getStoriesTable(),
         Key: { id: parseInt(id) }
       }));
       return result.Item || null;
@@ -151,7 +170,7 @@ export class DynamoDBDataLayer {
       console.log('DynamoDB: Creating story:', JSON.stringify(storyWithId, null, 2));
       
       await docClient.send(new PutCommand({
-        TableName: STORIES_TABLE,
+        TableName: getStoriesTable(),
         Item: storyWithId
       }));
       
@@ -166,7 +185,7 @@ export class DynamoDBDataLayer {
   async deleteStory(id) {
     try {
       await docClient.send(new DeleteCommand({
-        TableName: STORIES_TABLE,
+        TableName: getStoriesTable(),
         Key: { id: parseInt(id) }
       }));
       console.log('DynamoDB: Deleted story with ID:', id);
@@ -192,7 +211,7 @@ export class DynamoDBDataLayer {
       });
 
       await docClient.send(new UpdateCommand({
-        TableName: STORIES_TABLE,
+        TableName: getStoriesTable(),
         Key: { id: parseInt(id) },
         UpdateExpression: `SET ${updateExpression.join(', ')}`,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -209,7 +228,7 @@ export class DynamoDBDataLayer {
   async deleteStory(id) {
     try {
       await docClient.send(new DeleteCommand({
-        TableName: STORIES_TABLE,
+        TableName: getStoriesTable(),
         Key: { id: parseInt(id) }
       }));
       return true;
@@ -223,7 +242,7 @@ export class DynamoDBDataLayer {
   async getAcceptanceTestsByStoryId(storyId) {
     try {
       const result = await docClient.send(new QueryCommand({
-        TableName: ACCEPTANCE_TESTS_TABLE,
+        TableName: getAcceptanceTestsTable(),
         IndexName: 'story_id-index',
         KeyConditionExpression: 'story_id = :story_id',
         ExpressionAttributeValues: {
@@ -242,7 +261,7 @@ export class DynamoDBDataLayer {
       const id = Date.now() + Math.floor(Math.random() * 1000);
       const testWithId = { ...test, id, story_id: parseInt(test.storyId || test.story_id) };
       await docClient.send(new PutCommand({
-        TableName: ACCEPTANCE_TESTS_TABLE,
+        TableName: getAcceptanceTestsTable(),
         Item: testWithId
       }));
       return testWithId;
@@ -267,7 +286,7 @@ export class DynamoDBDataLayer {
       });
 
       await docClient.send(new UpdateCommand({
-        TableName: ACCEPTANCE_TESTS_TABLE,
+        TableName: getAcceptanceTestsTable(),
         Key: { id: parseInt(id) },
         UpdateExpression: `SET ${updateExpression.join(', ')}`,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -284,7 +303,7 @@ export class DynamoDBDataLayer {
   async getAcceptanceTestById(id) {
     try {
       const result = await docClient.send(new GetCommand({
-        TableName: ACCEPTANCE_TESTS_TABLE,
+        TableName: getAcceptanceTestsTable(),
         Key: { id: parseInt(id) }
       }));
       return result.Item || null;
@@ -297,7 +316,7 @@ export class DynamoDBDataLayer {
   async deleteAcceptanceTest(id) {
     try {
       await docClient.send(new DeleteCommand({
-        TableName: ACCEPTANCE_TESTS_TABLE,
+        TableName: getAcceptanceTestsTable(),
         Key: { id: parseInt(id) }
       }));
       return true;

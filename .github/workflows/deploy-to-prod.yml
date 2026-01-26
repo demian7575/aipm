@@ -229,7 +229,11 @@ jobs:
           fi
           
           # Run post-deployment gating tests (Phase 1 + Phase 2)
+          # Phase 2 uses Production backend with Development tables (via X-Use-Dev-Tables header)
           export PHASE="post-production"
+          export API_BASE="http://44.197.204.18:4000"
+          export SEMANTIC_API_BASE="http://44.197.204.18:8083"
+          
           if ./scripts/testing/run-structured-gating-tests.sh --phases "1,2"; then
             echo "✅ Post-deployment validation passed"
           else
