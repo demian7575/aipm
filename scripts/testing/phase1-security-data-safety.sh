@@ -4,19 +4,22 @@
 # Don't use set -e - let tests report their own failures
 set +e
 
+# Get script directory (works with both direct execution and source)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Debug: Show current directory and file existence
 echo "📍 Current directory: $(pwd)"
-echo "📍 Script location: $(dirname "$0")"
+echo "📍 Script location: $SCRIPT_DIR"
 echo "📍 Checking test-library.sh..."
-if [ -f "$(dirname "$0")/test-library.sh" ]; then
+if [ -f "$SCRIPT_DIR/test-library.sh" ]; then
   echo "✅ test-library.sh found"
 else
   echo "❌ test-library.sh NOT found"
-  ls -la "$(dirname "$0")" | head -20
+  ls -la "$SCRIPT_DIR" | head -20
   exit 1
 fi
 
-source "$(dirname "$0")/test-library.sh"
+source "$SCRIPT_DIR/test-library.sh"
 if [ $? -ne 0 ]; then
   echo "❌ Failed to source test-library.sh"
   exit 1
