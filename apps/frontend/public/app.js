@@ -749,6 +749,13 @@ if (filterBtn) {
   });
 }
 
+const storyListBtn = document.getElementById('story-list-btn');
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
+}
+
 if (mindmapZoomInBtn) {
   mindmapZoomInBtn.addEventListener('click', () => {
     setMindmapZoom(state.mindmapZoom + MINDMAP_ZOOM_STEP);
@@ -7464,6 +7471,105 @@ function openTaskModal(storyId, task = null) {
   
   // Trigger resize after modal is rendered
   setTimeout(autoResize, 10);
+}
+
+/**
+ * Opens story list modal showing all stories with pagination
+ */
+function openStoryListModal() {
+  const allStories = state.stories.flatMap(s => getAllStoriesFlat(s));
+  const ITEMS_PER_PAGE = 20;
+  let currentPage = 1;
+  const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+  
+  function getAllStoriesFlat(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStoriesFlat(child)));
+    }
+    return stories;
+  }
+  
+  function renderPage() {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const pageStories = allStories.slice(start, end);
+    
+    const listHtml = pageStories.map(story => {
+      const statusClass = getStatusClass(story.status);
+      const truncatedDesc = (story.description || '').length > 100 
+        ? (story.description || '').substring(0, 100) + '...' 
+        : (story.description || '');
+      
+      return `
+        <tr class="story-list-row" data-story-id="${story.id}">
+          <td><strong>${escapeHtml(story.title)}</strong></td>
+          <td>${escapeHtml(truncatedDesc)}</td>
+          <td><span class="status-badge ${statusClass}">${escapeHtml(story.status)}</span></td>
+        </tr>
+      `;
+    }).join('');
+    
+    const container = document.createElement('div');
+    container.className = 'story-list-container';
+    container.innerHTML = `
+      <table class="story-list-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${listHtml}
+        </tbody>
+      </table>
+      <div class="story-list-pagination">
+        <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+      </div>
+    `;
+    
+    container.querySelectorAll('.story-list-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = Number(row.dataset.storyId);
+        selectStory(storyId);
+        closeModal();
+      });
+    });
+    
+    const prevBtn = container.querySelector('#prev-page');
+    const nextBtn = container.querySelector('#next-page');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          openStoryListModal();
+        }
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          openStoryListModal();
+        }
+      });
+    }
+    
+    return container;
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: renderPage(),
+    actions: [],
+    size: 'large'
+  });
 }
 
 /**
