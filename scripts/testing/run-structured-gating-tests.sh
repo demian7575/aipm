@@ -4,8 +4,8 @@
 
 set -e
 
-# Prevent nested gating test execution in code generation
-export SKIP_GATING_TESTS=true
+# SKIP_GATING_TESTS should be set by the caller (e.g., GitHub workflow)
+# to prevent nested gating test execution in code generation
 
 # Parse command line arguments
 PHASES_TO_RUN="1,2"

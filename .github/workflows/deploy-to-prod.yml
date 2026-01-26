@@ -77,6 +77,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_ENV: prod
           SSH_HOST: ${{ env.EC2_IP }}
+          SKIP_GATING_TESTS: true
         run: |
           echo "🧪 Running Pre-Production Gating Tests (Phase 1 + Phase 2)"
           export PHASE="pre-production"
