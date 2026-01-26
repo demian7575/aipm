@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const priorityListBtn = document.getElementById('priority-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -518,6 +519,7 @@ const state = {
     details: PANEL_DEFAULT_WIDTHS.details,
   },
   codewhispererDelegations: new Map(),
+  showPriorityList: false,
 };
 
 const storyIndex = new Map();
@@ -746,6 +748,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (priorityListBtn) {
+  priorityListBtn.addEventListener('click', () => {
+    openPriorityListModal();
   });
 }
 
@@ -4996,6 +5004,15 @@ function renderStoryDetailsWithCompleteData(story) {
             </select>
           </div>
           <div class="form-group">
+            <label>Priority:</label>
+            <select name="priority">
+              <option value="">None</option>
+              <option value="High" ${story.priority === 'High' ? 'selected' : ''}>High</option>
+              <option value="Medium" ${story.priority === 'Medium' ? 'selected' : ''}>Medium</option>
+              <option value="Low" ${story.priority === 'Low' ? 'selected' : ''}>Low</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label>Components:</label>
             <div id="modal-components-display" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 40px; cursor: pointer; background: #f8f9fa;">
               ${story.components && story.components.length > 0 ? story.components.join(', ') : 'Click to select'}
@@ -5091,6 +5108,7 @@ function renderStoryDetailsWithCompleteData(story) {
         storyPoint: parseInt(formData.get('storyPoint')) || 0,
         assigneeEmail: formData.get('assigneeEmail'),
         status: formData.get('status'),
+        priority: formData.get('priority') || null,
         components: modalComponents,
         parentId: parentIdValue ? parseInt(parentIdValue) : null
       };
@@ -7568,6 +7586,77 @@ function openFilterModal() {
           showToast('Filters applied', 'success');
           return true;
         }
+      }
+    ]
+  });
+}
+
+/**
+ * Opens priority-sorted list view modal
+ */
+function openPriorityListModal() {
+  const container = document.createElement('div');
+  container.className = 'priority-list-container';
+  
+  // Get all stories flattened
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  // Sort by priority: High > Medium > Low > undefined
+  const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+  const sortedStories = allStories.sort((a, b) => {
+    const aPriority = priorityOrder[a.priority] || 999;
+    const bPriority = priorityOrder[b.priority] || 999;
+    return aPriority - bPriority;
+  });
+  
+  // Create table
+  const table = document.createElement('table');
+  table.className = 'priority-list-table';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Priority</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  
+  const tbody = table.querySelector('tbody');
+  sortedStories.forEach(story => {
+    const row = document.createElement('tr');
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => {
+      selectStory(story.id);
+      closeModal();
+    });
+    
+    row.innerHTML = `
+      <td>${escapeHtml(story.title || 'Untitled')}</td>
+      <td>${escapeHtml(story.status || 'Draft')}</td>
+      <td>${escapeHtml(story.priority || '-')}</td>
+    `;
+    tbody.appendChild(row);
+  });
+  
+  container.appendChild(table);
+  
+  openModal({
+    title: 'User Stories by Priority',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
       }
     ]
   });

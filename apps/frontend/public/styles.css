@@ -2483,3 +2483,38 @@ dialog[data-size='content'] .modal-shell {
 .filter-form .checkbox-list input[type="checkbox"] {
   cursor: pointer;
 }
+
+
+/* Priority list modal styles */
+.priority-list-container {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.priority-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.priority-list-table thead {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 1;
+}
+
+.priority-list-table th {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+}
+
+.priority-list-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.priority-list-table tbody tr:hover {
+  background: #f1f3f5;
+}
