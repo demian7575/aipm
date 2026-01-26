@@ -291,8 +291,8 @@ jobs:
         run: |
           echo "🔍 Verifying deployment..."
           
-          # Load dev environment config
-          source scripts/utilities/load-env-config.sh development
+          # Use environment variables already loaded
+          echo "Checking backend at: ${API_BASE}"
           
           # Check backend health
           if curl -sf ${API_BASE}/health | jq -e '.status == "running"' > /dev/null; then
