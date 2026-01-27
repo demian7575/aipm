@@ -86,7 +86,7 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 # Check if gating tests should be skipped
 if "{skipGatingTests}" == "true"
     Skip gating tests (running during Phase 2 E2E tests)
-    Proceed directly to commit
+    Proceed directly to Step 6
 else
     Run Phase 1 and 2 and newly added Phase 4 tests.
     If tests fails: Revert changes and return to step 4 (max 3 attempts)
@@ -99,7 +99,6 @@ If fails: Fix code and return to step 4 (max 3 attempts)
 
 
 ### 6. Commit & Push
-```bash
 cd /home/ec2-user/aipm
 
 # Send progress update
@@ -110,10 +109,8 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 git add -A
 git commit -m "feat: {story title}"
 git push origin {branchName}
-```
 
 ### 7. Report Completion (MANDATORY - DO NOT SKIP)
-```bash
 cd /home/ec2-user/aipm
 
 # CRITICAL: Send completion response to Semantic API
@@ -131,7 +128,6 @@ curl -X POST http://localhost:8083/api/code-generation-response \
   }"
 
 echo "✅ Completion response sent to Semantic API"
-```
 
 **IMPORTANT**: This step is MANDATORY. Without it, the request will timeout.
 
