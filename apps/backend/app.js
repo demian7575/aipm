@@ -7483,8 +7483,9 @@ export async function createApp() {
           soThatChanged ||
           componentsChanged;
 
-        // Debug logging
-        console.log(`[PATCH /api/stories/${storyId}] Content change detection:`, {
+        // Debug logging to file
+        const debugInfo = {
+          storyId,
           titleChanged,
           descriptionChanged,
           assigneeChanged,
@@ -7494,15 +7495,23 @@ export async function createApp() {
           soThatChanged,
           componentsChanged,
           contentChanged,
-          payloadKeys: Object.keys(payload)
-        });
+          payloadKeys: Object.keys(payload),
+          timestamp: new Date().toISOString()
+        };
+        await writeFile('/tmp/aipm-invest-debug.log', 
+          JSON.stringify(debugInfo, null, 2) + '\n---\n', 
+          { flag: 'a' }
+        ).catch(() => {});
 
         let analysis;
         let warnings = [];
         
         // Only run INVEST validation if content changed (not just status)
         if (contentChanged) {
-          console.log(`[PATCH /api/stories/${storyId}] Running INVEST validation (content changed)`);
+          await writeFile('/tmp/aipm-invest-debug.log', 
+            `[${new Date().toISOString()}] Running INVEST validation for story ${storyId}\n`, 
+            { flag: 'a' }
+          ).catch(() => {});
           // Load acceptance tests for INVEST analysis
           const acceptanceTests = db.prepare(
             'SELECT id, title, given, when, then, status FROM acceptance_tests WHERE story_id = ?'
@@ -7540,7 +7549,10 @@ export async function createApp() {
           }
         } else {
           // No content changed, use existing analysis
-          console.log(`[PATCH /api/stories/${storyId}] Skipping INVEST validation (status-only change)`);
+          await writeFile('/tmp/aipm-invest-debug.log', 
+            `[${new Date().toISOString()}] Skipping INVEST validation for story ${storyId} (status-only change)\n`, 
+            { flag: 'a' }
+          ).catch(() => {});
           analysis = {
             source: existing.invest_analysis ? JSON.parse(existing.invest_analysis).source : 'none',
             summary: existing.invest_analysis ? JSON.parse(existing.invest_analysis).summary : '',
