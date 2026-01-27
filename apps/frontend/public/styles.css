@@ -2483,3 +2483,84 @@ dialog[data-size='content'] .modal-shell {
 .filter-form .checkbox-list input[type="checkbox"] {
   cursor: pointer;
 }
+
+
+/* Story list table styles */
+.story-list-table-container {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.story-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.story-list-table thead {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 1;
+}
+
+.story-list-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #1e293b;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.story-list-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.story-list-table tbody tr:nth-child(odd) {
+  background: #ffffff;
+}
+
+.story-list-table tbody tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+.story-list-table tbody tr:hover {
+  background: #e0f2fe;
+}
+
+.story-list-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.story-list-table td:nth-child(1) {
+  font-weight: 500;
+  width: 25%;
+}
+
+.story-list-table td:nth-child(2) {
+  width: 55%;
+  color: #475569;
+}
+
+.story-list-table td:nth-child(3) {
+  width: 20%;
+  font-weight: 500;
+}
+
+.story-list-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1rem;
+}
+
+.story-list-pagination span {
+  font-size: 0.9rem;
+  color: #64748b;
+}

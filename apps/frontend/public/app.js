@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7555,6 +7562,124 @@ function openFilterModal() {
           showToast('Filters applied', 'success');
           return true;
         }
+      }
+    ]
+  });
+}
+
+/**
+ * Opens story list modal with table view
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-table-container';
+  
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  let currentPage = 1;
+  const storiesPerPage = 25;
+  
+  function renderTable() {
+    container.innerHTML = '';
+    
+    const table = document.createElement('table');
+    table.className = 'story-list-table';
+    
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th>Title</th>
+        <th>Description</th>
+        <th>Status</th>
+      </tr>
+    `;
+    table.appendChild(thead);
+    
+    const tbody = document.createElement('tbody');
+    const startIdx = (currentPage - 1) * storiesPerPage;
+    const endIdx = startIdx + storiesPerPage;
+    const pageStories = allStories.slice(startIdx, endIdx);
+    
+    pageStories.forEach(story => {
+      const row = document.createElement('tr');
+      row.onclick = () => {
+        selectStory(story.id);
+        closeModal();
+      };
+      
+      const titleCell = document.createElement('td');
+      titleCell.textContent = story.title;
+      row.appendChild(titleCell);
+      
+      const descCell = document.createElement('td');
+      descCell.textContent = story.description;
+      row.appendChild(descCell);
+      
+      const statusCell = document.createElement('td');
+      statusCell.textContent = story.status;
+      row.appendChild(statusCell);
+      
+      tbody.appendChild(row);
+    });
+    
+    table.appendChild(tbody);
+    container.appendChild(table);
+    
+    const totalPages = Math.ceil(allStories.length / storiesPerPage);
+    
+    if (totalPages > 1) {
+      const pagination = document.createElement('div');
+      pagination.className = 'story-list-pagination';
+      
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = 'Previous';
+      prevBtn.className = 'secondary';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+        }
+      };
+      
+      const pageInfo = document.createElement('span');
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.className = 'secondary';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTable();
+        }
+      };
+      
+      pagination.appendChild(prevBtn);
+      pagination.appendChild(pageInfo);
+      pagination.appendChild(nextBtn);
+      container.appendChild(pagination);
+    }
+  }
+  
+  renderTable();
+  
+  openModal({
+    title: 'User Stories',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
       }
     ]
   });
