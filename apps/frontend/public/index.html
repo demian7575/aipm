@@ -37,11 +37,33 @@
         <div class="panel-header">
           <h2>Outline</h2>
           <div class="panel-actions">
+            <button id="view-tree" class="secondary active">Tree</button>
+            <button id="view-list" class="secondary">List</button>
             <button id="expand-all" class="secondary">Expand All</button>
             <button id="collapse-all" class="secondary">Collapse All</button>
           </div>
         </div>
         <div id="outline-tree" class="outline-tree" role="tree" aria-label="User story outline"></div>
+        <div id="list-view" class="list-view" style="display:none;">
+          <div class="list-controls">
+            <select id="status-filter" class="secondary">
+              <option value="">All Statuses</option>
+              <option value="Draft">Draft</option>
+              <option value="Ready">Ready</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Approved">Approved</option>
+              <option value="Done">Done</option>
+            </select>
+            <select id="sort-by" class="secondary">
+              <option value="title">Sort by Title</option>
+              <option value="status">Sort by Status</option>
+              <option value="storyPoint">Sort by Story Points</option>
+            </select>
+          </div>
+          <div id="list-container" class="list-container"></div>
+          <div id="list-pagination" class="list-pagination"></div>
+        </div>
       </section>
 
       <div

@@ -49,6 +49,11 @@ button.secondary {
   color: #1f2937;
 }
 
+button.secondary.active {
+  background: #3b82f6;
+  color: #fff;
+}
+
 a.button.secondary {
   background: #eef2ff;
   color: #1f2937;
@@ -100,6 +105,90 @@ select {
 textarea {
   resize: vertical;
   min-height: 3rem;
+}
+
+.list-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.list-controls {
+  padding: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.list-controls select {
+  width: auto;
+  min-width: 150px;
+}
+
+.list-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.list-item {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.list-item:hover {
+  border-color: #3b82f6;
+}
+
+.list-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.list-item-title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.list-item-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.list-item-status.status-draft { background: #f3f4f6; color: #6b7280; }
+.list-item-status.status-ready { background: #dbeafe; color: #1e40af; }
+.list-item-status.status-in-progress { background: #dbeafe; color: #1e40af; }
+.list-item-status.status-blocked { background: #fee2e2; color: #991b1b; }
+.list-item-status.status-approved { background: #d1fae5; color: #065f46; }
+.list-item-status.status-done { background: #d1fae5; color: #065f46; }
+
+.list-item-description {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.list-pagination {
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.list-pagination .page-info {
+  margin: 0 1rem;
+  color: #6b7280;
 }
 
 .app-header {

@@ -518,6 +518,13 @@ const state = {
     details: PANEL_DEFAULT_WIDTHS.details,
   },
   codewhispererDelegations: new Map(),
+  listView: {
+    active: false,
+    page: 1,
+    pageSize: 20,
+    statusFilter: '',
+    sortBy: 'title'
+  }
 };
 
 const storyIndex = new Map();
@@ -3000,6 +3007,85 @@ function renderOutline() {
   const visibleStories = getVisibleStories();
   visibleStories.forEach((story) => renderNode(story, 0));
   outlineTreeEl.appendChild(list);
+}
+
+function renderListView() {
+  const allStories = flattenStories(getVisibleStories());
+  let filtered = allStories;
+  
+  if (state.listView.statusFilter) {
+    filtered = filtered.filter(s => s.status === state.listView.statusFilter);
+  }
+  
+  filtered.sort((a, b) => {
+    const key = state.listView.sortBy;
+    if (key === 'title') return (a.title || '').localeCompare(b.title || '');
+    if (key === 'status') return (a.status || '').localeCompare(b.status || '');
+    if (key === 'storyPoint') return (a.storyPoint || 0) - (b.storyPoint || 0);
+    return 0;
+  });
+  
+  const total = filtered.length;
+  const totalPages = Math.ceil(total / state.listView.pageSize);
+  const start = (state.listView.page - 1) * state.listView.pageSize;
+  const end = Math.min(start + state.listView.pageSize, total);
+  const page = filtered.slice(start, end);
+  
+  const container = document.getElementById('list-container');
+  container.innerHTML = '';
+  
+  page.forEach(story => {
+    const item = document.createElement('div');
+    item.className = 'list-item';
+    
+    const header = document.createElement('div');
+    header.className = 'list-item-header';
+    
+    const title = document.createElement('div');
+    title.className = 'list-item-title';
+    title.textContent = story.title;
+    
+    const status = document.createElement('span');
+    status.className = `list-item-status status-${(story.status || 'draft').toLowerCase().replace(/\s+/g, '-')}`;
+    status.textContent = story.status || 'Draft';
+    
+    header.appendChild(title);
+    header.appendChild(status);
+    
+    const desc = document.createElement('div');
+    desc.className = 'list-item-description';
+    desc.textContent = story.description || '';
+    
+    item.appendChild(header);
+    item.appendChild(desc);
+    item.addEventListener('click', () => handleStorySelection(story));
+    container.appendChild(item);
+  });
+  
+  const pagination = document.getElementById('list-pagination');
+  pagination.innerHTML = '';
+  
+  if (totalPages > 1) {
+    const prev = document.createElement('button');
+    prev.className = 'secondary';
+    prev.textContent = 'Previous';
+    prev.disabled = state.listView.page === 1;
+    prev.onclick = () => { state.listView.page--; renderListView(); };
+    
+    const info = document.createElement('span');
+    info.className = 'page-info';
+    info.textContent = `Page ${state.listView.page} of ${totalPages}`;
+    
+    const next = document.createElement('button');
+    next.className = 'secondary';
+    next.textContent = 'Next';
+    next.disabled = state.listView.page === totalPages;
+    next.onclick = () => { state.listView.page++; renderListView(); };
+    
+    pagination.appendChild(prev);
+    pagination.appendChild(info);
+    pagination.appendChild(next);
+  }
 }
 
 function normalizeMindmapText(value) {
@@ -8083,7 +8169,34 @@ function initialize() {
     window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
 
+  document.getElementById('view-tree')?.addEventListener('click', () => {
+    state.listView.active = false;
+    document.getElementById('outline-tree').style.display = '';
+    document.getElementById('list-view').style.display = 'none';
+    document.getElementById('view-tree').classList.add('active');
+    document.getElementById('view-list').classList.remove('active');
+  });
 
+  document.getElementById('view-list')?.addEventListener('click', () => {
+    state.listView.active = true;
+    state.listView.page = 1;
+    document.getElementById('outline-tree').style.display = 'none';
+    document.getElementById('list-view').style.display = '';
+    document.getElementById('view-tree').classList.remove('active');
+    document.getElementById('view-list').classList.add('active');
+    renderListView();
+  });
+
+  document.getElementById('status-filter')?.addEventListener('change', (e) => {
+    state.listView.statusFilter = e.target.value;
+    state.listView.page = 1;
+    renderListView();
+  });
+
+  document.getElementById('sort-by')?.addEventListener('change', (e) => {
+    state.listView.sortBy = e.target.value;
+    renderListView();
+  });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
