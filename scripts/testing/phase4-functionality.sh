@@ -119,6 +119,12 @@ else
     ((PHASE4_FAILED++))
 fi
 
+if test_add_story_list_button; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
 # ADD NEW TEST FUNCTION CALLS HERE
 # if test_your_story_name; then
 #     ((PHASE4_PASSED++))
