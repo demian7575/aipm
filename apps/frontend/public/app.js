@@ -41,6 +41,8 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const showStoryListModalBtn = document.getElementById('show-story-list-modal');
+
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -734,6 +736,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (showStoryListModalBtn) {
+  showStoryListModalBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8555,3 +8563,6 @@ window.cleanupKiroQueue = async function() {
     throw error;
   }
 };
+
+
+function openStoryListModal(){const stories=Object.values(state.stories);modalTitle.textContent='Story List';modalBody.innerHTML='';const list=document.createElement('ul');list.style.listStyle='none';list.style.padding='0';stories.forEach(story=>{const item=document.createElement('li');item.style.padding='0.5rem';item.style.cursor='pointer';item.style.borderBottom='1px solid #e2e8f0';item.textContent=story.title||'Untitled';item.addEventListener('click',()=>{closeModal();selectStory(story.id)});item.addEventListener('mouseenter',()=>{item.style.background='#f8f9fa'});item.addEventListener('mouseleave',()=>{item.style.background=''});list.appendChild(item)});modalBody.appendChild(list);modalFooter.innerHTML='';const closeBtn=document.createElement('button');closeBtn.textContent='Close';closeBtn.className='secondary';closeBtn.addEventListener('click',closeModal);modalFooter.appendChild(closeBtn);openModal()}
