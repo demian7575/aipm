@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Story List - AI Project Manager</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin-top: 0;
+    }
+    .story-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    .story-table th {
+      background: #f0f0f0;
+      padding: 12px;
+      text-align: left;
+      border-bottom: 2px solid #ddd;
+      font-weight: 600;
+    }
+    .story-table td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .story-table tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    .story-table tr:hover {
+      background: #f0f0f0;
+      cursor: pointer;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .pagination button {
+      padding: 8px 16px;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .pagination button:hover:not(:disabled) {
+      background: #f0f0f0;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status-Draft { background: #e3f2fd; color: #1976d2; }
+    .status-Ready { background: #e8f5e9; color: #388e3c; }
+    .status-In.Progress { background: #fff3e0; color: #f57c00; }
+    .status-Blocked { background: #ffebee; color: #d32f2f; }
+    .status-Approved { background: #f3e5f5; color: #7b1fa2; }
+    .status-Done { background: #e0e0e0; color: #424242; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>User Stories</h1>
+    <table class="story-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="story-tbody">
+        <tr><td colspan="3" style="text-align: center;">Loading...</td></tr>
+      </tbody>
+    </table>
+    <div class="pagination">
+      <button id="prev-btn" disabled>Previous</button>
+      <span id="page-info">Page 1 of 1</span>
+      <button id="next-btn" disabled>Next</button>
+    </div>
+  </div>
+
+  <script>
+    const ITEMS_PER_PAGE = 20;
+    let currentPage = 1;
+    let allStories = [];
+
+    async function loadStories() {
+      try {
+        const response = await fetch('/api/stories');
+        if (!response.ok) throw new Error('Failed to load stories');
+        allStories = await response.json();
+        renderPage();
+      } catch (error) {
+        console.error('Error loading stories:', error);
+        document.getElementById('story-tbody').innerHTML = 
+          '<tr><td colspan="3" style="text-align: center; color: red;">Error loading stories</td></tr>';
+      }
+    }
+
+    function renderPage() {
+      const tbody = document.getElementById('story-tbody');
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      const pageStories = allStories.slice(start, end);
+      const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+
+      if (pageStories.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No stories found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = pageStories.map(story => `
+        <tr onclick="window.location.href='/?story=${story.id}'">
+          <td>${escapeHtml(story.title)}</td>
+          <td>${escapeHtml(story.description || '')}</td>
+          <td><span class="status-badge status-${story.status.replace(/\s/g, '.')}">${escapeHtml(story.status)}</span></td>
+        </tr>
+      `).join('');
+
+      document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+      document.getElementById('prev-btn').disabled = currentPage === 1;
+      document.getElementById('next-btn').disabled = currentPage >= totalPages;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage();
+      }
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+      const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPage();
+      }
+    });
+
+    loadStories();
+  </script>
+</body>
+</html>
