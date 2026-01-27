@@ -53,8 +53,12 @@ const outlineResizer = document.getElementById('outline-resizer');
 const detailsResizer = document.getElementById('details-resizer');
 const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
+const toggleList = document.getElementById('toggle-list');
 const toggleDetails = document.getElementById('toggle-details');
 const mindmapPanel = document.getElementById('mindmap-panel');
+const listPanel = document.getElementById('list-panel');
+const listView = document.getElementById('list-view');
+const listPagination = document.getElementById('list-pagination');
 const mindmapWrapper = document.querySelector('.mindmap-wrapper');
 const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
 const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
@@ -2737,6 +2741,7 @@ function renderAll() {
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();
+  renderList();
   renderDetails();
 }
 
@@ -2804,15 +2809,17 @@ function updateWorkspaceColumns() {
   const columns = [];
   const showOutline = state.panelVisibility.outline;
   const showMindmap = state.panelVisibility.mindmap;
+  const showList = state.panelVisibility.list;
   const showDetails = state.panelVisibility.details;
   const singleColumn = isSingleColumnLayout();
 
   outlinePanel.classList.toggle('hidden', !showOutline);
   mindmapPanel.classList.toggle('hidden', !showMindmap);
+  listPanel.classList.toggle('hidden', !showList);
   detailsPanel.classList.toggle('hidden', !showDetails);
 
-  const showOutlineResizer = !singleColumn && showOutline && (showMindmap || showDetails);
-  const showDetailsResizer = !singleColumn && showDetails && showMindmap;
+  const showOutlineResizer = !singleColumn && showOutline && (showMindmap || showList || showDetails);
+  const showDetailsResizer = !singleColumn && showDetails && (showMindmap || showList);
   outlineResizer?.classList.toggle('hidden', !showOutlineResizer);
   detailsResizer?.classList.toggle('hidden', !showDetailsResizer);
 
@@ -4496,6 +4503,74 @@ function detectStoryActivitiesForHeatmap(story) {
 }
 
 let renderDetailsTimeout = null;
+
+/**
+ * Render the list view with pagination
+ */
+function renderList() {
+  if (!state.panelVisibility.list) return;
+  
+  const allStories = flattenStories(state.stories);
+  const page = state.listPage || 1;
+  const perPage = 20;
+  const start = (page - 1) * perPage;
+  const end = start + perPage;
+  const pageStories = allStories.slice(start, end);
+  
+  const truncate = (str, max) => str.length > max ? str.substring(0, max) + '...' : str;
+  
+  const statusColors = {
+    Draft: '#6c757d',
+    Ready: '#007bff',
+    'In Progress': '#ffc107',
+    Blocked: '#dc3545',
+    Approved: '#28a745',
+    Done: '#17a2b8'
+  };
+  
+  listView.innerHTML = `
+    <table class="story-list-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${pageStories.map(story => `
+          <tr data-story-id="${story.id}" style="cursor: pointer;">
+            <td>${truncate(story.title, 60)}</td>
+            <td>${truncate(story.description || '', 100)}</td>
+            <td><span class="status-badge" style="background: ${statusColors[story.status] || '#6c757d'}; color: white; padding: 2px 8px; border-radius: 3px;">${story.status}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  
+  const totalPages = Math.ceil(allStories.length / perPage);
+  listPagination.innerHTML = totalPages > 1 ? `
+    <div class="pagination-controls">
+      <button ${page === 1 ? 'disabled' : ''} onclick="setListPage(${page - 1})">Previous</button>
+      <span>Page ${page} of ${totalPages}</span>
+      <button ${page === totalPages ? 'disabled' : ''} onclick="setListPage(${page + 1})">Next</button>
+    </div>
+  ` : '';
+  
+  listView.querySelectorAll('tr[data-story-id]').forEach(row => {
+    row.addEventListener('click', () => {
+      const storyId = Number(row.dataset.storyId);
+      const story = storyIndex.get(storyId);
+      if (story) handleStorySelection(story);
+    });
+  });
+}
+
+window.setListPage = (page) => {
+  state.listPage = page;
+  renderList();
+};
 
 function renderDetails() {
   // Debounce rapid calls
@@ -8090,6 +8165,7 @@ function initialize() {
 
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
+  toggleList.addEventListener('change', (event) => setPanelVisibility('list', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
 
   openHeatmapBtn?.addEventListener('click', () => {

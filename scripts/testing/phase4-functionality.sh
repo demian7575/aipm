@@ -86,6 +86,60 @@ test_enable_connection_to_parent_user_story() {
     pass_test "Enable connection to parent User Story"
     return 0
 }
+
+# =============================================================================
+# Story: Display User Stories with Filters and Sorting
+# ID: 1769492538120
+# Merged: 2026-01-27
+# =============================================================================
+test_display_user_stories_list_view() {
+    log_test "Display User Stories with Filters and Sorting"
+    
+    # Test 1: Verify list panel exists in HTML
+    if ! grep -q 'id="list-panel"' apps/frontend/public/index.html; then
+        fail_test "List panel not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify list toggle exists
+    if ! grep -q 'id="toggle-list"' apps/frontend/public/index.html; then
+        fail_test "List toggle not found in HTML"
+        return 1
+    fi
+    
+    # Test 3: Verify renderList function exists
+    if ! grep -q 'function renderList' apps/frontend/public/app.js; then
+        fail_test "renderList function not implemented"
+        return 1
+    fi
+    
+    # Test 4: Verify pagination logic (20 items per page)
+    if ! grep -q 'perPage = 20' apps/frontend/public/app.js; then
+        fail_test "Pagination not set to 20 items per page"
+        return 1
+    fi
+    
+    # Test 5: Verify title truncation (60 chars)
+    if ! grep -q 'truncate.*60' apps/frontend/public/app.js; then
+        fail_test "Title truncation to 60 chars not implemented"
+        return 1
+    fi
+    
+    # Test 6: Verify description truncation (100 chars)
+    if ! grep -q 'truncate.*100' apps/frontend/public/app.js; then
+        fail_test "Description truncation to 100 chars not implemented"
+        return 1
+    fi
+    
+    # Test 7: Verify status badge display
+    if ! grep -q 'status-badge' apps/frontend/public/app.js; then
+        fail_test "Status badge not implemented"
+        return 1
+    fi
+    
+    pass_test "Display User Stories with Filters and Sorting"
+    return 0
+}
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -114,6 +168,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_user_stories_list_view; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
