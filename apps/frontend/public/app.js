@@ -42,6 +42,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -734,6 +735,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7591,6 +7598,43 @@ function openReferenceModal(storyId) {
   function renderReferenceList(story) {
     if (!story.referenceDocuments || story.referenceDocuments.length === 0) {
       listEl.innerHTML = '<p>No reference documents yet.</p>';
+
+/**
+ * Opens modal displaying all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.maxHeight = '400px';
+  container.style.overflowY = 'auto';
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  const stories = Array.from(storyIndex.values());
+  
+  if (stories.length === 0) {
+    container.innerHTML = '<p>No stories available.</p>';
+  } else {
+    stories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '0.5rem';
+      li.style.borderBottom = '1px solid #ddd';
+      li.textContent = story.title || 'Untitled Story';
+      list.appendChild(li);
+    });
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'All Story Titles',
+    content: container,
+    actions: [],
+    size: 'medium'
+  });
+}
+
       return;
     }
     const table = document.createElement('table');

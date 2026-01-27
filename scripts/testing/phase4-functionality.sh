@@ -48,6 +48,48 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1769508443113
+# Acceptance Test: Modal displays all story titles when header button clicked
+# =============================================================================
+test_story_list_button() {
+    log_test "Story List Button - Modal displays all story titles"
+    
+    # Test 1: Verify Story List button exists in header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in app.js
+    if ! grep -q "getElementById('story-list-btn')" apps/frontend/public/app.js; then
+        fail_test "Story List button element reference not found in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener is attached
+    if ! grep -q "storyListBtn.addEventListener" apps/frontend/public/app.js; then
+        fail_test "Event listener not attached to Story List button"
+        return 1
+    fi
+    
+    # Test 4: Verify openStoryListModal function exists
+    if ! grep -q "function openStoryListModal" apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    # Test 5: Verify modal displays story titles
+    if ! grep -q "story.title" apps/frontend/public/app.js | grep -q "openStoryListModal" -A 20; then
+        fail_test "Modal does not display story titles"
+        return 1
+    fi
+    
+    pass_test "Story List Button - Modal displays all story titles"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +156,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_story_list_button; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
