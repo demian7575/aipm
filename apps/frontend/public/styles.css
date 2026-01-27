@@ -1783,6 +1783,25 @@ dialog[data-size='content'] .modal-shell {
   overflow: auto;
 }
 
+.story-list-container {
+  width: 100%;
+}
+
+.story-title-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.story-title-list li {
+  padding: 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.story-title-list li:last-child {
+  border-bottom: none;
+}
+
 .acceptance-test-form label {
   display: flex;
   flex-direction: column;
