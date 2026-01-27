@@ -6909,7 +6909,7 @@ export async function createApp() {
         const score = analysis.ai?.score || 0;
         
         const INVEST_SCORE_THRESHOLD = 80;
-        if (score < INVEST_SCORE_THRESHOLD) {
+        if (score < INVEST_SCORE_THRESHOLD && !payload.acceptWarnings) {
           if (db.constructor.name === 'DynamoDBDataLayer') {
             const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
             const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
