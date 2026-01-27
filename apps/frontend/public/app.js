@@ -5130,7 +5130,9 @@ function renderStoryDetailsWithCompleteData(story) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
+          title: story.title,
           status: 'Done',
+          acceptWarnings: true,
           bypassDoneValidation: true
         })
       });

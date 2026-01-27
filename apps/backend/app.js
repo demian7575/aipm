@@ -7424,15 +7424,7 @@ export async function createApp() {
         const payload = await parseJson(req);
         timings.push(`Parse JSON: ${Date.now() - patchStartTime}ms`);
         
-        const existingStmt = db.prepare('SELECT * FROM user_stories WHERE id = ?');
-        const existing = existingStmt.get(storyId);
-        timings.push(`  Get existing story: ${Date.now() - patchStartTime}ms`);
-        
-        if (!existing) {
-          throw Object.assign(new Error('Story not found'), { statusCode: 404 });
-        }
-        
-        const title = payload.title !== undefined ? String(payload.title).trim() : existing.title;
+        const title = String(payload.title ?? '').trim();
         if (!title) {
           throw Object.assign(new Error('Title is required'), { statusCode: 400 });
         }
@@ -7442,6 +7434,14 @@ export async function createApp() {
         const iWant = payload.iWant != null ? String(payload.iWant).trim() : undefined;
         const soThat = payload.soThat != null ? String(payload.soThat).trim() : undefined;
         const requestedComponents = payload.components;
+
+        const existingStmt = db.prepare('SELECT * FROM user_stories WHERE id = ?');
+        const existing = existingStmt.get(storyId);
+        timings.push(`  Get existing story: ${Date.now() - patchStartTime}ms`);
+        
+        if (!existing) {
+          throw Object.assign(new Error('Story not found'), { statusCode: 404 });
+        }
 
         const storyPoint =
           payload.storyPoint === undefined ? existing.story_point : normalizeStoryPoint(payload.storyPoint);
@@ -7468,7 +7468,7 @@ export async function createApp() {
         const asAChanged = asA !== undefined && nextAsA !== (existing.as_a ?? '');
         const iWantChanged = iWant !== undefined && nextIWant !== (existing.i_want ?? '');
         const soThatChanged = soThat !== undefined && nextSoThat !== (existing.so_that ?? '');
-        const titleChanged = payload.title !== undefined && title !== existing.title;
+        const titleChanged = title !== existing.title;
         const componentsChanged =
           requestedComponents !== undefined && JSON.stringify(components) !== JSON.stringify(normalizedExistingComponents);
         
