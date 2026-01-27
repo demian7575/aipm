@@ -1,7 +1,7 @@
 #!/bin/bash
 # Phase 2: UI-Driven Complete E2E Workflow (Real System Simulation)
 # Tests complete user journey through UI button interactions
-# Uses Development tables for data isolation
+# Always uses Development DynamoDB for data isolation
 
 set +e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,11 +11,14 @@ source "$SCRIPT_DIR/test-library.sh"
 API_BASE="${API_BASE:-http://44.222.168.46:4000}"
 SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.222.168.46:8083}"
 
+# Always use Development DynamoDB for all gating tests
 # If using Production backend, add header to use Development tables
 USE_DEV_TABLES_HEADER=""
 if [[ "$API_BASE" == *"44.197.204.18"* ]]; then
     USE_DEV_TABLES_HEADER="-H 'X-Use-Dev-Tables: true'"
-    echo "🔧 Using Production backend with Development tables (via header)"
+    echo "🔧 Using Production EC2 with Development DynamoDB (via X-Use-Dev-Tables header)"
+else
+    echo "🔧 Using Development EC2 with Development DynamoDB"
 fi
 
 # Initialize test counters
@@ -27,7 +30,7 @@ echo "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Testing full user journey via UI button clicks"
 echo "Backend: $API_BASE"
-echo "Tables: Development (data isolation)"
+echo "Database: Development DynamoDB (data isolation)"
 echo ""
 
 # Global variables for story tracking

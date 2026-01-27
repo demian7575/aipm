@@ -1,6 +1,10 @@
 #!/bin/bash
 # AIPM Structured Gating Tests - Main Runner
 # Based on systematic architecture analysis and structured plan
+#
+# IMPORTANT: All gating tests use Development DynamoDB for data isolation
+# - Pre-Production: Development EC2 + Development DynamoDB
+# - Post-Production: Production EC2 + Development DynamoDB (via X-Use-Dev-Tables header)
 
 set -e
 
@@ -98,6 +102,15 @@ main() {
     
     echo "🧪 AIPM Structured Gating Tests"
     echo "Based on systematic architecture analysis"
+    echo ""
+    echo "📊 Test Configuration:"
+    echo "   Backend: $API_BASE"
+    echo "   Database: Development DynamoDB (all tests use dev tables for isolation)"
+    if [[ "$API_BASE" == *"44.197.204.18"* ]]; then
+        echo "   Mode: Production EC2 with Development DynamoDB (X-Use-Dev-Tables header)"
+    else
+        echo "   Mode: Development EC2 with Development DynamoDB"
+    fi
     echo ""
     
     # Check if phase should run

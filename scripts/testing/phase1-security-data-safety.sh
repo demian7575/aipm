@@ -1,5 +1,6 @@
 #!/bin/bash
 # Phase 1: Critical Infrastructure & Health Checks
+# Always uses Development DynamoDB for data isolation
 
 # Don't use set -e - let tests report their own failures
 set +e
@@ -32,6 +33,9 @@ FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east
 TARGET_ENV="${TARGET_ENV:-prod}"
 
 echo "🔴 Phase 1: Critical Infrastructure & Health Checks"
+echo "Backend: $API_BASE"
+echo "Database: Development DynamoDB (data isolation)"
+echo ""
 
 # Run tests in parallel and capture exit codes
 pids=()

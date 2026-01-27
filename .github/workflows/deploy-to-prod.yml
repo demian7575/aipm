@@ -16,11 +16,12 @@ permissions:
   pull-requests: write
 
 jobs:
-  # First run gating tests to validate the system
-  gating-tests:
+  # Step 1: Deploy to Development and run Pre-Production tests
+  deploy-and-test-dev:
     runs-on: ubuntu-latest
     outputs:
       gating-status: ${{ steps.gating.outputs.status }}
+    environment: development
     
     steps:
       - name: Checkout repository
@@ -46,16 +47,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Load environment configuration
+      - name: Load Development environment configuration
         run: |
-          source scripts/utilities/load-env-config.sh prod
-          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
-          echo "API_BASE=$API_BASE" >> $GITHUB_ENV
-          echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
-          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
-          echo "S3_URL=$S3_URL" >> $GITHUB_ENV
+          source scripts/utilities/load-env-config.sh dev
+          echo "DEV_EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "DEV_API_BASE=$API_BASE" >> $GITHUB_ENV
+          echo "DEV_SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
+          echo "DEV_S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "DEV_TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
+          echo "DEV_DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
+          echo "DEV_DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
       
-      - name: Setup SSH key for testing
+      - name: Setup SSH key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
@@ -68,26 +71,63 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
+          ssh-keyscan -H $DEV_EC2_IP >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
+      
+      - name: Deploy to Development EC2
+        run: |
+          echo "🚀 Deploying to Development EC2 for Pre-Production testing..."
+          ./scripts/deploy-to-environment.sh dev
+          echo "✅ Backend deployed to Development EC2"
+      
+      - name: Deploy frontend to Development S3
+        run: |
+          echo "📦 Deploying frontend to Development S3..."
+          
+          # Create dev config
+          cat > apps/frontend/public/config.js << EOF
+          window.CONFIG = {
+            API_BASE_URL: '${{ env.DEV_API_BASE }}',
+            EC2_TERMINAL_URL: '${{ env.DEV_TERMINAL_URL }}',
+            GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+            PROD_VERSION: '4.0.0-dev',
+            ENVIRONMENT: 'development',
+            environment: 'development',
+            stage: 'dev',
+            region: 'us-east-1',
+            storiesTable: '${{ env.DEV_DYNAMODB_STORIES_TABLE }}',
+            acceptanceTestsTable: '${{ env.DEV_DYNAMODB_TESTS_TABLE }}',
+            DEBUG: true
+          };
+          EOF
+          
+          aws s3 sync apps/frontend/public/ s3://${{ env.DEV_S3_BUCKET }} --delete --cache-control no-cache
+          echo "✅ Frontend deployed to Development S3"
       
       - name: Run Pre-Production Gating Tests
         id: gating
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TARGET_ENV: prod
-          SSH_HOST: ${{ env.EC2_IP }}
+          TARGET_ENV: dev
+          API_BASE: ${{ env.DEV_API_BASE }}
+          SEMANTIC_API_BASE: ${{ env.DEV_SEMANTIC_API_BASE }}
+          SSH_HOST: ${{ env.DEV_EC2_IP }}
           SKIP_GATING_TESTS: true
         run: |
-          echo "🧪 Running Pre-Production Gating Tests (Phase 1 + Phase 2)"
+          echo "🧪 Running Pre-Production Gating Tests on Development Environment"
+          echo "   Backend: $API_BASE"
+          echo "   Database: Development DynamoDB"
           export PHASE="pre-production"
+          
+          # Wait for deployment to be ready
+          sleep 10
           
           # Run Phase 1 (Security & Data Safety) and Phase 2 (E2E Workflow)
           if ./scripts/testing/run-structured-gating-tests.sh --phases "1,2"; then
-            echo "✅ Gating tests passed - production deployment approved"
+            echo "✅ Pre-Production tests passed - production deployment approved"
             echo "status=success" >> $GITHUB_OUTPUT
           else
-            echo "❌ Gating tests failed"
+            echo "❌ Pre-Production tests failed"
             if [ "${{ github.event.inputs.force_deploy }}" = "true" ]; then
               echo "⚠️ Force deploy enabled - proceeding despite test failures"
               echo "status=success" >> $GITHUB_OUTPUT
@@ -98,11 +138,11 @@ jobs:
             fi
           fi
 
-  # Only deploy if gating tests pass or force deploy is enabled
+  # Step 2: Deploy to Production and run Post-Production tests
   deploy-production:
     runs-on: ubuntu-latest
-    needs: gating-tests
-    if: needs.gating-tests.outputs.gating-status == 'success'
+    needs: deploy-and-test-dev
+    if: needs.deploy-and-test-dev.outputs.gating-status == 'success'
     environment: production
     
     steps:
@@ -126,28 +166,23 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Load environment configuration
+      - name: Load Production environment configuration
         run: |
           source scripts/utilities/load-env-config.sh prod
-          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
-          echo "API_BASE=$API_BASE" >> $GITHUB_ENV
-          echo "SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
-          echo "TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
-          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
-          echo "S3_URL=$S3_URL" >> $GITHUB_ENV
-          echo "DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
-          echo "DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
-          
-          # Load dev config for SSH known_hosts
-          source scripts/utilities/load-env-config.sh dev
-          echo "DEV_EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "PROD_EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "PROD_API_BASE=$API_BASE" >> $GITHUB_ENV
+          echo "PROD_SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
+          echo "PROD_TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
+          echo "PROD_S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "PROD_S3_URL=$S3_URL" >> $GITHUB_ENV
+          echo "PROD_DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
+          echo "PROD_DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
       
       - name: Setup SSH key for deployment
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
-          # Try base64 decode first, fallback to raw key
           if echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_rsa 2>/dev/null; then
             echo "✅ Decoded base64 SSH key"
           else
@@ -156,56 +191,52 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
-          ssh-keyscan -H $DEV_EC2_IP >> ~/.ssh/known_hosts
-          ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured and validated" || (echo "❌ SSH key validation failed" && exit 1)
+          ssh-keyscan -H $PROD_EC2_IP >> ~/.ssh/known_hosts
+          ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
-      - name: Deploy to production environment
+      - name: Deploy backend to Production EC2
         run: |
-          echo "🚀 Deploying to production environment..."
+          echo "🚀 Deploying backend to Production EC2..."
+          ./scripts/deploy-to-environment.sh prod
+          echo "✅ Backend deployed to Production EC2"
+      
+      - name: Deploy frontend to Production S3
+        run: |
+          echo "📦 Deploying frontend to Production S3..."
           
           # Create production config
-          echo "📝 Creating production configuration..."
           cat > apps/frontend/public/config.js << EOF
           window.CONFIG = {
-            API_BASE_URL: '${{ env.API_BASE }}',
-            EC2_TERMINAL_URL: '${{ env.TERMINAL_URL }}',
+            API_BASE_URL: '${{ env.PROD_API_BASE }}',
+            EC2_TERMINAL_URL: '${{ env.PROD_TERMINAL_URL }}',
             GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
             PROD_VERSION: '4.0.0',
             ENVIRONMENT: 'production',
             environment: 'production',
             stage: 'prod',
             region: 'us-east-1',
-            storiesTable: '${{ env.DYNAMODB_STORIES_TABLE }}',
-            acceptanceTestsTable: '${{ env.DYNAMODB_TESTS_TABLE }}',
+            storiesTable: '${{ env.PROD_DYNAMODB_STORIES_TABLE }}',
+            acceptanceTestsTable: '${{ env.PROD_DYNAMODB_TESTS_TABLE }}',
             DEBUG: false
           };
           EOF
           
-          echo "✅ Production config created"
+          aws s3 sync apps/frontend/public/ s3://${{ env.PROD_S3_BUCKET }} --delete --cache-control no-cache
+          echo "✅ Frontend deployed to Production S3"
       
-      - name: Deploy to production environment
-        run: |
-          echo "🚀 Deploying to production environment using unified script..."
-          ./scripts/deploy-to-environment.sh prod
-          
-          echo "✅ Backend deployed to production EC2"
-          echo "ℹ️  Templates updated - Kiro will read from disk on next request"
-      
-      - name: Deploy frontend to S3
-        run: |
-          echo "📦 Deploying frontend to production S3..."
-          aws s3 sync apps/frontend/public/ s3://${{ env.S3_BUCKET }} --delete --cache-control no-cache
-          echo "✅ Frontend deployed to production S3"
-      
-      - name: Run Post-Deployment Validation
+      - name: Run Post-Production Gating Tests
         id: post_deployment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_ENV: prod
-          SSH_HOST: ${{ env.EC2_IP }}
+          API_BASE: ${{ env.PROD_API_BASE }}
+          SEMANTIC_API_BASE: ${{ env.PROD_SEMANTIC_API_BASE }}
+          SSH_HOST: ${{ env.PROD_EC2_IP }}
         run: |
-          echo "🔍 Running Post-Deployment Validation"
+          echo "🔍 Running Post-Production Gating Tests on Production Environment"
+          echo "   Backend: $API_BASE (Production EC2)"
+          echo "   Database: Development DynamoDB (via X-Use-Dev-Tables header)"
+          export PHASE="post-production"
           
           # Wait for deployment to be ready
           sleep 15
@@ -214,7 +245,7 @@ jobs:
           echo "Testing production environment..."
           
           # Frontend accessibility
-          if curl -s "${{ env.S3_URL }}" | grep -q "AI Project Manager"; then
+          if curl -s "${{ env.PROD_S3_URL }}" | grep -q "AI Project Manager"; then
             echo "✅ Production frontend accessible"
           else
             echo "❌ Production frontend not accessible"
@@ -222,23 +253,18 @@ jobs:
           fi
           
           # Backend API health
-          if curl -s "${{ env.API_BASE }}/api/version" | grep -q "version"; then
+          if curl -s "$API_BASE/api/version" | grep -q "version"; then
             echo "✅ Production backend healthy"
           else
             echo "❌ Production backend not healthy"
             exit 1
           fi
           
-          # Run post-deployment gating tests (Phase 1 + Phase 2)
-          # Phase 2 uses Production backend with Development tables (via X-Use-Dev-Tables header)
-          export PHASE="post-production"
-          export API_BASE="http://44.197.204.18:4000"
-          export SEMANTIC_API_BASE="http://44.197.204.18:8083"
-          
+          # Run gating tests with Production backend + Development DynamoDB
           if ./scripts/testing/run-structured-gating-tests.sh --phases "1,2"; then
-            echo "✅ Post-deployment validation passed"
+            echo "✅ Post-Production validation passed"
           else
-            echo "❌ Post-deployment validation failed"
+            echo "❌ Post-Production validation failed"
             exit 1
           fi
       
