@@ -7462,11 +7462,11 @@ export async function createApp() {
         // Load acceptance tests for INVEST analysis
         const acceptanceTests = db.prepare(
           'SELECT id, title, given, when, then, status FROM acceptance_tests WHERE story_id = ?'
-        ).all(id);
+        ).all(storyId);
         
         // Run INVEST analysis
         const storyForValidation = {
-          id,
+          id: storyId,
           title,
           asA: asA ?? existing.as_a,
           iWant: iWant ?? existing.i_want,
