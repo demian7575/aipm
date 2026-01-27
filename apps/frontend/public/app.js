@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -2693,7 +2694,9 @@ async function loadStories(preserveSelection = true) {
     const data = await response.json();
     console.log('API response data:', data);
     
-    const apiStories = normalizeStoryCollection(Array.isArray(data) ? data : []);
+    // Handle both old format (array) and new format (object with stories array)
+    const storiesArray = Array.isArray(data) ? data : (data.stories || []);
+    const apiStories = normalizeStoryCollection(storiesArray);
     console.log('Normalized stories:', apiStories);
     
     // Use API data or create root story if empty
@@ -8056,6 +8059,128 @@ async function fetchVersion() {
   }
 }
 
+/**
+ * Open story list modal with pagination
+ */
+async function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  let currentPage = 1;
+  const limit = 20;
+  
+  async function renderStoryList() {
+    try {
+      const url = resolveApiUrl(`/api/stories?page=${currentPage}&limit=${limit}`);
+      const response = await fetch(url, { cache: 'no-store' });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stories: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const stories = data.stories || [];
+      const pagination = data.pagination || { page: 1, totalPages: 1, total: 0 };
+      
+      container.innerHTML = '';
+      
+      // Create table
+      const table = document.createElement('table');
+      table.className = 'story-list-table';
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      
+      const tbody = table.querySelector('tbody');
+      
+      stories.forEach(story => {
+        const row = document.createElement('tr');
+        row.style.cursor = 'pointer';
+        row.onclick = () => {
+          closeModal();
+          selectStory(story.id);
+        };
+        
+        const truncatedDesc = (story.description || '').length > 100 
+          ? story.description.substring(0, 100) + '...' 
+          : story.description || '';
+        
+        const statusColors = {
+          'Draft': 'gray',
+          'In Progress': 'blue',
+          'Done': 'green',
+          'Ready': 'orange',
+          'Blocked': 'red',
+          'Approved': 'purple'
+        };
+        
+        const statusColor = statusColors[story.status] || 'gray';
+        
+        row.innerHTML = `
+          <td>${escapeHtml(story.title)}</td>
+          <td>${escapeHtml(truncatedDesc)}</td>
+          <td><span class="status-badge" style="background-color: ${statusColor}; color: white; padding: 2px 8px; border-radius: 4px;">${escapeHtml(story.status)}</span></td>
+        `;
+        
+        tbody.appendChild(row);
+      });
+      
+      container.appendChild(table);
+      
+      // Add pagination controls
+      if (pagination.totalPages > 1) {
+        const paginationDiv = document.createElement('div');
+        paginationDiv.className = 'pagination-controls';
+        paginationDiv.style.marginTop = '16px';
+        paginationDiv.style.textAlign = 'center';
+        
+        for (let i = 1; i <= pagination.totalPages; i++) {
+          const pageBtn = document.createElement('button');
+          pageBtn.textContent = i;
+          pageBtn.className = i === currentPage ? 'primary' : 'secondary';
+          pageBtn.style.margin = '0 4px';
+          pageBtn.onclick = async () => {
+            currentPage = i;
+            await renderStoryList();
+          };
+          paginationDiv.appendChild(pageBtn);
+        }
+        
+        container.appendChild(paginationDiv);
+      }
+      
+      // Add summary
+      const summary = document.createElement('div');
+      summary.style.marginTop = '8px';
+      summary.style.textAlign = 'center';
+      summary.style.fontSize = '14px';
+      summary.style.color = '#666';
+      summary.textContent = `Showing ${stories.length} of ${pagination.total} stories`;
+      container.appendChild(summary);
+      
+    } catch (error) {
+      console.error('Failed to load story list:', error);
+      container.innerHTML = '<p style="color: red;">Failed to load stories. Please try again.</p>';
+    }
+  }
+  
+  await renderStoryList();
+  
+  openModal({
+    title: 'User Stories',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'large'
+  });
+}
+
 function initialize() {
   console.log('AIPM initializing...');
   console.log('API Base URL:', window.__AIPM_API_BASE__);
@@ -8091,6 +8216,10 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
