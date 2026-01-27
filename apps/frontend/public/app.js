@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7555,6 +7562,201 @@ function openFilterModal() {
           showToast('Filters applied', 'success');
           return true;
         }
+      }
+    ]
+  });
+}
+
+/**
+ * Open story list modal with pagination, filtering, and sorting
+ */
+function openStoryListModal() {
+  const ITEMS_PER_PAGE = 20;
+  let currentPage = 1;
+  let sortBy = 'title';
+  let sortOrder = 'asc';
+  let statusFilter = '';
+  
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+  container.style.minHeight = '500px';
+  
+  // Get all stories flattened
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  function renderStoryList() {
+    const allStories = state.stories.flatMap(s => getAllStories(s));
+    
+    // Apply status filter
+    let filteredStories = allStories;
+    if (statusFilter) {
+      filteredStories = allStories.filter(s => s.status === statusFilter);
+    }
+    
+    // Apply sorting
+    filteredStories.sort((a, b) => {
+      let aVal = a[sortBy] || '';
+      let bVal = b[sortBy] || '';
+      if (sortBy === 'storyPoint') {
+        aVal = a.storyPoint || 0;
+        bVal = b.storyPoint || 0;
+      }
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    // Pagination
+    const totalPages = Math.ceil(filteredStories.length / ITEMS_PER_PAGE);
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    const pageStories = filteredStories.slice(startIdx, endIdx);
+    
+    container.innerHTML = `
+      <div class="story-list-controls" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <label style="display: flex; align-items: center; gap: 0.5rem;">
+          Status:
+          <select id="status-filter" style="padding: 0.25rem;">
+            <option value="">All</option>
+            ${STORY_STATUS_GUIDE.map(s => `<option value="${s.value}" ${statusFilter === s.value ? 'selected' : ''}>${s.value}</option>`).join('')}
+          </select>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem;">
+          Sort by:
+          <select id="sort-by" style="padding: 0.25rem;">
+            <option value="title" ${sortBy === 'title' ? 'selected' : ''}>Title</option>
+            <option value="status" ${sortBy === 'status' ? 'selected' : ''}>Status</option>
+            <option value="storyPoint" ${sortBy === 'storyPoint' ? 'selected' : ''}>Story Points</option>
+          </select>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem;">
+          Order:
+          <select id="sort-order" style="padding: 0.25rem;">
+            <option value="asc" ${sortOrder === 'asc' ? 'selected' : ''}>Ascending</option>
+            <option value="desc" ${sortOrder === 'desc' ? 'selected' : ''}>Descending</option>
+          </select>
+        </label>
+      </div>
+      
+      <div class="story-list-table" style="flex: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead style="position: sticky; top: 0; background: #f5f5f5; border-bottom: 2px solid #ddd;">
+            <tr>
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Title</th>
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; width: 50%;">Description</th>
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; width: 120px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pageStories.map(story => {
+              const truncatedDesc = (story.description || '').length > 100 
+                ? story.description.substring(0, 100) + '...' 
+                : story.description || '';
+              const statusClass = getStatusClass(story.status);
+              const statusColors = {
+                'status-draft': { bg: '#e5e7eb', color: '#374151' },
+                'status-ready': { bg: '#dbeafe', color: '#1e40af' },
+                'status-in-progress': { bg: '#fef3c7', color: '#92400e' },
+                'status-done': { bg: '#d1fae5', color: '#065f46' },
+                'status-blocked': { bg: '#fee2e2', color: '#991b1b' },
+                'status-approved': { bg: '#e0e7ff', color: '#3730a3' }
+              };
+              const colors = statusColors[statusClass] || { bg: '#e5e7eb', color: '#374151' };
+              
+              return `
+                <tr style="border-bottom: 1px solid #e5e7eb; cursor: pointer;" data-story-id="${story.id}">
+                  <td style="padding: 0.75rem; font-weight: 600;">${story.title || 'Untitled'}</td>
+                  <td style="padding: 0.75rem; color: #6b7280;">${truncatedDesc}</td>
+                  <td style="padding: 0.75rem;">
+                    <span style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 500; background: ${colors.bg}; color: ${colors.color};">
+                      ${story.status || 'Draft'}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="story-list-pagination" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>Showing ${startIdx + 1}-${Math.min(endIdx, filteredStories.length)} of ${filteredStories.length} stories</div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''} style="padding: 0.5rem 1rem;">Previous</button>
+          <span style="padding: 0.5rem 1rem;">Page ${currentPage} of ${totalPages || 1}</span>
+          <button id="next-page" ${currentPage >= totalPages ? 'disabled' : ''} style="padding: 0.5rem 1rem;">Next</button>
+        </div>
+      </div>
+    `;
+    
+    // Attach event listeners
+    const statusFilterEl = container.querySelector('#status-filter');
+    const sortByEl = container.querySelector('#sort-by');
+    const sortOrderEl = container.querySelector('#sort-order');
+    const prevBtn = container.querySelector('#prev-page');
+    const nextBtn = container.querySelector('#next-page');
+    
+    statusFilterEl?.addEventListener('change', (e) => {
+      statusFilter = e.target.value;
+      currentPage = 1;
+      renderStoryList();
+    });
+    
+    sortByEl?.addEventListener('change', (e) => {
+      sortBy = e.target.value;
+      renderStoryList();
+    });
+    
+    sortOrderEl?.addEventListener('change', (e) => {
+      sortOrder = e.target.value;
+      renderStoryList();
+    });
+    
+    prevBtn?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderStoryList();
+      }
+    });
+    
+    nextBtn?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderStoryList();
+      }
+    });
+    
+    // Row click to view story details
+    container.querySelectorAll('tr[data-story-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = parseInt(row.dataset.storyId);
+        state.selectedStoryId = storyId;
+        expandAncestors(storyId);
+        renderAll();
+        closeModal();
+        showToast('Story selected', 'success');
+      });
+    });
+  }
+  
+  renderStoryList();
+  
+  openModal({
+    title: 'User Stories List',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
       }
     ]
   });

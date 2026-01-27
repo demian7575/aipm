@@ -119,6 +119,17 @@ else
     ((PHASE4_FAILED++))
 fi
 
+# =============================================================================
+# Story: Display User Stories with Filters and Sorting
+# ID: 1769486701664
+# Merged: 2026-01-27
+# =============================================================================
+if bash "$(dirname "$0")/phase4-story-1769486701664.sh"; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
 # ADD NEW TEST FUNCTION CALLS HERE
 # if test_your_story_name; then
 #     ((PHASE4_PASSED++))
