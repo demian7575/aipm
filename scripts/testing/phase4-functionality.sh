@@ -48,6 +48,41 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1769509192857
+# =============================================================================
+test_story_list_button() {
+    log_test "Story List Button - Modal displays all story titles"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify openStoryListModal function exists
+    if ! grep -q "function openStoryListModal" apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener is attached
+    if ! grep -q "storyListBtn.addEventListener" apps/frontend/public/app.js; then
+        fail_test "Event listener not attached to story list button"
+        return 1
+    fi
+    
+    # Test 4: Verify modal styling exists
+    if ! grep -q "story-list-container" apps/frontend/public/styles.css; then
+        fail_test "Story list modal styles not found"
+        return 1
+    fi
+    
+    pass_test "Story List Button"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -120,11 +155,11 @@ else
 fi
 
 # ADD NEW TEST FUNCTION CALLS HERE
-# if test_your_story_name; then
-#     ((PHASE4_PASSED++))
-# else
-#     ((PHASE4_FAILED++))
-# fi
+if test_story_list_button; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
 
 # Summary
 echo ""
