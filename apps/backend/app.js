@@ -7483,11 +7483,26 @@ export async function createApp() {
           soThatChanged ||
           componentsChanged;
 
+        // Debug logging
+        console.log(`[PATCH /api/stories/${storyId}] Content change detection:`, {
+          titleChanged,
+          descriptionChanged,
+          assigneeChanged,
+          storyPointChanged,
+          asAChanged,
+          iWantChanged,
+          soThatChanged,
+          componentsChanged,
+          contentChanged,
+          payloadKeys: Object.keys(payload)
+        });
+
         let analysis;
         let warnings = [];
         
         // Only run INVEST validation if content changed (not just status)
         if (contentChanged) {
+          console.log(`[PATCH /api/stories/${storyId}] Running INVEST validation (content changed)`);
           // Load acceptance tests for INVEST analysis
           const acceptanceTests = db.prepare(
             'SELECT id, title, given, when, then, status FROM acceptance_tests WHERE story_id = ?'
@@ -7525,6 +7540,7 @@ export async function createApp() {
           }
         } else {
           // No content changed, use existing analysis
+          console.log(`[PATCH /api/stories/${storyId}] Skipping INVEST validation (status-only change)`);
           analysis = {
             source: existing.invest_analysis ? JSON.parse(existing.invest_analysis).source : 'none',
             summary: existing.invest_analysis ? JSON.parse(existing.invest_analysis).summary : '',
