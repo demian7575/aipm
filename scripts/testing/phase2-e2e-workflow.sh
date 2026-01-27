@@ -45,7 +45,7 @@ PHASE2_BRANCH_NAME=""
 # Step 1: Story Draft Generation
 # UI: "Create Child Story" button → "Generate" button with Idea
 # ============================================================================
-phase6_step1_story_draft_generation() {
+phase2_step1_story_draft_generation() {
     echo "📝 Step 1: Story Draft Generation"
     echo "   UI: 'Create Child Story' → 'Generate' with Idea"
     step_start=$(date +%s)
@@ -62,7 +62,7 @@ phase6_step1_story_draft_generation() {
     echo "   📍 Parent Story ID: $PHASE2_PARENT_STORY_ID"
     
     # Generate story draft via SSE with simple, INVEST-compliant idea
-    local request_id="phase6-story-draft-$(date +%s)"
+    local request_id="phase2-story-draft-$(date +%s)"
     local response
     response=$(timeout 120 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/story-draft?stream=true" \
         -H 'Content-Type: application/json' \
@@ -106,7 +106,7 @@ phase6_step1_story_draft_generation() {
 # Step 2: Create Story from Draft
 # UI: "Create Story" button
 # ============================================================================
-phase6_step2_create_story() {
+phase2_step2_create_story() {
     echo "📝 Step 2: Create Story from Draft"
     echo "   UI: 'Create Story' button"
     step_start=$(date +%s)
@@ -149,7 +149,7 @@ phase6_step2_create_story() {
 # Step 3: Edit Story
 # UI: "Edit Story" button → Edit fields → Save
 # ============================================================================
-phase6_step3_edit_story() {
+phase2_step3_edit_story() {
     echo "✏️  Step 3: Edit Story"
     echo "   UI: 'Edit Story' button → Modify → Save"
     step_start=$(date +%s)
@@ -194,7 +194,7 @@ EOF
 # Step 4: INVEST Analysis
 # UI: "Run AI check" button
 # ============================================================================
-phase6_step4_invest_analysis() {
+phase2_step4_invest_analysis() {
     echo "🤖 Step 4: INVEST Analysis (SSE)"
     echo "   UI: 'Run AI check' button"
     step_start=$(date +%s)
@@ -215,7 +215,7 @@ phase6_step4_invest_analysis() {
     fi
     
     # Run INVEST analysis via SSE with increased timeout
-    local request_id="phase3-invest-$(date +%s)"
+    local request_id="phase2-invest-$(date +%s)"
     local response
     response=$(timeout 60 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/invest-analysis?stream=true" \
         -H 'Content-Type: application/json' \
@@ -262,7 +262,7 @@ phase6_step4_invest_analysis() {
 # Step 5: Acceptance Test Draft Generation
 # UI: "Create Acceptance Test" button → "Generate Tests" with Idea
 # ============================================================================
-phase6_step5_acceptance_test_draft() {
+phase2_step5_acceptance_test_draft() {
     echo "✅ Step 5: Acceptance Test Draft Generation (SSE)"
     echo "   UI: 'Create Acceptance Test' → 'Generate Tests' with Idea"
     step_start=$(date +%s)
@@ -278,7 +278,7 @@ phase6_step5_acceptance_test_draft() {
     local story_data=$(curl -s $USE_DEV_TABLES_HEADER "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     # Generate acceptance test draft via SSE
-    local request_id="phase3-at-draft-$(date +%s)"
+    local request_id="phase2-at-draft-$(date +%s)"
     local response
     response=$(timeout 120 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/acceptance-test-draft?stream=true" \
         -H 'Content-Type: application/json' \
@@ -323,7 +323,7 @@ phase6_step5_acceptance_test_draft() {
 # Step 6: Create PR (Real GitHub PR)
 # UI: "Create PR" button
 # ============================================================================
-phase6_step6_create_pr() {
+phase2_step6_create_pr() {
     echo "🔀 Step 6: Create PR"
     echo "   UI: 'Create PR' button"
     step_start=$(date +%s)
@@ -379,7 +379,7 @@ EOF
 # Step 7: Generate Code (Real commit to PR)
 # UI: "Generate Code" button
 # ============================================================================
-phase6_step7_generate_code() {
+phase2_step7_generate_code() {
     echo "💻 Step 7: Generate Code"
     echo "   UI: 'Generate Code' button"
     step_start=$(date +%s)
@@ -397,7 +397,7 @@ phase6_step7_generate_code() {
     fi
     
     # Call Semantic API with real code generation template
-    local request_id="phase6-codegen-$(date +%s)"
+    local request_id="phase2-codegen-$(date +%s)"
     local response
     
     echo "   📍 Generating code for PR #$PHASE2_PR_NUMBER"
@@ -445,7 +445,7 @@ phase6_step7_generate_code() {
 # Step 8: Test in Dev (Deploy to PR)
 # UI: "Test in Dev" button
 # ============================================================================
-phase6_step8_test_in_dev() {
+phase2_step8_test_in_dev() {
     echo "🚀 Step 8: Test in Dev"
     echo "   UI: 'Test in Dev' button"
     step_start=$(date +%s)
@@ -478,7 +478,7 @@ phase6_step8_test_in_dev() {
 # Step 9: Stop Tracking (Delete PR)
 # UI: "Stop tracking" button
 # ============================================================================
-phase6_step9_stop_tracking() {
+phase2_step9_stop_tracking() {
     echo "🛑 Step 9: Stop Tracking (Delete PR)"
     echo "   UI: 'Stop tracking' button"
     step_start=$(date +%s)
@@ -516,7 +516,7 @@ phase6_step9_stop_tracking() {
 # Step 10: Delete Story
 # UI: "Delete" button
 # ============================================================================
-phase6_step10_delete_story() {
+phase2_step10_delete_story() {
     echo "🗑️  Step 10: Delete Story"
     echo "   UI: 'Delete' button"
     step_start=$(date +%s)
@@ -553,20 +553,20 @@ phase6_step10_delete_story() {
 # Main Execution
 # ============================================================================
 
-phase6_start=$(date +%s)
+phase2_start=$(date +%s)
 
-phase6_step1_story_draft_generation
-phase6_step2_create_story
-phase6_step3_edit_story
-phase6_step4_invest_analysis
-phase6_step5_acceptance_test_draft
-phase6_step6_create_pr
-phase6_step7_generate_code
-phase6_step8_test_in_dev
-phase6_step9_stop_tracking
-phase6_step10_delete_story
+phase2_step1_story_draft_generation
+phase2_step2_create_story
+phase2_step3_edit_story
+phase2_step4_invest_analysis
+phase2_step5_acceptance_test_draft
+phase2_step6_create_pr
+phase2_step7_generate_code
+phase2_step8_test_in_dev
+phase2_step9_stop_tracking
+phase2_step10_delete_story
 
-phase6_end=$(date +%s)
+phase2_end=$(date +%s)
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ Phase 2 completed"
@@ -574,7 +574,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "📊 Phase 2 Summary:"
 echo "   Tests Passed: $PHASE_PASSED"
 echo "   Tests Failed: $PHASE_FAILED"
-echo "   Total Duration: $((phase6_end - phase6_start))s"
+echo "   Total Duration: $((phase2_end - phase2_start))s"
 echo "   Environment: Development (Data Isolation)"
 echo ""
 
