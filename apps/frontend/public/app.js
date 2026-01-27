@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7558,6 +7565,44 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+/**
+ * Opens modal displaying all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  const allStories = state.stories.flatMap(s => getAllStoriesFlat(s));
+  
+  const list = document.createElement('ul');
+  list.className = 'story-list';
+  
+  allStories.forEach(story => {
+    const item = document.createElement('li');
+    item.textContent = story.title;
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: []
+  });
+}
+
+/**
+ * Helper to flatten story tree
+ */
+function getAllStoriesFlat(story) {
+  const stories = [story];
+  if (story.children) {
+    story.children.forEach(child => stories.push(...getAllStoriesFlat(child)));
+  }
+  return stories;
 }
 
 function openReferenceModal(storyId) {
