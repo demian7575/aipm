@@ -34,12 +34,16 @@ function resolveApiUrl(path) {
 }
 
 const outlineTreeEl = document.getElementById('outline-tree');
+const storyListViewEl = document.getElementById('story-list-view');
+const storyListContainerEl = document.getElementById('story-list-container');
+const storyListPaginationEl = document.getElementById('story-list-pagination');
 const mindmapCanvas = document.getElementById('mindmap-canvas');
 const detailsPanel = document.getElementById('details-panel');
 const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
+const toggleListViewBtn = document.getElementById('toggle-list-view');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
@@ -500,6 +504,9 @@ const state = {
   selectedStoryId: null,
   manualPositions: {},
   autoLayout: true,
+  listViewMode: false,
+  listViewPage: 1,
+  listViewPageSize: 20,
   showDependencies: false,
   hideCompleted: false,
   filters: {
@@ -2948,6 +2955,10 @@ function getVisibleStories() {
 }
 
 function renderOutline() {
+  if (state.listViewMode) {
+    renderListView();
+    return;
+  }
   outlineTreeEl.innerHTML = '';
   const list = document.createDocumentFragment();
 
@@ -5636,6 +5647,119 @@ function setAllExpanded(expand) {
   renderMindmap();
 }
 
+/**
+ * Toggle between tree view and list view
+ */
+function toggleListView() {
+  state.listViewMode = !state.listViewMode;
+  state.listViewPage = 1;
+  
+  if (state.listViewMode) {
+    outlineTreeEl.style.display = 'none';
+    storyListViewEl.style.display = 'block';
+    toggleListViewBtn.textContent = 'Tree View';
+    expandAllBtn.style.display = 'none';
+    collapseAllBtn.style.display = 'none';
+  } else {
+    outlineTreeEl.style.display = 'block';
+    storyListViewEl.style.display = 'none';
+    toggleListViewBtn.textContent = 'List View';
+    expandAllBtn.style.display = '';
+    collapseAllBtn.style.display = '';
+  }
+  
+  renderOutline();
+}
+
+/**
+ * Render story list view with pagination
+ */
+function renderListView() {
+  const allStories = flattenStories(state.stories);
+  const totalPages = Math.ceil(allStories.length / state.listViewPageSize);
+  const startIdx = (state.listViewPage - 1) * state.listViewPageSize;
+  const endIdx = startIdx + state.listViewPageSize;
+  const pageStories = allStories.slice(startIdx, endIdx);
+  
+  storyListContainerEl.innerHTML = '';
+  
+  pageStories.forEach(story => {
+    const item = document.createElement('div');
+    item.className = 'story-list-item';
+    if (story.id === state.selectedStoryId) {
+      item.classList.add('selected');
+    }
+    
+    const title = document.createElement('div');
+    title.className = 'story-list-item-title';
+    title.textContent = story.title || 'Untitled';
+    
+    const description = document.createElement('div');
+    description.className = 'story-list-item-description';
+    const descText = story.description || '';
+    description.textContent = descText.length > 100 ? descText.substring(0, 100) + '...' : descText;
+    
+    const meta = document.createElement('div');
+    meta.className = 'story-list-item-meta';
+    
+    const statusBadge = document.createElement('span');
+    statusBadge.className = `status-badge status-${(story.status || 'Draft').toLowerCase().replace(/\s+/g, '-')}`;
+    statusBadge.textContent = story.status || 'Draft';
+    
+    meta.appendChild(statusBadge);
+    
+    item.appendChild(title);
+    item.appendChild(description);
+    item.appendChild(meta);
+    
+    item.addEventListener('click', () => {
+      handleStorySelection(story);
+    });
+    
+    storyListContainerEl.appendChild(item);
+  });
+  
+  // Render pagination
+  storyListPaginationEl.innerHTML = '';
+  
+  if (totalPages > 1) {
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = 'Previous';
+    prevBtn.className = 'secondary';
+    prevBtn.disabled = state.listViewPage === 1;
+    prevBtn.addEventListener('click', () => {
+      if (state.listViewPage > 1) {
+        state.listViewPage--;
+        renderListView();
+      }
+    });
+    
+    const pageInfo = document.createElement('span');
+    pageInfo.className = 'pagination-info';
+    pageInfo.textContent = `Page ${state.listViewPage} of ${totalPages}`;
+    
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next';
+    nextBtn.className = 'secondary';
+    nextBtn.disabled = state.listViewPage === totalPages;
+    nextBtn.addEventListener('click', () => {
+      if (state.listViewPage < totalPages) {
+        state.listViewPage++;
+        renderListView();
+      }
+    });
+    
+    storyListPaginationEl.appendChild(prevBtn);
+    storyListPaginationEl.appendChild(pageInfo);
+    storyListPaginationEl.appendChild(nextBtn);
+  } else {
+    const pageInfo = document.createElement('span');
+    pageInfo.className = 'pagination-info';
+    pageInfo.textContent = `Showing ${allStories.length} ${allStories.length === 1 ? 'story' : 'stories'}`;
+    storyListPaginationEl.appendChild(pageInfo);
+  }
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -8087,6 +8211,7 @@ function initialize() {
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
+  toggleListViewBtn.addEventListener('click', toggleListView);
 
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));

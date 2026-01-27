@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story List - AI Project Manager</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .story-list-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .status-group {
+      margin-bottom: 2rem;
+    }
+    .status-group h2 {
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #ddd;
+    }
+    .story-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+    .story-table th,
+    .story-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .story-table th {
+      background-color: #f5f5f5;
+      font-weight: 600;
+    }
+    .story-table tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+    .story-table tr:hover {
+      background-color: #f0f0f0;
+      cursor: pointer;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .status-draft { background-color: #e0e0e0; color: #333; }
+    .status-ready { background-color: #bbdefb; color: #0d47a1; }
+    .status-in-progress { background-color: #fff9c4; color: #f57f17; }
+    .status-done { background-color: #c8e6c9; color: #1b5e20; }
+    .status-blocked { background-color: #ffcdd2; color: #b71c1c; }
+    .status-approved { background-color: #d1c4e9; color: #4a148c; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Story List</h1>
+    <a href="index.html" class="secondary">Back to Mindmap</a>
+  </header>
+
+  <main class="story-list-container" id="story-list-container">
+  </main>
+
+  <script type="module">
+    const API_BASE_URL = window.location.hostname === 'localhost' 
+      ? 'http://localhost:4000' 
+      : 'http://44.197.204.18:4000';
+
+    const STATUS_ORDER = ['Draft', 'Ready', 'In Progress', 'Approved', 'Blocked', 'Done'];
+
+    async function loadStories() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/stories`);
+        const allStories = await response.json();
+
+        // Group stories by status
+        const groupedStories = {};
+        STATUS_ORDER.forEach(status => {
+          groupedStories[status] = allStories.filter(s => s.status === status);
+        });
+
+        const container = document.getElementById('story-list-container');
+        container.innerHTML = '';
+
+        STATUS_ORDER.forEach(status => {
+          const storiesInGroup = groupedStories[status];
+          if (storiesInGroup.length === 0) return;
+
+          const section = document.createElement('div');
+          section.className = 'status-group';
+          
+          const heading = document.createElement('h2');
+          heading.textContent = `${status} (${storiesInGroup.length})`;
+          section.appendChild(heading);
+
+          const table = document.createElement('table');
+          table.className = 'story-table';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          `;
+
+          const tbody = table.querySelector('tbody');
+          storiesInGroup.forEach(story => {
+            const row = document.createElement('tr');
+            const description = story.description || '';
+            const truncatedDesc = description.length > 100 
+              ? description.substring(0, 100) + '...' 
+              : description;
+            
+            row.innerHTML = `
+              <td>${escapeHtml(story.title)}</td>
+              <td>${escapeHtml(truncatedDesc)}</td>
+              <td><span class="status-badge status-${status.toLowerCase().replace(' ', '-')}">${escapeHtml(status)}</span></td>
+            `;
+            row.addEventListener('click', () => {
+              window.location.href = `index.html?story=${story.id}`;
+            });
+            tbody.appendChild(row);
+          });
+
+          section.appendChild(table);
+          container.appendChild(section);
+        });
+      } catch (error) {
+        console.error('Failed to load stories:', error);
+        document.getElementById('story-list-container').innerHTML = 
+          '<p>Failed to load stories</p>';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    loadStories();
+  </script>
+</body>
+</html>
