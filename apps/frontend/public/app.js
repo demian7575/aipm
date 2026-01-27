@@ -749,6 +749,13 @@ if (filterBtn) {
   });
 }
 
+const storyListBtn = document.getElementById('story-list-btn');
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
+}
+
 if (mindmapZoomInBtn) {
   mindmapZoomInBtn.addEventListener('click', () => {
     setMindmapZoom(state.mindmapZoom + MINDMAP_ZOOM_STEP);
@@ -7545,7 +7552,6 @@ function openFilterModal() {
       {
         label: 'Apply',
         onClick: () => {
-          // Collect selected filters
           state.filters.status = Array.from(statusList.querySelectorAll('input:checked')).map(cb => cb.value);
           state.filters.component = Array.from(componentList.querySelectorAll('input:checked')).map(cb => cb.value);
           state.filters.assignee = Array.from(assigneeList.querySelectorAll('input:checked')).map(cb => cb.value);
@@ -7558,6 +7564,96 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+/**
+ * Opens story list modal with pagination
+ */
+function openStoryListModal() {
+  const ITEMS_PER_PAGE = 20;
+  let currentPage = 1;
+  
+  const allStories = state.stories.flatMap(s => getAllStoriesFlat(s));
+  const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+  
+  function getAllStoriesFlat(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStoriesFlat(child)));
+    }
+    return stories;
+  }
+  
+  function renderPage() {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const pageStories = allStories.slice(start, end);
+    
+    const container = document.createElement('div');
+    container.className = 'story-list-container';
+    
+    const table = document.createElement('table');
+    table.className = 'story-list-table';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${pageStories.map(story => `
+          <tr data-story-id="${story.id}" style="cursor: pointer;">
+            <td>${escapeHtml(story.title)}</td>
+            <td>${escapeHtml(story.description || '')}</td>
+            <td><span class="status-badge ${getStatusClass(story.status)}">${escapeHtml(story.status)}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    
+    table.querySelectorAll('tr[data-story-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = Number(row.dataset.storyId);
+        selectStory(storyId);
+        closeModal();
+      });
+    });
+    
+    const pagination = document.createElement('div');
+    pagination.className = 'story-list-pagination';
+    pagination.innerHTML = `
+      <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+      <span>Page ${currentPage} of ${totalPages}</span>
+      <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+    `;
+    
+    pagination.querySelector('#prev-page').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage();
+      }
+    });
+    
+    pagination.querySelector('#next-page').addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPage();
+      }
+    });
+    
+    container.appendChild(table);
+    container.appendChild(pagination);
+    
+    openModal({
+      title: 'User Stories',
+      content: container,
+      actions: [{ label: 'Close', onClick: () => true }]
+    });
+  }
+  
+  renderPage();
 }
 
 function openReferenceModal(storyId) {
