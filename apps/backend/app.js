@@ -7456,50 +7456,6 @@ export async function createApp() {
         const nextStatus =
           payload.status === undefined ? currentStatus : normalizeStoryStatus(payload.status);
 
-        let analysis;
-        let warnings = [];
-        
-        // Load acceptance tests for INVEST analysis
-        const acceptanceTests = db.prepare(
-          'SELECT id, title, given, when, then, status FROM acceptance_tests WHERE story_id = ?'
-        ).all(storyId);
-        
-        // Run INVEST analysis
-        const storyForValidation = {
-          id: storyId,
-          title,
-          asA: asA ?? existing.as_a,
-          iWant: iWant ?? existing.i_want,
-          soThat: soThat ?? existing.so_that,
-          description: description || existing.description || '',
-          storyPoint,
-          components,
-          acceptanceTests,
-        };
-        const investStartTime = Date.now();
-        analysis = await analyzeInvest(storyForValidation);
-        timings.push(`  INVEST analysis completed: ${Date.now() - investStartTime}ms (total: ${Date.now() - patchStartTime}ms)`);
-        warnings = analysis.warnings;
-        
-        if (warnings.length > 0 && !payload.acceptWarnings) {
-          sendJson(res, 409, {
-            code: 'INVEST_WARNINGS',
-            message: 'User story does not meet INVEST criteria.',
-            warnings,
-            analysis: {
-              source: analysis.source,
-              summary: analysis.summary,
-              summary: analysis.summary,
-              model: analysis.ai?.model || null,
-            },
-          });
-          return;
-        }
-
-        if (nextStatus === 'Done' && !payload.bypassDoneValidation) {
-          await ensureCanMarkStoryDone(db, storyId);
-        }
-
         const nextAsA = asA ?? existing.as_a ?? '';
         const nextIWant = iWant ?? existing.i_want ?? '';
         const nextSoThat = soThat ?? existing.so_that ?? '';
@@ -7523,6 +7479,62 @@ export async function createApp() {
           iWantChanged ||
           soThatChanged ||
           componentsChanged;
+
+        let analysis;
+        let warnings = [];
+        
+        // Only run INVEST validation if content changed (not just status)
+        if (contentChanged) {
+          // Load acceptance tests for INVEST analysis
+          const acceptanceTests = db.prepare(
+            'SELECT id, title, given, when, then, status FROM acceptance_tests WHERE story_id = ?'
+          ).all(storyId);
+          
+          // Run INVEST analysis
+          const storyForValidation = {
+            id: storyId,
+            title,
+            asA: nextAsA,
+            iWant: nextIWant,
+            soThat: nextSoThat,
+            description: description || existing.description || '',
+            storyPoint,
+            components,
+            acceptanceTests,
+          };
+          const investStartTime = Date.now();
+          analysis = await analyzeInvest(storyForValidation);
+          timings.push(`  INVEST analysis completed: ${Date.now() - investStartTime}ms (total: ${Date.now() - patchStartTime}ms)`);
+          warnings = analysis.warnings;
+          
+          if (warnings.length > 0 && !payload.acceptWarnings) {
+            sendJson(res, 409, {
+              code: 'INVEST_WARNINGS',
+              message: 'User story does not meet INVEST criteria.',
+              warnings,
+              analysis: {
+                source: analysis.source,
+                summary: analysis.summary,
+                model: analysis.ai?.model || null,
+              },
+            });
+            return;
+          }
+        } else {
+          // No content changed, use existing analysis
+          analysis = {
+            source: existing.invest_analysis ? JSON.parse(existing.invest_analysis).source : 'none',
+            summary: existing.invest_analysis ? JSON.parse(existing.invest_analysis).summary : '',
+            ai: existing.invest_analysis ? { model: JSON.parse(existing.invest_analysis).model } : null,
+            warnings: existing.invest_warnings ? JSON.parse(existing.invest_warnings) : []
+          };
+          warnings = analysis.warnings;
+          timings.push(`  INVEST analysis skipped (status-only change): ${Date.now() - patchStartTime}ms`);
+        }
+
+        if (nextStatus === 'Done' && !payload.bypassDoneValidation) {
+          await ensureCanMarkStoryDone(db, storyId);
+        }
 
         // For DynamoDB, use direct update to ensure status change works
         if (process.env.NODE_ENV !== 'test' && process.env.STORIES_TABLE && process.env.AWS_REGION) {
