@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7451,6 +7458,35 @@ function openTaskModal(storyId, task = null) {
   
   // Trigger resize after modal is rendered
   setTimeout(autoResize, 10);
+}
+
+/**
+ * Opens modal showing list of all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.cssText = 'max-height: 400px; overflow-y: auto;';
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  const list = document.createElement('ul');
+  list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+  
+  allStories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.cssText = 'padding: 8px; border-bottom: 1px solid #eee;';
+    item.textContent = story.title || `Story ${story.id}`;
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'All Story Titles',
+    content: container,
+    actions: []
+  });
 }
 
 /**
