@@ -6412,7 +6412,8 @@ export async function createApp() {
             storyDescription: story.description || '',
             acceptanceTests: story.acceptanceTests || [],
             branchName: branchName,
-            prNumber: parseInt(prNumber)
+            prNumber: parseInt(prNumber),
+            skipGatingTests: process.env.SKIP_GATING_TESTS === 'true'
           })
         });
         

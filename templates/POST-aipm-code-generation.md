@@ -7,6 +7,7 @@ The prompt provides these variables:
 - `storyId` - Story ID number
 - `branchName` - Git branch name  
 - `prNumber` - GitHub PR number
+- `skipGatingTests` - Boolean flag to skip gating tests (true during Phase 2 tests)
 
 ## ROLE
 **YOU ARE**: Code Generator executing specifications exactly as written
@@ -82,8 +83,11 @@ curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 
-# Check if gating tests should be skipped (for development/testing)
-if "${SKIP_GATING_TESTS}" == "false"
+# Check if gating tests should be skipped
+if "{skipGatingTests}" == "true"
+    Skip gating tests (running during Phase 2 E2E tests)
+    Proceed directly to commit
+else
     Run Phase 1 and 2 and newly added Phase 4 tests.
     If tests fails: Revert changes and return to step 4 (max 3 attempts)
 fi

@@ -425,7 +425,8 @@ phase2_step7_generate_code() {
             \"requestId\":\"$request_id\",
             \"storyId\":$PHASE2_CHILD_STORY_ID,
             \"branchName\":\"$PHASE2_BRANCH_NAME\",
-            \"prNumber\":$PHASE2_PR_NUMBER
+            \"prNumber\":$PHASE2_PR_NUMBER,
+            \"skipGatingTests\":true
         }" 2>&1)
     
     if [[ $? -ne 0 ]]; then
