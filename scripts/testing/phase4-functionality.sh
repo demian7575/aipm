@@ -86,6 +86,49 @@ test_enable_connection_to_parent_user_story() {
     pass_test "Enable connection to parent User Story"
     return 0
 }
+
+# =============================================================================
+# Story: Display User Stories with Color-Coded Status Badges
+# ID: 1769474532690
+# Merged: 2026-01-27
+# =============================================================================
+test_display_user_stories_with_color_coded_status_badges() {
+    log_test "Display User Stories with Color-Coded Status Badges"
+    
+    # Test 1: Verify bold title styling
+    if ! grep -q 'title-cell.*font-weight.*bold' apps/frontend/public/story-list.html; then
+        fail_test "Bold title styling not found"
+        return 1
+    fi
+    
+    # Test 2: Verify truncation function exists
+    if ! grep -q 'truncateText' apps/frontend/public/story-list.html; then
+        fail_test "Truncation function not implemented"
+        return 1
+    fi
+    
+    # Test 3: Verify color-coded status badges
+    if ! grep -q 'status-draft.*#9e9e9e' apps/frontend/public/story-list.html; then
+        fail_test "Draft status gray color not found"
+        return 1
+    fi
+    if ! grep -q 'status-ready.*#2196f3' apps/frontend/public/story-list.html; then
+        fail_test "Ready status blue color not found"
+        return 1
+    fi
+    if ! grep -q 'status-in-progress.*#ffc107' apps/frontend/public/story-list.html; then
+        fail_test "In Progress status yellow color not found"
+        return 1
+    fi
+    if ! grep -q 'status-done.*#4caf50' apps/frontend/public/story-list.html; then
+        fail_test "Done status green color not found"
+        return 1
+    fi
+    
+    pass_test "Display User Stories with Color-Coded Status Badges"
+    return 0
+}
+
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -114,6 +157,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_user_stories_with_color_coded_status_badges; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))

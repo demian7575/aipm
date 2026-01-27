@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story List - AIPM</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h1 { margin-bottom: 20px; color: #333; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f8f8f8; font-weight: 600; }
+    tr:nth-child(even) { background: #fafafa; }
+    tr:hover { background: #f0f0f0; cursor: pointer; }
+    .pagination { margin-top: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; }
+    .pagination button { padding: 8px 16px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; }
+    .pagination button:hover:not(:disabled) { background: #f0f0f0; }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pagination span { color: #666; }
+    .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .status-draft { background: #9e9e9e; color: white; }
+    .status-ready { background: #2196f3; color: white; }
+    .status-in-progress { background: #ffc107; color: #333; }
+    .status-blocked { background: #ffebee; color: #d32f2f; }
+    .status-approved { background: #f3e5f5; color: #7b1fa2; }
+    .status-done { background: #4caf50; color: white; }
+    .title-cell { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>User Stories</h1>
+    <table id="story-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="story-tbody">
+        <tr><td colspan="3">Loading...</td></tr>
+      </tbody>
+    </table>
+    <div class="pagination">
+      <button id="prev-btn" disabled>Previous</button>
+      <span id="page-info">Page 1 of 1</span>
+      <button id="next-btn" disabled>Next</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let currentPage = 1;
+    let totalPages = 1;
+
+    function truncateText(text, maxLength) {
+      if (!text || text.length <= maxLength) return text;
+      return text.substring(0, maxLength) + '...';
+    }
+
+    async function loadStories(page = 1) {
+      try {
+        const response = await fetch(`${API_BASE}/api/stories/list?page=${page}&limit=20`);
+        const data = await response.json();
+        
+        const tbody = document.getElementById('story-tbody');
+        tbody.innerHTML = '';
+        
+        if (data.stories.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3">No stories found</td></tr>';
+          return;
+        }
+        
+        data.stories.forEach(story => {
+          const row = document.createElement('tr');
+          const titleCell = document.createElement('td');
+          titleCell.className = 'title-cell';
+          titleCell.textContent = story.title || '';
+          
+          const descCell = document.createElement('td');
+          descCell.textContent = truncateText(story.description || '', 100);
+          
+          const statusCell = document.createElement('td');
+          const statusBadge = document.createElement('span');
+          statusBadge.className = `status status-${(story.status || 'draft').toLowerCase().replace(/\s+/g, '-')}`;
+          statusBadge.textContent = story.status || 'Draft';
+          statusCell.appendChild(statusBadge);
+          
+          row.appendChild(titleCell);
+          row.appendChild(descCell);
+          row.appendChild(statusCell);
+          
+          row.addEventListener('click', () => {
+            window.location.href = `/?story=${story.id}`;
+          });
+          tbody.appendChild(row);
+        });
+        
+        currentPage = data.pagination.page;
+        totalPages = data.pagination.totalPages;
+        
+        document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+        document.getElementById('prev-btn').disabled = currentPage === 1;
+        document.getElementById('next-btn').disabled = currentPage === totalPages;
+      } catch (error) {
+        console.error('Failed to load stories:', error);
+        document.getElementById('story-tbody').innerHTML = '<tr><td colspan="3">Error loading stories</td></tr>';
+      }
+    }
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      if (currentPage > 1) loadStories(currentPage - 1);
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+      if (currentPage < totalPages) loadStories(currentPage + 1);
+    });
+
+    loadStories();
+  </script>
+</body>
+</html>
