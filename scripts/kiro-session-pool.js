@@ -68,6 +68,8 @@ class KiroSession {
     this.process = null;
     this.busy = false;
     this.stuck = false;
+    this.stuckCount = 0;  // Track recovery attempts
+    this.maxStuckRetries = 3;  // Max recovery attempts before recreate
     this.lastUsed = Date.now();
     this.lastOutputTime = null;
     this.currentPrompt = null;
@@ -178,6 +180,9 @@ class KiroSession {
     const resolve = this.currentResolve;
     const output = this.outputBuffer;
     
+    // Reset stuck counter on successful completion
+    this.stuckCount = 0;
+    
     this.cleanup();
     
     resolve({
@@ -192,47 +197,92 @@ class KiroSession {
     }
     
     this.stuck = true;
-    this.log(`⚠️  Session ${this.id} appears stuck, attempting graceful recovery`);
+    this.stuckCount++;
     
-    // Try Ctrl+C first
-    try {
-      this.process.stdin.write('\x03'); // Ctrl+C
-      this.log(`Sent Ctrl+C to session ${this.id}`);
+    this.log(`⚠️  Session ${this.id} stuck (attempt ${this.stuckCount}/${this.maxStuckRetries})`);
+    
+    if (this.stuckCount <= this.maxStuckRetries) {
+      // Attempt recovery
+      await this.attemptRecovery();
       
-      // Wait for recovery
+      // Wait and check if recovered
       await new Promise(resolve => setTimeout(resolve, RECOVERY_TIMEOUT));
       
-      // Check if recovered
-      if (!this.busy) {
-        this.log(`✅ Session ${this.id} recovered`);
+      if (!this.busy || !this.isStillStuck()) {
+        this.log(`✅ Session ${this.id} recovered after attempt ${this.stuckCount}`);
         this.stuck = false;
+        this.stuckCount = 0;  // Reset on success
         return;
       }
       
-      // Still stuck, kill and restart
-      this.log(`❌ Session ${this.id} did not recover, killing process`);
-      this.forceRestart();
+      // Still stuck, try again
+      this.stuck = false;  // Allow next attempt
+      await this.handleStuck();
       
-    } catch (err) {
-      this.log(`Error during recovery: ${err.message}`);
-      this.forceRestart();
+    } else {
+      // Failed 3 times - complete recreation
+      this.log(`❌ Session ${this.id} failed ${this.maxStuckRetries} times, recreating...`);
+      this.destroy();
+      this.stuckCount = 0;  // Reset counter
+      setTimeout(() => this.start(), 1000);
     }
   }
   
-  forceRestart() {
+  async attemptRecovery() {
+    try {
+      // Step 1: Ctrl+C (gentle)
+      this.process.stdin.write('\x03');
+      this.log(`  → Sent Ctrl+C to session ${this.id}`);
+      await this.wait(2000);
+      
+      if (this.isStillStuck()) {
+        // Step 2: SIGTERM (graceful shutdown)
+        this.process.kill('SIGTERM');
+        this.log(`  → Sent SIGTERM to session ${this.id}`);
+        await this.wait(2000);
+      }
+      
+      if (this.isStillStuck()) {
+        // Step 3: SIGKILL (force)
+        this.process.kill('SIGKILL');
+        this.log(`  → Sent SIGKILL to session ${this.id}`);
+      }
+    } catch (err) {
+      this.log(`  ⚠️  Recovery error: ${err.message}`);
+    }
+  }
+  
+  isStillStuck() {
+    return this.busy && this.lastOutputTime && 
+           (Date.now() - this.lastOutputTime > 5000);
+  }
+  
+  destroy() {
     const reject = this.currentReject;
     
     if (this.process) {
-      this.process.kill('SIGKILL');
+      try {
+        this.process.kill('SIGKILL');
+      } catch (err) {
+        // Ignore
+      }
       this.process = null;
     }
     
     this.cleanup();
     
     if (reject) {
-      reject(new Error('Session stuck and restarted'));
+      reject(new Error(`Session failed after ${this.maxStuckRetries} recovery attempts`));
     }
-    
+  }
+  
+  wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  
+  forceRestart() {
+    // Deprecated - use destroy() instead
+    this.destroy();
     setTimeout(() => this.start(), 1000);
   }
   
