@@ -21,10 +21,6 @@ else
     echo "🔧 Using Development EC2 with Development DynamoDB"
 fi
 
-# Initialize test counters
-PHASE_PASSED=0
-PHASE_FAILED=0
-
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -589,6 +585,11 @@ phase2_end=$(date +%s)
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ Phase 2 completed"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Get actual test counts from test framework
+PHASE_PASSED=$(get_passed_count)
+PHASE_FAILED=$(get_failed_count)
+
 echo "📊 Phase 2 Summary:"
 echo "   Tests Passed: $PHASE_PASSED"
 echo "   Tests Failed: $PHASE_FAILED"
@@ -602,4 +603,5 @@ if [[ $PHASE_FAILED -gt 0 ]]; then
     return 1
 fi
 
+echo "✅ Phase 2 PASSED - E2E workflow validated"
 return 0
