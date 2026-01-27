@@ -245,9 +245,22 @@ phase2_step4_invest_analysis() {
     fi
     
     if json_check "$analysis_data" '.score' && json_check "$analysis_data" '.status' '"complete"'; then
+        local score=$(echo "$analysis_data" | jq -r '.score')
+        local summary=$(echo "$analysis_data" | jq -r '.summary')
+        
+        echo "   ✅ Score: $score"
+        echo "   ✅ Summary: $summary"
+        
+        # Validate score threshold (minimum 60 for test environment)
+        local min_score=60
+        if [[ $score -lt $min_score ]]; then
+            fail_test "INVEST Analysis (Score too low: $score < $min_score)"
+            echo "   ❌ INVEST score must be at least $min_score for test to pass"
+            echo "   ❌ This indicates the story draft has quality issues"
+            return
+        fi
+        
         pass_test "INVEST Analysis (SSE)"
-        echo "   ✅ Score: $(echo "$analysis_data" | jq -r '.score')"
-        echo "   ✅ Summary: $(echo "$analysis_data" | jq -r '.summary')"
     else
         fail_test "INVEST Analysis (Invalid response)"
         echo "   ❌ Response: $response"
