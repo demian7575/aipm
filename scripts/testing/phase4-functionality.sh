@@ -86,6 +86,63 @@ test_enable_connection_to_parent_user_story() {
     pass_test "Enable connection to parent User Story"
     return 0
 }
+
+# =============================================================================
+# Story: Display User Stories with Filters and Sorting
+# ID: 1769498681774
+# Merged: 2026-01-27
+# =============================================================================
+test_display_stories_with_sorting() {
+    log_test "Display User Stories with Filters and Sorting"
+    
+    # Test 1: Verify sorting controls exist in HTML
+    if ! grep -q 'id="sort-by"' apps/frontend/public/index.html; then
+        fail_test "Sort dropdown not found in HTML"
+        return 1
+    fi
+    
+    if ! grep -q 'id="sort-order-toggle"' apps/frontend/public/index.html; then
+        fail_test "Sort order toggle not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify sorting state properties
+    if ! grep -q 'sortBy:' apps/frontend/public/app.js; then
+        fail_test "sortBy property not found in state"
+        return 1
+    fi
+    
+    if ! grep -q 'sortOrder:' apps/frontend/public/app.js; then
+        fail_test "sortOrder property not found in state"
+        return 1
+    fi
+    
+    # Test 3: Verify sortStories function exists
+    if ! grep -q 'function sortStories' apps/frontend/public/app.js; then
+        fail_test "sortStories function not found"
+        return 1
+    fi
+    
+    # Test 4: Verify event listeners for sorting
+    if ! grep -q "getElementById('sort-by')" apps/frontend/public/app.js; then
+        fail_test "Sort dropdown event listener not found"
+        return 1
+    fi
+    
+    if ! grep -q "getElementById('sort-order-toggle')" apps/frontend/public/app.js; then
+        fail_test "Sort order toggle event listener not found"
+        return 1
+    fi
+    
+    # Test 5: Verify CSS for sort controls
+    if ! grep -q '.sort-select' apps/frontend/public/styles.css; then
+        fail_test "CSS for sort controls not found"
+        return 1
+    fi
+    
+    pass_test "Display User Stories with Filters and Sorting"
+    return 0
+}
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -114,6 +171,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_stories_with_sorting; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
