@@ -77,20 +77,35 @@ Implement acceptance tests to phase4-functionality.sh"
 
 
 ### 5. Run Gating Tests (MANDATORY)
+```bash
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 
 # Check if gating tests should be skipped (for development/testing)
-if "${SKIP_GATING_TESTS}" == "false"
-    Run Phase 1 and 2 and newly added Phase 4 tests.
-    If tests fails: Revert changes and return to step 4 (max 3 attempts)
+if [[ "${SKIP_GATING_TESTS:-false}" == "true" ]]; then
+    echo "⚠️  Skipping gating tests (SKIP_GATING_TESTS=true)"
+else
+    # Run Phase 1 and 2 - MUST PASS
+    echo "🧪 Running gating tests (Phase 1, 2, 4)..."
+    GATING_OUTPUT=$(bash scripts/testing/run-structured-gating-tests.sh --phases 1,2 2>&1)
+    echo "$GATING_OUTPUT" | tail -100
+    
+    # Check Phase 1,2 passed
+    if ! echo "$GATING_OUTPUT" | grep -q "ALL GATING TESTS PASSED"; then
+        echo "❌ Phase 1,2 failed - reverting changes"
+        git reset --hard HEAD
+        exit 1
+    fi
+    
+    # Run Phase 4 to test new functionality
+    echo "🧪 Running Phase 4 (story-specific tests)..."
+    bash scripts/testing/phase4-functionality.sh
 fi
 
-# If tests passed or skipped, proceed to commit
-Check output for: "ALL GATING TESTS PASSED" (Phase 1,2) and story test passes
-If fails: Fix code and return to step 4 (max 3 attempts)
+echo "✅ Tests passed or skipped - proceeding to commit"
+```
 
 
 

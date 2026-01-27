@@ -15,7 +15,8 @@ import { createWriteStream } from 'fs';
 import http from 'http';
 
 const POOL_SIZE = 4;
-const SESSION_TIMEOUT = 180000; // 180 seconds
+const OUTPUT_IDLE_TIMEOUT = 30000; // 30 seconds - stuck if no output for 30s
+const MAX_EXECUTION_TIME = 600000; // 10 minutes - absolute maximum
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
 const LOG_FILE = '/tmp/kiro-cli-live.log';
 const PROCESS_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -71,11 +72,13 @@ class KiroSession {
     this.maxStuckRetries = 3;  // Max recovery attempts before recreate
     this.lastUsed = Date.now();
     this.lastOutputTime = null;
+    this.executionStartTime = null;
     this.currentPrompt = null;
     this.outputBuffer = '';
     this.currentResolve = null;
     this.currentReject = null;
-    this.timeoutHandle = null;
+    this.idleTimeoutHandle = null;
+    this.maxTimeoutHandle = null;
     this.currentRequestId = null;
     
     this.start();
@@ -100,6 +103,9 @@ class KiroSession {
       this.outputBuffer += chunk;
       this.lastOutputTime = Date.now();
       this.log(chunk);
+      
+      // Reset idle timeout on every output
+      this.resetIdleTimeout();
     });
     
     this.process.stderr.on('data', (data) => {
@@ -139,20 +145,40 @@ class KiroSession {
     this.currentRequestId = requestId;
     this.outputBuffer = '';
     this.lastOutputTime = Date.now();
+    this.executionStartTime = Date.now();
     
     return new Promise((resolve, reject) => {
       this.currentResolve = resolve;
       this.currentReject = reject;
       
-      // Set timeout for stuck detection
-      this.timeoutHandle = setTimeout(() => {
+      // Set idle timeout (30s no output)
+      this.resetIdleTimeout();
+      
+      // Set maximum execution time (10 minutes absolute)
+      this.maxTimeoutHandle = setTimeout(() => {
+        this.log(`❌ Session ${this.id} exceeded maximum execution time (10 minutes)`);
         this.handleStuck();
-      }, SESSION_TIMEOUT);
+      }, MAX_EXECUTION_TIME);
       
       // Send prompt
       this.log(`\n=== COMMAND ===\n${prompt}\n=== END ===\n`);
       this.process.stdin.write(prompt + '\n');
     });
+  }
+  
+  resetIdleTimeout() {
+    // Clear existing idle timeout
+    if (this.idleTimeoutHandle) {
+      clearTimeout(this.idleTimeoutHandle);
+    }
+    
+    // Set new idle timeout (30s no output = stuck)
+    this.idleTimeoutHandle = setTimeout(() => {
+      if (this.busy) {
+        this.log(`⚠️  Session ${this.id} idle for 30s (no output)`);
+        this.handleStuck();
+      }
+    }, OUTPUT_IDLE_TIMEOUT);
   }
   
   complete() {
@@ -270,9 +296,14 @@ class KiroSession {
   }
   
   cleanup() {
-    if (this.timeoutHandle) {
-      clearTimeout(this.timeoutHandle);
-      this.timeoutHandle = null;
+    if (this.idleTimeoutHandle) {
+      clearTimeout(this.idleTimeoutHandle);
+      this.idleTimeoutHandle = null;
+    }
+    
+    if (this.maxTimeoutHandle) {
+      clearTimeout(this.maxTimeoutHandle);
+      this.maxTimeoutHandle = null;
     }
     
     this.busy = false;
@@ -327,7 +358,7 @@ class KiroSessionPool {
           this.queue.splice(index, 1);
         }
         reject(new Error('Queue timeout'));
-      }, SESSION_TIMEOUT);
+      }, MAX_EXECUTION_TIME); // Use max execution time for queue
       
       this.queue.push({
         prompt,
