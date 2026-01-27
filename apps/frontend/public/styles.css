@@ -2483,3 +2483,90 @@ dialog[data-size='content'] .modal-shell {
 .filter-form .checkbox-list input[type="checkbox"] {
   cursor: pointer;
 }
+
+/* Story list modal styles */
+.story-list-container {
+  width: 100%;
+}
+
+.story-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.story-list-table thead {
+  background: #f1f5f9;
+}
+
+.story-list-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.story-list-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.story-list-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.story-list-row:hover {
+  background-color: #f8fafc;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-badge.status-done {
+  background-color: #10b981;
+  color: white;
+}
+
+.status-badge.status-in-progress {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.status-badge.status-draft {
+  background-color: #6b7280;
+  color: white;
+}
+
+.status-badge.status-ready {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.status-badge.status-blocked {
+  background-color: #ef4444;
+  color: white;
+}
+
+.status-badge.status-approved {
+  background-color: #14b8a6;
+  color: white;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

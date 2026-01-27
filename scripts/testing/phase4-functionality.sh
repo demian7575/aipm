@@ -48,6 +48,87 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Display User Stories with Filters and Sorting
+# ID: 1769490408847
+# =============================================================================
+test_story_list_with_status_badges() {
+    log_test "Display story list with status badges"
+    
+    # Test 1: Verify story list button exists
+    if ! grep -q "story-list-btn" apps/frontend/public/index.html; then
+        fail_test "Story list button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify openStoryListModal function exists
+    if ! grep -q "function openStoryListModal" apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    # Test 3: Verify status badge CSS classes exist
+    if ! grep -q "status-badge" apps/frontend/public/styles.css; then
+        fail_test "Status badge styles not found"
+        return 1
+    fi
+    
+    # Test 4: Verify color-coded status badges (Done=green, In Progress=blue, Draft=gray)
+    if ! grep -q "status-done" apps/frontend/public/styles.css; then
+        fail_test "Done status badge style not found"
+        return 1
+    fi
+    
+    if ! grep -q "status-in-progress" apps/frontend/public/styles.css; then
+        fail_test "In Progress status badge style not found"
+        return 1
+    fi
+    
+    if ! grep -q "status-draft" apps/frontend/public/styles.css; then
+        fail_test "Draft status badge style not found"
+        return 1
+    fi
+    
+    pass_test "Display story list with status badges"
+    return 0
+}
+
+test_pagination_controls() {
+    log_test "Pagination controls for large story lists"
+    
+    # Test 1: Verify pagination controls exist in modal
+    if ! grep -q "pagination-controls" apps/frontend/public/app.js; then
+        fail_test "Pagination controls not found"
+        return 1
+    fi
+    
+    # Test 2: Verify ITEMS_PER_PAGE is set to 20
+    if ! grep -q "ITEMS_PER_PAGE = 20" apps/frontend/public/app.js; then
+        fail_test "ITEMS_PER_PAGE not set to 20"
+        return 1
+    fi
+    
+    # Test 3: Verify Previous and Next buttons exist
+    if ! grep -q "prev-page" apps/frontend/public/app.js; then
+        fail_test "Previous page button not found"
+        return 1
+    fi
+    
+    if ! grep -q "next-page" apps/frontend/public/app.js; then
+        fail_test "Next page button not found"
+        return 1
+    fi
+    
+    # Test 4: Verify pagination CSS exists
+    if ! grep -q "pagination-controls" apps/frontend/public/styles.css; then
+        fail_test "Pagination controls CSS not found"
+        return 1
+    fi
+    
+    pass_test "Pagination controls for large story lists"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +195,19 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+# Story 1769490408847: Display User Stories with Filters and Sorting
+if test_story_list_with_status_badges; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_pagination_controls; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
