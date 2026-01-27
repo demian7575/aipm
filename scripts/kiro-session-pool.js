@@ -362,6 +362,22 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   
+  // Health endpoint
+  if (url.pathname === '/health' && req.method === 'GET') {
+    const status = pool.getStatus();
+    const isHealthy = status.available > 0 || status.busy < POOL_SIZE;
+    res.writeHead(isHealthy ? 200 : 503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      poolSize: POOL_SIZE,
+      available: status.available,
+      busy: status.busy,
+      stuck: status.stuck,
+      uptime: Math.floor(process.uptime())
+    }));
+    return;
+  }
+  
   // Status endpoint
   if (url.pathname === '/status' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });

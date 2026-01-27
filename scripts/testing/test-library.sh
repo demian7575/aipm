@@ -59,6 +59,27 @@ test_semantic_api_health() {
     test_endpoint "Semantic API Health" "$semantic_base/health" "healthy"
 }
 
+test_session_pool_health() {
+    local session_pool_url="${1:-http://localhost:8082}"
+    # Extract host from SEMANTIC_API_BASE if provided
+    if [[ "$SEMANTIC_API_BASE" =~ ^http://([^:]+) ]]; then
+        local host="${BASH_REMATCH[1]}"
+        session_pool_url="http://$host:8082"
+    fi
+    
+    log_test "Session Pool Health"
+    local response=$(curl -s "$session_pool_url/health" 2>&1)
+    
+    if echo "$response" | grep -q '"status":"healthy"'; then
+        local available=$(echo "$response" | jq -r '.available // 0')
+        pass_test "Session Pool Health (Available: $available)"
+    else
+        fail_test "Session Pool Health (Unavailable or unhealthy)"
+        echo "   ❌ Response: $response"
+        echo "   ⚠️  Kiro CLI sessions may not be available for code generation"
+    fi
+}
+
 test_story_draft_generation() {
     local kiro_base="${1:-$SEMANTIC_API_BASE}"
     log_test "Story Draft Generation"

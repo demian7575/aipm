@@ -1,0 +1,24 @@
+[Unit]
+Description=Semantic API Server (Kiro CLI Integration)
+After=network.target kiro-session-pool.service
+Requires=kiro-session-pool.service
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+ExecStart=/usr/bin/node /home/ec2-user/aipm/scripts/semantic-api-server-v2.js
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/semantic-api-server.log
+StandardError=append:/var/log/semantic-api-server-error.log
+
+# Environment
+Environment="NODE_ENV=production"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+
+# Resource limits
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target
