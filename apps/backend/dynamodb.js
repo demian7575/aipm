@@ -145,10 +145,11 @@ export class DynamoDBDataLayer {
         TableName: getStoriesTable(),
         Key: { id: parseInt(id) }
       }));
+      console.log('getStoryById raw result:', JSON.stringify(result.Item));
       if (!result.Item) return null;
       
       const item = result.Item;
-      return {
+      const mapped = {
         id: item.id,
         parentId: item.parentId,
         title: item.title || '',
@@ -166,6 +167,8 @@ export class DynamoDBDataLayer {
         mrId: item.mrId || 1,
         prs: item.prs || '[]'
       };
+      console.log('getStoryById mapped result:', JSON.stringify(mapped));
+      return mapped;
     } catch (error) {
       console.error('Error getting story by id:', error);
       return null;
