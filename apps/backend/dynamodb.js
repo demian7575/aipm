@@ -145,7 +145,27 @@ export class DynamoDBDataLayer {
         TableName: getStoriesTable(),
         Key: { id: parseInt(id) }
       }));
-      return result.Item || null;
+      if (!result.Item) return null;
+      
+      const item = result.Item;
+      return {
+        id: item.id,
+        parentId: item.parentId,
+        title: item.title || '',
+        description: item.description || '',
+        asA: item.asA || '',
+        iWant: item.iWant || '',
+        soThat: item.soThat || '',
+        components: item.components || '[]',
+        storyPoint: item.storyPoint || 0,
+        assigneeEmail: item.assigneeEmail || '',
+        status: item.status == null ? 'Draft' : item.status,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        investAnalysis: item.investAnalysis,
+        mrId: item.mrId || 1,
+        prs: item.prs || '[]'
+      };
     } catch (error) {
       console.error('Error getting story by id:', error);
       return null;
