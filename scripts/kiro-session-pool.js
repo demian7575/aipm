@@ -328,8 +328,15 @@ class KiroSessionPool {
   }
   
   getStatus() {
+    const available = this.sessions.filter(s => !s.busy && !s.stuck).length;
+    const busy = this.sessions.filter(s => s.busy).length;
+    const stuck = this.sessions.filter(s => s.stuck).length;
+    
     return {
       poolSize: this.sessions.length,
+      available,
+      busy,
+      stuck,
       queueLength: this.queue.length,
       sessions: this.sessions.map(s => ({
         id: s.id,
