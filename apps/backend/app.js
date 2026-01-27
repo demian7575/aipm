@@ -7428,8 +7428,8 @@ export async function createApp() {
         if (!title) {
           throw Object.assign(new Error('Title is required'), { statusCode: 400 });
         }
-        const description = String(payload.description ?? '').trim();
-        const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
+        const description = payload.description !== undefined ? String(payload.description).trim() : undefined;
+        const assigneeEmail = payload.assigneeEmail !== undefined ? String(payload.assigneeEmail).trim() : undefined;
         const asA = payload.asA != null ? String(payload.asA).trim() : undefined;
         const iWant = payload.iWant != null ? String(payload.iWant).trim() : undefined;
         const soThat = payload.soThat != null ? String(payload.soThat).trim() : undefined;
@@ -7459,15 +7459,18 @@ export async function createApp() {
         const nextAsA = asA ?? existing.as_a ?? '';
         const nextIWant = iWant ?? existing.i_want ?? '';
         const nextSoThat = soThat ?? existing.so_that ?? '';
-        const descriptionChanged = description !== (existing.description ?? '');
-        const assigneeChanged = assigneeEmail !== (existing.assignee_email ?? '');
-        const storyPointChanged = (storyPoint ?? null) !== (existing.story_point ?? null);
-        const asAChanged = nextAsA !== (existing.as_a ?? '');
-        const iWantChanged = nextIWant !== (existing.i_want ?? '');
-        const soThatChanged = nextSoThat !== (existing.so_that ?? '');
+        const nextDescription = description ?? existing.description ?? '';
+        const nextAssigneeEmail = assigneeEmail ?? existing.assignee_email ?? '';
+        
+        const descriptionChanged = description !== undefined && description !== (existing.description ?? '');
+        const assigneeChanged = assigneeEmail !== undefined && assigneeEmail !== (existing.assignee_email ?? '');
+        const storyPointChanged = payload.storyPoint !== undefined && (storyPoint ?? null) !== (existing.story_point ?? null);
+        const asAChanged = asA !== undefined && nextAsA !== (existing.as_a ?? '');
+        const iWantChanged = iWant !== undefined && nextIWant !== (existing.i_want ?? '');
+        const soThatChanged = soThat !== undefined && nextSoThat !== (existing.so_that ?? '');
         const titleChanged = title !== existing.title;
         const componentsChanged =
-          JSON.stringify(components) !== JSON.stringify(normalizedExistingComponents);
+          requestedComponents !== undefined && JSON.stringify(components) !== JSON.stringify(normalizedExistingComponents);
         
         // Only consider content changed if fields other than status are modified
         const contentChanged =
@@ -7567,10 +7570,10 @@ export async function createApp() {
         const sqliteStartTime = Date.now();
         update.run(
           title,
-          description,
+          nextDescription,
           serializeComponents(components),
           storyPoint,
-          assigneeEmail,
+          nextAssigneeEmail,
           nextAsA,
           nextIWant,
           nextSoThat,
@@ -7579,7 +7582,6 @@ export async function createApp() {
           JSON.stringify(warnings),
           JSON.stringify({
             source: analysis.source,
-            summary: analysis.summary,
             summary: analysis.summary,
             model: analysis.ai?.model || null,
           }),
