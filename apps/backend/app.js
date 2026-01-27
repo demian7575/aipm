@@ -6686,6 +6686,27 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/stories/list' && method === 'GET') {
+      const page = parseInt(url.searchParams.get('page') || '1', 10);
+      const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+      const offset = (page - 1) * limit;
+      
+      const allStories = await getAllStories(db);
+      const total = allStories.length;
+      const paginatedStories = allStories.slice(offset, offset + limit);
+      
+      sendJson(res, 200, {
+        stories: paginatedStories,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+      return;
+    }
+
     // SSE endpoint for INVEST analysis with real-time progress
     const investAnalysisStreamMatch = pathname.match(/^\/api\/stories\/([^/]+)\/invest-analysis-stream$/);
     if (investAnalysisStreamMatch && method === 'GET') {

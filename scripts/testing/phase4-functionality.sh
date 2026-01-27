@@ -98,6 +98,51 @@ test_enable_connection_to_parent_user_story() {
 #     # Test 1: [Description]
 #     # Add your test logic here
 #     
+
+# =============================================================================
+# Story: Display User Stories in Sortable List View with Status
+# ID: 1769474365687
+# Merged: 2026-01-27
+# =============================================================================
+test_display_user_stories_in_sortable_list_view_with_status() {
+    log_test "Display User Stories in Sortable List View with Status"
+    
+    # Test 1: Verify story list HTML page exists
+    if [ ! -f "apps/frontend/public/story-list.html" ]; then
+        fail_test "story-list.html not found"
+        return 1
+    fi
+    
+    # Test 2: Verify API endpoint exists
+    if ! grep -q '/api/stories/list' apps/backend/app.js; then
+        fail_test "API endpoint /api/stories/list not found"
+        return 1
+    fi
+    
+    # Test 3: Verify pagination support
+    if ! grep -q 'pagination' apps/backend/app.js; then
+        fail_test "Pagination logic not implemented"
+        return 1
+    fi
+    
+    # Test 4: Verify table displays title, description, status
+    if ! grep -q '<th>Title</th>' apps/frontend/public/story-list.html; then
+        fail_test "Title column not found in table"
+        return 1
+    fi
+    if ! grep -q '<th>Description</th>' apps/frontend/public/story-list.html; then
+        fail_test "Description column not found in table"
+        return 1
+    fi
+    if ! grep -q '<th>Status</th>' apps/frontend/public/story-list.html; then
+        fail_test "Status column not found in table"
+        return 1
+    fi
+    
+    pass_test "Display User Stories in Sortable List View with Status"
+    return 0
+}
+
 #     pass_test "[Story Title]"
 #     return 0
 # }
@@ -114,6 +159,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_user_stories_in_sortable_list_view_with_status; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
