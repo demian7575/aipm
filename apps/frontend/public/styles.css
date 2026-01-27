@@ -2483,3 +2483,105 @@ dialog[data-size='content'] .modal-shell {
 .filter-form .checkbox-list input[type="checkbox"] {
   cursor: pointer;
 }
+
+
+/* Story list modal styles */
+.story-list-container {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.story-list-section {
+  margin-bottom: 1.5rem;
+}
+
+.story-list-status-header {
+  margin: 0 0 0.75rem 0;
+  padding: 0.5rem;
+  background: #f1f5f9;
+  border-left: 4px solid #3b82f6;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.story-list-item {
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.story-list-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.story-list-title {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.story-list-description {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.story-list-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.story-list-badge.status-draft {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.story-list-badge.status-ready {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.story-list-badge.status-in-progress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.story-list-badge.status-blocked {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.story-list-badge.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.story-list-badge.status-done {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.story-list-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1rem;
+}
+
+.story-list-pagination span {
+  font-size: 0.9rem;
+  color: #64748b;
+}

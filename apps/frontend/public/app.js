@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7555,6 +7562,141 @@ function openFilterModal() {
           showToast('Filters applied', 'success');
           return true;
         }
+      }
+    ]
+  });
+}
+
+/**
+ * Opens story list modal showing all stories grouped by status
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  // Get all stories recursively
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  // Group by status
+  const statusOrder = ['Draft', 'Ready', 'In Progress', 'Blocked', 'Approved', 'Done'];
+  const grouped = {};
+  statusOrder.forEach(status => {
+    grouped[status] = allStories.filter(s => s.status === status);
+  });
+  
+  // Pagination state
+  let currentPage = 1;
+  const storiesPerPage = 20;
+  
+  function renderList() {
+    container.innerHTML = '';
+    
+    statusOrder.forEach(status => {
+      const stories = grouped[status];
+      if (stories.length === 0) return;
+      
+      const section = document.createElement('div');
+      section.className = 'story-list-section';
+      
+      const header = document.createElement('h3');
+      header.textContent = `${status} (${stories.length})`;
+      header.className = 'story-list-status-header';
+      section.appendChild(header);
+      
+      const startIdx = (currentPage - 1) * storiesPerPage;
+      const endIdx = startIdx + storiesPerPage;
+      const pageStories = stories.slice(startIdx, endIdx);
+      
+      pageStories.forEach(story => {
+        const item = document.createElement('div');
+        item.className = 'story-list-item';
+        
+        const title = document.createElement('div');
+        title.className = 'story-list-title';
+        title.textContent = story.title;
+        item.appendChild(title);
+        
+        const desc = document.createElement('div');
+        desc.className = 'story-list-description';
+        const truncated = story.description.length > 100 
+          ? story.description.substring(0, 100) + '...' 
+          : story.description;
+        desc.textContent = truncated;
+        item.appendChild(desc);
+        
+        const badge = document.createElement('span');
+        badge.className = `story-list-badge status-${status.toLowerCase().replace(/\s+/g, '-')}`;
+        badge.textContent = story.status;
+        item.appendChild(badge);
+        
+        item.addEventListener('click', () => {
+          selectStory(story.id);
+          closeModal();
+        });
+        
+        section.appendChild(item);
+      });
+      
+      container.appendChild(section);
+    });
+    
+    // Pagination controls
+    const totalStories = allStories.length;
+    const totalPages = Math.ceil(totalStories / storiesPerPage);
+    
+    if (totalPages > 1) {
+      const pagination = document.createElement('div');
+      pagination.className = 'story-list-pagination';
+      
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = 'Previous';
+      prevBtn.className = 'secondary';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderList();
+        }
+      };
+      
+      const pageInfo = document.createElement('span');
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.className = 'secondary';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderList();
+        }
+      };
+      
+      pagination.appendChild(prevBtn);
+      pagination.appendChild(pageInfo);
+      pagination.appendChild(nextBtn);
+      container.appendChild(pagination);
+    }
+  }
+  
+  renderList();
+  
+  openModal({
+    title: 'User Stories by Status',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
       }
     ]
   });
