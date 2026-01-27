@@ -181,21 +181,66 @@ sudo sed -i '/^\[Service\]/a Environment=PR_NUMBER=$PR_NUMBER' /etc/systemd/syst
 sudo systemctl daemon-reload
 EOF
     
-    cat > /tmp/restart_services.sh << EOF
+    cat > /tmp/restart_services.sh << 'EOF'
 cd aipm
 
-echo 'Stopping all services...'
+# Check for force restart flag
+FORCE_RESTART="${FORCE_RESTART_SESSION_POOL:-false}"
+
+# Check which files changed
+echo 'Checking for Session Pool changes...'
+CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "all")
+
+# Session Pool related files
+SESSION_POOL_FILES=(
+  "scripts/kiro-session-pool.js"
+  "scripts/semantic-api-server-v2.js"
+  "scripts/queue-cleanup.js"
+  "config/kiro-session-pool.service"
+  "config/semantic-api-server.service"
+  "config/queue-cleanup.service"
+  "scripts/systemd/kiro-session-pool.service"
+  "scripts/systemd/aipm-semantic-api.service"
+)
+
+# Check if Session Pool needs restart
+NEEDS_SESSION_POOL_RESTART=false
+
+if [ "$FORCE_RESTART" = "true" ]; then
+  echo "🔄 Force restart flag enabled"
+  NEEDS_SESSION_POOL_RESTART=true
+elif [ "$CHANGED_FILES" = "all" ]; then
+  echo "⚠️  Cannot determine changes - will restart all services"
+  NEEDS_SESSION_POOL_RESTART=true
+else
+  for file in "${SESSION_POOL_FILES[@]}"; do
+    if echo "$CHANGED_FILES" | grep -q "^$file"; then
+      echo "📝 Session Pool change detected: $file"
+      NEEDS_SESSION_POOL_RESTART=true
+      break
+    fi
+  done
+fi
+
+echo 'Stopping backend services...'
 sudo systemctl stop $SERVICE_NAME || true
-sudo systemctl stop kiro-session-pool || true
-sudo systemctl stop aipm-kiro-cli || true
 sudo systemctl stop aipm-kiro-api || true
-sudo systemctl stop aipm-semantic-api || true
 
-echo 'Force killing all Node.js processes...'
-sudo pkill -9 -f 'node' || true
-sleep 3
+if [ "$NEEDS_SESSION_POOL_RESTART" = "true" ]; then
+  echo '🔄 Stopping Session Pool services (changes detected)...'
+  sudo systemctl stop kiro-session-pool || true
+  sudo systemctl stop aipm-kiro-cli || true
+  sudo systemctl stop aipm-semantic-api || true
+  sudo systemctl stop queue-cleanup || true
+else
+  echo '✅ Session Pool unchanged - keeping services running'
+fi
 
-echo 'Installing/updating Kiro services...'
+echo 'Force killing backend Node.js processes...'
+sudo pkill -9 -f 'node.*apps/backend' || true
+sleep 2
+
+echo 'Installing/updating service files...'
 sudo cp scripts/systemd/aipm-kiro-api.service /etc/systemd/system/
 sudo cp scripts/systemd/aipm-kiro-cli.service /etc/systemd/system/
 sudo cp scripts/systemd/kiro-session-pool.service /etc/systemd/system/
@@ -203,24 +248,41 @@ sudo cp scripts/systemd/aipm-semantic-api.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool aipm-semantic-api
 
-echo 'Starting all services...'
+echo 'Starting backend services...'
 sudo systemctl start $SERVICE_NAME
-sudo systemctl start kiro-session-pool
-sudo systemctl start aipm-kiro-cli
 sudo systemctl start aipm-kiro-api
-sudo systemctl start aipm-semantic-api
+
+if [ "$NEEDS_SESSION_POOL_RESTART" = "true" ]; then
+  echo '🔄 Restarting Session Pool services...'
+  sudo systemctl start kiro-session-pool
+  sudo systemctl start aipm-kiro-cli
+  sudo systemctl start aipm-semantic-api
+  sudo systemctl start queue-cleanup || true
+  
+  echo 'Waiting for Session Pool to be ready...'
+  sleep 5
+  
+  # Health check
+  if curl -s http://localhost:8082/health | grep -q "healthy"; then
+    echo '✅ Session Pool is healthy'
+  else
+    echo '⚠️  Session Pool health check failed'
+  fi
+else
+  echo '✅ Session Pool services kept running'
+  curl -s http://localhost:8082/health | jq '.' || echo 'Session Pool status check skipped'
+fi
 
 echo 'Waiting for services to start...'
-sleep 5
+sleep 3
 sudo systemctl status $SERVICE_NAME --no-pager || true
-sudo systemctl status aipm-semantic-api --no-pager || true
 echo 'Service restart completed'
 EOF
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/update_service.sh ec2-user@$HOST:/tmp/
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/update_service.sh
     
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/restart_services.sh ec2-user@$HOST:/tmp/
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/restart_services.sh
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "SERVICE_NAME=$SERVICE_NAME FORCE_RESTART_SESSION_POOL=${FORCE_RESTART_SESSION_POOL:-false} bash /tmp/restart_services.sh"
     
     echo "✅ Backend deployed successfully"
 fi

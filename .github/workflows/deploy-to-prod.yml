@@ -10,6 +10,11 @@ on:
         required: false
         type: boolean
         default: false
+      force_restart_session_pool:
+        description: 'Force restart Session Pool even if unchanged'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -75,6 +80,8 @@ jobs:
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
       - name: Deploy to Development EC2
+        env:
+          FORCE_RESTART_SESSION_POOL: ${{ inputs.force_restart_session_pool }}
         run: |
           echo "🚀 Deploying to Development EC2 for Pre-Production testing..."
           ./scripts/deploy-to-environment.sh dev
@@ -187,6 +194,8 @@ jobs:
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
       - name: Deploy backend to Production EC2
+        env:
+          FORCE_RESTART_SESSION_POOL: ${{ inputs.force_restart_session_pool }}
         run: |
           echo "🚀 Deploying backend to Production EC2..."
           ./scripts/deploy-to-environment.sh prod
