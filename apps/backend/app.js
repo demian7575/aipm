@@ -6681,8 +6681,32 @@ export async function createApp() {
 
     if (pathname === '/api/stories' && method === 'GET') {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
-      const stories = await loadStories(db, { includeAiInvest });
-      sendJson(res, 200, stories);
+      const statusFilter = url.searchParams.get('status');
+      const page = parseInt(url.searchParams.get('page') || '1', 10);
+      const pageSize = parseInt(url.searchParams.get('pageSize') || '20', 10);
+      
+      let stories = await loadStories(db, { includeAiInvest });
+      
+      // Apply status filter
+      if (statusFilter) {
+        stories = stories.filter(s => s.status === statusFilter);
+      }
+      
+      // Apply pagination
+      const totalCount = stories.length;
+      const totalPages = Math.ceil(totalCount / pageSize);
+      const startIndex = (page - 1) * pageSize;
+      const paginatedStories = stories.slice(startIndex, startIndex + pageSize);
+      
+      sendJson(res, 200, {
+        stories: paginatedStories,
+        pagination: {
+          page,
+          pageSize,
+          totalCount,
+          totalPages
+        }
+      });
       return;
     }
 

@@ -520,6 +520,94 @@ body.is-mindmap-panning {
   color: #475569;
 }
 
+.story-list-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 90vw;
+  max-width: 1200px;
+}
+
+.story-list-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f8fafc;
+  border-radius: 6px;
+}
+
+.story-list-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.story-list-controls select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5f5;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: #ffffff;
+}
+
+.story-list-table-wrapper {
+  overflow: auto;
+  max-height: 60vh;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.story-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.story-list-table thead {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 1;
+}
+
+.story-list-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.story-list-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.story-list-table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+.story-list-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem;
+}
+
+.story-list-pagination button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #cbd5f5;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.story-list-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .mindmap-edge {
   fill: none;
   stroke: #cbd5f5;

@@ -2693,7 +2693,9 @@ async function loadStories(preserveSelection = true) {
     const data = await response.json();
     console.log('API response data:', data);
     
-    const apiStories = normalizeStoryCollection(Array.isArray(data) ? data : []);
+    // Handle both old format (array) and new format (object with stories array)
+    const storiesArray = Array.isArray(data) ? data : (data.stories || []);
+    const apiStories = normalizeStoryCollection(storiesArray);
     console.log('Normalized stories:', apiStories);
     
     // Use API data or create root story if empty
@@ -4440,6 +4442,142 @@ function normalizeStoryComponentsForHeatmap(components) {
   }
 
   return unique;
+}
+
+/**
+ * Opens a modal displaying a filterable, paginated list of user stories
+ */
+async function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  // Filter controls
+  const controls = document.createElement('div');
+  controls.className = 'story-list-controls';
+  controls.innerHTML = `
+    <label>
+      Status:
+      <select id="story-list-status-filter">
+        <option value="">All</option>
+        <option value="Draft">Draft</option>
+        <option value="Ready">Ready</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Blocked">Blocked</option>
+        <option value="Approved">Approved</option>
+        <option value="Done">Done</option>
+      </select>
+    </label>
+  `;
+  container.appendChild(controls);
+  
+  // Table container
+  const tableWrapper = document.createElement('div');
+  tableWrapper.className = 'story-list-table-wrapper';
+  container.appendChild(tableWrapper);
+  
+  // Pagination controls
+  const pagination = document.createElement('div');
+  pagination.className = 'story-list-pagination';
+  container.appendChild(pagination);
+  
+  let currentPage = 1;
+  let currentStatus = '';
+  
+  const renderStoryList = async () => {
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        pageSize: '20'
+      });
+      if (currentStatus) {
+        params.append('status', currentStatus);
+      }
+      
+      const url = resolveApiUrl(`/api/stories?${params}`);
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      
+      const data = await response.json();
+      const stories = data.stories || [];
+      const paginationData = data.pagination || { page: 1, totalPages: 1, totalCount: 0 };
+      
+      // Render table
+      tableWrapper.innerHTML = '';
+      const table = document.createElement('table');
+      table.className = 'story-list-table';
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      
+      const tbody = table.querySelector('tbody');
+      stories.forEach(story => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(story.title)}</td>
+          <td title="${escapeHtml(story.description)}">${escapeHtml(story.description.substring(0, 100))}${story.description.length > 100 ? '...' : ''}</td>
+          <td>${escapeHtml(story.status)}</td>
+        `;
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', () => {
+          state.selectedStoryId = story.id;
+          closeModal();
+          renderAll();
+        });
+        tbody.appendChild(tr);
+      });
+      
+      tableWrapper.appendChild(table);
+      
+      // Render pagination
+      pagination.innerHTML = `
+        <button id="story-list-prev" ${currentPage <= 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${paginationData.page} of ${paginationData.totalPages} (${paginationData.totalCount} stories)</span>
+        <button id="story-list-next" ${currentPage >= paginationData.totalPages ? 'disabled' : ''}>Next</button>
+      `;
+      
+      document.getElementById('story-list-prev')?.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderStoryList();
+        }
+      });
+      
+      document.getElementById('story-list-next')?.addEventListener('click', () => {
+        if (currentPage < paginationData.totalPages) {
+          currentPage++;
+          renderStoryList();
+        }
+      });
+      
+    } catch (error) {
+      console.error('Failed to load story list:', error);
+      tableWrapper.innerHTML = '<p class="error">Failed to load stories</p>';
+    }
+  };
+  
+  // Status filter handler
+  controls.querySelector('#story-list-status-filter')?.addEventListener('change', (e) => {
+    currentStatus = e.target.value;
+    currentPage = 1;
+    renderStoryList();
+  });
+  
+  // Initial render
+  await renderStoryList();
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'large'
+  });
 }
 
 function detectStoryActivitiesForHeatmap(story) {
@@ -8101,6 +8239,11 @@ function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  const storyListBtn = document.getElementById('story-list-btn');
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {

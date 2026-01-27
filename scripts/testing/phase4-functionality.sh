@@ -86,6 +86,49 @@ test_enable_connection_to_parent_user_story() {
     pass_test "Enable connection to parent User Story"
     return 0
 }
+
+# =============================================================================
+# Story: Display User Stories with Filters and Sorting
+# ID: 1769479488168
+# Merged: 2026-01-27
+# =============================================================================
+test_display_user_stories_list() {
+    log_test "Display User Stories with Filters and Sorting"
+    
+    # Test 1: Verify backend supports pagination
+    if ! grep -q 'pageSize' apps/backend/app.js; then
+        fail_test "Backend pagination not implemented"
+        return 1
+    fi
+    
+    # Test 2: Verify backend supports status filtering
+    if ! grep -q 'statusFilter' apps/backend/app.js; then
+        fail_test "Backend status filtering not implemented"
+        return 1
+    fi
+    
+    # Test 3: Verify Story List button exists in frontend
+    if ! grep -q 'story-list-btn' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 4: Verify story list modal function exists
+    if ! grep -q 'openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "Story list modal function not implemented"
+        return 1
+    fi
+    
+    # Test 5: Verify CSS styles for story list exist
+    if ! grep -q 'story-list-modal' apps/frontend/public/styles.css; then
+        fail_test "Story list CSS styles not found"
+        return 1
+    fi
+    
+    pass_test "Display User Stories with Filters and Sorting"
+    return 0
+}
+
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -114,6 +157,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_user_stories_list; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
