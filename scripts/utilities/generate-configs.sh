@@ -8,7 +8,7 @@ ROOT_DIR="$SCRIPT_DIR/../.."
 echo "🔧 Generating config files from environments.yaml..."
 
 # Generate production configs
-source "$SCRIPT_DIR/load-env-config.sh" production
+source "$SCRIPT_DIR/load-env-config.sh" prod
 
 cat > "$ROOT_DIR/apps/frontend/public/config-prod.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
@@ -40,7 +40,7 @@ EOF
 echo "✅ Generated config-prod.js"
 
 # Generate development configs
-source "$SCRIPT_DIR/load-env-config.sh" development
+source "$SCRIPT_DIR/load-env-config.sh" dev
 
 cat > "$ROOT_DIR/apps/frontend/public/config-dev.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY

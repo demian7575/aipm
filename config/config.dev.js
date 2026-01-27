@@ -1,11 +1,11 @@
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 module.exports = {
   environment: 'development',
-  API_BASE_URL: 'http://:',
-  SEMANTIC_API_URL: 'http://:',
-  EC2_IP: '',
-  S3_BUCKET: '',
-  DYNAMODB_STORIES_TABLE: '',
-  DYNAMODB_TESTS_TABLE: '',
-  DYNAMODB_PRS_TABLE: ''
+  API_BASE_URL: 'http://44.222.168.46:4000',
+  SEMANTIC_API_URL: 'http://44.222.168.46:8083',
+  EC2_IP: '44.222.168.46',
+  S3_BUCKET: 'aipm-dev-frontend-hosting',
+  DYNAMODB_STORIES_TABLE: 'aipm-backend-dev-stories',
+  DYNAMODB_TESTS_TABLE: 'aipm-backend-dev-acceptance-tests',
+  DYNAMODB_PRS_TABLE: 'aipm-backend-dev-prs'
 };
