@@ -7,9 +7,6 @@ set +e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/test-library.sh"
 
-# CRITICAL: Skip gating tests during code generation to prevent infinite loop
-export SKIP_GATING_TESTS=true
-
 # Default to Development environment, but can be overridden for post-deployment tests
 API_BASE="${API_BASE:-http://44.222.168.46:4000}"
 SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.222.168.46:8083}"
@@ -30,7 +27,6 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "Testing full user journey via UI button clicks"
 echo "Backend: $API_BASE"
 echo "Database: Development DynamoDB (data isolation)"
-echo "SKIP_GATING_TESTS: $SKIP_GATING_TESTS"
 echo ""
 
 # Global variables for story tracking
