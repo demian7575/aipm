@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story List View - AIPM</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h1 { margin-bottom: 20px; color: #333; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f8f8f8; font-weight: 600; }
+    tr:nth-child(even) { background: #fafafa; }
+    tr:hover { background: #f0f0f0; cursor: pointer; }
+    .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .status-draft { background: #e3f2fd; color: #1976d2; }
+    .status-ready { background: #e8f5e9; color: #388e3c; }
+    .status-in-progress { background: #fff3e0; color: #f57c00; }
+    .status-done { background: #f3e5f5; color: #7b1fa2; }
+    .pagination { margin-top: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; }
+    .pagination button { padding: 8px 16px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; }
+    .pagination button:hover:not(:disabled) { background: #f0f0f0; }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pagination span { color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>User Stories</h1>
+    <table id="story-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="story-tbody"></tbody>
+    </table>
+    <div class="pagination">
+      <button id="prev-btn" disabled>Previous</button>
+      <span id="page-info">Page 1 of 1</span>
+      <button id="next-btn" disabled>Next</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const ITEMS_PER_PAGE = 20;
+    let currentPage = 1;
+    let allStories = [];
+
+    async function loadStories() {
+      try {
+        const response = await fetch(`${API_BASE}/api/stories`);
+        if (!response.ok) throw new Error('Failed to load stories');
+        const data = await response.json();
+        allStories = flattenStories(data);
+        renderPage();
+      } catch (error) {
+        console.error('Error loading stories:', error);
+        document.getElementById('story-tbody').innerHTML = '<tr><td colspan="3">Error loading stories</td></tr>';
+      }
+    }
+
+    function flattenStories(stories) {
+      const flat = [];
+      function traverse(items) {
+        for (const item of items) {
+          flat.push(item);
+          if (item.children && item.children.length > 0) {
+            traverse(item.children);
+          }
+        }
+      }
+      traverse(stories);
+      return flat;
+    }
+
+    function renderPage() {
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      const pageStories = allStories.slice(start, end);
+      const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+
+      const tbody = document.getElementById('story-tbody');
+      tbody.innerHTML = pageStories.map(story => `
+        <tr onclick="window.location.href='/?story=${story.id}'">
+          <td>${escapeHtml(story.title)}</td>
+          <td>${escapeHtml(story.description || '')}</td>
+          <td><span class="status status-${(story.status || 'draft').toLowerCase().replace(' ', '-')}">${story.status || 'Draft'}</span></td>
+        </tr>
+      `).join('');
+
+      document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages || 1}`;
+      document.getElementById('prev-btn').disabled = currentPage === 1;
+      document.getElementById('next-btn').disabled = currentPage >= totalPages;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage();
+      }
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+      const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPage();
+      }
+    });
+
+    loadStories();
+  </script>
+</body>
+</html>
