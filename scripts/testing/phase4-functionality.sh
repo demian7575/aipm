@@ -48,6 +48,44 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1769532372635
+# =============================================================================
+test_story_list_button() {
+    log_test "Story List Button"
+    
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story list button not found"
+        return 1
+    fi
+    
+    if ! grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    if ! grep -q "storyListBtn.addEventListener('click'" apps/frontend/public/app.js; then
+        fail_test "Event listener not attached"
+        return 1
+    fi
+    
+    pass_test "Story List Button"
+    return 0
+}
+
+test_story_list_modal_close() {
+    log_test "Story List Modal Close"
+    
+    if ! grep -A 10 'function openStoryListModal' apps/frontend/public/app.js | grep -q 'openModal({'; then
+        fail_test "Modal does not use openModal"
+        return 1
+    fi
+    
+    pass_test "Story List Modal Close"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +152,18 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_story_list_button; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_story_list_modal_close; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
