@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7555,6 +7562,130 @@ function openFilterModal() {
           showToast('Filters applied', 'success');
           return true;
         }
+      }
+    ]
+  });
+}
+
+/**
+ * Opens story list modal showing all stories with pagination
+ */
+function openStoryListModal() {
+  const ITEMS_PER_PAGE = 20;
+  let currentPage = 1;
+  
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+  container.style.height = '70vh';
+  
+  const tableWrapper = document.createElement('div');
+  tableWrapper.style.flex = '1';
+  tableWrapper.style.overflow = 'auto';
+  
+  const table = document.createElement('table');
+  table.className = 'story-list-table';
+  table.style.width = '100%';
+  table.style.borderCollapse = 'collapse';
+  
+  const paginationDiv = document.createElement('div');
+  paginationDiv.className = 'pagination-controls';
+  paginationDiv.style.display = 'flex';
+  paginationDiv.style.justifyContent = 'center';
+  paginationDiv.style.gap = '0.5rem';
+  paginationDiv.style.alignItems = 'center';
+  
+  container.appendChild(tableWrapper);
+  tableWrapper.appendChild(table);
+  container.appendChild(paginationDiv);
+  
+  function getAllStoriesFlat() {
+    const result = [];
+    function traverse(story) {
+      result.push(story);
+      if (story.children) {
+        story.children.forEach(traverse);
+      }
+    }
+    state.stories.forEach(traverse);
+    return result;
+  }
+  
+  function renderTable() {
+    const allStories = getAllStoriesFlat();
+    const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    const pageStories = allStories.slice(startIdx, endIdx);
+    
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #ddd;">Title</th>
+          <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #ddd;">Description</th>
+          <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #ddd;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${pageStories.map((story, idx) => `
+          <tr style="background-color: ${idx % 2 === 0 ? '#f9f9f9' : '#fff'}; cursor: pointer;" data-story-id="${story.id}">
+            <td style="padding: 0.5rem; border-bottom: 1px solid #eee;">${escapeHtml(story.title)}</td>
+            <td style="padding: 0.5rem; border-bottom: 1px solid #eee;">${escapeHtml(story.description || '')}</td>
+            <td style="padding: 0.5rem; border-bottom: 1px solid #eee;">${escapeHtml(story.status || 'Draft')}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    
+    // Add click handlers to rows
+    table.querySelectorAll('tbody tr').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = parseInt(row.dataset.storyId);
+        selectStory(storyId);
+        closeModal();
+      });
+    });
+    
+    // Render pagination
+    paginationDiv.innerHTML = `
+      <button ${currentPage === 1 ? 'disabled' : ''} id="prev-page">Previous</button>
+      <span>Page ${currentPage} of ${totalPages}</span>
+      <button ${currentPage === totalPages ? 'disabled' : ''} id="next-page">Next</button>
+    `;
+    
+    const prevBtn = paginationDiv.querySelector('#prev-page');
+    const nextBtn = paginationDiv.querySelector('#next-page');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+        }
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTable();
+        }
+      });
+    }
+  }
+  
+  renderTable();
+  
+  openModal({
+    title: 'User Stories',
+    body: container,
+    buttons: [
+      {
+        label: 'Close',
+        onClick: () => true
       }
     ]
   });
