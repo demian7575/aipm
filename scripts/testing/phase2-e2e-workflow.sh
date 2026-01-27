@@ -81,10 +81,10 @@ phase2_step1_story_draft_generation() {
     # Parse SSE response
     local draft_data=$(echo "$response" | parse_sse_response)
     
-    # Check for errors first
-    if json_check "$draft_data" '.error'; then
+    # Check for errors first (both .error field and status: 'error')
+    if json_check "$draft_data" '.error' || json_check "$draft_data" '.status' '"error"'; then
         fail_test "Story Draft Generation (Error in response)"
-        echo "   ❌ Error: $(echo "$draft_data" | jq -r '.error // "Unknown error"')"
+        echo "   ❌ Error: $(echo "$draft_data" | jq -r '.error // .message // "Unknown error"')"
         return
     fi
     
@@ -93,7 +93,8 @@ phase2_step1_story_draft_generation() {
         pass_test "Story Draft Generation (SSE)"
         echo "   ✅ Draft Title: $(echo "$draft_data" | jq -r '.title')"
     else
-        fail_test "Story Draft Generation (Invalid response)"
+        fail_test "Story Draft Generation (Invalid or incomplete response)"
+        echo "   ❌ Expected status 'complete' with title, got: $(echo "$draft_data" | jq -r '.status // "none"')"
         echo "   ❌ Response: $response"
     fi
     
@@ -237,10 +238,10 @@ phase2_step4_invest_analysis() {
     # Parse SSE response
     local analysis_data=$(echo "$response" | parse_sse_response)
     
-    # Check for errors first
-    if json_check "$analysis_data" '.error'; then
+    # Check for errors first (both .error field and status: 'error')
+    if json_check "$analysis_data" '.error' || json_check "$analysis_data" '.status' '"error"'; then
         fail_test "INVEST Analysis (Error in response)"
-        echo "   ❌ Error: $(echo "$analysis_data" | jq -r '.error // "Unknown error"')"
+        echo "   ❌ Error: $(echo "$analysis_data" | jq -r '.error // .message // "Unknown error"')"
         return
     fi
     
@@ -262,7 +263,8 @@ phase2_step4_invest_analysis() {
         
         pass_test "INVEST Analysis (SSE)"
     else
-        fail_test "INVEST Analysis (Invalid response)"
+        fail_test "INVEST Analysis (Invalid or incomplete response)"
+        echo "   ❌ Expected status 'complete' with score, got: $(echo "$analysis_data" | jq -r '.status // "none"')"
         echo "   ❌ Response: $response"
     fi
     
@@ -311,10 +313,10 @@ phase2_step5_acceptance_test_draft() {
     # Parse SSE response
     local draft_data=$(echo "$response" | parse_sse_response)
     
-    # Check for errors first
-    if json_check "$draft_data" '.error'; then
+    # Check for errors first (both .error field and status: 'error')
+    if json_check "$draft_data" '.error' || json_check "$draft_data" '.status' '"error"'; then
         fail_test "Acceptance Test Draft (Error in response)"
-        echo "   ❌ Error: $(echo "$draft_data" | jq -r '.error // "Unknown error"')"
+        echo "   ❌ Error: $(echo "$draft_data" | jq -r '.error // .message // "Unknown error"')"
         return
     fi
     
@@ -323,7 +325,8 @@ phase2_step5_acceptance_test_draft() {
         pass_test "Acceptance Test Draft Generation (SSE)"
         echo "   ✅ Test Title: $(echo "$draft_data" | jq -r '.title')"
     else
-        fail_test "Acceptance Test Draft (Invalid response)"
+        fail_test "Acceptance Test Draft (Invalid or incomplete response)"
+        echo "   ❌ Expected status 'complete' with title, got: $(echo "$draft_data" | jq -r '.status // "none"')"
         echo "   ❌ Response: $response"
     fi
     
@@ -433,19 +436,21 @@ phase2_step7_generate_code() {
     # Parse SSE response
     local code_data=$(echo "$response" | parse_sse_response)
     
-    # Check for errors first
-    if json_check "$code_data" '.error'; then
+    # Check for errors first (both .error field and status: 'error')
+    if json_check "$code_data" '.error' || json_check "$code_data" '.status' '"error"'; then
         fail_test "Generate Code (Error in response)"
-        echo "   ❌ Error: $(echo "$code_data" | jq -r '.error // "Unknown error"')"
+        echo "   ❌ Error: $(echo "$code_data" | jq -r '.error // .message // "Unknown error"')"
         echo "   ❌ Response: $response"
         return
     fi
     
+    # Check for successful completion
     if json_check "$code_data" '.status' '"complete"' || json_check "$code_data" '.status' '"success"'; then
         pass_test "Generate Code (Real)"
         echo "   ✅ Code generated and committed to PR #$PHASE2_PR_NUMBER"
     else
-        fail_test "Generate Code (Invalid response)"
+        fail_test "Generate Code (Invalid or incomplete response)"
+        echo "   ❌ Expected status 'complete' or 'success', got: $(echo "$code_data" | jq -r '.status // "none"')"
         echo "   ❌ Response: $response"
     fi
     

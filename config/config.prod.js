@@ -1,6 +1,6 @@
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 module.exports = {
-  environment: 'production',
+  environment: 'prod',
   API_BASE_URL: 'http://44.197.204.18:4000',
   SEMANTIC_API_URL: 'http://44.197.204.18:8083',
   EC2_IP: '44.197.204.18',

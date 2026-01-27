@@ -144,14 +144,14 @@ const server = http.createServer(async (req, res) => {
       // Store response object for SSE
       pendingRequests.set(requestId, { res });
       
-      // Timeout after 180 seconds
+      // Timeout after 300 seconds (5 minutes) to allow complex code generation
       setTimeout(() => {
         if (pendingRequests.has(requestId)) {
           res.write(`data: ${JSON.stringify({ status: 'error', message: 'Request timeout' })}\n\n`);
           res.end();
           pendingRequests.delete(requestId);
         }
-      }, 180000);
+      }, 300000);
       
       // Send to session pool
       fetch(`${SESSION_POOL_URL}/execute`, {
