@@ -86,6 +86,52 @@ test_enable_connection_to_parent_user_story() {
     pass_test "Enable connection to parent User Story"
     return 0
 }
+
+# =============================================================================
+# Story: Display User Stories with Filters and Sorting
+# ID: 1769501187649
+# Merged: 2026-01-27
+# =============================================================================
+test_display_user_stories_with_filters_and_sorting() {
+    log_test "Display User Stories with Filters and Sorting"
+    
+    # Test 1: Verify story list page exists
+    if [ ! -f "apps/frontend/public/story-list.html" ]; then
+        fail_test "Story list HTML file not found"
+        return 1
+    fi
+    
+    # Test 2: Verify table columns
+    if ! grep -q '<th>Title</th>' apps/frontend/public/story-list.html; then
+        fail_test "Title column not found"
+        return 1
+    fi
+    if ! grep -q '<th>Status</th>' apps/frontend/public/story-list.html; then
+        fail_test "Status column not found"
+        return 1
+    fi
+    
+    # Test 3: Verify pagination
+    if ! grep -q 'limit: 20' apps/frontend/public/story-list.html; then
+        fail_test "20 items per page not configured"
+        return 1
+    fi
+    
+    # Test 4: Verify backend filtering
+    if ! grep -q 'statusFilter' apps/backend/app.js; then
+        fail_test "Status filter not implemented"
+        return 1
+    fi
+    
+    # Test 5: Verify backend sorting
+    if ! grep -q 'sortBy' apps/backend/app.js; then
+        fail_test "Sorting not implemented"
+        return 1
+    fi
+    
+    pass_test "Display User Stories with Filters and Sorting"
+    return 0
+}
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -114,6 +160,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_display_user_stories_with_filters_and_sorting; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))

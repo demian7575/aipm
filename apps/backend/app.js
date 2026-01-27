@@ -6682,8 +6682,46 @@ export async function createApp() {
 
     if (pathname === '/api/stories' && method === 'GET') {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
-      const stories = await loadStories(db, { includeAiInvest });
-      sendJson(res, 200, stories);
+      const statusFilter = url.searchParams.get('status');
+      const sortBy = url.searchParams.get('sortBy');
+      const page = parseInt(url.searchParams.get('page')) || 1;
+      const limit = parseInt(url.searchParams.get('limit')) || 20;
+      
+      let stories = await loadStories(db, { includeAiInvest });
+      
+      // Apply status filter
+      if (statusFilter) {
+        stories = stories.filter(s => s.status === statusFilter);
+      }
+      
+      // Apply sorting
+      if (sortBy === 'priority') {
+        const priorityOrder = { High: 0, Medium: 1, Low: 2 };
+        stories.sort((a, b) => {
+          const aPriority = priorityOrder[a.priority] ?? 3;
+          const bPriority = priorityOrder[b.priority] ?? 3;
+          return aPriority - bPriority;
+        });
+      } else if (sortBy === 'status') {
+        stories.sort((a, b) => a.status.localeCompare(b.status));
+      } else if (sortBy === 'title') {
+        stories.sort((a, b) => a.title.localeCompare(b.title));
+      }
+      
+      // Pagination
+      const total = stories.length;
+      const offset = (page - 1) * limit;
+      const paginatedStories = stories.slice(offset, offset + limit);
+      
+      sendJson(res, 200, {
+        stories: paginatedStories,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
       return;
     }
 
