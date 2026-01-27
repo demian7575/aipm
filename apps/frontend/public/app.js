@@ -41,6 +41,13 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const showStoryListBtn = document.getElementById('show-story-list');
+const storyListPanel = document.getElementById('story-list-panel');
+const closeStoryListBtn = document.getElementById('close-story-list');
+const storyStatusFilter = document.getElementById('story-status-filter');
+const storyListTbody = document.getElementById('story-list-tbody');
+const storyListPagination = document.getElementById('story-list-pagination');
+
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -734,6 +741,24 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (showStoryListBtn) {
+  showStoryListBtn.addEventListener('click', () => {
+    showStoryList();
+  });
+}
+
+if (closeStoryListBtn) {
+  closeStoryListBtn.addEventListener('click', () => {
+    hideStoryList();
+  });
+}
+
+if (storyStatusFilter) {
+  storyStatusFilter.addEventListener('change', () => {
+    loadStoryList(1);
   });
 }
 
@@ -8555,3 +8580,107 @@ window.cleanupKiroQueue = async function() {
     throw error;
   }
 };
+
+
+/**
+ * Show story list panel
+ */
+function showStoryList() {
+  storyListPanel.style.display = 'block';
+  outlinePanel.style.display = 'none';
+  mindmapPanel.style.display = 'none';
+  detailsPanel.style.display = 'none';
+  loadStoryList(1);
+}
+
+/**
+ * Hide story list panel
+ */
+function hideStoryList() {
+  storyListPanel.style.display = 'none';
+  outlinePanel.style.display = 'block';
+  mindmapPanel.style.display = 'block';
+  detailsPanel.style.display = 'block';
+}
+
+/**
+ * Load and display story list
+ */
+async function loadStoryList(page = 1) {
+  try {
+    const status = storyStatusFilter.value;
+    const params = new URLSearchParams({ page: page.toString(), limit: '20' });
+    if (status) params.append('status', status);
+    
+    const apiUrl = resolveApiUrl(`/api/stories?${params}`);
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    
+    renderStoryList(data.stories);
+    renderPagination(data.pagination);
+  } catch (error) {
+    console.error('Failed to load story list:', error);
+    showToast('Failed to load story list', 'error');
+  }
+}
+
+/**
+ * Render story list table
+ */
+function renderStoryList(stories) {
+  storyListTbody.innerHTML = '';
+  
+  stories.forEach(story => {
+    const row = document.createElement('tr');
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => {
+      hideStoryList();
+      selectStory(story.id);
+    });
+    
+    const titleCell = document.createElement('td');
+    titleCell.textContent = story.title || '';
+    
+    const descCell = document.createElement('td');
+    descCell.textContent = story.description || '';
+    descCell.style.maxWidth = '400px';
+    descCell.style.overflow = 'hidden';
+    descCell.style.textOverflow = 'ellipsis';
+    descCell.style.whiteSpace = 'nowrap';
+    
+    const statusCell = document.createElement('td');
+    statusCell.textContent = story.status || 'Draft';
+    
+    row.appendChild(titleCell);
+    row.appendChild(descCell);
+    row.appendChild(statusCell);
+    storyListTbody.appendChild(row);
+  });
+}
+
+/**
+ * Render pagination controls
+ */
+function renderPagination(pagination) {
+  storyListPagination.innerHTML = '';
+  
+  const info = document.createElement('span');
+  info.textContent = `Page ${pagination.page} of ${pagination.totalPages} (${pagination.total} stories)`;
+  storyListPagination.appendChild(info);
+  
+  if (pagination.page > 1) {
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = 'Previous';
+    prevBtn.className = 'secondary';
+    prevBtn.addEventListener('click', () => loadStoryList(pagination.page - 1));
+    storyListPagination.appendChild(prevBtn);
+  }
+  
+  if (pagination.page < pagination.totalPages) {
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next';
+    nextBtn.className = 'secondary';
+    nextBtn.addEventListener('click', () => loadStoryList(pagination.page + 1));
+    storyListPagination.appendChild(nextBtn);
+  }
+}

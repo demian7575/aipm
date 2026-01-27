@@ -2483,3 +2483,47 @@ dialog[data-size='content'] .modal-shell {
 .filter-form .checkbox-list input[type="checkbox"] {
   cursor: pointer;
 }
+
+
+/* Story List Panel */
+.story-list-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.story-list-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.story-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.story-list-table th,
+.story-list-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.story-list-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+}
+
+.story-list-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.story-list-pagination {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
+}

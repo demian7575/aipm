@@ -26,6 +26,7 @@
         <button id="filter-btn" class="secondary">Filter</button>
       </div>
       <div class="panel-toggles" role="toolbar" aria-label="Panel visibility">
+        <button id="show-story-list" class="secondary">Story List</button>
         <label><input type="checkbox" id="toggle-outline" checked /> Outline</label>
         <label><input type="checkbox" id="toggle-mindmap" checked /> Mindmap</label>
         <label><input type="checkbox" id="toggle-details" checked /> Details</label>
@@ -33,6 +34,37 @@
     </header>
 
     <main class="workspace" id="workspace">
+      <section id="story-list-panel" class="panel story-list-panel" style="display: none;">
+        <div class="panel-header">
+          <h2>Story List</h2>
+          <div class="panel-actions">
+            <select id="story-status-filter" class="secondary">
+              <option value="">All Statuses</option>
+              <option value="Draft">Draft</option>
+              <option value="Ready">Ready</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Approved">Approved</option>
+              <option value="Done">Done</option>
+            </select>
+            <button id="close-story-list" class="secondary">Close</button>
+          </div>
+        </div>
+        <div id="story-list-content" class="story-list-content">
+          <table id="story-list-table" class="story-list-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="story-list-tbody"></tbody>
+          </table>
+          <div id="story-list-pagination" class="story-list-pagination"></div>
+        </div>
+      </section>
+      
       <section id="outline-panel" class="panel outline-panel">
         <div class="panel-header">
           <h2>Outline</h2>
