@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7558,6 +7565,78 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.maxHeight = '70vh';
+  container.style.overflow = 'auto';
+  
+  const allStories = state.stories.flatMap(s => getAllStoriesFlat(s));
+  
+  const table = document.createElement('table');
+  table.className = 'story-list-table';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Description</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  
+  const tbody = table.querySelector('tbody');
+  allStories.forEach(story => {
+    const row = document.createElement('tr');
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => {
+      handleStorySelection(story);
+      closeModal();
+    });
+    
+    const statusBadge = document.createElement('span');
+    statusBadge.className = `status-badge status-${(story.status || 'Draft').toLowerCase().replace(/\s+/g, '-')}`;
+    statusBadge.textContent = story.status || 'Draft';
+    
+    const titleCell = document.createElement('td');
+    titleCell.textContent = story.title || 'Untitled';
+    
+    const descCell = document.createElement('td');
+    const desc = story.description || '';
+    descCell.textContent = desc.length > 100 ? desc.substring(0, 100) + '...' : desc;
+    
+    const statusCell = document.createElement('td');
+    statusCell.appendChild(statusBadge);
+    
+    row.appendChild(titleCell);
+    row.appendChild(descCell);
+    row.appendChild(statusCell);
+    tbody.appendChild(row);
+  });
+  
+  container.appendChild(table);
+  
+  openModal({
+    title: 'All User Stories',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
+      }
+    ]
+  });
+}
+
+function getAllStoriesFlat(story) {
+  const stories = [story];
+  if (story.children) {
+    story.children.forEach(child => stories.push(...getAllStoriesFlat(child)));
+  }
+  return stories;
 }
 
 function openReferenceModal(storyId) {

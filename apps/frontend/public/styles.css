@@ -498,6 +498,67 @@ body.is-mindmap-panning {
   border: 1px solid #cbd5f5;
   border-radius: 6px;
   font-size: 0.95rem;
+}
+
+.story-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.story-list-table th,
+.story-list-table td {
+  border: 1px solid #e5e9f5;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.story-list-table thead th {
+  background: #f4f6ff;
+  font-weight: 600;
+}
+
+.story-list-table tbody tr:hover {
+  background: #f8f9ff;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.status-draft {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.status-badge.status-ready {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.status-in-progress {
+  background: #bfdbfe;
+  color: #1e3a8a;
+}
+
+.status-badge.status-blocked {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.status-badge.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.status-done {
+  background: #bbf7d0;
+  color: #14532d;
+}
   background: #ffffff;
   color: #1f2937;
 }
