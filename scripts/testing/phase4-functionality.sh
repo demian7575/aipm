@@ -48,6 +48,60 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1769530500613
+# =============================================================================
+test_story_list_button() {
+    log_test "Story List Button - Modal displays when clicked"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story list button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button has correct label
+    if ! grep -q 'Story List' apps/frontend/public/index.html; then
+        fail_test "Story list button label incorrect"
+        return 1
+    fi
+    
+    # Test 3: Verify openStoryListModal function exists
+    if ! grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    # Test 4: Verify event listener is attached
+    if ! grep -q "storyListBtn.addEventListener('click'" apps/frontend/public/app.js; then
+        fail_test "Event listener not attached to story list button"
+        return 1
+    fi
+    
+    # Test 5: Verify modal shows story titles
+    if ! grep -q 'story.title' apps/frontend/public/app.js | grep -q 'openStoryListModal' -A 20; then
+        fail_test "Modal does not display story titles"
+        return 1
+    fi
+    
+    pass_test "Story List Button"
+    return 0
+}
+
+test_story_list_modal_close() {
+    log_test "Story List Modal - Closes when clicking outside"
+    
+    # Test 1: Verify modal uses openModal function (which has backdrop close)
+    if ! grep -q 'openModal({' apps/frontend/public/app.js | grep -q 'openStoryListModal' -A 10; then
+        fail_test "Modal does not use standard openModal function"
+        return 1
+    fi
+    
+    pass_test "Story List Modal Close"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +168,18 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_story_list_button; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_story_list_modal_close; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
