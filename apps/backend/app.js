@@ -7428,11 +7428,31 @@ export async function createApp() {
         const existing = existingStmt.get(storyId);
         timings.push(`  Get existing story: ${Date.now() - patchStartTime}ms`);
         
+        // Debug: Log what we got from database
+        await writeFile('/tmp/aipm-patch-debug.log', 
+          `[${new Date().toISOString()}] PATCH /api/stories/${storyId}\n` +
+          `  existing: ${!!existing}\n` +
+          `  existing.title: ${existing?.title}\n` +
+          `  existing keys: ${existing ? Object.keys(existing).join(', ') : 'none'}\n` +
+          `  payload.title: ${payload.title}\n` +
+          `---\n`, 
+          { flag: 'a' }
+        ).catch(() => {});
+        
         if (!existing) {
           throw Object.assign(new Error('Story not found'), { statusCode: 404 });
         }
         
         const title = payload.title !== undefined ? String(payload.title).trim() : existing.title;
+        
+        // Debug: Log title resolution
+        await writeFile('/tmp/aipm-patch-debug.log', 
+          `  resolved title: ${title}\n` +
+          `  title check: ${!title ? 'FAIL' : 'PASS'}\n` +
+          `---\n`, 
+          { flag: 'a' }
+        ).catch(() => {});
+        
         if (!title) {
           throw Object.assign(new Error('Title is required'), { statusCode: 400 });
         }
