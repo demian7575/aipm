@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const listViewBtn = document.getElementById('list-view-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (listViewBtn) {
+  listViewBtn.addEventListener('click', () => {
+    openListViewModal();
   });
 }
 
@@ -7555,6 +7562,161 @@ function openFilterModal() {
           showToast('Filters applied', 'success');
           return true;
         }
+      }
+    ]
+  });
+}
+
+/**
+ * Open list view modal showing all stories with filtering and sorting
+ */
+function openListViewModal() {
+  const container = document.createElement('div');
+  container.className = 'list-view-container';
+  container.style.cssText = 'display:flex;flex-direction:column;gap:1rem;max-height:70vh;';
+  
+  // Get all stories flattened
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  // State for pagination and sorting
+  let currentPage = 1;
+  const itemsPerPage = 20;
+  let sortBy = 'id';
+  let sortOrder = 'asc';
+  let statusFilter = '';
+  
+  function renderList() {
+    // Apply status filter
+    let filtered = statusFilter ? allStories.filter(s => s.status === statusFilter) : allStories;
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal = a[sortBy];
+      let bVal = b[sortBy];
+      if (sortBy === 'title' || sortBy === 'status') {
+        aVal = (aVal || '').toLowerCase();
+        bVal = (bVal || '').toLowerCase();
+      }
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    // Pagination
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = startIdx + itemsPerPage;
+    const pageStories = filtered.slice(startIdx, endIdx);
+    
+    container.innerHTML = `
+      <div style="display:flex;gap:1rem;align-items:center;padding:0.5rem;background:#f5f5f5;border-radius:4px;">
+        <label style="display:flex;gap:0.5rem;align-items:center;">
+          Status:
+          <select id="status-filter" style="padding:0.25rem;">
+            <option value="">All</option>
+            ${STORY_STATUS_GUIDE.map(s => `<option value="${s.value}" ${statusFilter === s.value ? 'selected' : ''}>${s.value}</option>`).join('')}
+          </select>
+        </label>
+        <label style="display:flex;gap:0.5rem;align-items:center;">
+          Sort by:
+          <select id="sort-by" style="padding:0.25rem;">
+            <option value="id" ${sortBy === 'id' ? 'selected' : ''}>ID</option>
+            <option value="title" ${sortBy === 'title' ? 'selected' : ''}>Title</option>
+            <option value="status" ${sortBy === 'status' ? 'selected' : ''}>Status</option>
+            <option value="storyPoint" ${sortBy === 'storyPoint' ? 'selected' : ''}>Story Points</option>
+          </select>
+        </label>
+        <button id="sort-order-btn" style="padding:0.25rem 0.5rem;">${sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}</button>
+      </div>
+      <div style="overflow-y:auto;flex:1;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#e0e0e0;text-align:left;">
+              <th style="padding:0.5rem;border-bottom:2px solid #ccc;">Title</th>
+              <th style="padding:0.5rem;border-bottom:2px solid #ccc;">Description</th>
+              <th style="padding:0.5rem;border-bottom:2px solid #ccc;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pageStories.map(story => {
+              const desc = (story.description || '').substring(0, 100) + ((story.description || '').length > 100 ? '...' : '');
+              const statusClass = getStatusClass(story.status);
+              return `
+                <tr style="cursor:pointer;border-bottom:1px solid #eee;" data-story-id="${story.id}">
+                  <td style="padding:0.5rem;font-weight:bold;">${story.title || 'Untitled'}</td>
+                  <td style="padding:0.5rem;">${desc}</td>
+                  <td style="padding:0.5rem;"><span class="status-badge ${statusClass}">${story.status || 'Draft'}</span></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem;background:#f5f5f5;border-radius:4px;">
+        <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>← Previous</button>
+        <span>Page ${currentPage} of ${totalPages} (${filtered.length} stories)</span>
+        <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>
+      </div>
+    `;
+    
+    // Event listeners
+    container.querySelector('#status-filter')?.addEventListener('change', (e) => {
+      statusFilter = e.target.value;
+      currentPage = 1;
+      renderList();
+    });
+    
+    container.querySelector('#sort-by')?.addEventListener('change', (e) => {
+      sortBy = e.target.value;
+      renderList();
+    });
+    
+    container.querySelector('#sort-order-btn')?.addEventListener('click', () => {
+      sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      renderList();
+    });
+    
+    container.querySelector('#prev-page')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderList();
+      }
+    });
+    
+    container.querySelector('#next-page')?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderList();
+      }
+    });
+    
+    // Row click to view details
+    container.querySelectorAll('tr[data-story-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const storyId = Number(row.dataset.storyId);
+        selectStory(storyId);
+        closeModal();
+      });
+    });
+  }
+  
+  renderList();
+  
+  openModal({
+    title: 'User Stories List View',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
       }
     ]
   });
