@@ -2,10 +2,25 @@
 
 ## Overview
 
-The AIPM system uses two critical services for AI-powered code generation:
+The AIPM system uses three critical services for AI-powered code generation:
 
-1. **Kiro Session Pool** (Port 8082): Manages Kiro CLI sessions
-2. **Semantic API Server** (Port 8083): Handles AI requests and routes to session pool
+1. **Queue Cleanup Service**: Automatically cleans stuck DynamoDB tasks
+2. **Kiro Session Pool** (Port 8082): Manages Kiro CLI sessions
+3. **Semantic API Server** (Port 8083): Handles AI requests and routes to session pool
+
+## Automatic Management Features
+
+### Queue Cleanup Service
+- **Stuck Task Detection**: Deletes tasks stuck in 'processing' for > 10 minutes
+- **Failed Task Cleanup**: Removes failed tasks older than 24 hours
+- **Runs Every**: 5 minutes
+- **Logs**: `/var/log/queue-cleanup.log`
+
+### Session Pool
+- **Dead Session Recovery**: Automatically restarts crashed Kiro CLI processes
+- **Orphaned Process Detection**: Cleans up excess Kiro processes every 5 minutes
+- **Stuck Session Recovery**: Sends Ctrl+C and kills unresponsive sessions
+- **Max Processes**: POOL_SIZE + 2 (default: 6)
 
 ## Installation
 
@@ -28,15 +43,16 @@ sudo ./scripts/utilities/install-kiro-services.sh
 ```
 
 This will:
-- Install systemd service files
+- Install systemd service files (queue-cleanup, session-pool, semantic-api)
 - Enable auto-start on boot
-- Start both services
+- Start all services
 - Configure automatic restart on failure
 
 ### 3. Verify Services
 
 ```bash
 # Check service status
+sudo systemctl status queue-cleanup
 sudo systemctl status kiro-session-pool
 sudo systemctl status semantic-api-server
 
@@ -50,6 +66,11 @@ curl http://localhost:8083/health
 ### Start/Stop/Restart
 
 ```bash
+# Queue Cleanup
+sudo systemctl start queue-cleanup
+sudo systemctl stop queue-cleanup
+sudo systemctl restart queue-cleanup
+
 # Session Pool
 sudo systemctl start kiro-session-pool
 sudo systemctl stop kiro-session-pool
@@ -65,10 +86,12 @@ sudo systemctl restart semantic-api-server
 
 ```bash
 # Real-time logs
+sudo journalctl -u queue-cleanup -f
 sudo journalctl -u kiro-session-pool -f
 sudo journalctl -u semantic-api-server -f
 
 # Log files
+tail -f /var/log/queue-cleanup.log
 tail -f /var/log/kiro-session-pool.log
 tail -f /var/log/semantic-api-server.log
 ```
@@ -77,6 +100,7 @@ tail -f /var/log/semantic-api-server.log
 
 ```bash
 # Service status
+systemctl is-active queue-cleanup
 systemctl is-active kiro-session-pool
 systemctl is-active semantic-api-server
 

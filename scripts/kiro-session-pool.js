@@ -19,6 +19,7 @@ const SESSION_TIMEOUT = 180000; // 180 seconds
 const IDLE_DETECTION_TIME = 10000; // 10 seconds (fallback only)
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
 const LOG_FILE = '/tmp/kiro-cli-live.log';
+const PROCESS_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 // Cleanup existing kiro-cli processes before starting
 async function cleanupExistingKiroProcesses() {
@@ -36,6 +37,28 @@ async function cleanupExistingKiroProcesses() {
     // Ignore error if no processes found
     console.log('ℹ️  No existing kiro-cli processes to clean up');
   }
+}
+
+// Check for orphaned Kiro processes (more than POOL_SIZE + 2)
+async function checkOrphanedProcesses() {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+  
+  try {
+    const { stdout } = await execAsync('ps aux | grep "kiro-cli chat" | grep -v grep | wc -l');
+    const count = parseInt(stdout.trim());
+    const maxAllowed = POOL_SIZE + 2; // Allow some buffer
+    
+    if (count > maxAllowed) {
+      console.log(`⚠️  Detected ${count} kiro-cli processes (max: ${maxAllowed}), cleaning up...`);
+      await cleanupExistingKiroProcesses();
+      return true;
+    }
+  } catch (error) {
+    // Ignore errors
+  }
+  return false;
 }
 
 class KiroSession {
@@ -353,6 +376,15 @@ class KiroSessionPool {
 // Cleanup and initialize pool
 await cleanupExistingKiroProcesses();
 const pool = new KiroSessionPool(POOL_SIZE);
+
+// Periodic cleanup check (every 5 minutes)
+setInterval(async () => {
+  const cleaned = await checkOrphanedProcesses();
+  if (cleaned) {
+    console.log('⚠️  Orphaned processes detected and cleaned, restarting pool...');
+    // Pool will auto-restart sessions
+  }
+}, PROCESS_CLEANUP_INTERVAL);
 
 // HTTP Server
 const server = http.createServer(async (req, res) => {

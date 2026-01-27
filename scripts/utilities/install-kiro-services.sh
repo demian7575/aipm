@@ -29,19 +29,23 @@ fi
 echo "🛑 Stopping existing services..."
 systemctl stop kiro-session-pool.service 2>/dev/null || true
 systemctl stop semantic-api-server.service 2>/dev/null || true
+systemctl stop queue-cleanup.service 2>/dev/null || true
 
 # Copy service files
 echo "📋 Installing service files..."
 cp "$AIPM_DIR/config/kiro-session-pool.service" /etc/systemd/system/
 cp "$AIPM_DIR/config/semantic-api-server.service" /etc/systemd/system/
+cp "$AIPM_DIR/config/queue-cleanup.service" /etc/systemd/system/
 
 # Update WorkingDirectory in service files
 sed -i "s|/home/ec2-user/aipm|$AIPM_DIR|g" /etc/systemd/system/kiro-session-pool.service
 sed -i "s|/home/ec2-user/aipm|$AIPM_DIR|g" /etc/systemd/system/semantic-api-server.service
+sed -i "s|/home/ec2-user/aipm|$AIPM_DIR|g" /etc/systemd/system/queue-cleanup.service
 
 # Update User in service files
 sed -i "s|User=ec2-user|User=$ACTUAL_USER|g" /etc/systemd/system/kiro-session-pool.service
 sed -i "s|User=ec2-user|User=$ACTUAL_USER|g" /etc/systemd/system/semantic-api-server.service
+sed -i "s|User=ec2-user|User=$ACTUAL_USER|g" /etc/systemd/system/queue-cleanup.service
 
 # Create log directory
 mkdir -p /var/log
@@ -49,8 +53,10 @@ touch /var/log/kiro-session-pool.log
 touch /var/log/kiro-session-pool-error.log
 touch /var/log/semantic-api-server.log
 touch /var/log/semantic-api-server-error.log
+touch /var/log/queue-cleanup.log
 chown $ACTUAL_USER:$ACTUAL_USER /var/log/kiro-session-pool*.log
 chown $ACTUAL_USER:$ACTUAL_USER /var/log/semantic-api-server*.log
+chown $ACTUAL_USER:$ACTUAL_USER /var/log/queue-cleanup.log
 
 # Reload systemd
 echo "🔄 Reloading systemd..."
@@ -60,9 +66,12 @@ systemctl daemon-reload
 echo "✅ Enabling services..."
 systemctl enable kiro-session-pool.service
 systemctl enable semantic-api-server.service
+systemctl enable queue-cleanup.service
 
 # Start services
 echo "🚀 Starting services..."
+systemctl start queue-cleanup.service
+sleep 2
 systemctl start kiro-session-pool.service
 sleep 3
 systemctl start semantic-api-server.service
@@ -71,6 +80,8 @@ systemctl start semantic-api-server.service
 echo ""
 echo "📊 Service Status:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+systemctl status queue-cleanup.service --no-pager -l
+echo ""
 systemctl status kiro-session-pool.service --no-pager -l
 echo ""
 systemctl status semantic-api-server.service --no-pager -l
@@ -79,11 +90,15 @@ echo ""
 echo "✅ Installation complete!"
 echo ""
 echo "📝 Useful commands:"
+echo "  sudo systemctl status queue-cleanup"
 echo "  sudo systemctl status kiro-session-pool"
 echo "  sudo systemctl status semantic-api-server"
+echo "  sudo systemctl restart queue-cleanup"
 echo "  sudo systemctl restart kiro-session-pool"
 echo "  sudo systemctl restart semantic-api-server"
+echo "  sudo journalctl -u queue-cleanup -f"
 echo "  sudo journalctl -u kiro-session-pool -f"
 echo "  sudo journalctl -u semantic-api-server -f"
+echo "  tail -f /var/log/queue-cleanup.log"
 echo "  tail -f /var/log/kiro-session-pool.log"
 echo "  tail -f /var/log/semantic-api-server.log"
