@@ -16,7 +16,6 @@ import http from 'http';
 
 const POOL_SIZE = 4;
 const SESSION_TIMEOUT = 180000; // 180 seconds
-const IDLE_DETECTION_TIME = 10000; // 10 seconds (fallback only)
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
 const LOG_FILE = '/tmp/kiro-cli-live.log';
 const PROCESS_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -77,7 +76,6 @@ class KiroSession {
     this.currentResolve = null;
     this.currentReject = null;
     this.timeoutHandle = null;
-    this.idleCheckHandle = null;
     this.currentRequestId = null;
     
     this.start();
@@ -102,9 +100,6 @@ class KiroSession {
       this.outputBuffer += chunk;
       this.lastOutputTime = Date.now();
       this.log(chunk);
-      
-      // Start simple idle detection (fallback only)
-      this.checkIdleCompletion();
     });
     
     this.process.stderr.on('data', (data) => {
@@ -123,7 +118,7 @@ class KiroSession {
   
   log(message) {
     // Only log session ID prefix for commands, not for output chunks
-    if (message.includes('===') || message.includes('Starting') || message.includes('closed') || message.includes('stuck') || message.includes('Sent Ctrl+C') || message.includes('Fallback') || message.includes('completion signal')) {
+    if (message.includes('===') || message.includes('Starting') || message.includes('closed') || message.includes('stuck') || message.includes('Sent Ctrl+C') || message.includes('completion signal')) {
       const timestamp = new Date().toISOString();
       this.logStream.write(`[Session-${this.id}] [${timestamp}] ${message}`);
     } else {
@@ -158,18 +153,6 @@ class KiroSession {
       this.log(`\n=== COMMAND ===\n${prompt}\n=== END ===\n`);
       this.process.stdin.write(prompt + '\n');
     });
-  }
-  
-  checkIdleCompletion() {
-    if (this.idleCheckHandle) clearTimeout(this.idleCheckHandle);
-    
-    // Simple fallback: 10 seconds of no output = complete
-    this.idleCheckHandle = setTimeout(() => {
-      if (this.busy) {
-        this.log(`⚠️ Fallback idle timeout (10s) - session ${this.id}`);
-        this.complete();
-      }
-    }, IDLE_DETECTION_TIME);
   }
   
   complete() {
@@ -290,11 +273,6 @@ class KiroSession {
     if (this.timeoutHandle) {
       clearTimeout(this.timeoutHandle);
       this.timeoutHandle = null;
-    }
-    
-    if (this.idleCheckHandle) {
-      clearTimeout(this.idleCheckHandle);
-      this.idleCheckHandle = null;
     }
     
     this.busy = false;
