@@ -7443,19 +7443,7 @@ export async function createApp() {
           throw Object.assign(new Error('Story not found'), { statusCode: 404 });
         }
         
-        const title = payload.title !== undefined ? String(payload.title).trim() : existing.title;
-        
-        // Debug: Log title resolution
-        await writeFile('/tmp/aipm-patch-debug.log', 
-          `  resolved title: ${title}\n` +
-          `  title check: ${!title ? 'FAIL' : 'PASS'}\n` +
-          `---\n`, 
-          { flag: 'a' }
-        ).catch(() => {});
-        
-        if (!title) {
-          throw Object.assign(new Error('Title is required'), { statusCode: 400 });
-        }
+        const title = payload.title !== undefined ? String(payload.title).trim() : undefined;
         const description = payload.description !== undefined ? String(payload.description).trim() : undefined;
         const assigneeEmail = payload.assigneeEmail !== undefined ? String(payload.assigneeEmail).trim() : undefined;
         const asA = payload.asA != null ? String(payload.asA).trim() : undefined;
@@ -7617,7 +7605,7 @@ export async function createApp() {
         );
         const sqliteStartTime = Date.now();
         update.run(
-          title,
+          title ?? existing.title,
           nextDescription,
           serializeComponents(components),
           storyPoint,
