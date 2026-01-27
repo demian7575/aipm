@@ -6681,7 +6681,32 @@ export async function createApp() {
 
     if (pathname === '/api/stories' && method === 'GET') {
       const includeAiInvest = toBoolean(url.searchParams.get('includeAiInvest'));
-      const stories = await loadStories(db, { includeAiInvest });
+      const status = url.searchParams.get('status');
+      const sortBy = url.searchParams.get('sortBy') || 'createdAt';
+      const sortOrder = url.searchParams.get('sortOrder') || 'desc';
+      
+      let stories = await loadStories(db, { includeAiInvest });
+      
+      // Filter by status
+      if (status) {
+        stories = stories.filter(s => s.status === status);
+      }
+      
+      // Sort stories
+      stories.sort((a, b) => {
+        let aVal = a[sortBy];
+        let bVal = b[sortBy];
+        
+        if (sortBy === 'storyPoint') {
+          aVal = aVal || 0;
+          bVal = bVal || 0;
+        }
+        
+        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+      
       sendJson(res, 200, stories);
       return;
     }

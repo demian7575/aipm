@@ -37,11 +37,17 @@
         <div class="panel-header">
           <h2>Outline</h2>
           <div class="panel-actions">
+            <button id="view-mode-tree" class="secondary active">Tree</button>
+            <button id="view-mode-list" class="secondary">List</button>
             <button id="expand-all" class="secondary">Expand All</button>
             <button id="collapse-all" class="secondary">Collapse All</button>
           </div>
         </div>
         <div id="outline-tree" class="outline-tree" role="tree" aria-label="User story outline"></div>
+        <div id="story-list-view" class="story-list-view" style="display: none;">
+          <div id="story-list-container" class="story-list-container"></div>
+          <div id="story-list-pagination" class="story-list-pagination"></div>
+        </div>
       </section>
 
       <div

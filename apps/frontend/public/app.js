@@ -68,6 +68,11 @@ const modalFooter = document.getElementById('modal-footer');
 const modalCloseBtn = document.getElementById('modal-close');
 const toastEl = document.getElementById('toast');
 const runtimeDataLink = document.getElementById('runtime-data-link');
+const viewModeTreeBtn = document.getElementById('view-mode-tree');
+const viewModeListBtn = document.getElementById('view-mode-list');
+const storyListView = document.getElementById('story-list-view');
+const storyListContainer = document.getElementById('story-list-container');
+const storyListPagination = document.getElementById('story-list-pagination');
 
 // Modal drag state
 let modalDragState = null;
@@ -518,6 +523,10 @@ const state = {
     details: PANEL_DEFAULT_WIDTHS.details,
   },
   codewhispererDelegations: new Map(),
+  viewMode: 'tree',
+  listViewPage: 1,
+  listViewPageSize: 25,
+  listViewSort: { by: 'createdAt', order: 'desc' },
 };
 
 const storyIndex = new Map();
@@ -3000,6 +3009,115 @@ function renderOutline() {
   const visibleStories = getVisibleStories();
   visibleStories.forEach((story) => renderNode(story, 0));
   outlineTreeEl.appendChild(list);
+}
+
+/**
+ * Render story list view with pagination
+ */
+function renderStoryListView() {
+  const allStories = flattenStories(getVisibleStories());
+  
+  // Group stories by status
+  const statusGroups = {
+    'Draft': [],
+    'Ready': [],
+    'In Progress': [],
+    'Blocked': [],
+    'Approved': [],
+    'Done': []
+  };
+  
+  allStories.forEach(story => {
+    const status = story.status || 'Draft';
+    if (statusGroups[status]) {
+      statusGroups[status].push(story);
+    }
+  });
+  
+  const totalStories = allStories.length;
+  const totalPages = Math.ceil(totalStories / state.listViewPageSize);
+  const startIdx = (state.listViewPage - 1) * state.listViewPageSize;
+  const endIdx = Math.min(startIdx + state.listViewPageSize, totalStories);
+  const pageStories = allStories.slice(startIdx, endIdx);
+
+  storyListContainer.innerHTML = '';
+  
+  // Render stories grouped by status
+  Object.entries(statusGroups).forEach(([status, stories]) => {
+    if (stories.length === 0) return;
+    
+    const groupHeader = document.createElement('div');
+    groupHeader.className = 'story-list-group-header';
+    groupHeader.textContent = `${status} (${stories.length})`;
+    storyListContainer.appendChild(groupHeader);
+    
+    stories.slice(startIdx, endIdx).forEach(story => {
+      const item = document.createElement('div');
+      item.className = 'story-list-item';
+      if (story.id === state.selectedStoryId) {
+        item.style.borderColor = '#3b82f6';
+        item.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+      }
+
+      const header = document.createElement('div');
+      header.className = 'story-list-item-header';
+
+      const title = document.createElement('div');
+      title.className = 'story-list-item-title';
+      title.textContent = story.title;
+
+      const badge = document.createElement('span');
+      badge.className = `story-status-badge status-${(story.status || 'draft').toLowerCase().replace(/\s+/g, '-')}`;
+      badge.textContent = story.status || 'Draft';
+
+      header.appendChild(title);
+      header.appendChild(badge);
+
+      const description = document.createElement('div');
+      description.className = 'story-list-item-description';
+      description.textContent = story.description || '';
+
+      item.appendChild(header);
+      item.appendChild(description);
+
+      item.addEventListener('click', () => handleStorySelection(story));
+      storyListContainer.appendChild(item);
+    });
+  });
+
+  storyListPagination.innerHTML = '';
+  
+  if (totalPages > 1) {
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'secondary';
+    prevBtn.textContent = 'Previous';
+    prevBtn.disabled = state.listViewPage === 1;
+    prevBtn.addEventListener('click', () => {
+      if (state.listViewPage > 1) {
+        state.listViewPage--;
+        renderStoryListView();
+      }
+    });
+
+    const pageInfo = document.createElement('span');
+    pageInfo.className = 'page-info';
+    pageInfo.textContent = `Page ${state.listViewPage} of ${totalPages}`;
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'secondary';
+    nextBtn.textContent = 'Next';
+    nextBtn.disabled = state.listViewPage === totalPages;
+    nextBtn.addEventListener('click', () => {
+      if (state.listViewPage < totalPages) {
+        state.listViewPage++;
+        renderStoryListView();
+      }
+    });
+
+    storyListPagination.appendChild(prevBtn);
+    storyListPagination.appendChild(pageInfo);
+    storyListPagination.appendChild(nextBtn);
+  }
 }
 
 function normalizeMindmapText(value) {
@@ -8087,6 +8205,24 @@ function initialize() {
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
+
+  viewModeTreeBtn?.addEventListener('click', () => {
+    state.viewMode = 'tree';
+    outlineTreeEl.style.display = '';
+    storyListView.style.display = 'none';
+    viewModeTreeBtn.classList.add('active');
+    viewModeListBtn.classList.remove('active');
+  });
+
+  viewModeListBtn?.addEventListener('click', () => {
+    state.viewMode = 'list';
+    state.listViewPage = 1;
+    outlineTreeEl.style.display = 'none';
+    storyListView.style.display = '';
+    viewModeTreeBtn.classList.remove('active');
+    viewModeListBtn.classList.add('active');
+    renderStoryListView();
+  });
 
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
