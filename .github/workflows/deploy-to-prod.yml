@@ -89,15 +89,7 @@ jobs:
           window.CONFIG = {
             API_BASE_URL: '${{ env.DEV_API_BASE }}',
             EC2_TERMINAL_URL: '${{ env.DEV_TERMINAL_URL }}',
-            GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-            PROD_VERSION: '4.0.0-dev',
-            ENVIRONMENT: 'development',
-            environment: 'development',
-            stage: 'dev',
-            region: 'us-east-1',
-            storiesTable: '${{ env.DEV_DYNAMODB_STORIES_TABLE }}',
-            acceptanceTestsTable: '${{ env.DEV_DYNAMODB_TESTS_TABLE }}',
-            DEBUG: true
+            ENVIRONMENT: 'dev'
           };
           EOF
           
@@ -209,15 +201,7 @@ jobs:
           window.CONFIG = {
             API_BASE_URL: '${{ env.PROD_API_BASE }}',
             EC2_TERMINAL_URL: '${{ env.PROD_TERMINAL_URL }}',
-            GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-            PROD_VERSION: '4.0.0',
-            ENVIRONMENT: 'production',
-            environment: 'production',
-            stage: 'prod',
-            region: 'us-east-1',
-            storiesTable: '${{ env.PROD_DYNAMODB_STORIES_TABLE }}',
-            acceptanceTestsTable: '${{ env.PROD_DYNAMODB_TESTS_TABLE }}',
-            DEBUG: false
+            ENVIRONMENT: 'prod'
           };
           EOF
           

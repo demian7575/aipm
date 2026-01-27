@@ -14,19 +14,15 @@ cat > "$ROOT_DIR/apps/frontend/public/config-prod.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 window.CONFIG = {
   API_BASE_URL: '$API_BASE',
-  SEMANTIC_API_URL: '$SEMANTIC_API_BASE',
   EC2_TERMINAL_URL: '$TERMINAL_URL',
-  ENVIRONMENT: 'production',
-  S3_BUCKET: '$S3_BUCKET',
-  DYNAMODB_STORIES_TABLE: '$DYNAMODB_STORIES_TABLE',
-  DYNAMODB_TESTS_TABLE: '$DYNAMODB_TESTS_TABLE'
+  ENVIRONMENT: 'prod'
 };
 EOF
 
 cat > "$ROOT_DIR/config/config.prod.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 module.exports = {
-  environment: 'production',
+  environment: 'prod',
   API_BASE_URL: '$API_BASE',
   SEMANTIC_API_URL: '$SEMANTIC_API_BASE',
   EC2_IP: '$EC2_IP',
@@ -46,19 +42,15 @@ cat > "$ROOT_DIR/apps/frontend/public/config-dev.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 window.CONFIG = {
   API_BASE_URL: '$API_BASE',
-  SEMANTIC_API_URL: '$SEMANTIC_API_BASE',
   EC2_TERMINAL_URL: '$TERMINAL_URL',
-  ENVIRONMENT: 'development',
-  S3_BUCKET: '$S3_BUCKET',
-  DYNAMODB_STORIES_TABLE: '$DYNAMODB_STORIES_TABLE',
-  DYNAMODB_TESTS_TABLE: '$DYNAMODB_TESTS_TABLE'
+  ENVIRONMENT: 'dev'
 };
 EOF
 
 cat > "$ROOT_DIR/config/config.dev.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 module.exports = {
-  environment: 'development',
+  environment: 'dev',
   API_BASE_URL: '$API_BASE',
   SEMANTIC_API_URL: '$SEMANTIC_API_BASE',
   EC2_IP: '$EC2_IP',

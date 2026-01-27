@@ -205,15 +205,7 @@ jobs:
           window.CONFIG = {
             API_BASE_URL: '${{ env.API_BASE }}',
             EC2_TERMINAL_URL: '${{ env.TERMINAL_URL }}',
-            GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-            PROD_VERSION: '4.0.0-dev',
-            ENVIRONMENT: 'development',
-            environment: 'development',
-            stage: 'dev',
-            region: 'us-east-1',
-            storiesTable: '${{ env.DYNAMODB_STORIES_TABLE }}',
-            acceptanceTestsTable: '${{ env.DYNAMODB_TESTS_TABLE }}',
-            DEBUG: true
+            ENVIRONMENT: 'dev'
           };
           EOF
           
