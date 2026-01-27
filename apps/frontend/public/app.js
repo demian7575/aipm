@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7451,6 +7458,99 @@ function openTaskModal(storyId, task = null) {
   
   // Trigger resize after modal is rendered
   setTimeout(autoResize, 10);
+}
+
+/**
+ * Opens story list modal showing all stories with pagination
+ */
+function openStoryListModal() {
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  const pageSize = 20;
+  let currentPage = 1;
+  const totalPages = Math.ceil(allStories.length / pageSize);
+  
+  function renderPage() {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    const pageStories = allStories.slice(start, end);
+    
+    const container = document.createElement('div');
+    container.className = 'story-list-container';
+    
+    const table = document.createElement('table');
+    table.className = 'story-list-table';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${pageStories.map(story => `
+          <tr data-story-id="${story.id}">
+            <td>${escapeHtml(story.title)}</td>
+            <td>${escapeHtml(story.description || '')}</td>
+            <td>${escapeHtml(story.status || 'Draft')}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    
+    container.appendChild(table);
+    
+    if (totalPages > 1) {
+      const pagination = document.createElement('div');
+      pagination.className = 'pagination-controls';
+      pagination.innerHTML = `
+        <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+      `;
+      container.appendChild(pagination);
+    }
+    
+    openModal({
+      title: 'Story List',
+      body: container,
+      buttons: [{ label: 'Close', action: closeModal }]
+    });
+    
+    // Add click handlers
+    table.querySelectorAll('tr[data-story-id]').forEach(row => {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => {
+        const storyId = Number(row.getAttribute('data-story-id'));
+        const story = storyIndex.get(storyId);
+        if (story) {
+          closeModal();
+          handleStorySelection(story);
+        }
+      });
+    });
+    
+    if (totalPages > 1) {
+      const prevBtn = document.getElementById('prev-page');
+      const nextBtn = document.getElementById('next-page');
+      
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          currentPage--;
+          renderPage();
+        });
+      }
+      
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          currentPage++;
+          renderPage();
+        });
+      }
+    }
+  }
+  
+  renderPage();
 }
 
 /**
