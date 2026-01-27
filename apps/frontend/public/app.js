@@ -2065,18 +2065,28 @@ function renderCodeWhispererSectionList(container, story) {
           console.log('📊 SSE progress:', data);
           
           if (data.status === 'progress') {
+            // Update button text
             generateCodeBtn.textContent = data.message || 'Generating...';
+            // Show toast for major steps
+            if (data.message && !data.message.includes('...')) {
+              showToast(data.message, 'info');
+            }
           } else if (data.status === 'complete') {
             eventSource.close();
             generateCodeBtn.disabled = false;
             generateCodeBtn.textContent = 'Generate Code';
-            showToast(`Code generation completed for PR #${prNum}`, 'success');
+            
+            // Show detailed completion message
+            const filesMsg = data.filesModified ? `Files: ${data.filesModified.join(', ')}` : '';
+            const summaryMsg = data.summary || 'Code generation completed';
+            showToast(`✅ ${summaryMsg}\n${filesMsg}`, 'success');
+            
             loadStories(); // Refresh to show updates
           } else if (data.status === 'error') {
             eventSource.close();
             generateCodeBtn.disabled = false;
             generateCodeBtn.textContent = 'Generate Code';
-            showToast(`Code generation failed: ${data.message}`, 'error');
+            showToast(`❌ Code generation failed: ${data.message}`, 'error');
           }
         };
         
