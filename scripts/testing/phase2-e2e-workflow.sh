@@ -64,7 +64,7 @@ phase2_step1_story_draft_generation() {
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"featureDescription\":\"As a project manager, I want to see a list of all user stories with their current status, so that I can quickly review the progress of the project. The list should display story title, description, and status, with a clean and organized layout.\",
+            \"featureDescription\":\"As a user, I want a button in the header that opens a modal showing a simple list of story titles, so I can quickly see all stories.\",
             \"parentId\":$PHASE2_PARENT_STORY_ID,
             \"components\":[\"WorkModel\"]
         }" 2>&1)
@@ -158,12 +158,12 @@ phase2_step3_edit_story() {
         return
     fi
     
-    # Update story with consistent modifications (aligned with original draft about story list view)
+    # Update story with simple requirement for faster code generation
     local updated_payload=$(cat <<EOF
 {
-    "title": "Display User Stories with Filters and Sorting",
-    "description": "As a project manager, I want to see a filterable and sortable list of all user stories with their current status, so that I can efficiently review and manage project progress. The list should support filtering by status, sorting by multiple criteria, and display key story information in a clean layout.",
-    "storyPoint": 5,
+    "title": "Add Story List Button",
+    "description": "As a user, I want a button in the header that opens a modal showing a simple list of story titles, so I can quickly see all stories.",
+    "storyPoint": 2,
     "status": "Ready"
 }
 EOF
