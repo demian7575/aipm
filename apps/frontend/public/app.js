@@ -43,6 +43,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7456,6 +7463,151 @@ function openTaskModal(storyId, task = null) {
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
+async function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.cssText = 'display:flex;flex-direction:column;gap:1rem;max-height:70vh;';
+  
+  const controls = document.createElement('div');
+  controls.style.cssText = 'display:flex;gap:1rem;align-items:center;flex-wrap:wrap;';
+  controls.innerHTML = `
+    <label>Status: <select id="status-filter"><option value="">All</option></select></label>
+    <label>Sort by: <select id="sort-field">
+      <option value="title">Title</option>
+      <option value="status">Status</option>
+      <option value="storyPoint">Story Points</option>
+    </select></label>
+    <label>Order: <select id="sort-order">
+      <option value="asc">Ascending</option>
+      <option value="desc">Descending</option>
+    </select></label>
+  `;
+  container.appendChild(controls);
+  
+  const tableContainer = document.createElement('div');
+  tableContainer.style.cssText = 'overflow:auto;flex:1;';
+  const table = document.createElement('table');
+  table.style.cssText = 'width:100%;border-collapse:collapse;';
+  table.innerHTML = `
+    <thead><tr>
+      <th style="text-align:left;padding:0.5rem;border-bottom:2px solid #ccc;">Title</th>
+      <th style="text-align:left;padding:0.5rem;border-bottom:2px solid #ccc;">Description</th>
+      <th style="text-align:left;padding:0.5rem;border-bottom:2px solid #ccc;">Status</th>
+    </tr></thead>
+    <tbody id="story-list-tbody"></tbody>
+  `;
+  tableContainer.appendChild(table);
+  container.appendChild(tableContainer);
+  
+  const pagination = document.createElement('div');
+  pagination.id = 'story-list-pagination';
+  pagination.style.cssText = 'display:flex;gap:0.5rem;align-items:center;justify-content:center;';
+  container.appendChild(pagination);
+  
+  let currentPage = 1;
+  const itemsPerPage = 20;
+  
+  function renderStoryList() {
+    const statusFilter = document.getElementById('status-filter').value;
+    const sortField = document.getElementById('sort-field').value;
+    const sortOrder = document.getElementById('sort-order').value;
+    
+    const allStories = state.stories.flatMap(s => flattenStories(s));
+    let filtered = statusFilter ? allStories.filter(s => s.status === statusFilter) : allStories;
+    
+    filtered.sort((a, b) => {
+      let aVal = a[sortField] || '';
+      let bVal = b[sortField] || '';
+      if (sortField === 'storyPoint') {
+        aVal = Number(aVal) || 0;
+        bVal = Number(bVal) || 0;
+      }
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageStories = filtered.slice(start, end);
+    
+    const tbody = document.getElementById('story-list-tbody');
+    tbody.innerHTML = '';
+    pageStories.forEach(story => {
+      const tr = document.createElement('tr');
+      tr.style.cssText = 'cursor:pointer;';
+      tr.innerHTML = `
+        <td style="padding:0.5rem;border-bottom:1px solid #eee;">${escapeHtml(story.title)}</td>
+        <td style="padding:0.5rem;border-bottom:1px solid #eee;">${escapeHtml(truncate(story.description, 100))}</td>
+        <td style="padding:0.5rem;border-bottom:1px solid #eee;">${escapeHtml(story.status || 'Draft')}</td>
+      `;
+      tr.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      tbody.appendChild(tr);
+    });
+    
+    const paginationEl = document.getElementById('story-list-pagination');
+    paginationEl.innerHTML = '';
+    if (totalPages > 1) {
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = 'Previous';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => { currentPage--; renderStoryList(); };
+      paginationEl.appendChild(prevBtn);
+      
+      const pageInfo = document.createElement('span');
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      paginationEl.appendChild(pageInfo);
+      
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => { currentPage++; renderStoryList(); };
+      paginationEl.appendChild(nextBtn);
+    }
+  }
+  
+  function flattenStories(story) {
+    const result = [story];
+    if (story.children) {
+      story.children.forEach(child => result.push(...flattenStories(child)));
+    }
+    return result;
+  }
+  
+  function truncate(str, maxLen) {
+    if (!str) return '';
+    return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
+  }
+  
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  
+  const statusSelect = controls.querySelector('#status-filter');
+  const allStatuses = [...new Set(state.stories.flatMap(s => flattenStories(s)).map(s => s.status))].filter(Boolean);
+  allStatuses.forEach(status => {
+    const opt = document.createElement('option');
+    opt.value = status;
+    opt.textContent = status;
+    statusSelect.appendChild(opt);
+  });
+  
+  controls.querySelectorAll('select').forEach(sel => {
+    sel.addEventListener('change', () => { currentPage = 1; renderStoryList(); });
+  });
+  
+  openModal({
+    title: 'User Stories List',
+    content: container,
+    actions: [{ label: 'Close', onClick: () => true }]
+  });
+  
+  renderStoryList();
+}
+
 function openFilterModal() {
   const container = document.createElement('div');
   container.className = 'modal-form filter-form';
