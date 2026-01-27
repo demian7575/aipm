@@ -158,12 +158,12 @@ phase2_step3_edit_story() {
         return
     fi
     
-    # Update story with simple requirement for faster code generation
+    # Update story with consistent modifications (aligned with original draft about story list view)
     local updated_payload=$(cat <<EOF
 {
-    "title": "Add Story List Button",
-    "description": "As a user, I want a button in the header that shows a simple list of all stories in a modal, so I can quickly view all stories.",
-    "storyPoint": 3,
+    "title": "Display User Stories with Filters and Sorting",
+    "description": "As a project manager, I want to see a filterable and sortable list of all user stories with their current status, so that I can efficiently review and manage project progress. The list should support filtering by status, sorting by multiple criteria, and display key story information in a clean layout.",
+    "storyPoint": 5,
     "status": "Ready"
 }
 EOF
