@@ -86,6 +86,49 @@ test_enable_connection_to_parent_user_story() {
     pass_test "Enable connection to parent User Story"
     return 0
 }
+
+# =============================================================================
+# Story: Display User Stories in Status-Grouped List View
+# ID: 1769477669546
+# Merged: 2026-01-27
+# =============================================================================
+test_display_user_stories_in_status_grouped_list_view() {
+    log_test "Display User Stories in Status-Grouped List View"
+    
+    # Test 1: Verify Story List button exists in HTML
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify openStoryListModal function exists
+    if ! grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not implemented"
+        return 1
+    fi
+    
+    # Test 3: Verify status grouping logic
+    if ! grep -q "statusGroups = {" apps/frontend/public/app.js; then
+        fail_test "Status grouping logic not found"
+        return 1
+    fi
+    
+    # Test 4: Verify pagination controls
+    if ! grep -q "itemsPerPage = 20" apps/frontend/public/app.js; then
+        fail_test "Pagination with 20 items per page not implemented"
+        return 1
+    fi
+    
+    # Test 5: Verify CSS styles for story list
+    if ! grep -q ".story-list-container" apps/frontend/public/styles.css; then
+        fail_test "Story list CSS styles not found"
+        return 1
+    fi
+    
+    pass_test "Display User Stories in Status-Grouped List View"
+    return 0
+}
+
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -108,15 +151,21 @@ echo "Running all Phase 4 functionality tests..."
 echo ""
 
 if test_remove_hide_completed_button; then
-    ((PHASE4_PASSED++))
+    PHASE4_PASSED=$((PHASE4_PASSED + 1))
 else
-    ((PHASE4_FAILED++))
+    PHASE4_FAILED=$((PHASE4_FAILED + 1))
 fi
 
 if test_enable_connection_to_parent_user_story; then
-    ((PHASE4_PASSED++))
+    PHASE4_PASSED=$((PHASE4_PASSED + 1))
 else
-    ((PHASE4_FAILED++))
+    PHASE4_FAILED=$((PHASE4_FAILED + 1))
+fi
+
+if test_display_user_stories_in_status_grouped_list_view; then
+    PHASE4_PASSED=$((PHASE4_PASSED + 1))
+else
+    PHASE4_FAILED=$((PHASE4_FAILED + 1))
 fi
 
 # ADD NEW TEST FUNCTION CALLS HERE

@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7451,6 +7458,80 @@ function openTaskModal(storyId, task = null) {
   
   // Trigger resize after modal is rendered
   setTimeout(autoResize, 10);
+}
+
+/**
+ * Opens story list modal showing all stories grouped by status
+ */
+function openStoryListModal() {
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  const statusGroups = {
+    'Draft': [],
+    'Ready': [],
+    'In Progress': [],
+    'Blocked': [],
+    'Approved': [],
+    'Done': []
+  };
+  
+  allStories.forEach(story => {
+    const status = story.status || 'Draft';
+    if (statusGroups[status]) {
+      statusGroups[status].push(story);
+    }
+  });
+  
+  const currentPage = 1;
+  const itemsPerPage = 20;
+  
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  let html = '<div class="story-list-groups">';
+  
+  Object.entries(statusGroups).forEach(([status, stories]) => {
+    if (stories.length > 0) {
+      html += `
+        <div class="status-group">
+          <h3 class="status-header">${status} (${stories.length})</h3>
+          <div class="story-items">`;
+      
+      stories.slice(0, itemsPerPage).forEach(story => {
+        html += `
+          <div class="story-item" data-story-id="${story.id}">
+            <div class="story-title">${escapeHtml(story.title)}</div>
+            <div class="story-description">${escapeHtml(story.description || '')}</div>
+            <div class="story-status">${status}</div>
+          </div>`;
+      });
+      
+      html += '</div></div>';
+    }
+  });
+  
+  html += '</div>';
+  
+  const totalStories = allStories.length;
+  const totalPages = Math.ceil(totalStories / itemsPerPage);
+  
+  if (totalPages > 1) {
+    html += `
+      <div class="pagination-controls">
+        <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+      </div>`;
+  }
+  
+  container.innerHTML = html;
+  
+  openModal({
+    title: 'Story List',
+    body: container,
+    buttons: [
+      { label: 'Close', action: closeModal }
+    ]
+  });
 }
 
 /**
