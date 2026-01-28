@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -734,6 +735,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7559,6 +7566,54 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+/**
+ * Opens modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.maxHeight = '60vh';
+  container.style.overflowY = 'auto';
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  const stories = Array.from(storyIndex.values());
+  
+  if (stories.length === 0) {
+    container.innerHTML = '<p>No stories available.</p>';
+  } else {
+    stories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '0.5rem';
+      li.style.borderBottom = '1px solid #ddd';
+      
+      const link = document.createElement('a');
+      link.href = '#';
+      link.textContent = story.title;
+      link.style.textDecoration = 'none';
+      link.style.color = '#0066cc';
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        selectStory(story.id);
+        closeModal();
+      });
+      
+      li.appendChild(link);
+      list.appendChild(li);
+    });
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [],
+    size: 'medium'
   });
 }
 
