@@ -7074,6 +7074,7 @@ function openChildStoryModal(parentId) {
           // Run creation in background
           (async () => {
             try {
+              console.log('🚀 Starting story creation...');
               const response = await fetch(resolveApiUrl('/api/stories'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -7081,6 +7082,7 @@ function openChildStoryModal(parentId) {
               });
               
               const result = await response.json();
+              console.log('📥 Story creation response:', result);
               
               if (!response.ok) {
                 showToast(`Failed to create story: ${response.statusText}`, 'error');
@@ -7089,8 +7091,11 @@ function openChildStoryModal(parentId) {
               
               // Backend already creates acceptance tests from payload, no need to create them again
               showToast('Child story created successfully with acceptance tests!', 'success');
+              console.log('🔄 Refreshing stories...');
               await loadStories(); // Refresh stories list
+              console.log('✅ Stories refreshed');
             } catch (error) {
+              console.error('❌ Story creation error:', error);
               showToast(error.message || 'Failed to create story', 'error');
             }
           })();
