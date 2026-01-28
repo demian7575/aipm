@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -746,6 +747,90 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
+}
+
+/**
+ * Opens modal displaying all story titles in a paginated list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  // Get all stories recursively
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  const itemsPerPage = 20;
+  let currentPage = 0;
+  const totalPages = Math.ceil(allStories.length / itemsPerPage);
+  
+  const listEl = document.createElement('ul');
+  listEl.className = 'story-title-list';
+  
+  const paginationEl = document.createElement('div');
+  paginationEl.className = 'pagination-controls';
+  
+  function renderPage() {
+    listEl.innerHTML = '';
+    const start = currentPage * itemsPerPage;
+    const end = Math.min(start + itemsPerPage, allStories.length);
+    
+    for (let i = start; i < end; i++) {
+      const li = document.createElement('li');
+      li.textContent = allStories[i].title;
+      listEl.appendChild(li);
+    }
+    
+    paginationEl.innerHTML = `
+      <button id="prev-page" ${currentPage === 0 ? 'disabled' : ''}>Previous</button>
+      <span>Page ${currentPage + 1} of ${totalPages}</span>
+      <button id="next-page" ${currentPage === totalPages - 1 ? 'disabled' : ''}>Next</button>
+    `;
+    
+    const prevBtn = paginationEl.querySelector('#prev-page');
+    const nextBtn = paginationEl.querySelector('#next-page');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 0) {
+          currentPage--;
+          renderPage();
+        }
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+          currentPage++;
+          renderPage();
+        }
+      });
+    }
+  }
+  
+  container.appendChild(listEl);
+  container.appendChild(paginationEl);
+  renderPage();
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [],
+    cancelLabel: 'Close'
   });
 }
 
