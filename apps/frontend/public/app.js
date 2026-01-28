@@ -5181,21 +5181,6 @@ function renderStoryDetailsWithCompleteData(story) {
       context: 'blocked-by',
       allowAdd: true,
     },
-    {
-      key: 'upstream',
-      title: 'Dependencies',
-      items: supportingDependencies,
-      empty: 'No upstream dependencies recorded.',
-      context: 'upstream',
-      allowAdd: true,
-    },
-    {
-      key: 'downstream',
-      title: 'Dependents',
-      items: dependentEntries,
-      empty: 'No stories depend on this one yet.',
-      context: 'downstream',
-    },
   ];
 
   dependencyGroups.forEach((group) => {
