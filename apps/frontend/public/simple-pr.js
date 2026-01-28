@@ -111,7 +111,7 @@ export function createDeployToStagingButton(prNumber, branchName, onSuccess, onE
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'secondary';
-  button.textContent = 'Test in Dev';
+  button.textContent = 'Demo in Dev';
   button.title = 'Deploy this PR to development environment for testing';
   
   button.addEventListener('click', async () => {
@@ -134,7 +134,7 @@ export function createDeployToStagingButton(prNumber, branchName, onSuccess, onE
       onError?.(error.message || 'Failed to deploy to staging');
     } finally {
       button.disabled = false;
-      button.textContent = 'Test in Dev';
+      button.textContent = 'Demo in Dev';
     }
   });
   

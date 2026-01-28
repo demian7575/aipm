@@ -2096,7 +2096,7 @@ function renderCodeWhispererSectionList(container, story) {
       const runInStagingBtn = document.createElement('button');
       runInStagingBtn.type = 'button';
       runInStagingBtn.className = 'button secondary run-in-staging-btn';
-      runInStagingBtn.textContent = 'Test in Dev';
+      runInStagingBtn.textContent = 'Demo in Dev';
       
       // Disable button if PR is merged or closed
       if (entry.state === 'MERGED' || entry.state === 'CLOSED') {
@@ -2162,7 +2162,7 @@ function renderCodeWhispererSectionList(container, story) {
         }
         
         runInStagingBtn.disabled = false;
-        runInStagingBtn.textContent = 'Test in Dev';
+        runInStagingBtn.textContent = 'Demo in Dev';
       });
       actions.appendChild(runInStagingBtn);
 
@@ -2180,7 +2180,7 @@ function renderCodeWhispererSectionList(container, story) {
           if (!checkResult.upToDate) {
             mergeBtn.disabled = false;
             mergeBtn.textContent = 'Merge PR';
-            alert('This PR is behind main branch. Click "Test in Dev" to rebase and test, then try merging again.');
+            alert('This PR is behind main branch. Click "Demo in Dev" to rebase and test, then try merging again.');
             return;
           }
         } catch (error) {
