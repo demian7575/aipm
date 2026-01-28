@@ -84,7 +84,14 @@ phase2_step1_story_draft_generation() {
         return
     fi
     
-    if json_check "$draft_data" '.title' && json_check "$draft_data" '.status == "complete"'; then
+    # Check if response has nested story object (new format) or flat structure (old format)
+    if json_check "$draft_data" '.story.title' && json_check "$draft_data" '.status == "complete"'; then
+        # New format: story is nested under .story
+        PHASE2_STORY_DRAFT=$(echo "$draft_data" | jq '.story')
+        pass_test "Story Draft Generation (SSE)"
+        echo "   ✅ Draft Title: $(echo "$draft_data" | jq -r '.story.title')"
+    elif json_check "$draft_data" '.title' && json_check "$draft_data" '.status == "complete"'; then
+        # Old format: flat structure
         PHASE2_STORY_DRAFT="$draft_data"
         pass_test "Story Draft Generation (SSE)"
         echo "   ✅ Draft Title: $(echo "$draft_data" | jq -r '.title')"
