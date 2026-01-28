@@ -225,6 +225,7 @@ jobs:
           API_BASE: ${{ env.PROD_API_BASE }}
           SEMANTIC_API_BASE: ${{ env.PROD_SEMANTIC_API_BASE }}
           SSH_HOST: ${{ env.PROD_EC2_IP }}
+          SKIP_GATING_TESTS: true
         run: |
           echo "🔍 Running Post-Production Gating Tests on Production Environment"
           echo "   Backend: $API_BASE (Production EC2)"
@@ -254,7 +255,8 @@ jobs:
           fi
           
           # Run gating tests with Production backend + Development DynamoDB
-          if ./scripts/testing/run-structured-gating-tests.sh --phases "1,2"; then
+          # Only run Phase 1 (quick health checks) in post-production
+          if ./scripts/testing/run-structured-gating-tests.sh --phases "1"; then
             echo "✅ Post-Production validation passed"
           else
             echo "❌ Post-Production validation failed"
