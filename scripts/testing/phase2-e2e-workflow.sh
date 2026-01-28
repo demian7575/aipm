@@ -323,7 +323,14 @@ phase2_step5_acceptance_test_draft() {
         return
     fi
     
-    if json_check "$draft_data" '.title' && json_check "$draft_data" '.status == "complete"'; then
+    # Check if response has nested acceptanceTest object (new format) or flat structure (old format)
+    if json_check "$draft_data" '.acceptanceTest.title' && json_check "$draft_data" '.status == "complete"'; then
+        # New format: test is nested under .acceptanceTest
+        PHASE2_ACCEPTANCE_TEST_DRAFT=$(echo "$draft_data" | jq '.acceptanceTest')
+        pass_test "Acceptance Test Draft Generation (SSE)"
+        echo "   ✅ Test Title: $(echo "$draft_data" | jq -r '.acceptanceTest.title')"
+    elif json_check "$draft_data" '.title' && json_check "$draft_data" '.status == "complete"'; then
+        # Old format: flat structure
         PHASE2_ACCEPTANCE_TEST_DRAFT="$draft_data"
         pass_test "Acceptance Test Draft Generation (SSE)"
         echo "   ✅ Test Title: $(echo "$draft_data" | jq -r '.title')"
