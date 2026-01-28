@@ -44,6 +44,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
+const showStoryListModalBtn = document.getElementById('show-story-list-modal');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -8083,6 +8084,8 @@ function initialize() {
     });
   });
 
+  showStoryListModalBtn?.addEventListener('click', openStoryListModal);
+
   autoLayoutToggle.addEventListener('click', () => {
     if (state.autoLayout) {
       seedManualPositionsFromAutoLayout();
@@ -8535,3 +8538,37 @@ window.cleanupKiroQueue = async function() {
     throw error;
   }
 };
+
+/**
+ * Opens modal displaying list of all story titles
+ */
+async function openStoryListModal() {
+  try {
+    const res = await fetch(resolveApiUrl('/api/stories'));
+    const stories = await res.json();
+    
+    const list = document.createElement('ul');
+    list.style.cssText = 'list-style: none; padding: 0; max-height: 400px; overflow-y: auto;';
+    
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.cssText = 'padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;';
+      item.textContent = story.title;
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      item.addEventListener('mouseenter', () => item.style.backgroundColor = '#f5f5f5');
+      item.addEventListener('mouseleave', () => item.style.backgroundColor = '');
+      list.appendChild(item);
+    });
+    
+    openModal({
+      title: 'Story List',
+      content: list,
+      cancelLabel: 'Close'
+    });
+  } catch (error) {
+    showToast('Failed to load stories', 'error');
+  }
+}
