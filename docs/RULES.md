@@ -1,10 +1,17 @@
 # Project Rules & Constraints
 
-**Last Updated**: 2026-01-24
+**Last Updated**: 2026-01-28
 **Review Cycle**: Monthly (every 1st of month)
 **Next Review**: 2026-02-01
 
 ## 🚨 Critical Rules (MUST FOLLOW)
+
+### AI Assistant Behavior
+- ❌ **NEVER** make critical changes without explicit user agreement
+- ✅ **ALWAYS** explain proposed changes and wait for approval
+- ✅ Critical changes include: workflow modifications, deployment changes, data deletion, security changes
+- ✅ For analysis/diagnosis: provide recommendations, don't auto-apply
+- 📍 **Why**: Prevents unintended consequences and maintains user control
 
 ### Configuration Management
 - ❌ **NEVER** hardcode IPs, ports, or table names in code
@@ -88,6 +95,12 @@
 - **Impact**: Consistent streaming performance
 
 ### Development Practices
+
+**✅ DO: Get user approval before critical changes**
+- **Lesson**: AI made workflow change without approval, had to revert
+- **Solution**: Always explain and wait for explicit agreement on critical changes
+- **Date**: 2026-01-28
+- **Impact**: Maintains user control and prevents unwanted changes
 
 **✅ DO: Ensure INVEST validation in all environments**
 - **Lesson**: INVEST validation ensures story quality
