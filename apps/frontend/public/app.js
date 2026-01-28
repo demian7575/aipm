@@ -7080,26 +7080,7 @@ function openChildStoryModal(parentId) {
               throw new Error(`Failed to create child story: ${response.statusText}`);
             }
             
-            // Story created successfully, now create acceptance tests
-            const storyId = result.id;
-            const testCreationPromises = acceptanceTests.map(test => 
-              fetch(resolveApiUrl(`/api/stories/${storyId}/tests`), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  title: test.title,
-                  given: [test.given],
-                  when: [test.when], 
-                  then: [test.then],
-                  status: test.status,
-                  acceptWarnings: true
-                })
-              })
-            );
-            
-            // Wait for all acceptance tests to be created
-            await Promise.all(testCreationPromises);
-            
+            // Backend already creates acceptance tests from payload, no need to create them again
             showToast('Child story created successfully with acceptance tests!', 'success');
             await loadStories(); // Refresh stories list
             return true; // Close modal
