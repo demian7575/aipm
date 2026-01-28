@@ -7067,32 +7067,35 @@ function openChildStoryModal(parentId) {
               status: test.status || 'Draft'
             }))
           };
-          try {
-            // Close modal immediately for better UX
-            closeModal();
-            showToast('Creating story...', 'info');
-            
-            const response = await fetch(resolveApiUrl('/api/stories'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-            
-            const result = await response.json();
-            
-            if (!response.ok) {
-              showToast(`Failed to create story: ${response.statusText}`, 'error');
-              return false;
+          // Close modal immediately for better UX
+          closeModal();
+          showToast('Creating story...', 'info');
+          
+          // Run creation in background
+          (async () => {
+            try {
+              const response = await fetch(resolveApiUrl('/api/stories'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              
+              const result = await response.json();
+              
+              if (!response.ok) {
+                showToast(`Failed to create story: ${response.statusText}`, 'error');
+                return;
+              }
+              
+              // Backend already creates acceptance tests from payload, no need to create them again
+              showToast('Child story created successfully with acceptance tests!', 'success');
+              await loadStories(); // Refresh stories list
+            } catch (error) {
+              showToast(error.message || 'Failed to create story', 'error');
             }
-            
-            // Backend already creates acceptance tests from payload, no need to create them again
-            showToast('Child story created successfully with acceptance tests!', 'success');
-            await loadStories(); // Refresh stories list
-            return true;
-          } catch (error) {
-            showToast(error.message || 'Failed to create story', 'error');
-            return false;
-          }
+          })();
+          
+          return true; // Close modal immediately
         },
       },
     ],
