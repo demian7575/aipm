@@ -2058,45 +2058,26 @@ function renderCodeWhispererSectionList(container, story) {
         
         // Use SSE for real-time progress updates
         const apiBaseUrl = getApiBaseUrl();
-        const eventSource = new EventSource(`${apiBaseUrl}/api/stories/${story.id}/generate-code-stream?prNumber=${prNum}&branchName=${encodeURIComponent(branchName)}`);
-        
-        eventSource.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          console.log('📊 SSE progress:', data);
-          
-          if (data.status === 'progress') {
-            // Update button text
-            generateCodeBtn.textContent = data.message || 'Generating...';
-            // Show toast for major steps
-            if (data.message && !data.message.includes('...')) {
-              showToast(data.message, 'info');
-            }
-          } else if (data.status === 'complete') {
-            eventSource.close();
-            generateCodeBtn.disabled = false;
-            generateCodeBtn.textContent = 'Generate Code';
-            
-            // Show detailed completion message
-            const filesMsg = data.filesModified ? `Files: ${data.filesModified.join(', ')}` : '';
-            const summaryMsg = data.summary || 'Code generation completed';
-            showToast(`✅ ${summaryMsg}\n${filesMsg}`, 'success');
-            
-            loadStories(); // Refresh to show updates
-          } else if (data.status === 'error') {
-            eventSource.close();
-            generateCodeBtn.disabled = false;
-            generateCodeBtn.textContent = 'Generate Code';
-            showToast(`❌ Code generation failed: ${data.message}`, 'error');
+        const eventSource = createSSEHandler(
+          `${apiBaseUrl}/api/stories/${story.id}/generate-code-stream?prNumber=${prNum}&branchName=${encodeURIComponent(branchName)}`,
+          {
+            onProgress: (data) => {
+              generateCodeBtn.textContent = data.message || 'Generating...';
+            },
+            onComplete: (data) => {
+              generateCodeBtn.disabled = false;
+              generateCodeBtn.textContent = 'Generate Code';
+              loadStories(); // Refresh to show updates
+            },
+            onError: (data) => {
+              generateCodeBtn.disabled = false;
+              generateCodeBtn.textContent = 'Generate Code';
+            },
+            showProgressToast: true,
+            showCompleteToast: true,
+            showErrorToast: true
           }
-        };
-        
-        eventSource.onerror = (error) => {
-          console.error('❌ SSE error:', error);
-          eventSource.close();
-          generateCodeBtn.disabled = false;
-          generateCodeBtn.textContent = 'Generate Code';
-          showToast('Connection error during code generation', 'error');
-        };
+        );
         
       } catch (error) {
         console.error('❌ Exception during generation:', error);
@@ -5689,6 +5670,55 @@ function showToast(message, type = 'info') {
   toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 3200);
 }
 
+// Common SSE handler with toast notifications
+function createSSEHandler(url, options = {}) {
+  const {
+    onProgress = null,
+    onComplete = null,
+    onError = null,
+    showProgressToast = true,
+    showCompleteToast = true,
+    showErrorToast = true
+  } = options;
+  
+  const eventSource = new EventSource(url);
+  
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log('📊 SSE message:', data);
+    
+    if (data.status === 'progress') {
+      if (showProgressToast && data.message) {
+        showToast(data.message, 'info');
+      }
+      if (onProgress) onProgress(data);
+    } else if (data.status === 'complete') {
+      eventSource.close();
+      if (showCompleteToast && data.message) {
+        showToast(data.message, 'success');
+      }
+      if (onComplete) onComplete(data);
+    } else if (data.status === 'error') {
+      eventSource.close();
+      if (showErrorToast) {
+        showToast(data.message || 'Operation failed', 'error');
+      }
+      if (onError) onError(data);
+    }
+  };
+  
+  eventSource.onerror = (error) => {
+    console.error('❌ SSE error:', error);
+    eventSource.close();
+    if (showErrorToast) {
+      showToast('Connection error', 'error');
+    }
+    if (onError) onError({ status: 'error', message: 'Connection error' });
+  };
+  
+  return eventSource;
+}
+
 function closeModal() {
   modal.style.display = 'none';
   delete modal.dataset.size;
@@ -7202,50 +7232,42 @@ function openAcceptanceTestModal(storyId, options = {}) {
       
       try {
         const apiBaseUrl = getApiBaseUrl();
-        const eventSource = new EventSource(`${apiBaseUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`);
-        
-        eventSource.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          console.log('SSE message:', data);
-          
-          if (data.status === 'progress') {
-            if (draftStatus) draftStatus.textContent = data.message;
-          } else if (data.status === 'complete') {
-            eventSource.close();
-            
-            // Handle both formats: wrapped in acceptanceTests array or direct
-            const tests = data.acceptanceTests || [data];
-            
-            if (tests && tests.length > 0) {
-              acceptanceTestsList.innerHTML = '';
-              testCounter = 0;
-              tests.forEach((test) => {
-                addTestToList({ 
-                  title: test.title || '', 
-                  given: test.given || [], 
-                  when: test.when || [], 
-                  then: test.then || [] 
+        const eventSource = createSSEHandler(
+          `${apiBaseUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`,
+          {
+            onProgress: (data) => {
+              if (draftStatus) draftStatus.textContent = data.message;
+            },
+            onComplete: (data) => {
+              // Handle both formats: wrapped in acceptanceTests array or direct
+              const tests = data.acceptanceTests || [data];
+              
+              if (tests && tests.length > 0) {
+                acceptanceTestsList.innerHTML = '';
+                testCounter = 0;
+                tests.forEach((test) => {
+                  addTestToList({ 
+                    title: test.title || '', 
+                    given: test.given || [], 
+                    when: test.when || [], 
+                    then: test.then || [] 
+                  });
                 });
-              });
-              if (draftStatus) draftStatus.textContent = `${tests.length} test(s) generated!`;
-              showToast(`${tests.length} test(s) added!`, 'success');
-            }
-            generateBtn.disabled = false;
-            generateBtn.textContent = 'Generate Tests';
-          } else if (data.status === 'error') {
-            eventSource.close();
-            throw new Error(data.message || 'Generation failed');
+                if (draftStatus) draftStatus.textContent = `${tests.length} test(s) generated!`;
+              }
+              generateBtn.disabled = false;
+              generateBtn.textContent = 'Generate Tests';
+            },
+            onError: (data) => {
+              if (draftStatus) draftStatus.textContent = data.message || 'Generation failed';
+              generateBtn.disabled = false;
+              generateBtn.textContent = 'Generate Tests';
+            },
+            showProgressToast: true,
+            showCompleteToast: true,
+            showErrorToast: true
           }
-        };
-        
-        eventSource.onerror = (error) => {
-          console.error('EventSource error:', error);
-          eventSource.close();
-          if (draftStatus) draftStatus.textContent = 'Connection error. Please try again.';
-          showToast('Failed to connect to Kiro CLI', 'error');
-          generateBtn.disabled = false;
-          generateBtn.textContent = 'Generate Tests';
-        };
+        );
       } catch (error) {
         if (draftStatus) draftStatus.textContent = error.message || 'Failed to generate draft.';
         showToast(error.message || 'Unable to generate acceptance test draft', 'error');
