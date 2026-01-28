@@ -44,6 +44,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -8102,6 +8103,30 @@ function initialize() {
       cancelLabel: 'Close',
       size: 'content',
       onClose,
+    });
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    const listEl = document.createElement('ul');
+    listEl.style.listStyle = 'none';
+    listEl.style.padding = '0';
+    listEl.style.margin = '0';
+    listEl.style.maxHeight = '400px';
+    listEl.style.overflowY = 'auto';
+    
+    state.stories.forEach(story => {
+      const li = document.createElement('li');
+      li.textContent = story.title;
+      li.style.padding = '8px';
+      li.style.borderBottom = '1px solid #eee';
+      listEl.appendChild(li);
+    });
+    
+    openModal({
+      title: 'Story List',
+      content: listEl,
+      cancelLabel: 'Close',
+      size: 'default',
     });
   });
 
