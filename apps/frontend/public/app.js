@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -734,6 +735,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7559,6 +7566,68 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+/**
+ * Opens a modal displaying all story titles in a list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+
+  const listEl = document.createElement('div');
+  container.appendChild(listEl);
+
+  function renderStoryList() {
+    const allStories = Array.from(storyIndex.values());
+    
+    if (allStories.length === 0) {
+      listEl.innerHTML = '<p>No stories available.</p>';
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'table-list';
+    table.innerHTML = `
+      <thead>
+        <tr><th>Title</th></tr>
+      </thead>
+      <tbody>
+        ${allStories
+          .map(
+            (story) => `
+              <tr>
+                <td><a href="#" class="story-link" data-story-id="${story.id}">${escapeHtml(story.title)}</a></td>
+              </tr>
+            `
+          )
+          .join('')}
+      </tbody>
+    `;
+    
+    listEl.innerHTML = '';
+    listEl.appendChild(table);
+    
+    table.querySelectorAll('.story-link').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const storyId = Number(link.getAttribute('data-story-id'));
+        selectStory(storyId);
+        closeModal();
+      });
+    });
+  }
+
+  renderStoryList();
+
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [],
+    size: 'medium',
   });
 }
 
