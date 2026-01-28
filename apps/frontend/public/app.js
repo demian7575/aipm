@@ -44,6 +44,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -734,6 +735,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7591,6 +7598,43 @@ function openReferenceModal(storyId) {
               <tr>
                 <td>${escapeHtml(doc.name)}</td>
                 <td><a class="reference-link" href="${escapeHtml(doc.url)}" target="_blank" rel="noopener noreferrer">Open</a></td>
+
+/**
+ * Opens modal displaying all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.maxHeight = '400px';
+  container.style.overflowY = 'auto';
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  const allStories = Array.from(storyIndex.values());
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p>No stories available.</p>';
+  } else {
+    allStories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '8px';
+      li.style.borderBottom = '1px solid #eee';
+      li.textContent = story.title;
+      list.appendChild(li);
+    });
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    actions: [],
+    cancelLabel: 'Close'
+  });
+}
+
                 <td class="actions">
                   <button type="button" class="danger" data-doc-id="${doc.id}">Delete</button>
                 </td>
