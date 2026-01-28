@@ -6972,38 +6972,40 @@ export async function createApp() {
           );
         }
         
-        const created = flattenStories(await loadStories(db)).find((story) => story.id === newStoryId);
-        if (created) {
-          applyInvestAnalysisToStory(created, analysis);
-          sendJson(res, 201, created);
-        } else {
-          console.error(`Story created with ID ${newStoryId} but not found in loadStories result`);
-          // Fallback: return minimal story object
-          const fallbackStory = {
-            id: newStoryId,
-            title,
-            description,
-            asA,
-            iWant,
-            soThat,
-            components: JSON.parse(components || '[]'),
-            assigneeEmail,
-            status: 'Draft',
-            acceptanceTests: [],
-            referenceDocuments: [],
-            tasks: [],
-            dependencies: [],
-            dependents: [],
-            blockedBy: [],
-            blocking: [],
-            children: [],
-            investWarnings: analysis?.ai?.warnings || analysis?.aiWarnings || analysis?.warnings || [],
-            investSatisfied: false,
-            investHealth: { satisfied: false, issues: analysis?.warnings || [] },
-            investAnalysis: analysis || {}
-          };
-          sendJson(res, 201, fallbackStory);
-        }
+        // Return the created story directly without loading all stories
+        const createdStory = {
+          id: newStoryId,
+          title,
+          description,
+          asA,
+          iWant,
+          soThat,
+          components,
+          storyPoint,
+          assigneeEmail,
+          parentId,
+          status: 'Draft',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          acceptanceTests: [],
+          referenceDocuments: [],
+          tasks: [],
+          dependencies: [],
+          dependents: [],
+          blockedBy: [],
+          blocking: [],
+          children: [],
+          investWarnings: warnings,
+          investSatisfied: warnings.length === 0,
+          investHealth: { satisfied: warnings.length === 0, issues: warnings },
+          investAnalysis: {
+            source: analysis.source,
+            summary: analysis.summary,
+            model: analysis.ai?.model || null,
+          }
+        };
+        
+        sendJson(res, 201, createdStory);
       } catch (error) {
         const status = error.statusCode ?? 500;
         const body = { message: error.message || 'Failed to create story' };
