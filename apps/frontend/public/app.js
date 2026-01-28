@@ -5667,7 +5667,9 @@ function showToast(message, type = 'info') {
       ? '#b45309'
       : '#0f172a';
   clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 3200);
+  // Duration: 5 seconds minimum, +50ms per character, max 10 seconds
+  const duration = Math.max(5000, Math.min(message.length * 50, 10000));
+  toastTimeout = setTimeout(() => toastEl.classList.remove('show'), duration);
 }
 
 // Common SSE handler with toast notifications
