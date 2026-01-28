@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -5706,6 +5707,67 @@ function createSSEHandler(url, options = {}) {
   return eventSource;
 }
 
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal-content';
+  
+  const list = document.createElement('ul');
+  list.className = 'story-list';
+  list.style.cssText = 'list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto;';
+  
+  const allStories = getAllStories();
+  
+  allStories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.cssText = 'padding: 8px 12px; border-bottom: 1px solid #eee; cursor: pointer;';
+    item.textContent = story.title;
+    item.addEventListener('click', () => {
+      selectStory(story.id);
+      closeModal();
+    });
+    item.addEventListener('mouseenter', () => {
+      item.style.backgroundColor = '#f5f5f5';
+    });
+    item.addEventListener('mouseleave', () => {
+      item.style.backgroundColor = '';
+    });
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'default'
+  });
+}
+
+/**
+ * Gets all stories from the state in a flat list
+ * @returns {Array} Array of all stories
+ */
+function getAllStories() {
+  const stories = [];
+  
+  function collectStories(story) {
+    stories.push(story);
+    if (story.children && story.children.length > 0) {
+      story.children.forEach(child => collectStories(child));
+    }
+  }
+  
+  if (state.stories && state.stories.length > 0) {
+    state.stories.forEach(story => collectStories(story));
+  }
+  
+  return stories;
+}
+
 function closeModal() {
   modal.style.display = 'none';
   delete modal.dataset.size;
@@ -8093,6 +8155,10 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
