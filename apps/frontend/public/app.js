@@ -208,8 +208,6 @@ const COMPONENT_OPTIONS = [
 
 const UNSPECIFIED_COMPONENT = 'Unspecified';
 
-const TASK_STATUS_OPTIONS = ['Not Started', 'In Progress', 'Blocked', 'Done'];
-
 const STATUS_CLASS_MAP = {
   Draft: 'status-draft',
   Ready: 'status-ready',
@@ -420,46 +418,6 @@ function parseStoryPointInput(raw) {
   return { value: numeric, error: null };
 }
 
-function parseEstimationHoursInput(raw) {
-  if (raw == null) {
-    return { value: null, error: null };
-  }
-  const trimmed = String(raw).trim();
-  if (trimmed === '') {
-    return { value: null, error: null };
-  }
-  const numeric = Number(trimmed);
-  if (!Number.isFinite(numeric)) {
-    return { value: null, error: 'Estimation hours must be a number.' };
-  }
-  if (numeric < 0) {
-    return { value: null, error: 'Estimation hours cannot be negative.' };
-  }
-  const rounded = Math.round(numeric * 100) / 100;
-  return { value: rounded, error: null };
-}
-
-function normalizeTaskRecord(task) {
-  if (!task || typeof task !== 'object') {
-    return null;
-  }
-  const normalized = { ...task };
-  const sources = [task.estimationHours, task.estimation_hours, task.estimation];
-  for (const source of sources) {
-    if (source != null && source !== '') {
-      const numeric = Number(source);
-      if (Number.isFinite(numeric) && numeric >= 0) {
-        normalized.estimationHours = numeric;
-        break;
-      }
-    }
-  }
-  if (!Object.prototype.hasOwnProperty.call(normalized, 'estimationHours')) {
-    normalized.estimationHours = null;
-  }
-  return normalized;
-}
-
 function normalizeStoryTree(story) {
   if (!story || typeof story !== 'object') {
     return null;
@@ -467,13 +425,6 @@ function normalizeStoryTree(story) {
   const normalized = { ...story };
   if (normalized.storyPoint == null && story.story_point != null) {
     normalized.storyPoint = story.story_point;
-  }
-  if (Array.isArray(story.tasks)) {
-    normalized.tasks = story.tasks
-      .map((task) => normalizeTaskRecord(task))
-      .filter((task) => task != null);
-  } else {
-    normalized.tasks = [];
   }
   if (Array.isArray(story.children)) {
     normalized.children = story.children
@@ -830,18 +781,6 @@ function formatStoryPointSummary(value) {
     return '';
   }
   return `${value} pt${value === 1 ? '' : 's'}`;
-}
-
-function formatEstimationHours(value) {
-  if (value == null || value === '') {
-    return '—';
-  }
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return '—';
-  }
-  const display = Number.isInteger(numeric) ? numeric.toString() : numeric.toFixed(1);
-  return `${display} h`;
 }
 
 function filterEpicSizingWarnings(story, issues) {
@@ -4425,18 +4364,6 @@ function normalizeStoryComponentsForHeatmap(components) {
 
 function detectStoryActivitiesForHeatmap(story) {
   const detected = new Set();
-  const tasks = Array.isArray(story?.tasks) ? story.tasks : [];
-  tasks.forEach((task) => {
-    const text = `${task?.title ?? ''} ${task?.description ?? ''}`.toLowerCase();
-    if (!text.trim()) {
-      return;
-    }
-    HEATMAP_ACTIVITY_KEYWORDS.forEach((mapping) => {
-      if (mapping.patterns.some((pattern) => pattern.test(text))) {
-        detected.add(mapping.key);
-      }
-    });
-  });
 
   const storyText = `${story?.title ?? ''} ${story?.summary ?? ''} ${story?.asA ?? ''} ${
     story?.iWant ?? ''
@@ -4518,7 +4445,6 @@ function _renderDetailsImmediate() {
       story.acceptanceTests = completeStory.acceptanceTests;
       story.prs = completeStory.prs;
       story.referenceDocuments = completeStory.referenceDocuments;
-      story.tasks = completeStory.tasks;
       story.investAnalysis = completeStory.investAnalysis;
       story.investWarnings = completeStory.investWarnings;
       story.investSatisfied = completeStory.investSatisfied;
@@ -5393,114 +5319,6 @@ function renderStoryDetailsWithCompleteData(story) {
   console.log('✅ Acceptance Tests section appended');
 
   addTestBtn.addEventListener('click', () => openAcceptanceTestModal(story.id));
-
-  const tasksSection = document.createElement('section');
-  tasksSection.innerHTML = `
-    <div class="section-heading">
-      <h3>Tasks</h3>
-      <button type="button" class="secondary" id="create-task-btn">Create Task</button>
-    </div>
-  `;
-  const taskList = document.createElement('div');
-  taskList.className = 'record-list';
-  if (Array.isArray(story.tasks) && story.tasks.length) {
-    taskList.innerHTML = story.tasks
-      .map(
-        (task) => `
-          <table class="vertical-table task-table" data-task-id="${task.id}">
-            <tbody>
-              <tr>
-                <th scope="row">Title</th>
-                <td>${escapeHtml(task.title || '')}</td>
-              </tr>
-              <tr>
-                <th scope="row">Assignee</th>
-                <td>${task.assigneeEmail ? escapeHtml(task.assigneeEmail) : '—'}</td>
-              </tr>
-              <tr>
-                <th scope="row">Description</th>
-                <td>${task.description ? formatMultilineText(task.description) : '—'}</td>
-              </tr>
-              <tr>
-                <th scope="row">Status</th>
-                <td>${escapeHtml(task.status || TASK_STATUS_OPTIONS[0])}</td>
-              </tr>
-              <tr>
-                <th scope="row">Estimation (hrs)</th>
-                <td>${formatEstimationHours(task.estimationHours ?? task.estimation_hours ?? task.estimation)}</td>
-              </tr>
-              <tr>
-                <th scope="row">Actions</th>
-                <td class="actions">
-                  <button type="button" class="secondary" data-action="edit-task" data-task-id="${task.id}">Edit</button>
-                  <button type="button" class="danger" data-action="delete-task" data-task-id="${task.id}">Delete</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        `
-      )
-      .join('');
-  } else {
-    taskList.innerHTML = '<p class="empty-state">No tasks yet.</p>';
-  }
-  tasksSection.appendChild(taskList);
-  detailsContent.appendChild(tasksSection);
-
-  tasksSection
-    .querySelector('#create-task-btn')
-    ?.addEventListener('click', () => openTaskModal(story.id));
-
-  taskList.querySelectorAll('.task-table').forEach((table) => {
-    table.addEventListener('click', (event) => {
-      if (event.target.closest('[data-action]')) {
-        return;
-      }
-      const taskId = Number(table.getAttribute('data-task-id'));
-      const target = Array.isArray(story.tasks)
-        ? story.tasks.find((item) => item.id === taskId)
-        : null;
-      if (target) {
-        openTaskModal(story.id, target);
-      }
-    });
-  });
-
-  taskList.querySelectorAll('[data-action="edit-task"]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      const taskId = Number(button.getAttribute('data-task-id'));
-      if (!Number.isFinite(taskId)) {
-        return;
-      }
-      const target = Array.isArray(story.tasks)
-        ? story.tasks.find((item) => item.id === taskId)
-        : null;
-      if (target) {
-        openTaskModal(story.id, target);
-      }
-    });
-  });
-
-  taskList.querySelectorAll('[data-action="delete-task"]').forEach((button) => {
-    button.addEventListener('click', async (event) => {
-      event.stopPropagation();
-      const taskId = Number(button.getAttribute('data-task-id'));
-      if (!Number.isFinite(taskId)) {
-        return;
-      }
-      if (!window.confirm('Delete this task?')) {
-        return;
-      }
-      try {
-        await deleteTask(taskId);
-        await loadStories();
-        showToast('Task deleted', 'success');
-      } catch (error) {
-        showToast(error.message || 'Failed to delete task', 'error');
-      }
-    });
-  });
 
   const childrenSection = document.createElement('section');
   childrenSection.innerHTML = `
@@ -7341,120 +7159,6 @@ function openAcceptanceTestModal(storyId, options = {}) {
   });
 }
 
-function openTaskModal(storyId, task = null) {
-  const isEdit = Boolean(task);
-  const container = document.createElement('div');
-  container.className = 'modal-form task-form';
-  container.innerHTML = `
-    <label>Title<textarea id="task-title" rows="1" style="resize: none; overflow: hidden;"></textarea></label>
-    <label>Assignee<input id="task-assignee" type="email" placeholder="owner@example.com" /></label>
-    <label>Status
-      <select id="task-status"></select>
-    </label>
-    <label>Estimation (hours)<input id="task-estimation" type="number" min="0" step="0.5" placeholder="e.g. 4" /></label>
-    <label>Description<textarea id="task-description" placeholder="Details about the work"></textarea></label>
-  `;
-
-  const titleInput = container.querySelector('#task-title');
-  const assigneeInput = container.querySelector('#task-assignee');
-  const statusSelect = container.querySelector('#task-status');
-  const estimationInput = container.querySelector('#task-estimation');
-  const descriptionInput = container.querySelector('#task-description');
-
-  // Auto-resize title textarea
-  const autoResize = () => {
-    titleInput.style.height = 'auto';
-    titleInput.style.height = titleInput.scrollHeight + 'px';
-  };
-  titleInput.addEventListener('input', autoResize);
-
-  TASK_STATUS_OPTIONS.forEach((status) => {
-    const option = document.createElement('option');
-    option.value = status;
-    option.textContent = status;
-    statusSelect.appendChild(option);
-  });
-
-  if (task) {
-    titleInput.value = task.title || '';
-    descriptionInput.value = task.description || '';
-    assigneeInput.value = task.assigneeEmail || '';
-    setTimeout(autoResize, 0); // Resize after value is set
-    const estimationSources = [task.estimationHours, task.estimation_hours, task.estimation];
-    for (const source of estimationSources) {
-      if (source != null && source !== '') {
-        const numeric = Number(source);
-        if (Number.isFinite(numeric) && numeric >= 0) {
-          estimationInput.value = numeric;
-          break;
-        }
-      }
-    }
-    if (task.status && TASK_STATUS_OPTIONS.includes(task.status)) {
-      statusSelect.value = task.status;
-    }
-  } else {
-    statusSelect.value = TASK_STATUS_OPTIONS[0];
-    const parentStory = state.stories.find((item) => item.id === storyId);
-    if (parentStory?.assigneeEmail) {
-      assigneeInput.value = parentStory.assigneeEmail;
-    }
-  }
-
-  openModal({
-    title: isEdit ? 'Edit Task' : 'Create Task',
-    content: container,
-    actions: [
-      {
-        label: isEdit ? 'Save Task' : 'Create Task',
-        onClick: async () => {
-          const title = titleInput.value.trim();
-          if (!title) {
-            showToast('Task title is required', 'error');
-            return false;
-          }
-          const assigneeEmail = assigneeInput.value.trim();
-          if (!assigneeEmail) {
-            showToast('Task assignee is required', 'error');
-            assigneeInput.focus();
-            return false;
-          }
-          const estimationResult = parseEstimationHoursInput(estimationInput.value);
-          if (estimationResult.error) {
-            showToast(estimationResult.error, 'error');
-            estimationInput.focus();
-            return false;
-          }
-          const payload = {
-            title,
-            status: statusSelect.value,
-            description: descriptionInput.value.trim(),
-            assigneeEmail,
-            estimationHours: estimationResult.value,
-          };
-          try {
-            if (isEdit) {
-              await updateTask(task.id, payload);
-              showToast('Task updated', 'success');
-            } else {
-              await createTask(storyId, payload);
-              showToast('Task created', 'success');
-            }
-            await loadStories();
-            return true;
-          } catch (error) {
-            showToast(error.message || (isEdit ? 'Failed to update task' : 'Failed to create task'), 'error');
-            return false;
-          }
-        },
-      },
-    ],
-  });
-  
-  // Trigger resize after modal is rendered
-  setTimeout(autoResize, 10);
-}
-
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
@@ -7852,21 +7556,6 @@ async function deleteDependencyLink(storyId, dependsOnStoryId) {
   return await sendJson(resolveApiUrl(`/api/stories/${storyId}/dependencies/${dependsOnStoryId}`), {
     method: 'DELETE',
   });
-}
-
-async function createTask(storyId, payload) {
-  return await sendJson(resolveApiUrl(`/api/stories/${storyId}/tasks`), {
-    method: 'POST',
-    body: payload,
-  });
-}
-
-async function updateTask(taskId, payload) {
-  return await sendJson(resolveApiUrl(`/api/tasks/${taskId}`), { method: 'PATCH', body: payload });
-}
-
-async function deleteTask(taskId) {
-  return await sendJson(resolveApiUrl(`/api/tasks/${taskId}`), { method: 'DELETE' });
 }
 
 async function uploadReferenceFile(file) {

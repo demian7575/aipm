@@ -815,15 +815,6 @@ const COMPONENT_LOOKUP = new Map(
 
 const UNSPECIFIED_COMPONENT = 'Unspecified';
 
-export const TASK_STATUS_OPTIONS = [
-  'Not Started',
-  'In Progress',
-  'Blocked',
-  'Done',
-];
-
-const TASK_STATUS_DEFAULT = TASK_STATUS_OPTIONS[0];
-
 const EPIC_STORY_POINT_THRESHOLD = 10;
 
 const STORY_DEPENDENCY_RELATIONSHIPS = ['depends', 'blocks'];
@@ -850,9 +841,6 @@ has_title_column = 'title' in columns.get('acceptance_tests', [])
 
 ALLOWED_COMPONENTS = ${JSON.stringify(COMPONENT_CATALOG)}
 ALLOWED_LOOKUP = {item.lower(): item for item in ALLOWED_COMPONENTS}
-
-TASK_STATUS_OPTIONS = ${JSON.stringify(TASK_STATUS_OPTIONS)}
-TASK_STATUS_LOOKUP = {item.lower(): item for item in TASK_STATUS_OPTIONS}
 
 
 def normalize_text(value, default=''):
@@ -909,36 +897,6 @@ def normalize_components(value):
             seen.add(canonical)
             normalized.append(canonical)
     return json.dumps(normalized)
-
-
-def normalize_task_status(value):
-    text = normalize_text(value, '')
-    if not text:
-        return TASK_STATUS_OPTIONS[0]
-    lookup = TASK_STATUS_LOOKUP.get(text.lower())
-    if lookup:
-        return lookup
-    return TASK_STATUS_OPTIONS[0]
-
-
-def normalize_task_estimation(value):
-    text = normalize_text(value, '')
-    if not text:
-        return None
-    try:
-        number = float(text)
-    except Exception:
-        return None
-    if number < 0:
-        return None
-    return number
-
-
-def normalize_task_assignee(value, fallback='owner@example.com'):
-    text = normalize_text(value, '')
-    if text:
-        return text
-    return fallback
 
 
 try:
@@ -1009,23 +967,6 @@ try:
           story_id INTEGER NOT NULL,
           name TEXT NOT NULL,
           url TEXT NOT NULL,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
-        );
-        """
-    )
-
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS tasks (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          story_id INTEGER NOT NULL,
-          title TEXT NOT NULL,
-          description TEXT DEFAULT '',
-          status TEXT DEFAULT 'Not Started',
-          assignee_email TEXT NOT NULL,
-          estimation_hours REAL,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           FOREIGN KEY(story_id) REFERENCES user_stories(id) ON DELETE CASCADE
@@ -1136,32 +1077,6 @@ try:
             ) VALUES (?, ?, ?, ?, ?, ?)
             """,
             doc_rows,
-        )
-
-    task_rows = []
-    for row in tables.get('tasks', []):
-        task_rows.append(
-            (
-                normalize_int(row.get('id'), 0),
-                normalize_int(row.get('story_id')),
-                normalize_text(row.get('title'), ''),
-                normalize_text(row.get('description'), ''),
-                normalize_task_status(row.get('status')),
-                normalize_task_assignee(row.get('assignee_email')),
-                normalize_task_estimation(row.get('estimation_hours')),
-                normalize_timestamp(row.get('created_at'), row.get('updated_at')),
-                normalize_timestamp(row.get('updated_at'), row.get('created_at')),
-            )
-        )
-
-    if task_rows:
-        conn.executemany(
-            """
-            INSERT INTO tasks (
-              id, story_id, title, description, status, assignee_email, estimation_hours, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            task_rows,
         )
 
     dependency_rows = []
@@ -1472,7 +1387,6 @@ const DEFAULT_COLUMNS = {
   ],
   acceptance_tests: ['id', 'story_id', 'title', 'given', 'when_step', 'then_step', 'status', 'created_at', 'updated_at'],
   reference_documents: ['id', 'story_id', 'name', 'url', 'created_at', 'updated_at'],
-  tasks: ['id', 'story_id', 'title', 'description', 'status', 'assignee_email', 'estimation_hours', 'created_at', 'updated_at'],
   story_dependencies: ['story_id', 'depends_on_story_id', 'relationship'],
 };
 
@@ -1505,14 +1419,12 @@ class JsonDatabase {
       user_stories: [],
       acceptance_tests: [],
       reference_documents: [],
-      tasks: [],
       story_dependencies: [],
     };
     this.sequences = {
       user_stories: 0,
       acceptance_tests: 0,
       reference_documents: 0,
-      tasks: 0,
       story_dependencies: 0,
     };
     this.columns = JSON.parse(JSON.stringify(DEFAULT_COLUMNS));
@@ -1530,7 +1442,6 @@ class JsonDatabase {
             this.tables.user_stories = data.tables.user_stories ?? [];
             this.tables.acceptance_tests = data.tables.acceptance_tests ?? [];
             this.tables.reference_documents = data.tables.reference_documents ?? [];
-            this.tables.tasks = data.tables.tasks ?? [];
             this.tables.story_dependencies = data.tables.story_dependencies ?? [];
           }
           if (data.sequences) {
@@ -1540,7 +1451,6 @@ class JsonDatabase {
                 data.sequences.acceptance_tests ?? this._maxId(this.tables.acceptance_tests),
               reference_documents:
                 data.sequences.reference_documents ?? this._maxId(this.tables.reference_documents),
-              tasks: data.sequences.tasks ?? this._maxId(this.tables.tasks),
               story_dependencies: data.sequences.story_dependencies ?? 0,
             };
           } else {
@@ -1552,7 +1462,6 @@ class JsonDatabase {
               acceptance_tests: data.columns.acceptance_tests ?? this.columns.acceptance_tests,
               reference_documents:
                 data.columns.reference_documents ?? this.columns.reference_documents,
-              tasks: data.columns.tasks ?? this.columns.tasks,
               story_dependencies: data.columns.story_dependencies ?? this.columns.story_dependencies,
             };
           }
@@ -1572,7 +1481,6 @@ class JsonDatabase {
     this.sequences.user_stories = this._maxId(this.tables.user_stories);
     this.sequences.acceptance_tests = this._maxId(this.tables.acceptance_tests);
     this.sequences.reference_documents = this._maxId(this.tables.reference_documents);
-    this.sequences.tasks = this._maxId(this.tables.tasks);
     this.sequences.story_dependencies = 0;
   }
 
@@ -1586,7 +1494,6 @@ class JsonDatabase {
         user_stories: this.tables.user_stories.map((row) => ({ ...row })),
         acceptance_tests: this.tables.acceptance_tests.map((row) => ({ ...row })),
         reference_documents: this.tables.reference_documents.map((row) => ({ ...row })),
-        tasks: this.tables.tasks.map((row) => ({ ...row })),
         story_dependencies: this.tables.story_dependencies.map((row) => ({ ...row })),
       },
       sequences: { ...this.sequences },
@@ -1594,7 +1501,6 @@ class JsonDatabase {
         user_stories: [...(this.columns.user_stories ?? [])],
         acceptance_tests: [...(this.columns.acceptance_tests ?? [])],
         reference_documents: [...(this.columns.reference_documents ?? [])],
-        tasks: [...(this.columns.tasks ?? [])],
         story_dependencies: [...(this.columns.story_dependencies ?? [])],
       },
       driver: 'json-fallback',
@@ -1698,18 +1604,6 @@ class JsonDatabase {
     if (normalized.includes('UPDATE acceptance_tests SET title =')) {
       this._setDefault('acceptance_tests', 'title', '');
     }
-    if (normalized.includes('UPDATE tasks SET description =')) {
-      this._setDefault('tasks', 'description', '');
-      return;
-    }
-    if (normalized.includes('UPDATE tasks SET status =')) {
-      this._setDefault('tasks', 'status', TASK_STATUS_DEFAULT);
-      return;
-    }
-    if (normalized.includes('UPDATE tasks SET assignee_email =')) {
-      this._setDefault('tasks', 'assignee_email', 'owner@example.com');
-      return;
-    }
     const deleteMatch = normalized.match(/^DELETE FROM (\w+)(?:\s+WHERE\s+(.+))?$/i);
     if (deleteMatch) {
       const [, table, whereClause] = deleteMatch;
@@ -1730,7 +1624,6 @@ class JsonDatabase {
       this.tables.user_stories = [];
       this.tables.acceptance_tests = [];
       this.tables.reference_documents = [];
-      this.tables.tasks = [];
       this.tables.story_dependencies = [];
       if (hadRows) {
         this._refreshSequences();
@@ -1840,11 +1733,6 @@ class JsonDatabase {
       const row = this.tables.reference_documents.find((entry) => entry.id === id);
       return row ? [this._clone(row)] : [];
     }
-    if (sql.startsWith('SELECT * FROM tasks WHERE id = ?')) {
-      const id = Number(params[0]);
-      const row = this.tables.tasks.find((entry) => entry.id === id);
-      return row ? [this._clone(row)] : [];
-    }
     if (sql.startsWith('PRAGMA table_info(')) {
       const table = sql.match(/PRAGMA table_info\((\w+)\)/i)?.[1];
       const columns = this.columns[table] ?? [];
@@ -1936,24 +1824,6 @@ class JsonDatabase {
         (entry) => entry.story_id === storyId && entry.depends_on_story_id === dependsOnId
       );
       return row ? [{ relationship: row.relationship }] : [];
-    }
-    if (sql.startsWith('SELECT * FROM tasks WHERE story_id = ?')) {
-      const storyId = Number(params[0]);
-      const rows = this.tables.tasks
-        .filter((row) => row.story_id === storyId)
-        .map((row) => this._clone(row));
-      rows.sort((a, b) => a.id - b.id);
-      return rows;
-    }
-    if (sql.startsWith('SELECT * FROM tasks ORDER BY')) {
-      const rows = this.tables.tasks.map((row) => this._clone(row));
-      rows.sort((a, b) => {
-        if (a.story_id !== b.story_id) {
-          return a.story_id - b.story_id;
-        }
-        return a.id - b.id;
-      });
-      return rows;
     }
     return [];
   }
@@ -2133,7 +2003,6 @@ class JsonDatabase {
       this.tables.reference_documents = this.tables.reference_documents.filter(
         (doc) => !targetSet.has(doc.story_id)
       );
-      this.tables.tasks = this.tables.tasks.filter((task) => !targetSet.has(task.story_id));
       this.tables.story_dependencies = this.tables.story_dependencies.filter(
         (link) => !targetSet.has(link.story_id) && !targetSet.has(link.depends_on_story_id)
       );
@@ -2185,14 +2054,6 @@ class JsonDatabase {
     } else if (table === 'reference_documents') {
       if (!('name' in row) || row.name == null) row.name = '';
       if (!('url' in row) || row.url == null) row.url = '';
-    } else if (table === 'tasks') {
-      if (!('status' in row) || row.status == null) row.status = TASK_STATUS_DEFAULT;
-      if (!('description' in row) || row.description == null) row.description = '';
-      if (!('assignee_email' in row) || row.assignee_email == null || row.assignee_email === '') {
-        row.assignee_email = 'owner@example.com';
-      }
-      if (!('created_at' in row)) row.created_at = now();
-      if (!('updated_at' in row)) row.updated_at = now();
     }
   }
 }
@@ -3310,41 +3171,6 @@ function safeNormalizeStoryStatus(value) {
   } catch (error) {
     return STORY_STATUS_DEFAULT;
   }
-}
-
-function normalizeTaskStatus(value) {
-  if (value == null) {
-    return TASK_STATUS_DEFAULT;
-  }
-  const text = String(value).trim();
-  if (!text) {
-    return TASK_STATUS_DEFAULT;
-  }
-  const match = TASK_STATUS_OPTIONS.find((option) => option.toLowerCase() === text.toLowerCase());
-  if (!match) {
-    const error = new Error(`Task status must be one of: ${TASK_STATUS_OPTIONS.join(', ')}`);
-    error.statusCode = 400;
-    throw error;
-  }
-  return match;
-}
-
-function normalizeTaskEstimationHours(value) {
-  if (value == null || value === '') {
-    return null;
-  }
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    const error = new Error('Estimation hours must be a number');
-    error.statusCode = 400;
-    throw error;
-  }
-  if (numeric < 0) {
-    const error = new Error('Estimation hours cannot be negative');
-    error.statusCode = 400;
-    throw error;
-  }
-  return numeric;
 }
 
 function normalizeDependencyRelationship(value) {
@@ -4792,33 +4618,6 @@ async function insertAcceptanceTest(
   }
 }
 
-  function insertTask(
-    db,
-    {
-      storyId,
-      title,
-      description = '',
-      status = TASK_STATUS_DEFAULT,
-      assigneeEmail,
-      estimationHours = null,
-      timestamp = now(),
-    }
-  ) {
-    const statement = db.prepare(
-      'INSERT INTO tasks (story_id, title, description, status, assignee_email, estimation_hours, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
-    );
-    return statement.run(
-      storyId,
-      title,
-      description,
-      status,
-      assigneeEmail,
-      estimationHours,
-      timestamp,
-      timestamp
-    );
-  }
-
   function insertDependency(db, { storyId, dependsOnStoryId, relationship = STORY_DEPENDENCY_DEFAULT }) {
     const normalizedRelationship = normalizeDependencyRelationship(relationship);
     const statement = db.prepare(
@@ -4826,33 +4625,6 @@ async function insertAcceptanceTest(
     );
     return statement.run(storyId, dependsOnStoryId, normalizedRelationship);
   }
-
-function buildTaskFromRow(row) {
-  let status = TASK_STATUS_DEFAULT;
-  try {
-    status = normalizeTaskStatus(row.status);
-  } catch {
-    status = TASK_STATUS_DEFAULT;
-  }
-  let estimationHours = null;
-  if (row != null && Object.prototype.hasOwnProperty.call(row, 'estimation_hours')) {
-    const numeric = Number(row.estimation_hours);
-    if (Number.isFinite(numeric) && numeric >= 0) {
-      estimationHours = numeric;
-    }
-  }
-  return {
-    id: row.id,
-    storyId: row.story_id,
-    title: row.title ?? '',
-    description: row.description ?? '',
-    status,
-    assigneeEmail: row.assignee_email ?? '',
-    estimationHours,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
 
 function normalizeStoryText(value, fallback) {
   const text = typeof value === 'string' ? value.trim() : '';
@@ -5327,7 +5099,6 @@ async function loadStories(db, options = {}) {
   console.log('📋 Sample story_id types:', testRows.slice(0, 3).map(t => ({id: t.id, story_id: t.story_id, type: typeof t.story_id})));
   }
   const docRows = await safeSelectAll(db, 'SELECT * FROM reference_documents ORDER BY story_id, id');
-  const taskRows = await safeSelectAll(db, 'SELECT * FROM tasks ORDER BY story_id, id');
 
   const stories = storyRows.map((row) => {
     const components = normalizeComponentsInput(parseJsonArray(row.components));
@@ -5447,12 +5218,6 @@ async function loadStories(db, options = {}) {
     });
   });
 
-  taskRows.forEach((row) => {
-    const story = byId.get(row.story_id);
-    if (!story) return;
-    story.tasks.push(buildTaskFromRow(row));
-  });
-
   // Read INVEST analysis from DB (already calculated during create/update)
   storyRows.forEach((row) => {
     const story = byId.get(row.id);
@@ -5530,7 +5295,6 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     updatedAt: row.updated_at ?? row.updatedAt,
     acceptanceTests: [],
     referenceDocuments: [],
-    tasks: [],
     children: [],
     dependencies: [],
     dependents: [],
@@ -5628,41 +5392,6 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     });
   });
 
-  const taskRows = await (async () => {
-    if (db.constructor.name === 'DynamoDBDataLayer') {
-      // DynamoDB implementation for tasks - use scan since no index exists
-      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-      const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
-      
-      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-      const docClient = DynamoDBDocumentClient.from(client);
-      const tableName = process.env.TASKS_TABLE || 'aipm-backend-prod-tasks';
-      
-      try {
-        const result = await docClient.send(new ScanCommand({
-          TableName: tableName,
-          FilterExpression: 'storyId = :storyId',
-          ExpressionAttributeValues: {
-            ':storyId': storyId
-          }
-        }));
-        
-        return result.Items || [];
-      } catch (error) {
-        console.error('Error loading tasks from DynamoDB:', error);
-        return [];
-      }
-    } else {
-      // SQLite implementation
-      return safeSelectAll(db, 'SELECT * FROM tasks WHERE story_id = ? ORDER BY id', storyId);
-    }
-  })();
-  
-  // Ensure taskRows is an array
-  const taskRowsArray = Array.isArray(taskRows) ? taskRows : [];
-  taskRowsArray.forEach((taskRow) => {
-    story.tasks.push(buildTaskFromRow(taskRow));
-  });
 
   const childRows = await (async () => {
     if (db.constructor.name === 'DynamoDBDataLayer') {
@@ -8237,151 +7966,6 @@ export async function createApp() {
       const result = statement.run(testId);
       if (result.changes === 0) {
         sendJson(res, 404, { message: 'Acceptance test not found' });
-      } else {
-        sendJson(res, 204, {});
-      }
-      return;
-    }
-
-    const taskCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/tasks$/);
-    if (taskCreateMatch && method === 'POST') {
-      const storyId = Number(taskCreateMatch[1]);
-      try {
-        const story = await loadStoryWithDetails(db, storyId);
-        if (!story) {
-          sendJson(res, 404, { message: 'Story not found' });
-          return;
-        }
-        const payload = await parseJson(req);
-        const title = String(payload.title ?? '').trim();
-        if (!title) {
-          throw Object.assign(new Error('Task title is required'), { statusCode: 400 });
-        }
-        const description = String(payload.description ?? '').trim();
-        const status = normalizeTaskStatus(payload.status);
-        const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
-        if (!assigneeEmail) {
-          throw Object.assign(new Error('Task assignee is required'), { statusCode: 400 });
-        }
-        const estimationHours = normalizeTaskEstimationHours(payload.estimationHours);
-        const timestamp = now();
-        const { lastInsertRowid } = insertTask(db, {
-          storyId,
-          title,
-          description,
-          status,
-          assigneeEmail,
-          estimationHours,
-          timestamp,
-        });
-        const refreshed = await loadStoryWithDetails(db, storyId);
-        const created = refreshed?.tasks.find((task) => task.id === Number(lastInsertRowid));
-        sendJson(res, 201, created || buildTaskFromRow({
-          id: Number(lastInsertRowid),
-          story_id: storyId,
-          title,
-          description,
-          status,
-          assignee_email: assigneeEmail,
-          estimation_hours: estimationHours,
-          created_at: timestamp,
-          updated_at: timestamp,
-        }));
-      } catch (error) {
-        const status = error.statusCode ?? 500;
-        sendJson(res, status, { message: error.message || 'Failed to create task' });
-      }
-      return;
-    }
-
-    const taskIdMatch = pathname.match(/^\/api\/tasks\/(\d+)$/);
-    if (taskIdMatch && method === 'PATCH') {
-      const taskId = Number(taskIdMatch[1]);
-      try {
-        const payload = await parseJson(req);
-        const existing = db
-          .prepare('SELECT * FROM tasks WHERE id = ?')
-          .get(taskId);
-        if (!existing) {
-          sendJson(res, 404, { message: 'Task not found' });
-          return;
-        }
-        const updates = [];
-        const params = [];
-        let nextTitle = existing.title ?? '';
-        let nextDescription = existing.description ?? '';
-        let nextStatus = existing.status ?? TASK_STATUS_DEFAULT;
-        let nextAssigneeEmail = existing.assignee_email ?? '';
-        let nextEstimationHours = existing.estimation_hours ?? null;
-        if (Object.prototype.hasOwnProperty.call(payload, 'title')) {
-          const title = String(payload.title ?? '').trim();
-          if (!title) {
-            throw Object.assign(new Error('Task title is required'), { statusCode: 400 });
-          }
-          updates.push('title = ?');
-          params.push(title);
-          nextTitle = title;
-        }
-        if (Object.prototype.hasOwnProperty.call(payload, 'description')) {
-          const description = String(payload.description ?? '').trim();
-          updates.push('description = ?');
-          params.push(description);
-          nextDescription = description;
-        }
-        if (Object.prototype.hasOwnProperty.call(payload, 'status')) {
-          const status = normalizeTaskStatus(payload.status);
-          updates.push('status = ?');
-          params.push(status);
-          nextStatus = status;
-        }
-        if (Object.prototype.hasOwnProperty.call(payload, 'assigneeEmail')) {
-          const assigneeEmail = String(payload.assigneeEmail ?? '').trim();
-          if (!assigneeEmail) {
-            throw Object.assign(new Error('Task assignee is required'), { statusCode: 400 });
-          }
-          updates.push('assignee_email = ?');
-          params.push(assigneeEmail);
-          nextAssigneeEmail = assigneeEmail;
-        }
-        if (Object.prototype.hasOwnProperty.call(payload, 'estimationHours')) {
-          const estimationHours = normalizeTaskEstimationHours(payload.estimationHours);
-          updates.push('estimation_hours = ?');
-          params.push(estimationHours);
-          nextEstimationHours = estimationHours;
-        }
-        if (updates.length === 0) {
-          throw Object.assign(new Error('No fields to update'), { statusCode: 400 });
-        }
-        const updatedAt = now();
-        updates.push('updated_at = ?');
-        params.push(updatedAt);
-        params.push(taskId);
-        const statement = db.prepare(`UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`);
-        statement.run(...params);
-        const refreshed = await loadStoryWithDetails(db, existing.story_id);
-        const updated = refreshed?.tasks.find((task) => task.id === taskId);
-        sendJson(res, 200, updated || buildTaskFromRow({
-          ...existing,
-          title: nextTitle,
-          description: nextDescription,
-          status: nextStatus,
-          assignee_email: nextAssigneeEmail,
-          estimation_hours: nextEstimationHours,
-          updated_at: updatedAt,
-        }));
-      } catch (error) {
-        const status = error.statusCode ?? 500;
-        sendJson(res, status, { message: error.message || 'Failed to update task' });
-      }
-      return;
-    }
-
-    if (taskIdMatch && method === 'DELETE') {
-      const taskId = Number(taskIdMatch[1]);
-      const statement = db.prepare('DELETE FROM tasks WHERE id = ?');
-      const result = statement.run(taskId);
-      if (result.changes === 0) {
-        sendJson(res, 404, { message: 'Task not found' });
       } else {
         sendJson(res, 204, {});
       }
