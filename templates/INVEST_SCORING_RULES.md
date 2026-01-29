@@ -1,6 +1,12 @@
 # INVEST Scoring Rules (Shared)
 
-**Target Score**: 80+ (threshold enforced by backend)
+**Score Range**: 0-100 (honest evaluation)
+
+## Score Interpretation
+- **80-100**: Excellent - Meets all INVEST criteria
+- **60-79**: Good - Minor improvements needed
+- **40-59**: Needs Work - Significant issues
+- **0-39**: Poor - Major restructuring required
 
 ## INVEST Principles (Each ~16 points)
 

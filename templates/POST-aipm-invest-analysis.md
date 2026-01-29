@@ -18,7 +18,7 @@
 
 **INCLUDE**: `templates/INVEST_SCORING_RULES.md`
 
-Use INVEST scoring rules to evaluate story quality. Target score: 80+.
+Use INVEST scoring rules to evaluate story quality. Provide honest assessment.
 
 ## Output Schema
 ```json
@@ -33,9 +33,28 @@ Use INVEST scoring rules to evaluate story quality. Target score: 80+.
 }
 ```
 
+## Warnings Format
+- Empty array if no issues: `[]`
+- Each warning must include all three fields:
+  - criterion: INVEST letter (I, N, V, E, S, T)
+  - message: What's wrong
+  - suggestion: How to fix
+
+Example:
+```json
+"warnings": [
+  {
+    "criterion": "I",
+    "message": "Story depends on another story",
+    "suggestion": "Remove dependency or split into separate stories"
+  }
+]
+```
+
 ## Execution Steps
 
-1. Extract: "Request ID: XXXXX" → UUID, storyId, title, description, asA, iWant, soThat
+1. Extract input data from the ---INPUT--- section above
+   (requestId, storyId, title, description, asA, iWant, soThat)
 
 2. Send Progress: Execute this curl command immediately:
 ```bash
