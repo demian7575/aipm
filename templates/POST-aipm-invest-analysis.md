@@ -7,12 +7,27 @@
 **EXECUTION ACTION**: Analyze story and execute TWO curl POSTs with progress updates
 
 ## Input
-- storyId: Story ID
-- title: Story title
-- description: Story description
-- asA: User role
-- iWant: User goal
-- soThat: User benefit
+
+The input data is provided in the ---INPUT--- section below. Extract the story object and analyze it.
+
+```
+---INPUT---
+{
+  "story": {
+    "id": 0,
+    "title": "string",
+    "description": "string",
+    "asA": "string",
+    "iWant": "string",
+    "soThat": "string",
+    "storyPoint": 0,
+    "status": "string",
+    "components": ["string"],
+    "acceptanceTests": [{"title": "string", "description": "string"}]
+  }
+}
+---INPUT---
+```
 
 ## INVEST Principles
 

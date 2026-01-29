@@ -3064,15 +3064,7 @@ async function analyzeInvest(story, options = {}) {
     console.log('🤖 Attempting AI INVEST analysis for story:', story.id);
     
     const result = await callSemanticApi('/aipm/invest-analysis', {
-      id: story.id,
-      title: story.title,
-      description: story.description,
-      asA: story.asA,
-      iWant: story.iWant,
-      soThat: story.soThat,
-      storyPoint: story.storyPoint,
-      components: story.components || [],
-      acceptanceTests: story.acceptanceTests || []
+      story: story
     });
     
     console.log('🤖 AI INVEST analysis successful');
@@ -6444,17 +6436,7 @@ export async function createApp() {
         const response = await fetch(`${SEMANTIC_API_URL}/aipm/invest-analysis?stream=true`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: story.id,
-            title: story.title,
-            description: story.description,
-            asA: story.asA,
-            iWant: story.iWant,
-            soThat: story.soThat,
-            storyPoint: story.storyPoint,
-            components: story.components || [],
-            acceptanceTests: story.acceptanceTests || []
-          })
+          body: JSON.stringify({ story: story })
         });
         
         if (!response.ok) {
