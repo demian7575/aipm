@@ -96,25 +96,23 @@ curl -X POST http://localhost:8083/api/story-draft-response \
   -d '{
     "requestId": "REQUEST_ID_VALUE",
     "status": "complete",
-    "story": {
-      "title": "STORY_TITLE",
-      "description": "STORY_DESCRIPTION",
-      "asA": "USER_PERSONA",
-      "iWant": "USER_GOAL",
-      "soThat": "USER_BENEFIT",
-      "components": ["COMPONENT"],
-      "storyPoint": STORY_POINTS,
-      "assigneeEmail": "",
-      "parentId": PARENT_ID_VALUE,
-      "acceptWarnings": true,
-      "acceptanceTests": [{
-        "title": "TEST_TITLE",
-        "given": ["TEST_GIVEN"],
-        "when": ["TEST_WHEN"],
-        "then": ["TEST_THEN"],
-        "status": "Draft"
-      }]
-    }
+    "title": "STORY_TITLE",
+    "description": "STORY_DESCRIPTION",
+    "asA": "USER_PERSONA",
+    "iWant": "USER_GOAL",
+    "soThat": "USER_BENEFIT",
+    "components": ["COMPONENT"],
+    "storyPoint": STORY_POINTS,
+    "assigneeEmail": "",
+    "parentId": PARENT_ID_VALUE,
+    "acceptWarnings": true,
+    "acceptanceTests": [{
+      "title": "TEST_TITLE",
+      "given": ["TEST_GIVEN"],
+      "when": ["TEST_WHEN"],
+      "then": ["TEST_THEN"],
+      "status": "Draft"
+    }]
   }'
 ```
 
