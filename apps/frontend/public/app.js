@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -697,6 +698,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7162,6 +7169,54 @@ function openAcceptanceTestModal(storyId, options = {}) {
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.maxHeight = '400px';
+  container.style.overflowY = 'auto';
+  
+  const allStories = state.stories.flatMap(s => getAllStoriesFlat(s));
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p>No stories found.</p>';
+  } else {
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.padding = '0';
+    ul.style.margin = '0';
+    
+    allStories.slice(0, 50).forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '8px';
+      li.style.borderBottom = '1px solid #eee';
+      li.textContent = story.title || '(Untitled)';
+      ul.appendChild(li);
+    });
+    
+    container.appendChild(ul);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: []
+  });
+}
+
+/**
+ * Helper to get all stories recursively as flat array
+ */
+function getAllStoriesFlat(story) {
+  const stories = [story];
+  if (story.children) {
+    story.children.forEach(child => stories.push(...getAllStoriesFlat(child)));
+  }
+  return stories;
+}
+
 function openFilterModal() {
   const container = document.createElement('div');
   container.className = 'modal-form filter-form';
