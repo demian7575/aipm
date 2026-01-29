@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -7747,6 +7748,49 @@ async function fetchVersion() {
   }
 }
 
+/**
+ * Opens a modal displaying all story titles in a simple list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '0.5rem';
+
+  if (state.stories.length === 0) {
+    container.innerHTML = '<p>No stories available.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+
+    state.stories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '0.5rem';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.cursor = 'pointer';
+      item.textContent = story.title;
+      
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      
+      list.appendChild(item);
+    });
+
+    container.appendChild(list);
+  }
+
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'default',
+  });
+}
+
 function initialize() {
   console.log('AIPM initializing...');
   console.log('API Base URL:', window.__AIPM_API_BASE__);
@@ -7792,6 +7836,10 @@ function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {
