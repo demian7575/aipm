@@ -5832,11 +5832,14 @@ export async function createApp() {
           
           // Call Semantic API
           try {
-            const draft = await callSemanticApi('/aipm/story-draft', {
+            const result = await callSemanticApi('/aipm/story-draft', {
               featureDescription: feature_description, 
               parentId, 
               components: payload.components || ['WorkModel']
             });
+            
+            // Extract story from nested response
+            const draft = result.story || result;
             
             console.error('✅ Draft received:', JSON.stringify(draft).substring(0, 100));
             sendJson(res, 200, { success: true, draft });
