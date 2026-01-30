@@ -6,39 +6,11 @@
 **YOUR AUTHORITY**: Analyze user stories against INVEST principles
 **EXECUTION ACTION**: Analyze story and execute TWO curl POSTs with progress updates
 
-## Input
-
-The input data is provided in the ---INPUT--- section below. Extract the story object and analyze it.
-
-```
----INPUT---
-{
-  "story": {
-    "id": 0,
-    "title": "string",
-    "description": "string",
-    "asA": "string",
-    "iWant": "string",
-    "soThat": "string",
-    "storyPoint": 0,
-    "status": "string",
-    "components": ["string"],
-    "acceptanceTests": [{"title": "string", "description": "string"}]
-  }
-}
----INPUT---
-```
-
-## Variables available:
-- story: Full story object with all fields
-- storyId: Story ID (story.id)
-- title: Story title
-- description: Story description
-- asA, iWant, soThat: User story components
-- storyPoint: Story points
-- components: Component array
-- acceptanceTests: Array of acceptance tests
-- requestId: Request ID for API callbacks
+## Extract following variables from injected user story:
+- storyId, title, description
+- asA, iWant, soThat
+- storyPoint, components, acceptanceTests
+- requestId (for API callbacks)
 
 ## INVEST Principles
 
@@ -46,42 +18,15 @@ The input data is provided in the ---INPUT--- section below. Extract the story o
 
 Use INVEST scoring rules to evaluate story quality. Provide honest assessment.
 
-## Output Schema
-```json
-{
-  "storyId": 0,
-  "summary": "string",
-  "score": 0,
-  "warnings": [{"criterion": "string", "message": "string", "suggestion": "string"}],
-  "strengths": ["string"],
-  "source": "ai",
-  "model": "kiro-cli"
-}
-```
-
 ## Warnings Format
-- Empty array if no issues: `[]`
-- Each warning must include all three fields:
-  - criterion: INVEST letter (I, N, V, E, S, T)
-  - message: What's wrong
-  - suggestion: How to fix
-
-Example:
-```json
-"warnings": [
-  {
-    "criterion": "I",
-    "message": "Story depends on another story",
-    "suggestion": "Remove dependency or split into separate stories"
-  }
-]
-```
+Each warning must include: criterion (I/N/V/E/S/T), message, suggestion
+Empty array if no issues: `[]`
 
 ## Execution Steps
 
-1. Extract input data from the ---INPUT--- section above
+1. Extract variables from input data
 
-2. Send Progress: Execute this curl command immediately:
+2. Send Progress:
 ```bash
 curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
@@ -92,11 +37,9 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
   }'
 ```
 
-3. Analyze: Evaluate against INVEST principles (score 0-100, warnings array, strengths array)
+3. Analyze against INVEST principles (score 0-100, warnings array, strengths array)
 
-4. Replace placeholders: REQUEST_ID_VALUE, STORY_ID, SUMMARY, SCORE, warnings array, strengths array
-
-5. Send Final: Execute this curl command with complete analysis:
+4. Send Final:
 ```bash
 curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
