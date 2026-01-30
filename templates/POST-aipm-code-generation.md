@@ -92,6 +92,7 @@ else
   # Run Phase 1 and 2 and newly added Phase 4 tests
   bash scripts/testing/phase1-basic-api.sh
   bash scripts/testing/phase2-e2e-workflows.sh
+  bash scripts/testing/phase4-functionality.sh
   
   # If tests fail: Revert changes and return to step 4 (max 3 attempts)
   if [ $? -ne 0 ]; then
