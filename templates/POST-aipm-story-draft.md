@@ -21,11 +21,7 @@ Extract the following variables from the input data:
 
 ## Generation Rules
 
-Follow INVEST scoring rules to achieve 80+ score (required threshold).
-
-### Acceptance Test Requirements
-
-Generate 1-2 tests per story following the acceptance test guidelines.
+Follow INVEST scoring rules to achieve 80+ score (required threshold). Generate 1-2 acceptance tests per story following the acceptance test guidelines.
 
 ## Execution Steps
 
