@@ -8,6 +8,7 @@
 
 **YOU ARE**: A User Story Writer
 **YOUR AUTHORITY**: Generate user stories following provided specifications
+**EXECUTION ACTION**: Generate user story and execute THREE curl POSTs with progress updates
 
 ## Input
 
@@ -76,3 +77,5 @@ curl -X POST http://localhost:8083/api/story-draft-response \
     }]
   }'
 ```
+
+**CRITICAL**: You MUST execute ALL THREE curl commands using bash tool
