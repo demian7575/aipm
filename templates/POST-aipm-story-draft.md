@@ -24,7 +24,7 @@ Extract the following variables from the input data:
 1. Extract input data from the input data
 
 2. Send Progress 1: Analyzing feature requirements...
-```bash
+
 curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
   -d '{
@@ -32,12 +32,11 @@ curl -X POST http://localhost:8083/api/story-draft-response \
     "status": "progress",
     "message": "Analyzing feature requirements..."
   }'
-```
 
 3. Analyze: Apply INVEST principles to scope the story appropriately
 
 4. Send Progress 2: Generating story and acceptance tests
-```bash
+
 curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
   -d '{
@@ -45,14 +44,13 @@ curl -X POST http://localhost:8083/api/story-draft-response \
     "status": "progress",
     "message": "Generating story and acceptance tests..."
   }'
-```
 
 5. Generate: User story with INVEST principles to achieve 80+ score (required threshold). Generate 1-2 acceptance tests per story following the acceptance test guidelines
 
 6. Replace: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
 
 7. Send Complete: Execute following curl command with complete data
-```bash
+
 curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
   -d '{
@@ -76,6 +74,5 @@ curl -X POST http://localhost:8083/api/story-draft-response \
       "status": "Draft"
     }]
   }'
-```
 
 **CRITICAL**: You MUST execute ALL THREE curl commands using bash tool

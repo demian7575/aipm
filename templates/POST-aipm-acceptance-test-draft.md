@@ -29,7 +29,7 @@ Extract the following variables from the input data:
 4. **Execute**: following curl command with bash tool
 
 ## API Command
-```bash
+
 curl -X POST http://localhost:8083/api/acceptance-test-draft-response \
   -H 'Content-Type: application/json' \
   -d '{
@@ -42,4 +42,3 @@ curl -X POST http://localhost:8083/api/acceptance-test-draft-response \
     "source": "ai",
     "summary": "TEST_SUMMARY"
   }'
-```

@@ -27,7 +27,7 @@ Empty array if no issues: `[]`
 1. Extract variables from input data
 
 2. Send Progress:
-```bash
+
 curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
   -d '{
@@ -35,12 +35,11 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
     "status": "processing",
     "message": "Analyzing INVEST principles..."
   }'
-```
 
 3. Analyze against INVEST principles (score 0-100, warnings array, strengths array)
 
 4. Send Final:
-```bash
+
 curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
   -d '{
@@ -54,6 +53,5 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
     "source": "ai",
     "model": "kiro-cli"
   }'
-```
 
 **CRITICAL**: You MUST execute BOTH curl commands using bash tool

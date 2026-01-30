@@ -18,10 +18,9 @@
   "suggestions": ["string"],
   "summary": "string"
 }
-```
 
 ## API Command
-```bash
+
 curl -X POST http://localhost:8083/api/gwt-analysis-response \
   -H 'Content-Type: application/json' \
   -d '{
@@ -31,7 +30,6 @@ curl -X POST http://localhost:8083/api/gwt-analysis-response \
     "suggestions": ["SUGGESTION"],
     "summary": "SUMMARY"
   }'
-```
 
 ## Execution Steps
 
