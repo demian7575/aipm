@@ -42,6 +42,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -676,6 +677,12 @@ function setDependencyOverlayVisible(visible) {
 
 function toggleDependencyOverlay() {
   setDependencyOverlayVisible(!state.showDependencies);
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
 }
 
 if (referenceBtn) {
@@ -7157,6 +7164,55 @@ function openAcceptanceTestModal(storyId, options = {}) {
       },
     }],
   });
+}
+
+/**
+ * Opens story list modal showing all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.maxHeight = '400px';
+  container.style.overflowY = 'auto';
+  
+  const allStories = state.stories.flatMap(s => getAllStoriesFlat(s));
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No stories found</p>';
+  } else {
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.padding = '0';
+    ul.style.margin = '0';
+    
+    allStories.slice(0, 50).forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '8px 12px';
+      li.style.borderBottom = '1px solid #eee';
+      li.textContent = story.title;
+      ul.appendChild(li);
+    });
+    
+    container.appendChild(ul);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [],
+    cancelLabel: 'Close'
+  });
+}
+
+/**
+ * Helper to get all stories recursively as flat array
+ */
+function getAllStoriesFlat(story) {
+  const stories = [story];
+  if (story.children) {
+    story.children.forEach(child => stories.push(...getAllStoriesFlat(child)));
+  }
+  return stories;
 }
 
 /**
