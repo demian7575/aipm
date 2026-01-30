@@ -28,9 +28,17 @@ fi
 
 # Use variables from parent script
 API_BASE="${API_BASE:-http://44.197.204.18:4000}"
-SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://localhost:8083}"
-FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com}"
 TARGET_ENV="${TARGET_ENV:-prod}"
+
+# Auto-detect Semantic API URL based on API_BASE
+if [[ "$API_BASE" =~ ^http://([^:]+):([0-9]+) ]]; then
+  HOST="${BASH_REMATCH[1]}"
+  SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://$HOST:8083}"
+else
+  SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://localhost:8083}"
+fi
+
+FRONTEND_URL="${FRONTEND_URL:-http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com}"
 
 echo "🔴 Phase 1: Critical Infrastructure & Health Checks"
 echo "Backend: $API_BASE"
