@@ -28,7 +28,7 @@ Extract the following variables from the input data:
 
 **IMPORTANT**: Send progress updates after each major step using curl to keep the connection alive.
 
-1. Fetch Data
+Step 1. Fetch Data
 ```bash
 cd /home/ec2-user/aipm
 
@@ -42,7 +42,7 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 # Story data is already provided in input, no need to fetch
 ```
 
-2. Prepare Git Branch
+Step 2. Prepare Git Branch
 ```bash
 # Send progress update
 echo "[$(date +%H:%M:%S)] Step 2: Preparing git branch"
@@ -57,7 +57,7 @@ git checkout {branchName}
 git pull origin {branchName} --rebase || true
 ```
 
-3. Analyze Codebase
+Step 3. Analyze Codebase
 ```bash
 # Send progress update
 echo "[$(date +%H:%M:%S)] Step 3: Analyzing codebase"
@@ -68,7 +68,7 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 
 Analayze Code Base and Identify Integration points, patterns, conventions
 
-4. Implement
+Step 4. Implement
 ```bash
 # Send progress update
 echo "[$(date +%H:%M:%S)] Step 4: Generating code"
@@ -86,7 +86,7 @@ Write code following story requirements to satisfy acceptance tests and existing
 - Keep simple and clear
 - Implement acceptance tests to phase4-functionality.sh
 
-5. Run Gating Tests (MANDATORY - unless skipGatingTests is true)
+Step 5. Run Gating Tests (MANDATORY - unless skipGatingTests is true)
 ```bash
 echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
 curl -X POST http://localhost:8083/api/code-generation-response \
@@ -105,7 +105,7 @@ fi
 echo "[$(date +%H:%M:%S)] Step 5: Gating tests completed"
 ```
 
-6. Commit & Push
+Step 6. Commit & Push
 ```bash
 # Send progress update
 echo "[$(date +%H:%M:%S)] Step 6: Committing and pushing"
@@ -118,7 +118,7 @@ git commit -m "feat: {story title}"
 git push origin {branchName}
 ```
 
-7. Report Completion (MANDATORY - DO NOT SKIP)
+Step 7. Report Completion (MANDATORY - DO NOT SKIP)
 ```bash
 echo "[$(date +%H:%M:%S)] Step 7: Reporting completion"
 REQUEST_ID="{requestId}"
