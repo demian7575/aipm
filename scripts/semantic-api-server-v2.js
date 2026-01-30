@@ -123,12 +123,8 @@ const server = http.createServer(async (req, res) => {
       // Add requestId to parameters for template access
       const inputData = { ...parameters, requestId };
       
-      // Build prompt with clear input data separation
-      const prompt = `Read and execute template at ${templatePath}.
-
----INPUT---
-${JSON.stringify(inputData)}
----END INPUT---`;
+      // Build prompt with input data
+      const prompt = `Read and execute template at ${templatePath}. Input data: ${JSON.stringify(inputData)}`;
       
       console.log(`🤖 Sending to session pool (requestId: ${requestId})...`);
       console.log(`📋 Template: ${templatePath}`);
