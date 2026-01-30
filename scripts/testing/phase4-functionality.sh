@@ -98,6 +98,25 @@ test_1768490120028_enable_connection_to_parent_user_story() {
     pass_test "Enable connection to parent User Story"
     return 0
 }
+
+# =============================================================================
+# Story: Test Sequential
+# ID: 1769785516985
+# Merged: 2026-01-30
+# =============================================================================
+test_1769785516985_test_sequential() {
+    log_test "Test Sequential"
+    
+    # Test 1: Verify test file exists
+    if [ ! -f "test-sequential.js" ]; then
+        fail_test "test-sequential.js not found"
+        return 1
+    fi
+    
+    pass_test "Test Sequential"
+    return 0
+}
+
 # Template:
 # =============================================================================
 # Story: [Story Title]
