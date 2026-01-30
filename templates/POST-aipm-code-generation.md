@@ -126,9 +126,6 @@ git push origin {branchName}
 7. Report Completion (MANDATORY - DO NOT SKIP)
 ```bash
 cd /home/ec2-user/aipm
-
-# CRITICAL: Send completion response to Semantic API
-# This MUST be executed after git push succeeds
 REQUEST_ID="{requestId}"
 
 curl -X POST http://localhost:8083/api/code-generation-response \
@@ -141,6 +138,3 @@ curl -X POST http://localhost:8083/api/code-generation-response \
     \"testResults\": \"Gating tests passed\"
   }"
 ```
-echo "✅ Completion response sent to Semantic API"
-
-**IMPORTANT**: This step is MANDATORY. Without it, the request will timeout.
