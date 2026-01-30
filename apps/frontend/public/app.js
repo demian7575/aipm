@@ -7289,7 +7289,12 @@ async function openStoryListModal() {
   openModal({
     title: 'All Stories',
     content: container,
-    actions: [],
+    actions: [
+      {
+        label: 'Export CSV',
+        handler: () => exportStoriesToCSV()
+      }
+    ],
     size: 'medium'
   });
 
@@ -7321,6 +7326,45 @@ async function openStoryListModal() {
     console.error('Failed to load stories:', error);
     listEl.innerHTML = '<p class="error">Failed to load stories.</p>';
   }
+}
+
+/**
+ * Exports all stories to CSV file
+ */
+function exportStoriesToCSV() {
+  const stories = Array.from(storyIndex.values());
+  
+  if (stories.length === 0) {
+    showToast('No stories to export', 'warning');
+    return;
+  }
+
+  const headers = ['ID', 'Title', 'Status', 'Assignee'];
+  const rows = stories.map(story => [
+    story.id || '',
+    (story.title || '').replace(/"/g, '""'),
+    story.status || '',
+    story.assigneeEmail || ''
+  ]);
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `stories-${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast('Stories exported to CSV', 'success');
 }
 
 function openReferenceModal(storyId) {
