@@ -19,10 +19,6 @@ Extract the following variables from the input data:
 - components: Component array
 - requestId: Request ID for API callbacks
 
-## Generation Rules
-
-Follow INVEST scoring rules to achieve 80+ score (required threshold). Generate 1-2 acceptance tests per story following the acceptance test guidelines.
-
 ## Execution Steps
 
 1. Extract input data from the input data
@@ -51,7 +47,7 @@ curl -X POST http://localhost:8083/api/story-draft-response \
   }'
 ```
 
-5. Generate: User story with INVEST principles + 1-2 acceptance tests (arrays)
+5. Generate: User story with INVEST principles to achieve 80+ score (required threshold). Generate 1-2 acceptance tests per story following the acceptance test guidelines
 
 6. Replace: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
 
