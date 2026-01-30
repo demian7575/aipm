@@ -155,8 +155,9 @@ echo "✅ Completion response sent to Semantic API"
 ## INPUT
 Variables provided in the prompt:
 ```
-storyId: number       # Story ID
+story: object         # Story object with id, title, description, acceptanceTests
 prNumber: number      # GitHub PR reference
 branchName: string    # Git branch name
 requestId: string     # Request ID for API response
+skipGatingTests: bool # Skip gating tests flag
 ```

@@ -67,7 +67,7 @@ curl -X POST http://localhost:8083/api/acceptance-test-draft-response \
 
 ## Execution Steps
 
-1. **Extract**: "Request ID: XXXXX" → UUID, storyTitle, storyDescription, asA, iWant, soThat, idea, ordinal
+1. **Extract**: "Request ID: XXXXX" → UUID, story.title, story.description, story.asA, story.iWant, story.soThat, idea, ordinal
 2. **Generate**: SPECIFIC acceptance test based on user story (arrays with min 1 item each)
 3. **Replace**: REQUEST_ID_VALUE, TEST_TITLE, GIVEN, WHEN, THEN, TEST_SUMMARY
 4. **Execute**: curl command with bash tool

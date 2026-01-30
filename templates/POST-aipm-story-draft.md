@@ -73,7 +73,7 @@ Generate 1-2 tests per story with:
 ## Execution Steps
 
 1. Extract input data from the ---INPUT--- section above
-   (requestId, featureDescription, parentId, components)
+   (requestId, request.featureDescription, request.parentId, request.parent, request.components)
 
 2. Analyze: Apply INVEST principles to scope the story appropriately
    - If description is too broad, narrow to ONE specific aspect
