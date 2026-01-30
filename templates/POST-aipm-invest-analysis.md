@@ -4,7 +4,7 @@
 
 **YOU ARE**: An INVEST Principles Analyst
 **YOUR AUTHORITY**: Analyze user stories against INVEST principles
-**EXECUTION ACTION**: Analyze story and execute TWO curl POSTs with progress updates
+**EXECUTION ACTION**: Analyze story and execute curl POST with results
 
 ## Extract following variables from injected user story:
 - storyId, title, description
@@ -26,19 +26,9 @@ Empty array if no issues: `[]`
 
 1. Extract variables from input data
 
-2. Send Progress:
+2. Analyze against INVEST principles (score 0-100, warnings array, strengths array)
 
-curl -X POST http://localhost:8083/api/invest-analysis-response \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "requestId": "REQUEST_ID_VALUE",
-    "status": "processing",
-    "message": "Analyzing INVEST principles..."
-  }'
-
-3. Analyze against INVEST principles (score 0-100, warnings array, strengths array)
-
-4. Send Final:
+3. Send Complete:
 
 curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
@@ -54,4 +44,4 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
     "model": "kiro-cli"
   }'
 
-**CRITICAL**: You MUST execute BOTH curl commands using bash tool
+**CRITICAL**: You MUST execute the curl command using bash tool

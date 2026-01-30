@@ -8,7 +8,7 @@
 
 **YOU ARE**: A User Story Writer
 **YOUR AUTHORITY**: Generate user stories following provided specifications
-**EXECUTION ACTION**: Generate user story and execute THREE curl POSTs with progress updates
+**EXECUTION ACTION**: Generate user story and execute curl POST with complete data
 
 ## Input
 
@@ -23,33 +23,13 @@ Extract the following variables from the input data:
 
 1. Extract input data from the input data
 
-2. Send Progress 1: Analyzing feature requirements...
+2. Analyze: Apply INVEST principles to scope the story appropriately
 
-curl -X POST http://localhost:8083/api/story-draft-response \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "requestId": "REQUEST_ID_VALUE",
-    "status": "progress",
-    "message": "Analyzing feature requirements..."
-  }'
+3. Generate: User story with INVEST principles to achieve 80+ score (required threshold). Generate 1-2 acceptance tests per story following the acceptance test guidelines
 
-3. Analyze: Apply INVEST principles to scope the story appropriately
+4. Replace: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
 
-4. Send Progress 2: Generating story and acceptance tests
-
-curl -X POST http://localhost:8083/api/story-draft-response \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "requestId": "REQUEST_ID_VALUE",
-    "status": "progress",
-    "message": "Generating story and acceptance tests..."
-  }'
-
-5. Generate: User story with INVEST principles to achieve 80+ score (required threshold). Generate 1-2 acceptance tests per story following the acceptance test guidelines
-
-6. Replace: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
-
-7. Send Complete: Execute following curl command with complete data
+5. Send Complete: Execute following curl command with complete data
 
 curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
@@ -75,4 +55,4 @@ curl -X POST http://localhost:8083/api/story-draft-response \
     }]
   }'
 
-**CRITICAL**: You MUST execute ALL THREE curl commands using bash tool
+**CRITICAL**: You MUST execute the curl command using bash tool

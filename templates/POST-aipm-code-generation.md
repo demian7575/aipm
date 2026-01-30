@@ -41,7 +41,6 @@ Step 1. Fetch Data
 cd /home/ec2-user/aipm
 REQUEST_ID="{requestId}"
 echo "[$(date +%H:%M:%S)] Step 1: Using provided story data"
-curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Using provided story data...\"}"
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
   echo "Step 1 failed with exit code $EXIT_CODE"
@@ -54,7 +53,6 @@ Step 2. Prepare Git Branch
 PRECONDITION: Step 1 completed successfully (exit code 0)
 
 echo "[$(date +%H:%M:%S)] Step 2: Preparing git branch"
-curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Preparing git branch...\"}"
 git reset --hard HEAD
 git clean -fd
 git fetch origin
@@ -72,7 +70,6 @@ Step 3. Analyze Codebase
 PRECONDITION: Step 2 completed successfully (exit code 0)
 
 echo "[$(date +%H:%M:%S)] Step 3: Analyzing codebase"
-curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Analyzing codebase...\"}"
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
   echo "Step 3 failed with exit code $EXIT_CODE"
@@ -105,7 +102,6 @@ Step 5. Run Gating Tests (MANDATORY - unless skipGatingTests is true)
 PRECONDITION: Step 4 completed successfully (exit code 0)
 
 echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
-curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 bash scripts/testing/phase1-basic-api.sh
 bash scripts/testing/phase2-e2e-workflows.sh
 bash scripts/testing/phase4-functionality.sh {storyId}
@@ -122,7 +118,6 @@ Step 6. Commit & Push
 PRECONDITION: Step 5 completed successfully (exit code 0) or skipped if skipGatingTests is true
 
 echo "[$(date +%H:%M:%S)] Step 6: Committing and pushing"
-curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Committing and pushing code...\"}"
 git add -A
 git commit -m "feat: {story title}"
 git push origin {branchName}
