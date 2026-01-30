@@ -27,7 +27,7 @@ Follow INVEST scoring rules to achieve 80+ score (required threshold). Generate 
 
 1. Extract input data from the input data
 
-2. Send Progress 1: Execute following curl command immediately
+2. Send Progress 1: Apply INVEST
 ```bash
 curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
@@ -40,7 +40,7 @@ curl -X POST http://localhost:8083/api/story-draft-response \
 
 3. Analyze: Apply INVEST principles to scope the story appropriately
 
-4. Send Progress 2: Execute following curl command
+4. Send Progress 2: Generating story and acceptance tests
 ```bash
 curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
@@ -56,10 +56,6 @@ curl -X POST http://localhost:8083/api/story-draft-response \
 6. Replace: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
 
 7. Send Complete: Execute following curl command with complete data
-
-## API Commands
-
-### Complete Response
 ```bash
 curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
