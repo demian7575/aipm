@@ -3,6 +3,8 @@
 **VERSION: 2026-01-25-v2** <!-- Marker to verify template is loaded -->
 
 **INCLUDE**: `templates/SEMANTIC_API_GUIDELINES.md`
+**INCLUDE**: `templates/INVEST_SCORING_RULES.md`
+**INCLUDE**: `templates/POST-aipm-acceptance-test-draft.md`
 
 **YOU ARE**: A User Story Writer
 **YOUR AUTHORITY**: Generate user stories following provided specifications
@@ -19,13 +21,9 @@ Extract the following variables from the input data:
 
 ## Generation Rules
 
-**INCLUDE**: `templates/INVEST_SCORING_RULES.md`
-
 Follow INVEST scoring rules to achieve 80+ score (required threshold).
 
 ### Acceptance Test Requirements
-
-**INCLUDE**: `templates/POST-aipm-acceptance-test-draft.md`
 
 Generate 1-2 tests per story following the acceptance test guidelines.
 
