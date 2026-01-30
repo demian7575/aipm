@@ -26,36 +26,24 @@ Extract the following variables from the input data:
 
 ## WORKFLOW
 
-**IMPORTANT**: Send progress updates after each major step using curl to keep the connection alive.
+**IMPORTANT**: Execute each command immediately using bash tool. Send progress updates after each step.
 
 Step 1. Fetch Data
-```bash
-cd /home/ec2-user/aipm
 
-# Send progress update
+cd /home/ec2-user/aipm
 REQUEST_ID="{requestId}"
 echo "[$(date +%H:%M:%S)] Step 1: Using provided story data"
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Using provided story data...\"}"
-
-# Story data is already provided in input, no need to fetch
-```
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Using provided story data...\"}"
 
 Step 2. Prepare Git Branch
-```bash
-# Send progress update
-echo "[$(date +%H:%M:%S)] Step 2: Preparing git branch"
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Preparing git branch...\"}"
 
+echo "[$(date +%H:%M:%S)] Step 2: Preparing git branch"
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Preparing git branch...\"}"
 git reset --hard HEAD
 git clean -fd
 git fetch origin
 git checkout {branchName}
 git pull origin {branchName} --rebase || true
-```
 
 Step 3. Analyze Codebase
 ```bash
@@ -64,18 +52,13 @@ echo "[$(date +%H:%M:%S)] Step 3: Analyzing codebase"
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Analyzing codebase...\"}"
-```
 
 Analayze Code Base and Identify Integration points, patterns, conventions
 
 Step 4. Implement
-```bash
-# Send progress update
+
 echo "[$(date +%H:%M:%S)] Step 4: Generating code"
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Generating code...\"}"
-```
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Generating code...\"}"
 
 Write code following story requirements to satisfy acceptance tests and existing patterns:
 - Follow existing AIPM patterns
@@ -87,16 +70,12 @@ Write code following story requirements to satisfy acceptance tests and existing
 - Implement acceptance tests to phase4-functionality.sh
 
 Step 5. Run Gating Tests (MANDATORY - unless skipGatingTests is true)
-```bash
-echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 
+echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 bash scripts/testing/phase1-basic-api.sh
 bash scripts/testing/phase2-e2e-workflows.sh
 bash scripts/testing/phase4-functionality.sh {storyId}
-
 if [ $? -ne 0 ]; then
   echo "Gating tests failed"
   git reset --hard HEAD
@@ -109,27 +88,13 @@ Step 6. Commit & Push
 ```bash
 # Send progress update
 echo "[$(date +%H:%M:%S)] Step 6: Committing and pushing"
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Committing and pushing code...\"}"
-
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Committing and pushing code...\"}"
 git add -A
 git commit -m "feat: {story title}"
 git push origin {branchName}
-```
 
 Step 7. Report Completion (MANDATORY - DO NOT SKIP)
-```bash
+
 echo "[$(date +%H:%M:%S)] Step 7: Reporting completion"
 REQUEST_ID="{requestId}"
-
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{
-    \"requestId\": \"$REQUEST_ID\",
-    \"status\": \"complete\",
-    \"filesModified\": [\"apps/backend/app.js\", \"apps/frontend/public/app.js\"],
-    \"summary\": \"Code generated and committed successfully\",
-    \"testResults\": \"Gating tests passed\"
-  }"
-```
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"complete\", \"filesModified\": [\"apps/backend/app.js\", \"apps/frontend/public/app.js\"], \"summary\": \"Code generated and committed successfully\", \"testResults\": \"Gating tests passed\"}"
