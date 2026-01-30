@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -685,6 +686,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7264,6 +7271,66 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+  container.style.maxHeight = '500px';
+  container.style.overflowY = 'auto';
+
+  const stories = Array.from(storyIndex.values());
+  
+  if (stories.length === 0) {
+    container.innerHTML = '<p>No stories available.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    // Limit to 50 stories
+    const displayStories = stories.slice(0, 50);
+    
+    displayStories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '0.5rem';
+      li.style.borderBottom = '1px solid #ddd';
+      
+      // Truncate title at 60 characters
+      let displayTitle = story.title || 'Untitled';
+      if (displayTitle.length > 60) {
+        displayTitle = displayTitle.substring(0, 60) + '...';
+      }
+      
+      li.textContent = displayTitle;
+      li.title = story.title || 'Untitled'; // Full title in tooltip
+      list.appendChild(li);
+    });
+    
+    container.appendChild(list);
+    
+    if (stories.length > 50) {
+      const note = document.createElement('p');
+      note.style.fontStyle = 'italic';
+      note.style.marginTop = '1rem';
+      note.textContent = `Showing 50 of ${stories.length} stories`;
+      container.appendChild(note);
+    }
+  }
+
+  openModal('Story List', container, [
+    {
+      label: 'Close',
+      className: 'secondary',
+      handler: closeModal
+    }
+  ]);
 }
 
 function openReferenceModal(storyId) {
