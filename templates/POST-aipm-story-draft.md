@@ -110,37 +110,9 @@ curl -X POST http://localhost:8083/api/story-draft-response \
   }'
 ```
 
-6. Validate with INVEST Analysis: Call the INVEST analysis endpoint to get score
-```bash
-curl -s -X POST http://localhost:8083/aipm/invest-analysis?stream=false \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "story": {
-      "id": 0,
-      "title": "STORY_TITLE",
-      "description": "STORY_DESCRIPTION",
-      "asA": "USER_PERSONA",
-      "iWant": "USER_GOAL",
-      "soThat": "USER_BENEFIT",
-      "storyPoint": STORY_POINTS,
-      "components": ["COMPONENT"]
-    }
-  }'
-```
-Parse the response to extract the score from the "complete" status event.
+6. Replace: REQUEST_ID_VALUE, PARENT_ID_VALUE, STORY_TITLE, STORY_DESCRIPTION, USER_PERSONA, USER_GOAL, USER_BENEFIT, STORY_POINTS (1-8), TEST_TITLE, TEST_GIVEN, TEST_WHEN, TEST_THEN
 
-7. Send Progress 3: Report INVEST score
-```bash
-curl -X POST http://localhost:8083/api/story-draft-response \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "requestId": "REQUEST_ID_VALUE",
-    "status": "progress",
-    "message": "INVEST score: SCORE_VALUE/100"
-  }'
-```
-
-8. Send Complete: Execute this curl command with complete data including INVEST score:
+7. Send Complete: Execute this curl command with complete data:
 ```bash
 curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
@@ -157,7 +129,6 @@ curl -X POST http://localhost:8083/api/story-draft-response \
     "assigneeEmail": "",
     "parentId": PARENT_ID_VALUE,
     "acceptWarnings": true,
-    "investScore": SCORE_VALUE,
     "acceptanceTests": [{
       "title": "TEST_TITLE",
       "given": ["TEST_GIVEN"],
