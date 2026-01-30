@@ -20,11 +20,13 @@ Extract the following variables from the input data:
 - requestId: Request ID for API callbacks
 
 **Guidelines**: Follow `templates/ACCEPTANCE_TEST_GUIDELINES.md`
-- Arrays must have min 1 item each
-- Be specific and measurable
-- Include concrete values, endpoints, or UI elements
-- Avoid generic phrases like "system works" or "feature is available"
-- Make assertions verifiable (e.g., "API returns 200 status" not "API works")
+
+## Execution Steps
+
+1. **Extract**: Extract all data from the input data
+2. **Generate**: SPECIFIC acceptance test based on user story (arrays with min 1 item each)
+3. **Replace**: REQUEST_ID_VALUE, TEST_TITLE, GIVEN, WHEN, THEN, TEST_SUMMARY
+4. **Execute**: following curl command with bash tool
 
 ## API Command
 ```bash
@@ -41,10 +43,3 @@ curl -X POST http://localhost:8083/api/acceptance-test-draft-response \
     "summary": "TEST_SUMMARY"
   }'
 ```
-
-## Execution Steps
-
-1. **Extract**: Extract all data from the input data
-2. **Generate**: SPECIFIC acceptance test based on user story (arrays with min 1 item each)
-3. **Replace**: REQUEST_ID_VALUE, TEST_TITLE, GIVEN, WHEN, THEN, TEST_SUMMARY
-4. **Execute**: curl command with bash tool
