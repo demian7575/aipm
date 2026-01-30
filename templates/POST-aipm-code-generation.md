@@ -42,10 +42,16 @@ cd /home/ec2-user/aipm
 REQUEST_ID="{requestId}"
 echo "[$(date +%H:%M:%S)] Step 1: Using provided story data"
 curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Using provided story data...\"}"
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "Step 1 failed with exit code $EXIT_CODE"
+  exit $EXIT_CODE
+fi
+echo "Step 1 completed successfully (exit code 0)"
 
 Step 2. Prepare Git Branch
 
-PRECONDITION: Step 1 completed successfully
+PRECONDITION: Step 1 completed successfully (exit code 0)
 
 echo "[$(date +%H:%M:%S)] Step 2: Preparing git branch"
 curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Preparing git branch...\"}"
@@ -54,19 +60,31 @@ git clean -fd
 git fetch origin
 git checkout {branchName}
 git rebase origin/main
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "Step 2 failed with exit code $EXIT_CODE"
+  exit $EXIT_CODE
+fi
+echo "Step 2 completed successfully (exit code 0)"
 
 Step 3. Analyze Codebase
 
-PRECONDITION: Step 2 completed successfully
+PRECONDITION: Step 2 completed successfully (exit code 0)
 
 echo "[$(date +%H:%M:%S)] Step 3: Analyzing codebase"
 curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Analyzing codebase...\"}"
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "Step 3 failed with exit code $EXIT_CODE"
+  exit $EXIT_CODE
+fi
 
 Analayze Code Base and Identify Integration points, patterns, conventions
+echo "Step 3 completed successfully (exit code 0)"
 
 Step 4. Implement
 
-PRECONDITION: Step 3 completed successfully
+PRECONDITION: Step 3 completed successfully (exit code 0)
 
 echo "[$(date +%H:%M:%S)] Step 4: Generating code"
 curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Generating code...\"}"
@@ -80,35 +98,44 @@ Write code following story requirements to satisfy acceptance tests and existing
 - Keep simple and clear
 - Implement acceptance tests to phase4-functionality.sh
 
+echo "Step 4 completed successfully (exit code 0)"
+
 Step 5. Run Gating Tests (MANDATORY - unless skipGatingTests is true)
 
-PRECONDITION: Step 4 completed successfully
+PRECONDITION: Step 4 completed successfully (exit code 0)
 
 echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
 curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 bash scripts/testing/phase1-basic-api.sh
 bash scripts/testing/phase2-e2e-workflows.sh
 bash scripts/testing/phase4-functionality.sh {storyId}
-if [ $? -ne 0 ]; then
-  echo "Gating tests failed"
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "Step 5 failed: Gating tests failed with exit code $EXIT_CODE"
   git reset --hard HEAD
-  exit 1
+  exit $EXIT_CODE
 fi
-echo "[$(date +%H:%M:%S)] Step 5: Gating tests completed"
+echo "Step 5 completed successfully (exit code 0)"
 
 Step 6. Commit & Push
 
-PRECONDITION: Step 5 completed successfully (or skipped if skipGatingTests is true)
+PRECONDITION: Step 5 completed successfully (exit code 0) or skipped if skipGatingTests is true
 
 echo "[$(date +%H:%M:%S)] Step 6: Committing and pushing"
 curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Committing and pushing code...\"}"
 git add -A
 git commit -m "feat: {story title}"
 git push origin {branchName}
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "Step 6 failed with exit code $EXIT_CODE"
+  exit $EXIT_CODE
+fi
+echo "Step 6 completed successfully (exit code 0)"
 
 Step 7. Report Completion (MANDATORY - DO NOT SKIP)
 
-PRECONDITION: Step 6 completed successfully
+PRECONDITION: Step 6 completed successfully (exit code 0)
 
 echo "[$(date +%H:%M:%S)] Step 7: Reporting completion"
 REQUEST_ID="{requestId}"
@@ -119,3 +146,10 @@ curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type
     \"summary\": \"Code generated and committed successfully\",
     \"testResults\": \"Gating tests passed\"
   }"
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "Step 7 failed with exit code $EXIT_CODE"
+  exit $EXIT_CODE
+fi
+echo "Step 7 completed successfully (exit code 0)"
+echo "All steps completed successfully"
