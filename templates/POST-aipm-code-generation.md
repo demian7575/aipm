@@ -101,27 +101,39 @@ Implement acceptance tests to phase4-functionality.sh"
 
 
 ### 5. Run Gating Tests (MANDATORY)
+```bash
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 
 # Check if gating tests should be skipped
-if "{skipGatingTests}" == "true"
-    Skip gating tests (running during Phase 2 E2E tests)
-    Proceed directly to Step 6
+if [ "{skipGatingTests}" == "true" ]; then
+  echo "Skipping gating tests (running during Phase 2 E2E tests)"
+  # Proceed directly to Step 6
 else
-    Run Phase 1 and 2 and newly added Phase 4 tests.
-    If tests fails: Revert changes and return to step 4 (max 3 attempts)
+  # Run Phase 1 and 2 and newly added Phase 4 tests
+  cd /home/ec2-user/aipm
+  bash scripts/testing/phase1-basic-api.sh
+  bash scripts/testing/phase2-e2e-workflows.sh
+  
+  # If tests fail: Revert changes and return to step 4 (max 3 attempts)
+  if [ $? -ne 0 ]; then
+    echo "Gating tests failed"
+    git reset --hard HEAD
+    # Return error - will retry in step 4
+    exit 1
+  fi
 fi
 
-# If tests passed or skipped, proceed to commit
-Check output for: "ALL GATING TESTS PASSED" (Phase 1,2) and story test passes
-If fails: Fix code and return to step 4 (max 3 attempts)
+# Check output for: "ALL GATING TESTS PASSED" (Phase 1,2) and story test passes
+# If fails: Fix code and return to step 4 (max 3 attempts)
+```
 
 
 
 ### 6. Commit & Push
+```bash
 cd /home/ec2-user/aipm
 
 # Send progress update
@@ -132,8 +144,10 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 git add -A
 git commit -m "feat: {story title}"
 git push origin {branchName}
+```
 
 ### 7. Report Completion (MANDATORY - DO NOT SKIP)
+```bash
 cd /home/ec2-user/aipm
 
 # CRITICAL: Send completion response to Semantic API
@@ -149,7 +163,7 @@ curl -X POST http://localhost:8083/api/code-generation-response \
     \"summary\": \"Code generated and committed successfully\",
     \"testResults\": \"Gating tests passed\"
   }"
-
+```
 echo "✅ Completion response sent to Semantic API"
 
 **IMPORTANT**: This step is MANDATORY. Without it, the request will timeout.
