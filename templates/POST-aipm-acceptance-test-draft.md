@@ -10,27 +10,7 @@
 
 ## Input
 
-The input data is provided in the ---INPUT--- section below. Extract the story object and generate an acceptance test.
-
-```
----INPUT---
-{
-  "story": {
-    "id": 0,
-    "title": "string",
-    "description": "string",
-    "asA": "string",
-    "iWant": "string",
-    "soThat": "string",
-    "acceptanceTests": [...]
-  },
-  "idea": "string (optional)",
-  "ordinal": 0
-}
----INPUT---
-```
-
-## Variables available:
+Extract the following variables from the input data:
 - story: Full story object
 - storyTitle: Story title (story.title)
 - storyDescription: Story description
@@ -38,18 +18,6 @@ The input data is provided in the ---INPUT--- section below. Extract the story o
 - idea: Optional test idea or focus area
 - ordinal: Test number
 - requestId: Request ID for API callbacks
-
-## Output Schema
-```json
-{
-  "title": "Test title",
-  "given": ["precondition"],
-  "when": ["action"],
-  "then": ["result"],
-  "source": "ai",
-  "summary": "Brief explanation"
-}
-```
 
 **Guidelines**: Follow `templates/ACCEPTANCE_TEST_GUIDELINES.md`
 - Arrays must have min 1 item each
@@ -76,7 +44,7 @@ curl -X POST http://localhost:8083/api/acceptance-test-draft-response \
 
 ## Execution Steps
 
-1. **Extract**: Extract all data from the ---INPUT--- section above
+1. **Extract**: Extract all data from the input data
 2. **Generate**: SPECIFIC acceptance test based on user story (arrays with min 1 item each)
 3. **Replace**: REQUEST_ID_VALUE, TEST_TITLE, GIVEN, WHEN, THEN, TEST_SUMMARY
 4. **Execute**: curl command with bash tool
