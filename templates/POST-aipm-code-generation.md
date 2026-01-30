@@ -4,25 +4,7 @@
 
 ## Input
 
-The input data is provided in the ---INPUT--- section below. Extract the story and generation parameters.
-
-```
----INPUT---
-{
-  "story": {
-    "id": 0,
-    "title": "string",
-    "description": "string",
-    "acceptanceTests": [...]
-  },
-  "branchName": "string",
-  "prNumber": 0,
-  "skipGatingTests": false
-}
----INPUT---
-```
-
-## Variables available:
+Extract the following variables from the input data:
 - story: Full story object
 - storyId: Story ID (story.id)
 - storyTitle: Story title
@@ -41,7 +23,7 @@ The input data is provided in the ---INPUT--- section below. Extract the story a
 
 **IMPORTANT**: Send progress updates after each major step using curl to keep the connection alive.
 
-### 1. Fetch Data
+1. Fetch Data
 ```bash
 cd /home/ec2-user/aipm
 
@@ -54,9 +36,7 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 # Story data is already provided in input, no need to fetch
 ```
 
-
-
-### 2. Prepare Git Branch
+2. Prepare Git Branch
 ```bash
 cd /home/ec2-user/aipm
 
@@ -72,9 +52,7 @@ git checkout {branchName}
 git pull origin {branchName} --rebase || true
 ```
 
-
-
-### 3. Analyze Codebase
+3. Analyze Codebase
 ```bash
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
@@ -84,9 +62,7 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 
 Analayze Code Base and Identify Integration points, patterns, conventions
 
-
-
-### 4. Implement
+4. Implement
 ```bash
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
@@ -98,9 +74,7 @@ Write code following story requirements to satisfy Acceptnace tests and existing
 Implement acceptance tests to phase4-functionality.sh"
 ```
 
-
-
-### 5. Run Gating Tests (MANDATORY)
+5. Run Gating Tests (MANDATORY)
 ```bash
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
@@ -130,9 +104,7 @@ fi
 # If fails: Fix code and return to step 4 (max 3 attempts)
 ```
 
-
-
-### 6. Commit & Push
+6. Commit & Push
 ```bash
 cd /home/ec2-user/aipm
 
@@ -146,7 +118,7 @@ git commit -m "feat: {story title}"
 git push origin {branchName}
 ```
 
-### 7. Report Completion (MANDATORY - DO NOT SKIP)
+7. Report Completion (MANDATORY - DO NOT SKIP)
 ```bash
 cd /home/ec2-user/aipm
 
