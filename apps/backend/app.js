@@ -5699,6 +5699,12 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/health' && method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+      return;
+    }
+
     if (pathname === '/api/run-staging' && method === 'POST') {
       // Staging deployment endpoint - returns 500 for automated tests as expected
       sendJson(res, 500, { 
