@@ -2,17 +2,41 @@
 # Phase 4: Functionality Tests
 # This file accumulates all story-specific acceptance tests
 # Each merged user story should add its test cases here
+#
+# Usage: 
+#   ./phase4-functionality.sh           # Run all tests
+#   ./phase4-functionality.sh {storyId} # Run only tests for specific story
 
 set -e
 source "$(dirname "$0")/test-library.sh"
 
-echo "🟢 Phase 4: Functionality Tests"
-echo "Testing acceptance criteria for all merged stories"
+# Get optional story ID filter
+STORY_ID_FILTER="$1"
+
+if [[ -n "$STORY_ID_FILTER" ]]; then
+    echo "🟢 Phase 4: Functionality Tests (Story ID: $STORY_ID_FILTER)"
+    echo "Testing acceptance criteria for story $STORY_ID_FILTER"
+else
+    echo "🟢 Phase 4: Functionality Tests"
+    echo "Testing acceptance criteria for all merged stories"
+fi
 echo ""
 
 # Counter for test results
 PHASE4_PASSED=0
 PHASE4_FAILED=0
+
+# Helper function to check if test should run
+should_run_test() {
+    local test_story_id="$1"
+    if [[ -z "$STORY_ID_FILTER" ]]; then
+        return 0  # No filter, run all tests
+    fi
+    if [[ "$test_story_id" == "$STORY_ID_FILTER" ]]; then
+        return 0  # Matches filter
+    fi
+    return 1  # Skip this test
+}
 
 # =============================================================================
 # Story: Remove Hide Completed Button
@@ -104,32 +128,42 @@ test_enable_connection_to_parent_user_story() {
 # =============================================================================
 
 # Run all tests
-echo "Running all Phase 4 functionality tests..."
+echo "Running Phase 4 functionality tests..."
 echo ""
 
-if test_remove_hide_completed_button; then
-    ((PHASE4_PASSED++))
-else
-    ((PHASE4_FAILED++))
+if should_run_test "1768754109973"; then
+    if test_remove_hide_completed_button; then
+        ((PHASE4_PASSED++))
+    else
+        ((PHASE4_FAILED++))
+    fi
 fi
 
-if test_enable_connection_to_parent_user_story; then
-    ((PHASE4_PASSED++))
-else
-    ((PHASE4_FAILED++))
+if should_run_test "1768490120028"; then
+    if test_enable_connection_to_parent_user_story; then
+        ((PHASE4_PASSED++))
+    else
+        ((PHASE4_FAILED++))
+    fi
 fi
 
 # ADD NEW TEST FUNCTION CALLS HERE
-# if test_your_story_name; then
-#     ((PHASE4_PASSED++))
-# else
-#     ((PHASE4_FAILED++))
+# if should_run_test "STORY_ID"; then
+#     if test_your_story_name; then
+#         ((PHASE4_PASSED++))
+#     else
+#         ((PHASE4_FAILED++))
+#     fi
 # fi
 
 # Summary
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Phase 4 Summary:"
+if [[ -n "$STORY_ID_FILTER" ]]; then
+    echo "Phase 4 Summary (Story $STORY_ID_FILTER):"
+else
+    echo "Phase 4 Summary:"
+fi
 echo "  ✅ Passed: $PHASE4_PASSED"
 echo "  ❌ Failed: $PHASE4_FAILED"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -137,6 +171,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 if [[ $PHASE4_FAILED -gt 0 ]]; then
     echo "❌ Phase 4 failed: $PHASE4_FAILED test(s) failed"
     exit 1
+fi
+
+if [[ $PHASE4_PASSED -eq 0 ]] && [[ -n "$STORY_ID_FILTER" ]]; then
+    echo "⚠️  No tests found for story ID: $STORY_ID_FILTER"
+    echo "✅ Phase 4 completed (no tests to run)"
+    exit 0
 fi
 
 echo "✅ Phase 4 completed: all tests passed"
