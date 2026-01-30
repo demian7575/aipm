@@ -3063,8 +3063,21 @@ async function analyzeInvest(story, options = {}) {
   try {
     console.log('🤖 Attempting AI INVEST analysis for story:', story.id);
     
+    // Strip unnecessary fields to reduce payload size
+    const storyForAnalysis = {
+      id: story.id,
+      title: story.title,
+      description: story.description,
+      asA: story.asA,
+      iWant: story.iWant,
+      soThat: story.soThat,
+      storyPoint: story.storyPoint,
+      components: story.components,
+      acceptanceTests: story.acceptanceTests
+    };
+    
     const result = await callSemanticApi('/aipm/invest-analysis', {
-      story: story
+      story: storyForAnalysis
     });
     
     console.log('🤖 AI INVEST analysis successful');
@@ -6424,11 +6437,24 @@ export async function createApp() {
           return;
         }
 
+        // Strip unnecessary fields to reduce payload size
+        const storyForAnalysis = {
+          id: story.id,
+          title: story.title,
+          description: story.description,
+          asA: story.asA,
+          iWant: story.iWant,
+          soThat: story.soThat,
+          storyPoint: story.storyPoint,
+          components: story.components,
+          acceptanceTests: story.acceptanceTests
+        };
+
         // Call Semantic API with stream endpoint
         const response = await fetch(`${SEMANTIC_API_URL}/aipm/invest-analysis?stream=true`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ story: story })
+          body: JSON.stringify({ story: storyForAnalysis })
         });
         
         if (!response.ok) {
