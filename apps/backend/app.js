@@ -4720,11 +4720,7 @@ async function generateAcceptanceTestDraft(story, ordinal, reason, { idea = '' }
   // Call Semantic API for AI-powered test generation
   try {
     const result = await callSemanticApi('/aipm/acceptance-test-draft', {
-      storyTitle: story.title,
-      storyDescription: story.description || '',
-      asA: story.asA || '',
-      iWant: story.iWant || '',
-      soThat: story.soThat || '',
+      story: story,
       idea: idea || '',
       ordinal: ordinal
     });
@@ -5825,9 +5821,11 @@ export async function createApp() {
           // Call Semantic API
           try {
             const result = await callSemanticApi('/aipm/story-draft', {
-              featureDescription: feature_description, 
-              parentId, 
-              components: payload.components || ['WorkModel']
+              request: {
+                featureDescription: feature_description, 
+                parentId, 
+                components: payload.components || ['WorkModel']
+              }
             });
             
             // Extract story from nested response
@@ -6131,10 +6129,7 @@ export async function createApp() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            storyId: storyId,
-            storyTitle: story.title,
-            storyDescription: story.description || '',
-            acceptanceTests: story.acceptanceTests || [],
+            story: story,
             branchName: branchName,
             prNumber: parseInt(prNumber),
             skipGatingTests: process.env.SKIP_GATING_TESTS === 'true'
@@ -6210,10 +6205,7 @@ export async function createApp() {
 
         // Call Semantic API for code generation
         const result = await callSemanticApi('/aipm/code-generation', {
-          storyId: storyId,
-          storyTitle: story.title,
-          storyDescription: story.description,
-          acceptanceTests: story.acceptanceTests || [],
+          story: story,
           branchName: prBranch,
           prNumber: prNumber
         });
@@ -6922,10 +6914,11 @@ export async function createApp() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            featureDescription: idea,
-            parentId: parentId ? Number(parentId) : undefined,
-            parentTitle: parent?.title,
-            parentDescription: parent?.description
+            request: {
+              featureDescription: idea,
+              parentId: parentId ? Number(parentId) : undefined,
+              parent: parent
+            }
           })
         });
         
@@ -6989,11 +6982,7 @@ export async function createApp() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            storyTitle: story.title,
-            storyDescription: story.description || '',
-            asA: story.asA || '',
-            iWant: story.iWant || '',
-            soThat: story.soThat || '',
+            story: story,
             idea: idea || '',
             ordinal: (story.acceptanceTests?.length || 0) + 1
           })

@@ -9,13 +9,26 @@
 **CRITICAL**: This template is used in GATING TESTS to verify the acceptance test generation functionality. You MUST generate REAL, SPECIFIC, and TESTABLE acceptance tests that can be validated programmatically. Generic or placeholder tests will cause gating test failures.
 
 ## Input
-- storyTitle: User story title
-- storyDescription: User story description
-- asA: User role
-- iWant: User goal
-- soThat: User benefit
-- idea: Optional test idea or focus area
-- ordinal: Test number
+
+The input data is provided in the ---INPUT--- section below. Extract the story object and generate an acceptance test.
+
+```
+---INPUT---
+{
+  "story": {
+    "id": 0,
+    "title": "string",
+    "description": "string",
+    "asA": "string",
+    "iWant": "string",
+    "soThat": "string",
+    "acceptanceTests": [...]
+  },
+  "idea": "string (optional)",
+  "ordinal": 0
+}
+---INPUT---
+```
 
 ## Output Schema
 ```json

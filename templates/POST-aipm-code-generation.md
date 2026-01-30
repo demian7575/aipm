@@ -2,12 +2,25 @@
 
 **INCLUDE**: `templates/SEMANTIC_API_GUIDELINES.md`
 
-## INPUT VARIABLES
-The prompt provides these variables:
-- `storyId` - Story ID number
-- `branchName` - Git branch name  
-- `prNumber` - GitHub PR number
-- `skipGatingTests` - Boolean flag to skip gating tests (true during Phase 2 tests)
+## Input
+
+The input data is provided in the ---INPUT--- section below. Extract the story and generation parameters.
+
+```
+---INPUT---
+{
+  "story": {
+    "id": 0,
+    "title": "string",
+    "description": "string",
+    "acceptanceTests": [...]
+  },
+  "branchName": "string",
+  "prNumber": 0,
+  "skipGatingTests": false
+}
+---INPUT---
+```
 
 ## ROLE
 **YOU ARE**: Code Generator executing specifications exactly as written
@@ -25,11 +38,10 @@ cd /home/ec2-user/aipm
 REQUEST_ID="{requestId}"
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Fetching story data...\"}"
+  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Using provided story data...\"}"
 
-curl -s http://localhost:4000/api/stories/{storyId}
+# Story data is already provided in input, no need to fetch
 ```
-Parse JSON response to get story details and acceptance tests
 
 
 

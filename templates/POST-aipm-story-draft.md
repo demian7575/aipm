@@ -9,9 +9,25 @@
 **EXECUTION ACTION**: Generate user story and execute THREE curl POSTs with progress updates
 
 ## Input
-- featureDescription: Feature to implement
-- parentId: Parent story ID (or null)
-- components: Component array
+
+The input data is provided in the ---INPUT--- section below. Extract the request object and generate a story.
+
+```
+---INPUT---
+{
+  "request": {
+    "featureDescription": "string",
+    "parentId": 0|null,
+    "parent": {
+      "id": 0,
+      "title": "string",
+      "description": "string"
+    },
+    "components": ["string"]
+  }
+}
+---INPUT---
+```
 
 ## Output Schema
 ```json
