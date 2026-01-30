@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -685,6 +686,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7162,6 +7169,53 @@ function openAcceptanceTestModal(storyId, options = {}) {
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
+/**
+ * Opens a modal displaying all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  // Get all stories recursively
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p class="empty-message">No stories available</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'story-list';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.className = 'story-list-item';
+      item.textContent = story.title || 'Untitled Story';
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [],
+    size: 'medium'
+  });
+}
+
 function openFilterModal() {
   const container = document.createElement('div');
   container.className = 'modal-form filter-form';
