@@ -29,6 +29,7 @@ cd /home/ec2-user/aipm
 
 # Send progress update
 REQUEST_ID="{requestId}"
+echo "[$(date +%H:%M:%S)] Step 1: Using provided story data"
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Using provided story data...\"}"
@@ -39,6 +40,7 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 2. Prepare Git Branch
 ```bash
 # Send progress update
+echo "[$(date +%H:%M:%S)] Step 2: Preparing git branch"
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Preparing git branch...\"}"
@@ -53,6 +55,7 @@ git pull origin {branchName} --rebase || true
 3. Analyze Codebase
 ```bash
 # Send progress update
+echo "[$(date +%H:%M:%S)] Step 3: Analyzing codebase"
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Analyzing codebase...\"}"
@@ -63,6 +66,7 @@ Analayze Code Base and Identify Integration points, patterns, conventions
 4. Implement
 ```bash
 # Send progress update
+echo "[$(date +%H:%M:%S)] Step 4: Generating code"
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Generating code...\"}"
@@ -80,6 +84,7 @@ Write code following story requirements to satisfy acceptance tests and existing
 5. Run Gating Tests (MANDATORY)
 ```bash
 # Send progress update
+echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
@@ -110,6 +115,7 @@ fi
 6. Commit & Push
 ```bash
 # Send progress update
+echo "[$(date +%H:%M:%S)] Step 6: Committing and pushing"
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Committing and pushing code...\"}"
@@ -121,6 +127,7 @@ git push origin {branchName}
 
 7. Report Completion (MANDATORY - DO NOT SKIP)
 ```bash
+echo "[$(date +%H:%M:%S)] Step 7: Reporting completion"
 REQUEST_ID="{requestId}"
 
 curl -X POST http://localhost:8083/api/code-generation-response \
