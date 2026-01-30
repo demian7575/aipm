@@ -19,6 +19,11 @@ Extract the following variables from the input data:
 **YOU ARE**: Code Generator executing specifications exactly as written
 **EXECUTE**: Complete workflow immediately without questions or explanations
 
+## CONDITIONAL EXECUTION
+
+**IF skipGatingTests is true**: Skip Step 5 (gating tests). Execute Steps 1-4, then jump directly to Step 6.
+**IF skipGatingTests is false**: Execute all steps 1-7 including Step 5 (gating tests).
+
 ## WORKFLOW
 
 **IMPORTANT**: Send progress updates after each major step using curl to keep the connection alive.
@@ -81,39 +86,23 @@ Write code following story requirements to satisfy acceptance tests and existing
 - Keep simple and clear
 - Implement acceptance tests to phase4-functionality.sh
 
-5. Run Gating Tests (MANDATORY)
+5. Run Gating Tests (MANDATORY - unless skipGatingTests is true)
 ```bash
 echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
-# Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 
-# Check if gating tests should be skipped
-echo "[$(date +%H:%M:%S)] Step 5a: Checking skipGatingTests flag"
-if [ "{skipGatingTests}" == "true" ]; then
-  echo "[$(date +%H:%M:%S)] Step 5b: Skipping gating tests (running during Phase 2 E2E tests)"
-  # Proceed directly to Step 6
-else
-  echo "[$(date +%H:%M:%S)] Step 5c: Running Phase 1, 2, and 4 tests"
-  # Run Phase 1 and 2 and newly added Phase 4 tests
-  bash scripts/testing/phase1-basic-api.sh
-  bash scripts/testing/phase2-e2e-workflows.sh
-  bash scripts/testing/phase4-functionality.sh {storyId}
-  
-  # If tests fail: Revert changes and return to step 4 (max 3 attempts)
-  if [ $? -ne 0 ]; then
-    echo "Gating tests failed"
-    git reset --hard HEAD
-    # Return error - will retry in step 4
-    exit 1
-  fi
-  echo "[$(date +%H:%M:%S)] Step 5d: Gating tests completed"
-fi
-echo "[$(date +%H:%M:%S)] Step 5e: Gating tests step finished"
+bash scripts/testing/phase1-basic-api.sh
+bash scripts/testing/phase2-e2e-workflows.sh
+bash scripts/testing/phase4-functionality.sh {storyId}
 
-# Check output for: "ALL GATING TESTS PASSED" (Phase 1,2) and story test passes
-# If fails: Fix code and return to step 4 (max 3 attempts)
+if [ $? -ne 0 ]; then
+  echo "Gating tests failed"
+  git reset --hard HEAD
+  exit 1
+fi
+echo "[$(date +%H:%M:%S)] Step 5: Gating tests completed"
 ```
 
 6. Commit & Push
