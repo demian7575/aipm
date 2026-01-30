@@ -223,13 +223,17 @@ phase2_step4_invest_analysis() {
     # Run INVEST analysis via SSE with timeout for AI processing
     # Note: AI analysis can take 60-90 seconds depending on session availability
     local request_id="phase2-invest-$(date +%s)"
+    
+    # Build JSON payload properly using jq
+    local payload=$(jq -n \
+        --arg rid "$request_id" \
+        --argjson story "$story_data" \
+        '{requestId: $rid, story: $story}')
+    
     local response
     response=$(timeout 120 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/invest-analysis?stream=true" \
         -H 'Content-Type: application/json' \
-        -d "{
-            \"requestId\":\"$request_id\",
-            \"story\": $(echo "$story_data" | jq -c '.')
-        }" 2>&1)
+        -d "$payload" 2>&1)
     
     if [[ $? -ne 0 ]]; then
         fail_test "INVEST Analysis (Timeout or connection error)"
@@ -295,15 +299,18 @@ phase2_step5_acceptance_test_draft() {
     
     # Generate acceptance test draft via SSE
     local request_id="phase2-at-draft-$(date +%s)"
+    
+    # Build JSON payload properly using jq
+    local payload=$(jq -n \
+        --arg rid "$request_id" \
+        --argjson story "$story_data" \
+        --arg idea "Test OAuth2 login flow with Google provider" \
+        '{requestId: $rid, story: $story, idea: $idea, ordinal: 1}')
+    
     local response
     response=$(timeout 120 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/acceptance-test-draft?stream=true" \
         -H 'Content-Type: application/json' \
-        -d "{
-            \"requestId\":\"$request_id\",
-            \"story\": $(echo "$story_data" | jq -c '.'),
-            \"idea\":\"Test OAuth2 login flow with Google provider\",
-            \"ordinal\":1
-        }" 2>&1)
+        -d "$payload" 2>&1)
     
     if [[ $? -ne 0 ]]; then
         fail_test "Acceptance Test Draft (Timeout or connection error)"
@@ -429,15 +436,17 @@ phase2_step7_generate_code() {
     # Get full story data
     local story_data=$(curl -s $USE_DEV_TABLES_HEADER "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
+    # Build JSON payload properly using jq
+    local payload=$(jq -n \
+        --arg rid "$request_id" \
+        --argjson story "$story_data" \
+        --arg branch "$PHASE2_BRANCH_NAME" \
+        --argjson pr "$PHASE2_PR_NUMBER" \
+        '{requestId: $rid, story: $story, branchName: $branch, prNumber: $pr, skipGatingTests: true}')
+    
     response=$(timeout 600 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/code-generation?stream=true" \
         -H 'Content-Type: application/json' \
-        -d "{
-            \"requestId\":\"$request_id\",
-            \"story\": $(echo "$story_data" | jq -c '.'),
-            \"branchName\":\"$PHASE2_BRANCH_NAME\",
-            \"prNumber\":$PHASE2_PR_NUMBER,
-            \"skipGatingTests\":true
-        }" 2>&1)
+        -d "$payload" 2>&1)
     
     if [[ $? -ne 0 ]]; then
         fail_test "Generate Code (Timeout or connection error)"
