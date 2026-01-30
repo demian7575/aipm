@@ -69,7 +69,6 @@ Example:
 ## Execution Steps
 
 1. Extract input data from the ---INPUT--- section above
-   (requestId, storyId, title, description, asA, iWant, soThat)
 
 2. Send Progress: Execute this curl command immediately:
 ```bash
