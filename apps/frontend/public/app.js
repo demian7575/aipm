@@ -42,6 +42,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -685,6 +686,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7341,6 +7348,55 @@ function openReferenceModal(storyId) {
           await refreshModalContent();
           showToast('Reference document removed', 'success');
         } catch (error) {
+
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.id = 'story-list-modal';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+  container.style.maxHeight = '60vh';
+  container.style.overflow = 'auto';
+
+  const listEl = document.createElement('div');
+  listEl.style.display = 'flex';
+  listEl.style.flexDirection = 'column';
+  listEl.style.gap = '0.5rem';
+
+  const allStories = Array.from(storyIndex.values());
+  
+  if (allStories.length === 0) {
+    listEl.innerHTML = '<p>No stories available.</p>';
+  } else {
+    // Limit to 50 items as per story requirements
+    const displayStories = allStories.slice(0, 50);
+    
+    displayStories.forEach(story => {
+      const storyItem = document.createElement('div');
+      storyItem.style.padding = '0.5rem';
+      storyItem.style.border = '1px solid #ddd';
+      storyItem.style.borderRadius = '4px';
+      storyItem.style.cursor = 'pointer';
+      storyItem.textContent = story.title;
+      
+      storyItem.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      
+      listEl.appendChild(storyItem);
+    });
+  }
+
+  container.appendChild(listEl);
+
+  openModal('Story List', container, [
+    { label: 'Close', action: () => closeModal() }
+  ]);
+}
           showToast(error.message || 'Failed to delete reference document', 'error');
         }
       });
