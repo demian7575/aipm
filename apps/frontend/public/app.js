@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -685,6 +686,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7341,6 +7348,61 @@ function openReferenceModal(storyId) {
           await refreshModalContent();
           showToast('Reference document removed', 'success');
         } catch (error) {
+
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+  container.style.maxHeight = '60vh';
+  container.style.overflow = 'auto';
+
+  const stories = Array.from(storyIndex.values());
+  
+  if (stories.length === 0) {
+    container.innerHTML = '<p>No stories available.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '0.5rem';
+      item.style.borderBottom = '1px solid #e0e0e0';
+      item.style.cursor = 'pointer';
+      item.textContent = story.title || 'Untitled Story';
+      
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = '';
+      });
+      
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [],
+    size: 'medium'
+  });
+}
           showToast(error.message || 'Failed to delete reference document', 'error');
         }
       });
