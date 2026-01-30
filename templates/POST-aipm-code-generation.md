@@ -54,7 +54,7 @@ git reset --hard HEAD
 git clean -fd
 git fetch origin
 git checkout {branchName}
-git pull origin {branchName} --rebase || true
+git rebase origin/main
 ```
 
 Step 3. Analyze Codebase
