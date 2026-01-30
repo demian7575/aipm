@@ -83,17 +83,19 @@ Write code following story requirements to satisfy acceptance tests and existing
 
 5. Run Gating Tests (MANDATORY)
 ```bash
-# Send progress update
 echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
+# Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 
 # Check if gating tests should be skipped
+echo "[$(date +%H:%M:%S)] Step 5a: Checking skipGatingTests flag"
 if [ "{skipGatingTests}" == "true" ]; then
-  echo "Skipping gating tests (running during Phase 2 E2E tests)"
+  echo "[$(date +%H:%M:%S)] Step 5b: Skipping gating tests (running during Phase 2 E2E tests)"
   # Proceed directly to Step 6
 else
+  echo "[$(date +%H:%M:%S)] Step 5c: Running Phase 1, 2, and 4 tests"
   # Run Phase 1 and 2 and newly added Phase 4 tests
   bash scripts/testing/phase1-basic-api.sh
   bash scripts/testing/phase2-e2e-workflows.sh
@@ -106,7 +108,9 @@ else
     # Return error - will retry in step 4
     exit 1
   fi
+  echo "[$(date +%H:%M:%S)] Step 5d: Gating tests completed"
 fi
+echo "[$(date +%H:%M:%S)] Step 5e: Gating tests step finished"
 
 # Check output for: "ALL GATING TESTS PASSED" (Phase 1,2) and story test passes
 # If fails: Fix code and return to step 4 (max 3 attempts)
