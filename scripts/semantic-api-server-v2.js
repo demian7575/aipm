@@ -126,8 +126,6 @@ const server = http.createServer(async (req, res) => {
       // Build prompt with clear input data separation
       const prompt = `Read and execute template at ${templatePath}.
 
-IMPORTANT: Do NOT comment on or describe the input data. Extract variables silently and proceed directly to execution.
-
 ---INPUT---
 ${JSON.stringify(inputData)}
 ---END INPUT---`;
