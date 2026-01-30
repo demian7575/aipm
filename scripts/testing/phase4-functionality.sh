@@ -26,24 +26,12 @@ echo ""
 PHASE4_PASSED=0
 PHASE4_FAILED=0
 
-# Helper function to check if test should run
-should_run_test() {
-    local test_story_id="$1"
-    if [[ -z "$STORY_ID_FILTER" ]]; then
-        return 0  # No filter, run all tests
-    fi
-    if [[ "$test_story_id" == "$STORY_ID_FILTER" ]]; then
-        return 0  # Matches filter
-    fi
-    return 1  # Skip this test
-}
-
 # =============================================================================
 # Story: Remove Hide Completed Button
 # ID: 1768754109973
 # Merged: 2026-01-22
 # =============================================================================
-test_remove_hide_completed_button() {
+test_1768754109973_remove_hide_completed_button() {
     log_test "Remove Hide Completed Button"
     
     # Test 1: Verify Hide Completed button is removed
@@ -76,7 +64,7 @@ test_remove_hide_completed_button() {
 # ID: 1768490120028
 # Merged: 2026-01-23
 # =============================================================================
-test_enable_connection_to_parent_user_story() {
+test_1768490120028_enable_connection_to_parent_user_story() {
     log_test "Enable connection to parent User Story"
     
     # Test 1: Verify parent ID input field exists in frontend
@@ -116,7 +104,7 @@ test_enable_connection_to_parent_user_story() {
 # ID: [Story ID]
 # Merged: [Date]
 # =============================================================================
-# test_story_name() {
+# test_STORYID_story_name() {
 #     log_test "[Story Title]"
 #     
 #     # Test 1: [Description]
@@ -131,30 +119,23 @@ test_enable_connection_to_parent_user_story() {
 echo "Running Phase 4 functionality tests..."
 echo ""
 
-if should_run_test "1768754109973"; then
-    if test_remove_hide_completed_button; then
+# Discover all test functions
+if [[ -n "$STORY_ID_FILTER" ]]; then
+    # Run only tests matching story ID
+    TEST_FUNCTIONS=$(declare -F | awk '{print $3}' | grep "^test_${STORY_ID_FILTER}_")
+else
+    # Run all test functions
+    TEST_FUNCTIONS=$(declare -F | awk '{print $3}' | grep "^test_[0-9]")
+fi
+
+# Execute discovered tests
+for test_func in $TEST_FUNCTIONS; do
+    if $test_func; then
         ((PHASE4_PASSED++))
     else
         ((PHASE4_FAILED++))
-    fi
-fi
-
-if should_run_test "1768490120028"; then
-    if test_enable_connection_to_parent_user_story; then
-        ((PHASE4_PASSED++))
-    else
-        ((PHASE4_FAILED++))
-    fi
-fi
-
-# ADD NEW TEST FUNCTION CALLS HERE
-# if should_run_test "STORY_ID"; then
-#     if test_your_story_name; then
-#         ((PHASE4_PASSED++))
-#     else
-#         ((PHASE4_FAILED++))
-#     fi
-# fi
+    fi || true  # Prevent set -e from exiting on test failure
+done
 
 # Summary
 echo ""
