@@ -30,6 +30,15 @@ The input data is provided in the ---INPUT--- section below. Extract the story o
 ---INPUT---
 ```
 
+## Variables available:
+- story: Full story object
+- storyTitle: Story title (story.title)
+- storyDescription: Story description
+- asA, iWant, soThat: User story components
+- idea: Optional test idea or focus area
+- ordinal: Test number
+- requestId: Request ID for API callbacks
+
 ## Output Schema
 ```json
 {

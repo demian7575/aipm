@@ -22,6 +22,17 @@ The input data is provided in the ---INPUT--- section below. Extract the story a
 ---INPUT---
 ```
 
+## Variables available:
+- story: Full story object
+- storyId: Story ID (story.id)
+- storyTitle: Story title
+- storyDescription: Story description
+- acceptanceTests: Array of acceptance tests
+- branchName: Git branch name
+- prNumber: GitHub PR number
+- skipGatingTests: Skip gating tests flag
+- requestId: Request ID for API callbacks
+
 ## ROLE
 **YOU ARE**: Code Generator executing specifications exactly as written
 **EXECUTE**: Complete workflow immediately without questions or explanations
@@ -150,7 +161,3 @@ echo "✅ Completion response sent to Semantic API"
 - No breaking changes
 - Minimize duplication
 - Keep simple and clear
-
-
-## INPUT
-All input data is provided in the ---INPUT--- section at the top of this template. Extract the data you need from there.

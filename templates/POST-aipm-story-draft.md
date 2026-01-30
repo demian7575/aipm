@@ -29,6 +29,13 @@ The input data is provided in the ---INPUT--- section below. Extract the request
 ---INPUT---
 ```
 
+## Variables available:
+- featureDescription: Feature to implement
+- parentId: Parent story ID (or null)
+- parent: Full parent story object (if parentId provided)
+- components: Component array
+- requestId: Request ID for API callbacks
+
 ## Output Schema
 ```json
 {

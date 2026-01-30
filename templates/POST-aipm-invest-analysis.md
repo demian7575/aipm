@@ -29,6 +29,17 @@ The input data is provided in the ---INPUT--- section below. Extract the story o
 ---INPUT---
 ```
 
+## Variables available:
+- story: Full story object with all fields
+- storyId: Story ID (story.id)
+- title: Story title
+- description: Story description
+- asA, iWant, soThat: User story components
+- storyPoint: Story points
+- components: Component array
+- acceptanceTests: Array of acceptance tests
+- requestId: Request ID for API callbacks
+
 ## INVEST Principles
 
 **INCLUDE**: `templates/INVEST_SCORING_RULES.md`
