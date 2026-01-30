@@ -64,9 +64,11 @@ phase2_step1_story_draft_generation() {
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"featureDescription\":\"As a user, I want a button in the header that opens a modal showing a simple list of story titles, so I can quickly see all stories.\",
-            \"parentId\":$PHASE2_PARENT_STORY_ID,
-            \"components\":[\"WorkModel\"]
+            \"request\": {
+                \"featureDescription\":\"As a user, I want a button in the header that opens a modal showing a simple list of story titles, so I can quickly see all stories.\",
+                \"parentId\":$PHASE2_PARENT_STORY_ID,
+                \"components\":[\"WorkModel\"]
+            }
         }" 2>&1)
     
     if [[ $? -ne 0 ]]; then
@@ -218,10 +220,11 @@ phase2_step4_invest_analysis() {
         return
     fi
     
-    # Run INVEST analysis via SSE with increased timeout
+    # Run INVEST analysis via SSE with timeout for AI processing
+    # Note: AI analysis can take 60-90 seconds depending on session availability
     local request_id="phase2-invest-$(date +%s)"
     local response
-    response=$(timeout 60 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/invest-analysis?stream=true" \
+    response=$(timeout 120 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/invest-analysis?stream=true" \
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
@@ -297,10 +300,9 @@ phase2_step5_acceptance_test_draft() {
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"storyId\":$PHASE2_CHILD_STORY_ID,
-            \"title\":$(echo "$story_data" | jq -c '.title'),
-            \"description\":$(echo "$story_data" | jq -c '.description'),
-            \"idea\":\"Test OAuth2 login flow with Google provider\"
+            \"story\": $(echo "$story_data" | jq -c '.'),
+            \"idea\":\"Test OAuth2 login flow with Google provider\",
+            \"ordinal\":1
         }" 2>&1)
     
     if [[ $? -ne 0 ]]; then
@@ -424,11 +426,14 @@ phase2_step7_generate_code() {
     echo "   📍 Generating code for PR #$PHASE2_PR_NUMBER"
     echo "   📍 Branch: $PHASE2_BRANCH_NAME"
     
+    # Get full story data
+    local story_data=$(curl -s $USE_DEV_TABLES_HEADER "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    
     response=$(timeout 600 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/code-generation?stream=true" \
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"storyId\":$PHASE2_CHILD_STORY_ID,
+            \"story\": $(echo "$story_data" | jq -c '.'),
             \"branchName\":\"$PHASE2_BRANCH_NAME\",
             \"prNumber\":$PHASE2_PR_NUMBER,
             \"skipGatingTests\":true
