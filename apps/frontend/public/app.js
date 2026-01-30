@@ -42,6 +42,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -676,6 +677,12 @@ function setDependencyOverlayVisible(visible) {
 
 function toggleDependencyOverlay() {
   setDependencyOverlayVisible(!state.showDependencies);
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
 }
 
 if (referenceBtn) {
@@ -7263,6 +7270,58 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+/**
+ * Opens a modal displaying all story titles in a simple list format
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.id = 'story-list-modal';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+
+  const listEl = document.createElement('ul');
+  listEl.style.listStyle = 'none';
+  listEl.style.padding = '0';
+  listEl.style.margin = '0';
+  listEl.style.maxHeight = '400px';
+  listEl.style.overflowY = 'auto';
+
+  const allStories = Array.from(storyIndex.values());
+  
+  if (allStories.length === 0) {
+    listEl.innerHTML = '<li style="padding: 1rem; text-align: center; color: #666;">No stories available</li>';
+  } else {
+    allStories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '0.5rem';
+      li.style.borderBottom = '1px solid #eee';
+      li.style.cursor = 'pointer';
+      li.textContent = story.title;
+      li.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      li.addEventListener('mouseenter', () => {
+        li.style.backgroundColor = '#f5f5f5';
+      });
+      li.addEventListener('mouseleave', () => {
+        li.style.backgroundColor = '';
+      });
+      listEl.appendChild(li);
+    });
+  }
+
+  container.appendChild(listEl);
+
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [],
+    cancelLabel: 'Close'
   });
 }
 
