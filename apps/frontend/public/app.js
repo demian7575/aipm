@@ -44,6 +44,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -685,6 +686,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7157,6 +7164,45 @@ function openAcceptanceTestModal(storyId, options = {}) {
       },
     }],
   });
+}
+
+/**
+ * Opens story list modal showing all story titles
+ */
+function openStoryListModal() {
+  const allStories = state.stories.flatMap(s => getAllStoriesFlat(s));
+  
+  const container = document.createElement('div');
+  container.className = 'modal-form story-list-form';
+  
+  container.innerHTML = `
+    <div class="story-list-container">
+      <ul class="story-list">
+        ${allStories.map(story => `<li>${escapeHtml(story.title)}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+  
+  openModal('Story List', container, [
+    {
+      label: 'Close',
+      className: 'secondary',
+      action: () => {
+        closeModal();
+      }
+    }
+  ]);
+}
+
+/**
+ * Helper to get all stories recursively as flat array
+ */
+function getAllStoriesFlat(story) {
+  const stories = [story];
+  if (story.children) {
+    story.children.forEach(child => stories.push(...getAllStoriesFlat(child)));
+  }
+  return stories;
 }
 
 /**
