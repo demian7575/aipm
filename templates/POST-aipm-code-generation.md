@@ -38,8 +38,6 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 
 2. Prepare Git Branch
 ```bash
-cd /home/ec2-user/aipm
-
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
@@ -92,7 +90,6 @@ if [ "{skipGatingTests}" == "true" ]; then
   # Proceed directly to Step 6
 else
   # Run Phase 1 and 2 and newly added Phase 4 tests
-  cd /home/ec2-user/aipm
   bash scripts/testing/phase1-basic-api.sh
   bash scripts/testing/phase2-e2e-workflows.sh
   
@@ -111,8 +108,6 @@ fi
 
 6. Commit & Push
 ```bash
-cd /home/ec2-user/aipm
-
 # Send progress update
 curl -X POST http://localhost:8083/api/code-generation-response \
   -H 'Content-Type: application/json' \
@@ -125,7 +120,6 @@ git push origin {branchName}
 
 7. Report Completion (MANDATORY - DO NOT SKIP)
 ```bash
-cd /home/ec2-user/aipm
 REQUEST_ID="{requestId}"
 
 curl -X POST http://localhost:8083/api/code-generation-response \
