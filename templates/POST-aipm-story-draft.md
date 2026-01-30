@@ -23,7 +23,7 @@ Extract the following variables from the input data:
 
 1. Extract input data from the input data
 
-2. Send Progress 1: Apply INVEST
+2. Send Progress 1: Analyzing feature requirements...
 ```bash
 curl -X POST http://localhost:8083/api/story-draft-response \
   -H 'Content-Type: application/json' \
