@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -685,6 +686,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7263,6 +7270,65 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+/**
+ * Opens a modal displaying all story titles in a simple list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+
+  const listEl = document.createElement('div');
+  listEl.style.maxHeight = '400px';
+  listEl.style.overflowY = 'auto';
+  listEl.style.border = '1px solid var(--border-color, #ccc)';
+  listEl.style.borderRadius = '4px';
+  listEl.style.padding = '1rem';
+  
+  // Get all stories from state
+  const allStories = [];
+  function collectStories(story) {
+    allStories.push(story);
+    if (story.children) {
+      story.children.forEach(collectStories);
+    }
+  }
+  
+  if (state.rootStory) {
+    collectStories(state.rootStory);
+  }
+  
+  // Display story titles
+  if (allStories.length === 0) {
+    listEl.textContent = 'No stories found.';
+  } else {
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.padding = '0';
+    ul.style.margin = '0';
+    
+    allStories.forEach(story => {
+      const li = document.createElement('li');
+      li.textContent = story.title || 'Untitled Story';
+      li.style.padding = '0.5rem';
+      li.style.borderBottom = '1px solid var(--border-color, #eee)';
+      ul.appendChild(li);
+    });
+    
+    listEl.appendChild(ul);
+  }
+  
+  container.appendChild(listEl);
+
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [],
+    size: 'medium'
   });
 }
 
