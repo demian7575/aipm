@@ -5705,6 +5705,22 @@ export async function createApp() {
       return;
     }
 
+    /**
+     * Version endpoint - returns application version
+     * @route GET /version
+     * @returns {Object} version information
+     */
+    if (pathname === '/version' && method === 'GET') {
+      try {
+        const { readFile } = await import('fs/promises');
+        const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
+        sendJson(res, 200, { version: pkg.version, app: 'AIPM' });
+      } catch (error) {
+        sendJson(res, 500, { error: 'Failed to read version' });
+      }
+      return;
+    }
+
     if (pathname === '/api/run-staging' && method === 'POST') {
       // Staging deployment endpoint - returns 500 for automated tests as expected
       sendJson(res, 500, { 
