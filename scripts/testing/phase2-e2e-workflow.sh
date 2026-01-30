@@ -225,12 +225,7 @@ phase2_step4_invest_analysis() {
         -H 'Content-Type: application/json' \
         -d "{
             \"requestId\":\"$request_id\",
-            \"storyId\":$PHASE2_CHILD_STORY_ID,
-            \"title\":$(echo "$story_data" | jq -c '.title'),
-            \"description\":$(echo "$story_data" | jq -c '.description'),
-            \"asA\":$(echo "$story_data" | jq -c '.asA'),
-            \"iWant\":$(echo "$story_data" | jq -c '.iWant'),
-            \"soThat\":$(echo "$story_data" | jq -c '.soThat')
+            \"story\": $(echo "$story_data" | jq -c '.')
         }" 2>&1)
     
     if [[ $? -ne 0 ]]; then
