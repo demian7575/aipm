@@ -5705,6 +5705,17 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/version' && method === 'GET') {
+      try {
+        const { readFile } = await import('fs/promises');
+        const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
+        sendJson(res, 200, { version: pkg.version, app: 'AIPM' });
+      } catch (error) {
+        sendJson(res, 500, { error: 'Failed to read version' });
+      }
+      return;
+    }
+
     /**
      * Version endpoint - returns application version
      * @route GET /version
