@@ -17,7 +17,15 @@ Extract the following variables from the input data:
 
 ## ROLE
 **YOU ARE**: Code Generator executing specifications exactly as written
+**MODE**: Step-by-step execution
+**RULE**: Each STEP must complete successfully before the next STEP starts
 **EXECUTE**: Complete workflow immediately without questions or explanations
+
+## EXECUTION MODEL
+- Each STEP is executed in an isolated bash execution
+- Exit code determines STEP success or failure
+- Failure aborts the workflow immediately
+- Progress is reported via curl inside each STEP
 
 ## CONDITIONAL EXECUTION
 
@@ -37,6 +45,8 @@ curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type
 
 Step 2. Prepare Git Branch
 
+PRECONDITION: Step 1 completed successfully
+
 echo "[$(date +%H:%M:%S)] Step 2: Preparing git branch"
 curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Preparing git branch...\"}"
 git reset --hard HEAD
@@ -47,21 +57,19 @@ git rebase origin/main
 
 Step 3. Analyze Codebase
 
-# Send progress update
+PRECONDITION: Step 2 completed successfully
+
 echo "[$(date +%H:%M:%S)] Step 3: Analyzing codebase"
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Analyzing codebase...\"}"
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Analyzing codebase...\"}"
 
 Analayze Code Base and Identify Integration points, patterns, conventions
 
 Step 4. Implement
 
-# Send progress update
+PRECONDITION: Step 3 completed successfully
+
 echo "[$(date +%H:%M:%S)] Step 4: Generating code"
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Generating code...\"}"
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Generating code...\"}"
 
 Write code following story requirements to satisfy acceptance tests and existing patterns:
 - Follow existing AIPM patterns
@@ -74,15 +82,13 @@ Write code following story requirements to satisfy acceptance tests and existing
 
 Step 5. Run Gating Tests (MANDATORY - unless skipGatingTests is true)
 
-echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
+PRECONDITION: Step 4 completed successfully
 
+echo "[$(date +%H:%M:%S)] Step 5: Running gating tests"
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Running gating tests...\"}"
 bash scripts/testing/phase1-basic-api.sh
 bash scripts/testing/phase2-e2e-workflows.sh
 bash scripts/testing/phase4-functionality.sh {storyId}
-
 if [ $? -ne 0 ]; then
   echo "Gating tests failed"
   git reset --hard HEAD
@@ -92,24 +98,21 @@ echo "[$(date +%H:%M:%S)] Step 5: Gating tests completed"
 
 Step 6. Commit & Push
 
-# Send progress update
-echo "[$(date +%H:%M:%S)] Step 6: Committing and pushing"
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Committing and pushing code...\"}"
+PRECONDITION: Step 5 completed successfully (or skipped if skipGatingTests is true)
 
+echo "[$(date +%H:%M:%S)] Step 6: Committing and pushing"
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Committing and pushing code...\"}"
 git add -A
 git commit -m "feat: {story title}"
 git push origin {branchName}
 
 Step 7. Report Completion (MANDATORY - DO NOT SKIP)
 
+PRECONDITION: Step 6 completed successfully
+
 echo "[$(date +%H:%M:%S)] Step 7: Reporting completion"
 REQUEST_ID="{requestId}"
-
-curl -X POST http://localhost:8083/api/code-generation-response \
-  -H 'Content-Type: application/json' \
-  -d "{
+curl -X POST http://localhost:8083/api/code-generation-response -H 'Content-Type: application/json' -d "{
     \"requestId\": \"$REQUEST_ID\",
     \"status\": \"complete\",
     \"filesModified\": [\"apps/backend/app.js\", \"apps/frontend/public/app.js\"],
