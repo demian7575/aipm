@@ -70,9 +70,14 @@ curl -X POST http://localhost:8083/api/code-generation-response \
   -d "{\"requestId\": \"$REQUEST_ID\", \"status\": \"progress\", \"message\": \"Generating code...\"}"
 ```
 
-Write code following story requirements to satisfy Acceptnace tests and existing patterns
-Implement acceptance tests to phase4-functionality.sh"
-```
+Write code following story requirements to satisfy acceptance tests and existing patterns:
+- Follow existing AIPM patterns
+- Add error handling (try-catch)
+- Add JSDoc comments
+- No breaking changes
+- Minimize duplication
+- Keep simple and clear
+- Implement acceptance tests to phase4-functionality.sh
 
 5. Run Gating Tests (MANDATORY)
 ```bash
@@ -139,11 +144,3 @@ curl -X POST http://localhost:8083/api/code-generation-response \
 echo "✅ Completion response sent to Semantic API"
 
 **IMPORTANT**: This step is MANDATORY. Without it, the request will timeout.
-
-## CODE REQUIREMENTS
-- Follow existing AIPM patterns
-- Add error handling (try-catch)
-- Add JSDoc comments
-- No breaking changes
-- Minimize duplication
-- Keep simple and clear
