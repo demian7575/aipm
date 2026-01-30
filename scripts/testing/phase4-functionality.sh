@@ -86,6 +86,43 @@ test_enable_connection_to_parent_user_story() {
     pass_test "Enable connection to parent User Story"
     return 0
 }
+
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1769754117836
+# Merged: 2026-01-30
+# =============================================================================
+test_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify button exists in HTML header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button has correct text
+    if ! grep -q 'Story List' apps/frontend/public/index.html; then
+        fail_test "Story List button text not found"
+        return 1
+    fi
+    
+    # Test 3: Verify openStoryListModal function exists
+    if ! grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    # Test 4: Verify button click handler is registered
+    if ! grep -q "storyListBtn.addEventListener('click'" apps/frontend/public/app.js; then
+        fail_test "Story List button click handler not registered"
+        return 1
+    fi
+    
+    pass_test "Add Story List Button"
+    return 0
+}
+
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -114,6 +151,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_add_story_list_button; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
