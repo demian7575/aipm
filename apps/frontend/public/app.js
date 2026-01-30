@@ -42,6 +42,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const exportCsvBtn = document.getElementById('export-csv-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -691,6 +692,12 @@ if (referenceBtn) {
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
+  });
+}
+
+if (exportCsvBtn) {
+  exportCsvBtn.addEventListener('click', () => {
+    exportStoriesToCsv();
   });
 }
 
@@ -7157,6 +7164,57 @@ function openAcceptanceTestModal(storyId, options = {}) {
       },
     }],
   });
+}
+
+/**
+ * Exports all stories to CSV file with ID, title, status, and assignee columns
+ */
+function exportStoriesToCsv() {
+  try {
+    const allStories = Array.from(storyIndex.values());
+    
+    if (allStories.length === 0) {
+      showToast('No stories to export', 'warning');
+      return;
+    }
+
+    // CSV header
+    const headers = ['ID', 'Title', 'Status', 'Assignee'];
+    const rows = [headers];
+
+    // Add story data
+    allStories.forEach(story => {
+      const row = [
+        story.id,
+        `"${(story.title || '').replace(/"/g, '""')}"`,
+        story.status || '',
+        story.assigneeEmail || ''
+      ];
+      rows.push(row);
+    });
+
+    // Create CSV content
+    const csvContent = rows.map(row => row.join(',')).join('\n');
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    link.setAttribute('href', url);
+    link.setAttribute('download', `stories-${timestamp}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast(`Exported ${allStories.length} stories to CSV`, 'success');
+  } catch (error) {
+    console.error('Export failed:', error);
+    showToast('Failed to export stories', 'error');
+  }
 }
 
 /**

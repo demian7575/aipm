@@ -48,6 +48,58 @@ test_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Export Button to Story List
+# ID: 1769785516985
+# Acceptance Test: Export button downloads CSV
+# =============================================================================
+test_export_csv_button_1769785516985() {
+    log_test "Export CSV Button - Downloads story data as CSV"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="export-csv-btn"' apps/frontend/public/index.html; then
+        fail_test "Export CSV button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in app.js
+    if ! grep -q "getElementById('export-csv-btn')" apps/frontend/public/app.js; then
+        fail_test "Export CSV button element reference not found"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener is attached
+    if ! grep -q "exportCsvBtn.addEventListener" apps/frontend/public/app.js; then
+        fail_test "Export CSV button event listener not found"
+        return 1
+    fi
+    
+    # Test 4: Verify exportStoriesToCsv function exists
+    if ! grep -q "function exportStoriesToCsv" apps/frontend/public/app.js; then
+        fail_test "exportStoriesToCsv function not found"
+        return 1
+    fi
+    
+    # Test 5: Verify CSV headers include required columns
+    if ! grep -q "ID.*Title.*Status.*Assignee" apps/frontend/public/app.js; then
+        fail_test "CSV headers do not include required columns"
+        return 1
+    fi
+    
+    # Test 6: Verify CSV download functionality
+    if ! grep -q "text/csv" apps/frontend/public/app.js; then
+        fail_test "CSV MIME type not set"
+        return 1
+    fi
+    if ! grep -q "createObjectURL" apps/frontend/public/app.js; then
+        fail_test "CSV download mechanism not implemented"
+        return 1
+    fi
+    
+    pass_test "Export CSV Button"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23
@@ -114,6 +166,12 @@ else
 fi
 
 if test_enable_connection_to_parent_user_story; then
+    ((PHASE4_PASSED++))
+else
+    ((PHASE4_FAILED++))
+fi
+
+if test_export_csv_button_1769785516985; then
     ((PHASE4_PASSED++))
 else
     ((PHASE4_FAILED++))
