@@ -501,27 +501,77 @@ body.is-mindmap-panning {
   color: #475569;
 }
 
-.kanban-placeholder {
-  flex: 1;
+.kanban-board {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1.5rem;
-  color: #64748b;
-  text-align: center;
+  gap: 1rem;
+  padding: 1rem;
+  height: 100%;
+  overflow-x: auto;
 }
 
-.kanban-placeholder h3 {
-  margin: 0;
-  font-size: 1.1rem;
+.kanban-column {
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9ff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.kanban-column-header {
+  padding: 0.75rem 1rem;
+  background: #eef2ff;
+  border-bottom: 2px solid #cbd5f5;
+  font-weight: 600;
+  font-size: 0.95rem;
   color: #1f2937;
 }
 
-.kanban-placeholder p {
-  margin: 0;
-  max-width: 320px;
+.kanban-column-body {
+  flex: 1;
+  padding: 0.75rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.kanban-card {
+  background: #fff;
+  border: 1px solid #cbd5f5;
+  border-radius: 6px;
+  padding: 0.75rem;
+  cursor: grab;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.kanban-card:hover {
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+  transform: translateY(-1px);
+}
+
+.kanban-card.is-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.kanban-card-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.kanban-card-meta {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.kanban-column-body.drag-over {
+  background: #dbeafe;
+  border: 2px dashed #3b82f6;
 }
 
 .heatmap-table {
