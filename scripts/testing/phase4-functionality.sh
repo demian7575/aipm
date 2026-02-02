@@ -171,6 +171,42 @@ test_1768490120028_enable_connection_to_parent_user_story() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770042561300
+# Acceptance Test: Modal displays story list when button clicked
+# =============================================================================
+test_1770042561300_story_list_modal() {
+    log_test "Story List Button - Modal displays story list"
+    
+    # Test 1: Verify button exists in HTML
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button declaration in app.js
+    if ! grep -q "storyListBtn.*getElementById.*story-list-btn" apps/frontend/public/app.js; then
+        fail_test "storyListBtn not declared in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify click handler exists
+    if ! grep -q "storyListBtn.*addEventListener.*click" apps/frontend/public/app.js; then
+        fail_test "Story List button click handler not found"
+        return 1
+    fi
+    
+    # Test 4: Verify modal is opened with story list
+    if ! grep -q "openModal.*All Stories" apps/frontend/public/app.js; then
+        fail_test "Modal not opened with story list"
+        return 1
+    fi
+    
+    pass_test "Story List button implemented correctly"
+}
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""

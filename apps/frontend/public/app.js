@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -7979,6 +7980,24 @@ function initialize() {
   renderMindmap();
   renderDetails();
   fetchVersion();
+
+  storyListBtn?.addEventListener('click', async () => {
+    try {
+      const stories = await fetchStories();
+      const list = document.createElement('ul');
+      list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+      stories.forEach(s => {
+        const li = document.createElement('li');
+        li.style.cssText = 'padding: 8px; border-bottom: 1px solid #eee;';
+        li.textContent = s.title;
+        list.appendChild(li);
+      });
+      openModal({ title: 'All Stories', content: list, cancelLabel: 'Close' });
+    } catch (err) {
+      console.error('Failed to load stories:', err);
+      showToast('Failed to load stories', 'error');
+    }
+  });
 
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
