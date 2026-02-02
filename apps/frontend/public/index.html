@@ -65,12 +65,46 @@
             </div>
           </div>
         </div>
-        <div class="mindmap-wrapper">
-          <svg id="mindmap-canvas" aria-label="Mindmap" role="presentation"></svg>
+        <div class="view-tabs" role="tablist" aria-label="Mindmap and Kanban views">
+          <button
+            class="view-tab is-active"
+            type="button"
+            role="tab"
+            id="view-tab-mindmap"
+            aria-selected="true"
+            aria-controls="mindmap-view"
+            data-view="mindmap"
+          >
+            Mindmap
+          </button>
+          <button
+            class="view-tab"
+            type="button"
+            role="tab"
+            id="view-tab-kanban"
+            aria-selected="false"
+            aria-controls="kanban-view"
+            data-view="kanban"
+          >
+            Kanban
+          </button>
         </div>
-        <footer class="mindmap-footer">
-          <span id="layout-status">Auto layout enabled</span>
-        </footer>
+        <div class="view-panel">
+          <div id="mindmap-view" class="view-content is-active" role="tabpanel" tabindex="0" aria-labelledby="view-tab-mindmap">
+            <div class="mindmap-wrapper">
+              <svg id="mindmap-canvas" aria-label="Mindmap" role="presentation"></svg>
+            </div>
+            <footer class="mindmap-footer">
+              <span id="layout-status">Auto layout enabled</span>
+            </footer>
+          </div>
+          <div id="kanban-view" class="view-content" role="tabpanel" tabindex="0" aria-labelledby="view-tab-kanban" hidden>
+            <div class="kanban-placeholder">
+              <h3>Kanban view</h3>
+              <p>Switch back to Mindmap anytime to view the story tree.</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <div
