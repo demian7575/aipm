@@ -3643,7 +3643,7 @@ function createKanbanCard(story) {
   card.addEventListener('dragstart', handleKanbanDragStart);
   card.addEventListener('dragend', handleKanbanDragEnd);
   card.addEventListener('click', () => {
-    selectStory(story.id);
+    handleStorySelection(story);
   });
   
   return card;
