@@ -40,6 +40,7 @@ const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
+const storyListBtn = document.getElementById('story-list-btn');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
@@ -7391,6 +7392,54 @@ function openAcceptanceTestModal(storyId, options = {}) {
 }
 
 /**
+ * Opens modal showing list of all story titles
+ */
+function openStoryListModal() {
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.maxHeight = '60vh';
+  container.style.overflowY = 'auto';
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p class="empty-state">No stories available.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.cursor = 'pointer';
+      item.textContent = story.title;
+      item.addEventListener('click', () => {
+        handleStorySelection(story);
+        closeModal();
+      });
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = '';
+      });
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    cancelLabel: 'Close'
+  });
+}
+
+/**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
 function openFilterModal() {
@@ -8005,7 +8054,9 @@ function initialize() {
     window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
 
-
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
+  });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
