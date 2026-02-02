@@ -187,6 +187,48 @@ textarea {
   font-size: 1.05rem;
 }
 
+.view-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid #d1d5db;
+  background: transparent;
+}
+
+.view-tab {
+  border: 1px solid #d1d5db;
+  border-bottom: none;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  padding: 0.35rem 0.9rem;
+  background: transparent;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  top: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.view-tab:hover,
+.view-tab:active {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.view-tab.is-active {
+  background: #fff;
+  color: #111827;
+  border-bottom: none;
+  top: 1px;
+  z-index: 1;
+}
+
+.view-tab:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .panel-actions {
   display: flex;
   gap: 0.5rem;
