@@ -61,6 +61,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -697,6 +698,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7156,6 +7163,51 @@ function openAcceptanceTestModal(storyId, options = {}) {
         }
       },
     }],
+  });
+}
+
+/**
+ * Opens story list modal showing all story titles
+ */
+function openStoryListModal() {
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.cssText = 'max-height: 400px; overflow-y: auto;';
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No stories found</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+    
+    allStories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.cssText = 'padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;';
+      li.textContent = story.title || 'Untitled Story';
+      li.addEventListener('mouseenter', () => {
+        li.style.backgroundColor = '#f5f5f5';
+      });
+      li.addEventListener('mouseleave', () => {
+        li.style.backgroundColor = '';
+      });
+      li.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      list.appendChild(li);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: '📋 Story List',
+    content: container,
+    actions: [],
+    cancelLabel: 'Close',
+    size: 'default'
   });
 }
 
