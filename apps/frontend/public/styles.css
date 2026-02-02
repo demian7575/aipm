@@ -170,6 +170,13 @@ textarea {
   overflow: hidden;
 }
 
+.view-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .panel.hidden {
   display: none;
 }
@@ -408,6 +415,11 @@ body.is-resizing * {
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
   cursor: grab;
+}
+
+.view-panel .mindmap-wrapper {
+  flex: 1;
+  min-height: 0;
 }
 
 .mindmap-wrapper::-webkit-scrollbar {
