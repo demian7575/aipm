@@ -60,6 +60,7 @@ const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
 const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
+const storyListBtn = document.getElementById('story-list-btn');
 const filterBtn = document.getElementById('filter-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
@@ -735,6 +736,12 @@ if (referenceBtn) {
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7203,6 +7210,48 @@ function openAcceptanceTestModal(storyId, options = {}) {
         }
       },
     }],
+  });
+}
+
+/**
+ * Opens story list modal showing all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  const allStories = flattenStories(state.stories);
+  
+  if (allStories.length === 0) {
+    const emptyMsg = document.createElement('p');
+    emptyMsg.className = 'placeholder';
+    emptyMsg.textContent = 'No stories available';
+    container.appendChild(emptyMsg);
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'story-list';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = '#';
+      link.textContent = story.title;
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        selectStory(story.id);
+        closeModal();
+      });
+      item.appendChild(link);
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close'
   });
 }
 
