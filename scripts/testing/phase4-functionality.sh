@@ -171,6 +171,36 @@ test_1768490120028_enable_connection_to_parent_user_story() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770047421685
+# Merged: 2026-02-02
+# =============================================================================
+test_1770047421685_view_stories_modal() {
+    log_test "View Stories Modal"
+    
+    # Test 1: Verify View Stories button exists in header
+    if ! grep -q 'id="view-stories-btn"' apps/frontend/public/index.html; then
+        fail_test "View Stories button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify openViewStoriesModal function exists
+    if ! grep -q "function openViewStoriesModal" apps/frontend/public/app.js; then
+        fail_test "openViewStoriesModal function not found"
+        return 1
+    fi
+    
+    # Test 3: Verify button click handler is registered
+    if ! grep -q "view-stories-btn.*addEventListener.*openViewStoriesModal" apps/frontend/public/app.js; then
+        fail_test "View Stories button click handler not registered"
+        return 1
+    fi
+    
+    pass_test "View Stories modal implemented correctly"
+}
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""
