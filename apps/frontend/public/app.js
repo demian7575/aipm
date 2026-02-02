@@ -1224,8 +1224,16 @@ function loadPreferences() {
   }
 
   toggleOutline.checked = state.panelVisibility.outline;
-  toggleMindmap.checked = state.panelVisibility.mindmap;
   toggleDetails.checked = state.panelVisibility.details;
+  
+  // Set active view tab based on mindmap visibility
+  if (state.panelVisibility.mindmap) {
+    viewTabMindmap.classList.add('active');
+    viewTabKanban.classList.remove('active');
+  } else {
+    viewTabMindmap.classList.remove('active');
+    viewTabKanban.classList.add('active');
+  }
 }
 
 function persistExpanded() {
