@@ -182,6 +182,13 @@ textarea {
   border-bottom: 1px solid #e5e9f5;
 }
 
+.panel-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
 .panel-header h2 {
   margin: 0;
   font-size: 1.05rem;
@@ -190,6 +197,44 @@ textarea {
 .panel-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.panel-actions.hidden {
+  display: none;
+}
+
+.view-tabs {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  border: 1px solid #dbe3ff;
+  gap: 0.25rem;
+  width: max-content;
+}
+
+.view-tab {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.view-tab.is-active {
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 0 0 1px #cbd5f5;
+}
+
+.view-tab:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
 }
 
 .resize-handle {
@@ -254,6 +299,89 @@ body.is-resizing * {
   min-width: 3ch;
   text-align: center;
   color: #1f2937;
+}
+
+.view-panel.hidden {
+  display: none;
+}
+
+.kanban-board {
+  flex: 1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #f8fafc;
+}
+
+.kanban-column {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e9f5;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.kanban-column-header {
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid #eef2ff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.kanban-count {
+  font-size: 0.75rem;
+  background: #eef2ff;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  color: #4f46e5;
+}
+
+.kanban-column-body {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  overflow-y: auto;
+}
+
+.kanban-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.65rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #1f2937;
+}
+
+.kanban-card-title {
+  font-weight: 600;
+  color: #111827;
+}
+
+.kanban-card-meta {
+  font-size: 0.75rem;
+  color: #6b7280;
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.kanban-empty {
+  padding: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .outline-tree {

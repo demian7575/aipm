@@ -55,8 +55,18 @@
 
       <section id="mindmap-panel" class="panel mindmap-panel">
         <div class="panel-header">
-          <h2>Mindmap</h2>
-          <div class="panel-actions">
+          <div class="panel-title">
+            <h2>Work Model</h2>
+            <div class="view-tabs" role="tablist" aria-label="Work model views">
+              <button class="view-tab is-active" data-view-tab="mindmap" role="tab" aria-selected="true" type="button">
+                Mindmap
+              </button>
+              <button class="view-tab" data-view-tab="kanban" role="tab" aria-selected="false" type="button">
+                Kanban
+              </button>
+            </div>
+          </div>
+          <div class="panel-actions mindmap-controls">
             <button id="auto-layout-toggle" class="secondary">Auto Layout</button>
             <div class="mindmap-zoom-controls" role="group" aria-label="Mindmap zoom">
               <button id="mindmap-zoom-out" class="secondary" type="button" aria-label="Zoom out">−</button>
@@ -65,12 +75,17 @@
             </div>
           </div>
         </div>
-        <div class="mindmap-wrapper">
-          <svg id="mindmap-canvas" aria-label="Mindmap" role="presentation"></svg>
+        <div id="mindmap-view" class="view-panel">
+          <div class="mindmap-wrapper">
+            <svg id="mindmap-canvas" aria-label="Mindmap" role="presentation"></svg>
+          </div>
+          <footer class="mindmap-footer">
+            <span id="layout-status">Auto layout enabled</span>
+          </footer>
         </div>
-        <footer class="mindmap-footer">
-          <span id="layout-status">Auto layout enabled</span>
-        </footer>
+        <div id="kanban-view" class="view-panel hidden">
+          <div id="kanban-board" class="kanban-board" role="region" aria-label="Kanban board"></div>
+        </div>
       </section>
 
       <div

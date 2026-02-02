@@ -55,6 +55,11 @@ const toggleOutline = document.getElementById('toggle-outline');
 const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
 const mindmapPanel = document.getElementById('mindmap-panel');
+const mindmapViewPanel = document.getElementById('mindmap-view');
+const kanbanViewPanel = document.getElementById('kanban-view');
+const kanbanBoard = document.getElementById('kanban-board');
+const viewTabButtons = document.querySelectorAll('[data-view-tab]');
+const mindmapControls = document.querySelector('.mindmap-controls');
 const mindmapWrapper = document.querySelector('.mindmap-wrapper');
 const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
 const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
@@ -127,6 +132,7 @@ const STORAGE_KEYS = {
   lastBackup: 'aiPm.lastBackup',
   hideCompleted: 'aiPm.hideCompleted',
   filters: 'aiPm.filters',
+  workModelView: 'aiPm.workModelView',
 };
 
 const AIPM_VERSION = '1.0.0'; // Update this when making breaking changes
@@ -138,6 +144,20 @@ const NODE_VERTICAL_GAP = 32;
 const MINDMAP_ZOOM_MIN = 0.5;
 const MINDMAP_ZOOM_MAX = 2;
 const MINDMAP_ZOOM_STEP = 0.1;
+
+const WORK_MODEL_VIEWS = {
+  mindmap: 'mindmap',
+  kanban: 'kanban',
+};
+
+const KANBAN_COLUMNS = [
+  'Draft',
+  'Ready',
+  'In Progress',
+  'Blocked',
+  'Approved',
+  'Done',
+];
 const MINDMAP_PAN_THRESHOLD = 5;
 const HORIZONTAL_STEP = 240;
 const AUTO_LAYOUT_HORIZONTAL_GAP = 80;
@@ -459,6 +479,7 @@ const state = {
     assignee: []
   },
   mindmapZoom: 1,
+  workModelView: WORK_MODEL_VIEWS.mindmap,
   panelVisibility: {
     outline: true,
     mindmap: true,
@@ -556,6 +577,37 @@ function resetMindmapPanState() {
   mindmapPanState.scrollLeft = 0;
   mindmapPanState.scrollTop = 0;
   mindmapPanState.dragging = false;
+}
+
+function setWorkModelView(nextView) {
+  if (!Object.values(WORK_MODEL_VIEWS).includes(nextView)) {
+    return;
+  }
+  if (state.workModelView === nextView) {
+    updateWorkModelView();
+    return;
+  }
+  state.workModelView = nextView;
+  persistWorkModelView();
+  updateWorkModelView();
+}
+
+function updateWorkModelView() {
+  const isMindmap = state.workModelView === WORK_MODEL_VIEWS.mindmap;
+  mindmapViewPanel?.classList.toggle('hidden', !isMindmap);
+  kanbanViewPanel?.classList.toggle('hidden', isMindmap);
+  mindmapControls?.classList.toggle('hidden', !isMindmap);
+  viewTabButtons.forEach((button) => {
+    const isActive = button.dataset.viewTab === state.workModelView;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    button.tabIndex = isActive ? 0 : -1;
+  });
+  if (isMindmap) {
+    renderMindmap();
+  } else {
+    renderKanban();
+  }
 }
 
 function suppressMindmapClick() {
@@ -1168,6 +1220,15 @@ function loadPreferences() {
   }
 
   try {
+    const viewRaw = localStorage.getItem(STORAGE_KEYS.workModelView);
+    if (viewRaw && Object.values(WORK_MODEL_VIEWS).includes(viewRaw)) {
+      state.workModelView = viewRaw;
+    }
+  } catch (error) {
+    console.error('Failed to load work model view preferences', error);
+  }
+
+  try {
     const panelsRaw = localStorage.getItem(STORAGE_KEYS.panels);
     if (panelsRaw) {
       const panels = JSON.parse(panelsRaw);
@@ -1244,6 +1305,10 @@ function persistLayout() {
     STORAGE_KEYS.layout,
     JSON.stringify({ autoLayout: state.autoLayout, positions: state.manualPositions })
   );
+}
+
+function persistWorkModelView() {
+  localStorage.setItem(STORAGE_KEYS.workModelView, state.workModelView);
 }
 
 function persistMindmap() {
@@ -2657,6 +2722,7 @@ function renderAll() {
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();
+  renderKanban();
   renderDetails();
 }
 
@@ -3506,6 +3572,74 @@ function renderMindmap() {
     layoutStatus.textContent = 'Manual layout enabled — drag nodes to reposition.';
     autoLayoutToggle.textContent = 'Enable Auto Layout';
   }
+}
+
+function renderKanban() {
+  if (!kanbanBoard) {
+    return;
+  }
+  if (!state.panelVisibility.mindmap) {
+    return;
+  }
+  kanbanBoard.innerHTML = '';
+  const visibleStories = getVisibleMindmapStories(state.stories);
+  const flatStories = flattenStories(visibleStories);
+  const storiesByStatus = new Map();
+  KANBAN_COLUMNS.forEach((status) => storiesByStatus.set(status, []));
+
+  flatStories.forEach((story) => {
+    const status = KANBAN_COLUMNS.includes(story.status) ? story.status : 'Draft';
+    storiesByStatus.get(status).push(story);
+  });
+
+  KANBAN_COLUMNS.forEach((status) => {
+    const column = document.createElement('div');
+    column.className = 'kanban-column';
+    const header = document.createElement('div');
+    header.className = 'kanban-column-header';
+    const title = document.createElement('span');
+    title.textContent = status;
+    const count = document.createElement('span');
+    count.className = 'kanban-count';
+    count.textContent = String(storiesByStatus.get(status).length);
+    header.appendChild(title);
+    header.appendChild(count);
+    column.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'kanban-column-body';
+    const stories = storiesByStatus.get(status);
+    if (stories.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'kanban-empty';
+      empty.textContent = 'No stories yet.';
+      body.appendChild(empty);
+    } else {
+      stories.forEach((story) => {
+        const card = document.createElement('div');
+        card.className = 'kanban-card';
+        const cardTitle = document.createElement('div');
+        cardTitle.className = 'kanban-card-title';
+        cardTitle.textContent = story.title || `Story ${story.id}`;
+        const meta = document.createElement('div');
+        meta.className = 'kanban-card-meta';
+        const idText = document.createElement('span');
+        idText.textContent = `#${story.id}`;
+        meta.appendChild(idText);
+        if (story.assigneeEmail) {
+          const assignee = document.createElement('span');
+          assignee.textContent = `• ${story.assigneeEmail}`;
+          meta.appendChild(assignee);
+        }
+        card.appendChild(cardTitle);
+        card.appendChild(meta);
+        body.appendChild(card);
+      });
+    }
+
+    column.appendChild(body);
+    kanbanBoard.appendChild(column);
+  });
 }
 
 function setupNodeInteraction(group, node) {
@@ -7764,9 +7898,8 @@ function initialize() {
   initializeCodeWhispererDelegations();
   initializePanelResizers();
   updateWorkspaceColumns();
-  renderOutline();
-  renderMindmap();
-  renderDetails();
+  renderAll();
+  updateWorkModelView();
   fetchVersion();
 
   openKiroTerminalBtn?.addEventListener('click', () => {
@@ -7782,6 +7915,9 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+  viewTabButtons.forEach((button) => {
+    button.addEventListener('click', () => setWorkModelView(button.dataset.viewTab));
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
