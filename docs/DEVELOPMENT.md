@@ -76,9 +76,9 @@ Automation > Documentation > Manual fixes
 ```
 
 **Why:** 
-- Fixing an error once helps **now**
-- Preventing it helps **forever**
-- Each error is an opportunity to improve the system
+- Fixing an error once helps now
+- Preventing it helps forever
+- Each error is an opportunity to improve
 - Manual fixes don't scale, automation does
 
 **Checklist after fixing any error:**
@@ -351,13 +351,13 @@ cd /repo/ebaejun/tools/aws/aipm
 **🚨 BEFORE MAKING ANY CHANGES: Read [Critical Development Principles](#critical-development-principles) section below!**
 
 ### Purpose
-AI Project Manager (AIPM) is a self-hosted mindmap and outline workspace for managing merge-request user stories, acceptance tests, and reference documentation.
+Mindmap workspace for user stories with AI code generation.
 
 ### Key Features
-- **Node.js backend** with SQLite/DynamoDB-backed REST API
-- **Vanilla JavaScript frontend** with mindmap, outline tree, and detail panel
-- **AWS deployment** support (Lambda + API Gateway + DynamoDB + S3)
-- **GitHub Codex integration** for automated development delegation
+- Node.js backend with DynamoDB
+- Vanilla JavaScript frontend (mindmap + outline + details)
+- AWS deployment (EC2 + DynamoDB + S3)
+- GitHub PR integration
 - **ChatGPT-powered INVEST analysis** for user story validation
 - **Amazon Bedrock integration** for AI-powered code generation
 - **Employee Heat Map** for workload visualization
@@ -366,12 +366,12 @@ AI Project Manager (AIPM) is a self-hosted mindmap and outline workspace for man
 - **GitHub Actions CI/CD** for automated deployments
 
 ### Technology Stack
-- **Runtime**: Node.js 18+ (Node 22+ recommended for native SQLite)
-- **Backend**: Express-like HTTP server, ES modules
+- **Runtime**: Node.js 18+
+- **Backend**: Express 5, ES modules
 - **Frontend**: Vanilla JavaScript, SVG mindmap rendering
-- **Database**: SQLite (local), DynamoDB (AWS)
-- **Deployment**: Serverless Framework, AWS CLI
-- **CI/CD**: GitHub Actions
+- **Database**: DynamoDB (production), SQLite compatibility layer (tests)
+- **Deployment**: EC2 + S3, GitHub Actions
+- **AI**: Kiro CLI via Session Pool
 
 ---
 
@@ -460,45 +460,43 @@ All feature development starts in `develop` branch, undergoes comprehensive test
 ```
 apps/
   backend/
-    app.js              # Main HTTP server + REST API (213KB)
-    server.js           # CLI entry point for local development
-    amazon-ai.js        # ChatGPT integration for INVEST analysis
-    dynamodb.js         # DynamoDB data layer for AWS deployment
-    handler.cjs         # Lambda handler wrapper
-    data/
-      app.sqlite        # Local SQLite database
-      app.sqlite.json   # JSON fallback when SQLite unavailable
-    uploads/            # Reference document storage
+    app.js              # Main HTTP server + REST API
+    server.js           # CLI entry point
+    dynamodb.js         # DynamoDB data layer
+    story-prs.js        # PR tracking
+    github-pr-service.js # GitHub API integration
   frontend/
     public/
       index.html        # Main application entry point
       app.js            # Core UI logic (mindmap, outline, details)
       styles.css        # Application styling
-      config.js         # API endpoint configuration
-      config-dev.js     # Development environment config
-      production-gating-tests.html  # Production test suite
-      production-gating-tests.js    # Test implementation
+      config.js         # API endpoint configuration (generated)
+      uploads/          # Reference document storage
       simple-pr.js      # PR card rendering
 scripts/
-  build.js            # Build script for distribution
+  semantic-api-server-v2.js  # AI template processor (port 8083)
+  kiro-session-pool.js       # Kiro CLI session manager (port 8082)
+  deploy-to-environment.sh   # Deployment script
+  testing/                   # Gating test suites
 tests/
   backend.test.js     # API regression coverage
 docs/
-  examples/           # Sample databases for testing
-serverless.yml        # AWS Lambda deployment config
-deploy.sh             # Production deployment script
-deploy-develop.sh     # Development deployment script
+  ARCHITECTURE.md     # System architecture
+  TESTING.md          # Testing strategy
+config/
+  environments.yaml   # Single source of truth for config
+  *.service          # Systemd service definitions
 ```
 
 ### Key Backend Components
 
 #### app.js (Main API Server)
-- **Size**: 213KB
 - **Responsibilities**:
   - HTTP request routing
-  - SQLite/DynamoDB data operations
-  - INVEST validation with ChatGPT integration
+  - DynamoDB data operations
+  - INVEST validation
   - Reference document management
+  - GitHub PR integration
   - GitHub delegation handling
   - CORS configuration
 
@@ -562,84 +560,72 @@ deploy-develop.sh     # Development deployment script
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  Amazon API Gateway                          │
-│  - REST API endpoint                                         │
-│  - CORS enabled                                              │
-│  - Stage: prod / dev                                         │
-│  - URL: wk6h5fkqk9.execute-api.us-east-1.amazonaws.com     │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     AWS Lambda                               │
-│  - Runtime: Node.js 18.x                                     │
-│  - Memory: 512MB                                             │
-│  - Timeout: 30s                                              │
-│  - Handler: handler.handler                                  │
-│  - Environment variables:                                    │
-│    * STAGE, STORIES_TABLE, ACCEPTANCE_TESTS_TABLE           │
+│                     EC2 Backend Servers                      │
+│  Production: 44.197.204.18                                   │
+│  Development: 44.222.168.46                                  │
+│                                                              │
+│  Services:                                                   │
+│  - Backend API (Port 4000) - Node.js + Express              │
+│  - Semantic API (Port 8083) - AI template processor         │
+│  - Session Pool (Port 8082) - Kiro CLI manager              │
+│                                                              │
+│  Environment variables:                                      │
+│    * STORIES_TABLE, ACCEPTANCE_TESTS_TABLE, PRS_TABLE       │
 │    * GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO                │
+│    * AWS_REGION                                              │
 └──────────┬──────────────────────────┬───────────────────────┘
            │                          │
            ▼                          ▼
 ┌──────────────────────┐   ┌──────────────────────────────────┐
-│  Amazon DynamoDB     │   │     Amazon Bedrock               │
-│  - Tables:           │   │  - Model: Claude 3 Sonnet        │
-│    * prod-stories    │   │  - Code generation               │
-│    * prod-tests      │   │  - AI-powered PR creation        │
-│    * dev-stories     │   │  - Cost: ~$0.05-$0.20/request   │
-│    * dev-tests       │   │  - Token limits: 4K output       │
-│  - PAY_PER_REQUEST   │   └──────────────────────────────────┘
+│  Amazon DynamoDB     │   │     Kiro CLI (AWS)               │
+│  - Tables:           │   │  - AI code generation            │
+│    * prod-stories    │   │  - Template processing           │
+│    * prod-tests      │   │  - Bash command execution        │
+│    * prod-prs        │   │  - Browser authentication        │
+│    * dev-stories     │   │  - 4 persistent sessions         │
+│    * dev-tests       │   └──────────────────────────────────┘
+│    * dev-prs         │
+│  - PAY_PER_REQUEST   │
 │  - GSI: storyId      │
 └──────────────────────┘
            │
            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     GitHub Actions                           │
-│  - Workflow: kiro-generate-code.yml                        │
-│  - Triggers: API dispatch, manual, PR events                │
-│  - Actions: Code generation, PR creation, deployment        │
+│  - Workflow: deploy-to-prod.yml, deploy-pr-to-dev.yml      │
+│  - Triggers: Push to main, PR events                        │
+│  - Actions: Run gating tests, deploy to EC2, restart services│
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### IAM Permissions
 
-Lambda execution role requires:
+EC2 instance role requires:
 - **CloudWatch Logs**: CreateLogGroup, CreateLogStream, PutLogEvents
 - **DynamoDB**: Query, Scan, GetItem, PutItem, UpdateItem, DeleteItem
-- **Amazon Bedrock**: InvokeModel (for AI code generation)
-
-#### Bedrock Policy Example
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "bedrock:InvokeModel"
-      ],
-      "Resource": "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"
-    }
-  ]
-}
-```
+- **S3**: PutObject, GetObject (for frontend deployment)
 
 ### Deployment Configuration
 
-#### serverless.yml Key Settings
+#### environments.yaml (Single Source of Truth)
 ```yaml
-provider:
-  name: aws
-  runtime: nodejs18.x
-  region: us-east-1
-  stage: ${opt:stage, 'prod'}
-  memorySize: 512
-  timeout: 30
+prod:
+  ec2_ip: "44.197.204.18"
+  api_port: 4000
+  semantic_api_port: 8083
+  s3_bucket: "aipm-static-hosting-demo"
+  dynamodb_stories_table: "aipm-backend-prod-stories"
+  dynamodb_tests_table: "aipm-backend-prod-acceptance-tests"
+  dynamodb_prs_table: "aipm-backend-prod-prs"
 
-resources:
-  StoriesTable:
-    Type: AWS::DynamoDB::Table
+dev:
+  ec2_ip: "44.222.168.46"
+  api_port: 4000
+  semantic_api_port: 8083
+  s3_bucket: "aipm-dev-frontend-hosting"
+  dynamodb_stories_table: "aipm-backend-dev-stories"
+  dynamodb_tests_table: "aipm-backend-dev-acceptance-tests"
+  dynamodb_prs_table: "aipm-backend-dev-prs"
     BillingMode: PAY_PER_REQUEST
     
   AcceptanceTestsTable:
@@ -868,11 +854,6 @@ Delete a reference document.
 
 ### Utility Endpoints
 
-#### GET /api/runtime-data
-Download current database snapshot.
-
-**Response**: `200 OK` (SQLite binary file)
-
 #### GET /api/health
 Health check endpoint.
 
@@ -902,21 +883,25 @@ export GITHUB_TOKEN="your_github_personal_access_token"
 # Add to ~/.bashrc or ~/.zshrc for persistence
 ```
 
-#### 3. Amazon Bedrock Setup (Optional - for AI code generation)
+#### 3. Kiro CLI Setup (Required for AI features)
 
 **Current Status:**
-- ✅ Lambda has Bedrock permissions
-- ✅ Bedrock SDK installed
-- ⚠️ **Bedrock model access NOT enabled by default**
+- ✅ Kiro CLI installed on EC2 instances
+- ✅ 4 persistent sessions managed by Session Pool
+- ✅ Browser authentication configured
 
-**Enable Bedrock Model Access:**
+**Setup Kiro CLI:**
 
 ```bash
-# Step 1: Go to Bedrock Console
-# https://console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess
+# On EC2 instance
+# Install Kiro CLI
+# Follow: https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/command-line-getting-started-installing.html
 
-# Step 2: Request Model Access
-# 1. Click "Manage model access" or "Edit"
+# Verify installation
+kiro-cli --version
+
+# Authenticate (one-time)
+kiro-cli auth login
 # 2. Find "Claude 3 Sonnet" by Anthropic
 # 3. Check the box next to it
 # 4. Click "Request model access" or "Save changes"
@@ -947,8 +932,8 @@ The endpoint returns:
 
 **Alternative: Use Kiro CLI Locally**
 ```bash
-# Install Amazon Q extension (VS Code, JetBrains)
-# Use /dev command for code generation
+# Install Kiro CLI
+# Use for AI-powered code generation
 # Manually commit and push
 ```
 
@@ -958,29 +943,32 @@ The endpoint returns:
 
 Each environment is **completely isolated** with its own:
 - Frontend (S3 bucket)
-- Backend (Lambda function)
-- API Gateway
-- DynamoDB tables (stories + acceptance tests)
+- Backend (EC2 instance)
+- DynamoDB tables (stories + acceptance tests + PRs)
 
 **Development changes NEVER affect production. No shared resources between environments.**
 
 #### Resource Naming Convention
 
-All resources follow the pattern: `{service}-{stage}-{resource}`
+All resources follow the pattern: `{service}-{env}-{resource}`
 
-**Development (stage: dev)**
-- Lambda: `aipm-backend-dev-api`
+**Development (env: dev)**
+- EC2: `44.222.168.46`
 - Stories Table: `aipm-backend-dev-stories`
 - Tests Table: `aipm-backend-dev-acceptance-tests`
+- PRs Table: `aipm-backend-dev-prs`
 - S3 Bucket: `aipm-dev-frontend-hosting`
-- API: `https://{api-id}.execute-api.us-east-1.amazonaws.com/dev`
+- API: `http://44.222.168.46:4000`
+- Semantic API: `http://44.222.168.46:8083`
 
-**Production (stage: prod)**
-- Lambda: `aipm-backend-prod-api`
+**Production (env: prod)**
+- EC2: `44.197.204.18`
 - Stories Table: `aipm-backend-prod-stories`
 - Tests Table: `aipm-backend-prod-acceptance-tests`
+- PRs Table: `aipm-backend-prod-prs`
 - S3 Bucket: `aipm-static-hosting-demo`
-- API: `https://{api-id}.execute-api.us-east-1.amazonaws.com/prod`
+- API: `http://44.197.204.18:4000`
+- Semantic API: `http://44.197.204.18:8083`
 
 #### Configuration Management
 
@@ -1029,17 +1017,17 @@ git push origin develop
 #### Phase 2: Deploy to Development
 ```bash
 # Deploy COMPLETE development environment
-./bin/deploy-dev
+./bin/deploy-prod dev
 ```
 
 **This script deploys:**
-1. ✅ Backend Lambda function (stage: dev)
-2. ✅ API Gateway (stage: dev)
-3. ✅ DynamoDB tables (dev-stories, dev-acceptance-tests)
-4. ✅ Frontend to S3 (aipm-dev-frontend-hosting)
-5. ✅ Auto-configures frontend to use dev API
+1. ✅ Backend to EC2 (44.222.168.46)
+2. ✅ Restart services (API, Semantic API, Session Pool)
+3. ✅ Frontend to S3 (aipm-dev-frontend-hosting)
+4. ✅ Auto-configures frontend to use dev API
+5. ✅ Runs gating tests
 
-**Alternative deployment scripts:**
+**Alternative: GitHub Actions automatically deploys PRs to dev**
 - `./deploy-develop.sh` - Quick deployment (legacy)
 - `./prepare-dev.sh` - First-time setup with dependencies
 
@@ -1070,14 +1058,15 @@ git checkout main
 git merge develop --no-ff -m "Verified: feature description"
 git push origin main
 
-# Deploy COMPLETE production environment
-./bin/deploy-prod
+# GitHub Actions automatically deploys to production
+# Or manually deploy:
+./bin/deploy-prod prod
 ```
 
-**This script deploys:**
-1. ✅ Backend Lambda function (stage: prod)
-2. ✅ API Gateway (stage: prod)
-3. ✅ DynamoDB tables (prod-stories, prod-acceptance-tests)
+**Deployment includes:**
+1. ✅ Run gating tests (Phase 1, 2, 4)
+2. ✅ Backend to EC2 (44.197.204.18)
+3. ✅ Restart services (API, Semantic API, Session Pool)
 4. ✅ Frontend to S3 (aipm-static-hosting-demo)
 5. ✅ Auto-configures frontend to use prod API
 

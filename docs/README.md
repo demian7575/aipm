@@ -1,52 +1,31 @@
 # AIPM Documentation
 
-**AI Project Manager** - Self-hosted mindmap and outline workspace for managing user stories, acceptance tests, and AI-powered code generation.
+Documentation index for AIPM project.
 
-## 📖 Quick Links
+## Core Documentation
 
-- **[🚀 Getting Started](GETTING_STARTED.md)** - Complete setup guide for Kiro
-- **[🔄 Daily Workflow](DAILY_WORKFLOW.md)** - Continue your work efficiently
-- **[Configuration](CONFIGURATION.md)** - Environment setup and configuration
-- **[Architecture](ARCHITECTURE.md)** - System design and components
-- **[API Reference](API_REFERENCE.md)** - REST API endpoints
-- **[Development](DEVELOPMENT.md)** - Development workflow and guidelines
-- **[Deployment](DEPLOYMENT.md)** - Deployment procedures
-- **[Testing](TESTING.md)** - Testing strategy and gating tests
+- **[Getting Started](GETTING_STARTED.md)** - Setup guide
+- **[Architecture](ARCHITECTURE.md)** - System design
+- **[Architecture Block Diagram](ARCHITECTURE_BLOCK_DIAGRAM.md)** - Detailed diagram
+- **[Deployment](DEPLOYMENT.md)** - Deploy to AWS
+- **[Testing](TESTING.md)** - Run tests
 
-## 🏗️ System Overview
+## Reference
 
-AIPM is a full-stack application for managing software projects with AI assistance:
+- **[API Reference](API_REFERENCE.md)** - REST endpoints
+- **[Configuration](CONFIGURATION.md)** - Config files
+- **[Kiro Services Setup](KIRO_SERVICES_SETUP.md)** - AI services
 
-- **Frontend**: Vanilla JavaScript with mindmap visualization
-- **Backend**: Node.js REST API with DynamoDB storage
-- **AI Integration**: Semantic API with Kiro CLI for code generation
-- **Deployment**: AWS EC2 + S3 static hosting
+## Development
 
-## 🚀 Current Endpoints
+- **[Development](DEVELOPMENT.md)** - Development workflow
+- **[Lessons Learned](lessons/BEST_PRACTICES.md)** - Best practices
+- **[AI Assistant Guidelines](AI_ASSISTANT_GUIDELINES.md)** - Working with AI
 
-**Production:**
-- Frontend: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
-- API: http://44.197.204.18:4000
-- Semantic API: http://44.197.204.18:8083
+## Archive
 
-**Development:**
-- Frontend: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/
-- API: http://44.222.168.46:4000
-- Semantic API: http://44.222.168.46:8083
-
-## 📚 Additional Resources
-
-- **[Lessons Learned](lessons/BEST_PRACTICES.md)** - Development best practices
-- **[AI Assistant Guidelines](AI_ASSISTANT_GUIDELINES.md)** - Working with AI tools
-- **[User Stories](user-stories.md)** - Project user stories
-
-## 🗂️ Archive
-
-Historical documentation is preserved in `archive/` for reference:
-- `archive/kiro-api/` - Old KIRO API architecture
-- `archive/legacy/` - Legacy implementation docs
-- `archive/outdated-2025/` - Superseded 2025 documentation
-
-## 🔄 Last Updated
-
-January 24, 2026 - Documentation consolidated and updated to reflect current system state.
+Historical docs in `archive/` (may be outdated):
+- `kiro-api/` - Old Kiro API
+- `legacy/` - Legacy docs
+- `outdated-2025/` - Superseded docs
+- `conversation/` - Development logs

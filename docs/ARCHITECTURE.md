@@ -2,7 +2,7 @@
 
 ## System Overview
 
-AIPM is a full-stack web application for managing software projects with AI-powered assistance.
+Full-stack web application: Vanilla JS frontend (S3) + Node.js backend (EC2) + DynamoDB + Kiro CLI for AI code generation.
 
 ## Architecture Diagram
 
@@ -38,12 +38,14 @@ AIPM is a full-stack web application for managing software projects with AI-powe
     │  │   - AI story generation  │  │
     │  │   - INVEST analysis      │  │
     │  │   - Acceptance tests     │  │
+    │  │   - SSE streaming        │  │
     │  └──────────┬───────────────┘  │
     │             │                   │
     │  ┌──────────▼───────────────┐  │
     │  │ Session Pool (Port 8082) │  │
-    │  │   - Kiro CLI sessions    │  │
-    │  │   - Request management   │  │
+    │  │   - 4 Kiro CLI sessions  │  │
+    │  │   - In-memory queue      │  │
+    │  │   - Direct HTTP          │  │
     │  └──────────────────────────┘  │
     └─────────────┬───────────────────┘
                   │
@@ -53,7 +55,6 @@ AIPM is a full-stack web application for managing software projects with AI-powe
          │  - Stories      │
          │  - Tests        │
          │  - PRs          │
-         │  - Queue        │
          └─────────────────┘
 ```
 
@@ -61,18 +62,14 @@ AIPM is a full-stack web application for managing software projects with AI-powe
 
 ### Frontend (S3 Static Hosting)
 
-**Technology**: Vanilla JavaScript, HTML, CSS
+- Vanilla JavaScript (no framework)
+- Files: index.html, app.js, styles.css
+- Mindmap + outline + details panel
+- Real-time SSE updates
 
-**Features**:
-- Mindmap visualization (right-expanding tree)
-- Outline view with expand/collapse
-- Story detail panel with INVEST validation
-- Real-time updates via SSE
-- Modal-driven workflows
-
-**Deployment**:
-- Production: `aipm-static-hosting-demo` bucket
-- Development: `aipm-dev-frontend-hosting` bucket
+**Buckets**:
+- Production: `aipm-static-hosting-demo`
+- Development: `aipm-dev-frontend-hosting`
 
 ### Backend API (Node.js on EC2)
 
@@ -80,48 +77,34 @@ AIPM is a full-stack web application for managing software projects with AI-powe
 
 **Responsibilities**:
 - User story CRUD operations
+**Responsibilities**:
+- Story CRUD operations
 - Acceptance test management
 - PR tracking
-- INVEST score validation (80+ threshold)
-- GitHub integration
-
-**Key Endpoints**:
-- `GET /api/stories` - List all stories
-- `POST /api/stories` - Create story (with INVEST validation)
-- `PUT /api/stories/:id` - Update story
-- `DELETE /api/stories/:id` - Delete story (cascade)
-- `GET /health` - Health check
+- INVEST validation (score >= 80)
+- GitHub PR integration
 
 ### Semantic API (Node.js on EC2)
 
 **Port**: 8083
 
 **Responsibilities**:
-- AI-powered story draft generation
-- INVEST analysis
-- Acceptance test generation
-- GWT (Given-When-Then) analysis
-- Code generation coordination
-
-**Key Endpoints**:
-- `POST /aipm/story-draft?stream=true` - Generate story draft (SSE)
-- `POST /aipm/invest-analysis?stream=true` - Analyze INVEST score (SSE)
-- `POST /aipm/acceptance-test-draft?stream=true` - Generate tests (SSE)
-- `POST /aipm/code-generation-test?stream=true` - Test code generation (SSE)
-
-**Templates**: Uses templates in `templates/POST-aipm-*.md` for AI prompts
+- Process AI templates (`templates/POST-aipm-*.md`)
+- Generate story drafts, INVEST analysis, acceptance tests
+- Coordinate code generation
+- Stream responses via SSE
 
 ### Session Pool (Node.js on EC2)
 
 **Port**: 8082
 
 **Responsibilities**:
-- Manage Kiro CLI sessions
-- Queue AI requests
-- Handle session lifecycle
-- Stream responses back to Semantic API
+- Manage 4 persistent Kiro CLI sessions
+- In-memory queue (when all sessions busy)
+- Session lifecycle + stuck recovery
+- Direct HTTP with Semantic API
 
-**Note**: Requires local Kiro CLI installation and authentication
+**Requires**: Kiro CLI installed and authenticated on EC2
 
 ### Data Layer (DynamoDB)
 
@@ -129,30 +112,26 @@ AIPM is a full-stack web application for managing software projects with AI-powe
 
 1. **Stories** (`aipm-backend-{env}-stories`)
    - User stories with INVEST metadata
-   - Hierarchical relationships (parent/child)
+   - Hierarchical (parent/child)
    - Status tracking
 
 2. **Acceptance Tests** (`aipm-backend-{env}-acceptance-tests`)
-   - GWT format tests
-   - Linked to stories via `storyId`
+   - GWT format
+   - Linked via `storyId`
    - Status: Draft, Pass, Fail
 
 3. **PRs** (`aipm-backend-{env}-prs`)
    - GitHub PR tracking
-   - Linked to stories
-   - Branch and URL information
+   - Branch + URL
 
-4. **Semantic Queue** (`aipm-semantic-api-queue-{env}`)
-   - AI task queue
-   - Request/response tracking
-   - Status management
+**Note**: No queue table. Requests handled via HTTP/SSE with in-memory queue.
 
 ## Configuration
 
-All environment configuration is centralized in `config/environments.yaml`:
+Single source of truth: `config/environments.yaml`
 
 ```yaml
-production:
+prod:
   ec2_ip: "44.197.204.18"
   api_port: 4000
   semantic_api_port: 8083
@@ -183,8 +162,8 @@ See [CONFIGURATION.md](CONFIGURATION.md) for details.
 
 1. User clicks "Generate Story" with idea
 2. Frontend calls `/aipm/story-draft?stream=true` (SSE)
-3. Semantic API creates task in queue
-4. Session Pool picks up task
+3. Semantic API forwards request to Session Pool via HTTP
+4. Session Pool assigns available Kiro CLI session (or queues in-memory)
 5. Kiro CLI generates story based on template
 6. Response streams back through SSE
 7. Frontend displays draft for user review
@@ -192,11 +171,13 @@ See [CONFIGURATION.md](CONFIGURATION.md) for details.
 ### Code Generation Flow
 
 1. User clicks "Generate Code & PR"
-2. Backend creates PR branch from main
-3. Task added to semantic queue
-4. Session Pool picks up task
-5. Kiro CLI generates code and pushes to PR
-6. Developer reviews and merges PR
+2. Backend creates PR branch from main with TASK.md
+3. Backend calls Semantic API with story data
+4. Semantic API forwards to Session Pool via HTTP
+5. Session Pool assigns Kiro CLI session (or queues if all busy)
+6. Kiro CLI generates code and pushes to PR branch
+7. Progress streamed back via SSE
+8. Developer reviews and merges PR
 
 ## Deployment Architecture
 
