@@ -397,6 +397,63 @@ body.is-resizing * {
   min-width: 0;
 }
 
+.view-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem 0;
+  border-bottom: 1px solid #e5e9f5;
+  background: #f8f9ff;
+}
+
+.view-tab {
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #475569;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.view-tab:hover {
+  background: #eef2ff;
+  color: #1e293b;
+}
+
+.view-tab:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.view-tab.is-active {
+  background: #ffffff;
+  color: #1f2937;
+  border-color: #d9deeb;
+  border-bottom-color: #ffffff;
+  box-shadow: 0 -1px 0 #ffffff;
+}
+
+.view-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.view-content {
+  flex: 1;
+  min-height: 0;
+  display: none;
+  flex-direction: column;
+}
+
+.view-content.is-active {
+  display: flex;
+}
+
 .mindmap-wrapper {
   flex: 1;
   position: relative;
@@ -442,6 +499,29 @@ body.is-mindmap-panning {
   border-top: 1px solid #e5e9f5;
   font-size: 0.9rem;
   color: #475569;
+}
+
+.kanban-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.kanban-placeholder h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1f2937;
+}
+
+.kanban-placeholder p {
+  margin: 0;
+  max-width: 320px;
 }
 
 .heatmap-table {

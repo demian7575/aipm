@@ -68,6 +68,9 @@ const modalFooter = document.getElementById('modal-footer');
 const modalCloseBtn = document.getElementById('modal-close');
 const toastEl = document.getElementById('toast');
 const runtimeDataLink = document.getElementById('runtime-data-link');
+const viewTabs = Array.from(document.querySelectorAll('.view-tab'));
+const mindmapView = document.getElementById('mindmap-view');
+const kanbanView = document.getElementById('kanban-view');
 
 // Modal drag state
 let modalDragState = null;
@@ -459,6 +462,7 @@ const state = {
     assignee: []
   },
   mindmapZoom: 1,
+  activeView: 'mindmap',
   panelVisibility: {
     outline: true,
     mindmap: true,
@@ -485,6 +489,46 @@ const mindmapPanState = {
   scrollTop: 0,
   dragging: false,
 };
+
+function updateViewVisibility(activeView) {
+  const isMindmap = activeView === 'mindmap';
+  if (mindmapView) {
+    mindmapView.classList.toggle('is-active', isMindmap);
+    mindmapView.hidden = !isMindmap;
+  }
+  if (kanbanView) {
+    kanbanView.classList.toggle('is-active', !isMindmap);
+    kanbanView.hidden = isMindmap;
+  }
+  viewTabs.forEach((tab) => {
+    const isActive = tab.dataset.view === activeView;
+    tab.classList.toggle('is-active', isActive);
+    tab.setAttribute('aria-selected', String(isActive));
+  });
+}
+
+function setActiveView(nextView, { force = false } = {}) {
+  if (!nextView) {
+    return;
+  }
+  if (!force && nextView === state.activeView) {
+    return;
+  }
+  state.activeView = nextView;
+  updateViewVisibility(state.activeView);
+  if (state.activeView === 'mindmap') {
+    requestAnimationFrame(() => {
+      renderMindmap();
+    });
+  }
+}
+
+updateViewVisibility(state.activeView);
+viewTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    setActiveView(tab.dataset.view);
+  });
+});
 
 function updateMindmapZoomControls() {
   if (mindmapZoomDisplay) {
@@ -3178,6 +3222,9 @@ function renderMindmap() {
   mindmapCanvas.innerHTML = '';
   syncDependencyOverlayControls();
   mindmapCanvas.classList.remove('has-dependencies');
+  if (state.activeView !== 'mindmap') {
+    return;
+  }
   if (!state.panelVisibility.mindmap) {
     mindmapBounds = { width: 0, height: 0, fitWidth: 0, fitHeight: 0 };
     applyMindmapZoom();
