@@ -2000,6 +2000,7 @@ function renderCodeWhispererSectionList(container, story) {
       // Generate code directly without modal
       generateCodeBtn.disabled = true;
       generateCodeBtn.textContent = 'Generating...';
+      status.textContent = 'Initializing code generation...';
       
       try {
         // Robust PR number extraction with validation
@@ -2023,6 +2024,7 @@ function renderCodeWhispererSectionList(container, story) {
         if (!entry || !prNumber || prNumber <= 0) {
           console.error('❌ Invalid PR data. Entry:', entry, 'PR Number:', prNumber);
           showToast('No valid PR found to update. Create a PR first.', 'error');
+          status.textContent = 'Task ready for development';
           return;
         }
         
@@ -2030,6 +2032,7 @@ function renderCodeWhispererSectionList(container, story) {
         if (!entry.branchName) {
           console.error('❌ No branch name found in entry:', entry);
           showToast('PR missing branch information. Cannot generate code.', 'error');
+          status.textContent = 'Task ready for development';
           return;
         }
         
@@ -2047,16 +2050,20 @@ function renderCodeWhispererSectionList(container, story) {
           `${apiBaseUrl}/api/stories/${story.id}/generate-code-stream?prNumber=${prNum}&branchName=${encodeURIComponent(branchName)}`,
           {
             onProgress: (data) => {
-              generateCodeBtn.textContent = data.message || 'Generating...';
+              const message = data.message || 'Generating...';
+              generateCodeBtn.textContent = 'Generating...';
+              status.textContent = message;
             },
             onComplete: (data) => {
               generateCodeBtn.disabled = false;
               generateCodeBtn.textContent = 'Generate Code';
+              status.textContent = 'Code generated successfully';
               loadStories(); // Refresh to show updates
             },
             onError: (data) => {
               generateCodeBtn.disabled = false;
               generateCodeBtn.textContent = 'Generate Code';
+              status.textContent = 'Task ready for development';
             },
             showProgressToast: true,
             showCompleteToast: true,
@@ -2069,6 +2076,7 @@ function renderCodeWhispererSectionList(container, story) {
         showToast('Error during code generation', 'error');
         generateCodeBtn.disabled = false;
         generateCodeBtn.textContent = 'Generate Code';
+        status.textContent = 'Task ready for development';
       }
     });
     actions.appendChild(generateCodeBtn);
@@ -2092,6 +2100,7 @@ function renderCodeWhispererSectionList(container, story) {
       runInStagingBtn.addEventListener('click', async () => {
         runInStagingBtn.disabled = true;
         runInStagingBtn.textContent = 'Triggering Deployment...';
+        status.textContent = 'Triggering deployment workflow...';
         
         try {
           // Debug logging
@@ -2118,10 +2127,12 @@ function renderCodeWhispererSectionList(container, story) {
           if (!prNumber) {
             console.log('PR detection failed. Entry:', entry);
             showToast('No PR found for this item. Please create a PR first.', 'error');
+            status.textContent = 'Task ready for development';
             return;
           }
           
           console.log('Triggering deployment for PR #' + prNumber);
+          status.textContent = `Deploying PR #${prNumber} to Development environment...`;
           
           // Use backend API endpoint instead of direct GitHub API call
           const response = await fetch(resolveApiUrl('/api/trigger-deployment'), {
@@ -2136,14 +2147,17 @@ function renderCodeWhispererSectionList(container, story) {
           
           if (response.ok) {
             showToast(`Deployment workflow triggered for PR #${prNumber}. Check GitHub Actions for progress.`, 'success');
+            status.textContent = 'Deployment triggered - check GitHub Actions';
           } else {
             const error = await response.text();
             console.log('GitHub API error:', error);
             showToast(`Failed to trigger deployment: ${error}`, 'error');
+            status.textContent = 'Task ready for development';
           }
         } catch (error) {
           console.error('Deployment trigger error:', error);
           showToast('Deployment trigger error: ' + error.message, 'error');
+          status.textContent = 'Task ready for development';
         }
         
         runInStagingBtn.disabled = false;
@@ -2158,6 +2172,7 @@ function renderCodeWhispererSectionList(container, story) {
       mergeBtn.addEventListener('click', async () => {
         mergeBtn.disabled = true;
         mergeBtn.textContent = 'Checking...';
+        status.textContent = 'Checking if PR is up-to-date...';
         
         // Check if PR is up-to-date with main
         try {
@@ -2165,6 +2180,7 @@ function renderCodeWhispererSectionList(container, story) {
           if (!checkResult.upToDate) {
             mergeBtn.disabled = false;
             mergeBtn.textContent = 'Merge PR';
+            status.textContent = 'Task ready for development';
             alert('This PR is behind main branch. Click "Demo in Dev" to rebase and test, then try merging again.');
             return;
           }
@@ -2176,15 +2192,18 @@ function renderCodeWhispererSectionList(container, story) {
         if (!confirm(`Merge PR #${entry.number || entry.targetNumber} into main?`)) {
           mergeBtn.disabled = false;
           mergeBtn.textContent = 'Merge PR';
+          status.textContent = 'Task ready for development';
           return;
         }
         
         mergeBtn.textContent = 'Merging...';
+        status.textContent = 'Merging code and deploying to Production...';
         
         try {
           const result = await mergePR(entry);
           if (result && result.success) {
             showToast('PR merged and deleted from GitHub', 'success');
+            status.textContent = 'Merged and deployed to Production';
             // Refresh the card to show updated status
             const story = state.stories.find(s => s.id === entry.storyId);
             if (story) {
@@ -2196,6 +2215,7 @@ function renderCodeWhispererSectionList(container, story) {
             }
           } else {
             showToast('Merge failed: ' + (result?.message || 'Unknown error'), 'error');
+            status.textContent = 'Task ready for development';
             mergeBtn.disabled = false;
             mergeBtn.textContent = 'Merge PR';
           }
@@ -3566,7 +3586,7 @@ function renderKanban() {
   
   kanbanBoard.innerHTML = '';
   
-  const statuses = ['Backlog', 'Ready', 'In Progress', 'Done'];
+  const statuses = ['Draft', 'Ready', 'In Progress', 'Done'];
   const allStories = getAllStoriesFlat(state.stories);
   
   statuses.forEach(status => {
@@ -3576,13 +3596,7 @@ function renderKanban() {
     
     const header = document.createElement('div');
     header.className = 'kanban-column-header';
-    // Map "Draft" status to "Backlog" column
-    const stories = allStories.filter(s => {
-      if (status === 'Backlog') {
-        return s.status === 'Backlog' || s.status === 'Draft';
-      }
-      return s.status === status;
-    });
+    const stories = allStories.filter(s => s.status === status);
     header.textContent = `${status} (${stories.length})`;
     
     const body = document.createElement('div');
@@ -3696,7 +3710,13 @@ function setupKanbanDropZone(columnBody) {
       showToast(`Story moved to ${newStatus}`);
     } catch (error) {
       console.error('Failed to update story status:', error);
-      showToast('Failed to update story status', 'error');
+      
+      // Show specific error message for "Done" validation
+      if (error.message && error.message.includes('Cannot mark story as Done')) {
+        showToast('Cannot mark as Done: All child stories must be Done and all acceptance tests must Pass', 'error');
+      } else {
+        showToast('Failed to update story status', 'error');
+      }
     }
   });
 }
