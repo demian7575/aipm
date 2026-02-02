@@ -60,6 +60,42 @@ test_1768754109973_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1770042259154
+# Merged: 2026-02-02
+# =============================================================================
+test_1770042259154_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'view-stories-btn' apps/frontend/public/index.html; then
+        fail_test "View Stories button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference exists
+    if ! grep -q 'viewStoriesBtn' apps/frontend/public/app.js; then
+        fail_test "View Stories button reference not found"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener exists
+    if ! grep -q 'viewStoriesBtn.addEventListener' apps/frontend/public/app.js; then
+        fail_test "View Stories button event listener not found"
+        return 1
+    fi
+    
+    # Test 4: Verify modal opens with story list
+    if ! grep -q "openModal.*All Stories" apps/frontend/public/app.js; then
+        fail_test "Modal opening logic not found"
+        return 1
+    fi
+    
+    pass_test "Story list button implemented successfully"
+    return 0
+}
+
+# =============================================================================
 # Story: Kanban Board View with Drag-and-Drop
 # ID: 1770031875840
 # Merged: 2026-02-02
