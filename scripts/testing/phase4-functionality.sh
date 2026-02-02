@@ -98,6 +98,37 @@ test_1768490120028_enable_connection_to_parent_user_story() {
     pass_test "Enable connection to parent User Story"
     return 0
 }
+
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1769997253120
+# Merged: 2026-02-02
+# =============================================================================
+test_1769997253120_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify story list button exists in header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story list button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button has click handler
+    if ! grep -q "storyListBtn.addEventListener('click'" apps/frontend/public/app.js; then
+        fail_test "Story list button click handler not found"
+        return 1
+    fi
+    
+    # Test 3: Verify openStoryListModal function exists
+    if ! grep -q "function openStoryListModal" apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    pass_test "Add Story List Button"
+    return 0
+}
+
 # Template:
 # =============================================================================
 # Story: [Story Title]
@@ -113,6 +144,45 @@ test_1768490120028_enable_connection_to_parent_user_story() {
 #     pass_test "[Story Title]"
 #     return 0
 # }
+# =============================================================================
+
+# Test: Story 1769997222674 - Story List Button
+# Acceptance Test 1: Header button opens story list modal
+test_1769997222674_modal_opens() {
+    echo "Test: Story list button opens modal"
+    
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        echo "  ❌ Story list button not found in HTML"
+        return 1
+    fi
+    
+    if ! grep -q "story-list-btn.*addEventListener" apps/frontend/public/app.js; then
+        echo "  ❌ Event listener for story list button not found"
+        return 1
+    fi
+    
+    if ! grep -q "function openStoryListModal" apps/frontend/public/app.js; then
+        echo "  ❌ openStoryListModal function not found"
+        return 1
+    fi
+    
+    echo "  ✅ Story list button and modal implementation verified"
+    return 0
+}
+
+# Acceptance Test 2: Modal displays complete story inventory
+test_1769997222674_displays_stories() {
+    echo "Test: Modal displays all story titles"
+    
+    if ! grep -A 20 "function openStoryListModal" apps/frontend/public/app.js | grep -q "story.title"; then
+        echo "  ❌ Story titles not displayed in modal"
+        return 1
+    fi
+    
+    echo "  ✅ Modal displays story titles correctly"
+    return 0
+}
+
 # =============================================================================
 
 # Run all tests
