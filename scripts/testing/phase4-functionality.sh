@@ -171,6 +171,42 @@ test_1768490120028_enable_connection_to_parent_user_story() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Update Details on Story Click
+# ID: 1770043147667
+# Acceptance Test: Details section updates on story click
+# =============================================================================
+test_1770043147667_details_update_on_click() {
+    log_test "Update Details on Story Click"
+    
+    # Test 1: Verify handleStorySelection function exists
+    if ! grep -q "function handleStorySelection" apps/frontend/public/app.js; then
+        fail_test "handleStorySelection function not found"
+        return 1
+    fi
+    
+    # Test 2: Verify renderDetails is called in handleStorySelection
+    if ! grep -A 10 "function handleStorySelection" apps/frontend/public/app.js | grep -q "renderDetails"; then
+        fail_test "renderDetails not called in handleStorySelection"
+        return 1
+    fi
+    
+    # Test 3: Verify outline items have click handlers
+    if ! grep -q "row.addEventListener.*click.*handleStorySelection" apps/frontend/public/app.js; then
+        fail_test "Outline items don't have click handlers"
+        return 1
+    fi
+    
+    # Test 4: Verify kanban cards use handleStorySelection (not undefined selectStory)
+    if grep -q "selectStory(story.id)" apps/frontend/public/app.js; then
+        fail_test "Kanban cards still use undefined selectStory function"
+        return 1
+    fi
+    
+    pass_test "Details section updates correctly on story click"
+}
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""
