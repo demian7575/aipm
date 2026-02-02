@@ -52,19 +52,6 @@
       ></div>
 
       <section id="mindmap-panel" class="panel mindmap-panel">
-        <div class="panel-header">
-          <h2>Mindmap</h2>
-          <div class="panel-actions">
-            <button id="dependency-toggle-btn" class="secondary" aria-pressed="false">Dependency</button>
-            <button id="filter-btn" class="secondary">Filter</button>
-            <button id="auto-layout-toggle" class="secondary">Auto Layout</button>
-            <div class="mindmap-zoom-controls" role="group" aria-label="Mindmap zoom">
-              <button id="mindmap-zoom-out" class="secondary" type="button" aria-label="Zoom out">−</button>
-              <span id="mindmap-zoom-display" class="mindmap-zoom-display" aria-live="polite">100%</span>
-              <button id="mindmap-zoom-in" class="secondary" type="button" aria-label="Zoom in">+</button>
-            </div>
-          </div>
-        </div>
         <div class="view-tabs" role="tablist" aria-label="Mindmap and Kanban views">
           <button
             class="view-tab is-active"
@@ -91,6 +78,16 @@
         </div>
         <div class="view-panel">
           <div id="mindmap-view" class="view-content is-active" role="tabpanel" tabindex="0" aria-labelledby="view-tab-mindmap">
+            <div class="mindmap-controls">
+              <button id="dependency-toggle-btn" class="secondary" aria-pressed="false">Dependency</button>
+              <button id="filter-btn" class="secondary">Filter</button>
+              <button id="auto-layout-toggle" class="secondary">Auto Layout</button>
+              <div class="mindmap-zoom-controls" role="group" aria-label="Mindmap zoom">
+                <button id="mindmap-zoom-out" class="secondary" type="button" aria-label="Zoom out">−</button>
+                <span id="mindmap-zoom-display" class="mindmap-zoom-display" aria-live="polite">100%</span>
+                <button id="mindmap-zoom-in" class="secondary" type="button" aria-label="Zoom in">+</button>
+              </div>
+            </div>
             <div class="mindmap-wrapper">
               <svg id="mindmap-canvas" aria-label="Mindmap" role="presentation"></svg>
             </div>

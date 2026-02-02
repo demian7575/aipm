@@ -454,6 +454,15 @@ body.is-resizing * {
   display: flex;
 }
 
+.mindmap-controls {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f8f9ff;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+}
+
 .mindmap-wrapper {
   flex: 1;
   position: relative;
