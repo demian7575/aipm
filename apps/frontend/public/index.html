@@ -27,8 +27,11 @@
       </div>
       <div class="panel-toggles" role="toolbar" aria-label="Panel visibility">
         <label><input type="checkbox" id="toggle-outline" checked /> Outline</label>
-        <label><input type="checkbox" id="toggle-mindmap" checked /> Mindmap</label>
         <label><input type="checkbox" id="toggle-details" checked /> Details</label>
+      </div>
+      <div class="view-tabs" role="tablist" aria-label="View selector">
+        <button id="view-tab-mindmap" class="view-tab active" role="tab" aria-selected="true">Mindmap</button>
+        <button id="view-tab-kanban" class="view-tab" role="tab" aria-selected="false">Kanban</button>
       </div>
     </header>
 
@@ -53,7 +56,7 @@
         tabindex="0"
       ></div>
 
-      <section id="mindmap-panel" class="panel mindmap-panel">
+      <section id="mindmap-panel" class="panel mindmap-panel view-content" data-view="mindmap">
         <div class="panel-header">
           <h2>Mindmap</h2>
           <div class="panel-actions">
@@ -71,6 +74,15 @@
         <footer class="mindmap-footer">
           <span id="layout-status">Auto layout enabled</span>
         </footer>
+      </section>
+
+      <section id="kanban-panel" class="panel mindmap-panel view-content" data-view="kanban" style="display: none;">
+        <div class="panel-header">
+          <h2>Kanban Board</h2>
+        </div>
+        <div class="kanban-board">
+          <p style="padding: 20px; text-align: center; color: #666;">Kanban board view coming soon...</p>
+        </div>
       </section>
 
       <div

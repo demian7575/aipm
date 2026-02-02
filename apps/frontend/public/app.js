@@ -52,9 +52,11 @@ const workspaceEl = document.getElementById('workspace');
 const outlineResizer = document.getElementById('outline-resizer');
 const detailsResizer = document.getElementById('details-resizer');
 const toggleOutline = document.getElementById('toggle-outline');
-const toggleMindmap = document.getElementById('toggle-mindmap');
 const toggleDetails = document.getElementById('toggle-details');
+const viewTabMindmap = document.getElementById('view-tab-mindmap');
+const viewTabKanban = document.getElementById('view-tab-kanban');
 const mindmapPanel = document.getElementById('mindmap-panel');
+const kanbanPanel = document.getElementById('kanban-panel');
 const mindmapWrapper = document.querySelector('.mindmap-wrapper');
 const mindmapZoomOutBtn = document.getElementById('mindmap-zoom-out');
 const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
@@ -7780,8 +7782,26 @@ function initialize() {
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
 
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
-  toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+
+  /**
+   * Switch between Mindmap and Kanban views
+   */
+  function switchView(viewName) {
+    const views = document.querySelectorAll('.view-content');
+    views.forEach(view => {
+      view.style.display = view.dataset.view === viewName ? '' : 'none';
+    });
+    
+    viewTabMindmap?.classList.toggle('active', viewName === 'mindmap');
+    viewTabKanban?.classList.toggle('active', viewName === 'kanban');
+    
+    viewTabMindmap?.setAttribute('aria-selected', viewName === 'mindmap');
+    viewTabKanban?.setAttribute('aria-selected', viewName === 'kanban');
+  }
+
+  viewTabMindmap?.addEventListener('click', () => switchView('mindmap'));
+  viewTabKanban?.addEventListener('click', () => switchView('kanban'));
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
