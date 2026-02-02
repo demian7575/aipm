@@ -744,6 +744,13 @@ if (filterBtn) {
   });
 }
 
+const storyListBtn = document.getElementById('story-list-btn');
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
+}
+
 if (mindmapZoomInBtn) {
   mindmapZoomInBtn.addEventListener('click', () => {
     setMindmapZoom(state.mindmapZoom + MINDMAP_ZOOM_STEP);
@@ -7310,6 +7317,40 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+/**
+ * Opens story list modal showing all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p>No stories available.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.textContent = story.title;
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close'
   });
 }
 
