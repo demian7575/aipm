@@ -29,10 +29,6 @@
         <label><input type="checkbox" id="toggle-outline" checked /> Outline</label>
         <label><input type="checkbox" id="toggle-details" checked /> Details</label>
       </div>
-      <div class="view-tabs" role="tablist" aria-label="View selector">
-        <button id="view-tab-mindmap" class="view-tab active" role="tab" aria-selected="true">Mindmap</button>
-        <button id="view-tab-kanban" class="view-tab" role="tab" aria-selected="false">Kanban</button>
-      </div>
     </header>
 
     <main class="workspace" id="workspace">
@@ -55,6 +51,11 @@
         aria-label="Resize outline panel"
         tabindex="0"
       ></div>
+
+      <div class="view-tabs" role="tablist" aria-label="View selector">
+        <button id="view-tab-mindmap" class="view-tab active" role="tab" aria-selected="true">Mindmap</button>
+        <button id="view-tab-kanban" class="view-tab" role="tab" aria-selected="false">Kanban</button>
+      </div>
 
       <section id="mindmap-panel" class="panel mindmap-panel view-content" data-view="mindmap">
         <div class="panel-header">
