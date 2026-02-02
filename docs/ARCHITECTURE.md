@@ -27,6 +27,13 @@ Full-stack web application: Vanilla JS frontend (S3) + Node.js backend (EC2) + D
     │  Development: 44.222.168.46    │
     │                                 │
     │  ┌──────────────────────────┐  │
+    │  │   Nginx (Port 80)        │  │
+    │  │   - Serves frontend      │  │
+    │  │   - Routes /api/ → 4000  │  │
+    │  │   - Routes /api/kiro → 8081│
+    │  └──────────┬───────────────┘  │
+    │             │                   │
+    │  ┌──────────▼───────────────┐  │
     │  │   Node.js API (Port 4000)│  │
     │  │   - REST endpoints       │  │
     │  │   - Story management     │  │

@@ -14,7 +14,7 @@ import { spawn } from 'child_process';
 import { createWriteStream } from 'fs';
 import http from 'http';
 
-const POOL_SIZE = 4;
+const POOL_SIZE = 2;
 const OUTPUT_IDLE_TIMEOUT = 30000; // 30 seconds - stuck if no output for 30s
 const MAX_EXECUTION_TIME = 600000; // 10 minutes - absolute maximum
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C

@@ -96,52 +96,16 @@ jobs:
             git diff --name-only origin/main | head -10
           fi
       
-      - name: Run critical gating tests
+      - name: Load Development environment configuration
         run: |
-          echo "🧪 Running critical gating tests..."
-          
-          # Test 1: JavaScript syntax check
-          echo "  1️⃣ Checking JavaScript syntax..."
-          if [ -f "apps/frontend/public/app.js" ]; then
-            if ! node -c apps/frontend/public/app.js; then
-              echo "❌ Syntax error in app.js"
-              exit 1
-            fi
-            echo "  ✅ app.js syntax OK"
-          fi
-          
-          # Test 2: Brace balance check
-          echo "  2️⃣ Checking brace balance..."
-          if [ -f "apps/frontend/public/app.js" ]; then
-            OPEN=$(grep -o '{' apps/frontend/public/app.js | wc -l)
-            CLOSE=$(grep -o '}' apps/frontend/public/app.js | wc -l)
-            if [ "$OPEN" -ne "$CLOSE" ]; then
-              echo "❌ Unbalanced braces: Open=$OPEN, Close=$CLOSE"
-              exit 1
-            fi
-            echo "  ✅ Braces balanced ($OPEN pairs)"
-          fi
-          
-          # Test 3: Backend syntax check
-          echo "  3️⃣ Checking backend syntax..."
-          if [ -f "apps/backend/app.js" ]; then
-            if ! node -c apps/backend/app.js; then
-              echo "❌ Syntax error in backend app.js"
-              exit 1
-            fi
-            echo "  ✅ Backend syntax OK"
-          fi
-          
-          # Test 4: No console.log in production code (warning only)
-          echo "  4️⃣ Checking for debug statements..."
-          if git diff origin/main apps/frontend/public/app.js | grep -E "^\+.*console\.(log|debug)" > /dev/null; then
-            echo "  ⚠️  Warning: New console.log statements found"
-            echo "     Consider removing before production"
-          else
-            echo "  ✅ No new debug statements"
-          fi
-          
-          echo "✅ Critical gating tests passed"
+          source scripts/utilities/load-env-config.sh dev
+          echo "DEV_EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "DEV_API_BASE=$API_BASE" >> $GITHUB_ENV
+          echo "DEV_SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
+          echo "DEV_S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "DEV_TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
+          echo "DEV_DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
+          echo "DEV_DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -149,7 +113,10 @@ jobs:
           node-version: '18'
       
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: |
+          npm install --legacy-peer-deps
+          sudo apt-get update
+          sudo apt-get install -y jq python3-yaml
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -158,35 +125,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       
-      - name: Load environment configuration
-        run: |
-          # Read config directly with Python
-          python3 << 'EOF'
-          import yaml
-          import os
-          
-          with open('config/environments.yaml', 'r') as f:
-              config = yaml.safe_load(f)
-              dev_config = config.get('dev', {})
-              
-              # Write to GITHUB_ENV
-              with open(os.environ['GITHUB_ENV'], 'a') as env_file:
-                  env_file.write(f"EC2_IP={dev_config.get('ec2_ip', '')}\n")
-                  env_file.write(f"API_BASE=http://{dev_config.get('ec2_ip', '')}:{dev_config.get('api_port', '')}\n")
-                  env_file.write(f"TERMINAL_URL=ws://{dev_config.get('ec2_ip', '')}:{dev_config.get('terminal_port', '')}\n")
-                  env_file.write(f"S3_BUCKET={dev_config.get('s3_bucket', '')}\n")
-                  env_file.write(f"DYNAMODB_STORIES_TABLE={dev_config.get('dynamodb_stories_table', '')}\n")
-                  env_file.write(f"DYNAMODB_TESTS_TABLE={dev_config.get('dynamodb_tests_table', '')}\n")
-          
-          print("✅ Environment variables loaded")
-          EOF
-      
       - name: Setup SSH key for deployment
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
-          # Try base64 decode first, fallback to raw key
           if echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_rsa 2>/dev/null; then
             echo "✅ Decoded base64 SSH key"
           else
@@ -195,103 +138,52 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
+          ssh-keyscan -H $DEV_EC2_IP >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
-      
-      - name: Create development config
-        run: |
-          echo "📝 Creating development configuration..."
-          cat > apps/frontend/public/config.js << EOF
-          window.CONFIG = {
-            API_BASE_URL: '${{ env.API_BASE }}',
-            EC2_TERMINAL_URL: '${{ env.TERMINAL_URL }}',
-            ENVIRONMENT: 'dev'
-          };
-          EOF
-          
-          echo "✅ Development config created"
       
       - name: Deploy backend to development EC2
         run: |
           echo "🚀 Deploying backend to development EC2..."
           ./scripts/deploy-to-environment.sh dev
-          
           echo "✅ Backend deployed to development EC2"
       
-      - name: Sync database from production to development
+      - name: Deploy frontend to development S3
         run: |
-          echo "🔄 Syncing database from production to development..."
-          node scripts/utilities/sync-prod-to-dev.cjs
-          echo "✅ Database synced"
+          echo "📦 Deploying frontend to development S3..."
+          
+          # Create dev config
+          cat > apps/frontend/public/config.js << EOF
+          window.CONFIG = {
+            API_BASE_URL: '${{ env.DEV_API_BASE }}',
+            EC2_TERMINAL_URL: '${{ env.DEV_TERMINAL_URL }}',
+            ENVIRONMENT: 'dev'
+          };
+          EOF
+          
+          aws s3 sync apps/frontend/public/ s3://${{ env.DEV_S3_BUCKET }} --delete --cache-control no-cache
+          echo "✅ Frontend deployed to development S3"
       
-      - name: Deploy frontend to S3
+      - name: Run Pre-Production Gating Tests
+        id: gating
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_ENV: dev
+          API_BASE: ${{ env.DEV_API_BASE }}
+          SEMANTIC_API_BASE: ${{ env.DEV_SEMANTIC_API_BASE }}
+          SSH_HOST: ${{ env.DEV_EC2_IP }}
+          SKIP_GATING_TESTS: true
         run: |
-          echo "🚀 Deploying frontend to S3..."
+          echo "🧪 Running Gating Tests on Development Environment"
+          echo "   Backend: $API_BASE"
+          echo "   Database: Development DynamoDB"
           
-          # Copy dev config
-          echo "📝 Copying dev configuration..."
-          cp config/config.dev.js apps/frontend/public/config.js
+          # Wait for deployment to be ready
+          sleep 10
           
-          # Verify we're deploying the correct version
-          echo "🔍 Pre-deployment verification..."
-          echo "📊 Current git commit: $(git rev-parse --short HEAD)"
-          echo "📊 app.js first line: $(head -1 apps/frontend/public/app.js)"
-          echo "📊 app.js size: $(wc -c < apps/frontend/public/app.js) bytes"
-          echo "📊 app.js lines: $(wc -l < apps/frontend/public/app.js) lines"
-          
-          # Force upload all files (don't rely on size/time comparison)
-          echo "🔄 Uploading all files..."
-          for file in apps/frontend/public/*; do
-            if [ -f "$file" ]; then
-              filename=$(basename "$file")
-              echo "  Uploading $filename..."
-              aws s3 cp "$file" "s3://aipm-dev-frontend-hosting/$filename" \
-                --cache-control "no-cache, no-store, must-revalidate" \
-                --region us-east-1
-            fi
-          done
-          
-          # Upload subdirectories if any
-          if [ -d "apps/frontend/public/uploads" ]; then
-            aws s3 sync apps/frontend/public/uploads/ s3://aipm-dev-frontend-hosting/uploads/ \
-              --cache-control "no-cache, no-store, must-revalidate" \
-              --delete \
-              --region us-east-1
-          fi
-          
-          echo "✅ Frontend deployed to S3"
-          echo "🌐 Development URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
-          
-          # Verify deployment
-          echo "🔍 Post-deployment verification..."
-          sleep 2
-          S3_SIZE=$(aws s3api head-object --bucket aipm-dev-frontend-hosting --key app.js --region us-east-1 | jq -r '.ContentLength')
-          LOCAL_SIZE=$(wc -c < apps/frontend/public/app.js)
-          echo "📊 S3 app.js size: $S3_SIZE bytes"
-          echo "📊 Local app.js size: $LOCAL_SIZE bytes"
-          
-          if [ "$S3_SIZE" = "$LOCAL_SIZE" ]; then
-            echo "✅ Deployment verified - sizes match"
+          # Run Phase 1 (Security & Data Safety) and Phase 2 (E2E Workflow)
+          if ./scripts/testing/run-structured-gating-tests.sh --phases "1,2"; then
+            echo "✅ Gating tests passed - PR validated"
           else
-            echo "❌ ERROR: Size mismatch!"
-            echo "   S3: $S3_SIZE bytes"
-            echo "   Local: $LOCAL_SIZE bytes"
+            echo "❌ Gating tests failed - PR has issues"
             exit 1
           fi
-      
-      - name: Verify deployment
-        run: |
-          echo "🔍 Verifying deployment..."
-          
-          # Use environment variables already loaded
-          echo "Checking backend at: ${API_BASE}"
-          
-          # Check backend health
-          if curl -sf ${API_BASE}/health | jq -e '.status == "running"' > /dev/null; then
-            echo "✅ Backend is healthy"
-          else
-            echo "❌ Backend health check failed"
-            exit 1
-          fi
-          
-          echo "✅ Deployment verified successfully"

@@ -33,6 +33,11 @@ done
 # Import shared test functions
 source "$(dirname "$0")/test-functions.sh"
 
+# Load environment configuration from single source of truth if not already set
+if [[ -z "$API_BASE" ]] || [[ -z "$SEMANTIC_API_BASE" ]]; then
+    source "$(dirname "$0")/../utilities/load-env-config.sh" "$TARGET_ENV"
+fi
+
 # Initialize test counter directory
 export TEST_COUNTER_DIR="/tmp/aipm-test-$$"
 mkdir -p "$TEST_COUNTER_DIR"

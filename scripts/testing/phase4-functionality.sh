@@ -60,6 +60,62 @@ test_1768754109973_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Kanban Board View with Drag-and-Drop
+# ID: 1770031875840
+# Merged: 2026-02-02
+# =============================================================================
+test_1770031875840_kanban_board_view_with_drag_and_drop() {
+    log_test "Kanban Board View with Drag-and-Drop"
+    
+    # Test 1: Verify Kanban view tab exists in HTML
+    if ! grep -q 'data-view="kanban"' apps/frontend/public/index.html; then
+        fail_test "Kanban view tab not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify Kanban board container exists
+    if ! grep -q 'kanban-board' apps/frontend/public/index.html; then
+        fail_test "Kanban board container not found in HTML"
+        return 1
+    fi
+    
+    # Test 3: Verify renderKanban function exists
+    if ! grep -q 'function renderKanban' apps/frontend/public/app.js; then
+        fail_test "renderKanban function not found in app.js"
+        return 1
+    fi
+    
+    # Test 4: Verify drag-and-drop handlers exist
+    if ! grep -q 'handleKanbanDragStart' apps/frontend/public/app.js; then
+        fail_test "Drag start handler not found"
+        return 1
+    fi
+    if ! grep -q 'handleKanbanDragEnd' apps/frontend/public/app.js; then
+        fail_test "Drag end handler not found"
+        return 1
+    fi
+    
+    # Test 5: Verify updateStoryStatus function exists
+    if ! grep -q 'async function updateStoryStatus' apps/frontend/public/app.js; then
+        fail_test "updateStoryStatus function not found"
+        return 1
+    fi
+    
+    # Test 6: Verify Kanban styles exist
+    if ! grep -q '.kanban-board' apps/frontend/public/styles.css; then
+        fail_test "Kanban board styles not found"
+        return 1
+    fi
+    if ! grep -q '.kanban-card' apps/frontend/public/styles.css; then
+        fail_test "Kanban card styles not found"
+        return 1
+    fi
+    
+    pass_test "Kanban Board View with Drag-and-Drop"
+    return 0
+}
+
+# =============================================================================
 # Story: Enable connection to parent User Story
 # ID: 1768490120028
 # Merged: 2026-01-23

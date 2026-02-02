@@ -30,6 +30,14 @@
 │  │  │  44.197.204.18                    │  │  44.222.168.46                    │   │ │
 │  │  │                                   │  │                                   │   │ │
 │  │  │  ┌─────────────────────────────┐ │  │  ┌─────────────────────────────┐ │   │ │
+│  │  │  │ Nginx (Port 80)             │ │  │  │ Nginx (Port 80)             │ │   │ │
+│  │  │  │ • Serves static frontend    │ │  │  │ • Serves static frontend    │ │   │ │
+│  │  │  │ • Routes /api/ → 4000       │ │  │  │ • Routes /api/ → 4000       │ │   │ │
+│  │  │  │ • Routes /api/kiro → 8081   │ │  │  │ • Routes /api/kiro → 8081   │ │   │ │
+│  │  │  │ • 600s timeout for AI ops   │ │  │  │ • 600s timeout for AI ops   │ │   │ │
+│  │  │  └─────────────────────────────┘ │  │  └─────────────────────────────┘ │   │ │
+│  │  │                                   │  │                                   │   │ │
+│  │  │  ┌─────────────────────────────┐ │  │  ┌─────────────────────────────┐ │   │ │
 │  │  │  │ Backend API (Port 4000)     │ │  │  │ Backend API (Port 4000)     │ │   │ │
 │  │  │  │ • Node.js + Express         │ │  │  │ • Node.js + Express         │ │   │ │
 │  │  │  │ • app.js (REST API)         │ │  │  │ • app.js (REST API)         │ │   │ │

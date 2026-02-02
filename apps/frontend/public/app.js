@@ -520,6 +520,8 @@ function setActiveView(nextView, { force = false } = {}) {
     requestAnimationFrame(() => {
       renderMindmap();
     });
+  } else if (state.activeView === 'kanban') {
+    renderKanban();
   }
 }
 
@@ -3553,6 +3555,168 @@ function renderMindmap() {
     layoutStatus.textContent = 'Manual layout enabled — drag nodes to reposition.';
     autoLayoutToggle.textContent = 'Enable Auto Layout';
   }
+}
+
+/**
+ * Render Kanban board view
+ */
+function renderKanban() {
+  const kanbanBoard = kanbanView?.querySelector('.kanban-board');
+  if (!kanbanBoard) return;
+  
+  kanbanBoard.innerHTML = '';
+  
+  const statuses = ['Backlog', 'Ready', 'In Progress', 'Done'];
+  const allStories = getAllStoriesFlat(state.stories);
+  
+  statuses.forEach(status => {
+    const column = document.createElement('div');
+    column.className = 'kanban-column';
+    column.dataset.status = status;
+    
+    const header = document.createElement('div');
+    header.className = 'kanban-column-header';
+    // Map "Draft" status to "Backlog" column
+    const stories = allStories.filter(s => {
+      if (status === 'Backlog') {
+        return s.status === 'Backlog' || s.status === 'Draft';
+      }
+      return s.status === status;
+    });
+    header.textContent = `${status} (${stories.length})`;
+    
+    const body = document.createElement('div');
+    body.className = 'kanban-column-body';
+    body.dataset.status = status;
+    
+    stories.forEach(story => {
+      const card = createKanbanCard(story);
+      body.appendChild(card);
+    });
+    
+    setupKanbanDropZone(body);
+    
+    column.appendChild(header);
+    column.appendChild(body);
+    kanbanBoard.appendChild(column);
+  });
+}
+
+/**
+ * Create a Kanban card for a story
+ */
+function createKanbanCard(story) {
+  const card = document.createElement('div');
+  card.className = 'kanban-card';
+  card.draggable = true;
+  card.dataset.storyId = story.id;
+  
+  const title = document.createElement('div');
+  title.className = 'kanban-card-title';
+  title.textContent = story.title;
+  
+  const meta = document.createElement('div');
+  meta.className = 'kanban-card-meta';
+  if (story.storyPoint) {
+    const points = document.createElement('span');
+    points.textContent = `${story.storyPoint} pts`;
+    meta.appendChild(points);
+  }
+  
+  card.appendChild(title);
+  card.appendChild(meta);
+  
+  card.addEventListener('dragstart', handleKanbanDragStart);
+  card.addEventListener('dragend', handleKanbanDragEnd);
+  card.addEventListener('click', () => {
+    selectStory(story.id);
+  });
+  
+  return card;
+}
+
+/**
+ * Get all stories as flat array
+ */
+function getAllStoriesFlat(stories) {
+  const result = [];
+  function traverse(items) {
+    items.forEach(story => {
+      result.push(story);
+      if (story.children?.length) {
+        traverse(story.children);
+      }
+    });
+  }
+  traverse(stories);
+  return result;
+}
+
+/**
+ * Handle drag start
+ */
+function handleKanbanDragStart(e) {
+  e.target.classList.add('is-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', e.target.dataset.storyId);
+}
+
+/**
+ * Handle drag end
+ */
+function handleKanbanDragEnd(e) {
+  e.target.classList.remove('is-dragging');
+}
+
+/**
+ * Setup drop zone for Kanban column
+ */
+function setupKanbanDropZone(columnBody) {
+  columnBody.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    columnBody.classList.add('drag-over');
+  });
+  
+  columnBody.addEventListener('dragleave', () => {
+    columnBody.classList.remove('drag-over');
+  });
+  
+  columnBody.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    columnBody.classList.remove('drag-over');
+    
+    const storyId = parseInt(e.dataTransfer.getData('text/plain'));
+    const newStatus = columnBody.dataset.status;
+    
+    try {
+      await updateStoryStatus(storyId, newStatus);
+      await loadStories(true);
+      renderKanban();
+      showToast(`Story moved to ${newStatus}`);
+    } catch (error) {
+      console.error('Failed to update story status:', error);
+      showToast('Failed to update story status', 'error');
+    }
+  });
+}
+
+/**
+ * Update story status via API
+ */
+async function updateStoryStatus(storyId, newStatus) {
+  const url = resolveApiUrl(`/api/stories/${storyId}`);
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: newStatus })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to update story: ${response.status}`);
+  }
+  
+  return response.json();
 }
 
 function setupNodeInteraction(group, node) {
