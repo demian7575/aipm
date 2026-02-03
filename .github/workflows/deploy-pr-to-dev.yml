@@ -151,9 +151,22 @@ jobs:
           ./scripts/deploy-to-environment.sh dev
           echo "✅ Backend deployed to development EC2"
       
+      - name: Sync database from production to development
+        run: |
+          echo "🔄 Syncing database from production to development..."
+          node scripts/utilities/sync-prod-to-dev.cjs
+          echo "✅ Database synced"
+      
       - name: Deploy frontend to development S3
         run: |
           echo "📦 Deploying frontend to development S3..."
+          
+          # Verify we're deploying the correct version
+          echo "🔍 Pre-deployment verification..."
+          echo "📊 Current git commit: $(git rev-parse --short HEAD)"
+          echo "📊 app.js first line: $(head -1 apps/frontend/public/app.js)"
+          echo "📊 app.js size: $(wc -c < apps/frontend/public/app.js) bytes"
+          echo "📊 app.js lines: $(wc -l < apps/frontend/public/app.js) lines"
           
           # Create dev config
           cat > apps/frontend/public/config.js << EOF
