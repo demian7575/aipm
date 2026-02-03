@@ -27,6 +27,41 @@ PHASE4_PASSED=0
 PHASE4_FAILED=0
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1770106280668
+# Merged: 2026-02-03
+# =============================================================================
+test_1770106280668_view_all_stories_modal() {
+    log_test "View All Stories Modal"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q "view-all-stories-btn" apps/frontend/public/index.html; then
+        fail_test "View All Stories button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button reference in app.js
+    if ! grep -q "viewAllStoriesBtn" apps/frontend/public/app.js; then
+        fail_test "viewAllStoriesBtn reference not found in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify modal function exists
+    if ! grep -q "openViewAllStoriesModal" apps/frontend/public/app.js; then
+        fail_test "openViewAllStoriesModal function not found"
+        return 1
+    fi
+    
+    # Test 4: Verify CSS styling exists
+    if ! grep -q "story-list-modal" apps/frontend/public/styles.css; then
+        fail_test "story-list-modal CSS not found"
+        return 1
+    fi
+    
+    pass_test
+}
+
+# =============================================================================
 # Story: Remove Hide Completed Button
 # ID: 1768754109973
 # Merged: 2026-01-22

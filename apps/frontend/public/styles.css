@@ -2622,3 +2622,29 @@ dialog[data-size='content'] .modal-shell {
 .filter-form .checkbox-list input[type="checkbox"] {
   cursor: pointer;
 }
+
+
+/* Story list modal styles */
+.story-list-modal {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.story-title-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.story-title-list li {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.story-title-list li:last-child {
+  border-bottom: none;
+}
+
+.story-title-list li:hover {
+  background: #f8f9fa;
+}
