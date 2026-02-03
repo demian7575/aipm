@@ -25,14 +25,12 @@ echo "🚀 Deploying to $ENV environment..."
 echo "📍 Host: $HOST"
 echo "🪣 Frontend: $FRONTEND_BUCKET"
 
-# Check if we're running on the target EC2 instance
-CURRENT_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "")
-if [[ "$CURRENT_IP" == "$HOST" ]]; then
-    echo "🏠 Running on target EC2 - deploying locally"
+# Check if we're running on EC2 (in /home/ec2-user/aipm)
+if [[ "$PWD" == "/home/ec2-user/aipm" ]]; then
+    echo "🏠 Running on EC2 - deploying locally"
     
     # Deploy backend locally
     echo "📦 Updating backend code..."
-    cd /home/ec2-user/aipm
     git fetch origin
     git reset --hard origin/main
     echo "✅ Code updated"
@@ -43,10 +41,8 @@ if [[ "$CURRENT_IP" == "$HOST" ]]; then
     sleep 3
     sudo systemctl status aipm-backend --no-pager
     echo "✅ Backend service restarted"
-    
-    cd - > /dev/null
 else
-    echo "🌐 Running remotely - deploying via SSH"
+    echo "🌐 Running from local machine - deploying via SSH"
     
     # Ensure SSH key exists
     if [[ ! -f ~/.ssh/id_rsa ]]; then
