@@ -117,23 +117,11 @@ EOF
     echo "⚙️ Updating environment configuration..."
     
     # Copy static environment file and add dynamic variables
-    cat > /tmp/env_config.sh << EOF
-cd aipm
-# Copy static environment file
-cp /tmp/static.env .env
-# Add dynamic variables
-echo "DEPLOY_VERSION=$DEPLOY_VERSION" >> .env
-echo "COMMIT_HASH=$COMMIT_HASH" >> .env
-echo "PROD_VERSION=$DEPLOY_VERSION" >> .env
-echo "BASE_VERSION=$DEPLOY_VERSION" >> .env
-echo "PR_NUMBER=$PR_NUMBER" >> .env
-echo "GITHUB_TOKEN=\${GITHUB_TOKEN:-PLACEHOLDER_TOKEN}" >> .env
-EOF
-    
-    # Copy static environment file to server
-    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no config/$ENV.env ec2-user@$HOST:/tmp/static.env
-    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/env_config.sh ec2-user@$HOST:/tmp/
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/env_config.sh
+    # Backend reads config from environments.yaml - no .env file needed
+    # Just set GITHUB_TOKEN if available
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "echo 'export GITHUB_TOKEN=$GITHUB_TOKEN' >> ~/.bashrc"
+    fi
     
     # Replace version placeholder in backend app.js
     echo "🔄 Updating backend version..."

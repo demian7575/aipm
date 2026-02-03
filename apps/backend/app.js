@@ -45,26 +45,15 @@ async function getAcceptanceTests(db, storyId) {
   }
 }
 
-// Load environment variables from .env file
-try {
-  const envFile = readFileSync('.env', 'utf8');
-  envFile.split('\n').forEach(line => {
-    const [key, value] = line.split('=');
-    if (key && value) {
-      process.env[key] = value;
-    }
-  });
-} catch (err) {
-  console.log('No .env file found, using system environment variables');
-}
+// Load configuration from environments.yaml
+import CONFIG from './config.js';
 
-// Require environment variables
-if (!process.env.STORIES_TABLE) {
-  throw new Error('STORIES_TABLE environment variable is required');
-}
-if (!process.env.ACCEPTANCE_TESTS_TABLE) {
-  throw new Error('ACCEPTANCE_TESTS_TABLE environment variable is required');
-}
+// Set environment variables from config
+Object.entries(CONFIG).forEach(([key, value]) => {
+  if (!process.env[key]) {
+    process.env[key] = String(value);
+  }
+});
 
 // Debug logging configuration
 const DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development';
