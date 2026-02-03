@@ -42,6 +42,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -722,6 +723,42 @@ function setDependencyOverlayVisible(visible) {
 
 function toggleDependencyOverlay() {
   setDependencyOverlayVisible(!state.showDependencies);
+}
+
+if (viewAllStoriesBtn) {
+  viewAllStoriesBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      
+      modalTitle.textContent = 'All Stories';
+      modalBody.innerHTML = '';
+      
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      
+      stories.forEach(story => {
+        const item = document.createElement('li');
+        item.style.padding = '8px';
+        item.style.borderBottom = '1px solid #eee';
+        item.textContent = story.title || 'Untitled';
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', () => {
+          selectStory(story.id);
+          closeModal();
+        });
+        list.appendChild(item);
+      });
+      
+      modalBody.appendChild(list);
+      modalFooter.innerHTML = '';
+      modal.style.display = 'flex';
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
+  });
 }
 
 if (referenceBtn) {

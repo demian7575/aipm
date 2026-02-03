@@ -171,6 +171,33 @@ test_1768490120028_enable_connection_to_parent_user_story() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770085774784
+# Merged: 2026-02-03
+# =============================================================================
+test_1770085774784_story_list_button() {
+    log_test "Story List Button - Modal displays story list when header button clicked"
+    
+    if ! grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html; then
+        fail_test "View All Stories button not found in header"
+        return 1
+    fi
+    
+    if ! grep -q 'viewAllStoriesBtn.addEventListener' apps/frontend/public/app.js; then
+        fail_test "Event listener for View All Stories button not found"
+        return 1
+    fi
+    
+    if ! grep -A10 'viewAllStoriesBtn.addEventListener' apps/frontend/public/app.js | grep -q '/api/stories'; then
+        fail_test "Button does not fetch from /api/stories endpoint"
+        return 1
+    fi
+    
+    pass_test "Story list button implemented correctly"
+}
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""
