@@ -40,8 +40,9 @@
     const input = document.getElementById('input');
     const status = document.getElementById('status');
     
-    // Get Semantic API URL from config
-    const SEMANTIC_API_URL = window.CONFIG?.semantic_api_url || 'http://localhost:8083';
+    // Compute Semantic API URL from API_BASE_URL by replacing port
+    const API_BASE_URL = window.CONFIG?.API_BASE_URL || 'http://localhost:4000';
+    const SEMANTIC_API_URL = API_BASE_URL.replace(':4000', ':8083');
     
     function addOutput(text, isUser = false) {
       const prefix = isUser ? '$ ' : '';

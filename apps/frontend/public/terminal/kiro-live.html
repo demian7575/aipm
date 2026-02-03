@@ -45,9 +45,9 @@
     let interval;
     let lastContent = '';
 
-    // Get API URLs from config
-    const API_BASE_URL = window.CONFIG?.api_url || 'http://localhost:4000';
-    const SESSION_POOL_URL = window.CONFIG?.session_pool_url || 'http://localhost:8082';
+    // Compute URLs from API_BASE_URL by replacing port
+    const API_BASE_URL = window.CONFIG?.API_BASE_URL || 'http://localhost:4000';
+    const SESSION_POOL_URL = API_BASE_URL.replace(':4000', ':8082');
     
     console.log('Config loaded:', window.CONFIG);
     console.log('Using API_BASE_URL:', API_BASE_URL);

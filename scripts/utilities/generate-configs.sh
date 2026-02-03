@@ -13,9 +13,6 @@ source "$SCRIPT_DIR/load-env-config.sh" prod
 cat > "$ROOT_DIR/apps/frontend/public/config-prod.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 window.CONFIG = {
-  api_url: '$API_BASE',
-  semantic_api_url: '$SEMANTIC_API_BASE',
-  session_pool_url: '$SESSION_POOL_URL',
   API_BASE_URL: '$API_BASE',
   EC2_TERMINAL_URL: '$TERMINAL_URL',
   ENVIRONMENT: 'prod'
@@ -44,9 +41,6 @@ source "$SCRIPT_DIR/load-env-config.sh" dev
 cat > "$ROOT_DIR/apps/frontend/public/config-dev.js" << EOF
 // Auto-generated from config/environments.yaml - DO NOT EDIT MANUALLY
 window.CONFIG = {
-  api_url: '$API_BASE',
-  semantic_api_url: '$SEMANTIC_API_BASE',
-  session_pool_url: '$SESSION_POOL_URL',
   API_BASE_URL: '$API_BASE',
   EC2_TERMINAL_URL: '$TERMINAL_URL',
   ENVIRONMENT: 'dev'
