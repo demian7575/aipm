@@ -135,33 +135,10 @@
       <button id="runAllTests">Run All Tests</button>
     </div>
 
-    <script>
-      // Detect environment from URL and load appropriate config
-      const hostname = window.location.hostname;
-      let configFile;
-      
-      if (hostname.includes('aipm-dev-frontend-hosting.s3-website-us-east-1')) {
-        configFile = 'config-dev.js';
-      } else if (hostname.includes('aipm-static-hosting-demo.s3-website-us-east-1')) {
-        configFile = 'config-prod.js';
-      } else {
-        throw new Error(`Unknown environment: ${hostname}. Expected 'aipm-dev-frontend-hosting.s3-website-us-east-1' or 'aipm-static-hosting-demo.s3-website-us-east-1'`);
-      }
-      
-      // Load external config first, then load app.js
-      const configScript = document.createElement('script');
-      configScript.src = configFile + '?v=' + Date.now();
-      configScript.onload = function() {
-        // Config loaded, now load app.js
-        console.log('Config loaded:', window.CONFIG);
-        
-        // Load app.js after config is ready
-        const appScript = document.createElement('script');
-        appScript.type = 'module';
-        appScript.src = 'app.js?v=' + Date.now();
-        document.body.appendChild(appScript);
-      };
-      document.head.appendChild(configScript);
-    </script>
+    <!-- Load config (auto-detects environment) -->
+    <script src="config.js"></script>
+    
+    <!-- Load app -->
+    <script src="app.js"></script>
   </body>
 </html>
