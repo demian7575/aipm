@@ -62,12 +62,8 @@ echo "✅ Backend service restarted"
 ENDSSH
 
 echo "✅ Backend deployed to EC2"
-    fi
-    
-    echo "✅ Using SSH key configured by workflow"
-    
-    # Get current branch for PR deployments
-    CURRENT_BRANCH=$(git branch --show-current)
+
+# Deploy frontend to S3
     if [[ "$CURRENT_BRANCH" == "main" ]]; then
         TARGET_BRANCH="main"
     else
