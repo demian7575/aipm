@@ -60,6 +60,42 @@ test_1768754109973_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1770085792939
+# Merged: 2026-02-03
+# =============================================================================
+test_1770085792939_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify button exists in HTML header
+    if ! grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html; then
+        fail_test "View All Stories button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in JS
+    if ! grep -q 'viewAllStoriesBtn' apps/frontend/public/app.js; then
+        fail_test "viewAllStoriesBtn reference not found in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify click handler exists
+    if ! grep -q 'viewAllStoriesBtn.addEventListener' apps/frontend/public/app.js; then
+        fail_test "Click handler for viewAllStoriesBtn not found"
+        return 1
+    fi
+    
+    # Test 4: Verify modal opens with story list
+    if ! grep -q "modalTitle.textContent = 'All Stories'" apps/frontend/public/app.js; then
+        fail_test "Modal title not set to 'All Stories'"
+        return 1
+    fi
+    
+    pass_test "Add Story List Button"
+    return 0
+}
+
+# =============================================================================
 # Story: Kanban Board View with Drag-and-Drop
 # ID: 1770031875840
 # Merged: 2026-02-02
@@ -169,6 +205,36 @@ test_1768490120028_enable_connection_to_parent_user_story() {
 #     pass_test "[Story Title]"
 #     return 0
 # }
+# =============================================================================
+
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770085774784
+# Merged: 2026-02-03
+# =============================================================================
+test_1770085774784_story_list_button() {
+    log_test "Story List Button - Modal displays story list when header button clicked"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html; then
+        fail_test "View All Stories button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button has event listener
+    if ! grep -q 'viewAllStoriesBtn.addEventListener' apps/frontend/public/app.js; then
+        fail_test "Event listener for View All Stories button not found"
+        return 1
+    fi
+    
+    # Test 3: Verify it fetches stories from API
+    if ! grep -A10 'viewAllStoriesBtn.addEventListener' apps/frontend/public/app.js | grep -q '/api/stories'; then
+        fail_test "Button does not fetch from /api/stories endpoint"
+        return 1
+    fi
+    
+    pass_test "Story list button implemented correctly"
+}
 # =============================================================================
 
 # Run all tests
