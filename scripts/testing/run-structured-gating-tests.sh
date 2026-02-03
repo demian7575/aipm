@@ -8,8 +8,11 @@
 
 set -e
 
-# SKIP_GATING_TESTS should be set by the caller (e.g., GitHub workflow)
-# to prevent nested gating test execution in code generation
+# Check if gating tests should be skipped
+if [[ "$SKIP_GATING_TESTS" == "true" ]]; then
+    echo "⏭️  Skipping gating tests (SKIP_GATING_TESTS=true)"
+    exit 0
+fi
 
 # Parse command line arguments
 PHASES_TO_RUN="1,2"
