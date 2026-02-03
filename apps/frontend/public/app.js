@@ -43,6 +43,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
+const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -229,6 +230,78 @@ const EPIC_CLASSIFICATION = {
 };
 
 let modalTeardown = null;
+
+const HEATMAP_ACTIVITIES = [
+  { key: 'design', label: 'Design' },
+  { key: 'documentation', label: 'Documentation' },
+  { key: 'implementation', label: 'Implementation' },
+  { key: 'test_automation', label: 'Test Automation' },
+  { key: 'verification', label: 'Verification' },
+];
+
+const HEATMAP_ACTIVITY_KEYWORDS = [
+  { key: 'design', patterns: [/design/i, /discovery/i, /prototype/i, /architecture/i] },
+  { key: 'documentation', patterns: [/document/i, /spec/i, /manual/i, /guide/i, /writeup/i] },
+  {
+    key: 'implementation',
+    patterns: [/build/i, /implement/i, /develop/i, /code/i, /integrat/i, /refactor/i],
+  },
+  {
+    key: 'test_automation',
+    patterns: [/automate/i, /automation/i, /pipeline/i, /script/i, /ci\/?cd/i, /regression/i],
+  },
+  {
+    key: 'verification',
+    patterns: [/verify/i, /verification/i, /review/i, /audit/i, /approve/i, /validate/i],
+  },
+];
+
+const HEATMAP_COMPONENTS = [
+  { key: 'system_srs', label: 'System (S/S)' },
+  { key: 'WorkModel', label: 'WorkModel (WM)' },
+  { key: 'Document_Intelligence', label: 'DocumentIntelligence (DI)' },
+  { key: 'Review_Governance', label: 'Review & Governance (RG)' },
+  { key: 'Orchestration_Engagement', label: 'Orchestration & Engagement (OE)' },
+  { key: 'Run_Verify', label: 'Run & Verify (RV)' },
+  { key: 'Traceabilty_Insight', label: 'Traceability & Insight (TI)' },
+];
+
+const HEATMAP_COMPONENT_LOOKUP = new Map(
+  HEATMAP_COMPONENTS.map((entry) => [entry.key.toLowerCase(), entry.key])
+);
+
+HEATMAP_COMPONENTS.forEach((entry) => {
+  if (!HEATMAP_COMPONENT_LOOKUP.has(entry.key.toLowerCase())) {
+    HEATMAP_COMPONENT_LOOKUP.set(entry.key.toLowerCase(), entry.key);
+  }
+});
+
+const COMPONENT_SYNONYMS = new Map(
+  [
+    ['system', 'system_srs'],
+    ['system (srs)', 'system_srs'],
+    ['srs', 'system_srs'],
+    ['unspecified', 'system_srs'],
+    ['work model', 'WorkModel'],
+    ['work_model', 'WorkModel'],
+    ['workmodel', 'WorkModel'],
+    ['document intelligence', 'Document_Intelligence'],
+    ['document-intelligence', 'Document_Intelligence'],
+    ['documentintelligence', 'Document_Intelligence'],
+    ['review governance', 'Review_Governance'],
+    ['review & governance', 'Review_Governance'],
+    ['review-governance', 'Review_Governance'],
+    ['orchestration engagement', 'Orchestration_Engagement'],
+    ['orchestration & engagement', 'Orchestration_Engagement'],
+    ['run verify', 'Run_Verify'],
+    ['run & verify', 'Run_Verify'],
+    ['traceability_insight', 'Traceabilty_Insight'],
+    ['traceability insight', 'Traceabilty_Insight'],
+    ['traceability & insight', 'Traceabilty_Insight'],
+    ['traceability and insight', 'Traceabilty_Insight'],
+    ['traceabilty_insight', 'Traceabilty_Insight'],
+  ].map(([key, value]) => [key.toLowerCase(), value])
+);
 
 const COMPONENT_LOOKUP = new Map();
 COMPONENT_OPTIONS.forEach((component) => {
@@ -3818,6 +3891,749 @@ async function openComponentPicker(initialSelection = [], options = {}) {
   });
 }
 
+function computeHeatmapData() {
+  const flatStories = flattenStories(state.stories);
+  if (flatStories.length === 0) {
+    return { assignees: [], datasets: new Map(), columns: HEATMAP_COMPONENTS };
+  }
+
+  const datasets = new Map();
+  const assignees = new Set();
+
+  const ensureDataset = (key) => {
+    if (!datasets.has(key)) {
+      const matrix = new Map();
+      HEATMAP_ACTIVITIES.forEach((activity) => {
+        matrix.set(activity.key, new Map());
+      });
+      datasets.set(key, { matrix, total: 0 });
+    }
+    return datasets.get(key);
+  };
+
+  flatStories.forEach((story) => {
+    const assignee = story.assigneeEmail && story.assigneeEmail.trim()
+      ? story.assigneeEmail.trim()
+      : 'Unassigned';
+    assignees.add(assignee);
+
+    const components = normalizeStoryComponentsForHeatmap(story.components);
+    const activities = detectStoryActivitiesForHeatmap(story);
+    const numericPoint = Number(story.storyPoint);
+    const totalShare = Number.isFinite(numericPoint) && numericPoint > 0 ? numericPoint : 1;
+
+    if (totalShare <= 0 || components.length === 0 || activities.length === 0) {
+      return;
+    }
+
+    const perActivityShare = totalShare / activities.length;
+    const perCellShare = perActivityShare / components.length;
+
+    const allDataset = ensureDataset('__ALL__');
+    const assigneeDataset = ensureDataset(assignee);
+
+    activities.forEach((activityKey) => {
+      const allRow = allDataset.matrix.get(activityKey);
+      const assigneeRow = assigneeDataset.matrix.get(activityKey);
+      components.forEach((componentKey) => {
+        allRow.set(componentKey, (allRow.get(componentKey) ?? 0) + perCellShare);
+        assigneeRow.set(componentKey, (assigneeRow.get(componentKey) ?? 0) + perCellShare);
+      });
+    });
+
+    allDataset.total += totalShare;
+    assigneeDataset.total += totalShare;
+  });
+
+  const datasetsWithRows = new Map();
+  datasets.forEach((dataset, key) => {
+    const { matrix, total } = dataset;
+    let maxPercent = 0;
+    const rows = HEATMAP_ACTIVITIES.map((activity) => {
+      const row = matrix.get(activity.key) ?? new Map();
+      const cells = HEATMAP_COMPONENTS.map((component) => {
+        const value = row.get(component.key) ?? 0;
+        const percent = total > 0 ? (value / total) * 100 : 0;
+        if (percent > maxPercent) {
+          maxPercent = percent;
+        }
+        return { component: component.key, value, percent };
+      });
+      return { activity: activity.label, key: activity.key, cells };
+    });
+
+    datasetsWithRows.set(key, { rows, total, maxPercent });
+  });
+
+  const sortedAssignees = Array.from(assignees).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  );
+
+  const options = [];
+  if (datasetsWithRows.has('__ALL__')) {
+    options.push({ key: '__ALL__', label: 'All assignees' });
+  }
+  sortedAssignees.forEach((label) => options.push({ key: label, label }));
+
+  return { assignees: options, datasets: datasetsWithRows, columns: HEATMAP_COMPONENTS };
+}
+
+function buildDeployToDevModalContent(prEntry = null) {
+  const container = document.createElement('div');
+  container.className = 'deploy-dev-modal';
+  
+  const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
+  
+  const prInfo = prEntry ? `
+    <div class="pr-info">
+      <h4>PR Information</h4>
+      <p><strong>PR ID:</strong> ${prId}</p>
+      <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
+      ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
+      <p><strong>Target Branch:</strong> main</p>
+    </div>
+  ` : '';
+  
+  container.innerHTML = `
+    ${prInfo}
+    <div class="deploy-options">
+      <h3>Deploy to Development Environment</h3>
+      <p>This will deploy the PR branch to the development environment for testing.</p>
+      
+      <div class="workflow-steps">
+        <div class="step">1. Deploy PR branch to development environment</div>
+        <div class="step">2. Test changes in dev</div>
+        <div class="step">3. After approval, merge PR to main</div>
+        <div class="step">4. Deploy to production</div>
+      </div>
+      
+      <div class="deploy-actions">
+        <button id="deploy-to-dev-btn" class="primary">Deploy Now</button>
+        <button id="check-deploy-status" class="secondary">Check Status</button>
+      </div>
+      
+      <div id="deploy-output" class="deploy-output" style="display:none;">
+        <h4>Deployment Output:</h4>
+        <pre id="deploy-log"></pre>
+      </div>
+    </div>
+  `;
+  
+  const deployBtn = container.querySelector('#deploy-to-dev-btn');
+  const statusBtn = container.querySelector('#check-deploy-status');
+  const output = container.querySelector('#deploy-output');
+  const log = container.querySelector('#deploy-log');
+  
+  deployBtn.addEventListener('click', async () => {
+    deployBtn.disabled = true;
+    deployBtn.textContent = 'Deploying...';
+    
+    output.style.display = 'block';
+    log.textContent = `🚀 Deploying PR to development environment...\n`;
+    log.textContent += `📝 PR: ${prEntry?.taskTitle || 'Development task'}\n\n`;
+    
+    try {
+      log.textContent += `⚙️  Triggering deployment...\n`;
+      
+      // Call deployment API
+      const result = await bedrockImplementation(prEntry);
+      
+      if (!result || !result.success) {
+        throw new Error(result?.message || 'Deployment failed');
+      }
+      
+      log.textContent += `✅ Deployment triggered successfully!\n\n`;
+      log.textContent += `🌐 Dev URL: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com\n`;
+      
+      deployBtn.textContent = 'Deploy Now';
+      deployBtn.disabled = false;
+    } catch (error) {
+      log.textContent += `\n❌ Error: ${error.message}\n`;
+      deployBtn.textContent = 'Deploy Now';
+      deployBtn.disabled = false;
+    }
+  });
+  
+  statusBtn.addEventListener('click', () => {
+    output.style.display = 'block';
+    log.textContent = `Checking deployment status for PR ${prId}...\n`;
+    log.textContent += `Development environment: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/\n`;
+    log.textContent += `Status: Ready for testing\n`;
+  });
+  
+  return { element: container, onClose: () => {} };
+}
+
+function getEc2TerminalBaseUrl() {
+  return window.CONFIG?.EC2_TERMINAL_URL || 'ws://localhost:8080';
+}
+
+function toHttpTerminalUrl(baseUrl) {
+  if (!baseUrl) return '';
+  if (baseUrl.startsWith('ws://')) return `http://${baseUrl.slice(5)}`;
+  if (baseUrl.startsWith('wss://')) return `https://${baseUrl.slice(6)}`;
+  return baseUrl;
+}
+
+function buildStandaloneTerminalUrl(story = null) {
+  const params = new URLSearchParams();
+
+  const branch = story?.branchName || story?.branch;
+  if (branch) params.set('branch', branch);
+  if (story?.id) params.set('storyId', story.id);
+  if (story?.title) params.set('storyTitle', story.title);
+
+  const terminalUrl = new URL('terminal/simple.html', window.location.href);
+  terminalUrl.search = params.toString();
+  return terminalUrl.toString();
+}
+
+function buildKiroContextSummary(story) {
+  if (!story) return '';
+
+  const parts = [];
+  parts.push(`Story: ${story.title || 'Untitled story'}`);
+
+  if (story.description) {
+    parts.push(`Description:\n${story.description}`);
+  }
+
+  const tests = Array.isArray(story.acceptanceTests) ? story.acceptanceTests : [];
+  if (tests.length) {
+    const formatted = tests
+      .map((test, index) => {
+        const title = test.title || `Acceptance Test ${index + 1}`;
+        const status = test.status || 'Draft';
+        const given = test.given || '';
+        const when = test.when || '';
+        const then = test.then || '';
+        return [`• ${title} (${status})`, given && `  Given ${given}`, when && `  When ${when}`, then && `  Then ${then}`]
+          .filter(Boolean)
+          .join('\n');
+      })
+      .join('\n');
+    parts.push(`Acceptance Tests:\n${formatted}`);
+  }
+
+  const components = Array.isArray(story.components) ? story.components : [];
+  if (components.length) {
+    parts.push(`Components: ${components.map(formatComponentLabel).join(', ')}`);
+  }
+
+  return parts.filter(Boolean).join('\n\n');
+}
+
+async function prepareKiroTerminalContext(prEntry = {}) {
+  const context = { summary: '', branchStatus: '' };
+
+  if (prEntry.storyId && storyIndex.has(prEntry.storyId)) {
+    context.summary = buildKiroContextSummary(storyIndex.get(prEntry.storyId));
+  }
+
+  const baseUrl = getEc2TerminalBaseUrl();
+  const httpBase = toHttpTerminalUrl(baseUrl);
+
+  if (prEntry?.branchName && httpBase) {
+    try {
+      const response = await fetch(`${httpBase}/checkout-branch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch: prEntry.branchName })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        context.branchStatus = `✓ Branch ${prEntry.branchName} ready`;
+      } else {
+        context.branchStatus = `⚠️  Branch checkout warning: ${result.message}`;
+      }
+    } catch (error) {
+      context.branchStatus = `⚠️  Could not pre-checkout branch: ${error.message}`;
+    }
+  }
+
+  return context;
+}
+
+async function buildKiroTerminalModalContent(prEntry = null, kiroContext = {}) {
+  const container = document.createElement('div');
+  container.className = 'run-staging-modal';
+  
+  console.log('🔍 PR Entry:', prEntry);
+  
+  const prId = prEntry?.number || prEntry?.targetNumber || 'unknown';
+  const branchName = prEntry?.branchName || 'main';
+  
+  const prInfo = prEntry ? `
+    <div class="pr-info">
+      <h4>PR Information</h4>
+      <p><strong>PR ID:</strong> ${prId}</p>
+      <p><strong>Title:</strong> ${escapeHtml(prEntry.taskTitle || 'Development task')}</p>
+      ${prEntry.prUrl ? `<p><strong>PR:</strong> <a href="${escapeHtml(prEntry.prUrl)}" target="_blank">${formatCodeWhispererTargetLabel(prEntry)}</a></p>` : ''}
+      <p><strong>Branch:</strong> ${escapeHtml(branchName)}</p>
+    </div>
+  ` : '';
+  
+  const contextSummary = kiroContext?.summary
+    ? `<div class="kiro-context"><h4>Loaded context</h4><pre>${escapeHtml(kiroContext.summary)}</pre></div>`
+    : '';
+
+  container.innerHTML = `
+    ${prInfo}
+    <div class="staging-options">
+      <h3>Refine PR with Kiro</h3>
+      ${contextSummary}
+      <div id="terminal-container" style="width: 100%; height: 60vh; background: #000; padding: 10px 10px 50px 10px; box-sizing: border-box; overflow: auto;"></div>
+    </div>
+  `;
+  
+  const terminalContainer = container.querySelector('#terminal-container');
+  
+  let terminal = null;
+  let socket = null;
+  
+  // Auto-start terminal immediately
+  if (!window.Terminal) {
+    terminalContainer.textContent = 'Terminal library not loaded. Please refresh the page.';
+    return { element: container, onClose: () => {} };
+  }
+  
+  // Create xterm terminal
+  terminal = new window.Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+    theme: {
+      background: '#000000',
+      foreground: '#ffffff'
+    }
+  });
+  
+  terminal.open(terminalContainer);
+  
+  // Manual resize function
+  const resizeTerminal = () => {
+    const width = terminalContainer.clientWidth;
+    const height = terminalContainer.clientHeight;
+    const cols = Math.floor(width / 9); // Approximate char width
+    const rows = Math.floor(height / 17); // Approximate line height
+    if (cols > 0 && rows > 0) {
+      terminal.resize(cols, rows);
+    }
+  };
+  
+    resizeTerminal(); // Initial size
+    terminal.writeln('🔌 Connecting to Kiro CLI terminal...');
+    terminal.writeln('');
+
+    // Connect to EC2 WebSocket server
+    const EC2_TERMINAL_URL = getEc2TerminalBaseUrl();
+
+    if (kiroContext?.branchStatus) {
+      terminal.writeln(kiroContext.branchStatus);
+      terminal.writeln('');
+    }
+
+    const wsUrl = `${EC2_TERMINAL_URL}/terminal?branch=${encodeURIComponent(prEntry?.branch || 'main')}`;
+
+    const decodeSocketData = async (data) => {
+      if (typeof data === 'string') return data;
+
+      try {
+        if (data instanceof Blob) {
+          return await data.text();
+        }
+
+        if (data instanceof ArrayBuffer) {
+          return new TextDecoder().decode(data);
+        }
+      } catch (error) {
+        console.warn('Failed to decode terminal data', error);
+      }
+
+      return '';
+    };
+
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      terminal.writeln('✓ Connected to Kiro CLI');
+      if (prEntry?.taskTitle) {
+        terminal.writeln(`📋 PR: ${prEntry.taskTitle}`);
+      }
+      terminal.writeln('');
+      terminal.writeln('💬 Start chatting with Kiro to refine your code!');
+      terminal.writeln('');
+    };
+
+    socket.onmessage = async (event) => {
+      const text = await decodeSocketData(event.data);
+      terminal.write(text);
+    };
+
+    socket.onerror = (error) => {
+      terminal.writeln('\r\n❌ Connection error');
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      terminal.writeln('\r\n🔌 Disconnected');
+    };
+
+    // Send terminal input to EC2
+    terminal.onData((data) => {
+      console.log('Terminal input:', data, 'Socket state:', socket?.readyState);
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        console.log('Sending raw data to WebSocket:', data);
+        socket.send(data);
+      } else {
+        console.warn('Socket not ready, state:', socket?.readyState);
+      }
+    });
+
+    // Auto-resize terminal when modal is resized
+    const resizeObserver = new ResizeObserver(() => {
+      if (terminal && terminalContainer) {
+        const width = terminalContainer.clientWidth;
+        const height = terminalContainer.clientHeight;
+        const cols = Math.floor(width / 9);
+        const rows = Math.floor(height / 17);
+        if (cols > 0 && rows > 0) {
+          terminal.resize(cols, rows);
+        }
+      }
+    });
+    resizeObserver.observe(terminalContainer);
+
+    return {
+      element: container,
+      onClose: () => {
+        resizeObserver.disconnect();
+        if (socket) socket.close();
+        if (terminal) terminal.dispose();
+      }
+    };
+}
+
+async function bedrockImplementation(prEntry) {
+  // Call AIPM backend to trigger GitHub Action deployment
+  try {
+    const payload = {
+      prNumber: prEntry?.number || prEntry?.targetNumber,
+      branchName: prEntry?.branchName
+    };
+    
+    console.log('📤 Deploying PR to staging:', payload);
+    
+    const response = await fetch(resolveApiUrl('/api/deploy-pr'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Deploy API error:', response.status, errorText);
+      throw new Error(`Deploy API returned ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('📥 Response from /api/deploy-pr:', result);
+    
+    if (result.success) {
+      console.log('✅ Deployment triggered:', result.stagingUrl);
+      return {
+        success: true,
+        workflowUrl: result.workflowUrl,
+        deploymentUrl: result.stagingUrl,
+        message: result.message
+      };
+    } else {
+      console.log('⚠️ Deployment failed:', result.error);
+      return { success: false, message: result.error || 'Deployment failed' };
+    }
+  } catch (error) {
+    console.error('❌ Deployment error:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+function buildHeatmapModalContent() {
+  const container = document.createElement('div');
+  container.className = 'heatmap-modal';
+
+  const data = computeHeatmapData();
+  if (!data.assignees.length) {
+    const placeholder = document.createElement('p');
+    placeholder.className = 'placeholder';
+    placeholder.textContent =
+      'Assign user stories with assignees, components, and story points to see workload distribution.';
+    container.appendChild(placeholder);
+    return {
+      element: container,
+      onClose: () => {
+        modal.style.width = '';
+        modal.style.maxWidth = '';
+        modalBody.style.width = '';
+      },
+    };
+  }
+
+  const controls = document.createElement('div');
+  controls.className = 'heatmap-controls';
+
+  const label = document.createElement('label');
+  label.textContent = 'Assignee:';
+  label.setAttribute('for', 'heatmap-assignee');
+  controls.appendChild(label);
+
+  const select = document.createElement('select');
+  select.id = 'heatmap-assignee';
+  select.className = 'heatmap-select';
+  data.assignees.forEach((entry, index) => {
+    const option = document.createElement('option');
+    option.value = entry.key;
+    option.textContent = entry.label;
+    if (index === 0) {
+      option.selected = true;
+    }
+    select.appendChild(option);
+  });
+
+  controls.appendChild(select);
+  container.appendChild(controls);
+
+  const tableWrapper = document.createElement('div');
+  tableWrapper.className = 'heatmap-table-wrapper';
+  container.appendChild(tableWrapper);
+
+  const note = document.createElement('p');
+  note.className = 'heatmap-note';
+  note.textContent =
+    'Percentages show how the selected assignee’s workload is distributed across components and activities.';
+  container.appendChild(note);
+
+  const syncWidthToTable = () => {
+    requestAnimationFrame(() => {
+      const table = tableWrapper.querySelector('table');
+      const tableWidth = table ? Math.ceil(table.getBoundingClientRect().width) : 0;
+      const controlsWidth = Math.ceil(controls.getBoundingClientRect().width);
+      const noteWidth = Math.ceil(note.getBoundingClientRect().width);
+      const desired = Math.max(tableWidth, controlsWidth, noteWidth);
+
+      if (!desired) {
+        container.style.width = '';
+        tableWrapper.style.maxWidth = '';
+        modalBody.style.width = '';
+        modal.style.width = '';
+        modal.style.maxWidth = '';
+        return;
+      }
+
+      const bodyStyles = window.getComputedStyle(modalBody);
+      const paddingLeft = parseFloat(bodyStyles.paddingLeft || '0');
+      const paddingRight = parseFloat(bodyStyles.paddingRight || '0');
+      const horizontalPadding = (Number.isFinite(paddingLeft) ? paddingLeft : 0) +
+        (Number.isFinite(paddingRight) ? paddingRight : 0);
+      const maxDialogWidth = Math.floor(window.innerWidth * 0.98);
+      const maxContentWidth = Math.max(maxDialogWidth - horizontalPadding, 0);
+      const contentWidth = Math.min(desired, maxContentWidth || desired);
+
+      container.style.width = `${contentWidth}px`;
+      tableWrapper.style.maxWidth = `${contentWidth}px`;
+      modalBody.style.width = `${contentWidth}px`;
+      const dialogWidth = Math.min(contentWidth + horizontalPadding, maxDialogWidth);
+      modal.style.width = `${dialogWidth}px`;
+      modal.style.maxWidth = `${maxDialogWidth}px`;
+    });
+  };
+
+  const renderTable = (assigneeKey) => {
+    tableWrapper.innerHTML = '';
+    const dataset = data.datasets.get(assigneeKey);
+    if (!dataset || dataset.total <= 0) {
+      const placeholder = document.createElement('p');
+      placeholder.className = 'placeholder';
+      placeholder.textContent = 'No workload recorded for this assignee yet.';
+      tableWrapper.appendChild(placeholder);
+      container.style.width = '';
+      tableWrapper.style.maxWidth = '';
+      modalBody.style.width = '';
+      modal.style.width = '';
+      modal.style.maxWidth = '';
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'heatmap-table';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    const activityHeader = document.createElement('th');
+    activityHeader.textContent = 'Activity -> Area >';
+    headerRow.appendChild(activityHeader);
+
+    data.columns.forEach((column) => {
+      const th = document.createElement('th');
+      th.textContent = column.label;
+      headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const formatPercent = (value) => {
+      if (value <= 0) {
+        return null;
+      }
+      return Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
+    };
+
+    const formatPoints = (value) => {
+      if (!Number.isFinite(value)) {
+        return '0';
+      }
+      return Number.isInteger(value) ? String(value) : value.toFixed(1);
+    };
+
+    dataset.rows.forEach((row) => {
+      const tr = document.createElement('tr');
+      const heading = document.createElement('th');
+      heading.scope = 'row';
+      heading.textContent = row.activity;
+      tr.appendChild(heading);
+
+      row.cells.forEach((cellData) => {
+        const cell = document.createElement('td');
+        cell.className = 'heatmap-cell';
+        const percentLabel = formatPercent(cellData.percent);
+        if (percentLabel) {
+          const ratio = dataset.maxPercent > 0 ? cellData.percent / dataset.maxPercent : 0;
+          const alpha = 0.15 + ratio * 0.65;
+          cell.style.backgroundColor = `rgba(37, 99, 235, ${alpha.toFixed(3)})`;
+          cell.style.color = ratio > 0.55 ? '#fff' : '#1f2937';
+          cell.textContent = percentLabel;
+          cell.title = `${row.activity} · ${lookupHeatmapComponentLabel(cellData.component)}: ${percentLabel} (${formatPoints(
+            cellData.value
+          )} story points)`;
+        } else {
+          cell.classList.add('empty');
+          cell.textContent = '0%';
+          cell.title = `${row.activity} · ${lookupHeatmapComponentLabel(
+            cellData.component
+          )}: 0% (0 story points)`;
+        }
+        tr.appendChild(cell);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    syncWidthToTable();
+  };
+
+  select.addEventListener('change', (event) => {
+    renderTable(event.target.value);
+  });
+
+  window.addEventListener('resize', syncWidthToTable);
+  renderTable(select.value);
+
+  return {
+    element: container,
+    onClose: () => {
+      window.removeEventListener('resize', syncWidthToTable);
+      container.style.width = '';
+      tableWrapper.style.maxWidth = '';
+      modalBody.style.width = '';
+      modal.style.width = '';
+      modal.style.maxWidth = '';
+    },
+  };
+}
+
+function lookupHeatmapComponentLabel(key) {
+  const match = HEATMAP_COMPONENTS.find((entry) => entry.key === key);
+  return match ? match.label : key.replace(/_/g, ' ');
+}
+
+function normalizeStoryComponentsForHeatmap(components) {
+  const result = [];
+  const source = Array.isArray(components) ? components : [];
+  source.forEach((entry) => {
+    if (typeof entry !== 'string') {
+      return;
+    }
+    const trimmed = entry.trim();
+    if (!trimmed) {
+      return;
+    }
+    const lower = trimmed.toLowerCase();
+    const synonym = COMPONENT_SYNONYMS.get(lower);
+    if (synonym) {
+      result.push(synonym);
+      return;
+    }
+    const canonical = HEATMAP_COMPONENT_LOOKUP.get(lower);
+    if (canonical) {
+      result.push(canonical);
+    }
+  });
+
+  const unique = Array.from(new Set(result));
+
+  if (unique.length === 0) {
+    return ['system_srs'];
+  }
+
+  return unique;
+}
+
+function detectStoryActivitiesForHeatmap(story) {
+  const detected = new Set();
+
+  const storyText = `${story?.title ?? ''} ${story?.summary ?? ''} ${story?.asA ?? ''} ${
+    story?.iWant ?? ''
+  } ${story?.soThat ?? ''}`
+    .toLowerCase()
+    .trim();
+
+  if (storyText) {
+    HEATMAP_ACTIVITY_KEYWORDS.forEach((mapping) => {
+      if (mapping.patterns.some((pattern) => pattern.test(storyText))) {
+        detected.add(mapping.key);
+      }
+    });
+  }
+
+  if (detected.size === 0) {
+    const status = typeof story?.status === 'string' ? story.status.toLowerCase() : '';
+    if (status === 'draft') {
+      detected.add('design');
+    } else if (status === 'approved') {
+      detected.add('verification');
+    }
+  }
+
+  if (
+    detected.size === 0 &&
+    Array.isArray(story?.acceptanceTests) &&
+    story.acceptanceTests.length > 0
+  ) {
+    detected.add('test_automation');
+  }
+
+  if (detected.size === 0) {
+    detected.add('implementation');
+  }
+
+  return Array.from(detected);
+}
+
 let renderDetailsTimeout = null;
 
 function renderDetails() {
@@ -7197,6 +8013,17 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+
+  openHeatmapBtn?.addEventListener('click', () => {
+    const { element, onClose } = buildHeatmapModalContent();
+    openModal({
+      title: 'Employee Heat Map',
+      content: element,
+      cancelLabel: 'Close',
+      size: 'content',
+      onClose,
+    });
+  });
 
   autoLayoutToggle.addEventListener('click', () => {
     if (state.autoLayout) {
