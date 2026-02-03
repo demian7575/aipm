@@ -715,7 +715,7 @@ async function performDelegation(payload) {
 - Test the functionality works correctly`;
     }
     
-    const prProcessorUrl = process.env.EC2_PR_PROCESSOR_URL || 'http://44.197.204.18:8082';
+    const prProcessorUrl = process.env.EC2_PR_PROCESSOR_URL || process.env.SESSION_POOL_URL || 'http://localhost:8082';
     
     console.log(`🤖 Calling PR Processor: ${prProcessorUrl}/api/process-pr for PR #${pr.number}`);
     
@@ -6899,10 +6899,15 @@ export async function createApp() {
 
     // Configuration endpoint - return EC2 endpoints without proxying
     if (pathname === '/api/config/endpoints' && method === 'GET') {
+      const ec2Ip = process.env.EC2_IP || 'localhost';
+      const apiPort = process.env.API_PORT || '4000';
+      const sessionPoolPort = process.env.SESSION_POOL_PORT || '8082';
+      const terminalPort = process.env.TERMINAL_PORT || '8080';
+      
       sendJson(res, 200, {
-        ec2Backend: 'http://44.197.204.18:4000',
-        kiroApi: 'http://44.197.204.18:8081',
-        terminal: 'ws://44.197.204.18:8080'
+        ec2Backend: `http://${ec2Ip}:${apiPort}`,
+        kiroApi: `http://${ec2Ip}:${sessionPoolPort}`,
+        terminal: `ws://${ec2Ip}:${terminalPort}`
       });
       return;
     }

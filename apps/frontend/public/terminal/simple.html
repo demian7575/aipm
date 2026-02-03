@@ -34,10 +34,14 @@
     </div>
   </div>
 
+  <script src="../config.js"></script>
   <script>
     const output = document.getElementById('output');
     const input = document.getElementById('input');
     const status = document.getElementById('status');
+    
+    // Get Semantic API URL from config
+    const SEMANTIC_API_URL = window.CONFIG?.semantic_api_url || 'http://localhost:8083';
     
     function addOutput(text, isUser = false) {
       const prefix = isUser ? '$ ' : '';
@@ -62,9 +66,7 @@
       status.textContent = '⏳ Processing...';
       
       try {
-        // Use EC2 Kiro API with actual Kiro CLI integration
-        const kiroApiUrl = 'http://44.197.204.18:8083';
-        const response = await fetch(kiroApiUrl + '/kiro/chat', {
+        const response = await fetch(`${SEMANTIC_API_URL}/kiro/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: message })
@@ -97,8 +99,7 @@
     input.focus();
     
     // Test connection on load
-    const kiroApiUrl = 'http://44.197.204.18:8083';
-    fetch(kiroApiUrl + '/health')
+    fetch(`${SEMANTIC_API_URL}/health`)
       .then(r => r.json())
       .then(data => {
         if (data.status === 'running') {

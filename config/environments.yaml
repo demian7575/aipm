@@ -5,6 +5,7 @@ prod:
   ec2_ip: "44.197.204.18"
   api_port: 4000
   semantic_api_port: 8083
+  session_pool_port: 8082
   terminal_port: 8080
   s3_bucket: "aipm-static-hosting-demo"
   s3_url: "http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
@@ -16,6 +17,7 @@ dev:
   ec2_ip: "44.222.168.46"
   api_port: 4000
   semantic_api_port: 8083
+  session_pool_port: 8082
   terminal_port: 8080
   s3_bucket: "aipm-dev-frontend-hosting"
   s3_url: "http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"

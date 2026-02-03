@@ -4065,7 +4065,7 @@ function buildDeployToDevModalContent(prEntry = null) {
 }
 
 function getEc2TerminalBaseUrl() {
-  return window.CONFIG?.EC2_TERMINAL_URL || 'ws://44.197.204.18:8080';
+  return window.CONFIG?.EC2_TERMINAL_URL || 'ws://localhost:8080';
 }
 
 function toHttpTerminalUrl(baseUrl) {
