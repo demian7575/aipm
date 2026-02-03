@@ -189,32 +189,10 @@ fi
 # Deploy frontend
 echo "🌐 Deploying frontend..."
 
-# Regenerate config files from environments.yaml
-echo "🔧 Regenerating config files..."
-./scripts/utilities/generate-configs.sh
-
-# Generate deployment version if not set (for local deployments)
-if [[ -z "$DEPLOY_VERSION" ]]; then
-    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
-    echo "📅 Generated deployment version: $DEPLOY_VERSION"
-fi
-
-# Copy correct config file for environment and replace version
-if [[ "$ENV" == "prod" ]]; then
-    cp apps/frontend/public/config-prod.js apps/frontend/public/config.js
-    # Replace version placeholder with actual deployment version
-    sed -i.bak "s/DEPLOYMENT_VERSION_PLACEHOLDER/${DEPLOY_VERSION}/g" apps/frontend/public/config.js
-    rm -f apps/frontend/public/config.js.bak
-else
-    cp apps/frontend/public/config-dev.js apps/frontend/public/config.js
-    # For dev, use timestamp
-    DEV_VERSION="dev-${DEPLOY_VERSION}"
-    sed -i.bak "s/dev-TIMESTAMP/${DEV_VERSION}/g" apps/frontend/public/config.js
-    rm -f apps/frontend/public/config.js.bak
-fi
+# config.js auto-detects environment from URL - no generation needed
 
 # Upload to S3
-aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET/ --exclude "*.md" --exclude ".DS_Store" --exclude "config-*.js"
+aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET/ --exclude "*.md" --exclude ".DS_Store"
 echo "✅ Frontend deployed to S3"
 
 # Verify deployment
