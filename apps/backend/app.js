@@ -5947,24 +5947,35 @@ export async function createApp() {
         let copiedCount = 0;
         for (const story of allStories) {
           try {
+            const storyData = {
+              id: story.id,
+              title: story.title,
+              description: story.description,
+              asA: story.asA,
+              iWant: story.iWant,
+              soThat: story.soThat,
+              components: story.components || [],
+              storyPoint: story.storyPoint || 0,
+              assigneeEmail: story.assigneeEmail || '',
+              parentId: story.parentId || null
+            };
+            
+            // Only include status if it's provided (backend defaults to 'Draft')
+            if (story.status) {
+              storyData.status = story.status;
+            }
+            
             const response = await fetch('http://44.222.168.46:4000/api/stories', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: story.id,
-                title: story.title,
-                description: story.description,
-                asA: story.asA,
-                iWant: story.iWant,
-                soThat: story.soThat,
-                components: story.components || [],
-                storyPoint: story.storyPoint || 0,
-                assigneeEmail: story.assigneeEmail || '',
-                status: story.status || 'Draft',
-                parentId: story.parentId || null
-              })
+              body: JSON.stringify(storyData)
             });
-            if (response.ok) copiedCount++;
+            if (response.ok) {
+              copiedCount++;
+            } else {
+              const errorText = await response.text();
+              console.error(`Failed to copy story ${story.id}: ${response.status} - ${errorText}`);
+            }
           } catch (error) {
             console.error(`Failed to copy story ${story.id}:`, error);
           }
