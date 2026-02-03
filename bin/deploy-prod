@@ -21,9 +21,17 @@ HOST="$EC2_IP"
 FRONTEND_BUCKET="$S3_BUCKET"
 FRONTEND_URL="$S3_URL"
 
+# Service name based on environment
+if [[ "$ENV" == "prod" ]]; then
+    SERVICE_NAME="aipm-backend"
+else
+    SERVICE_NAME="aipm-dev-backend"
+fi
+
 echo "🚀 Deploying to $ENV environment..."
 echo "📍 Host: $HOST"
 echo "🪣 Frontend: $FRONTEND_BUCKET"
+echo "🔧 Service: $SERVICE_NAME"
 
 # Check if we're running on EC2 (in /home/ec2-user/aipm)
 if [[ "$PWD" == "/home/ec2-user/aipm" ]]; then
@@ -37,9 +45,9 @@ if [[ "$PWD" == "/home/ec2-user/aipm" ]]; then
     
     # Restart backend service
     echo "🔄 Restarting backend service..."
-    sudo systemctl restart aipm-backend
+    sudo systemctl restart $SERVICE_NAME
     sleep 3
-    sudo systemctl status aipm-backend --no-pager
+    sudo systemctl status $SERVICE_NAME --no-pager
     echo "✅ Backend service restarted"
 else
     echo "🌐 Running from local machine - deploying via SSH"
@@ -67,10 +75,10 @@ ENDSSH
 
     # Restart backend service via SSH
     echo "🔄 Restarting backend service..."
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << 'ENDSSH'
-sudo systemctl restart aipm-backend
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << ENDSSH
+sudo systemctl restart $SERVICE_NAME
 sleep 3
-sudo systemctl status aipm-backend --no-pager
+sudo systemctl status $SERVICE_NAME --no-pager
 echo "✅ Backend service restarted"
 ENDSSH
 fi
