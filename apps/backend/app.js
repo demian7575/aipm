@@ -5916,6 +5916,72 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/sync-to-dev' && method === 'POST') {
+      // Simple sync endpoint - copies all production stories to development
+      try {
+        const prodResponse = await fetch('http://44.197.204.18:4000/api/stories');
+        if (!prodResponse.ok) {
+          sendJson(res, 500, { error: 'Failed to fetch production stories' });
+          return;
+        }
+        
+        const prodStories = await prodResponse.json();
+        
+        // Extract all stories including children
+        function extractAllStories(stories, extracted = []) {
+          for (const story of stories) {
+            extracted.push(story);
+            if (story.children && story.children.length > 0) {
+              extractAllStories(story.children, extracted);
+            }
+          }
+          return extracted;
+        }
+        
+        const allStories = extractAllStories(prodStories);
+        
+        // Clear dev environment
+        await fetch('http://44.222.168.46:4000/api/stories', { method: 'DELETE' }).catch(() => {});
+        
+        // Copy each story with original ID
+        let copiedCount = 0;
+        for (const story of allStories) {
+          try {
+            const response = await fetch('http://44.222.168.46:4000/api/stories', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: story.id,
+                title: story.title,
+                description: story.description,
+                asA: story.asA,
+                iWant: story.iWant,
+                soThat: story.soThat,
+                components: story.components || [],
+                storyPoint: story.storyPoint || 0,
+                assigneeEmail: story.assigneeEmail || '',
+                status: story.status || 'Draft',
+                parentId: story.parentId || null
+              })
+            });
+            if (response.ok) copiedCount++;
+          } catch (error) {
+            console.error(`Failed to copy story ${story.id}:`, error);
+          }
+        }
+        
+        sendJson(res, 200, { 
+          message: 'Sync completed',
+          totalStories: allStories.length,
+          copiedCount
+        });
+      } catch (error) {
+        console.error('Sync error:', error);
+        sendJson(res, 500, { error: 'Sync failed', details: error.message });
+      }
+      return;
+    }
+
     if (pathname === '/api/run-staging' && method === 'POST') {
       // Staging deployment endpoint - returns 500 for automated tests as expected
       sendJson(res, 500, { 
