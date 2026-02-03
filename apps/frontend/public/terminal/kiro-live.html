@@ -35,7 +35,7 @@
     <button onclick="sendCommand()" id="sendBtn">Send</button>
   </div>
 
-  <script src="../config.js"></script>
+  <script src="../config.js?v=20260203"></script>
   <script>
     const logsEl = document.getElementById('logs');
     const toggleBtn = document.getElementById('toggleBtn');
@@ -48,6 +48,10 @@
     // Get API URLs from config
     const API_BASE_URL = window.CONFIG?.api_url || 'http://localhost:4000';
     const SESSION_POOL_URL = window.CONFIG?.session_pool_url || 'http://localhost:8082';
+    
+    console.log('Config loaded:', window.CONFIG);
+    console.log('Using API_BASE_URL:', API_BASE_URL);
+    console.log('Using SESSION_POOL_URL:', SESSION_POOL_URL);
 
     async function fetchLog() {
       try {
