@@ -39,7 +39,7 @@ async function cleanupExistingKiroProcesses() {
   }
 }
 
-// Check for orphaned Kiro processes (more than POOL_SIZE + 2)
+// Check for orphaned Kiro processes (more than POOL_SIZE * 2 + 2)
 async function checkOrphanedProcesses() {
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
@@ -48,7 +48,8 @@ async function checkOrphanedProcesses() {
   try {
     const { stdout } = await execAsync('ps aux | grep "kiro-cli chat" | grep -v grep | wc -l');
     const count = parseInt(stdout.trim());
-    const maxAllowed = POOL_SIZE + 2; // Allow some buffer
+    // Each session spawns 2 processes (parent + child), plus allow 2 buffer
+    const maxAllowed = (POOL_SIZE * 2) + 2;
     
     if (count > maxAllowed) {
       console.log(`⚠️  Detected ${count} kiro-cli processes (max: ${maxAllowed}), cleaning up...`);
