@@ -132,6 +132,46 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770128360911
+# Acceptance Test: Modal displays all story titles when header button clicked
+# =============================================================================
+test_1770128360911_view_stories_modal() {
+    log_test "View Stories Modal"
+    
+    # Given: User is on the main page, Multiple stories exist in the system
+    # When: User clicks the view stories button in the header
+    # Then: A modal opens, All story titles are displayed in a list, Modal can be closed
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="view-stories-btn"' apps/frontend/public/index.html; then
+        fail_test "View Stories button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button element is declared in app.js
+    if ! grep -q 'viewStoriesBtn' apps/frontend/public/app.js; then
+        fail_test "viewStoriesBtn element not declared in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener fetches stories from API
+    if ! grep -q "viewStoriesBtn.addEventListener" apps/frontend/public/app.js; then
+        fail_test "viewStoriesBtn event listener not found"
+        return 1
+    fi
+    
+    # Test 4: Verify modal is opened with story list
+    if ! grep -A 20 "viewStoriesBtn.addEventListener" apps/frontend/public/app.js | grep -q "openModal"; then
+        fail_test "Modal not opened in viewStoriesBtn handler"
+        return 1
+    fi
+    
+    pass_test "View Stories button and modal implemented correctly"
+}
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""
