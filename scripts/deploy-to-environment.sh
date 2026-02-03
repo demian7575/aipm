@@ -136,26 +136,39 @@ EOF
     # Generate version string
     VERSION_STRING="${DEPLOY_VERSION}-${COMMIT_HASH}"
     
-    # Copy static environment file and add dynamic variables
+    # Create environment file from YAML config
     cat > /tmp/env_config.sh << EOF
 cd aipm
-# Copy static environment file
-cp /tmp/static.env .env
-# Add dynamic variables
-echo "DEPLOY_VERSION=$DEPLOY_VERSION" >> .env
-echo "COMMIT_HASH=$COMMIT_HASH" >> .env
-echo "PROD_VERSION=$DEPLOY_VERSION" >> .env
-echo "BASE_VERSION=$DEPLOY_VERSION" >> .env
-echo "PR_NUMBER=$PR_NUMBER" >> .env
-echo "GITHUB_TOKEN=\${GITHUB_TOKEN:-PLACEHOLDER_TOKEN}" >> .env
+# Generate .env from environments.yaml
+node -e "
+const yaml = require('js-yaml');
+const fs = require('fs');
+const config = yaml.load(fs.readFileSync('config/environments.yaml', 'utf8'));
+const env = config['$ENV'];
+const lines = [
+  \`EC2_IP=\${env.ec2_ip}\`,
+  \`API_PORT=\${env.api_port}\`,
+  \`SEMANTIC_API_PORT=\${env.semantic_api_port}\`,
+  \`SESSION_POOL_PORT=\${env.session_pool_port}\`,
+  \`S3_BUCKET=\${env.s3_bucket}\`,
+  \`DYNAMODB_STORIES_TABLE=\${env.dynamodb_stories_table}\`,
+  \`DYNAMODB_TESTS_TABLE=\${env.dynamodb_tests_table}\`,
+  \`DYNAMODB_PRS_TABLE=\${env.dynamodb_prs_table}\`,
+  'DEPLOY_VERSION=$DEPLOY_VERSION',
+  'COMMIT_HASH=$COMMIT_HASH',
+  'PROD_VERSION=$DEPLOY_VERSION',
+  'BASE_VERSION=$DEPLOY_VERSION',
+  'PR_NUMBER=$PR_NUMBER',
+  'GITHUB_TOKEN=\${process.env.GITHUB_TOKEN || \"PLACEHOLDER_TOKEN\"}'
+];
+fs.writeFileSync('.env', lines.join('\n') + '\n');
+"
 
 # Replace version placeholder in backend code
 sed -i "s/DEPLOYMENT_VERSION_PLACEHOLDER/$VERSION_STRING/g" apps/backend/app.js
 echo "✅ Updated version to: $VERSION_STRING"
 EOF
     
-    # Copy static environment file to server
-    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no config/$ENV.env ec2-user@$HOST:/tmp/static.env
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/env_config.sh ec2-user@$HOST:/tmp/
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/env_config.sh
     
