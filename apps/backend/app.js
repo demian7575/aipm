@@ -2719,33 +2719,11 @@ fi
       // Don't fail the merge if test addition fails
     }
     
-    // Trigger production deployment after successful merge
-    console.log('✅ PR merged successfully, triggering production deployment...');
-    try {
-      const deployResponse = await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/deploy-to-prod.yml/dispatches`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `token ${GITHUB_TOKEN}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ ref: 'main' })
-        }
-      );
-      
-      if (deployResponse.ok) {
-        console.log('✅ Production deployment triggered');
-      } else {
-        console.warn('⚠️  Failed to trigger deployment:', await deployResponse.text());
-      }
-    } catch (deployError) {
-      console.warn('⚠️  Deployment trigger error:', deployError.message);
-      // Don't fail the merge if deployment trigger fails
-    }
+    // Production deployment will be triggered automatically by push to main
+    // No need to manually trigger workflow since deploy-to-prod.yml has on: push: branches: [main]
+    console.log('✅ PR merged successfully - production deployment will trigger automatically via push to main');
     
-    sendJson(res, 200, { success: true, message: 'PR merged successfully and production deployment triggered', sha: mergeData.sha, merged: mergeData.merged });
+    sendJson(res, 200, { success: true, message: 'PR merged successfully - production deployment will trigger automatically', sha: mergeData.sha, merged: mergeData.merged });
   } catch (error) {
     console.error('Merge PR error:', error);
     sendJson(res, 500, { success: false, error: error.message });
