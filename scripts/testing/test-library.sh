@@ -119,7 +119,8 @@ test_frontend_availability() {
 test_s3_config() {
     local frontend_url="${1:-$FRONTEND_URL}"
     local env="${2:-$TARGET_ENV}"
-    test_endpoint "S3 Config" "$frontend_url/config-${env}.js" "API_BASE_URL"
+    # config.js auto-detects environment - no env-specific files
+    test_endpoint "S3 Config" "$frontend_url/config.js" "API_BASE_URL"
 }
 
 test_network_connectivity() {
