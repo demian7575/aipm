@@ -8005,6 +8005,10 @@ function initialize() {
     window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
 
+  generateDocBtn?.addEventListener('click', () => {
+    openDocumentPanel();
+  });
+
 
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
