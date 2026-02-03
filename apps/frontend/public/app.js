@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -731,6 +732,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7496,6 +7503,45 @@ function openFilterModal() {
     ]
   });
 }
+
+/**
+ * Opens modal displaying list of all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.cssText = 'display:flex;flex-direction:column;gap:1rem;max-height:60vh;overflow-y:auto;';
+  
+  const stories = state.stories || [];
+  
+  if (stories.length === 0) {
+    container.innerHTML = '<p style="color:#666;">No stories found.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.cssText = 'list-style:none;padding:0;margin:0;';
+    
+    stories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.cssText = 'padding:0.5rem;border-bottom:1px solid #eee;cursor:pointer;';
+      li.textContent = story.title || `Story ${story.id}`;
+      li.addEventListener('click', () => {
+        selectStory(story.id);
+        modal.style.display = 'none';
+      });
+      li.addEventListener('mouseenter', () => li.style.backgroundColor = '#f5f5f5');
+      li.addEventListener('mouseleave', () => li.style.backgroundColor = 'transparent');
+      list.appendChild(li);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'All Stories',
+    body: container,
+    buttons: [{ label: 'Close', onClick: () => true }]
+  });
+}
+
 
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
