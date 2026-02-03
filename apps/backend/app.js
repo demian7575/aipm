@@ -5919,7 +5919,11 @@ export async function createApp() {
     if (pathname === '/api/sync-to-dev' && method === 'POST') {
       // Simple sync endpoint - copies all production stories to development
       try {
-        const prodResponse = await fetch('http://44.197.204.18:4000/api/stories');
+        const config = loadConfig();
+        const prodApiUrl = `http://${config.prod.ec2_ip}:${config.prod.api_port}`;
+        const devApiUrl = `http://${config.dev.ec2_ip}:${config.dev.api_port}`;
+        
+        const prodResponse = await fetch(`${prodApiUrl}/api/stories`);
         if (!prodResponse.ok) {
           sendJson(res, 500, { error: 'Failed to fetch production stories' });
           return;
@@ -5941,7 +5945,7 @@ export async function createApp() {
         const allStories = extractAllStories(prodStories);
         
         // Clear dev environment
-        await fetch('http://44.222.168.46:4000/api/stories', { method: 'DELETE' }).catch(() => {});
+        await fetch(`${devApiUrl}/api/stories`, { method: 'DELETE' }).catch(() => {});
         
         // Copy each story with original ID
         let copiedCount = 0;
@@ -5965,7 +5969,7 @@ export async function createApp() {
               storyData.status = story.status;
             }
             
-            const response = await fetch('http://44.222.168.46:4000/api/stories', {
+            const response = await fetch(`${devApiUrl}/api/stories`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(storyData)
