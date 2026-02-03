@@ -115,6 +115,36 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
     return 0
 }
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770106672305
+# Merged: 2026-02-03
+# =============================================================================
+test_1770106672305_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story list button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference exists
+    if ! grep -q 'const storyListBtn = document.getElementById' apps/frontend/public/app.js; then
+        fail_test "Story list button element reference not found"
+        return 1
+    fi
+    
+    # Test 3: Verify click handler exists
+    if ! grep -q 'storyListBtn.addEventListener' apps/frontend/public/app.js; then
+        fail_test "Story list button click handler not found"
+        return 1
+    fi
+    
+    pass_test "Add Story List Button"
+    return 0
+}
+
 # Template:
 # =============================================================================
 # Story: [Story Title]
