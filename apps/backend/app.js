@@ -6502,7 +6502,8 @@ export async function createApp() {
           const docClient = DynamoDBDocumentClient.from(client);
           const tableName = process.env.STORIES_TABLE;
           
-          newStoryId = Date.now();
+          // Allow specifying ID (for dev environment mirroring), otherwise generate new one
+          newStoryId = payload.id || Date.now();
           
           const dynamoItem = {
             id: newStoryId,
@@ -7562,7 +7563,7 @@ export async function createApp() {
             const allStories = extractAllStories(prodStories);
             console.log(`Extracted ${allStories.length} total stories from hierarchy`);
             
-            // Copy each story to development
+            // Copy each story to development with original ID preserved
             let copiedCount = 0;
             for (const story of allStories) {
               try {
@@ -7570,6 +7571,7 @@ export async function createApp() {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
+                    id: story.id, // Preserve original ID
                     title: story.title,
                     description: story.description,
                     asA: story.asA,
