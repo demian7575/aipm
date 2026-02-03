@@ -25,37 +25,61 @@ echo "🚀 Deploying to $ENV environment..."
 echo "📍 Host: $HOST"
 echo "🪣 Frontend: $FRONTEND_BUCKET"
 
-# Ensure SSH key exists
-if [[ ! -f ~/.ssh/id_rsa ]]; then
-    echo "❌ SSH key not found at ~/.ssh/id_rsa"
-    exit 1
-fi
+# Check if we're running on the target EC2 instance
+CURRENT_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "")
+if [[ "$CURRENT_IP" == "$HOST" ]]; then
+    echo "🏠 Running on target EC2 - deploying locally"
+    
+    # Deploy backend locally
+    echo "📦 Updating backend code..."
+    cd /home/ec2-user/aipm
+    git fetch origin
+    git reset --hard origin/main
+    echo "✅ Code updated"
+    
+    # Restart backend service
+    echo "🔄 Restarting backend service..."
+    sudo systemctl restart aipm-backend
+    sleep 3
+    sudo systemctl status aipm-backend --no-pager
+    echo "✅ Backend service restarted"
+    
+    cd - > /dev/null
+else
+    echo "🌐 Running remotely - deploying via SSH"
+    
+    # Ensure SSH key exists
+    if [[ ! -f ~/.ssh/id_rsa ]]; then
+        echo "❌ SSH key not found at ~/.ssh/id_rsa"
+        exit 1
+    fi
 
-# Add host to known_hosts
-if ! grep -q "$HOST" ~/.ssh/known_hosts 2>/dev/null; then
-    echo "🔑 Adding $HOST to known_hosts..."
-    ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
-fi
+    # Add host to known_hosts
+    if ! grep -q "$HOST" ~/.ssh/known_hosts 2>/dev/null; then
+        echo "🔑 Adding $HOST to known_hosts..."
+        ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+    fi
 
-# Deploy backend
-echo "📦 Deploying backend to EC2..."
-ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << 'ENDSSH'
+    # Deploy backend via SSH
+    echo "📦 Deploying backend to EC2..."
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << 'ENDSSH'
 cd aipm
 git fetch origin
 git reset --hard origin/main
 echo "✅ Code updated"
 ENDSSH
 
-# Restart backend service
-echo "🔄 Restarting backend service..."
-ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << 'ENDSSH'
+    # Restart backend service via SSH
+    echo "🔄 Restarting backend service..."
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << 'ENDSSH'
 sudo systemctl restart aipm-backend
 sleep 3
 sudo systemctl status aipm-backend --no-pager
 echo "✅ Backend service restarted"
 ENDSSH
+fi
 
-echo "✅ Backend deployed to EC2"
+echo "✅ Backend deployed"
 
 # Deploy frontend
 echo "🌐 Deploying frontend to S3..."
