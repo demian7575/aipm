@@ -1,16 +1,15 @@
 #!/bin/bash
 set -e
 
-# Enable debug output for GitHub Actions
-if [[ -n "$GITHUB_ACTIONS" ]]; then
-    set -x
-fi
-
+# Parse arguments
 ENV=$1
+SKIP_TESTS=${2:-false}
+
 if [[ -z "$ENV" ]]; then
-    echo "Usage: $0 <prod|dev>"
+    echo "Usage: $0 <prod|dev> [skip-tests]"
     echo "  prod - Deploy to production environment"
     echo "  dev  - Deploy to development environment"
+    echo "  skip-tests - Optional: skip gating tests"
     exit 1
 fi
 
@@ -22,32 +21,47 @@ source "$SCRIPT_DIR/../scripts/utilities/load-env-config.sh" "$ENV"
 HOST="$EC2_IP"
 SERVICE="aipm-backend"
 FRONTEND_BUCKET="$S3_BUCKET"
-API_URL="$API_BASE"
-STORIES_TABLE="$DYNAMODB_STORIES_TABLE"
-TESTS_TABLE="$DYNAMODB_TESTS_TABLE"
-PRS_TABLE="$DYNAMODB_PRS_TABLE"
-SEMANTIC_QUEUE_TABLE="aipm-semantic-api-queue-${ENV}"
+FRONTEND_URL="$S3_URL"
 
 echo "🚀 Deploying to $ENV environment..."
 echo "📍 Host: $HOST"
 echo "🪣 Frontend: $FRONTEND_BUCKET"
 
-# Create DynamoDB tables if needed
-echo "🗄️  Ensuring DynamoDB tables exist..."
-export SEMANTIC_QUEUE_TABLE
-./scripts/create-semantic-queue-table.sh || echo "⚠️  Table creation skipped"
+# Deploy backend to EC2
+echo "📦 Deploying backend to EC2..."
 
-# Deploy backend
-echo "📦 Deploying backend..."
+# Ensure SSH key exists
+if [[ ! -f ~/.ssh/id_rsa ]]; then
+    echo "❌ SSH key not found at ~/.ssh/id_rsa"
+    echo "   Please ensure your SSH key is configured"
+    exit 1
+fi
 
-# Check if we're in GitHub Actions environment
-if [[ -n "$GITHUB_ACTIONS" ]]; then
-    echo "🔧 GitHub Actions environment detected - using simplified deployment"
-    
-    # SSH key should already be configured by the workflow
-    if [[ ! -f ~/.ssh/id_rsa ]]; then
-        echo "❌ SSH key not found - should be configured by workflow"
-        exit 1
+# Add host to known_hosts if not already there
+if ! grep -q "$HOST" ~/.ssh/known_hosts 2>/dev/null; then
+    echo "🔑 Adding $HOST to known_hosts..."
+    ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+fi
+
+# Deploy via SSH
+echo "🔄 Pulling latest code on EC2..."
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << 'ENDSSH'
+cd aipm
+git fetch origin
+git reset --hard origin/main
+echo "✅ Code updated"
+ENDSSH
+
+# Restart backend service
+echo "🔄 Restarting backend service..."
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << ENDSSH
+sudo systemctl restart aipm-backend
+sleep 3
+sudo systemctl status aipm-backend --no-pager
+echo "✅ Backend service restarted"
+ENDSSH
+
+echo "✅ Backend deployed to EC2"
     fi
     
     echo "✅ Using SSH key configured by workflow"
@@ -163,58 +177,42 @@ echo 'Verifying Kiro services...'
 sudo systemctl is-active kiro-session-pool || echo 'WARNING: kiro-session-pool not active'
 sudo systemctl is-active aipm-semantic-api || echo 'WARNING: aipm-semantic-api not active'
 
-echo 'Waiting for services to start...'
-sleep 5
-sudo systemctl status $SERVICE_NAME --no-pager
-echo 'Service restarted successfully'
-EOF
-    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/restart_services.sh ec2-user@$HOST:/tmp/
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/restart_services.sh
-    
-    echo "✅ Backend deployed successfully"
-fi
 
-# Deploy frontend
-echo "🌐 Deploying frontend..."
-
-# config.js auto-detects environment from URL - no generation needed
-
-# Upload to S3
+# Deploy frontend to S3
+echo "🌐 Deploying frontend to S3..."
 aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET/ --exclude "*.md" --exclude ".DS_Store"
 echo "✅ Frontend deployed to S3"
 
 # Verify deployment
 echo "🔍 Verifying deployment..."
-sleep 5
+sleep 3
 
 # Test backend health
-if curl -s --connect-timeout 10 "$API_URL/api/version" | grep -q "version"; then
+if curl -s --connect-timeout 10 "$API_BASE/api/version" | grep -q "version"; then
     echo "✅ Backend is responding"
 else
-    echo "⚠️ Backend health check failed (may still be starting)"
+    echo "⚠️  Backend health check failed (may still be starting)"
 fi
 
 # Test frontend
-if [[ "$ENV" == "prod" ]]; then
-    FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
-else
-    FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
-fi
-
 if curl -s --connect-timeout 10 "$FRONTEND_URL" | grep -q "html"; then
     echo "✅ Frontend is accessible"
 else
-    echo "⚠️ Frontend health check failed"
+    echo "⚠️  Frontend health check failed"
 fi
 
-# Run structured gating tests
-echo ""
-echo "🧪 Running structured gating tests..."
-if ./scripts/testing/run-structured-gating-tests.sh --env $ENV; then
-    echo "✅ All gating tests passed"
+# Run gating tests unless skipped
+if [[ "$SKIP_TESTS" != "skip-tests" ]]; then
+    echo ""
+    echo "🧪 Running structured gating tests..."
+    if ./scripts/testing/run-structured-gating-tests.sh $ENV; then
+        echo "✅ All gating tests passed"
+    else
+        echo "❌ Gating tests failed"
+        exit 1
+    fi
 else
-    echo "❌ Gating tests failed"
-    exit 1
+    echo "⏭️  Skipping gating tests"
 fi
 
 echo "🎉 Deployment to $ENV completed successfully!"
