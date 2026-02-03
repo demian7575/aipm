@@ -2723,7 +2723,7 @@ fi
     console.log('✅ PR merged successfully, triggering production deployment...');
     try {
       const deployResponse = await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/production-deploy.yml/dispatches`,
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/deploy-to-prod.yml/dispatches`,
         {
           method: 'POST',
           headers: {
