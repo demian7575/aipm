@@ -1958,6 +1958,17 @@ dialog[data-size='content'] .modal-shell {
   gap: 0.35rem;
 }
 
+.child-story-form .story-options label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.child-story-form .story-options input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
 .acceptance-tests-section {
   margin-top: 1rem;
   padding: 1rem;
