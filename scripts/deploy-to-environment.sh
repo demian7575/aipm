@@ -130,47 +130,12 @@ EOF
         fi
     }
     
-    # Update environment configuration
-    echo "⚙️ Updating environment configuration..."
-    
-    # Generate version string
+    # Update version in code
+    echo "⚙️ Updating deployment version..."
     VERSION_STRING="${DEPLOY_VERSION}-${COMMIT_HASH}"
     
-    # Create environment file from YAML config
-    cat > /tmp/env_config.sh << EOF
-cd aipm
-# Generate .env from environments.yaml
-node -e "
-const yaml = require('js-yaml');
-const fs = require('fs');
-const config = yaml.load(fs.readFileSync('config/environments.yaml', 'utf8'));
-const env = config['$ENV'];
-const lines = [
-  \`EC2_IP=\${env.ec2_ip}\`,
-  \`API_PORT=\${env.api_port}\`,
-  \`SEMANTIC_API_PORT=\${env.semantic_api_port}\`,
-  \`SESSION_POOL_PORT=\${env.session_pool_port}\`,
-  \`S3_BUCKET=\${env.s3_bucket}\`,
-  \`DYNAMODB_STORIES_TABLE=\${env.dynamodb_stories_table}\`,
-  \`DYNAMODB_TESTS_TABLE=\${env.dynamodb_tests_table}\`,
-  \`DYNAMODB_PRS_TABLE=\${env.dynamodb_prs_table}\`,
-  'DEPLOY_VERSION=$DEPLOY_VERSION',
-  'COMMIT_HASH=$COMMIT_HASH',
-  'PROD_VERSION=$DEPLOY_VERSION',
-  'BASE_VERSION=$DEPLOY_VERSION',
-  'PR_NUMBER=$PR_NUMBER',
-  'GITHUB_TOKEN=\${process.env.GITHUB_TOKEN || \"PLACEHOLDER_TOKEN\"}'
-];
-fs.writeFileSync('.env', lines.join('\n') + '\n');
-"
-
-# Replace version placeholder in backend code
-sed -i "s/DEPLOYMENT_VERSION_PLACEHOLDER/$VERSION_STRING/g" apps/backend/app.js
-echo "✅ Updated version to: $VERSION_STRING"
-EOF
-    
-    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/env_config.sh ec2-user@$HOST:/tmp/
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/env_config.sh
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && sed -i 's/DEPLOYMENT_VERSION_PLACEHOLDER/$VERSION_STRING/g' apps/backend/app.js"
+    echo "✅ Updated version to: $VERSION_STRING"
     
     # Restart services
     echo "🔄 Restarting services..."
