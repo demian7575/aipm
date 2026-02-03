@@ -35,6 +35,7 @@
     <button onclick="sendCommand()" id="sendBtn">Send</button>
   </div>
 
+  <script src="../config.js"></script>
   <script>
     const logsEl = document.getElementById('logs');
     const toggleBtn = document.getElementById('toggleBtn');
@@ -44,9 +45,13 @@
     let interval;
     let lastContent = '';
 
+    // Get API URLs from config
+    const API_BASE_URL = window.CONFIG?.api_url || 'http://localhost:4000';
+    const SESSION_POOL_URL = window.CONFIG?.session_pool_url || 'http://localhost:8082';
+
     async function fetchLog() {
       try {
-        const response = await fetch('http://44.197.204.18:4000/api/kiro-live-log');
+        const response = await fetch(`${API_BASE_URL}/api/kiro-live-log`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         
@@ -122,7 +127,7 @@
       sendBtn.textContent = 'Sending...';
       
       try {
-        const response = await fetch('http://44.197.204.18:8082/send', {
+        const response = await fetch(`${SESSION_POOL_URL}/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
