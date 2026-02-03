@@ -13,13 +13,11 @@ if [[ -z "$ENV" ]]; then
     exit 1
 fi
 
-# Load environment configuration from centralized YAML
+# Load environment configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../scripts/utilities/load-env-config.sh" "$ENV"
 
-# Map to deployment variables
 HOST="$EC2_IP"
-SERVICE="aipm-backend"
 FRONTEND_BUCKET="$S3_BUCKET"
 FRONTEND_URL="$S3_URL"
 
@@ -27,24 +25,20 @@ echo "🚀 Deploying to $ENV environment..."
 echo "📍 Host: $HOST"
 echo "🪣 Frontend: $FRONTEND_BUCKET"
 
-# Deploy backend to EC2
-echo "📦 Deploying backend to EC2..."
-
 # Ensure SSH key exists
 if [[ ! -f ~/.ssh/id_rsa ]]; then
     echo "❌ SSH key not found at ~/.ssh/id_rsa"
-    echo "   Please ensure your SSH key is configured"
     exit 1
 fi
 
-# Add host to known_hosts if not already there
+# Add host to known_hosts
 if ! grep -q "$HOST" ~/.ssh/known_hosts 2>/dev/null; then
     echo "🔑 Adding $HOST to known_hosts..."
     ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
 fi
 
-# Deploy via SSH
-echo "🔄 Pulling latest code on EC2..."
+# Deploy backend
+echo "📦 Deploying backend to EC2..."
 ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << 'ENDSSH'
 cd aipm
 git fetch origin
@@ -54,7 +48,7 @@ ENDSSH
 
 # Restart backend service
 echo "🔄 Restarting backend service..."
-ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << ENDSSH
+ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << 'ENDSSH'
 sudo systemctl restart aipm-backend
 sleep 3
 sudo systemctl status aipm-backend --no-pager
@@ -63,118 +57,7 @@ ENDSSH
 
 echo "✅ Backend deployed to EC2"
 
-# Deploy frontend to S3
-    if [[ "$CURRENT_BRANCH" == "main" ]]; then
-        TARGET_BRANCH="main"
-    else
-        TARGET_BRANCH="$CURRENT_BRANCH"
-    fi
-    
-    echo "📍 Deploying branch: $TARGET_BRANCH"
-    
-    # Generate deployment metadata
-    COMMIT_HASH=$(git rev-parse --short HEAD)
-    DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
-    
-    # Extract PR number if available
-    PR_NUMBER="$ENV"
-    if [[ -n "$GITHUB_HEAD_REF" ]]; then
-        PR_NUMBER=$(echo "$GITHUB_HEAD_REF" | grep -o '[0-9]\+' | head -1 || echo "$ENV")
-    elif [[ "$TARGET_BRANCH" =~ [0-9]+ ]]; then
-        PR_NUMBER=$(echo "$TARGET_BRANCH" | grep -o '[0-9]\+' | head -1 || echo "$ENV")
-    fi
-    
-    echo "🔄 Simplified deployment to $HOST..."
-    
-    # Simplified deployment: fetch and checkout the correct branch
-    # Create deployment script on remote host
-    cat > /tmp/deploy_commands.sh << 'EOF'
-cd aipm
-echo 'Fetching latest code...'
-git fetch origin
-if [ "$1" != "main" ]; then
-    echo "Fetching PR branch: $1"
-    git fetch origin $1:$1
-fi
-echo "Checking out branch: $1"
-git checkout $1
-git reset --hard origin/$1
-echo "Code updated successfully to branch: $1"
-
-# Install Git hooks to prevent committing broken code
-if [ -f scripts/install-hooks.sh ]; then
-    echo "Installing Git hooks..."
-    bash scripts/install-hooks.sh
-fi
-EOF
-    
-    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/deploy_commands.sh ec2-user@$HOST:/tmp/
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/deploy_commands.sh $TARGET_BRANCH 2>/dev/null || {
-        echo "⚠️ Git operations had warnings, verifying success..."
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST 'cd aipm && git branch --show-current' > /tmp/current_branch 2>/dev/null
-        cat /tmp/current_branch 2>/dev/null > /tmp/branch_name || echo "unknown" > /tmp/branch_name
-        read CURRENT_BRANCH < /tmp/branch_name
-        rm -f /tmp/current_branch /tmp/branch_name
-        if [[ "$CURRENT_BRANCH" == "$TARGET_BRANCH" ]]; then
-            echo "✅ Git operations completed successfully - on branch: $CURRENT_BRANCH"
-        else
-            echo "❌ Git operations failed - expected: $TARGET_BRANCH, actual: $CURRENT_BRANCH"
-            exit 1
-        fi
-    }
-    
-    # Update environment configuration
-    echo "⚙️ Updating environment configuration..."
-    
-    # Copy static environment file and add dynamic variables
-    # Backend reads config from environments.yaml - no .env file needed
-    # Just set GITHUB_TOKEN if available
-    if [[ -n "$GITHUB_TOKEN" ]]; then
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "echo 'export GITHUB_TOKEN=$GITHUB_TOKEN' >> ~/.bashrc"
-    fi
-    
-    # Replace version placeholder in backend app.js
-    echo "🔄 Updating backend version..."
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm/apps/backend && sed -i.bak 's/DEPLOYMENT_VERSION_PLACEHOLDER/${DEPLOY_VERSION}/g' app.js && rm -f app.js.bak"
-    
-    # Restart services
-    echo "🔄 Restarting services..."
-    SERVICE_NAME="aipm-${ENV}-backend.service"
-    if [[ "$ENV" == "prod" ]]; then
-        SERVICE_NAME="aipm-backend.service"
-    fi
-    
-    cat > /tmp/restart_services.sh << EOF
-cd aipm
-echo 'Restarting $SERVICE_NAME...'
-sudo systemctl restart $SERVICE_NAME
-
-echo 'Installing/updating Kiro services...'
-sudo cp scripts/systemd/aipm-kiro-api.service /etc/systemd/system/
-sudo cp scripts/systemd/aipm-kiro-cli.service /etc/systemd/system/
-sudo cp scripts/systemd/kiro-session-pool.service /etc/systemd/system/
-sudo cp scripts/systemd/aipm-semantic-api.service /etc/systemd/system/
-sudo cp scripts/systemd/aipm-semantic-worker.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool aipm-semantic-api aipm-semantic-worker
-
-echo 'Stopping Kiro services to clear template cache...'
-sudo systemctl stop kiro-session-pool aipm-kiro-cli aipm-kiro-api aipm-semantic-api aipm-semantic-worker
-sleep 2
-
-echo 'Starting Kiro services with fresh templates...'
-sudo systemctl start kiro-session-pool
-sudo systemctl start aipm-kiro-cli
-sudo systemctl start aipm-kiro-api
-sudo systemctl start aipm-semantic-api
-sudo systemctl start aipm-semantic-worker
-
-echo 'Verifying Kiro services...'
-sudo systemctl is-active kiro-session-pool || echo 'WARNING: kiro-session-pool not active'
-sudo systemctl is-active aipm-semantic-api || echo 'WARNING: aipm-semantic-api not active'
-
-
-# Deploy frontend to S3
+# Deploy frontend
 echo "🌐 Deploying frontend to S3..."
 aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET/ --exclude "*.md" --exclude ".DS_Store"
 echo "✅ Frontend deployed to S3"
@@ -183,14 +66,12 @@ echo "✅ Frontend deployed to S3"
 echo "🔍 Verifying deployment..."
 sleep 3
 
-# Test backend health
 if curl -s --connect-timeout 10 "$API_BASE/api/version" | grep -q "version"; then
     echo "✅ Backend is responding"
 else
     echo "⚠️  Backend health check failed (may still be starting)"
 fi
 
-# Test frontend
 if curl -s --connect-timeout 10 "$FRONTEND_URL" | grep -q "html"; then
     echo "✅ Frontend is accessible"
 else
