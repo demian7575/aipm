@@ -51,6 +51,10 @@ jobs:
           echo "📍 Current branch: $(git branch --show-current)"
           echo "📍 Current commit: $(git rev-parse --short HEAD)"
           
+          # Ensure we're on the branch (not detached HEAD)
+          git checkout -B $BRANCH_NAME
+          echo "✅ On branch: $(git branch --show-current)"
+          
           # Rebase onto latest main
           echo "🔄 Rebasing onto latest main..."
           git fetch origin main
@@ -67,7 +71,7 @@ jobs:
           
           # Push rebased branch back to GitHub
           echo "📤 Pushing rebased branch to GitHub..."
-          git push origin HEAD:$BRANCH_NAME --force-with-lease
+          git push origin $BRANCH_NAME --force-with-lease
           echo "✅ Rebased branch pushed to GitHub"
           
           # Verify we're deploying the rebased code
