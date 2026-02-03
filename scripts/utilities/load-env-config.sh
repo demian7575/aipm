@@ -22,6 +22,7 @@ fi
 export EC2_IP=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "ec2_ip")
 export API_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "api_port")
 export SEMANTIC_API_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "semantic_api_port")
+export SESSION_POOL_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "session_pool_port")
 export TERMINAL_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "terminal_port")
 export S3_BUCKET=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "s3_bucket")
 export S3_URL=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "s3_url")
@@ -32,6 +33,7 @@ export DYNAMODB_PRS_TABLE=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$
 # Computed values
 export API_BASE="http://${EC2_IP}:${API_PORT}"
 export SEMANTIC_API_BASE="http://${EC2_IP}:${SEMANTIC_API_PORT}"
+export SESSION_POOL_URL="http://${EC2_IP}:${SESSION_POOL_PORT}"
 export TERMINAL_URL="ws://${EC2_IP}:${TERMINAL_PORT}"
 
 echo "✅ Loaded $ENV environment configuration"
