@@ -5919,9 +5919,8 @@ export async function createApp() {
     if (pathname === '/api/sync-to-dev' && method === 'POST') {
       // Simple sync endpoint - copies all production stories to development
       try {
-        const config = loadConfig();
-        const prodApiUrl = `http://${config.prod.ec2_ip}:${config.prod.api_port}`;
-        const devApiUrl = `http://${config.dev.ec2_ip}:${config.dev.api_port}`;
+        const prodApiUrl = `http://${CONFIG.prod.ec2_ip}:${CONFIG.prod.api_port}`;
+        const devApiUrl = `http://${CONFIG.dev.ec2_ip}:${CONFIG.dev.api_port}`;
         
         const prodResponse = await fetch(`${prodApiUrl}/api/stories`);
         if (!prodResponse.ok) {
