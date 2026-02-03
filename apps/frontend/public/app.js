@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -7978,6 +7979,45 @@ async function fetchVersion() {
   }
 }
 
+/**
+ * Opens modal showing all story titles
+ */
+function openViewAllStoriesModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  const allStories = flattenStories(state.stories);
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p class="empty-state">No stories available.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'story-title-list';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'link-button';
+      link.textContent = story.title || `Story ${story.id}`;
+      link.addEventListener('click', () => {
+        closeModal();
+        handleStorySelection(story);
+      });
+      item.appendChild(link);
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    cancelLabel: 'Close'
+  });
+}
+
 function initialize() {
   console.log('AIPM initializing...');
   console.log('API Base URL:', window.__AIPM_API_BASE__);
@@ -8037,6 +8077,12 @@ function initialize() {
     persistMindmap();
     renderMindmap();
   });
+
+  if (viewAllStoriesBtn) {
+    viewAllStoriesBtn.addEventListener('click', () => {
+      openViewAllStoriesModal();
+    });
+  }
 
   modalCloseBtn.addEventListener('click', closeModal);
   modal.addEventListener('cancel', (event) => {
