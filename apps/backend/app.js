@@ -5919,8 +5919,20 @@ export async function createApp() {
     if (pathname === '/api/sync-to-dev' && method === 'POST') {
       // Simple sync endpoint - copies all production stories to development
       try {
-        const prodApiUrl = `http://${CONFIG.prod.ec2_ip}:${CONFIG.prod.api_port}`;
-        const devApiUrl = `http://${CONFIG.dev.ec2_ip}:${CONFIG.dev.api_port}`;
+        // Load both prod and dev configs
+        const { readFileSync } = await import('fs');
+        const { load } = await import('js-yaml');
+        const { fileURLToPath } = await import('url');
+        const { dirname, join } = await import('path');
+        
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = dirname(__filename);
+        const yamlPath = join(__dirname, '../../config/environments.yaml');
+        const yamlContent = readFileSync(yamlPath, 'utf8');
+        const allConfig = load(yamlContent);
+        
+        const prodApiUrl = `http://${allConfig.prod.ec2_ip}:${allConfig.prod.api_port}`;
+        const devApiUrl = `http://${allConfig.dev.ec2_ip}:${allConfig.dev.api_port}`;
         
         const prodResponse = await fetch(`${prodApiUrl}/api/stories`);
         if (!prodResponse.ok) {
