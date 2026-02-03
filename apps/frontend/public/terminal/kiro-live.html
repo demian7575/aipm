@@ -122,12 +122,11 @@
       sendBtn.textContent = 'Sending...';
       
       try {
-        const response = await fetch('http://44.197.204.18:8083/kiro/v4/enhance', {
+        const response = await fetch('http://44.197.204.18:8082/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            idea: command,
-            callbackUrl: 'http://example.com'
+            prompt: command
           })
         });
         
