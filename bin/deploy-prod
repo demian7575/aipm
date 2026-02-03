@@ -189,6 +189,10 @@ fi
 # Deploy frontend
 echo "🌐 Deploying frontend..."
 
+# Regenerate config files from environments.yaml
+echo "🔧 Regenerating config files..."
+./scripts/utilities/generate-configs.sh
+
 # Generate deployment version if not set (for local deployments)
 if [[ -z "$DEPLOY_VERSION" ]]; then
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
