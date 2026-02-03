@@ -60,6 +60,42 @@ test_1768754109973_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1770084724413
+# Merged: 2026-02-03
+# =============================================================================
+test_1770084724413_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify story list button exists in HTML
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story list button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in app.js
+    if ! grep -q 'storyListBtn' apps/frontend/public/app.js; then
+        fail_test "storyListBtn reference not found in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify click handler exists
+    if ! grep -q 'storyListBtn.addEventListener' apps/frontend/public/app.js; then
+        fail_test "Story list button click handler not found"
+        return 1
+    fi
+    
+    # Test 4: Verify modal opens with story list
+    if ! grep -A 10 'storyListBtn.addEventListener' apps/frontend/public/app.js | grep -q "All Stories"; then
+        fail_test "Modal does not display story list"
+        return 1
+    fi
+    
+    pass_test "Add Story List Button"
+    return 0
+}
+
+# =============================================================================
 # Story: Kanban Board View with Drag-and-Drop
 # ID: 1770031875840
 # Merged: 2026-02-02
