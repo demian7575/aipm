@@ -5934,6 +5934,8 @@ export async function createApp() {
         const prodApiUrl = `http://${allConfig.prod.ec2_ip}:${allConfig.prod.api_port}`;
         const devApiUrl = `http://${allConfig.dev.ec2_ip}:${allConfig.dev.api_port}`;
         
+        console.log(`Syncing from ${prodApiUrl} to ${devApiUrl}`);
+        
         const prodResponse = await fetch(`${prodApiUrl}/api/stories`);
         if (!prodResponse.ok) {
           sendJson(res, 500, { error: 'Failed to fetch production stories' });
