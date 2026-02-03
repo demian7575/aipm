@@ -60,6 +60,42 @@ test_1768754109973_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Root Story and Skip INVEST Options to Child Story Modal
+# ID: 1770116995784
+# Merged: 2026-02-03
+# =============================================================================
+test_1770116995784_add_root_story_and_skip_invest_options() {
+    log_test "Add Root Story and Skip INVEST Options to Child Story Modal"
+    
+    # Test 1: Verify "Create as root story" checkbox exists
+    if ! grep -q 'child-create-as-root' apps/frontend/public/app.js; then
+        fail_test "Create as root story checkbox not found"
+        return 1
+    fi
+    
+    # Test 2: Verify "Skip INVEST" checkbox exists
+    if ! grep -q 'child-skip-invest' apps/frontend/public/app.js; then
+        fail_test "Skip INVEST checkbox not found"
+        return 1
+    fi
+    
+    # Test 3: Verify parentId uses checkbox value
+    if ! grep -q "child-create-as-root.*checked.*null.*parentId" apps/frontend/public/app.js; then
+        fail_test "Create as root checkbox not wired to parentId"
+        return 1
+    fi
+    
+    # Test 4: Verify acceptWarnings uses checkbox value
+    if ! grep -q "acceptWarnings.*child-skip-invest.*checked" apps/frontend/public/app.js; then
+        fail_test "Skip INVEST checkbox not wired to acceptWarnings"
+        return 1
+    fi
+    
+    pass_test "Add Root Story and Skip INVEST Options to Child Story Modal"
+    return 0
+}
+
+# =============================================================================
 # Story: Kanban Board View with Drag-and-Drop
 # ID: 1770031875840
 # Merged: 2026-02-02

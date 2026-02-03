@@ -6873,6 +6873,11 @@ function openChildStoryModal(parentId) {
       </div>
       <button type="button" class="secondary" id="child-add-test-btn">Add Another Test</button>
     </div>
+    
+    <div class="story-options">
+      <label><input type="checkbox" id="child-create-as-root"> Create as root story (no parent)</label>
+      <label><input type="checkbox" id="child-skip-invest"> Skip INVEST validation</label>
+    </div>
   `;
 
   let childComponents = [];
@@ -7117,7 +7122,7 @@ function openChildStoryModal(parentId) {
           }
           const payload = {
             title,
-            parentId,
+            parentId: container.querySelector('#child-create-as-root').checked ? null : parentId,
             storyPoint: storyPointResult.value,
             assigneeEmail: container.querySelector('#child-assignee').value.trim(),
             description: container.querySelector('#child-description').value.trim(),
@@ -7125,6 +7130,7 @@ function openChildStoryModal(parentId) {
             iWant: container.querySelector('#child-iwant-display').value.trim(),
             soThat: container.querySelector('#child-sothat-display').value.trim(),
             components: childComponents,
+            acceptWarnings: container.querySelector('#child-skip-invest').checked,
             acceptanceTests: acceptanceTests.map(test => ({
               title: test.title,
               given: test.given,
