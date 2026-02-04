@@ -1059,6 +1059,10 @@ body.is-mindmap-panning {
   gap: 0.35rem;
 }
 
+.story-form .form-toolbar {
+  grid-column: span 2;
+}
+
 .story-form .full {
   grid-column: span 2;
 }
