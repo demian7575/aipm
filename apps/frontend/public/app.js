@@ -7139,40 +7139,67 @@ function openChildStoryModal(parentId) {
               status: test.status || 'Draft'
             }))
           };
-          // Close modal immediately for better UX
-          closeModal();
-          showToast('Creating story...', 'info');
           
-          // Run creation in background
-          (async () => {
-            try {
-              console.log('🚀 Starting story creation...');
-              const response = await fetch(resolveApiUrl('/api/stories'), {
+          // Don't close modal yet - check INVEST first
+          showToast('Validating story...', 'info');
+          
+          try {
+            const response = await fetch(resolveApiUrl('/api/stories'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            
+            if (response.status === 409 && result.code === 'INVEST_SCORE_TOO_LOW') {
+              // INVEST validation failed - ask user what to do
+              const proceed = confirm(
+                `INVEST Score Too Low (${result.score}/${result.threshold})\n\n` +
+                `Issues:\n${result.warnings.map(w => `• ${w}`).join('\n')}\n\n` +
+                `Do you want to create the story anyway?`
+              );
+              
+              if (!proceed) {
+                // User wants to fix the story - keep modal open
+                showToast('Please update the story to improve INVEST score', 'warning');
+                return false; // Keep modal open
+              }
+              
+              // User wants to proceed - create with acceptWarnings
+              payload.acceptWarnings = true;
+              const retryResponse = await fetch(resolveApiUrl('/api/stories'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
               });
               
-              const result = await response.json();
-              console.log('📥 Story creation response:', result);
-              
-              if (!response.ok) {
-                showToast(`Failed to create story: ${response.statusText}`, 'error');
-                return;
+              if (!retryResponse.ok) {
+                const retryResult = await retryResponse.json();
+                showToast(`Failed to create story: ${retryResult.message || retryResponse.statusText}`, 'error');
+                return false;
               }
               
-              // Backend already creates acceptance tests from payload, no need to create them again
-              showToast('Child story created successfully with acceptance tests!', 'success');
-              console.log('🔄 Refreshing stories...');
-              await loadStories(); // Refresh stories list
-              console.log('✅ Stories refreshed');
-            } catch (error) {
-              console.error('❌ Story creation error:', error);
-              showToast(error.message || 'Failed to create story', 'error');
+              showToast('Child story created successfully (INVEST warnings accepted)', 'success');
+              await loadStories();
+              return true; // Close modal
             }
-          })();
-          
-          return true; // Close modal immediately
+            
+            if (!response.ok) {
+              showToast(`Failed to create story: ${result.message || response.statusText}`, 'error');
+              return false; // Keep modal open
+            }
+            
+            // Success - story created
+            showToast('Child story created successfully with acceptance tests!', 'success');
+            await loadStories();
+            return true; // Close modal
+            
+          } catch (error) {
+            console.error('❌ Story creation error:', error);
+            showToast(error.message || 'Failed to create story', 'error');
+            return false; // Keep modal open
+          }
         },
       },
     ],
