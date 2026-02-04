@@ -60,6 +60,42 @@ test_1768754109973_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1770220765033
+# Merged: 2026-02-04
+# =============================================================================
+test_1770220765033_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify button exists in HTML
+    if ! grep -q 'view-stories-btn' apps/frontend/public/index.html; then
+        fail_test "View stories button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in app.js
+    if ! grep -q 'viewStoriesBtn' apps/frontend/public/app.js; then
+        fail_test "viewStoriesBtn element reference not found"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener exists
+    if ! grep -q 'viewStoriesBtn.*addEventListener' apps/frontend/public/app.js; then
+        fail_test "Event listener for view stories button not found"
+        return 1
+    fi
+    
+    # Test 4: Verify modal function exists
+    if ! grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    pass_test "Add Story List Button"
+    return 0
+}
+
+# =============================================================================
 # Story: Add Root Story and Skip INVEST Options to Child Story Modal
 # ID: 1770116995784
 # Merged: 2026-02-03
