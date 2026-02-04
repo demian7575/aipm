@@ -48,6 +48,16 @@ async function getAcceptanceTests(db, storyId) {
 // Load configuration from environments.yaml
 import CONFIG from './config.js';
 
+async function loadTemplate(templateName) {
+  try {
+    const templatePath = path.join(__dirname, '../../templates', `${templateName}.md`);
+    return await readFile(templatePath, 'utf8');
+  } catch (error) {
+    console.error(`Failed to load template ${templateName}:`, error);
+    return null;
+  }
+}
+
 // Set environment variables from config
 Object.entries(CONFIG).forEach(([key, value]) => {
   if (!process.env[key]) {
@@ -3892,7 +3902,34 @@ function buildCommonTestDocument(context = {}) {
   return { title: 'Common Test Document', content: lines.join('\n') };
 }
 
-function buildCommonRequirementSpecificationDocument(context = {}) {
+async function buildCommonRequirementSpecificationDocument(context = {}) {
+  // Load template
+  const template = await loadTemplate('requirement-specification-template');
+  
+  if (template) {
+    // Use template and fill in dynamic data
+    const storyMap =
+      context.map instanceof Map
+        ? context.map
+        : new Map((Array.isArray(context.flat) ? context.flat : []).map((story) => [story.id, story]));
+    const { flatStories, groups, order, requirements } = enumerateRequirementEntries(context);
+    
+    let content = template;
+    
+    // Replace placeholders
+    content = content.replace(/\[Project Name\]/g, 'AIPM - AI Project Manager');
+    content = content.replace(/\[Date\]/g, now());
+    content = content.replace(/\[Author Name\]/g, 'AIPM System');
+    content = content.replace(/\[Draft \| Review \| Approved\]/g, 'Generated');
+    
+    // Add story statistics
+    const statsSection = `\n\n## Generated Statistics\n\n- **Total User Stories:** ${flatStories.length}\n- **Requirements Catalogued:** ${requirements.length}\n- **Generated On:** ${now()}\n\n`;
+    content = content.replace('## 1. Introduction', statsSection + '## 1. Introduction');
+    
+    return { title: 'Requirement Specification Document', content };
+  }
+  
+  // Fallback to original implementation if template not found
   const storyMap =
     context.map instanceof Map
       ? context.map
