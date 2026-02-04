@@ -6621,6 +6621,75 @@ function openDocumentPanel() {
   actions.className = 'document-actions';
   container.appendChild(actions);
 
+  // Add template selector
+  const templateSection = document.createElement('div');
+  templateSection.className = 'template-selector';
+  templateSection.innerHTML = `
+    <h3>Select Template</h3>
+    <select id="template-select" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem;">
+      <option value="">-- Select a template --</option>
+    </select>
+    <button type="button" class="secondary" id="upload-template-btn">Upload New Template</button>
+  `;
+  container.appendChild(templateSection);
+
+  const templateSelect = templateSection.querySelector('#template-select');
+  const uploadTemplateBtn = templateSection.querySelector('#upload-template-btn');
+
+  // Load available templates
+  async function loadTemplates() {
+    try {
+      const response = await fetch(resolveApiUrl('/api/templates'));
+      if (response.ok) {
+        const templates = await response.json();
+        templateSelect.innerHTML = '<option value="">-- Select a template --</option>';
+        templates.forEach(template => {
+          const option = document.createElement('option');
+          option.value = template.name;
+          option.textContent = template.displayName;
+          templateSelect.appendChild(option);
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+    }
+  }
+
+  loadTemplates();
+
+  // Upload template handler
+  uploadTemplateBtn.addEventListener('click', async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.md,.markdown';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('template', file);
+
+      try {
+        const response = await fetch(resolveApiUrl('/api/templates/upload'), {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          showToast('Template uploaded successfully', 'success');
+          await loadTemplates();
+        } else {
+          const error = await response.json();
+          showToast(error.message || 'Failed to upload template', 'error');
+        }
+      } catch (error) {
+        console.error('Upload failed:', error);
+        showToast('Failed to upload template', 'error');
+      }
+    };
+    input.click();
+  });
+
   const resultWrapper = document.createElement('section');
   resultWrapper.className = 'document-result hidden';
 

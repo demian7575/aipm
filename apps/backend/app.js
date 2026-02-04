@@ -2104,6 +2104,7 @@ const __dirname = path.dirname(__filename);
 const FRONTEND_DIR = path.join(__dirname, '..', 'frontend', 'public');
 const DATA_DIR   = process.env.AIPM_DATA_DIR   || path.join(__dirname, 'data');
 const UPLOAD_DIR = process.env.AIPM_UPLOAD_DIR || path.join(__dirname, 'uploads');
+const TEMPLATES_DIR = path.join(__dirname, '../../documents/templates');
 const DISABLE_SQLITE_MIRROR = process.env.AIPM_DISABLE_SQLITE_MIRROR === '1';
 export const DATABASE_PATH = path.join(DATA_DIR, 'app.sqlite');
 
@@ -8085,6 +8086,62 @@ export async function createApp() {
         'Access-Control-Max-Age': '86400'
       });
       res.end();
+      return;
+    }
+
+    // Get available templates
+    if (pathname === '/api/templates' && method === 'GET') {
+      try {
+        const { readdir } = await import('node:fs/promises');
+        const files = await readdir(TEMPLATES_DIR);
+        const templates = files
+          .filter(f => f.endsWith('.md'))
+          .map(f => ({
+            name: f,
+            displayName: f.replace(/-/g, ' ').replace('.md', '').replace(/\b\w/g, l => l.toUpperCase())
+          }));
+        sendJson(res, 200, templates);
+      } catch (error) {
+        console.error('Failed to list templates:', error);
+        sendJson(res, 500, { message: 'Failed to list templates' });
+      }
+      return;
+    }
+
+    // Upload template
+    if (pathname === '/api/templates/upload' && method === 'POST') {
+      try {
+        const busboy = (await import('busboy')).default;
+        const bb = busboy({ headers: req.headers });
+        let savedFile = null;
+
+        bb.on('file', (name, file, info) => {
+          const { filename } = info;
+          if (!filename.endsWith('.md') && !filename.endsWith('.markdown')) {
+            file.resume();
+            return;
+          }
+
+          const safeName = filename.replace(/[^a-z0-9.-]/gi, '-').toLowerCase();
+          const savePath = path.join(TEMPLATES_DIR, safeName);
+          const writeStream = require('fs').createWriteStream(savePath);
+          file.pipe(writeStream);
+          savedFile = safeName;
+        });
+
+        bb.on('finish', () => {
+          if (savedFile) {
+            sendJson(res, 200, { message: 'Template uploaded', filename: savedFile });
+          } else {
+            sendJson(res, 400, { message: 'No valid template file uploaded' });
+          }
+        });
+
+        req.pipe(bb);
+      } catch (error) {
+        console.error('Failed to upload template:', error);
+        sendJson(res, 500, { message: 'Failed to upload template' });
+      }
       return;
     }
 
