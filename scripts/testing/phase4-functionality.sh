@@ -168,6 +168,61 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770216848891
+# Merged: 2026-02-04
+# =============================================================================
+test_1770216848891_header_button_opens_modal() {
+    log_test "Header button opens story list modal"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q "view-all-stories-btn" apps/frontend/public/index.html 2>/dev/null; then
+        fail_test "View All Stories button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in JS
+    if ! grep -q "viewAllStoriesBtn" apps/frontend/public/app.js 2>/dev/null; then
+        fail_test "viewAllStoriesBtn reference not found in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener is attached
+    if ! grep -q "viewAllStoriesBtn.addEventListener" apps/frontend/public/app.js 2>/dev/null; then
+        fail_test "Event listener for viewAllStoriesBtn not found"
+        return 1
+    fi
+    
+    pass_test "Header button exists and has event listener"
+}
+
+test_1770216848891_modal_displays_titles() {
+    log_test "Modal displays all story titles"
+    
+    # Test 1: Verify openAllStoriesModal function exists
+    if ! grep -q "function openAllStoriesModal" apps/frontend/public/app.js 2>/dev/null; then
+        fail_test "openAllStoriesModal function not found"
+        return 1
+    fi
+    
+    # Test 2: Verify function uses flattenStories to get all stories
+    if ! grep -A 20 "function openAllStoriesModal" apps/frontend/public/app.js | grep -q "flattenStories" 2>/dev/null; then
+        fail_test "openAllStoriesModal does not use flattenStories"
+        return 1
+    fi
+    
+    # Test 3: Verify function displays story titles
+    if ! grep -A 20 "function openAllStoriesModal" apps/frontend/public/app.js | grep -q "story.title" 2>/dev/null; then
+        fail_test "openAllStoriesModal does not display story titles"
+        return 1
+    fi
+    
+    pass_test "Modal function displays all story titles"
+}
+
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""
