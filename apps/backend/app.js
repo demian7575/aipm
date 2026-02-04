@@ -8072,6 +8072,21 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/document-templates' && method === 'GET') {
+      try {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const templatesDir = path.join(process.cwd(), 'document', 'templates');
+        const files = await fs.readdir(templatesDir);
+        const templates = files.filter(f => f.endsWith('.md') || f.endsWith('.txt'));
+        sendJson(res, 200, { templates });
+      } catch (error) {
+        console.error('Failed to list templates', error);
+        sendJson(res, 500, { message: 'Failed to list templates' });
+      }
+      return;
+    }
+
     const docCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/reference-documents$/);
     if (docCreateMatch && method === 'POST') {
       const storyId = Number(docCreateMatch[1]);

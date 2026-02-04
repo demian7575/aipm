@@ -6617,6 +6617,16 @@ function openDocumentPanel() {
     'Generate consolidated documents using the common templates for tests and requirements.';
   container.appendChild(intro);
 
+  const templateSelector = document.createElement('div');
+  templateSelector.className = 'template-selector';
+  const templateLabel = document.createElement('label');
+  templateLabel.textContent = 'Template: ';
+  const templateSelect = document.createElement('select');
+  templateSelect.id = 'template-select';
+  templateLabel.appendChild(templateSelect);
+  templateSelector.appendChild(templateLabel);
+  container.appendChild(templateSelector);
+
   const actions = document.createElement('div');
   actions.className = 'document-actions';
   container.appendChild(actions);
@@ -6817,6 +6827,24 @@ function openDocumentPanel() {
       showToast('Unable to copy document', 'error');
     }
   });
+
+  async function loadTemplates() {
+    try {
+      const response = await fetch(resolveApiUrl('/api/document-templates'));
+      const data = await response.json();
+      templateSelect.innerHTML = '<option value="">-- Select Template --</option>';
+      data.templates.forEach(template => {
+        const option = document.createElement('option');
+        option.value = template;
+        option.textContent = template;
+        templateSelect.appendChild(option);
+      });
+    } catch (error) {
+      console.error('Failed to load templates', error);
+    }
+  }
+
+  loadTemplates();
 
   openModal({ title: 'Generate Document', content: container, cancelLabel: 'Close' });
 }

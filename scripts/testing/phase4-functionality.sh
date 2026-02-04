@@ -151,6 +151,43 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
     return 0
 }
 
+test_1770212948891_select_document_template_from_directory() {
+    log_test "Select Document Template from Directory"
+    
+    # Test 1: Verify template selector exists in openDocumentPanel
+    if ! grep -q 'template-selector' apps/frontend/public/app.js; then
+        fail_test "Template selector not found in app.js"
+        return 1
+    fi
+    
+    # Test 2: Verify template select element is created
+    if ! grep -q 'templateSelect' apps/frontend/public/app.js; then
+        fail_test "templateSelect element not found"
+        return 1
+    fi
+    
+    # Test 3: Verify API endpoint exists
+    if ! grep -q '/api/document-templates' apps/backend/app.js; then
+        fail_test "API endpoint /api/document-templates not found"
+        return 1
+    fi
+    
+    # Test 4: Verify loadTemplates function exists
+    if ! grep -q 'function loadTemplates' apps/frontend/public/app.js; then
+        fail_test "loadTemplates function not found"
+        return 1
+    fi
+    
+    # Test 5: Verify templates directory exists
+    if [ ! -d "document/templates" ]; then
+        fail_test "document/templates directory not found"
+        return 1
+    fi
+    
+    pass_test "Select Document Template from Directory"
+    return 0
+}
+
 # Template:
 # =============================================================================
 # Story: [Story Title]
