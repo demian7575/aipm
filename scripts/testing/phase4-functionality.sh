@@ -168,6 +168,42 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Auto-run INVEST Check on Story Creation
+# ID: 1770182297668
+# Merged: 2026-02-04
+# =============================================================================
+test_1770182297668_auto_invest_check() {
+    log_test "Auto-run INVEST Check on Story Creation"
+    
+    # Test 1: Verify INVEST check is called before story creation
+    if ! grep -q "Running INVEST validation" apps/frontend/public/app.js; then
+        fail_test "INVEST validation message not found"
+        return 1
+    fi
+    
+    # Test 2: Verify INVEST API call exists
+    if ! grep -q "/api/invest-check" apps/frontend/public/app.js; then
+        fail_test "INVEST check API call not found"
+        return 1
+    fi
+    
+    # Test 3: Verify warning popup logic exists
+    if ! grep -q "INVEST Validation Warnings" apps/frontend/public/app.js; then
+        fail_test "INVEST warning popup not found"
+        return 1
+    fi
+    
+    # Test 4: Verify skip INVEST checkbox is checked
+    if ! grep -q "child-skip-invest" apps/frontend/public/app.js; then
+        fail_test "Skip INVEST checkbox handling not found"
+        return 1
+    fi
+    
+    pass_test "Auto-run INVEST check implementation verified"
+}
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""
