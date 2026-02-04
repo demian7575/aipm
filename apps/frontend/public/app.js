@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -8097,6 +8098,22 @@ function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  viewStoriesBtn?.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      const stories = await response.json();
+      const content = document.createElement('div');
+      stories.forEach(story => {
+        const div = document.createElement('div');
+        div.textContent = story.title;
+        content.appendChild(div);
+      });
+      showModal('All Stories', content);
+    } catch (error) {
+      console.error('Failed to fetch stories:', error);
+    }
   });
 
   autoLayoutToggle.addEventListener('click', () => {

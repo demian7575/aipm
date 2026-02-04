@@ -138,6 +138,38 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
     fi
     
     # Test 6: Verify Kanban styles exist
+
+test_1770204141892_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify View Stories button exists in HTML
+    if ! grep -q 'id="view-stories-btn"' apps/frontend/public/index.html; then
+        fail_test "View Stories button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button declaration exists
+    if ! grep -q 'viewStoriesBtn' apps/frontend/public/app.js; then
+        fail_test "viewStoriesBtn declaration not found"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener exists
+    if ! grep -q 'viewStoriesBtn?.addEventListener' apps/frontend/public/app.js; then
+        fail_test "Event listener not found"
+        return 1
+    fi
+    
+    # Test 4: Verify API call to /api/stories
+    if ! grep -q '/api/stories' apps/frontend/public/app.js; then
+        fail_test "API call to /api/stories not found"
+        return 1
+    fi
+    
+    pass_test "Add Story List Button"
+    return 0
+}
+
     if ! grep -q '.kanban-board' apps/frontend/public/styles.css; then
         fail_test "Kanban board styles not found"
         return 1
