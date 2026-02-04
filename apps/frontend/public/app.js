@@ -6876,7 +6876,6 @@ function openChildStoryModal(parentId) {
     
     <div class="story-options">
       <label><input type="checkbox" id="child-create-as-root"> Create as root story (no parent)</label>
-      <label><input type="checkbox" id="child-skip-invest"> Skip INVEST validation</label>
     </div>
   `;
 
@@ -7130,7 +7129,7 @@ function openChildStoryModal(parentId) {
             iWant: container.querySelector('#child-iwant-display').value.trim(),
             soThat: container.querySelector('#child-sothat-display').value.trim(),
             components: childComponents,
-            acceptWarnings: container.querySelector('#child-skip-invest').checked,
+            acceptWarnings: false, // Always validate first
             acceptanceTests: acceptanceTests.map(test => ({
               title: test.title,
               given: test.given,
@@ -7140,8 +7139,14 @@ function openChildStoryModal(parentId) {
             }))
           };
           
-          // Don't close modal yet - check INVEST first
-          showToast('Validating story...', 'info');
+          // Show progress and disable button
+          const createButton = document.querySelector('.modal-footer button.primary');
+          const originalButtonText = createButton?.textContent;
+          if (createButton) {
+            createButton.disabled = true;
+            createButton.textContent = 'Checking story quality...';
+          }
+          showToast('Checking story quality...', 'info');
           
           try {
             const response = await fetch(resolveApiUrl('/api/stories'), {
@@ -7153,6 +7158,12 @@ function openChildStoryModal(parentId) {
             const result = await response.json();
             
             if (response.status === 409 && result.code === 'INVEST_SCORE_TOO_LOW') {
+              // Restore button state
+              if (createButton) {
+                createButton.disabled = false;
+                createButton.textContent = originalButtonText;
+              }
+              
               // INVEST validation failed - ask user what to do
               const proceed = confirm(
                 `INVEST Score Too Low (${result.score}/${result.threshold})\n\n` +
@@ -7166,7 +7177,14 @@ function openChildStoryModal(parentId) {
                 return false; // Keep modal open
               }
               
-              // User wants to proceed - create with acceptWarnings
+              // User wants to proceed - show progress again
+              if (createButton) {
+                createButton.disabled = true;
+                createButton.textContent = 'Creating story...';
+              }
+              showToast('Creating story...', 'info');
+              
+              // Create with acceptWarnings
               payload.acceptWarnings = true;
               const retryResponse = await fetch(resolveApiUrl('/api/stories'), {
                 method: 'POST',
@@ -7176,6 +7194,10 @@ function openChildStoryModal(parentId) {
               
               if (!retryResponse.ok) {
                 const retryResult = await retryResponse.json();
+                if (createButton) {
+                  createButton.disabled = false;
+                  createButton.textContent = originalButtonText;
+                }
                 showToast(`Failed to create story: ${retryResult.message || retryResponse.statusText}`, 'error');
                 return false;
               }
@@ -7186,6 +7208,10 @@ function openChildStoryModal(parentId) {
             }
             
             if (!response.ok) {
+              if (createButton) {
+                createButton.disabled = false;
+                createButton.textContent = originalButtonText;
+              }
               showToast(`Failed to create story: ${result.message || response.statusText}`, 'error');
               return false; // Keep modal open
             }
@@ -7197,6 +7223,10 @@ function openChildStoryModal(parentId) {
             
           } catch (error) {
             console.error('❌ Story creation error:', error);
+            if (createButton) {
+              createButton.disabled = false;
+              createButton.textContent = originalButtonText;
+            }
             showToast(error.message || 'Failed to create story', 'error');
             return false; // Keep modal open
           }
