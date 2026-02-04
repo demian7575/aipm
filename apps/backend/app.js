@@ -8077,6 +8077,17 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/documents/generate' && method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400'
+      });
+      res.end();
+      return;
+    }
+
     if (pathname === '/api/documents/generate' && method === 'POST') {
       try {
         const payload = await parseJson(req);
@@ -8095,6 +8106,7 @@ export async function createApp() {
         const buffer = Buffer.from(markdown, 'utf8');
 
         res.statusCode = 200;
+        res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         res.setHeader('X-Document-Title', encodeURIComponent(title));
