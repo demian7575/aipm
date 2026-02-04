@@ -4710,7 +4710,7 @@ function renderStoryDetailsWithCompleteData(story) {
     form.classList.add('health-warning');
   }
   form.innerHTML = `
-    <div class="form-toolbar">
+    <div class="form-toolbar" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
       <button type="button" class="secondary" id="edit-story-btn">Edit Story</button>
       <button type="button" class="primary" id="mark-done-btn">Done</button>
       <button type="button" class="danger" id="delete-story-btn">Delete</button>
