@@ -7139,44 +7139,97 @@ function openChildStoryModal(parentId) {
               status: test.status || 'Draft'
             }))
           };
-          // Close modal immediately for better UX
-          closeModal();
-          showToast('Creating story...', 'info');
           
-          // Run creation in background
-          (async () => {
+          // Auto-run INVEST check before creating story
+          const skipInvest = container.querySelector('#child-skip-invest').checked;
+          if (!skipInvest) {
+            showToast('Running INVEST validation...', 'info');
+            
             try {
-              console.log('🚀 Starting story creation...');
-              const response = await fetch(resolveApiUrl('/api/stories'), {
+              const investResponse = await fetch(resolveApiUrl('/api/invest-check'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                  title: payload.title,
+                  description: payload.description,
+                  asA: payload.asA,
+                  iWant: payload.iWant,
+                  soThat: payload.soThat,
+                  storyPoint: payload.storyPoint,
+                  components: payload.components
+                })
               });
               
-              const result = await response.json();
-              console.log('📥 Story creation response:', result);
-              
-              if (!response.ok) {
-                showToast(`Failed to create story: ${response.statusText}`, 'error');
-                return;
+              if (investResponse.ok) {
+                const investResult = await investResponse.json();
+                
+                if (investResult.warnings && investResult.warnings.length > 0) {
+                  // Show INVEST warnings in popup
+                  const warningList = investResult.warnings.map(w => 
+                    `<li><strong>${w.criterion}:</strong> ${w.message}<br><em>Suggestion: ${w.suggestion}</em></li>`
+                  ).join('');
+                  
+                  showModal(
+                    'INVEST Validation Warnings',
+                    `<p>Score: ${investResult.score}/100</p><ul>${warningList}</ul><p>Do you want to proceed with story creation?</p>`,
+                    [
+                      { label: 'Cancel', className: 'secondary', onClick: closeModal },
+                      { 
+                        label: 'Create Anyway', 
+                        onClick: async () => {
+                          closeModal();
+                          await createStoryWithPayload(payload);
+                        }
+                      }
+                    ]
+                  );
+                  return false;
+                }
               }
-              
-              // Backend already creates acceptance tests from payload, no need to create them again
-              showToast('Child story created successfully with acceptance tests!', 'success');
-              console.log('🔄 Refreshing stories...');
-              await loadStories(); // Refresh stories list
-              console.log('✅ Stories refreshed');
             } catch (error) {
-              console.error('❌ Story creation error:', error);
-              showToast(error.message || 'Failed to create story', 'error');
+              console.error('INVEST check failed:', error);
+              showToast('INVEST check failed, proceeding with creation', 'warning');
             }
-          })();
+          }
           
-          return true; // Close modal immediately
+          // INVEST passed or skipped, create story
+          await createStoryWithPayload(payload);
+          return true;
         },
       },
     ],
   });
+  
+  // Helper function to create story
+  async function createStoryWithPayload(payload) {
+    closeModal();
+    showToast('Creating story...', 'info');
+    
+    try {
+      console.log('🚀 Starting story creation...');
+      const response = await fetch(resolveApiUrl('/api/stories'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      console.log('📥 Story creation response:', result);
+      
+      if (!response.ok) {
+        showToast(`Failed to create story: ${response.statusText}`, 'error');
+        return;
+      }
+      
+      showToast('Child story created successfully with acceptance tests!', 'success');
+      console.log('🔄 Refreshing stories...');
+      await loadStories();
+      console.log('✅ Stories refreshed');
+    } catch (error) {
+      console.error('❌ Story creation error:', error);
+      showToast(error.message || 'Failed to create story', 'error');
+    }
+  }
 }
 
 function openAcceptanceTestModal(storyId, options = {}) {
