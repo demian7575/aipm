@@ -7165,9 +7165,16 @@ function openChildStoryModal(parentId) {
               }
               
               // INVEST validation failed - ask user what to do
+              const warningMessages = result.warnings.map(w => {
+                if (typeof w === 'string') return w;
+                if (w.message) return w.message;
+                if (w.criterion && w.issue) return `${w.criterion}: ${w.issue}`;
+                return JSON.stringify(w);
+              });
+              
               const proceed = confirm(
                 `INVEST Score Too Low (${result.score}/${result.threshold})\n\n` +
-                `Issues:\n${result.warnings.map(w => `• ${w}`).join('\n')}\n\n` +
+                `Issues:\n${warningMessages.map(w => `• ${w}`).join('\n')}\n\n` +
                 `Do you want to create the story anyway?`
               );
               
