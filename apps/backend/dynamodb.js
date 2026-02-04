@@ -107,13 +107,22 @@ export class DynamoDBDataLayer {
   // Stories operations
   async getAllStories() {
     try {
-      const result = await docClient.send(new ScanCommand({
-        TableName: getStoriesTable()
-      }));
-      console.log('DynamoDB: getAllStories result:', result.Items?.length || 0, 'items');
+      let allItems = [];
+      let lastKey = undefined;
       
-      // DynamoDB DocumentClient already converts types, so we just need to map field names
-      const stories = (result.Items || []).map(item => ({
+      do {
+        const result = await docClient.send(new ScanCommand({
+          TableName: getStoriesTable(),
+          ExclusiveStartKey: lastKey
+        }));
+        
+        allItems = allItems.concat(result.Items || []);
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
+      
+      console.log('DynamoDB: getAllStories result:', allItems.length, 'items');
+      
+      const stories = allItems.map(item => ({
         id: item.id,
         parentId: item.parentId,
         title: item.title || '',
