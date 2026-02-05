@@ -151,6 +151,48 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
     return 0
 }
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770287902425
+# Merged: 2026-02-05
+# =============================================================================
+test_1770287902425_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify Story List button exists in header
+    if ! grep -q 'story-list-btn' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button reference exists in app.js
+    if ! grep -q 'storyListBtn' apps/frontend/public/app.js; then
+        fail_test "storyListBtn reference not found in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify openStoryListModal function exists
+    if ! grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    # Test 4: Verify event listener is attached
+    if ! grep -q "storyListBtn.*addEventListener.*click" apps/frontend/public/app.js; then
+        fail_test "Story List button event listener not found"
+        return 1
+    fi
+    
+    # Test 5: Verify empty state handling
+    if ! grep -q "No stories are available" apps/frontend/public/app.js; then
+        fail_test "Empty state message not found"
+        return 1
+    fi
+    
+    pass_test "Add Story List Button"
+    return 0
+}
+
 # Template:
 # =============================================================================
 # Story: [Story Title]
