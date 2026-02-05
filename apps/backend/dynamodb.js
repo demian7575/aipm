@@ -6,8 +6,9 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const DEFAULT_STORIES_TABLE = process.env.STORIES_TABLE;
 const DEFAULT_ACCEPTANCE_TESTS_TABLE = process.env.ACCEPTANCE_TESTS_TABLE;
+const DEFAULT_TEST_RUNS_TABLE = process.env.TEST_RUNS_TABLE;
 
-console.log('DynamoDB: Default tables:', { DEFAULT_STORIES_TABLE, DEFAULT_ACCEPTANCE_TESTS_TABLE });
+console.log('DynamoDB: Default tables:', { DEFAULT_STORIES_TABLE, DEFAULT_ACCEPTANCE_TESTS_TABLE, DEFAULT_TEST_RUNS_TABLE });
 
 // Request context for per-request table override
 let requestContext = null;
@@ -26,6 +27,10 @@ function getStoriesTable() {
 
 function getAcceptanceTestsTable() {
   return requestContext?.acceptanceTestsTable ?? DEFAULT_ACCEPTANCE_TESTS_TABLE;
+}
+
+function getTestRunsTable() {
+  return requestContext?.testRunsTable ?? DEFAULT_TEST_RUNS_TABLE;
 }
 
 export class DynamoDBDataLayer {
@@ -355,6 +360,55 @@ export class DynamoDBDataLayer {
     } catch (error) {
       console.error('Error deleting acceptance test:', error);
       return false;
+    }
+  }
+
+  // Test runs operations
+  async createTestRun(testRun) {
+    try {
+      await docClient.send(new PutCommand({
+        TableName: getTestRunsTable(),
+        Item: testRun
+      }));
+      return testRun;
+    } catch (error) {
+      console.error('Error creating test run:', error);
+      throw error;
+    }
+  }
+
+  async getLatestTestRunByStoryId(storyId) {
+    try {
+      const result = await docClient.send(new QueryCommand({
+        TableName: getTestRunsTable(),
+        IndexName: 'storyId-timestamp-index',
+        KeyConditionExpression: 'storyId = :storyId',
+        ExpressionAttributeValues: {
+          ':storyId': parseInt(storyId)
+        },
+        ScanIndexForward: false,
+        Limit: 1
+      }));
+      return result.Items?.[0] || null;
+    } catch (error) {
+      console.error('Error getting latest test run:', error);
+      return null;
+    }
+  }
+
+  async getTestRunsByRunId(runId) {
+    try {
+      const result = await docClient.send(new QueryCommand({
+        TableName: getTestRunsTable(),
+        KeyConditionExpression: 'runId = :runId',
+        ExpressionAttributeValues: {
+          ':runId': runId
+        }
+      }));
+      return result.Items || [];
+    } catch (error) {
+      console.error('Error getting test runs by runId:', error);
+      return [];
     }
   }
 }

@@ -12,6 +12,7 @@ prod:
   dynamodb_stories_table: "aipm-backend-prod-stories"
   dynamodb_tests_table: "aipm-backend-prod-acceptance-tests"
   dynamodb_prs_table: "aipm-backend-prod-prs"
+  dynamodb_test_runs_table: "aipm-backend-prod-test-runs"
 
 dev:
   ec2_ip: "44.222.168.46"
@@ -24,3 +25,4 @@ dev:
   dynamodb_stories_table: "aipm-backend-dev-stories"
   dynamodb_tests_table: "aipm-backend-dev-acceptance-tests"
   dynamodb_prs_table: "aipm-backend-dev-prs"
+  dynamodb_test_runs_table: "aipm-backend-dev-test-runs"

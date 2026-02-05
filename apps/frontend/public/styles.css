@@ -2636,3 +2636,121 @@ dialog[data-size='content'] .modal-shell {
 .filter-form .checkbox-list input[type="checkbox"] {
   cursor: pointer;
 }
+
+
+/* RTM View Styles */
+.rtm-toolbar {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+}
+
+.rtm-control {
+  padding: 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+#rtm-search {
+  flex: 1;
+  max-width: 300px;
+}
+
+.rtm-matrix-container {
+  overflow: auto;
+  height: calc(100vh - 250px);
+}
+
+.rtm-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.rtm-matrix thead {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+}
+
+.rtm-matrix th {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 600;
+  background: #f8f9fa;
+}
+
+.rtm-matrix td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.rtm-col-id {
+  width: 80px;
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 5;
+}
+
+.rtm-col-title {
+  min-width: 250px;
+  position: sticky;
+  left: 80px;
+  background: #fff;
+  z-index: 5;
+}
+
+.rtm-col-coverage {
+  width: 80px;
+  text-align: center;
+}
+
+.rtm-cell {
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.rtm-cell:hover {
+  opacity: 0.8;
+}
+
+.rtm-cell-gap {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rtm-cell-covered {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.rtm-cell-pass {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.rtm-cell-fail {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.rtm-row-indent-1 {
+  padding-left: 2rem;
+}
+
+.rtm-row-indent-2 {
+  padding-left: 4rem;
+}
+
+.rtm-row-indent-3 {
+  padding-left: 6rem;
+}

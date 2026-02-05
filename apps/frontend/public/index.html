@@ -74,6 +74,17 @@
           >
             Kanban
           </button>
+          <button
+            class="view-tab"
+            type="button"
+            role="tab"
+            id="view-tab-rtm"
+            aria-selected="false"
+            aria-controls="rtm-view"
+            data-view="rtm"
+          >
+            RTM
+          </button>
         </div>
         <div class="view-panel">
           <div id="mindmap-view" class="view-content is-active" role="tabpanel" tabindex="0" aria-labelledby="view-tab-mindmap">
@@ -96,6 +107,36 @@
           </div>
           <div id="kanban-view" class="view-content" role="tabpanel" tabindex="0" aria-labelledby="view-tab-kanban" hidden>
             <div class="kanban-board"></div>
+          </div>
+          <div id="rtm-view" class="view-content" role="tabpanel" tabindex="0" aria-labelledby="view-tab-rtm" hidden>
+            <div class="rtm-toolbar">
+              <select id="rtm-root-selector" class="rtm-control">
+                <option value="">All Requirements</option>
+              </select>
+              <input type="text" id="rtm-search" class="rtm-control" placeholder="Search requirements..." />
+              <label class="rtm-control">
+                <input type="checkbox" id="rtm-gaps-only" />
+                Show gaps only
+              </label>
+              <button id="rtm-export-csv" class="secondary">Export CSV</button>
+            </div>
+            <div class="rtm-matrix-container">
+              <table id="rtm-matrix" class="rtm-matrix">
+                <thead>
+                  <tr>
+                    <th class="rtm-col-id">ID</th>
+                    <th class="rtm-col-title">Title</th>
+                    <th class="rtm-col-coverage">Stories</th>
+                    <th class="rtm-col-coverage">Tests</th>
+                    <th class="rtm-col-coverage">Code</th>
+                    <th class="rtm-col-coverage">Docs</th>
+                    <th class="rtm-col-coverage">CI</th>
+                  </tr>
+                </thead>
+                <tbody id="rtm-matrix-body">
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>

@@ -23,6 +23,7 @@ if [[ "$ENV" == "prod" ]]; then
     STORIES_TABLE="aipm-backend-prod-stories"
     TESTS_TABLE="aipm-backend-prod-acceptance-tests"
     PRS_TABLE="aipm-backend-prod-prs"
+    TEST_RUNS_TABLE="aipm-backend-prod-test-runs"
 elif [[ "$ENV" == "dev" ]]; then
     HOST="44.222.168.46"
     SERVICE="aipm-backend"
@@ -31,6 +32,7 @@ elif [[ "$ENV" == "dev" ]]; then
     STORIES_TABLE="aipm-backend-dev-stories"
     TESTS_TABLE="aipm-backend-dev-acceptance-tests"
     PRS_TABLE="aipm-backend-dev-prs"
+    TEST_RUNS_TABLE="aipm-backend-dev-test-runs"
 else
     echo "❌ Invalid environment: $ENV"
     echo "Valid environments: prod, dev"

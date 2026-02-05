@@ -491,14 +491,19 @@ const mindmapPanState = {
 };
 
 function updateViewVisibility(activeView) {
-  const isMindmap = activeView === 'mindmap';
+  const rtmView = document.getElementById('rtm-view');
+  
   if (mindmapView) {
-    mindmapView.classList.toggle('is-active', isMindmap);
-    mindmapView.hidden = !isMindmap;
+    mindmapView.classList.toggle('is-active', activeView === 'mindmap');
+    mindmapView.hidden = activeView !== 'mindmap';
   }
   if (kanbanView) {
-    kanbanView.classList.toggle('is-active', !isMindmap);
-    kanbanView.hidden = isMindmap;
+    kanbanView.classList.toggle('is-active', activeView === 'kanban');
+    kanbanView.hidden = activeView !== 'kanban';
+  }
+  if (rtmView) {
+    rtmView.classList.toggle('is-active', activeView === 'rtm');
+    rtmView.hidden = activeView !== 'rtm';
   }
   viewTabs.forEach((tab) => {
     const isActive = tab.dataset.view === activeView;
@@ -522,6 +527,8 @@ function setActiveView(nextView, { force = false } = {}) {
     });
   } else if (state.activeView === 'kanban') {
     renderKanban();
+  } else if (state.activeView === 'rtm') {
+    renderRTM();
   }
 }
 
@@ -3737,6 +3744,167 @@ async function updateStoryStatus(storyId, newStatus) {
   }
   
   return response.json();
+}
+
+// RTM (Requirement Traceability Matrix) Functions
+let rtmData = [];
+let rtmFilters = { search: '', gapsOnly: false, rootId: null };
+
+async function renderRTM() {
+  try {
+    const rootId = rtmFilters.rootId || '';
+    const url = resolveApiUrl(`/api/rtm/matrix${rootId ? `?rootId=${rootId}` : ''}`);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to load RTM data');
+    
+    rtmData = await response.json();
+    updateRTMTable();
+  } catch (error) {
+    console.error('Error rendering RTM:', error);
+    showToast('Failed to load RTM data', 'error');
+  }
+}
+
+function updateRTMTable() {
+  const tbody = document.getElementById('rtm-matrix-body');
+  if (!tbody) return;
+  
+  let filtered = rtmData;
+  
+  // Apply search filter
+  if (rtmFilters.search) {
+    const search = rtmFilters.search.toLowerCase();
+    filtered = filtered.filter(row => 
+      row.id.toString().includes(search) || 
+      row.title.toLowerCase().includes(search)
+    );
+  }
+  
+  // Apply gaps filter
+  if (rtmFilters.gapsOnly) {
+    filtered = filtered.filter(row => 
+      row.coverage.stories === 0 || row.coverage.acceptanceTests === 0
+    );
+  }
+  
+  tbody.innerHTML = '';
+  
+  filtered.forEach(row => {
+    const tr = document.createElement('tr');
+    
+    // ID column
+    const tdId = document.createElement('td');
+    tdId.textContent = row.id;
+    tdId.className = 'rtm-col-id';
+    tr.appendChild(tdId);
+    
+    // Title column
+    const tdTitle = document.createElement('td');
+    tdTitle.textContent = row.title;
+    tdTitle.className = 'rtm-col-title';
+    tr.appendChild(tdTitle);
+    
+    // Coverage columns
+    ['stories', 'acceptanceTests', 'code', 'docs', 'ci'].forEach(type => {
+      const td = document.createElement('td');
+      td.className = 'rtm-col-coverage';
+      
+      const cell = document.createElement('div');
+      cell.className = 'rtm-cell';
+      
+      let count, status;
+      if (type === 'ci') {
+        count = row.coverage.ci.count;
+        status = row.coverage.ci.status;
+      } else {
+        count = row.coverage[type];
+        status = null;
+      }
+      
+      cell.textContent = count;
+      
+      // Apply cell state styling
+      if (count === 0) {
+        cell.classList.add('rtm-cell-gap');
+      } else if (status === 'PASS') {
+        cell.classList.add('rtm-cell-pass');
+      } else if (status === 'FAIL') {
+        cell.classList.add('rtm-cell-fail');
+      } else {
+        cell.classList.add('rtm-cell-covered');
+      }
+      
+      cell.addEventListener('click', () => openRTMDrawer(row.id, type));
+      
+      td.appendChild(cell);
+      tr.appendChild(td);
+    });
+    
+    tbody.appendChild(tr);
+  });
+}
+
+async function openRTMDrawer(storyId, type) {
+  try {
+    const url = resolveApiUrl(`/api/rtm/evidence/${storyId}/${type}`);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to load evidence');
+    
+    const evidence = await response.json();
+    
+    const story = rtmData.find(r => r.id === storyId);
+    const typeLabels = {
+      stories: 'Stories',
+      acceptanceTests: 'Acceptance Tests',
+      code: 'Code',
+      docs: 'Documents',
+      ci: 'CI Tests'
+    };
+    
+    const content = document.createElement('div');
+    content.innerHTML = `
+      <h3>Requirement #${storyId}: ${story?.title || ''}</h3>
+      <h4>${typeLabels[type]}</h4>
+      <div class="rtm-evidence-list">
+        ${evidence.length === 0 ? '<p>No linked items</p>' : 
+          evidence.map(item => `
+            <div class="rtm-evidence-item">
+              <strong>${item.title}</strong>
+              ${item.status ? `<span class="badge">${item.status}</span>` : ''}
+            </div>
+          `).join('')}
+      </div>
+    `;
+    
+    openModal({ title: 'Evidence Details', content, cancelLabel: 'Close' });
+  } catch (error) {
+    console.error('Error loading evidence:', error);
+    showToast('Failed to load evidence', 'error');
+  }
+}
+
+function exportRTMToCSV() {
+  const headers = ['requirementId', 'requirementTitle', 'storyCount', 'testCount', 'codeCount', 'docCount', 'ciCount', 'testsLatestStatus', 'ciLatestStatus'];
+  const rows = rtmData.map(row => [
+    row.id,
+    `"${row.title.replace(/"/g, '""')}"`,
+    row.coverage.stories,
+    row.coverage.acceptanceTests,
+    row.coverage.code,
+    row.coverage.docs,
+    row.coverage.ci.count,
+    row.coverage.acceptanceTests > 0 ? 'UNKNOWN' : 'UNKNOWN',
+    row.coverage.ci.status || 'UNKNOWN'
+  ]);
+  
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `rtm-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function setupNodeInteraction(group, node) {
@@ -8103,6 +8271,37 @@ function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+
+  // RTM event listeners
+  const rtmSearch = document.getElementById('rtm-search');
+  const rtmGapsOnly = document.getElementById('rtm-gaps-only');
+  const rtmRootSelector = document.getElementById('rtm-root-selector');
+  const rtmExportBtn = document.getElementById('rtm-export-csv');
+
+  if (rtmSearch) {
+    rtmSearch.addEventListener('input', (e) => {
+      rtmFilters.search = e.target.value;
+      updateRTMTable();
+    });
+  }
+
+  if (rtmGapsOnly) {
+    rtmGapsOnly.addEventListener('change', (e) => {
+      rtmFilters.gapsOnly = e.target.checked;
+      updateRTMTable();
+    });
+  }
+
+  if (rtmRootSelector) {
+    rtmRootSelector.addEventListener('change', (e) => {
+      rtmFilters.rootId = e.target.value || null;
+      renderRTM();
+    });
+  }
+
+  if (rtmExportBtn) {
+    rtmExportBtn.addEventListener('click', exportRTMToCSV);
+  }
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();

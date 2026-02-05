@@ -163,6 +163,15 @@ async function getAllStories(db) {
   }));
 }
 
+function getAllDescendants(stories, parentId) {
+  const children = stories.filter(s => s.parentId === parentId);
+  const descendants = [...children];
+  children.forEach(child => {
+    descendants.push(...getAllDescendants(stories, child.id));
+  });
+  return descendants;
+}
+
 async function handleCreatePRWithCodeRequest(req, res) {
   const startTime = Date.now();
   let success = false;
@@ -8396,7 +8405,164 @@ export async function createApp() {
       }
     }
 
-    if (pathname.startsWith('/api/')) {
+    // RTM APIs
+    if (pathname === '/api/rtm/matrix' && method === 'GET') {
+      try {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const rootId = url.searchParams.get('rootId');
+        
+        const stories = await db.getAllStories();
+        
+        // Filter by root if specified
+        let filteredStories = stories;
+        if (rootId) {
+          const rootStory = stories.find(s => s.id === parseInt(rootId));
+          if (rootStory) {
+            const descendants = getAllDescendants(stories, parseInt(rootId));
+            filteredStories = [rootStory, ...descendants];
+          }
+        } else {
+          // Show only root stories (no parentId)
+          filteredStories = stories.filter(s => !s.parentId);
+        }
+        
+        // Compute coverage for each story
+        const matrixData = await Promise.all(filteredStories.map(async (story) => {
+          const children = stories.filter(s => s.parentId === story.id);
+          const latestTestRun = await db.getLatestTestRunByStoryId(story.id);
+          
+          return {
+            id: story.id,
+            title: story.title,
+            status: story.status,
+            parentId: story.parentId,
+            coverage: {
+              stories: children.length,
+              acceptanceTests: story.acceptanceTests?.length || 0,
+              code: story.status === 'Done' ? 1 : 0,
+              docs: story.referenceDocuments?.length || 0,
+              ci: latestTestRun ? {
+                count: 1,
+                status: latestTestRun.storyStatus
+              } : { count: 0, status: null }
+            }
+          };
+        }));
+        
+        sendJson(res, 200, matrixData);
+        return;
+      } catch (error) {
+        console.error('Error getting RTM matrix:', error);
+        sendJson(res, 500, { error: 'Failed to get RTM matrix' });
+        return;
+      }
+    }
+
+    if (pathname.startsWith('/api/rtm/evidence/') && method === 'GET') {
+      try {
+        const parts = pathname.split('/');
+        const storyId = parseInt(parts[4]);
+        const type = parts[5];
+        
+        const story = await db.getStoryById(storyId);
+        if (!story) {
+          sendJson(res, 404, { error: 'Story not found' });
+          return;
+        }
+        
+        let evidence = [];
+        
+        switch (type) {
+          case 'stories':
+            const allStories = await db.getAllStories();
+            evidence = allStories
+              .filter(s => s.parentId === storyId)
+              .map(s => ({
+                id: s.id,
+                title: s.title,
+                status: s.status,
+                type: 'story'
+              }));
+            break;
+            
+          case 'acceptanceTests':
+            evidence = (story.acceptanceTests || []).map(t => ({
+              id: t.id,
+              title: t.title || t.name,
+              status: t.status,
+              type: 'test'
+            }));
+            break;
+            
+          case 'code':
+            if (story.status === 'Done') {
+              evidence = [{
+                id: story.id,
+                title: `Story ${story.id} - Completed`,
+                status: 'Done',
+                type: 'code'
+              }];
+            }
+            break;
+            
+          case 'docs':
+            evidence = (story.referenceDocuments || []).map((doc, idx) => ({
+              id: `doc-${idx}`,
+              title: doc.title || doc.name || doc,
+              url: doc.url || doc,
+              type: 'document'
+            }));
+            break;
+            
+          case 'ci':
+            const testRun = await db.getLatestTestRunByStoryId(storyId);
+            if (testRun) {
+              evidence = testRun.testResults.map(t => ({
+                id: t.testId,
+                title: t.testName,
+                status: t.status,
+                type: 'ci-test',
+                runId: testRun.runId,
+                timestamp: testRun.timestamp
+              }));
+            }
+            break;
+        }
+        
+        sendJson(res, 200, evidence);
+        return;
+      } catch (error) {
+        console.error('Error getting RTM evidence:', error);
+        sendJson(res, 500, { error: 'Failed to get evidence' });
+        return;
+      }
+    }
+
+    if (pathname === '/api/test-runs' && method === 'POST') {
+      try {
+        const bodyStr = await readRequestBody(req);
+        const body = JSON.parse(bodyStr);
+        const { runId, storyId, timestamp, storyStatus, testResults } = body;
+        
+        const testRun = {
+          runId,
+          storyId: parseInt(storyId),
+          timestamp,
+          storyStatus,
+          testResults
+        };
+        
+        await db.createTestRun(testRun);
+        sendJson(res, 201, testRun);
+        return;
+      } catch (error) {
+        console.error('Error creating test run:', error);
+        sendJson(res, 500, { error: 'Failed to create test run' });
+        return;
+      }
+    }
+
+    if (pathname.startsWith('/api')) {
       sendJson(res, 404, { message: 'API endpoint not found' });
       return;
     }
