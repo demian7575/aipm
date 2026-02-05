@@ -6956,8 +6956,8 @@ function openDocumentPanel() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.status === 'complete' && (data.content || data.document)) {
-                fullContent = data.content || data.document;
+              if (data.status === 'complete' && data.document) {
+                fullContent = data.document;
               } else if (data.status === 'error') {
                 throw new Error(data.message || 'Generation failed');
               }
