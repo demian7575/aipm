@@ -8142,14 +8142,13 @@ export async function createApp() {
     if (pathname === '/api/templates/upload' && method === 'POST') {
       try {
         console.log('📤 Template upload request received');
-        console.log('Headers:', req.headers);
         
         const busboy = (await import('busboy')).default;
         const { createWriteStream } = await import('fs');
         const bb = busboy({ headers: req.headers });
-        let savedFile = null;
         let uploadError = null;
         let fileReceived = false;
+        let writeStreamPromise = null;
 
         bb.on('file', (name, file, info) => {
           fileReceived = true;
@@ -8165,23 +8164,25 @@ export async function createApp() {
           const savePath = path.join(TEMPLATES_DIR, safeName);
           console.log('💾 Saving to:', savePath);
           
-          try {
-            const writeStream = createWriteStream(savePath);
-            file.pipe(writeStream);
-            
-            writeStream.on('error', (err) => {
-              uploadError = err;
-              console.error('Write stream error:', err);
-            });
-            
-            writeStream.on('finish', () => {
-              savedFile = safeName;
-              console.log('✅ File saved:', safeName);
-            });
-          } catch (err) {
-            uploadError = err;
-            console.error('Failed to create write stream:', err);
-          }
+          writeStreamPromise = new Promise((resolve, reject) => {
+            try {
+              const writeStream = createWriteStream(savePath);
+              file.pipe(writeStream);
+              
+              writeStream.on('error', (err) => {
+                console.error('Write stream error:', err);
+                reject(err);
+              });
+              
+              writeStream.on('finish', () => {
+                console.log('✅ File saved:', safeName);
+                resolve(safeName);
+              });
+            } catch (err) {
+              console.error('Failed to create write stream:', err);
+              reject(err);
+            }
+          });
         });
 
         bb.on('error', (err) => {
@@ -8189,26 +8190,40 @@ export async function createApp() {
           console.error('Busboy error:', err);
         });
 
-        bb.on('finish', () => {
-          console.log('🏁 Busboy finished. File received:', fileReceived, 'Saved:', savedFile);
+        bb.on('finish', async () => {
+          console.log('🏁 Busboy finished. File received:', fileReceived);
+          
           if (uploadError) {
             res.writeHead(500, {
               'Content-Type': 'application/json',
               'Access-Control-Allow-Origin': '*'
             });
             res.end(JSON.stringify({ message: 'Upload failed: ' + uploadError.message }));
-          } else if (savedFile) {
-            res.writeHead(200, {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*'
-            });
-            res.end(JSON.stringify({ message: 'Template uploaded', filename: savedFile }));
-          } else {
+            return;
+          }
+          
+          if (!writeStreamPromise) {
             res.writeHead(400, {
               'Content-Type': 'application/json',
               'Access-Control-Allow-Origin': '*'
             });
             res.end(JSON.stringify({ message: 'No valid template file uploaded' }));
+            return;
+          }
+          
+          try {
+            const savedFile = await writeStreamPromise;
+            res.writeHead(200, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ message: 'Template uploaded', filename: savedFile }));
+          } catch (err) {
+            res.writeHead(500, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ message: 'Upload failed: ' + err.message }));
           }
         });
 
