@@ -168,6 +168,61 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770259642092
+# Merged: 2026-02-05
+# =============================================================================
+test_1770259642092_story_list_button() {
+    log_test "Story List Button - Header button opens modal with story list"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in app.js
+    if ! grep -q 'storyListBtn.*getElementById.*story-list-btn' apps/frontend/public/app.js; then
+        fail_test "storyListBtn element reference not found"
+        return 1
+    fi
+    
+    # Test 3: Verify click event listener exists
+    if ! grep -q 'storyListBtn.*addEventListener' apps/frontend/public/app.js; then
+        fail_test "Story list button click handler not found"
+        return 1
+    fi
+    
+    # Test 4: Verify modal opening logic
+    if ! grep -A 20 'storyListBtn.*addEventListener' apps/frontend/public/app.js | grep -q 'openModal'; then
+        fail_test "Modal opening logic not found"
+        return 1
+    fi
+    
+    pass_test "Story list button implemented correctly"
+}
+
+test_1770259642092_modal_displays_titles() {
+    log_test "Story List Button - Modal displays all story titles"
+    
+    # Test 1: Verify story iteration logic
+    if ! grep -A 5 'storyListBtn.*addEventListener' apps/frontend/public/app.js | grep -q 'state.stories.forEach'; then
+        fail_test "Story iteration logic not found"
+        return 1
+    fi
+    
+    # Test 2: Verify title display
+    if ! grep -A 10 'storyListBtn.*addEventListener' apps/frontend/public/app.js | grep -q 'story.title'; then
+        fail_test "Story title display logic not found"
+        return 1
+    fi
+    
+    pass_test "Modal displays story titles correctly"
+}
+
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""
