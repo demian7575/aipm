@@ -27,6 +27,34 @@ PHASE4_PASSED=0
 PHASE4_FAILED=0
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1770332936167
+# =============================================================================
+test_1770332936167_story_list_modal() {
+    log_test "Story List Modal"
+    
+    # Test 1: Verify View Stories button exists in header
+    if ! grep -q 'id="view-stories-btn"' apps/frontend/public/index.html; then
+        fail_test "View Stories button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify showStoriesListModal function exists
+    if ! grep -q "function showStoriesListModal" apps/frontend/public/app.js; then
+        fail_test "showStoriesListModal function not found"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener is attached
+    if ! grep -q "viewStoriesBtn.addEventListener" apps/frontend/public/app.js; then
+        fail_test "Event listener for viewStoriesBtn not found"
+        return 1
+    fi
+    
+    pass_test
+}
+
+# =============================================================================
 # Story: Remove Hide Completed Button
 # ID: 1768754109973
 # Merged: 2026-01-22
