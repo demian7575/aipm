@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -731,6 +732,36 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      
+      modalTitle.textContent = 'All Stories';
+      modalBody.innerHTML = `
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          ${stories.map(story => `
+            <li style="padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;" 
+                data-story-id="${story.id}">
+              ${story.title || 'Untitled Story'}
+            </li>
+          `).join('')}
+        </ul>
+      `;
+      modalFooter.innerHTML = '<button id="modal-close-btn" class="secondary">Close</button>';
+      modal.classList.add('active');
+      
+      document.getElementById('modal-close-btn')?.addEventListener('click', () => {
+        modal.classList.remove('active');
+      });
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
   });
 }
 
