@@ -8131,8 +8131,10 @@ export async function createApp() {
     if (pathname === '/api/templates/upload' && method === 'POST') {
       try {
         const busboy = (await import('busboy')).default;
+        const { createWriteStream } = await import('fs');
         const bb = busboy({ headers: req.headers });
         let savedFile = null;
+        let uploadError = null;
 
         bb.on('file', (name, file, info) => {
           const { filename } = info;
@@ -8143,13 +8145,34 @@ export async function createApp() {
 
           const safeName = filename.replace(/[^a-z0-9.-]/gi, '-').toLowerCase();
           const savePath = path.join(TEMPLATES_DIR, safeName);
-          const writeStream = require('fs').createWriteStream(savePath);
-          file.pipe(writeStream);
-          savedFile = safeName;
+          
+          try {
+            const writeStream = createWriteStream(savePath);
+            file.pipe(writeStream);
+            
+            writeStream.on('error', (err) => {
+              uploadError = err;
+              console.error('Write stream error:', err);
+            });
+            
+            writeStream.on('finish', () => {
+              savedFile = safeName;
+            });
+          } catch (err) {
+            uploadError = err;
+            console.error('Failed to create write stream:', err);
+          }
+        });
+
+        bb.on('error', (err) => {
+          uploadError = err;
+          console.error('Busboy error:', err);
         });
 
         bb.on('finish', () => {
-          if (savedFile) {
+          if (uploadError) {
+            sendJson(res, 500, { message: 'Upload failed: ' + uploadError.message });
+          } else if (savedFile) {
             sendJson(res, 200, { message: 'Template uploaded', filename: savedFile });
           } else {
             sendJson(res, 400, { message: 'No valid template file uploaded' });
@@ -8159,7 +8182,7 @@ export async function createApp() {
         req.pipe(bb);
       } catch (error) {
         console.error('Failed to upload template:', error);
-        sendJson(res, 500, { message: 'Failed to upload template' });
+        sendJson(res, 500, { message: 'Failed to upload template: ' + error.message });
       }
       return;
     }
