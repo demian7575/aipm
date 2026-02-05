@@ -5192,9 +5192,7 @@ async function loadStories(db, options = {}) {
 
   for (const row of testRows) {
     const story = byId.get(row.storyId);
-    if (row.storyId === 1767550018420) {
-      console.log('🔍 Processing test for story 1767550018420:', row.id, 'found story:', !!story);
-    }
+    console.log(`🔍 Attaching test ${row.id} to story ${row.storyId}, found: ${!!story}`);
     if (!story) continue;
     const given = parseJsonArray(row.given);
     const when = parseJsonArray(row.when_step);
