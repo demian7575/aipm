@@ -6687,7 +6687,7 @@ function openDocumentPanel() {
       const templateContent = await templateResponse.text();
 
       // Call Semantic API to generate document
-      const semanticApiUrl = resolveApiUrl('/semantic-api/generate-document').replace(':4000', ':8083');
+      const semanticApiUrl = resolveApiUrl('/api/generate-document').replace(':4000', ':8083');
       const response = await fetch(semanticApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
