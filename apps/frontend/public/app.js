@@ -6874,15 +6874,28 @@ function openDocumentPanel() {
         All Stories (${state.stories.length})
       </label>
       <label style="display: block; margin-bottom: 0.5rem;">
-        <input type="radio" name="story-filter" value="roots" />
-        Root Stories Only (${state.stories.filter(s => !s.parentId).length})
+        <input type="radio" name="story-filter" value="depth" />
+        By Depth Level
       </label>
+      <div style="margin-left: 1.5rem; margin-bottom: 0.5rem; display: none;" id="depth-controls">
+        <label>Max Depth: 
+          <select id="depth-level" style="padding: 0.25rem;">
+            <option value="0">Level 0 (Roots only)</option>
+            <option value="1">Level 0-1</option>
+            <option value="2" selected>Level 0-2</option>
+            <option value="3">Level 0-3</option>
+            <option value="4">Level 0-4</option>
+            <option value="5">Level 0-5</option>
+            <option value="6">Level 0-6</option>
+          </select>
+        </label>
+      </div>
       <label style="display: block; margin-bottom: 0.5rem;">
         <input type="radio" name="story-filter" value="selected" />
-        Selected Story and Children
+        Selected Story and Its Children
       </label>
-      <select id="story-root-select" style="width: 100%; padding: 0.5rem; margin-left: 1.5rem; display: none;">
-        <option value="">-- Select a root story --</option>
+      <select id="story-select" style="width: 100%; padding: 0.5rem; margin-left: 1.5rem; display: none;">
+        <option value="">-- Select a story --</option>
       </select>
     </div>
     
@@ -6896,22 +6909,37 @@ function openDocumentPanel() {
   const templateSelect = templateSection.querySelector('#template-select');
   const generateDocBtn = templateSection.querySelector('#generate-doc-btn');
   const uploadTemplateBtn = templateSection.querySelector('#upload-template-btn');
-  const storyRootSelect = templateSection.querySelector('#story-root-select');
+  const storySelect = templateSection.querySelector('#story-select');
+  const depthControls = templateSection.querySelector('#depth-controls');
+  const depthLevel = templateSection.querySelector('#depth-level');
   const storyFilterRadios = templateSection.querySelectorAll('input[name="story-filter"]');
 
-  // Populate root story selector
-  const rootStories = state.stories.filter(s => !s.parentId);
-  rootStories.forEach(story => {
+  // Populate story selector with ALL stories (not just roots)
+  state.stories.forEach(story => {
     const option = document.createElement('option');
     option.value = story.id;
-    option.textContent = `${story.id}: ${story.title}`;
-    storyRootSelect.appendChild(option);
+    const indent = '  '.repeat(getStoryDepth(story));
+    option.textContent = `${indent}${story.id}: ${story.title}`;
+    storySelect.appendChild(option);
   });
 
-  // Show/hide root selector based on radio selection
+  // Helper to get story depth
+  function getStoryDepth(story) {
+    let depth = 0;
+    let current = story;
+    while (current.parentId) {
+      depth++;
+      current = state.stories.find(s => s.id === current.parentId);
+      if (!current) break;
+    }
+    return depth;
+  }
+
+  // Show/hide controls based on radio selection
   storyFilterRadios.forEach(radio => {
     radio.addEventListener('change', (e) => {
-      storyRootSelect.style.display = e.target.value === 'selected' ? 'block' : 'none';
+      storySelect.style.display = e.target.value === 'selected' ? 'block' : 'none';
+      depthControls.style.display = e.target.value === 'depth' ? 'block' : 'none';
     });
   });
 
@@ -6953,26 +6981,21 @@ function openDocumentPanel() {
     const filterType = templateSection.querySelector('input[name="story-filter"]:checked').value;
     let filteredStories = state.stories;
     
-    if (filterType === 'roots') {
-      filteredStories = state.stories.filter(s => !s.parentId);
+    if (filterType === 'depth') {
+      const maxDepth = parseInt(depthLevel.value);
+      filteredStories = state.stories.filter(s => getStoryDepth(s) <= maxDepth);
     } else if (filterType === 'selected') {
-      const selectedRootId = parseInt(storyRootSelect.value);
-      if (!selectedRootId) {
-        showToast('Please select a root story', 'error');
+      const selectedStoryId = parseInt(storySelect.value);
+      if (!selectedStoryId) {
+        showToast('Please select a story', 'error');
         return;
       }
-      const rootStory = state.stories.find(s => s.id === selectedRootId);
-      if (rootStory) {
-        filteredStories = [rootStory];
-        // Add all descendants
-        const addDescendants = (parentId) => {
-          const children = state.stories.filter(s => s.parentId === parentId);
-          children.forEach(child => {
-            filteredStories.push(child);
-            addDescendants(child.id);
-          });
-        };
-        addDescendants(selectedRootId);
+      const selectedStory = state.stories.find(s => s.id === selectedStoryId);
+      if (selectedStory) {
+        filteredStories = [selectedStory];
+        // Add only direct children (not all descendants)
+        const children = state.stories.filter(s => s.parentId === selectedStoryId);
+        filteredStories.push(...children);
       }
     }
 
