@@ -94,6 +94,7 @@ export class DynamoDBDataLayer {
       }));
       return (result.Items || []).map(item => ({
         id: item.id,
+        storyId: item.storyId,
         title: item.title || '',
         given: item.given,
         when_step: item.whenStep,  // Convert to snake_case
