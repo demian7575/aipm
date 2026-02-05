@@ -8916,3 +8916,48 @@ window.cleanupKiroQueue = async function() {
     throw error;
   }
 };
+
+/**
+ * Show modal with list of all story titles
+ */
+function showStoriesListModal() {
+  try {
+    const allStories = Array.from(storyIndex.values());
+    
+    modalTitle.textContent = 'All Stories';
+    modalBody.innerHTML = '';
+    
+    if (allStories.length === 0) {
+      modalBody.innerHTML = '<p class="empty-state">No stories available</p>';
+    } else {
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      
+      allStories.forEach(story => {
+        const item = document.createElement('li');
+        item.style.padding = '8px';
+        item.style.borderBottom = '1px solid #eee';
+        item.style.cursor = 'pointer';
+        item.textContent = story.title || 'Untitled';
+        item.addEventListener('click', () => {
+          modal.style.display = 'none';
+          selectStory(story.id);
+        });
+        list.appendChild(item);
+      });
+      
+      modalBody.appendChild(list);
+    }
+    
+    modalFooter.innerHTML = '';
+    modal.style.display = 'flex';
+  } catch (error) {
+    console.error('Error showing stories list:', error);
+    showToast('Failed to load stories list', 'error');
+  }
+}
+
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', showStoriesListModal);
+}
