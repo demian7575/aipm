@@ -6870,16 +6870,16 @@ function openDocumentPanel() {
     <h3>Select Stories</h3>
     <div style="margin-bottom: 1rem;">
       <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-        <input type="radio" name="story-filter" value="all" checked style="margin: 0 0.25rem 0 0;" />
+        <input type="radio" name="story-filter" value="all" checked style="margin: 0 0.25rem 0 0; width: auto;" />
         All Stories (${state.stories.length})
       </label>
       <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-        <input type="radio" name="story-filter" value="depth" style="margin: 0 0.25rem 0 0;" />
+        <input type="radio" name="story-filter" value="depth" style="margin: 0 0.25rem 0 0; width: auto;" />
         By Depth Level
       </label>
-      <div style="margin-left: 1.5rem; margin-bottom: 0.5rem; display: none;" id="depth-controls">
+      <div style="margin-left: 1.5rem; margin-bottom: 0.5rem;" id="depth-controls">
         <label>Max Depth: 
-          <select id="depth-level" style="padding: 0.25rem;">
+          <select id="depth-level" style="padding: 0.25rem; width: auto;">
             <option value="0">Level 0 (Roots only)</option>
             <option value="1">Level 0-1</option>
             <option value="2" selected>Level 0-2</option>
@@ -6891,10 +6891,10 @@ function openDocumentPanel() {
         </label>
       </div>
       <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-        <input type="radio" name="story-filter" value="selected" style="margin: 0 0.25rem 0 0;" />
+        <input type="radio" name="story-filter" value="selected" style="margin: 0 0.25rem 0 0; width: auto;" />
         Selected Story and Its Children
       </label>
-      <select id="story-select" style="width: 100%; padding: 0.5rem; margin-left: 1.5rem; display: none;">
+      <select id="story-select" style="width: 100%; padding: 0.5rem; margin-left: 1.5rem; margin-bottom: 0.5rem;">
         <option value="">-- Select a story --</option>
       </select>
     </div>
@@ -6934,14 +6934,6 @@ function openDocumentPanel() {
     }
     return depth;
   }
-
-  // Show/hide controls based on radio selection
-  storyFilterRadios.forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      storySelect.style.display = e.target.value === 'selected' ? 'block' : 'none';
-      depthControls.style.display = e.target.value === 'depth' ? 'block' : 'none';
-    });
-  });
 
   // Load available templates
   async function loadTemplates() {
