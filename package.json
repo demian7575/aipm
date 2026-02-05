@@ -17,6 +17,7 @@
     "@aws-sdk/lib-dynamodb": "^3.0.0",
     "@octokit/rest": "^22.0.1",
     "@vendia/serverless-express": "^4.12.6",
+    "busboy": "^1.6.0",
     "express": "^5.1.0"
   },
   "devDependencies": {
