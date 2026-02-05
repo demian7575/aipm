@@ -5109,9 +5109,6 @@ async function loadStories(db, options = {}) {
   console.log('📋 Loaded acceptance tests:', testRows.length);
   if (testRows.length > 0) {
     console.log('📋 First test:', testRows[0]);
-    console.log('📋 Tests for story 1767550018420:', testRows.filter(t => t.story_id === 1767550018420).length);
-  console.log('📋 Tests for story "1767550018420" (string):', testRows.filter(t => t.story_id === "1767550018420").length);
-  console.log('📋 Sample story_id types:', testRows.slice(0, 3).map(t => ({id: t.id, story_id: t.story_id, type: typeof t.story_id})));
   }
   const docRows = await safeSelectAll(db, 'SELECT * FROM reference_documents ORDER BY story_id, id');
 
@@ -5194,8 +5191,8 @@ async function loadStories(db, options = {}) {
   });
 
   for (const row of testRows) {
-    const story = byId.get(row.story_id);
-    if (row.story_id === 1767550018420) {
+    const story = byId.get(row.storyId);
+    if (row.storyId === 1767550018420) {
       console.log('🔍 Processing test for story 1767550018420:', row.id, 'found story:', !!story);
     }
     if (!story) continue;
@@ -5206,7 +5203,7 @@ async function loadStories(db, options = {}) {
     const gwtHealth = await buildGwtHealth(given, when, then, warnings);
     story.acceptanceTests.push({
       id: row.id,
-      storyId: row.story_id,
+      storyId: row.storyId,
       title: acceptanceTestsHasTitleColumn ? row.title ?? '' : '',
       given,
       when,
@@ -5221,11 +5218,11 @@ async function loadStories(db, options = {}) {
   }
 
   docRows.forEach((row) => {
-    const story = byId.get(row.story_id);
+    const story = byId.get(row.storyId);
     if (!story) return;
     story.referenceDocuments.push({
       id: row.id,
-      storyId: row.story_id,
+      storyId: row.storyId,
       name: row.name,
       url: row.url,
       createdAt: row.created_at,
