@@ -168,6 +168,36 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770285535692
+# Acceptance Test: Display all story titles in modal
+# =============================================================================
+test_1770285535692_view_stories_modal() {
+    log_test "View Stories Modal"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="view-stories-btn"' apps/frontend/public/index.html; then
+        fail_test "View Stories button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify API endpoint exists
+    if ! grep -q "pathname === '/api/stories'" apps/backend/app.js; then
+        fail_test "GET /api/stories endpoint not found"
+        return 1
+    fi
+    
+    # Test 3: Verify button click handler exists
+    if ! grep -q "viewStoriesBtn.addEventListener" apps/frontend/public/app.js; then
+        fail_test "View Stories button click handler not found"
+        return 1
+    fi
+    
+    pass_test "View Stories modal implementation verified"
+}
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""

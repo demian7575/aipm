@@ -6077,6 +6077,12 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/stories' && method === 'GET') {
+      const stories = await db.getAllStories();
+      sendJson(res, 200, { stories });
+      return;
+    }
+
     if (pathname === '/api/stories/restore' && method === 'GET') {
       const stories = await getAllStories(db);
       sendJson(res, 200, { stories });
