@@ -6869,12 +6869,12 @@ function openDocumentPanel() {
     
     <h3>Select Stories</h3>
     <div style="margin-bottom: 1rem;">
-      <label style="display: block; margin-bottom: 0.5rem;">
-        <input type="radio" name="story-filter" value="all" checked />
+      <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+        <input type="radio" name="story-filter" value="all" checked style="margin: 0 0.5rem 0 0;" />
         All Stories (${state.stories.length})
       </label>
-      <label style="display: block; margin-bottom: 0.5rem;">
-        <input type="radio" name="story-filter" value="depth" />
+      <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+        <input type="radio" name="story-filter" value="depth" style="margin: 0 0.5rem 0 0;" />
         By Depth Level
       </label>
       <div style="margin-left: 1.5rem; margin-bottom: 0.5rem; display: none;" id="depth-controls">
@@ -6890,8 +6890,8 @@ function openDocumentPanel() {
           </select>
         </label>
       </div>
-      <label style="display: block; margin-bottom: 0.5rem;">
-        <input type="radio" name="story-filter" value="selected" />
+      <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+        <input type="radio" name="story-filter" value="selected" style="margin: 0 0.5rem 0 0;" />
         Selected Story and Its Children
       </label>
       <select id="story-select" style="width: 100%; padding: 0.5rem; margin-left: 1.5rem; display: none;">
