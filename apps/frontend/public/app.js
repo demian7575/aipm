@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -7794,6 +7795,56 @@ function openAcceptanceTestModal(storyId, options = {}) {
 }
 
 /**
+ * Opens story list modal showing all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  const allStories = flattenStories(state.stories);
+  
+  if (allStories.length === 0) {
+    const emptyMessage = document.createElement('p');
+    emptyMessage.textContent = 'No stories are available';
+    emptyMessage.style.padding = '20px';
+    emptyMessage.style.textAlign = 'center';
+    container.appendChild(emptyMessage);
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px 12px';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.cursor = 'pointer';
+      item.textContent = story.title;
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = '';
+      });
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close'
+  });
+}
+
+/**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
 function openFilterModal() {
@@ -8461,6 +8512,10 @@ function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {
