@@ -60,6 +60,84 @@ test_1768754109973_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1770333276242
+# Merged: 2026-02-05
+# =============================================================================
+test_1770333276242_story_list_modal() {
+    log_test "Story List Modal displays all story titles"
+    
+    # Test 1: Verify button exists in HTML
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in JS
+    if ! grep -q 'storyListBtn.*getElementById.*story-list-btn' apps/frontend/public/app.js; then
+        fail_test "storyListBtn element reference not found"
+        return 1
+    fi
+    
+    # Test 3: Verify click handler exists
+    if ! grep -q 'storyListBtn.*addEventListener.*click' apps/frontend/public/app.js; then
+        fail_test "Click handler for storyListBtn not found"
+        return 1
+    fi
+    
+    # Test 4: Verify API call to /api/stories
+    if ! grep -q "resolveApiUrl.*'/api/stories'" apps/frontend/public/app.js; then
+        fail_test "API call to /api/stories not found"
+        return 1
+    fi
+    
+    # Test 5: Verify modal displays story titles
+    if ! grep -q "story.title.*Untitled" apps/frontend/public/app.js; then
+        fail_test "Story title display logic not found"
+        return 1
+    fi
+    
+    pass_test "Story List Modal displays all story titles"
+    return 0
+}
+
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770333738928
+# Merged: 2026-02-05
+# =============================================================================
+test_1770333738928_add_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify Story List button exists in header
+    if ! grep -q 'story-list-btn' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference exists
+    if ! grep -q 'storyListBtn.*getElementById.*story-list-btn' apps/frontend/public/app.js; then
+        fail_test "storyListBtn element reference not found"
+        return 1
+    fi
+    
+    # Test 3: Verify click handler exists
+    if ! grep -q 'storyListBtn.*addEventListener.*click' apps/frontend/public/app.js; then
+        fail_test "Story List button click handler not found"
+        return 1
+    fi
+    
+    # Test 4: Verify modal opens with story titles
+    if ! grep -q "openModal.*title.*All Stories\|Story List" apps/frontend/public/app.js; then
+        fail_test "Modal opening logic not found"
+        return 1
+    fi
+    
+    pass_test "Add Story List Button"
+    return 0
+}
+
+# =============================================================================
 # Story: Add Root Story and Skip INVEST Options to Child Story Modal
 # ID: 1770116995784
 # Merged: 2026-02-03
