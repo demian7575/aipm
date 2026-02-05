@@ -168,6 +168,54 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770274470525
+# Merged: 2026-02-05
+# =============================================================================
+test_1770274470525_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify Story List button exists in header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in JavaScript
+    if ! grep -q 'storyListBtn.*getElementById.*story-list-btn' apps/frontend/public/app.js; then
+        fail_test "storyListBtn element reference not found in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener is attached
+    if ! grep -q 'storyListBtn.*addEventListener' apps/frontend/public/app.js; then
+        fail_test "Event listener for storyListBtn not found"
+        return 1
+    fi
+    
+    # Test 4: Verify openStoryListModal function exists
+    if ! grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    # Test 5: Verify modal displays story titles
+    if ! grep -q 'story.title' apps/frontend/public/app.js | grep -q 'openStoryListModal' -A 20; then
+        fail_test "Modal does not display story titles"
+        return 1
+    fi
+    
+    # Test 6: Verify CSS styles for story list modal
+    if ! grep -q 'story-list-modal\|story-title-list' apps/frontend/public/styles.css; then
+        fail_test "CSS styles for story list modal not found"
+        return 1
+    fi
+    
+    pass_test "Story List button implemented correctly"
+}
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""

@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -729,6 +730,12 @@ function setDependencyOverlayVisible(visible) {
 
 function toggleDependencyOverlay() {
   setDependencyOverlayVisible(!state.showDependencies);
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
 }
 
 if (referenceBtn) {
@@ -7710,6 +7717,44 @@ function openAcceptanceTestModal(storyId, options = {}) {
         }
       },
     }],
+  });
+}
+
+/**
+ * Opens modal showing list of all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  try {
+    const allStories = state.stories.flatMap(s => getAllStories(s));
+    
+    if (allStories.length === 0) {
+      container.innerHTML = '<p class="empty-state">No stories available</p>';
+    } else {
+      const list = document.createElement('ul');
+      list.className = 'story-title-list';
+      
+      allStories.forEach(story => {
+        const li = document.createElement('li');
+        li.textContent = story.title || 'Untitled Story';
+        li.dataset.storyId = story.id;
+        list.appendChild(li);
+      });
+      
+      container.appendChild(list);
+    }
+  } catch (error) {
+    console.error('Error loading stories:', error);
+    container.innerHTML = '<p class="error-state">Error loading stories</p>';
+  }
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    actions: [],
+    size: 'medium'
   });
 }
 
