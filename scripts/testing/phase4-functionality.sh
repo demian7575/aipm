@@ -168,6 +168,42 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770264372310
+# Merged: 2026-02-05
+# =============================================================================
+test_1770264372310_story_list_button() {
+    log_test "Story List Button displays all story titles"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story list button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button has correct text
+    if ! grep -q 'Stories' apps/frontend/public/index.html; then
+        fail_test "Story list button text incorrect"
+        return 1
+    fi
+    
+    # Test 3: Verify modal function exists
+    if ! grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+        fail_test "openStoryListModal function not found"
+        return 1
+    fi
+    
+    # Test 4: Verify event listener is attached
+    if ! grep -q "getElementById('story-list-btn')" apps/frontend/public/app.js; then
+        fail_test "Event listener not attached to story list button"
+        return 1
+    fi
+    
+    pass_test "Story list button implemented correctly"
+}
+# =============================================================================
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""
