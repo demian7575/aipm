@@ -60,6 +60,61 @@ test_1768754109973_remove_hide_completed_button() {
 # ADD NEW STORY TESTS BELOW THIS LINE
 
 # =============================================================================
+# Story: Add Story List Button
+# ID: 1770269531048
+# Merged: 2026-02-05
+# =============================================================================
+test_1770269531048_modal_opens_with_story_list() {
+    log_test "Modal opens with story list"
+    
+    # Test 1: Verify View Stories button exists in HTML
+    if ! grep -q 'view-stories-btn' apps/frontend/public/index.html; then
+        fail_test "View Stories button not found in HTML"
+        return 1
+    fi
+    
+    # Test 2: Verify button element reference in JS
+    if ! grep -q 'viewStoriesBtn.*getElementById.*view-stories-btn' apps/frontend/public/app.js; then
+        fail_test "viewStoriesBtn element reference not found"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener is attached
+    if ! grep -q 'viewStoriesBtn.*addEventListener.*click' apps/frontend/public/app.js; then
+        fail_test "Event listener not attached to View Stories button"
+        return 1
+    fi
+    
+    # Test 4: Verify showStoryListModal function exists
+    if ! grep -q 'function showStoryListModal' apps/frontend/public/app.js; then
+        fail_test "showStoryListModal function not found"
+        return 1
+    fi
+    
+    pass_test "Modal opens with story list"
+    return 0
+}
+
+test_1770269531048_empty_state_handling() {
+    log_test "Empty state handling"
+    
+    # Test 1: Verify empty state message in showStoryListModal
+    if ! grep -q 'No stories are available' apps/frontend/public/app.js; then
+        fail_test "Empty state message not found"
+        return 1
+    fi
+    
+    # Test 2: Verify empty check before rendering list
+    if ! grep -q 'state.stories.*length.*===.*0' apps/frontend/public/app.js; then
+        fail_test "Empty state check not found"
+        return 1
+    fi
+    
+    pass_test "Empty state handling"
+    return 0
+}
+
+# =============================================================================
 # Story: Add Root Story and Skip INVEST Options to Child Story Modal
 # ID: 1770116995784
 # Merged: 2026-02-03
