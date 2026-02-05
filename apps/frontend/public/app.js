@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -731,6 +732,32 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const stories = await fetchStories();
+      if (!stories || stories.length === 0) {
+        openModal({
+          title: 'Story List',
+          content: '<p>No stories are available.</p>',
+          size: 'medium'
+        });
+        return;
+      }
+      const listHtml = '<ul style="list-style: none; padding: 0;">' +
+        stories.map(s => `<li style="padding: 8px; border-bottom: 1px solid #eee;">${s.title || 'Untitled'}</li>`).join('') +
+        '</ul>';
+      openModal({
+        title: 'Story List',
+        content: listHtml,
+        size: 'medium'
+      });
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
   });
 }
 
