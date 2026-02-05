@@ -168,6 +168,84 @@ test_1770031875840_kanban_board_view_with_drag_and_drop() {
 # }
 # =============================================================================
 
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770259934704
+# Merged: 2026-02-05
+# =============================================================================
+test_1770259934704_story_list_modal() {
+    log_test "Story List Modal displays all story titles"
+    
+    # Test 1: Verify View Stories button exists in header
+    if ! grep -q 'id="view-stories-btn"' apps/frontend/public/index.html; then
+        fail_test "View Stories button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button click handler exists
+    if ! grep -q 'viewStoriesBtn.*addEventListener' apps/frontend/public/app.js; then
+        fail_test "View Stories button click handler not found"
+        return 1
+    fi
+    
+    # Test 3: Verify fetchStories function exists
+    if ! grep -q 'function fetchStories' apps/frontend/public/app.js; then
+        fail_test "fetchStories function not found"
+        return 1
+    fi
+    
+    # Test 4: Verify createStoriesListContent function exists
+    if ! grep -q 'function createStoriesListContent' apps/frontend/public/app.js; then
+        fail_test "createStoriesListContent function not found"
+        return 1
+    fi
+    
+    # Test 5: Verify modal opens with stories list
+    if ! grep -q "title: 'All Stories'" apps/frontend/public/app.js; then
+        fail_test "Modal opening with stories list not found"
+        return 1
+    fi
+    
+    pass_test "Story List Modal displays all story titles"
+    return 0
+}
+
+# =============================================================================
+# Story: Add Story List Button
+# ID: 1770260530231
+# Merged: 2026-02-05
+# =============================================================================
+test_1770260530231_story_list_button() {
+    log_test "Add Story List Button"
+    
+    # Test 1: Verify button exists in header
+    if ! grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+        fail_test "Story List button not found in header"
+        return 1
+    fi
+    
+    # Test 2: Verify button declaration in app.js
+    if ! grep -q "getElementById('story-list-btn')" apps/frontend/public/app.js; then
+        fail_test "Story List button not declared in app.js"
+        return 1
+    fi
+    
+    # Test 3: Verify event listener exists
+    if ! grep -q "storyListBtn.addEventListener" apps/frontend/public/app.js; then
+        fail_test "Story List button event listener not found"
+        return 1
+    fi
+    
+    # Test 4: Verify empty state handling
+    if ! grep -A 10 "storyListBtn.addEventListener" apps/frontend/public/app.js | grep -q "No stories are available"; then
+        fail_test "Empty state message not found"
+        return 1
+    fi
+    
+    pass_test "Story List button implemented correctly"
+    return 0
+}
+
 # Run all tests
 echo "Running Phase 4 functionality tests..."
 echo ""
