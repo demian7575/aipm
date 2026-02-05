@@ -6866,6 +6866,26 @@ function openDocumentPanel() {
     <select id="template-select" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem;">
       <option value="">-- Select a template --</option>
     </select>
+    
+    <h3>Select Stories</h3>
+    <div style="margin-bottom: 1rem;">
+      <label style="display: block; margin-bottom: 0.5rem;">
+        <input type="radio" name="story-filter" value="all" checked />
+        All Stories (${state.stories.length})
+      </label>
+      <label style="display: block; margin-bottom: 0.5rem;">
+        <input type="radio" name="story-filter" value="roots" />
+        Root Stories Only (${state.stories.filter(s => !s.parentId).length})
+      </label>
+      <label style="display: block; margin-bottom: 0.5rem;">
+        <input type="radio" name="story-filter" value="selected" />
+        Selected Story and Children
+      </label>
+      <select id="story-root-select" style="width: 100%; padding: 0.5rem; margin-left: 1.5rem; display: none;">
+        <option value="">-- Select a root story --</option>
+      </select>
+    </div>
+    
     <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
       <button type="button" class="primary" id="generate-doc-btn" disabled>Generate Document</button>
       <button type="button" class="secondary" id="upload-template-btn">Upload New Template</button>
@@ -6876,6 +6896,24 @@ function openDocumentPanel() {
   const templateSelect = templateSection.querySelector('#template-select');
   const generateDocBtn = templateSection.querySelector('#generate-doc-btn');
   const uploadTemplateBtn = templateSection.querySelector('#upload-template-btn');
+  const storyRootSelect = templateSection.querySelector('#story-root-select');
+  const storyFilterRadios = templateSection.querySelectorAll('input[name="story-filter"]');
+
+  // Populate root story selector
+  const rootStories = state.stories.filter(s => !s.parentId);
+  rootStories.forEach(story => {
+    const option = document.createElement('option');
+    option.value = story.id;
+    option.textContent = `${story.id}: ${story.title}`;
+    storyRootSelect.appendChild(option);
+  });
+
+  // Show/hide root selector based on radio selection
+  storyFilterRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      storyRootSelect.style.display = e.target.value === 'selected' ? 'block' : 'none';
+    });
+  });
 
   // Load available templates
   async function loadTemplates() {
@@ -6911,10 +6949,37 @@ function openDocumentPanel() {
       return;
     }
 
+    // Get selected story filter
+    const filterType = templateSection.querySelector('input[name="story-filter"]:checked').value;
+    let filteredStories = state.stories;
+    
+    if (filterType === 'roots') {
+      filteredStories = state.stories.filter(s => !s.parentId);
+    } else if (filterType === 'selected') {
+      const selectedRootId = parseInt(storyRootSelect.value);
+      if (!selectedRootId) {
+        showToast('Please select a root story', 'error');
+        return;
+      }
+      const rootStory = state.stories.find(s => s.id === selectedRootId);
+      if (rootStory) {
+        filteredStories = [rootStory];
+        // Add all descendants
+        const addDescendants = (parentId) => {
+          const children = state.stories.filter(s => s.parentId === parentId);
+          children.forEach(child => {
+            filteredStories.push(child);
+            addDescendants(child.id);
+          });
+        };
+        addDescendants(selectedRootId);
+      }
+    }
+
     generateDocBtn.disabled = true;
     resultWrapper.classList.remove('hidden');
     resultTitle.textContent = 'Generating Document...';
-    resultMeta.textContent = 'Processing...';
+    resultMeta.textContent = `Processing ${filteredStories.length} stories...`;
     resultOutput.textContent = '';
     copyBtn.disabled = true;
 
@@ -6929,7 +6994,7 @@ function openDocumentPanel() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          stories: state.stories,
+          stories: filteredStories,
           acceptanceTests: state.stories.flatMap(s => s.acceptanceTests || []),
           template: templateContent,
           documentType: selectedTemplate.replace(/-/g, ' ').replace('.md', '')
