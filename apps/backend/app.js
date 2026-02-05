@@ -8128,23 +8128,42 @@ export async function createApp() {
     }
 
     // Upload template
+    if (pathname === '/api/templates/upload' && method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400'
+      });
+      res.end();
+      return;
+    }
+
     if (pathname === '/api/templates/upload' && method === 'POST') {
       try {
+        console.log('📤 Template upload request received');
+        console.log('Headers:', req.headers);
+        
         const busboy = (await import('busboy')).default;
         const { createWriteStream } = await import('fs');
         const bb = busboy({ headers: req.headers });
         let savedFile = null;
         let uploadError = null;
+        let fileReceived = false;
 
         bb.on('file', (name, file, info) => {
+          fileReceived = true;
+          console.log('📁 File received:', info.filename);
           const { filename } = info;
           if (!filename.endsWith('.md') && !filename.endsWith('.markdown')) {
+            console.log('❌ Invalid file type:', filename);
             file.resume();
             return;
           }
 
           const safeName = filename.replace(/[^a-z0-9.-]/gi, '-').toLowerCase();
           const savePath = path.join(TEMPLATES_DIR, safeName);
+          console.log('💾 Saving to:', savePath);
           
           try {
             const writeStream = createWriteStream(savePath);
@@ -8157,6 +8176,7 @@ export async function createApp() {
             
             writeStream.on('finish', () => {
               savedFile = safeName;
+              console.log('✅ File saved:', safeName);
             });
           } catch (err) {
             uploadError = err;
@@ -8170,12 +8190,25 @@ export async function createApp() {
         });
 
         bb.on('finish', () => {
+          console.log('🏁 Busboy finished. File received:', fileReceived, 'Saved:', savedFile);
           if (uploadError) {
-            sendJson(res, 500, { message: 'Upload failed: ' + uploadError.message });
+            res.writeHead(500, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ message: 'Upload failed: ' + uploadError.message }));
           } else if (savedFile) {
-            sendJson(res, 200, { message: 'Template uploaded', filename: savedFile });
+            res.writeHead(200, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ message: 'Template uploaded', filename: savedFile }));
           } else {
-            sendJson(res, 400, { message: 'No valid template file uploaded' });
+            res.writeHead(400, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ message: 'No valid template file uploaded' }));
           }
         });
 
