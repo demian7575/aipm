@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -731,6 +732,17 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', async () => {
+    try {
+      const stories = await fetchStories();
+      showStoriesModal(stories);
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
   });
 }
 
@@ -5704,6 +5716,21 @@ function showToast(message, type = 'info') {
   // Duration: 5 seconds minimum, +50ms per character, max 10 seconds
   const duration = Math.max(5000, Math.min(message.length * 50, 10000));
   toastTimeout = setTimeout(() => toastEl.classList.remove('show'), duration);
+}
+
+/**
+ * Show modal with list of all story titles
+ * @param {Array} stories - Array of story objects
+ */
+function showStoriesModal(stories) {
+  modalTitle.textContent = 'All Stories';
+  modalBody.innerHTML = `
+    <ul style="list-style: none; padding: 0; margin: 0;">
+      ${stories.map(s => `<li style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${s.title}</li>`).join('')}
+    </ul>
+  `;
+  modalFooter.innerHTML = '<button class="secondary" onclick="closeModal()">Close</button>';
+  modal.style.display = 'flex';
 }
 
 // Common SSE handler with toast notifications
