@@ -140,7 +140,7 @@ else
       curl -s -X POST "$API_BASE/api/acceptance-tests" \
         -H 'Content-Type: application/json' \
         -d "{
-          \"story_id\": $STORY_ID,
+          \"storyId\": $STORY_ID,
           \"title\": \"$TEST_TITLE\",
           \"given\": \"$GIVEN\",
           \"when\": \"$WHEN\",
