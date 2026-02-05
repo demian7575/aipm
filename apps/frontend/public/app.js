@@ -7583,6 +7583,56 @@ function openFilterModal() {
   });
 }
 
+/**
+ * Opens a modal displaying all story titles in a simple list
+ */
+async function openStoryListModal() {
+  try {
+    const url = resolveApiUrl('/api/stories');
+    const response = await fetch(url, { cache: 'no-store' });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch stories: ${response.status}`);
+    }
+    
+    const stories = await response.json();
+    
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '0.5rem';
+    
+    if (!stories || stories.length === 0) {
+      container.innerHTML = '<p>No stories found.</p>';
+    } else {
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      stories.forEach(story => {
+        const item = document.createElement('li');
+        item.style.padding = '0.5rem';
+        item.style.borderBottom = '1px solid #eee';
+        item.textContent = story.title || `Story #${story.id}`;
+        list.appendChild(item);
+      });
+      
+      container.appendChild(list);
+    }
+    
+    openModal({
+      title: 'All Stories',
+      content: container,
+      actions: [],
+      size: 'medium'
+    });
+  } catch (error) {
+    console.error('Failed to load stories:', error);
+    throw error;
+  }
+}
+
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
   container.style.display = 'flex';
