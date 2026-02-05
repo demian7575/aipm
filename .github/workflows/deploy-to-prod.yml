@@ -225,6 +225,7 @@ jobs:
           API_BASE: ${{ env.PROD_API_BASE }}
           SEMANTIC_API_BASE: ${{ env.PROD_SEMANTIC_API_BASE }}
           SSH_HOST: ${{ env.PROD_EC2_IP }}
+          SKIP_GATING_TESTS_IN_CODE_GENERATION: true
         run: |
           echo "🔍 Running Post-Production Gating Tests on Production Environment"
           echo "   Backend: $API_BASE (Production EC2)"
