@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -738,6 +739,20 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', async () => {
+    try {
+      const stories = await fetch(resolveApiUrl('/api/stories')).then(r => r.json());
+      const content = document.createElement('div');
+      content.innerHTML = `<ul>${stories.map(s => `<li>${s.title}</li>`).join('')}</ul>`;
+      openModal({ title: 'All Stories', content, cancelLabel: 'Close' });
+    } catch (error) {
+      console.error('Failed to load stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
   });
 }
 
