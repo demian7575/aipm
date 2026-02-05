@@ -45,6 +45,8 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewStoriesBtn = document.getElementById('view-stories-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -738,6 +740,30 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', async () => {
+    try {
+      const stories = await fetchStories();
+      openStoryListModal(stories);
+    } catch (error) {
+      console.error('Failed to fetch stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const stories = await fetchStories();
+      openStoryListModal(stories);
+    } catch (error) {
+      console.error('Failed to fetch stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
   });
 }
 
@@ -7897,6 +7923,46 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+/**
+ * Opens a modal displaying all story titles
+ * @param {Array} stories - Array of story objects
+ */
+function openStoryListModal(stories) {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+
+  if (!stories || stories.length === 0) {
+    const emptyMsg = document.createElement('p');
+    emptyMsg.textContent = 'No stories available';
+    emptyMsg.style.textAlign = 'center';
+    emptyMsg.style.color = '#666';
+    container.appendChild(emptyMsg);
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '0.5rem';
+      item.style.borderBottom = '1px solid #eee';
+      item.textContent = story.title || 'Untitled Story';
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+
+  openModal({
+    title: 'All Stories',
+    content: container,
+    cancelLabel: 'Close'
   });
 }
 
