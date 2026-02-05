@@ -6894,7 +6894,7 @@ function openDocumentPanel() {
         <input type="radio" name="story-filter" value="selected" style="margin: 0 0.25rem 0 0; width: auto;" />
         Selected Story and Its Children
       </label>
-      <select id="story-select" style="width: 100%; padding: 0.5rem; margin-left: 1.5rem; margin-bottom: 0.5rem;">
+      <select id="story-select" style="width: calc(100% - 1.5rem); padding: 0.5rem; margin-left: 1.5rem; margin-bottom: 0.5rem;">
         <option value="">-- Select a story --</option>
       </select>
     </div>
