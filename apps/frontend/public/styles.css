@@ -2754,3 +2754,13 @@ dialog[data-size='content'] .modal-shell {
 .rtm-row-indent-3 {
   padding-left: 6rem;
 }
+
+.rtm-expand-icon {
+  font-size: 0.8rem;
+  color: #64748b;
+  transition: transform 0.2s;
+}
+
+.rtm-expand-icon:hover {
+  color: #1e293b;
+}

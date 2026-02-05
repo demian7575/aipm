@@ -8408,26 +8408,10 @@ export async function createApp() {
     // RTM APIs
     if (pathname === '/api/rtm/matrix' && method === 'GET') {
       try {
-        const url = new URL(req.url, `http://${req.headers.host}`);
-        const rootId = url.searchParams.get('rootId');
-        
         const stories = await db.getAllStories();
         
-        // Filter by root if specified
-        let filteredStories = stories;
-        if (rootId) {
-          const rootStory = stories.find(s => s.id === parseInt(rootId));
-          if (rootStory) {
-            const descendants = getAllDescendants(stories, parseInt(rootId));
-            filteredStories = [rootStory, ...descendants];
-          }
-        } else {
-          // Show only root stories (no parentId)
-          filteredStories = stories.filter(s => !s.parentId);
-        }
-        
-        // Compute coverage for each story
-        const matrixData = await Promise.all(filteredStories.map(async (story) => {
+        // Compute coverage for each story (return ALL stories for hierarchy)
+        const matrixData = await Promise.all(stories.map(async (story) => {
           const children = stories.filter(s => s.parentId === story.id);
           const latestTestRun = await db.getLatestTestRunByStoryId(story.id);
           

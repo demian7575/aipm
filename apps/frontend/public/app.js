@@ -3749,11 +3749,11 @@ async function updateStoryStatus(storyId, newStatus) {
 // RTM (Requirement Traceability Matrix) Functions
 let rtmData = [];
 let rtmFilters = { search: '', gapsOnly: false, rootId: null };
+let rtmExpandedStories = new Set();
 
 async function renderRTM() {
   try {
-    const rootId = rtmFilters.rootId || '';
-    const url = resolveApiUrl(`/api/rtm/matrix${rootId ? `?rootId=${rootId}` : ''}`);
+    const url = resolveApiUrl('/api/rtm/matrix');
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to load RTM data');
     
@@ -3765,16 +3765,44 @@ async function renderRTM() {
   }
 }
 
+function buildRTMHierarchy(stories) {
+  const storyMap = new Map(stories.map(s => [s.id, { ...s, children: [] }]));
+  const roots = [];
+  
+  stories.forEach(story => {
+    const node = storyMap.get(story.id);
+    if (story.parentId && storyMap.has(story.parentId)) {
+      storyMap.get(story.parentId).children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+  
+  return roots;
+}
+
+function flattenRTMHierarchy(nodes, level = 0, result = []) {
+  nodes.forEach(node => {
+    result.push({ ...node, level });
+    if (rtmExpandedStories.has(node.id) && node.children.length > 0) {
+      flattenRTMHierarchy(node.children, level + 1, result);
+    }
+  });
+  return result;
+}
+
 function updateRTMTable() {
   const tbody = document.getElementById('rtm-matrix-body');
   if (!tbody) return;
   
-  let filtered = rtmData;
+  // Build hierarchy
+  const hierarchy = buildRTMHierarchy(rtmData);
+  let flatList = flattenRTMHierarchy(hierarchy);
   
   // Apply search filter
   if (rtmFilters.search) {
     const search = rtmFilters.search.toLowerCase();
-    filtered = filtered.filter(row => 
+    flatList = flatList.filter(row => 
       row.id.toString().includes(search) || 
       row.title.toLowerCase().includes(search)
     );
@@ -3782,15 +3810,17 @@ function updateRTMTable() {
   
   // Apply gaps filter
   if (rtmFilters.gapsOnly) {
-    filtered = filtered.filter(row => 
+    flatList = flatList.filter(row => 
       row.coverage.stories === 0 || row.coverage.acceptanceTests === 0
     );
   }
   
   tbody.innerHTML = '';
   
-  filtered.forEach(row => {
+  flatList.forEach(row => {
     const tr = document.createElement('tr');
+    tr.dataset.storyId = row.id;
+    tr.dataset.level = row.level;
     
     // ID column
     const tdId = document.createElement('td');
@@ -3798,10 +3828,40 @@ function updateRTMTable() {
     tdId.className = 'rtm-col-id';
     tr.appendChild(tdId);
     
-    // Title column
+    // Title column with expand/collapse
     const tdTitle = document.createElement('td');
-    tdTitle.textContent = row.title;
     tdTitle.className = 'rtm-col-title';
+    
+    const titleContainer = document.createElement('div');
+    titleContainer.style.display = 'flex';
+    titleContainer.style.alignItems = 'center';
+    titleContainer.style.paddingLeft = `${row.level * 1.5}rem`;
+    
+    // Add expand/collapse icon if has children
+    if (row.children && row.children.length > 0) {
+      const expandIcon = document.createElement('span');
+      expandIcon.className = 'rtm-expand-icon';
+      expandIcon.textContent = rtmExpandedStories.has(row.id) ? '▼' : '▶';
+      expandIcon.style.cursor = 'pointer';
+      expandIcon.style.marginRight = '0.5rem';
+      expandIcon.style.userSelect = 'none';
+      expandIcon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleRTMExpand(row.id);
+      });
+      titleContainer.appendChild(expandIcon);
+    } else {
+      const spacer = document.createElement('span');
+      spacer.style.width = '1.5rem';
+      spacer.style.display = 'inline-block';
+      titleContainer.appendChild(spacer);
+    }
+    
+    const titleText = document.createElement('span');
+    titleText.textContent = row.title;
+    titleContainer.appendChild(titleText);
+    
+    tdTitle.appendChild(titleContainer);
     tr.appendChild(tdTitle);
     
     // Coverage columns
@@ -3842,6 +3902,15 @@ function updateRTMTable() {
     
     tbody.appendChild(tr);
   });
+}
+
+function toggleRTMExpand(storyId) {
+  if (rtmExpandedStories.has(storyId)) {
+    rtmExpandedStories.delete(storyId);
+  } else {
+    rtmExpandedStories.add(storyId);
+  }
+  updateRTMTable();
 }
 
 async function openRTMDrawer(storyId, type) {
