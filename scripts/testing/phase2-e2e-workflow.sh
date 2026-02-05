@@ -436,13 +436,15 @@ phase2_step7_generate_code() {
     # Get full story data
     local story_data=$(curl -s $USE_DEV_TABLES_HEADER "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
-    # Build JSON payload properly using jq
+    # Build JSON payload - pass through SKIP_GATING_TESTS_IN_CODE_GENERATION
+    local skip_gating=${SKIP_GATING_TESTS_IN_CODE_GENERATION:-false}
     local payload=$(jq -n \
         --arg rid "$request_id" \
         --argjson story "$story_data" \
         --arg branch "$PHASE2_BRANCH_NAME" \
         --argjson pr "$PHASE2_PR_NUMBER" \
-        '{requestId: $rid, story: $story, branchName: $branch, prNumber: $pr, skipGatingTests: true}')
+        --argjson skip "$skip_gating" \
+        '{requestId: $rid, story: $story, branchName: $branch, prNumber: $pr, skipGatingTests: $skip}')
     
     response=$(timeout 600 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/code-generation?stream=true" \
         -H 'Content-Type: application/json' \

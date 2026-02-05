@@ -188,7 +188,7 @@ jobs:
           API_BASE: ${{ env.DEV_API_BASE }}
           SEMANTIC_API_BASE: ${{ env.DEV_SEMANTIC_API_BASE }}
           SSH_HOST: ${{ env.DEV_EC2_IP }}
-          SKIP_GATING_TESTS: true
+          SKIP_GATING_TESTS_IN_CODE_GENERATION: true
         run: |
           echo "🧪 Running Gating Tests on Development Environment"
           echo "   Backend: $API_BASE"
