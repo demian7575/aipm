@@ -169,60 +169,6 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: error.message }));
     }
   });
-
-  // Document Generation (unified endpoint)
-  server.on('request', async (req, res) => {
-    if (req.url === '/generate-document' && req.method === 'POST') {
-      try {
-        let body = '';
-        req.on('data', chunk => { body += chunk; });
-        req.on('end', async () => {
-          const { stories, acceptanceTests, template, documentType } = JSON.parse(body);
-          
-          // Load the Semantic API template
-          const templatePath = join(TEMPLATES_DIR, 'POST-aipm-document-generation.md');
-          let promptTemplate = '';
-          try {
-            promptTemplate = await readFile(templatePath, 'utf8');
-          } catch (err) {
-            console.error('Failed to load document generation template:', err);
-          }
-
-          // Replace placeholders in the template
-          const prompt = promptTemplate
-            .replace('{{documentType}}', documentType || 'General Document')
-            .replace('{{template}}', template || 'No template provided')
-            .replace('{{stories}}', JSON.stringify(stories, null, 2))
-            .replace('{{acceptanceTests}}', JSON.stringify(acceptanceTests || [], null, 2));
-
-          const requestId = crypto.randomUUID();
-          
-          res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
-          });
-
-          pendingRequests.set(requestId, { res, type: 'document-generation' });
-
-          fetch(`${SESSION_POOL_URL}/execute`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, requestId })
-          }).catch(err => {
-            console.error('Error:', err);
-            res.write(`data: ${JSON.stringify({ status: 'error', message: err.message })}\n\n`);
-            res.end();
-            pendingRequests.delete(requestId);
-          });
-        });
-      } catch (error) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message }));
-      }
-      return;
-    }
-  });
 });
 
 server.listen(PORT, () => {
