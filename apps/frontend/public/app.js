@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -6844,6 +6845,40 @@ function openHealthIssueModal(title, issue, context = null) {
   openModal({ title, content: container, cancelLabel: 'Close' });
 }
 
+/**
+ * Open modal showing list of all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  const allStories = getAllStoriesFlat(state.stories);
+  
+  if (allStories.length === 0) {
+    const emptyMsg = document.createElement('p');
+    emptyMsg.className = 'empty-state';
+    emptyMsg.textContent = 'No stories are available.';
+    container.appendChild(emptyMsg);
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '0.5rem';
+      item.style.borderBottom = '1px solid #e2e8f0';
+      item.textContent = story.title;
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({ title: 'Story List', content: container, cancelLabel: 'Close' });
+}
+
 function openDocumentPanel() {
   const container = document.createElement('div');
   container.className = 'document-panel';
@@ -8461,6 +8496,10 @@ function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {
