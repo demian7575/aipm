@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -6132,6 +6133,40 @@ function openModal({
   modal.style.display = 'flex';
 }
 
+/**
+ * Show modal with list of all story titles
+ */
+function showStoriesModal() {
+  const content = document.createElement('div');
+  content.style.maxHeight = '400px';
+  content.style.overflowY = 'auto';
+  
+  if (!state.stories || state.stories.length === 0) {
+    content.innerHTML = '<p>No stories available</p>';
+  } else {
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.padding = '0';
+    ul.style.margin = '0';
+    
+    state.stories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '8px';
+      li.style.borderBottom = '1px solid #eee';
+      li.textContent = story.title || `Story ${story.id}`;
+      ul.appendChild(li);
+    });
+    
+    content.appendChild(ul);
+  }
+  
+  openModal({
+    title: 'All Stories',
+    content,
+    cancelLabel: 'Close'
+  });
+}
+
 // Automatic PR creation function
 async function createAutomaticPR(story) {
   if (!story) return;
@@ -8406,6 +8441,10 @@ function initialize() {
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
+  });
+
+  viewStoriesBtn?.addEventListener('click', () => {
+    showStoriesModal();
   });
 
   generateDocBtn?.addEventListener('click', () => {
