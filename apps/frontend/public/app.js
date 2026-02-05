@@ -6629,11 +6629,15 @@ function openDocumentPanel() {
     <select id="template-select" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem;">
       <option value="">-- Select a template --</option>
     </select>
-    <button type="button" class="secondary" id="upload-template-btn">Upload New Template</button>
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+      <button type="button" class="primary" id="generate-doc-btn" disabled>Generate Document</button>
+      <button type="button" class="secondary" id="upload-template-btn">Upload New Template</button>
+    </div>
   `;
   container.appendChild(templateSection);
 
   const templateSelect = templateSection.querySelector('#template-select');
+  const generateDocBtn = templateSection.querySelector('#generate-doc-btn');
   const uploadTemplateBtn = templateSection.querySelector('#upload-template-btn');
 
   // Load available templates
@@ -6656,6 +6660,108 @@ function openDocumentPanel() {
   }
 
   loadTemplates();
+
+  // Enable/disable generate button based on template selection
+  templateSelect.addEventListener('change', () => {
+    generateDocBtn.disabled = !templateSelect.value || state.stories.length === 0;
+  });
+
+  // Generate document handler
+  generateDocBtn.addEventListener('click', async () => {
+    const selectedTemplate = templateSelect.value;
+    if (!selectedTemplate || state.stories.length === 0) {
+      showToast('Please select a template and ensure stories are loaded', 'error');
+      return;
+    }
+
+    generateDocBtn.disabled = true;
+    resultWrapper.classList.remove('hidden');
+    resultTitle.textContent = 'Generating Document...';
+    resultMeta.textContent = 'Processing...';
+    resultOutput.textContent = '';
+    copyBtn.disabled = true;
+
+    try {
+      // Load the selected template content
+      const templateResponse = await fetch(resolveApiUrl(`/api/templates/${selectedTemplate}`));
+      const templateContent = await templateResponse.text();
+
+      // Call Semantic API to generate document
+      const semanticApiUrl = resolveApiUrl('/semantic-api/generate-document').replace(':4000', ':8083');
+      const response = await fetch(semanticApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stories: state.stories,
+          acceptanceTests: state.stories.flatMap(s => s.acceptanceTests || []),
+          template: templateContent,
+          documentType: selectedTemplate.replace(/-/g, ' ').replace('.md', '')
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate document: ${response.status}`);
+      }
+
+      // Handle SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.status === 'complete' && data.content) {
+                fullContent = data.content;
+              } else if (data.status === 'error') {
+                throw new Error(data.message || 'Generation failed');
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
+            }
+          }
+        }
+      }
+
+      if (fullContent) {
+        resultTitle.textContent = selectedTemplate.replace(/-/g, ' ').replace('.md', '');
+        resultMeta.textContent = `Generated via Semantic API • ${new Date().toLocaleString()}`;
+        resultOutput.textContent = fullContent;
+        copyBtn.disabled = false;
+
+        // Trigger download
+        const blob = new Blob([fullContent], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = selectedTemplate;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+
+        showToast('Document generated and downloaded', 'success');
+      } else {
+        throw new Error('No content received from Semantic API');
+      }
+    } catch (error) {
+      console.error('Document generation failed:', error);
+      resultMeta.textContent = error.message || 'Failed to generate document';
+      resultOutput.textContent = '';
+      copyBtn.disabled = true;
+      showToast(error.message || 'Failed to generate document', 'error');
+    } finally {
+      generateDocBtn.disabled = false;
+    }
+  });
 
   // Upload template handler
   uploadTemplateBtn.addEventListener('click', async () => {
@@ -6717,165 +6823,6 @@ function openDocumentPanel() {
   resultWrapper.appendChild(resultOutput);
 
   container.appendChild(resultWrapper);
-
-  const buttons = [
-    {
-      label: 'Common Test Document template',
-      type: 'common-test-document',
-      description:
-        'Apply the Common Test Document template to consolidate Given/When/Then scenarios by component.',
-      title: 'Common Test Document',
-    },
-    {
-      label: 'Common Requirement Specification template',
-      type: 'common-requirement-specification',
-      description:
-        'Use the Common Requirement Specification template to summarize story goals, scope, and readiness.',
-      title: 'Common Requirement Specification',
-    },
-  ];
-
-  function setButtonsDisabled(disabled) {
-    const hasStories = state.stories.length > 0;
-    buttons.forEach((entry) => {
-      if (entry.button) {
-        entry.button.disabled = disabled || !hasStories;
-      }
-    });
-  }
-
-  function parseFilename(headerValue, fallback) {
-    if (!headerValue) {
-      return fallback;
-    }
-    const starMatch = headerValue.match(/filename\*=UTF-8''([^;]+)/i);
-    if (starMatch && starMatch[1]) {
-      try {
-        return decodeURIComponent(starMatch[1].trim());
-      } catch {
-        return starMatch[1].trim();
-      }
-    }
-    const match = headerValue.match(/filename="?([^";]+)"?/i);
-    if (match && match[1]) {
-      return match[1].trim();
-    }
-    return fallback;
-  }
-
-  function slugifyTitle(title) {
-    return (title || 'document')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .replace(/-{2,}/g, '-')
-      .replace(/^-+|-+$/g, '') || 'document';
-  }
-
-  function triggerDownload(markdown, filename, mimeType) {
-    const blob = new Blob([markdown], { type: mimeType || 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-  }
-
-  async function handleGenerate(entry) {
-    if (!state.stories.length) {
-      showToast('Add user stories before generating documents.', 'error');
-      return;
-    }
-    setButtonsDisabled(true);
-    resultWrapper.classList.remove('hidden');
-    resultTitle.textContent = entry.title;
-    resultMeta.textContent = 'Generating document…';
-    resultOutput.textContent = '';
-    copyBtn.disabled = true;
-    try {
-      const response = await fetch(resolveApiUrl('/api/documents/generate'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: entry.type }),
-      });
-      const text = await response.text();
-      if (!response.ok) {
-        let message = 'Failed to generate document';
-        if (text) {
-          try {
-            const data = JSON.parse(text);
-            if (data && typeof data === 'object' && data.message) {
-              message = data.message;
-            } else {
-              message = text;
-            }
-          } catch {
-            message = text;
-          }
-        }
-        const error = new Error(message);
-        error.status = response.status;
-        throw error;
-      }
-
-      const encodedTitle = response.headers.get('X-Document-Title');
-      const resolvedTitle = encodedTitle ? decodeURIComponent(encodedTitle) : entry.title;
-      resultTitle.textContent = resolvedTitle || entry.title;
-
-      const source = response.headers.get('X-Document-Source') || 'unknown';
-      const generatedHeader = response.headers.get('X-Generated-At');
-      const generatedDate = generatedHeader ? new Date(generatedHeader) : new Date();
-      const sourceLabel =
-        source === 'openai'
-          ? 'Generated via ChatGPT'
-          : source === 'fallback'
-          ? 'Generated via fallback formatter'
-          : 'Generated via baseline formatter';
-      resultMeta.textContent = `${sourceLabel} • ${generatedDate.toLocaleString()}`;
-
-      resultOutput.textContent = text;
-      copyBtn.disabled = !text;
-
-      const defaultName = `${slugifyTitle(resolvedTitle || entry.title)}.md`;
-      const filename = parseFilename(response.headers.get('Content-Disposition'), defaultName);
-      triggerDownload(text, filename, response.headers.get('Content-Type') || 'text/markdown');
-
-      if (source === 'openai') {
-        showToast('Document generated with ChatGPT and downloaded.', 'success');
-      } else {
-        showToast('Document generated with fallback formatter and downloaded.', 'warning');
-      }
-    } catch (error) {
-      console.error('Document generation failed', error);
-      resultMeta.textContent = error.message || 'Failed to generate document';
-      resultOutput.textContent = '';
-      copyBtn.disabled = true;
-      showToast(error.message || 'Failed to generate document', 'error');
-    } finally {
-      setButtonsDisabled(false);
-    }
-  }
-
-  buttons.forEach((entry) => {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'document-action';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = entry.label;
-    button.disabled = state.stories.length === 0;
-    button.addEventListener('click', () => handleGenerate(entry));
-    entry.button = button;
-    wrapper.appendChild(button);
-    if (entry.description) {
-      const desc = document.createElement('p');
-      desc.textContent = entry.description;
-      wrapper.appendChild(desc);
-    }
-    actions.appendChild(wrapper);
-  });
 
   copyBtn.addEventListener('click', async () => {
     try {

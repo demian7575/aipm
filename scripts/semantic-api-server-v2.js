@@ -8,7 +8,7 @@ import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const TEMPLATES_DIR = join(__dirname, '..', 'templates');
+const TEMPLATES_DIR = join(__dirname, '..', 'semantic-api', 'templates');
 const PORT = process.env.SEMANTIC_API_PORT || 8083;
 const SESSION_POOL_URL = process.env.SESSION_POOL_URL || 'http://localhost:8082';
 
@@ -170,30 +170,30 @@ const server = http.createServer(async (req, res) => {
     }
   });
 
-  // Requirement Specification Document Generation
+  // Document Generation (unified endpoint)
   server.on('request', async (req, res) => {
-    if (req.url === '/generate-requirement-spec' && req.method === 'POST') {
+    if (req.url === '/generate-document' && req.method === 'POST') {
       try {
         let body = '';
         req.on('data', chunk => { body += chunk; });
         req.on('end', async () => {
-          const { stories, template } = JSON.parse(body);
+          const { stories, acceptanceTests, template, documentType } = JSON.parse(body);
           
-          const prompt = `Generate a comprehensive Requirement Specification Document based on the following user stories:
+          // Load the Semantic API template
+          const templatePath = join(TEMPLATES_DIR, 'POST-aipm-document-generation.md');
+          let promptTemplate = '';
+          try {
+            promptTemplate = await readFile(templatePath, 'utf8');
+          } catch (err) {
+            console.error('Failed to load document generation template:', err);
+          }
 
-${JSON.stringify(stories, null, 2)}
-
-${template ? `Use this template structure:\n${template}` : ''}
-
-Include:
-1. Introduction and scope
-2. Functional requirements with acceptance criteria
-3. Non-functional requirements
-4. System architecture overview
-5. Data requirements
-6. Interface requirements
-
-Format the output as a well-structured markdown document.`;
+          // Replace placeholders in the template
+          const prompt = promptTemplate
+            .replace('{{documentType}}', documentType || 'General Document')
+            .replace('{{template}}', template || 'No template provided')
+            .replace('{{stories}}', JSON.stringify(stories, null, 2))
+            .replace('{{acceptanceTests}}', JSON.stringify(acceptanceTests || [], null, 2));
 
           const requestId = crypto.randomUUID();
           
@@ -203,65 +203,7 @@ Format the output as a well-structured markdown document.`;
             'Connection': 'keep-alive'
           });
 
-          pendingRequests.set(requestId, { res, type: 'requirement-spec' });
-
-          fetch(`${SESSION_POOL_URL}/execute`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, requestId })
-          }).catch(err => {
-            console.error('Error:', err);
-            res.write(`data: ${JSON.stringify({ status: 'error', message: err.message })}\n\n`);
-            res.end();
-            pendingRequests.delete(requestId);
-          });
-        });
-      } catch (error) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message }));
-      }
-      return;
-    }
-  });
-
-  // Test Document Generation
-  server.on('request', async (req, res) => {
-    if (req.url === '/generate-test-document' && req.method === 'POST') {
-      try {
-        let body = '';
-        req.on('data', chunk => { body += chunk; });
-        req.on('end', async () => {
-          const { stories, acceptanceTests, template } = JSON.parse(body);
-          
-          const prompt = `Generate a comprehensive Test Document based on the following:
-
-User Stories:
-${JSON.stringify(stories, null, 2)}
-
-Acceptance Tests:
-${JSON.stringify(acceptanceTests, null, 2)}
-
-${template ? `Use this template structure:\n${template}` : ''}
-
-Include:
-1. Test overview and objectives
-2. Test strategy and approach
-3. Test environment setup
-4. Detailed test cases with Given/When/Then scenarios
-5. Test execution schedule
-6. Test metrics and coverage
-
-Format the output as a well-structured markdown document.`;
-
-          const requestId = crypto.randomUUID();
-          
-          res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
-          });
-
-          pendingRequests.set(requestId, { res, type: 'test-document' });
+          pendingRequests.set(requestId, { res, type: 'document-generation' });
 
           fetch(`${SESSION_POOL_URL}/execute`, {
             method: 'POST',

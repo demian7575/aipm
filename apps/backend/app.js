@@ -50,7 +50,7 @@ import CONFIG from './config.js';
 
 async function loadTemplate(templateName) {
   try {
-    const templatePath = path.join(__dirname, '../../templates', `${templateName}.md`);
+    const templatePath = path.join(__dirname, '../../semantic-api/templates', `${templateName}.md`);
     return await readFile(templatePath, 'utf8');
   } catch (error) {
     console.error(`Failed to load template ${templateName}:`, error);
@@ -8104,6 +8104,25 @@ export async function createApp() {
       } catch (error) {
         console.error('Failed to list templates:', error);
         sendJson(res, 500, { message: 'Failed to list templates' });
+      }
+      return;
+    }
+
+    // Get specific template content
+    const templateMatch = pathname.match(/^\/api\/templates\/(.+)$/);
+    if (templateMatch && method === 'GET') {
+      try {
+        const templateName = decodeURIComponent(templateMatch[1]);
+        const templatePath = path.join(TEMPLATES_DIR, templateName);
+        const content = await readFile(templatePath, 'utf8');
+        res.writeHead(200, {
+          'Content-Type': 'text/markdown',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(content);
+      } catch (error) {
+        console.error('Failed to read template:', error);
+        sendJson(res, 404, { message: 'Template not found' });
       }
       return;
     }
