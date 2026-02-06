@@ -5742,12 +5742,8 @@ export async function createApp() {
         const { setRequestContext } = await import('./dynamodb.js');
         setRequestContext({
           storiesTable: 'aipm-backend-dev-stories',
-          acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
-          testRunsTable: 'aipm-backend-dev-test-runs'
+          acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests'
         });
-      } else {
-        const { clearRequestContext } = await import('./dynamodb.js');
-        clearRequestContext();
       }
 
       if (method === 'DELETE' && pathname.includes('/api/stories/')) {
