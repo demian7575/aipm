@@ -22,7 +22,9 @@ export function clearRequestContext() {
 }
 
 function getStoriesTable() {
-  return requestContext?.storiesTable ?? DEFAULT_STORIES_TABLE;
+  const table = requestContext?.storiesTable ?? DEFAULT_STORIES_TABLE;
+  console.log('DynamoDB: getStoriesTable() ->', table, 'context:', requestContext);
+  return table;
 }
 
 function getAcceptanceTestsTable() {
