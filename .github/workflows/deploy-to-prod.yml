@@ -229,7 +229,7 @@ jobs:
         run: |
           echo "🔍 Running Post-Production Gating Tests on Production Environment"
           echo "   Backend: $API_BASE (Production EC2)"
-          echo "   Database: Development DynamoDB (temporary override)"
+          echo "   Database: Development DynamoDB (via X-Use-Dev-Tables header)"
           export PHASE="post-production"
           
           # Wait for deployment to be ready
@@ -254,33 +254,13 @@ jobs:
             exit 1
           fi
           
-          # Temporarily configure backend to use dev tables for gating tests
-          echo "🔧 Configuring backend to use dev tables..."
-          ssh -o StrictHostKeyChecking=no ec2-user@${{ env.PROD_EC2_IP }} << 'EOF'
-            sudo sed -i 's/aipm-backend-prod-stories/aipm-backend-dev-stories/g; s/aipm-backend-prod-acceptance-tests/aipm-backend-dev-acceptance-tests/g; s/aipm-backend-prod-test-runs/aipm-backend-dev-test-runs/g' /etc/systemd/system/aipm-backend.service
-            sudo systemctl daemon-reload
-            sudo systemctl restart aipm-backend
-            sleep 5
-          EOF
-          
           # Run gating tests with Production backend + Development DynamoDB
           if ./scripts/testing/run-structured-gating-tests.sh --phases "1,2"; then
             echo "✅ Post-Production validation passed"
-            TEST_RESULT=0
           else
             echo "❌ Post-Production validation failed"
-            TEST_RESULT=1
+            exit 1
           fi
-          
-          # Restore backend to use prod tables
-          echo "🔧 Restoring backend to use prod tables..."
-          ssh -o StrictHostKeyChecking=no ec2-user@${{ env.PROD_EC2_IP }} << 'EOF'
-            sudo sed -i 's/aipm-backend-dev-stories/aipm-backend-prod-stories/g; s/aipm-backend-dev-acceptance-tests/aipm-backend-prod-acceptance-tests/g; s/aipm-backend-dev-test-runs/aipm-backend-prod-test-runs/g' /etc/systemd/system/aipm-backend.service
-            sudo systemctl daemon-reload
-            sudo systemctl restart aipm-backend
-          EOF
-          
-          exit $TEST_RESULT
       
       - name: Create deployment summary
         if: always()
