@@ -9,22 +9,22 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/test-library.sh"
 
 # Load environment config from single source of truth
-# Phase 2 uses prod EC2 but dev DynamoDB via X-Use-Dev-Tables header
-source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+# Phase 2 uses dev environment for data isolation
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" dev
 
 # Can be overridden for post-deployment tests
 API_BASE="${API_BASE:-$API_BASE}"
 SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-$SEMANTIC_API_BASE}"
 
-# Use dev tables via header for data isolation
-USE_DEV_TABLES_HEADER="-H 'X-Use-Dev-Tables: true'"
+# X-Use-Dev-Tables header not implemented - tests run on dev EC2 instead
+USE_DEV_TABLES_HEADER=""
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Testing full user journey via UI button clicks"
-echo "Backend: $API_BASE (Production EC2)"
-echo "Database: Development DynamoDB (via X-Use-Dev-Tables header)"
+echo "Backend: $API_BASE"
+echo "Database: Development DynamoDB (data isolation)"
 echo ""
 
 # Global variables for story tracking

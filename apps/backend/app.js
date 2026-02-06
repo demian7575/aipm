@@ -5731,21 +5731,20 @@ export async function createApp() {
   const db = await ensureDatabase();
 
   const server = createServer(async (req, res) => {
-    // Check for test environment header to use Development tables
-    const useDevTables = req.headers['x-use-dev-tables'] === 'true';
-    const context = useDevTables ? {
-      storiesTable: 'aipm-backend-dev-stories',
-      acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
-      testRunsTable: 'aipm-backend-dev-test-runs'
-    } : null;
+    try {
+      const url = new URL(req.url, 'http://localhost');
+      const pathname = url.pathname;
+      const method = req.method ?? 'GET';
 
-    // Run request handler within async context
-    const { runWithContext } = await import('./dynamodb.js');
-    await runWithContext(context, async () => {
-      try {
-        const url = new URL(req.url, 'http://localhost');
-        const pathname = url.pathname;
-        const method = req.method ?? 'GET';
+      // Check for test environment header to use Development tables
+      const useDevTables = req.headers['x-use-dev-tables'] === 'true';
+      if (useDevTables) {
+        const { setRequestContext } = await import('./dynamodb.js');
+        setRequestContext({
+          storiesTable: 'aipm-backend-dev-stories',
+          acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests'
+        });
+      }
 
       if (method === 'DELETE' && pathname.includes('/api/stories/')) {
         await writeFile('/tmp/aipm-request-received.log', `${new Date().toISOString()} - ${method} ${pathname}\n`, { flag: 'a' });
@@ -8548,23 +8547,22 @@ export async function createApp() {
     }
 
     await serveStatic(req, res);
-      } catch (error) {
-        console.error('Request error:', error.message);
-        if (error.message === 'Request payload too large') {
-          res.writeHead(413, {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          });
-          res.end(JSON.stringify({ error: 'Payload too large' }));
-        } else {
-          res.writeHead(500, {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          });
-          res.end(JSON.stringify({ error: 'Internal server error' }));
-        }
+    } catch (error) {
+      console.error('Request error:', error.message);
+      if (error.message === 'Request payload too large') {
+        res.writeHead(413, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({ error: 'Payload too large' }));
+      } else {
+        res.writeHead(500, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({ error: 'Internal server error' }));
       }
-    });
+    }
   });
 
   server.on('close', () => {

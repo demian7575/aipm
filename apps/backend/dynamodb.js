@@ -1,6 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { AsyncLocalStorage } from 'async_hooks';
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -11,26 +10,27 @@ const DEFAULT_TEST_RUNS_TABLE = process.env.TEST_RUNS_TABLE;
 
 console.log('DynamoDB: Default tables:', { DEFAULT_STORIES_TABLE, DEFAULT_ACCEPTANCE_TESTS_TABLE, DEFAULT_TEST_RUNS_TABLE });
 
-// AsyncLocalStorage for per-request context
-const asyncLocalStorage = new AsyncLocalStorage();
+// Request context for per-request table override
+let requestContext = null;
 
-export function runWithContext(context, callback) {
-  return asyncLocalStorage.run(context, callback);
+export function setRequestContext(context) {
+  requestContext = context;
+}
+
+export function clearRequestContext() {
+  requestContext = null;
 }
 
 function getStoriesTable() {
-  const context = asyncLocalStorage.getStore();
-  return context?.storiesTable ?? DEFAULT_STORIES_TABLE;
+  return requestContext?.storiesTable ?? DEFAULT_STORIES_TABLE;
 }
 
 function getAcceptanceTestsTable() {
-  const context = asyncLocalStorage.getStore();
-  return context?.acceptanceTestsTable ?? DEFAULT_ACCEPTANCE_TESTS_TABLE;
+  return requestContext?.acceptanceTestsTable ?? DEFAULT_ACCEPTANCE_TESTS_TABLE;
 }
 
 function getTestRunsTable() {
-  const context = asyncLocalStorage.getStore();
-  return context?.testRunsTable ?? DEFAULT_TEST_RUNS_TABLE;
+  return requestContext?.testRunsTable ?? DEFAULT_TEST_RUNS_TABLE;
 }
 
 export class DynamoDBDataLayer {
