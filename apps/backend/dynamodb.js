@@ -20,7 +20,9 @@ export function runWithContext(context, callback) {
 
 function getStoriesTable() {
   const context = asyncLocalStorage.getStore();
-  return context?.storiesTable ?? DEFAULT_STORIES_TABLE;
+  const table = context?.storiesTable ?? DEFAULT_STORIES_TABLE;
+  console.log('getStoriesTable() -> context:', context, 'table:', table);
+  return table;
 }
 
 function getAcceptanceTestsTable() {
