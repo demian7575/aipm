@@ -5569,6 +5569,33 @@ else
 fi
 echo ""
 
+# Test for story 1770389119527: Modal displays all story titles when header button clicked
+if [ "$STORY_ID" = "1770389119527" ]; then
+  echo "🧪 Test: Modal displays all story titles when header button clicked"
+  echo "   Given: User is on the main page, Multiple stories exist in the system"
+  echo "   When: User clicks the view stories button in the header"
+  echo "   Then: A modal opens displaying a list of all story titles, Modal can be closed by clicking outside or close button"
+  
+  # Verify View Stories button exists in HTML
+  if grep -q 'id="view-stories-btn"' apps/frontend/public/index.html; then
+    echo "   ✅ Test passed: View Stories button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "   ❌ Test failed: View Stories button not found in header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Verify openViewStoriesModal function exists
+  if grep -q 'function openViewStoriesModal' apps/frontend/public/app.js; then
+    echo "   ✅ Test passed: openViewStoriesModal function implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "   ❌ Test failed: openViewStoriesModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 
 echo "================================"
 echo "📊 Phase 4 Test Summary"
