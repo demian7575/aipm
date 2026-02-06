@@ -8012,6 +8012,44 @@ function openFilterModal() {
   });
 }
 
+/**
+ * Opens modal displaying all story titles
+ */
+async function openStoryListModal() {
+  try {
+    await loadStories();
+    
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '0.5rem';
+    
+    if (storyIndex.size === 0) {
+      container.innerHTML = '<p>No stories found.</p>';
+    } else {
+      const ul = document.createElement('ul');
+      ul.style.listStyle = 'none';
+      ul.style.padding = '0';
+      ul.style.margin = '0';
+      
+      for (const story of storyIndex.values()) {
+        const li = document.createElement('li');
+        li.style.padding = '0.5rem';
+        li.style.borderBottom = '1px solid #eee';
+        li.textContent = story.title;
+        ul.appendChild(li);
+      }
+      
+      container.appendChild(ul);
+    }
+    
+    openModal('All Stories', container, []);
+  } catch (err) {
+    console.error('Failed to load stories:', err);
+    showToast('Failed to load stories', 'error');
+  }
+}
+
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
   container.style.display = 'flex';
