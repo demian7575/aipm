@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -8518,6 +8519,43 @@ function initialize() {
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
+  });
+
+  viewStoriesBtn?.addEventListener('click', async () => {
+    try {
+      const stories = state.stories || [];
+      const content = document.createElement('div');
+      content.style.maxHeight = '400px';
+      content.style.overflowY = 'auto';
+      
+      if (stories.length === 0) {
+        content.innerHTML = '<p>No stories available.</p>';
+      } else {
+        const list = document.createElement('ul');
+        list.style.listStyle = 'none';
+        list.style.padding = '0';
+        list.style.margin = '0';
+        
+        stories.forEach(story => {
+          const item = document.createElement('li');
+          item.style.padding = '8px';
+          item.style.borderBottom = '1px solid #eee';
+          item.textContent = story.title || 'Untitled Story';
+          list.appendChild(item);
+        });
+        
+        content.appendChild(list);
+      }
+      
+      openModal({
+        title: 'All Stories',
+        content,
+        cancelLabel: 'Close'
+      });
+    } catch (error) {
+      console.error('Failed to display stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
   });
 
   generateDocBtn?.addEventListener('click', () => {
