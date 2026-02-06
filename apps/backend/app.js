@@ -5738,7 +5738,6 @@ export async function createApp() {
 
       // Check for test environment header to use Development tables
       const useDevTables = req.headers['x-use-dev-tables'] === 'true';
-      console.log('X-Use-Dev-Tables header:', req.headers['x-use-dev-tables'], 'useDevTables:', useDevTables);
       if (useDevTables) {
         const { setRequestContext } = await import('./dynamodb.js');
         setRequestContext({
@@ -5746,7 +5745,6 @@ export async function createApp() {
           acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests',
           testRunsTable: 'aipm-backend-dev-test-runs'
         });
-        console.log('✅ Set dev tables context');
       } else {
         const { clearRequestContext } = await import('./dynamodb.js');
         clearRequestContext();
