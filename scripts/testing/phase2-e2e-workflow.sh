@@ -9,21 +9,15 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/test-library.sh"
 
 # Load environment config from single source of truth
+# Phase 2 uses dev environment for data isolation
 source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" dev
 
 # Can be overridden for post-deployment tests
 API_BASE="${API_BASE:-$API_BASE}"
 SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-$SEMANTIC_API_BASE}"
 
-# Always use Development DynamoDB for all gating tests
-# If using Production backend, add header to use Development tables
+# X-Use-Dev-Tables header not implemented - tests run on dev EC2 instead
 USE_DEV_TABLES_HEADER=""
-if [[ "$API_BASE" == *"44.197.204.18"* ]]; then
-    USE_DEV_TABLES_HEADER="-H 'X-Use-Dev-Tables: true'"
-    echo "🔧 Using Production EC2 with Development DynamoDB (via X-Use-Dev-Tables header)"
-else
-    echo "🔧 Using Development EC2 with Development DynamoDB"
-fi
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
