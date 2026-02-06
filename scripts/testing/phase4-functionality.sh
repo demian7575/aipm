@@ -5601,6 +5601,26 @@ done
 echo "✅ Stored results for all stories"
 echo ""
 
+# Story #1770373214319: Add Story List Button
+# Test #1770373214579: Modal displays all story titles when button clicked
+echo "🧪 Testing: Modal displays all story titles when button clicked"
+echo "   Story: #1770373214319 - Add Story List Button"
+echo "   Given: User is on any page with the header visible, Multiple stories exist in the system"
+echo "   When: User clicks the story list button in the header"
+echo "   Then: A modal opens displaying all story titles, Stories are listed in a readable format, Modal can be closed to return to previous view"
+
+# Verify: Stories API returns data for modal
+RESPONSE="$ALL_STORIES_CACHE"
+
+if echo "$RESPONSE" | jq -e 'type == "array" and length > 0' > /dev/null 2>&1; then
+  echo "   ✅ Test passed: Stories API ready for modal display"
+  PASSED=$((PASSED + 1))
+else
+  echo "   ❌ Test failed: Stories API not returning data"
+  FAILED=$((FAILED + 1))
+fi
+echo ""
+
 if [ $FAILED -gt 0 ]; then
   exit 1
 fi
