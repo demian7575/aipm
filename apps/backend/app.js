@@ -5739,8 +5739,6 @@ export async function createApp() {
       testRunsTable: 'aipm-backend-dev-test-runs'
     } : null;
 
-    console.log('Request:', req.url, 'useDevTables:', useDevTables, 'context:', context);
-
     // Run request handler within async context
     const { runWithContext } = await import('./dynamodb.js');
     await runWithContext(context, async () => {
