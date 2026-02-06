@@ -4,7 +4,11 @@
 
 set -e
 
-PROD_IP="44.197.204.18"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+
+PROD_IP="$EC2_IP"
 
 echo "🚀 Deploying code and installing Kiro services on Production EC2..."
 echo ""

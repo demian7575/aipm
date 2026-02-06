@@ -1,11 +1,19 @@
 #!/bin/bash
 # Shared test functions library - define once, use everywhere
 
-# Configuration
-PROD_API_BASE="http://44.197.204.18"
-DEV_API_BASE="http://44.222.168.46"
-PROD_FRONTEND_URL="http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com"
-DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
+# Load configuration from environments.yaml
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Load prod config
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+PROD_API_BASE="$API_BASE"
+PROD_FRONTEND_URL="$S3_URL"
+
+# Load dev config
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" dev
+DEV_API_BASE="$API_BASE"
+DEV_FRONTEND_URL="$S3_URL"
 
 # Test story parent ID - all test stories should be created under this parent
 TEST_PARENT_ID=1768631018504

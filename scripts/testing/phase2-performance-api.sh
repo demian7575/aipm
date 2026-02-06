@@ -2,9 +2,12 @@
 # Phase 2: Complete E2E Workflow (REAL Kiro CLI)
 
 set +e
-source "$(dirname "$0")/test-library.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$SCRIPT_DIR/test-library.sh"
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
 
-API_BASE="${API_BASE:-http://44.197.204.18:4000}"
+API_BASE="${API_BASE:-$API_BASE}"
 
 echo "🎯 Phase 2: Complete E2E Workflow (REAL Kiro CLI)"
 echo "Testing full user journey with real AI features"

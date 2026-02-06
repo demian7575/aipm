@@ -3,7 +3,11 @@
 
 set -e
 
-API_BASE="http://44.197.204.18:8083"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+
+API_BASE="http://$EC2_IP:$SEMANTIC_API_PORT"
 PASSED=0
 FAILED=0
 

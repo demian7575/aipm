@@ -3,7 +3,11 @@
 
 set -e
 
-EC2_HOST="44.197.204.18"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+
+EC2_HOST="$EC2_IP"
 PASSED=0
 FAILED=0
 

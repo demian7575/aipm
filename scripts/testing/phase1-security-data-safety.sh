@@ -26,8 +26,12 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Use variables from parent script
-API_BASE="${API_BASE:-http://44.197.204.18:4000}"
+# Load environment config
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+
+# Use variables from parent script or loaded config
+API_BASE="${API_BASE:-$API_BASE}"
 TARGET_ENV="${TARGET_ENV:-prod}"
 
 # Auto-detect Semantic API URL based on API_BASE
