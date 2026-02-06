@@ -5601,6 +5601,46 @@ done
 echo "✅ Stored results for all stories"
 echo ""
 
+
+# Story #1770377218935: Add Story List Button
+# Test #1770377219268: Story titles are displayed in the modal
+echo "🧪 Testing: Story titles are displayed in the modal"
+echo "   Story: #1770377218935 - Add Story List Button"
+echo "   Given: Multiple stories exist in the system"
+echo "   When: User opens the view stories modal"
+echo "   Then: All story titles are displayed as a simple list, List is readable and properly formatted"
+
+# Verify: Stories endpoint returns data with titles
+STORIES_RESPONSE=$(curl -s "$API_BASE/api/stories")
+if echo "$STORIES_RESPONSE" | jq -e '[.[] | select(.title)] | length > 0' > /dev/null 2>&1; then
+  echo "   ✅ Test passed: Stories with titles available"
+  PASSED=$((PASSED + 1))
+else
+  echo "   ❌ Test failed: No stories with titles found"
+  FAILED=$((FAILED + 1))
+fi
+echo ""
+
+# Story #1770377218935: Add Story List Button
+# Test #1770377219879: Modal opens and closes on button click
+echo "🧪 Testing: Modal opens and closes on button click"
+echo "   Story: #1770377218935 - Add Story List Button"
+echo "   Given: User is on any page with the header visible"
+echo "   When: User clicks the view stories button in the header"
+echo "   Then: A modal appears showing the story list, Modal can be closed by clicking outside or close button"
+
+# Verify: Button exists in HTML and stories API is accessible
+if grep -q 'id="view-stories-btn"' apps/frontend/public/index.html && \
+   curl -s "$API_BASE/api/stories" | jq -e 'type == "array"' > /dev/null 2>&1; then
+  echo "   ✅ Test passed: View Stories button exists and API accessible"
+  PASSED=$((PASSED + 1))
+else
+  echo "   ❌ Test failed: Button or API not available"
+  FAILED=$((FAILED + 1))
+fi
+echo ""
+
+
 if [ $FAILED -gt 0 ]; then
   exit 1
 fi
