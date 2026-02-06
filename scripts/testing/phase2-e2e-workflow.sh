@@ -5,11 +5,15 @@
 
 set +e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/test-library.sh"
 
-# Default to Development environment, but can be overridden for post-deployment tests
-API_BASE="${API_BASE:-http://44.222.168.46:4000}"
-SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://44.222.168.46:8083}"
+# Load environment config from single source of truth
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" dev
+
+# Can be overridden for post-deployment tests
+API_BASE="${API_BASE:-$API_BASE}"
+SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-$SEMANTIC_API_BASE}"
 
 # Always use Development DynamoDB for all gating tests
 # If using Production backend, add header to use Development tables
