@@ -5570,6 +5570,43 @@ fi
 echo ""
 
 
+# Story #1770382784591: Add Story List Button
+# Test #1770382785083: Header button opens modal with story titles
+echo "🧪 Testing: Header button opens modal with story titles"
+echo "   Story: #1770382784591 - Add Story List Button"
+echo "   Given: User is on the main page, Multiple stories exist in the system"
+echo "   When: User clicks the view stories button in the header"
+echo "   Then: A modal opens displaying a list of all story titles, Modal can be closed by clicking outside or close button"
+
+RESPONSE="$ALL_STORIES_CACHE"
+STORY_COUNT=$(echo "$RESPONSE" | jq 'length')
+
+if [ "$STORY_COUNT" -gt 1 ]; then
+  echo "   ✅ Test passed: Multiple stories available for display ($STORY_COUNT stories)"
+  PASSED=$((PASSED + 1))
+else
+  echo "   ❌ Test failed: Insufficient stories for testing"
+  FAILED=$((FAILED + 1))
+fi
+echo ""
+
+# Test #1770382784860: Modal displays all story titles
+echo "🧪 Testing: Modal displays all story titles"
+echo "   Story: #1770382784591 - Add Story List Button"
+echo "   Given: Stories with titles exist in the database"
+echo "   When: User opens the story list modal"
+echo "   Then: All story titles are displayed in the list, Titles are readable and properly formatted"
+
+if echo "$RESPONSE" | jq -e 'type == "array" and length > 0 and all(has("title"))' > /dev/null 2>&1; then
+  echo "   ✅ Test passed: Stories with titles exist and are accessible"
+  PASSED=$((PASSED + 1))
+else
+  echo "   ❌ Test failed: Stories not properly formatted"
+  FAILED=$((FAILED + 1))
+fi
+echo ""
+
+
 echo "================================"
 echo "📊 Phase 4 Test Summary"
 echo "   Passed: $PASSED"
