@@ -4964,9 +4964,10 @@ async function removeUploadIfLocal(urlPath) {
   }
 }
 
-async function ensureDatabase() {
-  console.log('🔧 Using DynamoDB');
-  return new DynamoDBDataLayer();
+async function ensureDatabase(req = null) {
+  const useDevTables = req?.headers?.['x-use-dev-tables'] === 'true';
+  console.log('🔧 Using DynamoDB', useDevTables ? '(dev tables)' : '(prod tables)');
+  return new DynamoDBDataLayer(useDevTables);
 }
 
 function attachChildren(stories) {
@@ -5728,23 +5729,14 @@ async function handleFileUpload(req, res, url) {
 }
 
 export async function createApp() {
-  const db = await ensureDatabase();
-
   const server = createServer(async (req, res) => {
+    // Create db instance per-request to support X-Use-Dev-Tables header
+    const db = await ensureDatabase(req);
+    
     try {
       const url = new URL(req.url, 'http://localhost');
       const pathname = url.pathname;
       const method = req.method ?? 'GET';
-
-      // Check for test environment header to use Development tables
-      const useDevTables = req.headers['x-use-dev-tables'] === 'true';
-      if (useDevTables) {
-        const { setRequestContext } = await import('./dynamodb.js');
-        setRequestContext({
-          storiesTable: 'aipm-backend-dev-stories',
-          acceptanceTestsTable: 'aipm-backend-dev-acceptance-tests'
-        });
-      }
 
       if (method === 'DELETE' && pathname.includes('/api/stories/')) {
         await writeFile('/tmp/aipm-request-received.log', `${new Date().toISOString()} - ${method} ${pathname}\n`, { flag: 'a' });
