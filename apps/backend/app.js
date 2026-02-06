@@ -317,9 +317,7 @@ async function handleUpdateStoryPRRequest(req, res) {
   }
 }
 
-// LEGACY: This function is no longer used (Kiro API on port 8081 deprecated)
-// Kept for reference only - can be deleted
-/*
+// Update Task Specification file when User Story changes
 async function updateTaskSpecificationFile(storyId, updatedStory) {
   try {
     // Notify Kiro API server to update Task Specification
@@ -343,7 +341,6 @@ async function updateTaskSpecificationFile(storyId, updatedStory) {
     console.log(`⚠️ Error updating Task Specification for story ${storyId}:`, error.message);
   }
 }
-*/
 
 async function handleCodeWhispererStatusRequest(req, res) {
   try {
@@ -509,9 +506,6 @@ function buildTaskBrief(payload) {
   return lines.join('\n');
 }
 
-// LEGACY: This function is no longer used (Kiro API on port 8081 deprecated)
-// Code generation now uses Session Pool (port 8082) via Semantic API
-/*
 async function generateCodeWithKiro(taskTitle, objective, constraints, acceptanceCriteria) {
   try {
     console.log(`🤖 Using EC2 Kiro API for code generation`);
