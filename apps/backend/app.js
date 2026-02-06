@@ -253,70 +253,6 @@ async function handlePersonalDelegateStatusRequest(req, res, url) {
   }
 }
 
-async function handleUpdateStoryPRRequest(req, res) {
-  try {
-    const body = await readRequestBody(req);
-    const { storyId, prNumber, prUrl, action } = JSON.parse(body);
-    
-    if (!storyId || !prNumber) {
-      sendJson(res, 400, { message: 'storyId and prNumber are required' });
-      return;
-    }
-
-    const db = await ensureDatabase();
-    
-    // Update story with new PR information
-    const story = await getStoryById(db, storyId);
-    if (!story) {
-      sendJson(res, 404, { message: 'Story not found' });
-      return;
-    }
-
-    // Update PR information in story
-    const updatedPRs = story.prs || [];
-    const existingPRIndex = updatedPRs.findIndex(pr => pr.number === prNumber);
-    
-    const prEntry = {
-      localId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      storyId: storyId,
-      taskTitle: `Development task (${action})`,
-      repo: 'demian7575/aipm',
-      branchName: `story-${storyId}-implementation`,
-      number: prNumber,
-      type: 'pull_request',
-      prUrl: prUrl,
-      htmlUrl: prUrl,
-      taskUrl: prUrl,
-      threadUrl: prUrl,
-      createdAt: new Date().toISOString(),
-      action: action
-    };
-
-    if (existingPRIndex >= 0) {
-      updatedPRs[existingPRIndex] = prEntry;
-    } else {
-      updatedPRs.push(prEntry);
-    }
-
-    // Update story in database
-    await updateStory(db, storyId, { prs: updatedPRs });
-    
-    console.log(`✅ Updated story ${storyId} with PR #${prNumber} (${action})`);
-    
-    sendJson(res, 200, { 
-      success: true, 
-      message: 'Story PR updated successfully',
-      storyId: storyId,
-      prNumber: prNumber,
-      action: action
-    });
-  } catch (error) {
-    console.error('Update story PR request failed', error);
-    const status = error.statusCode || 500;
-    sendJson(res, status, { message: error.message || 'Failed to update story PR' });
-  }
-}
-
 // Update Task Specification file when User Story changes
 async function updateTaskSpecificationFile(storyId, updatedStory) {
   try {
@@ -339,66 +275,6 @@ async function updateTaskSpecificationFile(storyId, updatedStory) {
     }
   } catch (error) {
     console.log(`⚠️ Error updating Task Specification for story ${storyId}:`, error.message);
-  }
-}
-
-async function handleCodeWhispererStatusRequest(req, res) {
-  try {
-    const body = await readRequestBody(req);
-    const { repo, number, type } = JSON.parse(body);
-    
-    if (!repo || !number) {
-      sendJson(res, 400, { message: 'repo and number are required' });
-      return;
-    }
-
-    const [owner, repoName] = repo.split('/');
-    const endpoint = type === 'pull_request' 
-      ? `/repos/${owner}/${repoName}/pulls/${number}`
-      : `/repos/${owner}/${repoName}/issues/${number}`;
-    
-    const data = await githubRequest(endpoint);
-    
-    sendJson(res, 200, {
-      status: {
-        state: data.state,
-        title: data.title,
-        html_url: data.html_url,
-        updated_at: data.updated_at,
-        author: data.user?.login
-      }
-    });
-  } catch (error) {
-    console.error('CodeWhisperer status request failed', error);
-    const status = error.statusCode || 500;
-    sendJson(res, status, { message: error.message || 'Failed to fetch status' });
-  }
-}
-
-async function handleCodeWhispererRebaseRequest(req, res) {
-  try {
-    const body = await readRequestBody(req);
-    const { repo, number, branchName } = JSON.parse(body);
-    
-    if (!repo || !number || !branchName) {
-      sendJson(res, 400, { message: 'repo, number, and branchName are required' });
-      return;
-    }
-
-    const [owner, repoName] = repo.split('/');
-    
-    await githubRequest(`/repos/${owner}/${repoName}/pulls/${number}/update-branch`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        expected_head_sha: null
-      })
-    });
-    
-    sendJson(res, 200, { message: 'PR rebased successfully' });
-  } catch (error) {
-    console.error('CodeWhisperer rebase request failed', error);
-    const status = error.statusCode || 500;
-    sendJson(res, status, { message: error.message || 'Failed to rebase PR' });
   }
 }
 
@@ -5923,105 +5799,6 @@ export async function createApp() {
       return;
     }
 
-    if (pathname === '/api/update-story-pr' && method === 'POST') {
-      await handleUpdateStoryPRRequest(req, res);
-      return;
-    }
-
-    if (pathname === '/api/sync-to-dev' && method === 'POST') {
-      // Simple sync endpoint - copies all production stories to development
-      try {
-        // Load both prod and dev configs
-        const { readFileSync } = await import('fs');
-        const { load } = await import('js-yaml');
-        const { fileURLToPath } = await import('url');
-        const { dirname, join } = await import('path');
-        
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = dirname(__filename);
-        const yamlPath = join(__dirname, '../../config/environments.yaml');
-        const yamlContent = readFileSync(yamlPath, 'utf8');
-        const allConfig = load(yamlContent);
-        
-        const prodApiUrl = `http://${allConfig.prod.ec2_ip}:${allConfig.prod.api_port}`;
-        const devApiUrl = `http://${allConfig.dev.ec2_ip}:${allConfig.dev.api_port}`;
-        
-        console.log(`Syncing from ${prodApiUrl} to ${devApiUrl}`);
-        
-        const prodResponse = await fetch(`${prodApiUrl}/api/stories`);
-        if (!prodResponse.ok) {
-          sendJson(res, 500, { error: 'Failed to fetch production stories' });
-          return;
-        }
-        
-        const prodStories = await prodResponse.json();
-        
-        // Extract all stories including children
-        function extractAllStories(stories, extracted = []) {
-          for (const story of stories) {
-            extracted.push(story);
-            if (story.children && story.children.length > 0) {
-              extractAllStories(story.children, extracted);
-            }
-          }
-          return extracted;
-        }
-        
-        const allStories = extractAllStories(prodStories);
-        
-        // Clear dev environment
-        await fetch(`${devApiUrl}/api/stories`, { method: 'DELETE' }).catch(() => {});
-        
-        // Copy each story with original ID
-        let copiedCount = 0;
-        for (const story of allStories) {
-          try {
-            const storyData = {
-              id: story.id,
-              title: story.title,
-              description: story.description,
-              asA: story.asA,
-              iWant: story.iWant,
-              soThat: story.soThat,
-              components: story.components || [],
-              storyPoint: story.storyPoint || 0,
-              assigneeEmail: story.assigneeEmail || '',
-              parentId: story.parentId || null
-            };
-            
-            // Only include status if it's provided (backend defaults to 'Draft')
-            if (story.status) {
-              storyData.status = story.status;
-            }
-            
-            const response = await fetch(`${devApiUrl}/api/stories`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(storyData)
-            });
-            if (response.ok) {
-              copiedCount++;
-            } else {
-              const errorText = await response.text();
-              console.error(`Failed to copy story ${story.id}: ${response.status} - ${errorText}`);
-            }
-          } catch (error) {
-            console.error(`Failed to copy story ${story.id}:`, error);
-          }
-        }
-        
-        sendJson(res, 200, { 
-          message: 'Sync completed',
-          totalStories: allStories.length,
-          copiedCount
-        });
-      } catch (error) {
-        console.error('Sync error:', error);
-        sendJson(res, 500, { error: 'Sync failed', details: error.message });
-      }
-      return;
-    }
-
     if (pathname === '/api/run-staging' && method === 'POST') {
       // Staging deployment endpoint - returns 500 for automated tests as expected
       sendJson(res, 500, { 
@@ -6048,16 +5825,6 @@ export async function createApp() {
     }
 
 
-
-    if (pathname === '/api/codewhisperer-status' && method === 'POST') {
-      await handleCodeWhispererStatusRequest(req, res);
-      return;
-    }
-
-    if (pathname === '/api/codewhisperer-rebase' && method === 'POST') {
-      await handleCodeWhispererRebaseRequest(req, res);
-      return;
-    }
 
     if (pathname === '/' && method === 'GET') {
       sendJson(res, 200, { status: 'ok', message: 'AIPM Backend API' });
@@ -6137,73 +5904,6 @@ export async function createApp() {
           error: 'Failed to read log file',
           content: 'Error reading log file. Check server logs.'
         });
-      }
-      return;
-    }
-
-    if (pathname === '/api/kiro-live-stream' && method === 'GET') {
-      try {
-        const { createReadStream, existsSync, statSync, watchFile, readFileSync, openSync, readSync, closeSync, unwatchFile } = await import('fs');
-        const logPath = '/tmp/kiro-cli-live.log';
-        
-        res.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Cache-Control'
-        });
-        
-        let lastSize = 0;
-        
-        const sendUpdate = () => {
-          if (existsSync(logPath)) {
-            const stats = statSync(logPath);
-            if (stats.size > lastSize) {
-              const stream = createReadStream(logPath, { start: lastSize });
-              let chunk = '';
-              stream.on('data', (data) => chunk += data.toString());
-              stream.on('end', () => {
-                if (chunk) {
-                  res.write(`data: ${JSON.stringify({ type: 'append', content: chunk })}\n\n`);
-                }
-                lastSize = stats.size;
-              });
-            }
-          }
-        };
-        
-        // Send initial content
-        if (existsSync(logPath)) {
-          const maxSize = 50 * 1024; // 50KB limit for initial load
-          const stats = statSync(logPath);
-          let content;
-          
-          if (stats.size > maxSize) {
-            const buffer = Buffer.alloc(maxSize);
-            const fd = openSync(logPath, 'r');
-            readSync(fd, buffer, 0, maxSize, stats.size - maxSize);
-            closeSync(fd);
-            content = '...(truncated)\n' + buffer.toString('utf8');
-            lastSize = stats.size;
-          } else {
-            content = readFileSync(logPath, 'utf8');
-            lastSize = stats.size;
-          }
-          
-          res.write(`data: ${JSON.stringify({ type: 'full', content })}\n\n`);
-        }
-        
-        // Watch for changes
-        const watcher = watchFile(logPath, { interval: 1000 }, sendUpdate);
-        
-        req.on('close', () => {
-          unwatchFile(logPath, sendUpdate);
-        });
-        
-        return;
-      } catch (error) {
-        sendJson(res, 500, { error: error.message });
       }
       return;
     }
@@ -6433,74 +6133,6 @@ export async function createApp() {
           method: 'DynamoDB native operations'
         });
       }
-      return;
-    }
-
-    if (pathname === '/api/deploy-backend' && method === 'POST') {
-      try {
-        const payload = await parseJson(req);
-        const { s3Bucket, s3Key } = payload;
-        
-        if (!s3Bucket || !s3Key) {
-          sendJson(res, 400, { error: 'Missing s3Bucket or s3Key' });
-          return;
-        }
-        
-        console.log(`📥 Deploying backend from s3://${s3Bucket}/${s3Key}`);
-        
-        // Download from S3 and deploy
-        const { exec } = require('child_process');
-        const deployCommand = `
-          aws s3 cp s3://${s3Bucket}/${s3Key} /tmp/new-app.js &&
-          sudo cp /tmp/new-app.js /home/ec2-user/aipm/apps/backend/app.js &&
-          sudo systemctl restart aipm-dev-backend &&
-          echo "Backend deployed successfully"
-        `;
-        
-      } catch (error) {
-        console.error('Deploy backend error:', error);
-        sendJson(res, 500, { error: 'Failed to deploy backend' });
-      }
-      return;
-    }
-
-    // System status endpoints for gating tests
-    if (pathname === '/api/system/node-version' && method === 'GET') {
-      sendJson(res, 200, { version: process.version });
-      return;
-    }
-
-    if (pathname === '/api/system/python-version' && method === 'GET') {
-      sendJson(res, 200, { available: false, version: null });
-      return;
-    }
-
-    if (pathname === '/api/system/sqlite-status' && method === 'GET') {
-      const driver = typeof db === 'object' && db.constructor.name === 'Database' ? 'node:sqlite' : 'json-fallback';
-      sendJson(res, 200, { available: true, driver });
-      return;
-    }
-
-    if (pathname === '/api/system/aws-status' && method === 'GET') {
-      sendJson(res, 200, { 
-        configured: true, 
-        region: process.env.AWS_REGION || 'us-east-1',
-        environment: 'lambda'
-      });
-      return;
-    }
-
-    if (pathname === '/api/system/git-status' && method === 'GET') {
-      sendJson(res, 200, { available: false, version: null });
-      return;
-    }
-
-    if (pathname === '/api/system/shell-status' && method === 'GET') {
-      sendJson(res, 200, { 
-        bashCompatible: false, 
-        shell: 'lambda-runtime',
-        environment: 'aws-lambda'
-      });
       return;
     }
 
@@ -6994,20 +6626,6 @@ export async function createApp() {
     }
 
     // Configuration endpoint - return EC2 endpoints without proxying
-    if (pathname === '/api/config/endpoints' && method === 'GET') {
-      const ec2Ip = process.env.EC2_IP || 'localhost';
-      const apiPort = process.env.API_PORT || '4000';
-      const sessionPoolPort = process.env.SESSION_POOL_PORT || '8082';
-      const terminalPort = process.env.TERMINAL_PORT || '8080';
-      
-      sendJson(res, 200, {
-        ec2Backend: `http://${ec2Ip}:${apiPort}`,
-        kiroApi: `http://${ec2Ip}:${sessionPoolPort}`,
-        terminal: `ws://${ec2Ip}:${terminalPort}`
-      });
-      return;
-    }
-
     // SSE endpoint for story draft generation with real-time progress
     const storyDraftStreamMatch = pathname.match(/^\/api\/stories\/draft-stream$/);
     if (storyDraftStreamMatch && method === 'GET') {
@@ -8322,76 +7940,6 @@ export async function createApp() {
 
     // Handle API 404s before falling back to static files
     // Deployment notifications API
-    if (pathname === '/api/deployment-notifications' && method === 'POST') {
-      try {
-        const bodyStr = await readRequestBody(req);
-        const body = JSON.parse(bodyStr);
-        console.log('Notification request body:', body);
-        const { type, prNumber, message, timestamp } = body;
-        console.log('Parsed fields:', { type, prNumber, message, timestamp });
-        
-        // Store notification in memory (could be extended to use database)
-        global.deploymentNotifications = global.deploymentNotifications || [];
-        global.deploymentNotifications.push({
-          id: Date.now(),
-          type,
-          prNumber,
-          message,
-          timestamp: timestamp || new Date().toISOString(),
-          read: false
-        });
-        
-        // Keep only last 10 notifications
-        if (global.deploymentNotifications.length > 10) {
-          global.deploymentNotifications = global.deploymentNotifications.slice(-10);
-        }
-        
-        sendJson(res, 200, { success: true, message: 'Notification stored' });
-        return;
-      } catch (error) {
-        console.error('Error storing deployment notification:', error);
-        sendJson(res, 500, { error: 'Failed to store notification' });
-        return;
-      }
-    }
-    
-    if (pathname === '/api/deployment-notifications' && method === 'GET') {
-      try {
-        const notifications = global.deploymentNotifications || [];
-        console.log('GET notifications:', notifications);
-        const unreadNotifications = notifications.filter(n => !n.read);
-        console.log('Unread notifications:', unreadNotifications);
-        sendJson(res, 200, { notifications: unreadNotifications });
-        return;
-      } catch (error) {
-        console.error('Error fetching deployment notifications:', error);
-        sendJson(res, 500, { error: 'Failed to fetch notifications' });
-        return;
-      }
-    }
-    
-    if (pathname === '/api/deployment-notifications/mark-read' && method === 'POST') {
-      try {
-        const bodyStr = await readRequestBody(req);
-        const body = JSON.parse(bodyStr);
-        const { notificationId } = body;
-        
-        if (global.deploymentNotifications) {
-          const notification = global.deploymentNotifications.find(n => n.id === notificationId);
-          if (notification) {
-            notification.read = true;
-          }
-        }
-        
-        sendJson(res, 200, { success: true });
-        return;
-      } catch (error) {
-        console.error('Error marking notification as read:', error);
-        sendJson(res, 500, { error: 'Failed to mark notification as read' });
-        return;
-      }
-    }
-
     // RTM APIs
     if (pathname === '/api/rtm/matrix' && method === 'GET') {
       try {

@@ -1703,37 +1703,6 @@ function refreshCodeWhispererSection(storyId) {
   renderCodeWhispererSectionList(list, story);
 }
 
-async function requestCodeWhispererStatus(entry) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/codewhisperer-status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        repo: entry.repo,
-        number: entry.number,
-        type: entry.type
-      })
-    });
-    
-    if (!response.ok) {
-      entry.lastError = `Status check failed: ${response.status}`;
-      return false;
-    }
-    
-    const data = await response.json();
-    entry.latestStatus = data.status;
-    entry.lastCheckedAt = new Date().toISOString();
-    entry.lastError = null;
-    persistCodeWhispererDelegations();
-    return true;
-  } catch (error) {
-    entry.lastError = `Status check error: ${error.message}`;
-    entry.lastCheckedAt = new Date().toISOString();
-    persistCodeWhispererDelegations();
-    return false;
-  }
-}
-
 async function checkPRUpToDate(prEntry) {
   try {
     const prNumber = prEntry?.number || prEntry?.targetNumber;
@@ -1790,36 +1759,6 @@ async function mergePR(prEntry) {
   } catch (error) {
     console.error('❌ Merge error:', error);
     return { success: false, message: error.message };
-  }
-}
-
-async function rebaseCodeWhispererPR(entry) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/codewhisperer-rebase`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        repo: entry.repo,
-        number: entry.number,
-        branchName: entry.branchName
-      })
-    });
-    
-    if (!response.ok) {
-      entry.lastError = `Rebase failed: ${response.status}`;
-      return false;
-    }
-    
-    const data = await response.json();
-    entry.lastError = null;
-    entry.lastCheckedAt = new Date().toISOString();
-    persistCodeWhispererDelegations();
-    return true;
-  } catch (error) {
-    entry.lastError = `Rebase error: ${error.message}`;
-    entry.lastCheckedAt = new Date().toISOString();
-    persistCodeWhispererDelegations();
-    return false;
   }
 }
 
