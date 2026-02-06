@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -745,6 +746,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -6242,6 +6249,58 @@ function openModal({
   };
 
   modal.style.display = 'flex';
+}
+
+/**
+ * Opens a modal displaying all story titles
+ */
+function openStoryListModal() {
+  const stories = state.stories || [];
+  
+  const content = document.createElement('div');
+  
+  if (stories.length === 0) {
+    content.textContent = 'No stories available';
+    content.style.padding = '20px';
+    content.style.textAlign = 'center';
+    content.style.color = '#666';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.textContent = story.title || `Story ${story.id}`;
+      item.style.padding = '8px 12px';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.cursor = 'pointer';
+      
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = '';
+      });
+      
+      list.appendChild(item);
+    });
+    
+    content.appendChild(list);
+  }
+  
+  openModal({
+    title: 'All Stories',
+    content,
+    cancelLabel: 'Close'
+  });
 }
 
 // Automatic PR creation function
