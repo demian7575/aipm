@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -745,6 +746,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8012,6 +8019,44 @@ function openFilterModal() {
   });
 }
 
+/**
+ * Opens modal displaying all story titles
+ */
+async function openStoryListModal() {
+  try {
+    await loadStories();
+    
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '0.5rem';
+    
+    if (storyIndex.size === 0) {
+      container.innerHTML = '<p>No stories found.</p>';
+    } else {
+      const ul = document.createElement('ul');
+      ul.style.listStyle = 'none';
+      ul.style.padding = '0';
+      ul.style.margin = '0';
+      
+      for (const story of storyIndex.values()) {
+        const li = document.createElement('li');
+        li.style.padding = '0.5rem';
+        li.style.borderBottom = '1px solid #eee';
+        li.textContent = story.title;
+        ul.appendChild(li);
+      }
+      
+      container.appendChild(ul);
+    }
+    
+    openModal('All Stories', container, []);
+  } catch (err) {
+    console.error('Failed to load stories:', err);
+    showToast('Failed to load stories', 'error');
+  }
+}
+
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
   container.style.display = 'flex';
@@ -8563,6 +8608,35 @@ function initialize() {
   if (rtmExportBtn) {
     rtmExportBtn.addEventListener('click', exportRTMToCSV);
   }
+
+  storyListBtn?.addEventListener('click', () => {
+    const container = document.createElement('div');
+    container.style.maxHeight = '400px';
+    container.style.overflowY = 'auto';
+    
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    const allStories = state.stories.flatMap(s => getAllStories(s)).slice(0, 50);
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.textContent = story.title;
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+    
+    openModal({
+      title: 'Story List',
+      content: container,
+      cancelLabel: 'Close'
+    });
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
