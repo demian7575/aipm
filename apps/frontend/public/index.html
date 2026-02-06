@@ -85,6 +85,17 @@
           >
             RTM
           </button>
+          <button
+            class="view-tab"
+            type="button"
+            role="tab"
+            id="view-tab-cicd"
+            aria-selected="false"
+            aria-controls="cicd-view"
+            data-view="cicd"
+          >
+            CI/CD
+          </button>
         </div>
         <div class="view-panel">
           <div id="mindmap-view" class="view-content is-active" role="tabpanel" tabindex="0" aria-labelledby="view-tab-mindmap">
@@ -136,6 +147,36 @@
                 <tbody id="rtm-matrix-body">
                 </tbody>
               </table>
+            </div>
+          </div>
+          <div id="cicd-view" class="view-content" role="tabpanel" tabindex="0" aria-labelledby="view-tab-cicd" hidden>
+            <div class="cicd-dashboard">
+              <h2>CI/CD Test Execution History</h2>
+              
+              <div class="cicd-controls">
+                <button id="cicd-refresh" class="secondary">Refresh</button>
+                <span id="cicd-last-updated"></span>
+              </div>
+              
+              <div class="cicd-matrix-container">
+                <table class="cicd-matrix">
+                  <thead>
+                    <tr>
+                      <th class="cicd-col-story">Story</th>
+                      <th class="cicd-col-test">Test</th>
+                      <th class="cicd-col-runs" id="cicd-runs-header">Test Runs →</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cicd-matrix-body">
+                  </tbody>
+                </table>
+              </div>
+              
+              <div class="cicd-legend">
+                <span class="cicd-legend-item"><span class="cicd-cell-pass">✓</span> Pass</span>
+                <span class="cicd-legend-item"><span class="cicd-cell-fail">✗</span> Fail</span>
+                <span class="cicd-legend-item"><span class="cicd-cell-none">-</span> Not Run</span>
+              </div>
             </div>
           </div>
         </div>

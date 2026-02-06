@@ -492,6 +492,7 @@ const mindmapPanState = {
 
 function updateViewVisibility(activeView) {
   const rtmView = document.getElementById('rtm-view');
+  const cicdView = document.getElementById('cicd-view');
   
   if (mindmapView) {
     mindmapView.classList.toggle('is-active', activeView === 'mindmap');
@@ -504,6 +505,10 @@ function updateViewVisibility(activeView) {
   if (rtmView) {
     rtmView.classList.toggle('is-active', activeView === 'rtm');
     rtmView.hidden = activeView !== 'rtm';
+  }
+  if (cicdView) {
+    cicdView.classList.toggle('is-active', activeView === 'cicd');
+    cicdView.hidden = activeView !== 'cicd';
   }
   viewTabs.forEach((tab) => {
     const isActive = tab.dataset.view === activeView;
@@ -529,6 +534,8 @@ function setActiveView(nextView, { force = false } = {}) {
     renderKanban();
   } else if (state.activeView === 'rtm') {
     renderRTM();
+  } else if (state.activeView === 'cicd') {
+    renderCICD();
   }
 }
 
@@ -3750,7 +3757,112 @@ async function updateStoryStatus(storyId, newStatus) {
 let rtmData = [];
 let rtmFilters = { search: '', gapsOnly: false, rootId: null };
 let rtmExpandedStories = new Set();
+let cicdExpandedStories = new Set();
 
+async function renderCICD() {
+  console.log('renderCICD called');
+  try {
+    const storiesUrl = resolveApiUrl('/api/stories');
+    const storiesResponse = await fetch(storiesUrl);
+    if (!storiesResponse.ok) throw new Error('Failed to fetch stories');
+    
+    const stories = await storiesResponse.json();
+    
+    const rtmUrl = resolveApiUrl('/api/rtm/matrix');
+    const rtmResponse = await fetch(rtmUrl);
+    if (!rtmResponse.ok) throw new Error('Failed to fetch RTM data');
+    
+    const rtmData = await rtmResponse.json();
+    
+    const tbody = document.getElementById('cicd-matrix-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    let testCount = 0;
+    
+    const renderStoryTests = (story, depth = 0) => {
+      const storyRtm = rtmData.find(r => r.id === story.id);
+      const ciStatus = storyRtm?.coverage?.ci?.status || null;
+      const hasTests = story.acceptanceTests && story.acceptanceTests.length > 0;
+      const hasChildren = story.children && story.children.length > 0;
+      const isExpanded = cicdExpandedStories.has(story.id);
+      
+      if (hasTests) {
+        story.acceptanceTests.forEach((test, idx) => {
+          testCount++;
+          const row = document.createElement('tr');
+          
+          if (idx === 0) {
+            const storyCell = document.createElement('td');
+            storyCell.className = 'cicd-col-story';
+            storyCell.style.paddingLeft = (depth * 20 + 10) + 'px';
+            storyCell.rowSpan = story.acceptanceTests.length;
+            
+            if (hasChildren) {
+              const expandIcon = document.createElement('span');
+              expandIcon.className = 'cicd-expand-icon';
+              expandIcon.textContent = isExpanded ? '▼' : '▶';
+              expandIcon.style.cursor = 'pointer';
+              expandIcon.style.marginRight = '5px';
+              expandIcon.onclick = () => toggleCICDExpand(story.id);
+              storyCell.appendChild(expandIcon);
+            } else {
+              storyCell.style.paddingLeft = (depth * 20 + 25) + 'px';
+            }
+            
+            storyCell.appendChild(document.createTextNode(`#${story.id}`));
+            row.appendChild(storyCell);
+          }
+          
+          const testCell = document.createElement('td');
+          testCell.className = 'cicd-col-test';
+          testCell.textContent = test.title || `Test ${test.id}`;
+          row.appendChild(testCell);
+          
+          const resultCell = document.createElement('td');
+          resultCell.className = 'cicd-run-col';
+          resultCell.innerHTML = ciStatus === 'pass' ? '<span class="cicd-cell-pass">✓</span>' :
+                                 ciStatus === 'fail' ? '<span class="cicd-cell-fail">✗</span>' :
+                                 '<span class="cicd-cell-none">-</span>';
+          row.appendChild(resultCell);
+          
+          tbody.appendChild(row);
+        });
+      }
+      
+      if (hasChildren && isExpanded) {
+        story.children.forEach(child => renderStoryTests(child, depth + 1));
+      }
+    };
+    
+    stories.forEach(story => renderStoryTests(story, 0));
+    
+    const lastUpdated = document.getElementById('cicd-last-updated');
+    if (lastUpdated) {
+      lastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+    }
+    
+    if (testCount === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">No acceptance tests found.</td></tr>';
+    }
+    
+  } catch (error) {
+    console.error('Error rendering CI/CD dashboard:', error);
+    const tbody = document.getElementById('cicd-matrix-body');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: red;">Error: ' + error.message + '</td></tr>';
+    }
+  }
+}
+
+function toggleCICDExpand(storyId) {
+  if (cicdExpandedStories.has(storyId)) {
+    cicdExpandedStories.delete(storyId);
+  } else {
+    cicdExpandedStories.add(storyId);
+  }
+  renderCICD();
+}
 async function renderRTM() {
   try {
     const url = resolveApiUrl('/api/rtm/matrix');

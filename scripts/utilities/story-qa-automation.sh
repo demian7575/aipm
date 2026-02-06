@@ -14,8 +14,8 @@ echo "🔍 Story Quality Assurance Script"
 echo "=================================="
 echo ""
 
-# Stories to exclude from test generation (comma-separated IDs)
-EXCLUDED_STORIES="1000,5310"  # Add story IDs that shouldn't have tests
+# Stories to exclude from test generation (array of IDs)
+EXCLUDED_STORIES=(1000 5310)  # Add story IDs that shouldn't have tests
 
 # Counters
 STORIES_FIXED=0
@@ -26,18 +26,21 @@ SKIPPED_STORIES=0
 # Fetch all stories
 echo "📥 Fetching all stories from $API_BASE..."
 ALL_STORIES=$(curl -s "$API_BASE/api/stories")
-STORY_COUNT=$(echo "$ALL_STORIES" | jq 'length')
-echo "✅ Found $STORY_COUNT stories"
+
+# Flatten hierarchical stories into a single array
+FLAT_STORIES=$(echo "$ALL_STORIES" | jq 'def flatten: if type == "array" then map(flatten) | add else [.] + (if .children then (.children | flatten) else [] end) | map(del(.children)) end; flatten')
+STORY_COUNT=$(echo "$FLAT_STORIES" | jq 'length')
+echo "✅ Found $STORY_COUNT stories (including nested)"
 echo ""
 
 # Step 1: Audit and fix story format
 echo "📋 Step 1: Auditing story format..."
 echo "-----------------------------------"
 
-STORIES_NEEDING_FIX=$(echo "$ALL_STORIES" | jq -r '
+STORIES_NEEDING_FIX=$(echo "$FLAT_STORIES" | jq -r --argjson excluded "$(printf '%s\n' "${EXCLUDED_STORIES[@]}" | jq -s .)" '
   .[] | 
   select(.asA == "" or .iWant == "" or .soThat == "") | 
-  select([.id] | inside(['$EXCLUDED_STORIES' | split(",") | map(tonumber)]) | not) |
+  select([.id] | inside($excluded) | not) |
   .id
 ')
 
@@ -52,7 +55,7 @@ else
     echo "🔧 Fixing story #$STORY_ID..."
     
     # Get story details
-    STORY=$(echo "$ALL_STORIES" | jq ".[] | select(.id == $STORY_ID)")
+    STORY=$(echo "$FLAT_STORIES" | jq ".[] | select(.id == $STORY_ID)")
     TITLE=$(echo "$STORY" | jq -r '.title')
     
     echo "   Title: $TITLE"
@@ -61,28 +64,22 @@ else
     # Call Semantic API to generate story draft
     DRAFT_RESPONSE=$(curl -s -X POST "$SEMANTIC_API_BASE/api/aipm-story-draft" \
       -H 'Content-Type: application/json' \
-      -d "{
-        \"requestId\": \"fix-story-$STORY_ID\",
-        \"title\": \"$TITLE\",
-        \"description\": $(echo "$STORY" | jq -c '.description // ""')
-      }")
+      -d "$(jq -n --arg rid "fix-story-$STORY_ID" --arg t "$TITLE" --argjson d "$(echo "$STORY" | jq -c '.description // ""')" \
+        '{requestId: $rid, title: $t, description: $d}')")
     
     # Parse SSE response
     DRAFT_DATA=$(echo "$DRAFT_RESPONSE" | grep "^data: " | tail -1 | sed 's/^data: //')
     
-    if echo "$DRAFT_DATA" | jq -e '.story' > /dev/null 2>&1; then
-      AS_A=$(echo "$DRAFT_DATA" | jq -r '.story.asA')
-      I_WANT=$(echo "$DRAFT_DATA" | jq -r '.story.iWant')
-      SO_THAT=$(echo "$DRAFT_DATA" | jq -r '.story.soThat')
+    if echo "$DRAFT_DATA" | jq -e '.asA' > /dev/null 2>&1; then
+      AS_A=$(echo "$DRAFT_DATA" | jq -r '.asA')
+      I_WANT=$(echo "$DRAFT_DATA" | jq -r '.iWant')
+      SO_THAT=$(echo "$DRAFT_DATA" | jq -r '.soThat')
       
       # Update story
       curl -s -X PATCH "$API_BASE/api/stories/$STORY_ID" \
         -H 'Content-Type: application/json' \
-        -d "{
-          \"asA\": \"$AS_A\",
-          \"iWant\": \"$I_WANT\",
-          \"soThat\": \"$SO_THAT\"
-        }" > /dev/null
+        -d "$(jq -n --arg a "$AS_A" --arg i "$I_WANT" --arg s "$SO_THAT" \
+          '{asA: $a, iWant: $i, soThat: $s}')" > /dev/null
       
       echo "   ✅ Story format updated"
       STORIES_FIXED=$((STORIES_FIXED + 1))
@@ -95,15 +92,16 @@ fi
 
 # Refresh stories after fixes
 ALL_STORIES=$(curl -s "$API_BASE/api/stories")
+FLAT_STORIES=$(echo "$ALL_STORIES" | jq 'def flatten: if type == "array" then map(flatten) | add else [.] + (if .children then (.children | flatten) else [] end) | map(del(.children)) end; flatten')
 
 # Step 2: Generate missing acceptance tests
 echo "📋 Step 2: Generating missing acceptance tests..."
 echo "------------------------------------------------"
 
-STORIES_NEEDING_TESTS=$(echo "$ALL_STORIES" | jq -r '
+STORIES_NEEDING_TESTS=$(echo "$FLAT_STORIES" | jq -r --argjson excluded "$(printf '%s\n' "${EXCLUDED_STORIES[@]}" | jq -s .)" '
   .[] | 
   select(.acceptanceTests == null or (.acceptanceTests | length) == 0) |
-  select([.id] | inside(['$EXCLUDED_STORIES' | split(",") | map(tonumber)]) | not) |
+  select([.id] | inside($excluded) | not) |
   .id
 ')
 
@@ -117,7 +115,7 @@ else
   for STORY_ID in $STORIES_NEEDING_TESTS; do
     echo "🧪 Generating tests for story #$STORY_ID..."
     
-    STORY=$(echo "$ALL_STORIES" | jq ".[] | select(.id == $STORY_ID)")
+    STORY=$(echo "$FLAT_STORIES" | jq ".[] | select(.id == $STORY_ID)")
     TITLE=$(echo "$STORY" | jq -r '.title')
     
     echo "   Title: $TITLE"
@@ -130,22 +128,17 @@ else
     # Parse SSE response
     TEST_DATA=$(echo "$TEST_RESPONSE" | grep "^data: " | tail -1 | sed 's/^data: //')
     
-    if echo "$TEST_DATA" | jq -e '.acceptanceTest' > /dev/null 2>&1; then
-      TEST_TITLE=$(echo "$TEST_DATA" | jq -r '.acceptanceTest.title')
-      GIVEN=$(echo "$TEST_DATA" | jq -r '.acceptanceTest.given')
-      WHEN=$(echo "$TEST_DATA" | jq -r '.acceptanceTest.when')
-      THEN=$(echo "$TEST_DATA" | jq -r '.acceptanceTest.then')
+    if echo "$TEST_DATA" | jq -e '.title' > /dev/null 2>&1; then
+      TEST_TITLE=$(echo "$TEST_DATA" | jq -r '.title')
+      GIVEN=$(echo "$TEST_DATA" | jq -r '.given')
+      WHEN=$(echo "$TEST_DATA" | jq -r '.when')
+      THEN=$(echo "$TEST_DATA" | jq -r '.then')
       
       # Create acceptance test
       curl -s -X POST "$API_BASE/api/acceptance-tests" \
         -H 'Content-Type: application/json' \
-        -d "{
-          \"storyId\": $STORY_ID,
-          \"title\": \"$TEST_TITLE\",
-          \"given\": \"$GIVEN\",
-          \"when\": \"$WHEN\",
-          \"then\": \"$THEN\"
-        }" > /dev/null
+        -d "$(jq -n --argjson sid "$STORY_ID" --arg t "$TEST_TITLE" --arg g "$GIVEN" --arg w "$WHEN" --arg th "$THEN" \
+          '{storyId: $sid, title: $t, given: $g, when: $w, then: $th}')" > /dev/null
       
       echo "   ✅ Acceptance test created"
       TESTS_GENERATED=$((TESTS_GENERATED + 1))
@@ -158,6 +151,7 @@ fi
 
 # Refresh stories after test generation
 ALL_STORIES=$(curl -s "$API_BASE/api/stories")
+FLAT_STORIES=$(echo "$ALL_STORIES" | jq 'def flatten: if type == "array" then map(flatten) | add else [.] + (if .children then (.children | flatten) else [] end) | map(del(.children)) end; flatten')
 
 # Step 3: Generate Phase 4 tests
 echo "📋 Step 3: Generating Phase 4 test script..."
@@ -194,13 +188,19 @@ HEADER
 chmod +x "$PHASE4_SCRIPT"
 
 # Add test cases for each story with acceptance tests
-echo "$ALL_STORIES" | jq -c '.[] | select(.acceptanceTests != null and (.acceptanceTests | length) > 0)' | while read -r STORY; do
+echo "$FLAT_STORIES" | jq -c '.[] | select(.acceptanceTests != null and (.acceptanceTests | length) > 0)' | while read -r STORY; do
   STORY_ID=$(echo "$STORY" | jq -r '.id')
   STORY_TITLE=$(echo "$STORY" | jq -r '.title')
   
   # Skip excluded stories
-  if echo ",$EXCLUDED_STORIES," | grep -q ",$STORY_ID,"; then
-    SKIPPED_STORIES=$((SKIPPED_STORIES + 1))
+  skip=0
+  for excluded_id in "${EXCLUDED_STORIES[@]}"; do
+    if [ "$STORY_ID" = "$excluded_id" ]; then
+      skip=1
+      break
+    fi
+  done
+  if [ $skip -eq 1 ]; then
     continue
   fi
   
