@@ -262,6 +262,13 @@ jobs:
             exit 1
           fi
       
+      - name: Sync Production to Development
+        if: success()
+        run: |
+          echo "🔄 Syncing Production data to Development..."
+          node scripts/utilities/sync-prod-to-dev.cjs
+          echo "✅ Sync completed"
+      
       - name: Create deployment summary
         if: always()
         run: |
