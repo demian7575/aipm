@@ -6865,260 +6865,58 @@ export async function createApp() {
       return;
     }
     if (storyIdMatch && method === 'PATCH') {
+      // Delegate to PUT handler for DynamoDB support
       const storyId = Number(storyIdMatch[1]);
-      const patchStartTime = Date.now();
-      const timings = [];
-      timings.push(`PATCH /api/stories/${storyId} started`);
-      
       try {
         const payload = await parseJson(req);
-        timings.push(`Parse JSON: ${Date.now() - patchStartTime}ms`);
         
-        const existingStmt = db.prepare('SELECT * FROM user_stories WHERE id = ?');
-        const existing = existingStmt.get(storyId);
-        timings.push(`  Get existing story: ${Date.now() - patchStartTime}ms`);
-        
-        // Debug: Log what we got from database
-        await writeFile('/tmp/aipm-patch-debug.log', 
-          `[${new Date().toISOString()}] PATCH /api/stories/${storyId}\n` +
-          `  existing: ${!!existing}\n` +
-          `  existing.title: ${existing?.title}\n` +
-          `  existing keys: ${existing ? Object.keys(existing).join(', ') : 'none'}\n` +
-          `  payload.title: ${payload.title}\n` +
-          `---\n`, 
-          { flag: 'a' }
-        ).catch(() => {});
-        
+        // Get existing story
+        const existing = await db.getStoryById(storyId);
         if (!existing) {
-          throw Object.assign(new Error('Story not found'), { statusCode: 404 });
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
         }
         
-        const title = payload.title !== undefined ? String(payload.title).trim() : undefined;
-        const description = payload.description !== undefined ? String(payload.description).trim() : undefined;
-        const assigneeEmail = payload.assigneeEmail !== undefined ? String(payload.assigneeEmail).trim() : undefined;
-        const asA = payload.asA != null ? String(payload.asA).trim() : undefined;
-        const iWant = payload.iWant != null ? String(payload.iWant).trim() : undefined;
-        const soThat = payload.soThat != null ? String(payload.soThat).trim() : undefined;
-        const requestedComponents = payload.components;
-
-        const storyPoint =
-          payload.storyPoint === undefined ? existing.story_point : normalizeStoryPoint(payload.storyPoint);
-        const existingComponents = parseJsonArray(existing.components);
-        const normalizedExistingComponents = normalizeComponentsInput(existingComponents);
-        const components =
-          requestedComponents === undefined
-            ? normalizedExistingComponents
-            : normalizeComponentsInput(requestedComponents, { strict: true });
-
-        const currentStatus = safeNormalizeStoryStatus(existing.status);
-        const nextStatus =
-          payload.status === undefined ? currentStatus : normalizeStoryStatus(payload.status);
-
-        const nextAsA = asA ?? existing.as_a ?? '';
-        const nextIWant = iWant ?? existing.i_want ?? '';
-        const nextSoThat = soThat ?? existing.so_that ?? '';
-        const nextDescription = description ?? existing.description ?? '';
-        const nextAssigneeEmail = assigneeEmail ?? existing.assignee_email ?? '';
-        
-        const descriptionChanged = description !== undefined && description !== (existing.description ?? '');
-        const assigneeChanged = assigneeEmail !== undefined && assigneeEmail !== (existing.assignee_email ?? '');
-        const storyPointChanged = payload.storyPoint !== undefined && (storyPoint ?? null) !== (existing.story_point ?? null);
-        const asAChanged = asA !== undefined && nextAsA !== (existing.as_a ?? '');
-        const iWantChanged = iWant !== undefined && nextIWant !== (existing.i_want ?? '');
-        const soThatChanged = soThat !== undefined && nextSoThat !== (existing.so_that ?? '');
-        const titleChanged = payload.title !== undefined && title !== existing.title;
-        const componentsChanged =
-          requestedComponents !== undefined && JSON.stringify(components) !== JSON.stringify(normalizedExistingComponents);
-        
-        // Only consider content changed if fields other than status are modified
-        const contentChanged =
-          titleChanged ||
-          descriptionChanged ||
-          assigneeChanged ||
-          storyPointChanged ||
-          asAChanged ||
-          iWantChanged ||
-          soThatChanged ||
-          componentsChanged;
-
-        // Debug logging to file
-        const debugInfo = {
-          storyId,
-          titleChanged,
-          descriptionChanged,
-          assigneeChanged,
-          storyPointChanged,
-          asAChanged,
-          iWantChanged,
-          soThatChanged,
-          componentsChanged,
-          contentChanged,
-          payloadKeys: Object.keys(payload),
-          timestamp: new Date().toISOString()
+        // Merge with existing values (PATCH semantics)
+        const updates = {
+          title: payload.title !== undefined ? payload.title : existing.title,
+          asA: payload.asA !== undefined ? payload.asA : existing.asA,
+          iWant: payload.iWant !== undefined ? payload.iWant : existing.iWant,
+          soThat: payload.soThat !== undefined ? payload.soThat : existing.soThat,
+          description: payload.description !== undefined ? payload.description : existing.description,
+          storyPoint: payload.storyPoint !== undefined ? payload.storyPoint : existing.storyPoint,
+          assigneeEmail: payload.assigneeEmail !== undefined ? payload.assigneeEmail : existing.assigneeEmail,
+          status: payload.status !== undefined ? payload.status : existing.status,
+          components: payload.components !== undefined ? payload.components : existing.components,
+          parentId: payload.parentId !== undefined ? payload.parentId : existing.parentId
         };
-        await writeFile('/tmp/aipm-invest-debug.log', 
-          JSON.stringify(debugInfo, null, 2) + '\n---\n', 
-          { flag: 'a' }
-        ).catch(() => {});
-
-        let analysis;
-        let warnings = [];
         
-        // Only run INVEST validation if content changed (not just status)
-        if (contentChanged) {
-          await writeFile('/tmp/aipm-invest-debug.log', 
-            `[${new Date().toISOString()}] Running INVEST validation for story ${storyId}\n`, 
-            { flag: 'a' }
-          ).catch(() => {});
-          // Load acceptance tests for INVEST analysis
-          const acceptanceTests = db.prepare(
-            'SELECT id, title, given, when, then, status FROM acceptance_tests WHERE story_id = ?'
-          ).all(storyId);
-          
-          // Run INVEST analysis
-          const storyForValidation = {
-            id: storyId,
-            title,
-            asA: nextAsA,
-            iWant: nextIWant,
-            soThat: nextSoThat,
-            description: description || existing.description || '',
-            storyPoint,
-            components,
-            acceptanceTests,
-          };
-          const investStartTime = Date.now();
-          analysis = await analyzeInvest(storyForValidation);
-          timings.push(`  INVEST analysis completed: ${Date.now() - investStartTime}ms (total: ${Date.now() - patchStartTime}ms)`);
-          warnings = analysis.warnings;
-          
-          if (warnings.length > 0 && !payload.acceptWarnings) {
-            sendJson(res, 409, {
-              code: 'INVEST_WARNINGS',
-              message: 'User story does not meet INVEST criteria.',
-              warnings,
-              analysis: {
-                source: analysis.source,
-                summary: analysis.summary,
-                model: analysis.ai?.model || null,
-              },
-            });
-            return;
-          }
-        } else {
-          // No content changed, use existing analysis
-          await writeFile('/tmp/aipm-invest-debug.log', 
-            `[${new Date().toISOString()}] Skipping INVEST validation for story ${storyId} (status-only change)\n`, 
-            { flag: 'a' }
-          ).catch(() => {});
-          analysis = {
-            source: existing.invest_analysis ? JSON.parse(existing.invest_analysis).source : 'none',
-            summary: existing.invest_analysis ? JSON.parse(existing.invest_analysis).summary : '',
-            ai: existing.invest_analysis ? { model: JSON.parse(existing.invest_analysis).model } : null,
-            warnings: existing.invest_warnings ? JSON.parse(existing.invest_warnings) : []
-          };
-          warnings = analysis.warnings;
-          timings.push(`  INVEST analysis skipped (status-only change): ${Date.now() - patchStartTime}ms`);
-        }
-
-        if (nextStatus === 'Done' && !payload.bypassDoneValidation) {
-          await ensureCanMarkStoryDone(db, storyId);
-        }
-
-        // For DynamoDB, use direct update to ensure status change works
-        if (process.env.NODE_ENV !== 'test' && process.env.STORIES_TABLE && process.env.AWS_REGION) {
-          // Direct DynamoDB update for status change
-          const dynamoStartTime = Date.now();
-          const { UpdateItemCommand } = await import('@aws-sdk/client-dynamodb');
-          const client = await getDynamoClient();
-          
-          try {
-            await client.send(new UpdateItemCommand({
-              TableName: process.env.STORIES_TABLE,
-              Key: { id: { N: String(storyId) } },
-              UpdateExpression: 'SET #status = :status, updated_at = :updatedAt',
-              ExpressionAttributeNames: { '#status': 'status' },
-              ExpressionAttributeValues: {
-                ':status': { S: nextStatus },
-                ':updatedAt': { S: now() }
-              }
-            }));
-            timings.push(`DynamoDB update: ${Date.now() - dynamoStartTime}ms`);
-          } catch (dynamoError) {
-            console.error('❌ DynamoDB direct update failed:', dynamoError);
-            // Fall back to SQLite emulation
-          }
-        }
-
-        const update = db.prepare(
-          'UPDATE user_stories SET title = ?, description = ?, components = ?, story_point = ?, assignee_email = ?, as_a = ?, i_want = ?, so_that = ?, status = ?, updated_at = ?, invest_warnings = ?, invest_analysis = ? WHERE id = ?' // prettier-ignore
-        );
-        const sqliteStartTime = Date.now();
-        update.run(
-          title ?? existing.title,
-          nextDescription,
-          serializeComponents(components),
-          storyPoint,
-          nextAssigneeEmail,
-          nextAsA,
-          nextIWant,
-          nextSoThat,
-          nextStatus,
-          now(),
-          JSON.stringify(warnings),
-          JSON.stringify({
-            source: analysis.source,
-            summary: analysis.summary,
-            model: analysis.ai?.model || null,
-          }),
-          storyId
-        );
-        timings.push(`SQLite update: ${Date.now() - sqliteStartTime}ms`);
-
-        if (contentChanged) {
-          const existingTestCountRow =
-            db.prepare('SELECT COUNT(*) as count FROM acceptance_tests WHERE story_id = ?').get(storyId) ||
-            {
-              count: 0,
-            };
-          if (Number(existingTestCountRow.count ?? 0) > 0) {
-            markAcceptanceTestsForReview(db, storyId);
-          }
-          await createAutomaticAcceptanceTest(
-            db,
-            {
-              id: storyId,
-              title,
-              asA: nextAsA,
-              iWant: nextIWant,
-              soThat: nextSoThat,
-              components,
-            },
-            { reason: 'update', existingCount: Number(existingTestCountRow.count ?? 0) }
-          );
-        }
+        // Update in DynamoDB
+        await db.updateStory(storyId, updates);
         
-        const loadStartTime = Date.now();
-        const updated = flattenStories(await loadStories(db)).find((story) => story.id === storyId);
-        timings.push(`  loadStories: ${Date.now() - loadStartTime}ms (total: ${Date.now() - patchStartTime}ms)`);
-        
-        if (updated) {
-          applyInvestAnalysisToStory(updated, analysis);
-        }
-        timings.push(`PATCH completed: ${Date.now() - patchStartTime}ms`);
-        const timingLog = `⏱️  PATCH Timing: ${timings.join(' | ')}`;
-        console.error(timingLog);  // Use stderr to ensure it's logged
-        sendJson(res, 200, updated ?? null);
+        // Return updated story
+        const updated = await db.getStoryById(storyId);
+        sendJson(res, 200, updated);
       } catch (error) {
+        console.error('PATCH error:', error);
         const status = error.statusCode ?? 500;
-        const body = { message: error.message || 'Failed to update story' };
-        if (error.code) body.code = error.code;
-        if (error.details) body.details = error.details;
-        sendJson(res, status, body);
+        sendJson(res, status, { message: error.message || 'Failed to update story' });
       }
       return;
     }
 
+    const dependencyCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/dependencies$/);
+    if (dependencyCreateMatch && method === 'POST') {
+      const storyId = Number(dependencyCreateMatch[1]);
+      try {
+        const payload = await parseJson(req);
+        const candidateId =
+          payload.dependsOnStoryId ?? payload.storyId ?? payload.dependsOn ?? payload.targetStoryId;
+        const dependsOnStoryId = Number(candidateId);
+        if (!Number.isFinite(dependsOnStoryId)) {
+          throw Object.assign(new Error('Select a valid dependency story'), { statusCode: 400 });
+        }
+        if (dependsOnStoryId === storyId) {
     const dependencyCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/dependencies$/);
     if (dependencyCreateMatch && method === 'POST') {
       const storyId = Number(dependencyCreateMatch[1]);
@@ -7136,28 +6934,27 @@ export async function createApp() {
 
         const relationship = normalizeDependencyRelationship(payload.relationship);
 
-        const storyLookup = db.prepare('SELECT id FROM user_stories WHERE id = ?');
-        const storyExists = storyLookup.get(storyId);
-        if (!storyExists) {
+        // Verify both stories exist
+        const story = await db.getStoryById(storyId);
+        if (!story) {
           throw Object.assign(new Error('Story not found'), { statusCode: 404 });
         }
-        const dependencyExists = storyLookup.get(dependsOnStoryId);
-        if (!dependencyExists) {
+        const dependencyStory = await db.getStoryById(dependsOnStoryId);
+        if (!dependencyStory) {
           throw Object.assign(new Error('Dependency story not found'), { statusCode: 404 });
         }
 
-        const existing = db
-          .prepare('SELECT relationship FROM story_dependencies WHERE story_id = ? AND depends_on_story_id = ?')
-          .get(storyId, dependsOnStoryId);
-        if (existing) {
-          if (existing.relationship !== relationship) {
-            db.prepare(
-              'UPDATE story_dependencies SET relationship = ? WHERE story_id = ? AND depends_on_story_id = ?'
-            ).run(relationship, storyId, dependsOnStoryId);
-          }
+        // Add dependency (stored in story's dependencies array)
+        const dependencies = story.dependencies || [];
+        const existingIndex = dependencies.findIndex(d => d.storyId === dependsOnStoryId);
+        
+        if (existingIndex >= 0) {
+          dependencies[existingIndex].relationship = relationship;
         } else {
-          insertDependency(db, { storyId, dependsOnStoryId, relationship });
+          dependencies.push({ storyId: dependsOnStoryId, relationship });
         }
+        
+        await db.updateStory(storyId, { dependencies });
 
         const refreshed = await loadStoryWithDetails(db, storyId);
         sendJson(res, 201, refreshed ?? null);
@@ -7173,19 +6970,19 @@ export async function createApp() {
       const storyId = Number(dependencyDeleteMatch[1]);
       const dependsOnStoryId = Number(dependencyDeleteMatch[2]);
       try {
-        const storyLookup = db.prepare('SELECT id FROM user_stories WHERE id = ?');
-        const storyExists = storyLookup.get(storyId);
-        if (!storyExists) {
+        const story = await db.getStoryById(storyId);
+        if (!story) {
           throw Object.assign(new Error('Story not found'), { statusCode: 404 });
         }
 
-        const result = db
-          .prepare('DELETE FROM story_dependencies WHERE story_id = ? AND depends_on_story_id = ?')
-          .run(storyId, dependsOnStoryId);
-        if (result.changes === 0) {
+        const dependencies = (story.dependencies || []).filter(d => d.storyId !== dependsOnStoryId);
+        
+        if (dependencies.length === (story.dependencies || []).length) {
           sendJson(res, 404, { message: 'Dependency not found' });
           return;
         }
+        
+        await db.updateStory(storyId, { dependencies });
 
         const refreshed = await loadStoryWithDetails(db, storyId);
         sendJson(res, 200, refreshed ?? null);
