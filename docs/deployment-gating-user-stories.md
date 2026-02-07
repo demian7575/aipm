@@ -1,0 +1,107 @@
+# Deployment & Gating Workflows — User Stories and Acceptance Tests
+
+## Deployment and gating script inventory
+
+### Deployment scripts
+- `scripts/deploy-to-environment.sh` — deploys backend services to EC2 for `dev`/`prod`, updates systemd services, and performs basic health checks for backend + frontend URLs.【F:scripts/deploy-to-environment.sh†L1-L271】
+- `scripts/restart-semantic-api.sh` — restarts the semantic API systemd service and verifies status output.【F:scripts/restart-semantic-api.sh†L1-L12】
+
+### Gating scripts
+- `scripts/testing/run-structured-gating-tests.sh` — orchestrates Phase 1 (security/data safety) and Phase 2 (E2E workflow) gating tests and controls the final pass/fail decision for deployment approval.【F:scripts/testing/run-structured-gating-tests.sh†L1-L217】
+- `scripts/testing/phase1-security-data-safety.sh` — runs critical infrastructure/health checks in parallel and fails the phase if any test fails.【F:scripts/testing/phase1-security-data-safety.sh†L1-L83】
+- `scripts/testing/phase2-e2e-workflow.sh` — executes a UI-driven end-to-end workflow covering story draft creation, story creation, edits, and subsequent steps to simulate a real user flow.【F:scripts/testing/phase2-e2e-workflow.sh†L1-L220】
+
+### CI/CD deployment & gating workflows
+- `deploy-pr-to-dev.yml` — deploys a PR branch to development, runs gating tests, and blocks the workflow on gating failures.【F:.github/workflows/deploy-pr-to-dev.yml†L1-L182】
+- `deploy-to-prod.yml` — deploys to development first, runs pre-production gating tests, gates production deployment, then runs post-production checks and gating tests.【F:.github/workflows/deploy-to-prod.yml†L1-L285】
+- `restart-semantic-api.yml` — restarts the semantic API on the selected environment using `scripts/restart-semantic-api.sh` over SSH.【F:.github/workflows/restart-semantic-api.yml†L1-L49】
+
+## Workflow user stories and GWT acceptance tests
+
+### Workflow: Deploy PR to Development (`.github/workflows/deploy-pr-to-dev.yml`)
+
+| Step (exact name) | User story | Pass criteria | Fail criteria | GWT acceptance test (cites step) |
+| --- | --- | --- | --- | --- |
+| Get PR branch name | As a release engineer, I want the workflow to resolve the PR branch name so the deployment targets the correct code. | Branch name is resolved and written to workflow outputs. | Missing/invalid branch name triggers a failure and stops the workflow. | **Given** the GitHub Actions step **“Get PR branch name”** runs, **When** it queries the PR details, **Then** it must set `branch_name` in `GITHUB_OUTPUT` and fail if the branch is empty or `null`.【F:.github/workflows/deploy-pr-to-dev.yml†L18-L38】 |
+| Checkout PR branch directly | As a release engineer, I want to check out the PR branch to ensure the deploy uses the PR’s code. | Repo checked out at the resolved branch name. | Checkout fails or fetch depth prevents resolving the branch. | **Given** the step **“Checkout PR branch directly”**, **When** it uses the resolved `branch_name`, **Then** the repository must be checked out at that ref with full history available. 【F:.github/workflows/deploy-pr-to-dev.yml†L40-L44】 |
+| Rebase onto latest main | As a release engineer, I want PR branches rebased on main to minimize merge conflicts before deployment. | Rebase succeeds and pushes rebased branch back to GitHub. | Rebase conflicts cause a failure and abort. | **Given** the step **“Rebase onto latest main”**, **When** a conflict occurs, **Then** the rebase must abort and exit non‑zero; **And When** it succeeds, **Then** the rebased branch is pushed back to origin. 【F:.github/workflows/deploy-pr-to-dev.yml†L46-L92】 |
+| Load Development environment configuration | As a release engineer, I want dev environment configuration loaded so downstream steps have correct endpoints and resources. | Expected dev env variables are exported to `GITHUB_ENV`. | Missing variables or load failure stops the workflow. | **Given** the step **“Load Development environment configuration”**, **When** it sources `load-env-config.sh`, **Then** it must export `DEV_EC2_IP`, `DEV_API_BASE`, and related env vars. 【F:.github/workflows/deploy-pr-to-dev.yml†L94-L104】 |
+| Setup Node.js | As a release engineer, I want a known Node.js version for build/deploy scripts. | Node.js 18 installed and available. | Setup action fails. | **Given** the step **“Setup Node.js”**, **When** it runs, **Then** Node.js 18 must be available for subsequent commands. 【F:.github/workflows/deploy-pr-to-dev.yml†L106-L110】 |
+| Install dependencies | As a release engineer, I want dependencies installed for deployment tooling and scripts. | `npm install` and system packages (`jq`, `python3-yaml`) succeed. | Package installation fails. | **Given** the step **“Install dependencies”**, **When** it completes successfully, **Then** NPM dependencies and required system packages are installed for gating scripts. 【F:.github/workflows/deploy-pr-to-dev.yml†L112-L117】 |
+| Configure AWS credentials | As a release engineer, I want AWS credentials configured so S3 deployments can proceed. | AWS credentials configured with required secrets. | Credential configuration fails. | **Given** the step **“Configure AWS credentials”**, **When** credentials are configured, **Then** AWS CLI actions must have access to the specified region and credentials. 【F:.github/workflows/deploy-pr-to-dev.yml†L119-L124】 |
+| Setup SSH key for deployment | As a release engineer, I want SSH configured so the workflow can reach the EC2 host. | SSH key is installed, permissions set, host key added, and validation passes. | SSH key missing/invalid stops the workflow. | **Given** the step **“Setup SSH key for deployment”**, **When** it completes, **Then** the SSH key is written to `~/.ssh/id_rsa` and validated against the target host. 【F:.github/workflows/deploy-pr-to-dev.yml†L126-L141】 |
+| Deploy backend to development EC2 | As a release engineer, I want the backend deployed on the dev EC2 host. | `scripts/deploy-to-environment.sh dev` completes successfully. | Script exit code non‑zero. | **Given** the step **“Deploy backend to development EC2”**, **When** it runs `./scripts/deploy-to-environment.sh dev`, **Then** the backend deployment must complete without error. 【F:.github/workflows/deploy-pr-to-dev.yml†L143-L147】 |
+| Sync database from production to development | As a release engineer, I want dev data updated from production for realistic tests. | Sync script completes without error. | Sync script fails. | **Given** the step **“Sync database from production to development”**, **When** `sync-prod-to-dev.cjs` runs, **Then** it must exit successfully to continue. 【F:.github/workflows/deploy-pr-to-dev.yml†L149-L153】 |
+| Deploy frontend to development S3 | As a release engineer, I want the frontend deployed to the dev S3 bucket with proper config. | Config file is created and S3 sync completes. | S3 sync fails or config not created. | **Given** the step **“Deploy frontend to development S3”**, **When** it writes `apps/frontend/public/config.js` and runs `aws s3 sync`, **Then** the frontend assets should be deployed to the dev bucket. 【F:.github/workflows/deploy-pr-to-dev.yml†L155-L178】 |
+| Run Pre-Production Gating Tests | As a release engineer, I want automated gating tests to validate the PR before it is accepted. | `run-structured-gating-tests.sh --phases "1,2"` succeeds. | Script returns failure and blocks the workflow. | **Given** the step **“Run Pre-Production Gating Tests”**, **When** it runs `./scripts/testing/run-structured-gating-tests.sh --phases "1,2"`, **Then** the workflow must fail if the script exits non‑zero. 【F:.github/workflows/deploy-pr-to-dev.yml†L180-L206】 |
+
+### Workflow: Deploy to Production (`.github/workflows/deploy-to-prod.yml`)
+
+| Step (exact name) | User story | Pass criteria | Fail criteria | GWT acceptance test (cites step) |
+| --- | --- | --- | --- | --- |
+| Checkout repository | As a release engineer, I want the repository checked out to access deployment scripts. | Repository checked out with full history. | Checkout fails. | **Given** the step **“Checkout repository”**, **When** it runs, **Then** the repository must be checked out with `fetch-depth: 0` for deployment tasks. 【F:.github/workflows/deploy-to-prod.yml†L23-L31】 |
+| Setup Node.js | As a release engineer, I want Node.js 18 available for tooling. | Node.js 18 installed. | Setup action fails. | **Given** the step **“Setup Node.js”**, **When** it runs, **Then** Node.js 18 must be available. 【F:.github/workflows/deploy-to-prod.yml†L33-L37】 |
+| Install dependencies | As a release engineer, I want dependencies installed for deployment and gating scripts. | `npm install` and required packages succeed. | Install fails. | **Given** the step **“Install dependencies”**, **When** the command finishes, **Then** node dependencies and tools (`jq`, `python3-yaml`) must be available. 【F:.github/workflows/deploy-to-prod.yml†L39-L45】 |
+| Configure AWS credentials | As a release engineer, I want AWS credentials configured for deployments. | AWS credentials configured. | Configuration fails. | **Given** the step **“Configure AWS credentials”**, **When** credentials are set, **Then** AWS CLI must be ready for deploy commands. 【F:.github/workflows/deploy-to-prod.yml†L47-L53】 |
+| Load Development environment configuration | As a release engineer, I want dev environment values loaded for pre‑prod tests. | Dev env values exported to `GITHUB_ENV`. | Missing values cause errors. | **Given** the step **“Load Development environment configuration”**, **When** it sources `load-env-config.sh dev`, **Then** the workflow exports dev endpoint variables used in subsequent steps. 【F:.github/workflows/deploy-to-prod.yml†L55-L67】 |
+| Setup SSH key | As a release engineer, I want SSH access configured to deploy to EC2. | SSH key is installed, known_hosts updated, and validation passes. | SSH validation fails. | **Given** the step **“Setup SSH key”**, **When** it runs, **Then** the SSH key must be configured and validated. 【F:.github/workflows/deploy-to-prod.yml†L69-L86】 |
+| Deploy to Development EC2 | As a release engineer, I want the backend deployed to dev for pre‑prod testing. | `deploy-to-environment.sh dev` completes. | Script fails. | **Given** the step **“Deploy to Development EC2”**, **When** it runs `./scripts/deploy-to-environment.sh dev`, **Then** the backend deployment must succeed. 【F:.github/workflows/deploy-to-prod.yml†L88-L95】 |
+| Deploy frontend to Development S3 | As a release engineer, I want a dev frontend deploy for pre‑prod validation. | Config file is generated and S3 sync completes. | S3 sync fails or config not generated. | **Given** the step **“Deploy frontend to Development S3”**, **When** it writes `apps/frontend/public/config.js` and syncs to S3, **Then** the dev frontend assets must be deployed. 【F:.github/workflows/deploy-to-prod.yml†L97-L118】 |
+| Run Pre-Production Gating Tests | As a release engineer, I want pre‑prod gates to approve production deployment. | `run-structured-gating-tests.sh --phases "1,2"` succeeds or force deploy is enabled. | Gating script fails and force deploy is not enabled. | **Given** the step **“Run Pre-Production Gating Tests”**, **When** the gating script returns failure and `force_deploy` is false, **Then** the workflow must fail and block production. 【F:.github/workflows/deploy-to-prod.yml†L120-L145】 |
+| Checkout repository (prod job) | As a release engineer, I want the repository checked out before production deployment. | Checkout succeeds. | Checkout fails. | **Given** the step **“Checkout repository”** in the production job, **When** it runs, **Then** it must check out the repo with full history. 【F:.github/workflows/deploy-to-prod.yml†L148-L152】 |
+| Setup Node.js (prod job) | As a release engineer, I want Node.js available for prod deploy tooling. | Node.js 18 installed. | Setup fails. | **Given** the step **“Setup Node.js”** in the production job, **When** it runs, **Then** Node.js 18 must be available. 【F:.github/workflows/deploy-to-prod.yml†L154-L157】 |
+| Install dependencies (prod job) | As a release engineer, I want dependencies installed before prod deploy. | `npm install` succeeds. | Install fails. | **Given** the step **“Install dependencies”** in the production job, **When** it runs, **Then** dependencies must be installed without error. 【F:.github/workflows/deploy-to-prod.yml†L158-L160】 |
+| Configure AWS credentials (prod job) | As a release engineer, I want AWS credentials configured before prod deploy. | Credentials configured. | Configuration fails. | **Given** the step **“Configure AWS credentials”** in the production job, **When** it runs, **Then** AWS CLI access must be ready. 【F:.github/workflows/deploy-to-prod.yml†L162-L168】 |
+| Load Production environment configuration | As a release engineer, I want production endpoints loaded for deployment. | Prod env values exported to `GITHUB_ENV`. | Missing values cause errors. | **Given** the step **“Load Production environment configuration”**, **When** it sources `load-env-config.sh prod`, **Then** the workflow exports prod endpoint variables for downstream steps. 【F:.github/workflows/deploy-to-prod.yml†L170-L179】 |
+| Setup SSH key for deployment | As a release engineer, I want SSH access configured for production. | SSH key installed and validated. | SSH validation fails. | **Given** the step **“Setup SSH key for deployment”**, **When** it runs, **Then** the SSH key must be configured and validated for the prod host. 【F:.github/workflows/deploy-to-prod.yml†L181-L198】 |
+| Deploy backend to Production EC2 | As a release engineer, I want the backend deployed to prod EC2. | `deploy-to-environment.sh prod` completes. | Script fails. | **Given** the step **“Deploy backend to Production EC2”**, **When** it runs `./scripts/deploy-to-environment.sh prod`, **Then** production backend deployment must succeed. 【F:.github/workflows/deploy-to-prod.yml†L200-L207】 |
+| Deploy frontend to Production S3 | As a release engineer, I want the prod frontend deployed to S3 with prod config. | Config file generated and S3 sync completes. | S3 sync fails. | **Given** the step **“Deploy frontend to Production S3”**, **When** it writes `apps/frontend/public/config.js` and syncs to S3, **Then** prod frontend assets must be deployed. 【F:.github/workflows/deploy-to-prod.yml†L209-L231】 |
+| Run Post-Production Gating Tests | As a release engineer, I want post‑deployment health and gating checks in prod. | Frontend and backend health checks pass, then `run-structured-gating-tests.sh --phases "1,2"` succeeds. | Any health check or gating test fails. | **Given** the step **“Run Post-Production Gating Tests”**, **When** any health check or gating test fails, **Then** the workflow must exit with failure. 【F:.github/workflows/deploy-to-prod.yml†L233-L266】 |
+| Sync Production to Development | As a release engineer, I want production data synced back to dev after a successful deploy. | Sync script completes successfully. | Sync script fails. | **Given** the step **“Sync Production to Development”**, **When** it runs `sync-prod-to-dev.cjs`, **Then** it must exit successfully. 【F:.github/workflows/deploy-to-prod.yml†L268-L272】 |
+| Create deployment summary | As a release engineer, I want a summary of the deployment outcome. | Summary is written to `GITHUB_STEP_SUMMARY`. | Summary step fails (workflow still completes). | **Given** the step **“Create deployment summary”**, **When** it runs, **Then** it must write the status and environment URLs to the workflow summary. 【F:.github/workflows/deploy-to-prod.yml†L274-L283】 |
+
+### Workflow: Restart Semantic API (`.github/workflows/restart-semantic-api.yml`)
+
+| Step (exact name) | User story | Pass criteria | Fail criteria | GWT acceptance test (cites step) |
+| --- | --- | --- | --- | --- |
+| Checkout repository | As a release engineer, I want the repo checked out to access the restart script. | Repo checkout succeeds. | Checkout fails. | **Given** the step **“Checkout repository”**, **When** it runs, **Then** the repository should be available for the restart script. 【F:.github/workflows/restart-semantic-api.yml†L18-L21】 |
+| Load environment configuration | As a release engineer, I want the EC2 IP selected for the requested environment. | EC2 IP is set in `GITHUB_ENV`. | Invalid environment selection or missing IP stops the workflow. | **Given** the step **“Load environment configuration”**, **When** the user selects `prod` or `dev`, **Then** the workflow exports the corresponding EC2 IP. 【F:.github/workflows/restart-semantic-api.yml†L23-L36】 |
+| Setup SSH key | As a release engineer, I want SSH access configured to restart the service. | SSH key installed and host key captured. | SSH key missing/invalid. | **Given** the step **“Setup SSH key”**, **When** it runs, **Then** the SSH key must be installed and known_hosts updated for the EC2 host. 【F:.github/workflows/restart-semantic-api.yml†L38-L48】 |
+| Restart Semantic API | As a release engineer, I want the semantic API service restarted on the target host. | `scripts/restart-semantic-api.sh` runs remotely without error. | SSH execution or script fails. | **Given** the step **“Restart Semantic API”**, **When** it SSHes into the host, **Then** it must execute `scripts/restart-semantic-api.sh` successfully. 【F:.github/workflows/restart-semantic-api.yml†L50-L52】 |
+
+## Script-level user stories and GWT acceptance tests
+
+### Script: `scripts/deploy-to-environment.sh`
+- **User story:** As a release engineer, I want a single script to deploy backend services to dev or prod and perform basic health verification. 【F:scripts/deploy-to-environment.sh†L1-L271】
+- **Pass criteria:** Script validates input environment, updates remote code + systemd services, restarts services, and performs backend/frontend health checks without fatal errors. 【F:scripts/deploy-to-environment.sh†L9-L271】
+- **Fail criteria:** Missing environment argument or SSH/deploy errors cause a non‑zero exit. 【F:scripts/deploy-to-environment.sh†L9-L140】
+- **GWT acceptance test:**
+  - **Given** `scripts/deploy-to-environment.sh` is invoked with `dev` or `prod`, **When** it updates the remote code and restarts services, **Then** it should run backend/frontend health checks and exit successfully if the deployment succeeds. 【F:scripts/deploy-to-environment.sh†L9-L271】
+
+### Script: `scripts/restart-semantic-api.sh`
+- **User story:** As a release engineer, I want a quick restart script for the semantic API. 【F:scripts/restart-semantic-api.sh†L1-L12】
+- **Pass criteria:** systemd restart succeeds and status output is printed. 【F:scripts/restart-semantic-api.sh†L1-L12】
+- **Fail criteria:** systemd restart returns a non‑zero exit code. 【F:scripts/restart-semantic-api.sh†L1-L12】
+- **GWT acceptance test:**
+  - **Given** `scripts/restart-semantic-api.sh` runs on the EC2 host, **When** it executes `systemctl restart kiro-semantic-api`, **Then** the script should print service status and exit successfully. 【F:scripts/restart-semantic-api.sh†L1-L12】
+
+### Script: `scripts/testing/run-structured-gating-tests.sh`
+- **User story:** As a release engineer, I want a single runner that executes the required gating phases and reports a pass/fail decision. 【F:scripts/testing/run-structured-gating-tests.sh†L1-L217】
+- **Pass criteria:** All selected phases complete with zero failed tests, and the script exits 0. 【F:scripts/testing/run-structured-gating-tests.sh†L170-L217】
+- **Fail criteria:** Any phase failures cause the script to exit non‑zero. 【F:scripts/testing/run-structured-gating-tests.sh†L170-L217】
+- **GWT acceptance test:**
+  - **Given** `run-structured-gating-tests.sh` runs with `--phases "1,2"`, **When** Phase 1 or Phase 2 fails, **Then** the script must exit with status 1 and block deployment. 【F:scripts/testing/run-structured-gating-tests.sh†L95-L217】
+
+### Script: `scripts/testing/phase1-security-data-safety.sh`
+- **User story:** As a release engineer, I want critical infrastructure and health checks to run before deployment gates pass. 【F:scripts/testing/phase1-security-data-safety.sh†L1-L83】
+- **Pass criteria:** All tests complete with zero failures in the test counter. 【F:scripts/testing/phase1-security-data-safety.sh†L63-L83】
+- **Fail criteria:** Any failed test increments the failure count and returns non‑zero. 【F:scripts/testing/phase1-security-data-safety.sh†L63-L83】
+- **GWT acceptance test:**
+  - **Given** `phase1-security-data-safety.sh` runs, **When** any parallel test fails, **Then** the phase returns 1 to indicate a gating failure. 【F:scripts/testing/phase1-security-data-safety.sh†L63-L83】
+
+### Script: `scripts/testing/phase2-e2e-workflow.sh`
+- **User story:** As a release engineer, I want an automated UI-driven workflow to validate that the critical user journey completes end‑to‑end. 【F:scripts/testing/phase2-e2e-workflow.sh†L1-L220】
+- **Pass criteria:** Each step (story draft, create story, edit story, etc.) logs pass status without failures. 【F:scripts/testing/phase2-e2e-workflow.sh†L46-L210】
+- **Fail criteria:** Missing IDs, failed API calls, or invalid responses mark the step as failed. 【F:scripts/testing/phase2-e2e-workflow.sh†L57-L210】
+- **GWT acceptance test:**
+  - **Given** `phase2-e2e-workflow.sh` runs, **When** story draft generation fails or returns an invalid response, **Then** the step must record a failure for the gating phase. 【F:scripts/testing/phase2-e2e-workflow.sh†L55-L120】
