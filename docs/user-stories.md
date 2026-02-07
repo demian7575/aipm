@@ -1309,6 +1309,84 @@ Then secrets are not hardcoded or printed
 
 And missing secrets yield clear configuration errors without disclosure
 
+US-0902 — GitHub token handling in backend services (tokens)
+
+As a backend engineer
+
+I want GitHub API clients to read tokens from environment variables and fail safely when missing
+
+So that PR automation never leaks tokens and returns clear configuration errors
+
+Acceptance (GWT)
+
+Given `apps/backend/app.js` uses `ensureGithubToken()` and `githubRequest()` for GitHub API calls
+
+When `GITHUB_TOKEN` is missing and a GitHub-backed endpoint is called
+
+Then the request returns a 400/500 configuration error without including token values
+
+And logs never print the token or Authorization header (only sanitized error messages)
+
+And when `GITHUB_TOKEN` is present, requests set `Authorization: Bearer <token>` without logging it
+
+US-0903 — Secret redaction in backend logs (secrets)
+
+As a security reviewer
+
+I want backend logs to redact secrets in configuration and error output
+
+So that operational logging is safe for shared access
+
+Acceptance (GWT)
+
+Given `apps/backend/dynamodb.js` and `apps/backend/app.js` emit debug/info/error logs
+
+When logs include configuration or request context
+
+Then any secret-like fields (tokens, keys, credentials) are redacted or omitted
+
+And no logs contain `GITHUB_TOKEN`, AWS keys, or similar secrets in plain text
+
+And missing secret configuration produces a clear, non-sensitive error message
+
+US-0904 — IAM-based AWS access in data layer (IAM)
+
+As an operator
+
+I want the DynamoDB data layer to rely on IAM role credentials instead of static keys
+
+So that AWS access follows least privilege and avoids embedded credentials
+
+Acceptance (GWT)
+
+Given `apps/backend/dynamodb.js` and `apps/backend/story-prs.js` construct AWS SDK clients
+
+When the service runs on AWS with an instance/task role
+
+Then no static AWS access keys are required in environment variables
+
+And if `AWS_REGION` or required table names are missing, the service fails fast with a safe configuration error
+
+US-0905 — Structured logging redaction for security events (logging)
+
+As a system operator
+
+I want structured logging to include request context while redacting sensitive fields
+
+So that audit trails are useful without exposing secrets
+
+Acceptance (GWT)
+
+Given `apps/backend/app.js` emits structured logs for API requests and GitHub workflows
+
+When a request succeeds or fails
+
+Then logs include endpoint/action context and correlation metadata (when available)
+
+And logs never include secrets (tokens/keys), even when errors include upstream payloads
+
+And missing configuration errors are logged once with sanitized details
+
 US-0911 — Basic API access control policy
 
 As a system owner
