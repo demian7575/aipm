@@ -5799,15 +5799,6 @@ export async function createApp() {
       return;
     }
 
-    if (pathname === '/api/run-staging' && method === 'POST') {
-      // Staging deployment endpoint - returns 500 for automated tests as expected
-      sendJson(res, 500, { 
-        error: 'GitHub token not configured for automated tests',
-        message: 'This endpoint requires proper GitHub authentication'
-      });
-      return;
-    }
-
     if (pathname === '/api/version' && method === 'GET') {
       const { readFile } = await import('fs/promises');
       const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
@@ -6905,18 +6896,6 @@ export async function createApp() {
       return;
     }
 
-    const dependencyCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/dependencies$/);
-    if (dependencyCreateMatch && method === 'POST') {
-      const storyId = Number(dependencyCreateMatch[1]);
-      try {
-        const payload = await parseJson(req);
-        const candidateId =
-          payload.dependsOnStoryId ?? payload.storyId ?? payload.dependsOn ?? payload.targetStoryId;
-        const dependsOnStoryId = Number(candidateId);
-        if (!Number.isFinite(dependsOnStoryId)) {
-          throw Object.assign(new Error('Select a valid dependency story'), { statusCode: 400 });
-        }
-        if (dependsOnStoryId === storyId) {
     const dependencyCreateMatch = pathname.match(/^\/api\/stories\/(\d+)\/dependencies$/);
     if (dependencyCreateMatch && method === 'POST') {
       const storyId = Number(dependencyCreateMatch[1]);
