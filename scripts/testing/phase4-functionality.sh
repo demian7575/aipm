@@ -140,6 +140,19 @@ else
 fi
 echo ""
 
+# Test 9: Story 1770435990551 - View All Stories button exists
+if [ "$1" = "1770435990551" ]; then
+  echo "Test 9: View All Stories button exists in HTML"
+  if curl -s "$FRONTEND_URL" | grep -q "view-all-stories-btn"; then
+    echo "  ✅ PASS: View All Stories button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # Summary
 echo "====================================="
 echo "Phase 4 Results:"
