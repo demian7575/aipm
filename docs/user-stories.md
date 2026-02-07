@@ -501,6 +501,60 @@ Then the API rejects it with a clear validation error
 
 And no partial/invalid data is persisted
 
+US-0802 — Stories table schema-level traceability
+
+As a system operator
+
+I want the DynamoDB stories table to enforce required keys and traceability attributes
+
+So that every story record is uniquely identified, auditable, and linked to related artifacts
+
+Acceptance (GWT)
+
+Given a story is created or updated in the stories table
+
+When the record is written or read
+
+Then it includes required keys (id, title) and traceability attributes (storyId, parentId, status, createdAt, updatedAt)
+
+And linked artifact IDs (acceptanceTestIds, prIds) are present when relationships exist and empty lists when none exist
+
+US-0803 — Acceptance tests table schema-level traceability
+
+As a system operator
+
+I want the DynamoDB acceptance tests table to enforce required keys and traceability attributes
+
+So that each test can be traced to a story and audited over time
+
+Acceptance (GWT)
+
+Given an acceptance test is created or updated in the acceptance tests table
+
+When the record is written or read
+
+Then it includes required keys (id, storyId) and traceability attributes (status, createdAt, updatedAt)
+
+And the storyId must reference an existing story record when the linkage is validated or queried
+
+US-0804 — PRs table schema-level traceability
+
+As a system operator
+
+I want the DynamoDB PRs table to enforce required keys and traceability attributes
+
+So that each PR is linked to its originating story and supporting artifacts
+
+Acceptance (GWT)
+
+Given a PR record is created or updated in the PRs table
+
+When the record is written or read
+
+Then it includes required keys (id, storyId, prNumber) and traceability attributes (status, createdAt, updatedAt)
+
+And the storyId references a story record while linked artifact IDs (commitIds, testRunIds) are present when available
+
 US-0811 — DynamoDB backup export procedure
 
 As a system operator
