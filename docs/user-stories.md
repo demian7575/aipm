@@ -40,6 +40,9 @@ US-<ROOT>-<SUB>-L<LEVEL>-<SEQ> — <Title> [<Status Tag>]
 
 Level: L<LEVEL>
 Parent ID: <parent story ID or N/A>
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a <role>
 I want <capability>
@@ -52,6 +55,11 @@ Acceptance Tests (GWT, minimums by level):
 - L3/L4: 1–2 tests required
 - L5/L6: 1 test required or explicitly inherited from parent
 ```
+
+### Implementation verification & acceptance linkage (required)
+- **Implemented** status must include **Implementation Evidence** (e.g., PR/commit IDs, deployment, or test run artifacts).
+- **Acceptance Test IDs** must list the linked tests (or explicitly inherit from parent if allowed).
+- Until evidence is recorded, stories should be treated as **Unverified**.
 
 ### Target distribution (~300 stories)
 Targets reflect the **desired** catalog size and balance across levels and subcategories.
@@ -96,6 +104,9 @@ Targets reflect the **desired** catalog size and balance across levels and subca
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to upload usage data
@@ -110,6 +121,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to save threshold values
@@ -124,6 +138,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to run a growth simulation
@@ -138,6 +155,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to export a plan to CSV
@@ -152,6 +172,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 5
@@ -166,6 +189,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 6
@@ -180,6 +206,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 7
@@ -194,6 +223,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 8
@@ -208,6 +240,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 9
@@ -222,6 +257,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 10
@@ -236,6 +274,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 11
@@ -250,6 +291,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 12
@@ -264,6 +308,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 13
@@ -278,6 +325,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 14
@@ -292,6 +342,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-CS-CP-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a capacity planner
 I want to execute improvement 15
@@ -308,6 +361,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to POST a story payload
@@ -322,6 +378,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to GET stories with filters
@@ -336,6 +395,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to attach acceptanceTestIds
@@ -350,6 +412,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to request /health and /config
@@ -364,6 +429,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to send bursts of requests
@@ -378,6 +446,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to run a migration
@@ -392,6 +463,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to execute improvement 7
@@ -406,6 +480,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to execute improvement 8
@@ -420,6 +497,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to execute improvement 9
@@ -434,6 +514,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to execute improvement 10
@@ -448,6 +531,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to execute improvement 11
@@ -462,6 +548,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to execute improvement 12
@@ -476,6 +565,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to execute improvement 13
@@ -490,6 +582,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to execute improvement 14
@@ -504,6 +599,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-CS-API-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a API consumer
 I want to execute improvement 15
@@ -520,6 +618,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to submit invalid story fields
@@ -534,6 +635,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to save a story
@@ -548,6 +652,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to update a story
@@ -562,6 +669,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to persist a story
@@ -576,6 +686,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 5
@@ -590,6 +703,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 6
@@ -604,6 +720,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 7
@@ -618,6 +737,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 8
@@ -632,6 +754,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 9
@@ -646,6 +771,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 10
@@ -660,6 +788,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 11
@@ -674,6 +805,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 12
@@ -688,6 +822,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 13
@@ -702,6 +839,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 14
@@ -716,6 +856,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-CS-DATA-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a data steward
 I want to execute improvement 15
@@ -734,6 +877,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to request a story draft
@@ -748,6 +894,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to request a test draft
@@ -762,6 +911,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to generate AI output
@@ -776,6 +928,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to submit a generation request
@@ -790,6 +945,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to review a generation
@@ -804,6 +962,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 6
@@ -818,6 +979,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 7
@@ -832,6 +996,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 8
@@ -846,6 +1013,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 9
@@ -860,6 +1030,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 10
@@ -874,6 +1047,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 11
@@ -888,6 +1064,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 12
@@ -902,6 +1081,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 13
@@ -916,6 +1098,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 14
@@ -930,6 +1115,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 15
@@ -944,6 +1132,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 16
@@ -958,6 +1149,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 17
@@ -972,6 +1166,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-PA-AI-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a AI operator
 I want to execute improvement 18
@@ -988,6 +1185,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to update environment settings
@@ -1002,6 +1202,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to trigger a deployment
@@ -1016,6 +1219,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to simulate region failure
@@ -1030,6 +1236,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to deploy a new release
@@ -1044,6 +1253,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 5
@@ -1058,6 +1270,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 6
@@ -1072,6 +1287,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 7
@@ -1086,6 +1304,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 8
@@ -1100,6 +1321,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 9
@@ -1114,6 +1338,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 10
@@ -1128,6 +1355,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 11
@@ -1142,6 +1372,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 12
@@ -1156,6 +1389,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 13
@@ -1170,6 +1406,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 14
@@ -1184,6 +1423,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-PA-INF-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a platform engineer
 I want to execute improvement 15
@@ -1200,6 +1442,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to receive a webhook
@@ -1214,6 +1459,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to request AWS resource data
@@ -1228,6 +1476,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to trigger a retry
@@ -1242,6 +1493,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to execute improvement 4
@@ -1256,6 +1510,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to execute improvement 5
@@ -1270,6 +1527,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to execute improvement 6
@@ -1284,6 +1544,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to execute improvement 7
@@ -1298,6 +1561,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to execute improvement 8
@@ -1312,6 +1578,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to execute improvement 9
@@ -1326,6 +1595,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to execute improvement 10
@@ -1340,6 +1612,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to execute improvement 11
@@ -1354,6 +1629,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-PA-INT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration engineer
 I want to execute improvement 12
@@ -1372,6 +1650,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to open topology docs
@@ -1386,6 +1667,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to view environment endpoints
@@ -1400,6 +1684,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to run config validation
@@ -1414,6 +1701,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to execute improvement 4
@@ -1428,6 +1718,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to execute improvement 5
@@ -1442,6 +1735,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to execute improvement 6
@@ -1456,6 +1752,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to execute improvement 7
@@ -1470,6 +1769,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to execute improvement 8
@@ -1484,6 +1786,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to execute improvement 9
@@ -1498,6 +1803,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to execute improvement 10
@@ -1512,6 +1820,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to execute improvement 11
@@ -1526,6 +1837,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-CONF-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a environment administrator
 I want to execute improvement 12
@@ -1542,6 +1856,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to submit As-a/I-want/So-that fields
@@ -1556,6 +1873,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to save edits
@@ -1570,6 +1890,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to move a story to Done
@@ -1584,6 +1907,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to select multiple stories
@@ -1598,6 +1924,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to add a dependency link
@@ -1612,6 +1941,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 6
@@ -1626,6 +1958,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 7
@@ -1640,6 +1975,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 8
@@ -1654,6 +1992,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 9
@@ -1668,6 +2009,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 10
@@ -1682,6 +2026,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 11
@@ -1696,6 +2043,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 12
@@ -1710,6 +2060,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 13
@@ -1724,6 +2077,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 14
@@ -1738,6 +2094,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 15
@@ -1752,6 +2111,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 16
@@ -1766,6 +2128,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 17
@@ -1780,6 +2145,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 18
@@ -1794,6 +2162,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 19
@@ -1808,6 +2179,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-CORE-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a project user
 I want to execute improvement 20
@@ -1824,6 +2198,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to select a story in the outline
@@ -1838,6 +2215,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to open story details
@@ -1852,6 +2232,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to submit a modal form
@@ -1866,6 +2249,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to run accessibility checks
@@ -1880,6 +2266,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 5
@@ -1894,6 +2283,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 6
@@ -1908,6 +2300,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 7
@@ -1922,6 +2317,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 8
@@ -1936,6 +2334,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 9
@@ -1950,6 +2351,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 10
@@ -1964,6 +2368,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 11
@@ -1978,6 +2385,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 12
@@ -1992,6 +2402,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 13
@@ -2006,6 +2419,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 14
@@ -2020,6 +2436,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 15
@@ -2034,6 +2453,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 16
@@ -2048,6 +2470,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 17
@@ -2062,6 +2487,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-UI-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a end user
 I want to execute improvement 18
@@ -2078,6 +2506,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to run bootstrap script
@@ -2092,6 +2523,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to apply IAM setup guide
@@ -2106,6 +2540,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to follow onboarding checklist
@@ -2120,6 +2557,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to execute improvement 4
@@ -2134,6 +2574,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to execute improvement 5
@@ -2148,6 +2591,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to execute improvement 6
@@ -2162,6 +2608,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to execute improvement 7
@@ -2176,6 +2625,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to execute improvement 8
@@ -2190,6 +2642,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to execute improvement 9
@@ -2204,6 +2659,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to execute improvement 10
@@ -2218,6 +2676,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to execute improvement 11
@@ -2232,6 +2693,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-BOOT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a new contributor
 I want to execute improvement 12
@@ -2248,6 +2712,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to run code generation
@@ -2262,6 +2729,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to submit for approval
@@ -2276,6 +2746,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to trigger PR creation
@@ -2290,6 +2763,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 4
@@ -2304,6 +2780,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 5
@@ -2318,6 +2797,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 6
@@ -2332,6 +2814,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 7
@@ -2346,6 +2831,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 8
@@ -2360,6 +2848,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 9
@@ -2374,6 +2865,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 10
@@ -2388,6 +2882,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 11
@@ -2402,6 +2899,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 12
@@ -2416,6 +2916,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 13
@@ -2430,6 +2933,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 14
@@ -2444,6 +2950,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-FLOW-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a delivery lead
 I want to execute improvement 15
@@ -2460,6 +2969,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to open gating suite UI
@@ -2474,6 +2986,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute browser checks
@@ -2488,6 +3003,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to open test guidance
@@ -2502,6 +3020,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute improvement 4
@@ -2516,6 +3037,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute improvement 5
@@ -2530,6 +3054,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute improvement 6
@@ -2544,6 +3071,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute improvement 7
@@ -2558,6 +3088,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute improvement 8
@@ -2572,6 +3105,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute improvement 9
@@ -2586,6 +3122,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute improvement 10
@@ -2600,6 +3139,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute improvement 11
@@ -2614,6 +3156,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-TEST-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a QA engineer
 I want to execute improvement 12
@@ -2630,6 +3175,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to rotate a token
@@ -2644,6 +3192,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to store a secret
@@ -2658,6 +3209,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-SEC-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to request a protected action
@@ -2672,6 +3226,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-SEC-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to run rotation policy
@@ -2686,6 +3243,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-SEC-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 5
@@ -2700,6 +3260,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-SEC-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 6
@@ -2714,6 +3277,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-SEC-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 7
@@ -2728,6 +3294,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-SEC-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 8
@@ -2742,6 +3311,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-SEC-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 9
@@ -2756,6 +3328,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-SEC-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 10
@@ -2770,6 +3345,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-SEC-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 11
@@ -2786,6 +3364,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to open the development tasks card
@@ -2800,6 +3381,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to move a node
@@ -2814,6 +3398,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to open the gating tests page
@@ -2828,6 +3415,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to load a heavy view
@@ -2842,6 +3432,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 5
@@ -2856,6 +3449,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 6
@@ -2870,6 +3466,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 7
@@ -2884,6 +3483,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 8
@@ -2898,6 +3500,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 9
@@ -2912,6 +3517,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 10
@@ -2926,6 +3534,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 11
@@ -2940,6 +3551,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 12
@@ -2954,6 +3568,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 13
@@ -2968,6 +3585,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 14
@@ -2982,6 +3602,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 15
@@ -2996,6 +3619,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 16
@@ -3010,6 +3636,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 17
@@ -3024,6 +3653,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 18
@@ -3038,6 +3670,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 19
@@ -3052,6 +3687,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-UX-IMPR-L3-004
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a UX engineer
 I want to execute improvement 20
@@ -3070,6 +3708,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to attempt an invalid transition
@@ -3084,6 +3725,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to submit a story
@@ -3098,6 +3742,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to open acceptance coverage
@@ -3112,6 +3759,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to attempt a release
@@ -3126,6 +3776,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 5
@@ -3140,6 +3793,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 6
@@ -3154,6 +3810,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 7
@@ -3168,6 +3827,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 8
@@ -3182,6 +3844,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 9
@@ -3196,6 +3861,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 10
@@ -3210,6 +3878,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 11
@@ -3224,6 +3895,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 12
@@ -3238,6 +3912,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 13
@@ -3252,6 +3929,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 14
@@ -3266,6 +3946,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-QS-QUAL-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a quality manager
 I want to execute improvement 15
@@ -3282,6 +3965,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to create a GWT test
@@ -3296,6 +3982,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to run acceptance tests
@@ -3310,6 +3999,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to open coverage analytics
@@ -3324,6 +4016,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 4
@@ -3338,6 +4033,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 5
@@ -3352,6 +4050,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 6
@@ -3366,6 +4067,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 7
@@ -3380,6 +4084,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 8
@@ -3394,6 +4101,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 9
@@ -3408,6 +4118,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 10
@@ -3422,6 +4135,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 11
@@ -3436,6 +4152,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 12
@@ -3450,6 +4169,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 13
@@ -3464,6 +4186,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 14
@@ -3478,6 +4203,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-QS-AT-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a test author
 I want to execute improvement 15
@@ -3494,6 +4222,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to rotate a token
@@ -3508,6 +4239,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to store a secret
@@ -3522,6 +4256,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to request a protected action
@@ -3536,6 +4273,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to run rotation policy
@@ -3550,6 +4290,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 5
@@ -3564,6 +4307,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 6
@@ -3578,6 +4324,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 7
@@ -3592,6 +4341,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 8
@@ -3606,6 +4358,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 9
@@ -3620,6 +4375,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 10
@@ -3634,6 +4392,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 11
@@ -3648,6 +4409,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 12
@@ -3662,6 +4426,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 13
@@ -3676,6 +4443,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 14
@@ -3690,6 +4460,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-QS-SEC-L3-003
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a security reviewer
 I want to execute improvement 15
@@ -3708,6 +4481,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to open log viewer
@@ -3722,6 +4498,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to view performance dashboard
@@ -3736,6 +4515,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-OP-MON-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to create an alert rule
@@ -3750,6 +4532,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-OP-MON-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to execute improvement 4
@@ -3764,6 +4549,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-OP-MON-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to execute improvement 5
@@ -3778,6 +4566,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-OP-MON-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to execute improvement 6
@@ -3792,6 +4583,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-OP-MON-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to execute improvement 7
@@ -3806,6 +4600,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-OP-MON-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to execute improvement 8
@@ -3820,6 +4617,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-OP-MON-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to execute improvement 9
@@ -3834,6 +4634,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-OP-MON-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a site reliability engineer
 I want to execute improvement 10
@@ -3850,6 +4653,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to open runbook
@@ -3864,6 +4670,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to start a drill
@@ -3878,6 +4687,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-OP-RUN-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to open troubleshooting guide
@@ -3892,6 +4704,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-OP-RUN-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to execute improvement 4
@@ -3906,6 +4721,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-OP-RUN-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to execute improvement 5
@@ -3920,6 +4738,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-OP-RUN-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to execute improvement 6
@@ -3934,6 +4755,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-OP-RUN-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to execute improvement 7
@@ -3948,6 +4772,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-OP-RUN-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to execute improvement 8
@@ -3962,6 +4789,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-OP-RUN-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to execute improvement 9
@@ -3976,6 +4806,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-OP-RUN-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a operations lead
 I want to execute improvement 10
@@ -3994,6 +4827,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a compatibility owner
 I want to run legacy integration
@@ -4008,6 +4844,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-DD-COMP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a compatibility owner
 I want to compare legacy API output
@@ -4022,6 +4861,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-DD-COMP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a compatibility owner
 I want to execute improvement 3
@@ -4036,6 +4878,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-DD-COMP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a compatibility owner
 I want to execute improvement 4
@@ -4050,6 +4895,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-DD-COMP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a compatibility owner
 I want to execute improvement 5
@@ -4064,6 +4912,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-DD-COMP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a compatibility owner
 I want to execute improvement 6
@@ -4078,6 +4929,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-DD-COMP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a compatibility owner
 I want to execute improvement 7
@@ -4092,6 +4946,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-DD-COMP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a compatibility owner
 I want to execute improvement 8
@@ -4108,6 +4965,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration owner
 I want to call GitHub REST
@@ -4122,6 +4982,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration owner
 I want to sync AWS data
@@ -4136,6 +4999,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-DD-EXT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration owner
 I want to check integration status
@@ -4150,6 +5016,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-DD-EXT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration owner
 I want to execute improvement 4
@@ -4164,6 +5033,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-DD-EXT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration owner
 I want to execute improvement 5
@@ -4178,6 +5050,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-DD-EXT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration owner
 I want to execute improvement 6
@@ -4192,6 +5067,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-DD-EXT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration owner
 I want to execute improvement 7
@@ -4206,6 +5084,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-DD-EXT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration owner
 I want to execute improvement 8
@@ -4220,6 +5101,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-DD-EXT-L3-002
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a integration owner
 I want to execute improvement 9
@@ -4236,6 +5120,9 @@ Acceptance Criteria (GWT):
 
 Level: L3
 Parent ID: N/A
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a release manager
 I want to trigger deployment dispatch
@@ -4250,6 +5137,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-DD-DEP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a release manager
 I want to initiate rollback
@@ -4264,6 +5154,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-DD-DEP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a release manager
 I want to run readiness checks
@@ -4278,6 +5171,9 @@ Acceptance Criteria (GWT):
 
 Level: L4
 Parent ID: US-DD-DEP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a release manager
 I want to execute improvement 4
@@ -4292,6 +5188,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-DD-DEP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a release manager
 I want to execute improvement 5
@@ -4306,6 +5205,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-DD-DEP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a release manager
 I want to execute improvement 6
@@ -4320,6 +5222,9 @@ Acceptance Criteria (GWT):
 
 Level: L5
 Parent ID: US-DD-DEP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a release manager
 I want to execute improvement 7
@@ -4334,6 +5239,9 @@ Acceptance Criteria (GWT):
 
 Level: L6
 Parent ID: US-DD-DEP-L3-001
+Acceptance Test IDs: <TBD>
+Implementation Evidence: <TBD>
+Verification Status: Unverified
 Description:
 As a release manager
 I want to execute improvement 8
