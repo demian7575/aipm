@@ -4860,6 +4860,10 @@ function attachChildren(stories) {
       roots.push(story);
     }
   });
+  console.log(`📊 attachChildren: ${stories.length} stories, ${roots.length} roots`);
+  if (roots.length > 0) {
+    console.log(`📊 First root: ${roots[0].title}, children: ${roots[0].children.length}`);
+  }
   return { roots, byId };
 }
 
