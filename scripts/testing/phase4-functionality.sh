@@ -140,6 +140,30 @@ else
 fi
 echo ""
 
+# Test 9: Story list button exists in frontend (Story 1770567936520)
+if [ "$1" = "1770567936520" ]; then
+  echo "Test 9: Story list button exists in HTML"
+  if curl -s "$FRONTEND_URL" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+  
+  echo "Test 10: Story list functions exist in JavaScript"
+  JS_CONTENT=$(curl -s "$FRONTEND_URL/app.js")
+  if echo "$JS_CONTENT" | grep -q "fetchAllStories" && echo "$JS_CONTENT" | grep -q "openStoryListModal"; then
+    echo "  ✅ PASS: Story list functions found in JavaScript"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list functions not found in JavaScript"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # Summary
 echo "====================================="
 echo "Phase 4 Results:"

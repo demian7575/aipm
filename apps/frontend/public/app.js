@@ -45,6 +45,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -6059,6 +6060,57 @@ function closeModal() {
   }
 }
 
+/**
+ * Fetch all stories from the API
+ * @returns {Promise<Array>} Array of story objects
+ */
+async function fetchAllStories() {
+  try {
+    const response = await fetch(resolveApiUrl('/api/stories'));
+    if (!response.ok) {
+      throw new Error(`Failed to fetch stories: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching stories:', error);
+    throw error;
+  }
+}
+
+/**
+ * Open modal displaying list of all story titles
+ * @param {Array} stories - Array of story objects
+ */
+function openStoryListModal(stories) {
+  const content = document.createElement('div');
+  content.className = 'story-list-container';
+  
+  if (!stories || stories.length === 0) {
+    content.innerHTML = '<p>No stories found.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'story-list';
+    
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.textContent = story.title || `Story ${story.id}`;
+      item.className = 'story-list-item';
+      list.appendChild(item);
+    });
+    
+    content.appendChild(list);
+  }
+  
+  openModal({
+    title: 'All Stories',
+    content,
+    actions: [],
+    cancelLabel: 'Close',
+    size: 'medium'
+  });
+}
+
+
 function openModal({
   title,
   content,
@@ -8463,6 +8515,15 @@ function initialize() {
     openDocumentPanel();
   });
 
+  storyListBtn?.addEventListener('click', async () => {
+    try {
+      const stories = await fetchAllStories();
+      openStoryListModal(stories);
+    } catch (error) {
+      console.error('Failed to load stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
+  });
 
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
