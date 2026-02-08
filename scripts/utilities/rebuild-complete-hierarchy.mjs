@@ -20,6 +20,8 @@ let currentL2 = null;
 let currentStory = null;
 let inAcceptanceCriteria = false;
 let criteriaLines = [];
+let l1Counter = 0;
+let l2Counter = 0;
 
 for (let i = 0; i < lines.length; i++) {
   const line = lines[i];
@@ -28,12 +30,14 @@ for (let i = 0; i < lines.length; i++) {
   if (line.match(/^## \d+\. /)) {
     const match = line.match(/^## (\d+)\. (.+)/);
     if (match) {
+      l1Counter++;
       currentL1 = {
         level: 1,
         number: parseInt(match[1]),
         title: match[2].trim(),
         code: null,
-        parentCode: null
+        parentCode: null,
+        refId: `L1-${l1Counter}`
       };
       allStories.push(currentL1);
       currentL2 = null;
@@ -44,13 +48,15 @@ for (let i = 0; i < lines.length; i++) {
   else if (line.match(/^### \d+\.\d+ /)) {
     const match = line.match(/^### (\d+)\.(\d+) (.+)/);
     if (match && currentL1) {
+      l2Counter++;
       currentL2 = {
         level: 2,
         number: `${match[1]}.${match[2]}`,
         title: match[3].trim(),
         code: null,
         parentCode: null,
-        parentRef: currentL1
+        parentRefId: currentL1.refId,
+        refId: `L2-${l2Counter}`
       };
       allStories.push(currentL2);
     }
@@ -70,7 +76,7 @@ for (let i = 0; i < lines.length; i++) {
         title: match[3].trim(),
         status: match[4].trim(),
         parentCode: null,
-        parentRef: currentL2,
+        parentRefId: currentL2 ? currentL2.refId : null,
         asA: '',
         iWant: '',
         soThat: '',
@@ -161,7 +167,7 @@ if (existingTests.Items.length > 0) {
 console.log('📝 Creating stories with hierarchy...');
 
 const codeToId = {};
-const refToId = {};
+const refIdToId = {};
 
 // First pass: create all stories and build ID maps
 const storyItems = [];
@@ -171,8 +177,8 @@ for (const story of allStories) {
   if (story.code) {
     codeToId[story.code] = id;
   }
-  if (story.level <= 2) {
-    refToId[story] = id;
+  if (story.refId) {
+    refIdToId[story.refId] = id;
   }
   
   const title = story.code ? `${story.code}: ${story.title}` : story.title;
@@ -222,8 +228,8 @@ for (let i = 0; i < allStories.length; i++) {
   // Find parent ID
   if (story.parentCode) {
     parentId = codeToId[story.parentCode];
-  } else if (story.parentRef) {
-    parentId = refToId[story.parentRef];
+  } else if (story.parentRefId) {
+    parentId = refIdToId[story.parentRefId];
   }
   
   if (parentId) {
