@@ -2,1443 +2,4354 @@
 
 This document contains all user stories organized by category hierarchy.
 
+## Canonical hierarchy rules (authoritative)
+This section is the **source of truth** for hierarchy semantics, IDs, statuses, and acceptance-test expectations. Any other planning documents must link here for canonical definitions.
+
+### Levels 1–6 semantics & acceptance attachment
+| Level | Name | Scope | Acceptance criteria & tests |
+| --- | --- | --- | --- |
+| L1 | Root | Product domain or strategic theme (e.g., Core Services). | No GWT tests. Capture success measures and KPIs at the root level. |
+| L2 | Subcategory | Capability area inside a root (e.g., Backend APIs). | No GWT tests. Capture outcome intent and coverage expectations. |
+| L3 | Epic | Multi-feature initiative spanning several L4s. | 1–2 GWT tests minimum; may define shared acceptance for child L4/L5. |
+| L4 | Feature | User-visible or system capability deliverable. | 1–2 GWT tests minimum; may inherit from L3 and add feature-specific coverage. |
+| L5 | Story | Implementable user story with clear actor + intent. | 1 GWT test minimum if not already covered by parent; otherwise explicitly reference inherited tests. |
+| L6 | Task | Smallest delivery unit (implementation/verification). | 1 GWT test minimum **or** explicit inheritance from parent L5/L4 tests. |
+
+### Story ID conventions
+Use the following canonical format for story IDs:
+
+`US-<ROOT>-<SUB>-L<LEVEL>-<SEQ>`
+
+- **ROOT**: 2–4 letter root code (e.g., `CS` = Core Services, `UX` = User Experience)
+- **SUB**: 2–4 letter subcategory code (e.g., `API`, `UI`, `OPS`)
+- **LEVEL**: numeric level 1–6
+- **SEQ**: three-digit sequence (e.g., `012`)
+
+Example: `US-UX-UI-L5-012` (L5 story under User Experience → UI Components).
+
+### Standard story status tags (required)
+Use **one** of the following tags in every story:
+- **Implemented**
+- **Ready**
+- **Draft**
+- **Critical-Not-Implemented**
+
+### Story template (required)
+```
+US-<ROOT>-<SUB>-L<LEVEL>-<SEQ> — <Title> [<Status Tag>]
+
+Level: L<LEVEL>
+Parent ID: <parent story ID or N/A>
+Description:
+As a <role>
+I want <capability>
+So that <benefit>
+
+Acceptance Criteria (GWT):
+- <Given/When/Then...>
+
+Acceptance Tests (GWT, minimums by level):
+- L3/L4: 1–2 tests required
+- L5/L6: 1 test required or explicitly inherited from parent
+```
+
+### Target distribution (~300 stories)
+Targets reflect the **desired** catalog size and balance across levels and subcategories.
+
+| Root | Subcategory | L3 | L4 | L5 | L6 | Total |
+| --- | --- | --- | --- | --- | --- | --- |
+| Core Services | 1.1 Capacity Planning | 3 | 5 | 5 | 2 | 15 |
+| Core Services | 1.2 Backend APIs | 3 | 5 | 5 | 2 | 15 |
+| Core Services | 1.3 Data Layer & Persistence | 3 | 5 | 5 | 2 | 15 |
+| Platform Architecture | 2.1 AI Engine | 4 | 6 | 6 | 2 | 18 |
+| Platform Architecture | 2.2 Infrastructure & Networking | 3 | 5 | 5 | 2 | 15 |
+| Platform Architecture | 2.3 Integration Patterns | 2 | 4 | 4 | 2 | 12 |
+| User Experience | 3.1 Configuration & Environment | 2 | 4 | 4 | 2 | 12 |
+| User Experience | 3.2 Core Features | 4 | 6 | 7 | 3 | 20 |
+| User Experience | 3.3 UI Components | 3 | 6 | 6 | 3 | 18 |
+| User Experience | 3.4 Setup & Bootstrap | 2 | 4 | 4 | 2 | 12 |
+| User Experience | 3.5 Workflows | 3 | 5 | 5 | 2 | 15 |
+| User Experience | 3.6 Testing UI | 2 | 4 | 4 | 2 | 12 |
+| User Experience | 3.7 Security UX | 2 | 4 | 4 | 1 | 11 |
+| User Experience | 3.8 UI Improvements | 4 | 6 | 7 | 3 | 20 |
+| Quality & Security | 4.1 Story Lifecycle & Quality | 3 | 5 | 5 | 2 | 15 |
+| Quality & Security | 4.2 Acceptance Tests | 3 | 5 | 5 | 2 | 15 |
+| Quality & Security | 4.3 Security Compliance | 3 | 5 | 5 | 2 | 15 |
+| Operations | 5.1 Monitoring & Logs | 2 | 3 | 3 | 2 | 10 |
+| Operations | 5.2 Operational Runbooks | 2 | 3 | 3 | 2 | 10 |
+| Development & Delivery | 6.1 Compatibility | 1 | 3 | 3 | 1 | 8 |
+| Development & Delivery | 6.2 External Integrations | 2 | 3 | 3 | 1 | 9 |
+| Development & Delivery | 6.3 PR & Deployment | 1 | 3 | 3 | 1 | 8 |
+| **Totals** |  | **57** | **99** | **101** | **43** | **300** |
+
+### Validation snapshot
+- **Roots:** 6 (Core Services, Platform Architecture, User Experience, Quality & Security, Operations, Development & Delivery)
+- **Subcategories:** 22 (as enumerated above)
+- **Target story count:** ~300 (distribution table totals 300)
+- **Catalog status:** regenerated from scratch; see Summary and catalog below.
+
 ## 1. Core Services
-Backend APIs, data layer, and development environment
 
-#### L2: Capacity planning
-- **ID**: 1768382866688
-- **Description**: Capacity planning related features
+### 1.1 Capacity Planning
 
----
+#### US-CS-CP-L3-001 — Epic: Forecast Capacity From Historical Load [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a capacity planner
+I want to upload usage data
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I upload usage data
+  Then the forecast report is generated with a timestamp
+
+#### US-CS-CP-L3-002 — Epic: Set Resource Alert Thresholds [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a capacity planner
+I want to save threshold values
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I save threshold values
+  Then alerts are triggered when thresholds are exceeded
+
+#### US-CS-CP-L3-003 — Epic: Simulate Growth Scenarios [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a capacity planner
+I want to run a growth simulation
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I run a growth simulation
+  Then the simulation results are stored and versioned
+
+#### US-CS-CP-L4-004 — Feature: Export Capacity Plans [Implemented]
+
+Level: L4
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to export a plan to CSV
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I export a plan to CSV
+  Then a downloadable CSV is produced
+
+#### US-CS-CP-L4-005 — Feature: Deliver Capacity Planning Improvement 5 [Implemented]
+
+Level: L4
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 5
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-CS-CP-L4-006 — Feature: Deliver Capacity Planning Improvement 6 [Draft]
+
+Level: L4
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 6
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-CS-CP-L4-007 — Feature: Deliver Capacity Planning Improvement 7 [Ready]
+
+Level: L4
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 7
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-CS-CP-L4-008 — Feature: Deliver Capacity Planning Improvement 8 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 8
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-CS-CP-L5-009 — Story: Deliver Capacity Planning Improvement 9 [Ready]
+
+Level: L5
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 9
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-CS-CP-L5-010 — Story: Deliver Capacity Planning Improvement 10 [Implemented]
+
+Level: L5
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 10
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-CS-CP-L5-011 — Story: Deliver Capacity Planning Improvement 11 [Draft]
+
+Level: L5
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 11
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-CS-CP-L5-012 — Story: Deliver Capacity Planning Improvement 12 [Ready]
+
+Level: L5
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 12
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-CS-CP-L5-013 — Story: Deliver Capacity Planning Improvement 13 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 13
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-CS-CP-L6-014 — Task: Deliver Capacity Planning Improvement 14 [Ready]
+
+Level: L6
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 14
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-CS-CP-L6-015 — Task: Deliver Capacity Planning Improvement 15 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-CS-CP-L3-003
+Description:
+As a capacity planner
+I want to execute improvement 15
+So that capacity decisions are data-driven and repeatable
+
+Acceptance Criteria (GWT):
+- Given the 1.1 capacity planning context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
+
+### 1.2 Backend APIs
+
+#### US-CS-API-L3-001 — Epic: Create And Update Stories Via Rest [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a API consumer
+I want to POST a story payload
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I POST a story payload
+  Then the API returns 201 and a story id
+
+#### US-CS-API-L3-002 — Epic: Retrieve Story Lists With Filters [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a API consumer
+I want to GET stories with filters
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I GET stories with filters
+  Then the response includes matching ids
+
+#### US-CS-API-L3-003 — Epic: Link Acceptance Tests To Stories [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a API consumer
+I want to attach acceptanceTestIds
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I attach acceptanceTestIds
+  Then the story response includes the linked ids
+
+#### US-CS-API-L4-004 — Feature: Publish Health/Config Endpoints [Implemented]
+
+Level: L4
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to request /health and /config
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I request /health and /config
+  Then status and config metadata are returned
+
+#### US-CS-API-L4-005 — Feature: Apply Request Rate Limits [Implemented]
+
+Level: L4
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to send bursts of requests
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I send bursts of requests
+  Then the API returns 429 with retry guidance
+
+#### US-CS-API-L4-006 — Feature: Automate Api Migration Tooling [Draft]
+
+Level: L4
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to run a migration
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I run a migration
+  Then backward-compatible endpoints stay available
+
+#### US-CS-API-L4-007 — Feature: Deliver Backend Apis Improvement 7 [Ready]
+
+Level: L4
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to execute improvement 7
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-CS-API-L4-008 — Feature: Deliver Backend Apis Improvement 8 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to execute improvement 8
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-CS-API-L5-009 — Story: Deliver Backend Apis Improvement 9 [Ready]
+
+Level: L5
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to execute improvement 9
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-CS-API-L5-010 — Story: Deliver Backend Apis Improvement 10 [Implemented]
+
+Level: L5
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to execute improvement 10
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-CS-API-L5-011 — Story: Deliver Backend Apis Improvement 11 [Draft]
+
+Level: L5
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to execute improvement 11
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-CS-API-L5-012 — Story: Deliver Backend Apis Improvement 12 [Ready]
+
+Level: L5
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to execute improvement 12
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-CS-API-L5-013 — Story: Deliver Backend Apis Improvement 13 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to execute improvement 13
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-CS-API-L6-014 — Task: Deliver Backend Apis Improvement 14 [Ready]
+
+Level: L6
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to execute improvement 14
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-CS-API-L6-015 — Task: Deliver Backend Apis Improvement 15 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-CS-API-L3-003
+Description:
+As a API consumer
+I want to execute improvement 15
+So that clients integrate without breaking changes
+
+Acceptance Criteria (GWT):
+- Given the 1.2 backend apis context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
+
+### 1.3 Data Layer & Persistence
+
+#### US-CS-DATA-L3-001 — Epic: Enforce Story Schema Validation [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a data steward
+I want to submit invalid story fields
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I submit invalid story fields
+  Then the API rejects with validation errors
+
+#### US-CS-DATA-L3-002 — Epic: Persist Audit Timestamps [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a data steward
+I want to save a story
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I save a story
+  Then createdAt and updatedAt are returned
+
+#### US-CS-DATA-L3-003 — Epic: Retain Historical Versions [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a data steward
+I want to update a story
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I update a story
+  Then previous versions remain queryable
+
+#### US-CS-DATA-L4-004 — Feature: Encrypt Story Data At Rest [Implemented]
+
+Level: L4
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to persist a story
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I persist a story
+  Then storage uses encrypted tables
+
+#### US-CS-DATA-L4-005 — Feature: Deliver Data Layer & Persistence Improvement 5 [Implemented]
+
+Level: L4
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 5
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-CS-DATA-L4-006 — Feature: Deliver Data Layer & Persistence Improvement 6 [Draft]
+
+Level: L4
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 6
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-CS-DATA-L4-007 — Feature: Deliver Data Layer & Persistence Improvement 7 [Ready]
+
+Level: L4
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 7
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-CS-DATA-L4-008 — Feature: Deliver Data Layer & Persistence Improvement 8 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 8
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-CS-DATA-L5-009 — Story: Deliver Data Layer & Persistence Improvement 9 [Ready]
+
+Level: L5
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 9
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-CS-DATA-L5-010 — Story: Deliver Data Layer & Persistence Improvement 10 [Implemented]
+
+Level: L5
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 10
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-CS-DATA-L5-011 — Story: Deliver Data Layer & Persistence Improvement 11 [Draft]
+
+Level: L5
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 11
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-CS-DATA-L5-012 — Story: Deliver Data Layer & Persistence Improvement 12 [Ready]
+
+Level: L5
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 12
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-CS-DATA-L5-013 — Story: Deliver Data Layer & Persistence Improvement 13 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 13
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-CS-DATA-L6-014 — Task: Deliver Data Layer & Persistence Improvement 14 [Ready]
+
+Level: L6
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 14
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-CS-DATA-L6-015 — Task: Deliver Data Layer & Persistence Improvement 15 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-CS-DATA-L3-003
+Description:
+As a data steward
+I want to execute improvement 15
+So that data integrity is enforced end-to-end
+
+Acceptance Criteria (GWT):
+- Given the 1.3 data layer & persistence context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
 
 ## 2. Platform Architecture
-System architecture, infrastructure, and integration patterns
 
-#### AI-Engine
-- **ID**: 1768383685917
-- **Description**: AI engine integration
+### 2.1 AI Engine
 
----
+#### US-PA-AI-L3-001 — Epic: Generate Story Drafts Via Templates [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a AI operator
+I want to request a story draft
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I request a story draft
+  Then a structured draft is streamed
+
+#### US-PA-AI-L3-002 — Epic: Generate Acceptance Tests Via Templates [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a AI operator
+I want to request a test draft
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I request a test draft
+  Then GWT cases are returned
+
+#### US-PA-AI-L3-003 — Epic: Track Model Versions Per Output [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a AI operator
+I want to generate AI output
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I generate AI output
+  Then the model version is recorded
+
+#### US-PA-AI-L3-004 — Epic: Apply Safety Policy Checks [Ready]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a AI operator
+I want to submit a generation request
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I submit a generation request
+  Then unsafe output is blocked with a warning
+
+#### US-PA-AI-L4-005 — Feature: Enforce Ai Output Audit Trails [Implemented]
+
+Level: L4
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to review a generation
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I review a generation
+  Then audit metadata is recorded
+
+#### US-PA-AI-L4-006 — Feature: Deliver Ai Engine Improvement 6 [Implemented]
+
+Level: L4
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 6
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-PA-AI-L4-007 — Feature: Deliver Ai Engine Improvement 7 [Draft]
+
+Level: L4
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 7
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-PA-AI-L4-008 — Feature: Deliver Ai Engine Improvement 8 [Ready]
+
+Level: L4
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 8
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-PA-AI-L4-009 — Feature: Deliver Ai Engine Improvement 9 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 9
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-PA-AI-L4-010 — Feature: Deliver Ai Engine Improvement 10 [Draft]
+
+Level: L4
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 10
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-PA-AI-L5-011 — Story: Deliver Ai Engine Improvement 11 [Ready]
+
+Level: L5
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 11
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-PA-AI-L5-012 — Story: Deliver Ai Engine Improvement 12 [Implemented]
+
+Level: L5
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 12
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-PA-AI-L5-013 — Story: Deliver Ai Engine Improvement 13 [Draft]
+
+Level: L5
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 13
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-PA-AI-L5-014 — Story: Deliver Ai Engine Improvement 14 [Ready]
+
+Level: L5
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 14
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-PA-AI-L5-015 — Story: Deliver Ai Engine Improvement 15 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 15
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
+
+#### US-PA-AI-L5-016 — Story: Deliver Ai Engine Improvement 16 [Draft]
+
+Level: L5
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 16
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 16
+  Then improvement 16 status is stored
+
+#### US-PA-AI-L6-017 — Task: Deliver Ai Engine Improvement 17 [Ready]
+
+Level: L6
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 17
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 17
+  Then improvement 17 status is stored
+
+#### US-PA-AI-L6-018 — Task: Deliver Ai Engine Improvement 18 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-PA-AI-L3-004
+Description:
+As a AI operator
+I want to execute improvement 18
+So that AI outputs are reliable and auditable
+
+Acceptance Criteria (GWT):
+- Given the 2.1 ai engine context exists
+  When I execute improvement 18
+  Then improvement 18 status is stored
+
+### 2.2 Infrastructure & Networking
+
+#### US-PA-INF-L3-001 — Epic: Manage Environment Configs [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a platform engineer
+I want to update environment settings
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I update environment settings
+  Then changes are validated and saved
+
+#### US-PA-INF-L3-002 — Epic: Automate Deployment Workflows [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a platform engineer
+I want to trigger a deployment
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I trigger a deployment
+  Then a deployment record is created
+
+#### US-PA-INF-L3-003 — Epic: Support Multi-Region Failover [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a platform engineer
+I want to simulate region failure
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I simulate region failure
+  Then traffic shifts to the standby region
+
+#### US-PA-INF-L4-004 — Feature: Zero-Downtime Deployments [Implemented]
+
+Level: L4
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to deploy a new release
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I deploy a new release
+  Then service remains available during rollout
+
+#### US-PA-INF-L4-005 — Feature: Deliver Infrastructure & Networking Improvement 5 [Implemented]
+
+Level: L4
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 5
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-PA-INF-L4-006 — Feature: Deliver Infrastructure & Networking Improvement 6 [Draft]
+
+Level: L4
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 6
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-PA-INF-L4-007 — Feature: Deliver Infrastructure & Networking Improvement 7 [Ready]
+
+Level: L4
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 7
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-PA-INF-L4-008 — Feature: Deliver Infrastructure & Networking Improvement 8 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 8
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-PA-INF-L5-009 — Story: Deliver Infrastructure & Networking Improvement 9 [Ready]
+
+Level: L5
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 9
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-PA-INF-L5-010 — Story: Deliver Infrastructure & Networking Improvement 10 [Implemented]
+
+Level: L5
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 10
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-PA-INF-L5-011 — Story: Deliver Infrastructure & Networking Improvement 11 [Draft]
+
+Level: L5
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 11
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-PA-INF-L5-012 — Story: Deliver Infrastructure & Networking Improvement 12 [Ready]
+
+Level: L5
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 12
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-PA-INF-L5-013 — Story: Deliver Infrastructure & Networking Improvement 13 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 13
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-PA-INF-L6-014 — Task: Deliver Infrastructure & Networking Improvement 14 [Ready]
+
+Level: L6
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 14
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-PA-INF-L6-015 — Task: Deliver Infrastructure & Networking Improvement 15 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-PA-INF-L3-003
+Description:
+As a platform engineer
+I want to execute improvement 15
+So that infrastructure changes are safe and observable
+
+Acceptance Criteria (GWT):
+- Given the 2.2 infrastructure & networking context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
+
+### 2.3 Integration Patterns
+
+#### US-PA-INT-L3-001 — Epic: Integrate With Github Webhooks [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a integration engineer
+I want to receive a webhook
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I receive a webhook
+  Then events are processed and logged
+
+#### US-PA-INT-L3-002 — Epic: Sync With Aws Services [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a integration engineer
+I want to request AWS resource data
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I request AWS resource data
+  Then resources are normalized into the system
+
+#### US-PA-INT-L4-003 — Feature: Retry Failed Integrations [Implemented]
+
+Level: L4
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to trigger a retry
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I trigger a retry
+  Then failed items are retried with backoff
+
+#### US-PA-INT-L4-004 — Feature: Deliver Integration Patterns Improvement 4 [Implemented]
+
+Level: L4
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to execute improvement 4
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
+
+#### US-PA-INT-L4-005 — Feature: Deliver Integration Patterns Improvement 5 [Draft]
+
+Level: L4
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to execute improvement 5
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-PA-INT-L4-006 — Feature: Deliver Integration Patterns Improvement 6 [Ready]
+
+Level: L4
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to execute improvement 6
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-PA-INT-L5-007 — Story: Deliver Integration Patterns Improvement 7 [Ready]
+
+Level: L5
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to execute improvement 7
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-PA-INT-L5-008 — Story: Deliver Integration Patterns Improvement 8 [Implemented]
+
+Level: L5
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to execute improvement 8
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-PA-INT-L5-009 — Story: Deliver Integration Patterns Improvement 9 [Draft]
+
+Level: L5
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to execute improvement 9
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-PA-INT-L5-010 — Story: Deliver Integration Patterns Improvement 10 [Ready]
+
+Level: L5
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to execute improvement 10
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-PA-INT-L6-011 — Task: Deliver Integration Patterns Improvement 11 [Ready]
+
+Level: L6
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to execute improvement 11
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-PA-INT-L6-012 — Task: Deliver Integration Patterns Improvement 12 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-PA-INT-L3-002
+Description:
+As a integration engineer
+I want to execute improvement 12
+So that external systems stay in sync
+
+Acceptance Criteria (GWT):
+- Given the 2.3 integration patterns context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
 
 ## 3. User Experience
-Frontend UI, UX patterns, and user interactions
 
 ### 3.1 Configuration & Environment
 
-#### A1: Describe runtime topology
-- **ID**: 1768381158890
-- **Description**: Runtime topology documentation
+#### US-UX-CONF-L3-001 — Epic: Document Runtime Topology [Implemented]
 
-#### A2: Environment endpoints
-- **ID**: 1768381192868
-- **Description**: Environment endpoint configuration
+Level: L3
+Parent ID: N/A
+Description:
+As a environment administrator
+I want to open topology docs
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I open topology docs
+  Then all services and endpoints are listed
+
+#### US-UX-CONF-L3-002 — Epic: Publish Environment Endpoints [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a environment administrator
+I want to view environment endpoints
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I view environment endpoints
+  Then endpoints are grouped by environment
+
+#### US-UX-CONF-L4-003 — Feature: Validate Environment Variables [Implemented]
+
+Level: L4
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to run config validation
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I run config validation
+  Then missing variables are reported
+
+#### US-UX-CONF-L4-004 — Feature: Deliver Configuration & Environment Improvement 4 [Implemented]
+
+Level: L4
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to execute improvement 4
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
+
+#### US-UX-CONF-L4-005 — Feature: Deliver Configuration & Environment Improvement 5 [Draft]
+
+Level: L4
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to execute improvement 5
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-UX-CONF-L4-006 — Feature: Deliver Configuration & Environment Improvement 6 [Ready]
+
+Level: L4
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to execute improvement 6
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-UX-CONF-L5-007 — Story: Deliver Configuration & Environment Improvement 7 [Ready]
+
+Level: L5
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to execute improvement 7
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-UX-CONF-L5-008 — Story: Deliver Configuration & Environment Improvement 8 [Implemented]
+
+Level: L5
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to execute improvement 8
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-UX-CONF-L5-009 — Story: Deliver Configuration & Environment Improvement 9 [Draft]
+
+Level: L5
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to execute improvement 9
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-UX-CONF-L5-010 — Story: Deliver Configuration & Environment Improvement 10 [Ready]
+
+Level: L5
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to execute improvement 10
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-UX-CONF-L6-011 — Task: Deliver Configuration & Environment Improvement 11 [Ready]
+
+Level: L6
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to execute improvement 11
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-UX-CONF-L6-012 — Task: Deliver Configuration & Environment Improvement 12 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-UX-CONF-L3-002
+Description:
+As a environment administrator
+I want to execute improvement 12
+So that runtime environments stay consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.1 configuration & environment context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
 
 ### 3.2 Core Features
 
-#### B1: Story CRUD
-- **ID**: 1768381397587
-- **Description**: Story create, read, update, delete operations
+#### US-UX-CORE-L3-001 — Epic: Create Stories With Structured Intent [Implemented]
 
-#### B3: GitHub automation endpoints
-- **ID**: 1768381466516
-- **Description**: GitHub automation API endpoints
+Level: L3
+Parent ID: N/A
+Description:
+As a project user
+I want to submit As-a/I-want/So-that fields
+So that work items remain traceable
 
-#### B5: File uploads
-- **ID**: 1768381534956
-- **Description**: File upload functionality
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I submit As-a/I-want/So-that fields
+  Then the story is stored and indexed
+
+#### US-UX-CORE-L3-002 — Epic: Edit Story Metadata [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a project user
+I want to save edits
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I save edits
+  Then changes are reflected in the UI
+
+#### US-UX-CORE-L3-003 — Epic: Track Story Status Lifecycle [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a project user
+I want to move a story to Done
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I move a story to Done
+  Then the status transition is validated
+
+#### US-UX-CORE-L3-004 — Epic: Bulk Edit Stories [Ready]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a project user
+I want to select multiple stories
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I select multiple stories
+  Then updates apply to all selected stories
+
+#### US-UX-CORE-L4-005 — Feature: Manage Dependencies [Implemented]
+
+Level: L4
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to add a dependency link
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I add a dependency link
+  Then the dependency graph updates
+
+#### US-UX-CORE-L4-006 — Feature: Deliver Core Features Improvement 6 [Implemented]
+
+Level: L4
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 6
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-UX-CORE-L4-007 — Feature: Deliver Core Features Improvement 7 [Draft]
+
+Level: L4
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 7
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-UX-CORE-L4-008 — Feature: Deliver Core Features Improvement 8 [Ready]
+
+Level: L4
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 8
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-UX-CORE-L4-009 — Feature: Deliver Core Features Improvement 9 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 9
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-UX-CORE-L4-010 — Feature: Deliver Core Features Improvement 10 [Draft]
+
+Level: L4
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 10
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-UX-CORE-L5-011 — Story: Deliver Core Features Improvement 11 [Ready]
+
+Level: L5
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 11
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-UX-CORE-L5-012 — Story: Deliver Core Features Improvement 12 [Implemented]
+
+Level: L5
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 12
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-UX-CORE-L5-013 — Story: Deliver Core Features Improvement 13 [Draft]
+
+Level: L5
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 13
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-UX-CORE-L5-014 — Story: Deliver Core Features Improvement 14 [Ready]
+
+Level: L5
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 14
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-UX-CORE-L5-015 — Story: Deliver Core Features Improvement 15 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 15
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
+
+#### US-UX-CORE-L5-016 — Story: Deliver Core Features Improvement 16 [Draft]
+
+Level: L5
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 16
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 16
+  Then improvement 16 status is stored
+
+#### US-UX-CORE-L5-017 — Story: Deliver Core Features Improvement 17 [Ready]
+
+Level: L5
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 17
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 17
+  Then improvement 17 status is stored
+
+#### US-UX-CORE-L6-018 — Task: Deliver Core Features Improvement 18 [Ready]
+
+Level: L6
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 18
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 18
+  Then improvement 18 status is stored
+
+#### US-UX-CORE-L6-019 — Task: Deliver Core Features Improvement 19 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 19
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 19
+  Then improvement 19 status is stored
+
+#### US-UX-CORE-L6-020 — Task: Deliver Core Features Improvement 20 [Draft]
+
+Level: L6
+Parent ID: US-UX-CORE-L3-004
+Description:
+As a project user
+I want to execute improvement 20
+So that work items remain traceable
+
+Acceptance Criteria (GWT):
+- Given the 3.2 core features context exists
+  When I execute improvement 20
+  Then improvement 20 status is stored
 
 ### 3.3 UI Components
 
-#### C1: Panel synchronization
-- **ID**: 1768381744921
-- **Description**: Synchronize outline, mindmap, and detail panels
+#### US-UX-UI-L3-001 — Epic: Sync Outline And Mindmap Panels [Implemented]
 
-#### C2: Mindmap layout control
-- **ID**: 1768381779660
-- **Description**: Auto-layout toggle and manual positioning
+Level: L3
+Parent ID: N/A
+Description:
+As a end user
+I want to select a story in the outline
+So that users complete tasks without confusion
 
-#### C3: Modal workflows
-- **ID**: 1768381814237
-- **Description**: Modal forms with validation and warning overrides
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I select a story in the outline
+  Then the mindmap selection updates
 
-#### C4: Story detail richness
-- **ID**: 1768381848790
-- **Description**: Comprehensive story detail view with metadata
+#### US-UX-UI-L3-002 — Epic: Render Detailed Story Metadata [Draft]
 
-#### C5: Employee Heat Map
-- **ID**: 1768381883358
-- **Description**: Workload visualization by assignee and component
+Level: L3
+Parent ID: N/A
+Description:
+As a end user
+I want to open story details
+So that users complete tasks without confusion
 
-#### C6: Export and document generation
-- **ID**: 1768381917685
-- **Description**: Generate test and requirement documents
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I open story details
+  Then metadata fields render with labels
+
+#### US-UX-UI-L3-003 — Epic: Support Modal Validation Workflows [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a end user
+I want to submit a modal form
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I submit a modal form
+  Then validation errors appear inline
+
+#### US-UX-UI-L4-004 — Feature: Improve Accessibility Contrast [Implemented]
+
+Level: L4
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to run accessibility checks
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I run accessibility checks
+  Then contrast ratios pass
+
+#### US-UX-UI-L4-005 — Feature: Deliver Ui Components Improvement 5 [Implemented]
+
+Level: L4
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 5
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-UX-UI-L4-006 — Feature: Deliver Ui Components Improvement 6 [Draft]
+
+Level: L4
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 6
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-UX-UI-L4-007 — Feature: Deliver Ui Components Improvement 7 [Ready]
+
+Level: L4
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 7
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-UX-UI-L4-008 — Feature: Deliver Ui Components Improvement 8 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 8
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-UX-UI-L4-009 — Feature: Deliver Ui Components Improvement 9 [Draft]
+
+Level: L4
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 9
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-UX-UI-L5-010 — Story: Deliver Ui Components Improvement 10 [Ready]
+
+Level: L5
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 10
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-UX-UI-L5-011 — Story: Deliver Ui Components Improvement 11 [Implemented]
+
+Level: L5
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 11
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-UX-UI-L5-012 — Story: Deliver Ui Components Improvement 12 [Draft]
+
+Level: L5
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 12
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-UX-UI-L5-013 — Story: Deliver Ui Components Improvement 13 [Ready]
+
+Level: L5
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 13
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-UX-UI-L5-014 — Story: Deliver Ui Components Improvement 14 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 14
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-UX-UI-L5-015 — Story: Deliver Ui Components Improvement 15 [Draft]
+
+Level: L5
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 15
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
+
+#### US-UX-UI-L6-016 — Task: Deliver Ui Components Improvement 16 [Ready]
+
+Level: L6
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 16
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 16
+  Then improvement 16 status is stored
+
+#### US-UX-UI-L6-017 — Task: Deliver Ui Components Improvement 17 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 17
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 17
+  Then improvement 17 status is stored
+
+#### US-UX-UI-L6-018 — Task: Deliver Ui Components Improvement 18 [Draft]
+
+Level: L6
+Parent ID: US-UX-UI-L3-003
+Description:
+As a end user
+I want to execute improvement 18
+So that users complete tasks without confusion
+
+Acceptance Criteria (GWT):
+- Given the 3.3 ui components context exists
+  When I execute improvement 18
+  Then improvement 18 status is stored
 
 ### 3.4 Setup & Bootstrap
 
-#### D1: Local bootstrap
-- **ID**: 1768381604398
-- **Description**: Local development environment setup
+#### US-UX-BOOT-L3-001 — Epic: Bootstrap Local Development [Implemented]
 
-#### D3: AWS/IAM setup
-- **ID**: 1768381674426
-- **Description**: AWS and IAM configuration
+Level: L3
+Parent ID: N/A
+Description:
+As a new contributor
+I want to run bootstrap script
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I run bootstrap script
+  Then dependencies are installed
+
+#### US-UX-BOOT-L3-002 — Epic: Configure Aws/Iam Setup [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a new contributor
+I want to apply IAM setup guide
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I apply IAM setup guide
+  Then required roles are created
+
+#### US-UX-BOOT-L4-003 — Feature: Guide Onboarding Steps [Implemented]
+
+Level: L4
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to follow onboarding checklist
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I follow onboarding checklist
+  Then all steps are marked complete
+
+#### US-UX-BOOT-L4-004 — Feature: Deliver Setup & Bootstrap Improvement 4 [Implemented]
+
+Level: L4
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to execute improvement 4
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
+
+#### US-UX-BOOT-L4-005 — Feature: Deliver Setup & Bootstrap Improvement 5 [Draft]
+
+Level: L4
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to execute improvement 5
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-UX-BOOT-L4-006 — Feature: Deliver Setup & Bootstrap Improvement 6 [Ready]
+
+Level: L4
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to execute improvement 6
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-UX-BOOT-L5-007 — Story: Deliver Setup & Bootstrap Improvement 7 [Ready]
+
+Level: L5
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to execute improvement 7
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-UX-BOOT-L5-008 — Story: Deliver Setup & Bootstrap Improvement 8 [Implemented]
+
+Level: L5
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to execute improvement 8
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-UX-BOOT-L5-009 — Story: Deliver Setup & Bootstrap Improvement 9 [Draft]
+
+Level: L5
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to execute improvement 9
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-UX-BOOT-L5-010 — Story: Deliver Setup & Bootstrap Improvement 10 [Ready]
+
+Level: L5
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to execute improvement 10
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-UX-BOOT-L6-011 — Task: Deliver Setup & Bootstrap Improvement 11 [Ready]
+
+Level: L6
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to execute improvement 11
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-UX-BOOT-L6-012 — Task: Deliver Setup & Bootstrap Improvement 12 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-UX-BOOT-L3-002
+Description:
+As a new contributor
+I want to execute improvement 12
+So that setup time is predictable
+
+Acceptance Criteria (GWT):
+- Given the 3.4 setup & bootstrap context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
 
 ### 3.5 Workflows
 
-#### E4: Code generation workflow
-- **ID**: 1768382091247
-- **Description**: Automated code generation workflow
+#### US-UX-FLOW-L3-001 — Epic: Execute Code Generation Workflow [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a delivery lead
+I want to run code generation
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I run code generation
+  Then tasks are created with status
+
+#### US-UX-FLOW-L3-002 — Epic: Capture Approvals Before Deploy [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a delivery lead
+I want to submit for approval
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I submit for approval
+  Then approval status is recorded
+
+#### US-UX-FLOW-L3-003 — Epic: Generate Prs From Stories [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a delivery lead
+I want to trigger PR creation
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I trigger PR creation
+  Then a PR link is stored
+
+#### US-UX-FLOW-L4-004 — Feature: Deliver Workflows Improvement 4 [Implemented]
+
+Level: L4
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 4
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
+
+#### US-UX-FLOW-L4-005 — Feature: Deliver Workflows Improvement 5 [Implemented]
+
+Level: L4
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 5
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-UX-FLOW-L4-006 — Feature: Deliver Workflows Improvement 6 [Draft]
+
+Level: L4
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 6
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-UX-FLOW-L4-007 — Feature: Deliver Workflows Improvement 7 [Ready]
+
+Level: L4
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 7
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-UX-FLOW-L4-008 — Feature: Deliver Workflows Improvement 8 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 8
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-UX-FLOW-L5-009 — Story: Deliver Workflows Improvement 9 [Ready]
+
+Level: L5
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 9
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-UX-FLOW-L5-010 — Story: Deliver Workflows Improvement 10 [Implemented]
+
+Level: L5
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 10
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-UX-FLOW-L5-011 — Story: Deliver Workflows Improvement 11 [Draft]
+
+Level: L5
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 11
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-UX-FLOW-L5-012 — Story: Deliver Workflows Improvement 12 [Ready]
+
+Level: L5
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 12
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-UX-FLOW-L5-013 — Story: Deliver Workflows Improvement 13 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 13
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-UX-FLOW-L6-014 — Task: Deliver Workflows Improvement 14 [Ready]
+
+Level: L6
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 14
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-UX-FLOW-L6-015 — Task: Deliver Workflows Improvement 15 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-UX-FLOW-L3-003
+Description:
+As a delivery lead
+I want to execute improvement 15
+So that delivery steps are consistent
+
+Acceptance Criteria (GWT):
+- Given the 3.5 workflows context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
 
 ### 3.6 Testing UI
 
-#### F1: Gating suites
-- **ID**: 1768382300171
-- **Description**: Test gating suite interface
+#### US-UX-TEST-L3-001 — Epic: Manage Gating Suites [Implemented]
 
-#### F2: Browser validation
-- **ID**: 1768382334815
-- **Description**: Browser compatibility validation
+Level: L3
+Parent ID: N/A
+Description:
+As a QA engineer
+I want to open gating suite UI
+So that test execution is repeatable
 
-#### F3: Test command guidance
-- **ID**: 1768382369376
-- **Description**: Test command documentation and guidance
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I open gating suite UI
+  Then suite status is visible
 
-### 3.7 Security
+#### US-UX-TEST-L3-002 — Epic: Run Browser Validation Matrix [Draft]
 
-#### G1: Token handling
-- **ID**: 1768382404357
-- **Description**: Secure token management
+Level: L3
+Parent ID: N/A
+Description:
+As a QA engineer
+I want to execute browser checks
+So that test execution is repeatable
 
-#### G2: Secrets in configs
-- **ID**: 1768382439028
-- **Description**: Configuration secret management
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute browser checks
+  Then results per browser are stored
 
-#### G3: Access control/IAM
-- **ID**: 1768382474438
-- **Description**: Access control and IAM policies
+#### US-UX-TEST-L4-003 — Feature: Document Test Commands [Implemented]
 
-#### G4: Data protection
-- **ID**: 1768382510010
-- **Description**: Data protection and encryption
+Level: L4
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to open test guidance
+So that test execution is repeatable
 
-### 3.8 CI/CD
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I open test guidance
+  Then commands are listed and copyable
 
-#### H4: CI/CD workflows
-- **ID**: 1768382230535
-- **Description**: Continuous integration and deployment workflows
+#### US-UX-TEST-L4-004 — Feature: Deliver Testing Ui Improvement 4 [Implemented]
 
-### 3.9 Monitoring
+Level: L4
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to execute improvement 4
+So that test execution is repeatable
 
-#### I4: Performance diagnostics
-- **ID**: 1768382688925
-- **Description**: Performance monitoring and diagnostics
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
 
-### 3.10 Configuration Management
+#### US-UX-TEST-L4-005 — Feature: Deliver Testing Ui Improvement 5 [Draft]
 
-#### J2: Feature flagging
-- **ID**: 1768382760219
-- **Description**: Feature flag management
+Level: L4
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to execute improvement 5
+So that test execution is repeatable
 
-### 3.11 AI Integration
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
 
-#### K2: Kiro CLI/API
-- **ID**: 1768381295030
-- **Description**: Kiro CLI and API integration
+#### US-UX-TEST-L4-006 — Feature: Deliver Testing Ui Improvement 6 [Ready]
 
-### 3.12 Operations
+Level: L4
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to execute improvement 6
+So that test execution is repeatable
 
-#### L1: Routine maintenance
-- **ID**: 1768382831403
-- **Description**: Routine system maintenance
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
 
-#### L3: Disaster recovery
-- **ID**: 1768382902249
-- **Description**: Disaster recovery procedures
+#### US-UX-TEST-L5-007 — Story: Deliver Testing Ui Improvement 7 [Ready]
 
-### 3.13 UI Improvements
+Level: L5
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to execute improvement 7
+So that test execution is repeatable
 
-#### Remove "Health (GWT)" from Acceptance Test view
-- **ID**: 1768383614746
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
 
-#### Change Details Panel Summary Row to INVEST
-- **ID**: 1768384044842
+#### US-UX-TEST-L5-008 — Story: Deliver Testing Ui Improvement 8 [Implemented]
 
-#### Auto-generate acceptance tests in Create Child Story modal
-- **ID**: 1768384080833
+Level: L5
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to execute improvement 8
+So that test execution is repeatable
 
-#### User Interface
-- **ID**: 1768383508103
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
 
-#### Fix Done Button Functionality in Story Details
-- **ID**: 1768383793928
+#### US-UX-TEST-L5-009 — Story: Deliver Testing Ui Improvement 9 [Draft]
 
-#### Fix Mindmap Position Persistence Bug
-- **ID**: 1768384117287
+Level: L5
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to execute improvement 9
+So that test execution is repeatable
 
-#### Hide User Story when the User Story is "Done" status
-- **ID**: 1768383829683
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
 
-#### Remove redundant strings from INVEST row content
-- **ID**: 1768383543779
+#### US-UX-TEST-L5-010 — Story: Deliver Testing Ui Improvement 10 [Ready]
 
-#### Clean up the Development Tasks card interface
-- **ID**: 1768383579293
-- **Description**: Remove unnecessary git workflow fields (Branch, PR Status, Rebase)
+Level: L5
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to execute improvement 10
+So that test execution is repeatable
 
-#### Show User Story ID on User Story Details
-- **ID**: 1768383650393
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
 
-#### Stop Tracking Closes Connected PR
-- **ID**: 1768384009008
+#### US-UX-TEST-L6-011 — Task: Deliver Testing Ui Improvement 11 [Ready]
 
-#### Display GitHub PR Link in Development Task Card
-- **ID**: 1768384154262
+Level: L6
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to execute improvement 11
+So that test execution is repeatable
 
-#### Add Vertical Scroll Bar to AIPM Structured Gating Tests Page
-- **ID**: 1768383758071
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
 
-#### Create PR directly when click "Create PR" button
-- **ID**: 1768383721614
-- **Description**: Without opening any modal
+#### US-UX-TEST-L6-012 — Task: Deliver Testing Ui Improvement 12 [Critical-Not-Implemented]
 
-#### Streamline Dependencies Section Interface
-- **ID**: 1768383901366
+Level: L6
+Parent ID: US-UX-TEST-L3-002
+Description:
+As a QA engineer
+I want to execute improvement 12
+So that test execution is repeatable
 
-#### Streamline Development Tasks Card by Removing Git-Related Fields
-- **ID**: 1768383865049
+Acceptance Criteria (GWT):
+- Given the 3.6 testing ui context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
 
----
+### 3.7 Security UX
+
+#### US-UX-SEC-L3-001 — Epic: Manage Tokens Securely [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a security reviewer
+I want to rotate a token
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I rotate a token
+  Then the new token is stored securely
+
+#### US-UX-SEC-L3-002 — Epic: Manage Secrets In Configs [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a security reviewer
+I want to store a secret
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I store a secret
+  Then secrets are masked in UI
+
+#### US-UX-SEC-L4-003 — Feature: Enforce Iam Access Control [Implemented]
+
+Level: L4
+Parent ID: US-UX-SEC-L3-002
+Description:
+As a security reviewer
+I want to request a protected action
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I request a protected action
+  Then authorization is checked
+
+#### US-UX-SEC-L4-004 — Feature: Apply Secret Rotation Policy [Implemented]
+
+Level: L4
+Parent ID: US-UX-SEC-L3-002
+Description:
+As a security reviewer
+I want to run rotation policy
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I run rotation policy
+  Then rotation events are logged
+
+#### US-UX-SEC-L4-005 — Feature: Deliver Security Ux Improvement 5 [Draft]
+
+Level: L4
+Parent ID: US-UX-SEC-L3-002
+Description:
+As a security reviewer
+I want to execute improvement 5
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-UX-SEC-L4-006 — Feature: Deliver Security Ux Improvement 6 [Ready]
+
+Level: L4
+Parent ID: US-UX-SEC-L3-002
+Description:
+As a security reviewer
+I want to execute improvement 6
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-UX-SEC-L5-007 — Story: Deliver Security Ux Improvement 7 [Ready]
+
+Level: L5
+Parent ID: US-UX-SEC-L3-002
+Description:
+As a security reviewer
+I want to execute improvement 7
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-UX-SEC-L5-008 — Story: Deliver Security Ux Improvement 8 [Implemented]
+
+Level: L5
+Parent ID: US-UX-SEC-L3-002
+Description:
+As a security reviewer
+I want to execute improvement 8
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-UX-SEC-L5-009 — Story: Deliver Security Ux Improvement 9 [Draft]
+
+Level: L5
+Parent ID: US-UX-SEC-L3-002
+Description:
+As a security reviewer
+I want to execute improvement 9
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-UX-SEC-L5-010 — Story: Deliver Security Ux Improvement 10 [Ready]
+
+Level: L5
+Parent ID: US-UX-SEC-L3-002
+Description:
+As a security reviewer
+I want to execute improvement 10
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-UX-SEC-L6-011 — Task: Deliver Security Ux Improvement 11 [Ready]
+
+Level: L6
+Parent ID: US-UX-SEC-L3-002
+Description:
+As a security reviewer
+I want to execute improvement 11
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 3.7 security ux context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+### 3.8 UI Improvements
+
+#### US-UX-IMPR-L3-001 — Epic: Remove Redundant Ui Fields [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a UX engineer
+I want to open the development tasks card
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I open the development tasks card
+  Then unused fields are hidden
+
+#### US-UX-IMPR-L3-002 — Epic: Fix Mindmap Persistence [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a UX engineer
+I want to move a node
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I move a node
+  Then positions persist after reload
+
+#### US-UX-IMPR-L3-003 — Epic: Improve Scroll Behavior [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a UX engineer
+I want to open the gating tests page
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I open the gating tests page
+  Then content scrolls within the panel
+
+#### US-UX-IMPR-L3-004 — Epic: Optimize Ui Performance [Ready]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a UX engineer
+I want to load a heavy view
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I load a heavy view
+  Then render time stays under target
+
+#### US-UX-IMPR-L4-005 — Feature: Deliver Ui Improvements Improvement 5 [Implemented]
+
+Level: L4
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 5
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-UX-IMPR-L4-006 — Feature: Deliver Ui Improvements Improvement 6 [Implemented]
+
+Level: L4
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 6
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-UX-IMPR-L4-007 — Feature: Deliver Ui Improvements Improvement 7 [Draft]
+
+Level: L4
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 7
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-UX-IMPR-L4-008 — Feature: Deliver Ui Improvements Improvement 8 [Ready]
+
+Level: L4
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 8
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-UX-IMPR-L4-009 — Feature: Deliver Ui Improvements Improvement 9 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 9
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-UX-IMPR-L4-010 — Feature: Deliver Ui Improvements Improvement 10 [Draft]
+
+Level: L4
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 10
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-UX-IMPR-L5-011 — Story: Deliver Ui Improvements Improvement 11 [Ready]
+
+Level: L5
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 11
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-UX-IMPR-L5-012 — Story: Deliver Ui Improvements Improvement 12 [Implemented]
+
+Level: L5
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 12
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-UX-IMPR-L5-013 — Story: Deliver Ui Improvements Improvement 13 [Draft]
+
+Level: L5
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 13
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-UX-IMPR-L5-014 — Story: Deliver Ui Improvements Improvement 14 [Ready]
+
+Level: L5
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 14
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-UX-IMPR-L5-015 — Story: Deliver Ui Improvements Improvement 15 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 15
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
+
+#### US-UX-IMPR-L5-016 — Story: Deliver Ui Improvements Improvement 16 [Draft]
+
+Level: L5
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 16
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 16
+  Then improvement 16 status is stored
+
+#### US-UX-IMPR-L5-017 — Story: Deliver Ui Improvements Improvement 17 [Ready]
+
+Level: L5
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 17
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 17
+  Then improvement 17 status is stored
+
+#### US-UX-IMPR-L6-018 — Task: Deliver Ui Improvements Improvement 18 [Ready]
+
+Level: L6
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 18
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 18
+  Then improvement 18 status is stored
+
+#### US-UX-IMPR-L6-019 — Task: Deliver Ui Improvements Improvement 19 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 19
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 19
+  Then improvement 19 status is stored
+
+#### US-UX-IMPR-L6-020 — Task: Deliver Ui Improvements Improvement 20 [Draft]
+
+Level: L6
+Parent ID: US-UX-IMPR-L3-004
+Description:
+As a UX engineer
+I want to execute improvement 20
+So that UI performance and clarity improve
+
+Acceptance Criteria (GWT):
+- Given the 3.8 ui improvements context exists
+  When I execute improvement 20
+  Then improvement 20 status is stored
 
 ## 4. Quality & Security
-Testing, quality gates, and security compliance
 
-#### E1: Story lifecycle
-- **ID**: 1768381986752
-- **Description**: Story status lifecycle management
+### 4.1 Story Lifecycle & Quality
 
-#### B2: Acceptance tests linkage
-- **ID**: 1768381432142
-- **Description**: Link acceptance tests to stories
+#### US-QS-QUAL-L3-001 — Epic: Enforce Story Lifecycle Gates [Implemented]
 
----
+Level: L3
+Parent ID: N/A
+Description:
+As a quality manager
+I want to attempt an invalid transition
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I attempt an invalid transition
+  Then the system blocks the change
+
+#### US-QS-QUAL-L3-002 — Epic: Run Invest Validation [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a quality manager
+I want to submit a story
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I submit a story
+  Then INVEST score is shown
+
+#### US-QS-QUAL-L3-003 — Epic: Track Acceptance Coverage [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a quality manager
+I want to open acceptance coverage
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I open acceptance coverage
+  Then coverage percent is displayed
+
+#### US-QS-QUAL-L4-004 — Feature: Gate Releases On Coverage Thresholds [Implemented]
+
+Level: L4
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to attempt a release
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I attempt a release
+  Then releases fail below threshold
+
+#### US-QS-QUAL-L4-005 — Feature: Deliver Story Lifecycle & Quality Improvement 5 [Implemented]
+
+Level: L4
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 5
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-QS-QUAL-L4-006 — Feature: Deliver Story Lifecycle & Quality Improvement 6 [Draft]
+
+Level: L4
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 6
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-QS-QUAL-L4-007 — Feature: Deliver Story Lifecycle & Quality Improvement 7 [Ready]
+
+Level: L4
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 7
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-QS-QUAL-L4-008 — Feature: Deliver Story Lifecycle & Quality Improvement 8 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 8
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-QS-QUAL-L5-009 — Story: Deliver Story Lifecycle & Quality Improvement 9 [Ready]
+
+Level: L5
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 9
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-QS-QUAL-L5-010 — Story: Deliver Story Lifecycle & Quality Improvement 10 [Implemented]
+
+Level: L5
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 10
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-QS-QUAL-L5-011 — Story: Deliver Story Lifecycle & Quality Improvement 11 [Draft]
+
+Level: L5
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 11
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-QS-QUAL-L5-012 — Story: Deliver Story Lifecycle & Quality Improvement 12 [Ready]
+
+Level: L5
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 12
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-QS-QUAL-L5-013 — Story: Deliver Story Lifecycle & Quality Improvement 13 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 13
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-QS-QUAL-L6-014 — Task: Deliver Story Lifecycle & Quality Improvement 14 [Ready]
+
+Level: L6
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 14
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-QS-QUAL-L6-015 — Task: Deliver Story Lifecycle & Quality Improvement 15 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-QS-QUAL-L3-003
+Description:
+As a quality manager
+I want to execute improvement 15
+So that quality gates are enforced
+
+Acceptance Criteria (GWT):
+- Given the 4.1 story lifecycle & quality context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
+
+### 4.2 Acceptance Tests
+
+#### US-QS-AT-L3-001 — Epic: Author Acceptance Tests [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a test author
+I want to create a GWT test
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I create a GWT test
+  Then the test is linked to a story
+
+#### US-QS-AT-L3-002 — Epic: Store Acceptance Test Results [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a test author
+I want to run acceptance tests
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I run acceptance tests
+  Then results are stored per story
+
+#### US-QS-AT-L3-003 — Epic: Analyze Coverage Gaps [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a test author
+I want to open coverage analytics
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I open coverage analytics
+  Then gaps are flagged
+
+#### US-QS-AT-L4-004 — Feature: Deliver Acceptance Tests Improvement 4 [Implemented]
+
+Level: L4
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 4
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
+
+#### US-QS-AT-L4-005 — Feature: Deliver Acceptance Tests Improvement 5 [Implemented]
+
+Level: L4
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 5
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-QS-AT-L4-006 — Feature: Deliver Acceptance Tests Improvement 6 [Draft]
+
+Level: L4
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 6
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-QS-AT-L4-007 — Feature: Deliver Acceptance Tests Improvement 7 [Ready]
+
+Level: L4
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 7
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-QS-AT-L4-008 — Feature: Deliver Acceptance Tests Improvement 8 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 8
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-QS-AT-L5-009 — Story: Deliver Acceptance Tests Improvement 9 [Ready]
+
+Level: L5
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 9
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-QS-AT-L5-010 — Story: Deliver Acceptance Tests Improvement 10 [Implemented]
+
+Level: L5
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 10
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-QS-AT-L5-011 — Story: Deliver Acceptance Tests Improvement 11 [Draft]
+
+Level: L5
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 11
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-QS-AT-L5-012 — Story: Deliver Acceptance Tests Improvement 12 [Ready]
+
+Level: L5
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 12
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-QS-AT-L5-013 — Story: Deliver Acceptance Tests Improvement 13 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 13
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-QS-AT-L6-014 — Task: Deliver Acceptance Tests Improvement 14 [Ready]
+
+Level: L6
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 14
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-QS-AT-L6-015 — Task: Deliver Acceptance Tests Improvement 15 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-QS-AT-L3-003
+Description:
+As a test author
+I want to execute improvement 15
+So that test coverage is measurable
+
+Acceptance Criteria (GWT):
+- Given the 4.2 acceptance tests context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
+
+### 4.3 Security Compliance
+
+#### US-QS-SEC-L3-001 — Epic: Manage Tokens Securely [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a security reviewer
+I want to rotate a token
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I rotate a token
+  Then the new token is stored securely
+
+#### US-QS-SEC-L3-002 — Epic: Manage Secrets In Configs [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a security reviewer
+I want to store a secret
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I store a secret
+  Then secrets are masked in UI
+
+#### US-QS-SEC-L3-003 — Epic: Enforce Iam Access Control [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a security reviewer
+I want to request a protected action
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I request a protected action
+  Then authorization is checked
+
+#### US-QS-SEC-L4-004 — Feature: Apply Secret Rotation Policy [Implemented]
+
+Level: L4
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to run rotation policy
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I run rotation policy
+  Then rotation events are logged
+
+#### US-QS-SEC-L4-005 — Feature: Deliver Security Compliance Improvement 5 [Implemented]
+
+Level: L4
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 5
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-QS-SEC-L4-006 — Feature: Deliver Security Compliance Improvement 6 [Draft]
+
+Level: L4
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 6
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-QS-SEC-L4-007 — Feature: Deliver Security Compliance Improvement 7 [Ready]
+
+Level: L4
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 7
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-QS-SEC-L4-008 — Feature: Deliver Security Compliance Improvement 8 [Critical-Not-Implemented]
+
+Level: L4
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 8
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-QS-SEC-L5-009 — Story: Deliver Security Compliance Improvement 9 [Ready]
+
+Level: L5
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 9
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-QS-SEC-L5-010 — Story: Deliver Security Compliance Improvement 10 [Implemented]
+
+Level: L5
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 10
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+#### US-QS-SEC-L5-011 — Story: Deliver Security Compliance Improvement 11 [Draft]
+
+Level: L5
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 11
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 11
+  Then improvement 11 status is stored
+
+#### US-QS-SEC-L5-012 — Story: Deliver Security Compliance Improvement 12 [Ready]
+
+Level: L5
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 12
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 12
+  Then improvement 12 status is stored
+
+#### US-QS-SEC-L5-013 — Story: Deliver Security Compliance Improvement 13 [Critical-Not-Implemented]
+
+Level: L5
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 13
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 13
+  Then improvement 13 status is stored
+
+#### US-QS-SEC-L6-014 — Task: Deliver Security Compliance Improvement 14 [Ready]
+
+Level: L6
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 14
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 14
+  Then improvement 14 status is stored
+
+#### US-QS-SEC-L6-015 — Task: Deliver Security Compliance Improvement 15 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-QS-SEC-L3-003
+Description:
+As a security reviewer
+I want to execute improvement 15
+So that access is controlled and auditable
+
+Acceptance Criteria (GWT):
+- Given the 4.3 security compliance context exists
+  When I execute improvement 15
+  Then improvement 15 status is stored
 
 ## 5. Operations
-Monitoring, configuration, and operational maintenance
 
-#### I2: Log access
-- **ID**: 1768382617631
-- **Description**: System log access and management
+### 5.1 Monitoring & Logs
 
----
+#### US-OP-MON-L3-001 — Epic: Access System Logs [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a site reliability engineer
+I want to open log viewer
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I open log viewer
+  Then logs filter by time range
+
+#### US-OP-MON-L3-002 — Epic: Monitor Performance Diagnostics [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a site reliability engineer
+I want to view performance dashboard
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I view performance dashboard
+  Then latency metrics render
+
+#### US-OP-MON-L4-003 — Feature: Route Alerts [Implemented]
+
+Level: L4
+Parent ID: US-OP-MON-L3-002
+Description:
+As a site reliability engineer
+I want to create an alert rule
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I create an alert rule
+  Then alerts notify the on-call channel
+
+#### US-OP-MON-L4-004 — Feature: Deliver Monitoring & Logs Improvement 4 [Implemented]
+
+Level: L4
+Parent ID: US-OP-MON-L3-002
+Description:
+As a site reliability engineer
+I want to execute improvement 4
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
+
+#### US-OP-MON-L4-005 — Feature: Deliver Monitoring & Logs Improvement 5 [Draft]
+
+Level: L4
+Parent ID: US-OP-MON-L3-002
+Description:
+As a site reliability engineer
+I want to execute improvement 5
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-OP-MON-L5-006 — Story: Deliver Monitoring & Logs Improvement 6 [Ready]
+
+Level: L5
+Parent ID: US-OP-MON-L3-002
+Description:
+As a site reliability engineer
+I want to execute improvement 6
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-OP-MON-L5-007 — Story: Deliver Monitoring & Logs Improvement 7 [Implemented]
+
+Level: L5
+Parent ID: US-OP-MON-L3-002
+Description:
+As a site reliability engineer
+I want to execute improvement 7
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-OP-MON-L5-008 — Story: Deliver Monitoring & Logs Improvement 8 [Draft]
+
+Level: L5
+Parent ID: US-OP-MON-L3-002
+Description:
+As a site reliability engineer
+I want to execute improvement 8
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-OP-MON-L6-009 — Task: Deliver Monitoring & Logs Improvement 9 [Ready]
+
+Level: L6
+Parent ID: US-OP-MON-L3-002
+Description:
+As a site reliability engineer
+I want to execute improvement 9
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-OP-MON-L6-010 — Task: Deliver Monitoring & Logs Improvement 10 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-OP-MON-L3-002
+Description:
+As a site reliability engineer
+I want to execute improvement 10
+So that incidents are detected quickly
+
+Acceptance Criteria (GWT):
+- Given the 5.1 monitoring & logs context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
+
+### 5.2 Operational Runbooks
+
+#### US-OP-RUN-L3-001 — Epic: Document Routine Maintenance [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a operations lead
+I want to open runbook
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I open runbook
+  Then maintenance steps are listed
+
+#### US-OP-RUN-L3-002 — Epic: Execute Incident Drills [Draft]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a operations lead
+I want to start a drill
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I start a drill
+  Then results are logged
+
+#### US-OP-RUN-L4-003 — Feature: Publish Troubleshooting Playbooks [Implemented]
+
+Level: L4
+Parent ID: US-OP-RUN-L3-002
+Description:
+As a operations lead
+I want to open troubleshooting guide
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I open troubleshooting guide
+  Then run steps are documented
+
+#### US-OP-RUN-L4-004 — Feature: Deliver Operational Runbooks Improvement 4 [Implemented]
+
+Level: L4
+Parent ID: US-OP-RUN-L3-002
+Description:
+As a operations lead
+I want to execute improvement 4
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
+
+#### US-OP-RUN-L4-005 — Feature: Deliver Operational Runbooks Improvement 5 [Draft]
+
+Level: L4
+Parent ID: US-OP-RUN-L3-002
+Description:
+As a operations lead
+I want to execute improvement 5
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-OP-RUN-L5-006 — Story: Deliver Operational Runbooks Improvement 6 [Ready]
+
+Level: L5
+Parent ID: US-OP-RUN-L3-002
+Description:
+As a operations lead
+I want to execute improvement 6
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-OP-RUN-L5-007 — Story: Deliver Operational Runbooks Improvement 7 [Implemented]
+
+Level: L5
+Parent ID: US-OP-RUN-L3-002
+Description:
+As a operations lead
+I want to execute improvement 7
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-OP-RUN-L5-008 — Story: Deliver Operational Runbooks Improvement 8 [Draft]
+
+Level: L5
+Parent ID: US-OP-RUN-L3-002
+Description:
+As a operations lead
+I want to execute improvement 8
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-OP-RUN-L6-009 — Task: Deliver Operational Runbooks Improvement 9 [Ready]
+
+Level: L6
+Parent ID: US-OP-RUN-L3-002
+Description:
+As a operations lead
+I want to execute improvement 9
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+#### US-OP-RUN-L6-010 — Task: Deliver Operational Runbooks Improvement 10 [Critical-Not-Implemented]
+
+Level: L6
+Parent ID: US-OP-RUN-L3-002
+Description:
+As a operations lead
+I want to execute improvement 10
+So that operational tasks are documented
+
+Acceptance Criteria (GWT):
+- Given the 5.2 operational runbooks context exists
+  When I execute improvement 10
+  Then improvement 10 status is stored
 
 ## 6. Development & Delivery
-Development workflows, PR process, and deployment
 
 ### 6.1 Compatibility
 
-#### A3: Legacy compatibility
-- **ID**: 1768381226902
-- **Description**: Legacy system compatibility (Lambda/serverless-express)
+#### US-DD-COMP-L3-001 — Epic: Support Legacy Serverless Flows [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a compatibility owner
+I want to run legacy integration
+So that legacy clients keep working
+
+Acceptance Criteria (GWT):
+- Given the 6.1 compatibility context exists
+  When I run legacy integration
+  Then compatibility mode is used
+
+#### US-DD-COMP-L4-002 — Feature: Maintain Legacy Api Parity [Implemented]
+
+Level: L4
+Parent ID: US-DD-COMP-L3-001
+Description:
+As a compatibility owner
+I want to compare legacy API output
+So that legacy clients keep working
+
+Acceptance Criteria (GWT):
+- Given the 6.1 compatibility context exists
+  When I compare legacy API output
+  Then parity checks pass
+
+#### US-DD-COMP-L4-003 — Feature: Deliver Compatibility Improvement 3 [Implemented]
+
+Level: L4
+Parent ID: US-DD-COMP-L3-001
+Description:
+As a compatibility owner
+I want to execute improvement 3
+So that legacy clients keep working
+
+Acceptance Criteria (GWT):
+- Given the 6.1 compatibility context exists
+  When I execute improvement 3
+  Then improvement 3 status is stored
+
+#### US-DD-COMP-L4-004 — Feature: Deliver Compatibility Improvement 4 [Draft]
+
+Level: L4
+Parent ID: US-DD-COMP-L3-001
+Description:
+As a compatibility owner
+I want to execute improvement 4
+So that legacy clients keep working
+
+Acceptance Criteria (GWT):
+- Given the 6.1 compatibility context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
+
+#### US-DD-COMP-L5-005 — Story: Deliver Compatibility Improvement 5 [Ready]
+
+Level: L5
+Parent ID: US-DD-COMP-L3-001
+Description:
+As a compatibility owner
+I want to execute improvement 5
+So that legacy clients keep working
+
+Acceptance Criteria (GWT):
+- Given the 6.1 compatibility context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-DD-COMP-L5-006 — Story: Deliver Compatibility Improvement 6 [Implemented]
+
+Level: L5
+Parent ID: US-DD-COMP-L3-001
+Description:
+As a compatibility owner
+I want to execute improvement 6
+So that legacy clients keep working
+
+Acceptance Criteria (GWT):
+- Given the 6.1 compatibility context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-DD-COMP-L5-007 — Story: Deliver Compatibility Improvement 7 [Draft]
+
+Level: L5
+Parent ID: US-DD-COMP-L3-001
+Description:
+As a compatibility owner
+I want to execute improvement 7
+So that legacy clients keep working
+
+Acceptance Criteria (GWT):
+- Given the 6.1 compatibility context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-DD-COMP-L6-008 — Task: Deliver Compatibility Improvement 8 [Ready]
+
+Level: L6
+Parent ID: US-DD-COMP-L3-001
+Description:
+As a compatibility owner
+I want to execute improvement 8
+So that legacy clients keep working
+
+Acceptance Criteria (GWT):
+- Given the 6.1 compatibility context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
 
 ### 6.2 External Integrations
 
-#### K1: GitHub REST usage
-- **ID**: 1768381260953
-- **Description**: GitHub REST API integration
+#### US-DD-EXT-L3-001 — Epic: Use Github Rest Endpoints [Implemented]
 
-#### K3: AWS services mix
-- **ID**: 1768381329067
-- **Description**: AWS services integration
+Level: L3
+Parent ID: N/A
+Description:
+As a integration owner
+I want to call GitHub REST
+So that integrations are dependable
 
-### 6.3 API Endpoints
+Acceptance Criteria (GWT):
+- Given the 6.2 external integrations context exists
+  When I call GitHub REST
+  Then responses map to story objects
 
-#### B4: Health/config endpoints
-- **ID**: 1768381500728
-- **Description**: Health check and configuration endpoints
+#### US-DD-EXT-L3-002 — Epic: Integrate With Aws Services [Draft]
 
-#### B6: Data model parity
-- **ID**: 1768381570117
-- **Description**: Data model consistency across services
+Level: L3
+Parent ID: N/A
+Description:
+As a integration owner
+I want to sync AWS data
+So that integrations are dependable
 
-### 6.4 Environment
+Acceptance Criteria (GWT):
+- Given the 6.2 external integrations context exists
+  When I sync AWS data
+  Then service metadata updates
 
-#### D2: Env vars reference
-- **ID**: 1768381639715
-- **Description**: Environment variable documentation
+#### US-DD-EXT-L4-003 — Feature: Monitor Third-Party Health [Implemented]
 
-### 6.5 PR & Deployment
+Level: L4
+Parent ID: US-DD-EXT-L3-002
+Description:
+As a integration owner
+I want to check integration status
+So that integrations are dependable
 
-#### E2: PR creation/assignment
-- **ID**: 1768382021306
-- **Description**: Automated PR creation and assignment
+Acceptance Criteria (GWT):
+- Given the 6.2 external integrations context exists
+  When I check integration status
+  Then health indicators are green
 
-#### E3: Deployment dispatch
-- **ID**: 1768382056718
-- **Description**: Deployment workflow dispatch
+#### US-DD-EXT-L4-004 — Feature: Deliver External Integrations Improvement 4 [Implemented]
 
-### 6.6 Deployment
+Level: L4
+Parent ID: US-DD-EXT-L3-002
+Description:
+As a integration owner
+I want to execute improvement 4
+So that integrations are dependable
 
-#### H1: Production deploy
-- **ID**: 1768382126416
-- **Description**: Production deployment process
+Acceptance Criteria (GWT):
+- Given the 6.2 external integrations context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
 
-#### H2: Development deploy
-- **ID**: 1768382160867
-- **Description**: Development environment deployment
+#### US-DD-EXT-L4-005 — Feature: Deliver External Integrations Improvement 5 [Draft]
 
-#### H3: Unified configuration
-- **ID**: 1768382195665
-- **Description**: Unified deployment configuration
+Level: L4
+Parent ID: US-DD-EXT-L3-002
+Description:
+As a integration owner
+I want to execute improvement 5
+So that integrations are dependable
 
-### 6.7 Operations
+Acceptance Criteria (GWT):
+- Given the 6.2 external integrations context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
 
-#### I1: Health probes
-- **ID**: 1768382582085
-- **Description**: System health monitoring probes
+#### US-DD-EXT-L5-006 — Story: Deliver External Integrations Improvement 6 [Ready]
 
-#### I3: Troubleshooting playbook
-- **ID**: 1768382653799
-- **Description**: Troubleshooting documentation and procedures
+Level: L5
+Parent ID: US-DD-EXT-L3-002
+Description:
+As a integration owner
+I want to execute improvement 6
+So that integrations are dependable
 
-### 6.8 Configuration
+Acceptance Criteria (GWT):
+- Given the 6.2 external integrations context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
 
-#### J1: Environment-specific configs
-- **ID**: 1768382724297
-- **Description**: Environment-specific configuration management
+#### US-DD-EXT-L5-007 — Story: Deliver External Integrations Improvement 7 [Implemented]
 
-#### J3: Runtime versioning
-- **ID**: 1768382796438
-- **Description**: Runtime version management
+Level: L5
+Parent ID: US-DD-EXT-L3-002
+Description:
+As a integration owner
+I want to execute improvement 7
+So that integrations are dependable
 
-### 6.9 Automation
+Acceptance Criteria (GWT):
+- Given the 6.2 external integrations context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
 
-#### Automatic Version Numbering System
-- **ID**: 1768383937236
-- **Description**: Automated version number generation
+#### US-DD-EXT-L5-008 — Story: Deliver External Integrations Improvement 8 [Draft]
 
-#### User Story Generation
-- **ID**: 1768383973312
-- **Description**: Automated user story generation
+Level: L5
+Parent ID: US-DD-EXT-L3-002
+Description:
+As a integration owner
+I want to execute improvement 8
+So that integrations are dependable
 
----
+Acceptance Criteria (GWT):
+- Given the 6.2 external integrations context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
+#### US-DD-EXT-L6-009 — Task: Deliver External Integrations Improvement 9 [Ready]
+
+Level: L6
+Parent ID: US-DD-EXT-L3-002
+Description:
+As a integration owner
+I want to execute improvement 9
+So that integrations are dependable
+
+Acceptance Criteria (GWT):
+- Given the 6.2 external integrations context exists
+  When I execute improvement 9
+  Then improvement 9 status is stored
+
+### 6.3 PR & Deployment
+
+#### US-DD-DEP-L3-001 — Epic: Dispatch Deployments [Implemented]
+
+Level: L3
+Parent ID: N/A
+Description:
+As a release manager
+I want to trigger deployment dispatch
+So that deployments are safe and reversible
+
+Acceptance Criteria (GWT):
+- Given the 6.3 pr & deployment context exists
+  When I trigger deployment dispatch
+  Then deployment jobs are queued
+
+#### US-DD-DEP-L4-002 — Feature: Automate Rollback [Implemented]
+
+Level: L4
+Parent ID: US-DD-DEP-L3-001
+Description:
+As a release manager
+I want to initiate rollback
+So that deployments are safe and reversible
+
+Acceptance Criteria (GWT):
+- Given the 6.3 pr & deployment context exists
+  When I initiate rollback
+  Then the prior version is restored
+
+#### US-DD-DEP-L4-003 — Feature: Validate Deployment Readiness [Implemented]
+
+Level: L4
+Parent ID: US-DD-DEP-L3-001
+Description:
+As a release manager
+I want to run readiness checks
+So that deployments are safe and reversible
+
+Acceptance Criteria (GWT):
+- Given the 6.3 pr & deployment context exists
+  When I run readiness checks
+  Then missing items are listed
+
+#### US-DD-DEP-L4-004 — Feature: Deliver Pr & Deployment Improvement 4 [Draft]
+
+Level: L4
+Parent ID: US-DD-DEP-L3-001
+Description:
+As a release manager
+I want to execute improvement 4
+So that deployments are safe and reversible
+
+Acceptance Criteria (GWT):
+- Given the 6.3 pr & deployment context exists
+  When I execute improvement 4
+  Then improvement 4 status is stored
+
+#### US-DD-DEP-L5-005 — Story: Deliver Pr & Deployment Improvement 5 [Ready]
+
+Level: L5
+Parent ID: US-DD-DEP-L3-001
+Description:
+As a release manager
+I want to execute improvement 5
+So that deployments are safe and reversible
+
+Acceptance Criteria (GWT):
+- Given the 6.3 pr & deployment context exists
+  When I execute improvement 5
+  Then improvement 5 status is stored
+
+#### US-DD-DEP-L5-006 — Story: Deliver Pr & Deployment Improvement 6 [Implemented]
+
+Level: L5
+Parent ID: US-DD-DEP-L3-001
+Description:
+As a release manager
+I want to execute improvement 6
+So that deployments are safe and reversible
+
+Acceptance Criteria (GWT):
+- Given the 6.3 pr & deployment context exists
+  When I execute improvement 6
+  Then improvement 6 status is stored
+
+#### US-DD-DEP-L5-007 — Story: Deliver Pr & Deployment Improvement 7 [Draft]
+
+Level: L5
+Parent ID: US-DD-DEP-L3-001
+Description:
+As a release manager
+I want to execute improvement 7
+So that deployments are safe and reversible
+
+Acceptance Criteria (GWT):
+- Given the 6.3 pr & deployment context exists
+  When I execute improvement 7
+  Then improvement 7 status is stored
+
+#### US-DD-DEP-L6-008 — Task: Deliver Pr & Deployment Improvement 8 [Ready]
+
+Level: L6
+Parent ID: US-DD-DEP-L3-001
+Description:
+As a release manager
+I want to execute improvement 8
+So that deployments are safe and reversible
+
+Acceptance Criteria (GWT):
+- Given the 6.3 pr & deployment context exists
+  When I execute improvement 8
+  Then improvement 8 status is stored
+
 
 ## Summary
 
-- **Total Stories**: 93
+- **Current Total Stories**: 300 (regenerated from scratch)
   - 6 Root Categories
   - 22 Sub-Categories
-  - 65 Leaf Stories
-- **Total Acceptance Tests**: 196
-- **Average Tests per Story**: ~2.1
-Root 1 — Work Model and Data (Core Product)
-1.1 Story model and lifecycle
-
-US-0101 — Create story
-
-As a project user
-
-I want to create a story with a title and structured intent (As-a / I-want / So-that)
-
-So that work items are consistent and traceable from intent to delivery
-
-Acceptance (GWT)
-
-Given I am in the AIPM workspace
-
-When I submit a new story with required fields
-
-Then the story is persisted and returned with an id and timestamps
-
-And it appears in the outline and details views
-
-US-0102 — Edit story
-
-As a project user
-
-I want to update a story’s fields (title, description, intent fields, status, metadata)
-
-So that the artifact reflects the latest shared understanding
-
-Acceptance (GWT)
-
-Given a story exists
-
-When I save edits
-
-Then the persisted story reflects the updated fields
-
-And updatedAt is refreshed and UI renders the changes
-
-US-0103 — Delete story
-
-As a project owner
-
-I want to delete a story
-
-So that obsolete or invalid work items do not clutter planning and execution
-
-Acceptance (GWT)
-
-Given a story exists
-
-When I delete the story
-
-Then it is removed from storage
-
-And it no longer appears in story list queries or UI navigation
-
-US-0104 — Story status transitions
-
-As a project user
-
-I want stories to move through defined states (e.g., Draft → Ready → In Progress → Approved → Done, plus Blocked)
-
-So that progress is measurable and governance is consistent
-
-Acceptance (GWT)
-
-Given a story is in a valid state
-
-When I request a state change
-
-Then the backend enforces allowed transitions (or returns a clear error)
-
-And the new status is reflected consistently across UI and APIs
-
-1.2 Hierarchy and structuring
-
-US-0111 — Parent/child linkage
-
-As a project user
-
-I want to link stories using parentId to form a hierarchy
-
-So that epics/features/stories can be represented as a navigable tree
-
-Acceptance (GWT)
-
-Given a parent story exists
-
-When I create or update a story with parentId=parent.id
-
-Then the child is associated to the parent
-
-And outline ordering shows the child beneath the parent
-
-US-0112 — Hierarchical query
-
-As a frontend client
-
-I want to retrieve stories in a way that supports efficient tree reconstruction
-
-So that large work models render quickly without expensive client-side joins
-
-Acceptance (GWT)
-
-Given multiple stories with parent-child relationships exist
-
-When I request stories from the API
-
-Then each story includes id and parentId (when applicable)
-
-And the result set is sufficient to rebuild the hierarchy deterministically
-
-1.3 Metadata and governance flags
-
-US-0121 — Components tagging
-
-As a tech lead
-
-I want to tag stories with component/domain labels (e.g., WorkModel, UI, GitHubIntegration, CI/CD)
-
-So that ownership, filtering, and reporting are simpler
-
-Acceptance (GWT)
-
-Given a story exists
-
-When I assign one or more component tags
-
-Then tags are persisted and returned by the API
-
-And the UI can filter/search by these tags
-
-US-0122 — Override controls
-
-As a project owner
-
-I want explicit override controls (e.g., accept warnings, bypass specific validations)
-
-So that exceptions are intentional and auditable rather than accidental
-
-Acceptance (GWT)
-
-Given a story fails a non-critical validation (warning)
-
-When I set an override flag and proceed
-
-Then the system allows progression while preserving the warning record
-
-And the override is visible in story details for review
-
-1.4 Schema and integrity
-
-US-0801 — Consistent schema enforcement
-
-As a system operator
-
-I want backend validation that rejects malformed story/test payloads
-
-So that UI, integrations, and automations are protected from corrupt data
-
-Acceptance (GWT)
-
-Given a request is missing required fields or uses invalid types
-
-When it is submitted to the API
-
-Then the API rejects it with a clear validation error
-
-And no partial/invalid data is persisted
-
-US-0802 — Stories table schema-level traceability
-
-As a system operator
-
-I want the DynamoDB stories table to enforce required keys and traceability attributes
-
-So that every story record is uniquely identified, auditable, and linked to related artifacts
-
-Acceptance (GWT)
-
-Given a story is created or updated in the stories table
-
-When the record is written or read
-
-Then it includes required keys (id, title) and traceability attributes (storyId, parentId, status, createdAt, updatedAt)
-
-And linked artifact IDs (acceptanceTestIds, prIds) are present when relationships exist and empty lists when none exist
-
-US-0803 — Acceptance tests table schema-level traceability
-
-As a system operator
-
-I want the DynamoDB acceptance tests table to enforce required keys and traceability attributes
-
-So that each test can be traced to a story and audited over time
-
-Acceptance (GWT)
-
-Given an acceptance test is created or updated in the acceptance tests table
-
-When the record is written or read
-
-Then it includes required keys (id, storyId) and traceability attributes (status, createdAt, updatedAt)
-
-And the storyId must reference an existing story record when the linkage is validated or queried
-
-US-0804 — PRs table schema-level traceability
-
-As a system operator
-
-I want the DynamoDB PRs table to enforce required keys and traceability attributes
-
-So that each PR is linked to its originating story and supporting artifacts
-
-Acceptance (GWT)
-
-Given a PR record is created or updated in the PRs table
-
-When the record is written or read
-
-Then it includes required keys (id, storyId, prNumber) and traceability attributes (status, createdAt, updatedAt)
-
-And the storyId references a story record while linked artifact IDs (commitIds, testRunIds) are present when available
-
-US-0811 — DynamoDB backup export procedure
-
-As a system operator
-
-I want a defined, testable export/backup procedure for core tables
-
-So that restoration is feasible after incidents or migration needs
-
-Acceptance (GWT)
-
-Given production or dev data exists in the tables
-
-When I run the backup procedure
-
-Then I obtain export artifacts containing all items for the selected scope
-
-And restoration steps are documented and verifiable
-
-Root 2 — User Experience and Collaboration (Frontend Product)
-2.1 Workspace layout and state
-
-US-0301 — Three-panel workspace
-
-As a user
-
-I want an integrated workspace with outline, mindmap, and details panels
-
-So that I can navigate structure and edit content without context switching
-
-Acceptance (GWT)
-
-Given the app is loaded
-
-When I show/hide panels
-
-Then the layout updates immediately without losing the selected story context
-
-And the details panel always reflects the currently selected story
-
-US-0302 — Restore UI state
-
-As a returning user
-
-I want the app to restore my last-used UI configuration (panel toggles/selection)
-
-So that I can continue where I left off
-
-Acceptance (GWT)
-
-Given I previously used a specific workspace configuration
-
-When I reload the application
-
-Then the UI restores the saved configuration
-
-And the selection state is consistent (or gracefully falls back if unavailable)
-
-2.2 Mindmap visualization and navigation
-
-US-0311 — Render mindmap nodes
-
-As a user
-
-I want stories rendered as a mindmap (nodes/edges) derived from hierarchy
-
-So that I can visually understand scope and dependencies
-
-Acceptance (GWT)
-
-Given a set of hierarchical stories exists
-
-When I open mindmap view
-
-Then nodes render with readable labels
-
-And parent-child relationships appear as edges
-
-US-0312 — Navigate via mindmap
-
-As a user
-
-I want selecting a mindmap node to open that story in the details panel
-
-So that navigation is fast and intuitive
-
-Acceptance (GWT)
-
-Given the mindmap is visible
-
-When I click a node
-
-Then the details panel shows that story
-
-And outline selection is synchronized (same story highlighted)
-
-2.3 Editing interaction patterns
-
-US-0321 — Story creation modal
-
-As a user
-
-I want a modal-based story creation flow (optionally as a child of the selected story)
-
-So that I can add work items without leaving my current context
-
-Acceptance (GWT)
-
-Given I am viewing a story in details
-
-When I choose “Add child story”
-
-Then the create modal opens with parentId pre-populated
-
-And upon save, the new story appears under the parent immediately
-
-US-0322 — Modal accessibility and close controls
-
-As a user
-
-I want modals to behave predictably (Escape/backdrop/close button, focus handling)
-
-So that editing is efficient and accessible
-
-Acceptance (GWT)
-
-Given a modal is open
-
-When I press Escape or click the close control
-
-Then the modal closes without losing previously saved data
-
-And focus returns to a sensible UI element (e.g., the triggering control)
-
-Root 3 — Quality and Governance (ATDD + Readiness)
-3.1 Acceptance tests as first-class artifacts
-
-US-0201 — Create acceptance test
-
-As a QA/SDET
-
-I want to create acceptance tests linked to a story using Given/When/Then steps
-
-So that requirements are testable and support ATDD workflows
-
-Acceptance (GWT)
-
-Given a story exists
-
-When I create an acceptance test with GWT steps and storyId
-
-Then the acceptance test is persisted and retrievable by storyId
-
-And the story details show linked tests
-
-US-0202 — Update acceptance test
-
-As a QA/SDET
-
-I want to edit acceptance test steps and metadata
-
-So that tests stay aligned with evolving requirements
-
-Acceptance (GWT)
-
-Given an acceptance test exists
-
-When I update the GWT steps
-
-Then the updated content is persisted and returned
-
-And updatedAt reflects the edit
-
-US-0203 — Delete acceptance test
-
-As a QA/SDET
-
-I want to delete acceptance tests linked to stories
-
-So that obsolete tests do not confuse gating and traceability
-
-Acceptance (GWT)
-
-Given an acceptance test exists
-
-When I delete it
-
-Then it no longer appears in queries or story details
-
-And story gating logic reflects the updated test set
-
-3.2 Definition of Done and promotion gates
-
-US-0211 — Done validation
-
-As a project owner
-
-I want rules that validate “Done” (e.g., required acceptance tests exist; optionally passing evidence is present)
-
-So that “Done” is consistent and not subjective
-
-Acceptance (GWT)
-
-Given a story has zero acceptance tests (or fails required gating conditions)
-
-When I attempt to set status to Done
-
-Then the system blocks the transition or raises a warning per policy
-
-And it clearly reports which rule(s) were not satisfied
-
-3.3 Story quality validation (INVEST)
-
-US-0401 — Run heuristic INVEST validation on save
-
-As a project user
-
-I want heuristic INVEST feedback when saving a story
-
-So that story quality improves before implementation starts
-
-Acceptance (GWT)
-
-Given I save a story
-
-When the system evaluates INVEST heuristics
-
-Then warnings/suggestions are stored and displayed in the UI
-
-And warnings do not prevent saving unless configured as blocking
-
-US-0411 — AI-based INVEST analysis (optional)
-
-As a project owner
-
-I want optional AI-assisted INVEST analysis controlled by configuration
-
-So that teams can enable deeper guidance without making AI mandatory
-
-Acceptance (GWT)
-
-Given AI is enabled via environment configuration
-
-When I request or trigger AI INVEST analysis
-
-Then an analysis result is returned and associated to the story
-
-And the result indicates it was AI-generated (source attribution)
-
-US-0412 — Disable AI safely
-
-As a system operator
-
-I want a configuration switch to disable AI calls (e.g., AI_PM_DISABLE_OPENAI=1)
-
-So that the system remains stable in restricted or offline environments
-
-Acceptance (GWT)
-
-Given AI is disabled
-
-When AI analysis is requested
-
-Then the system responds gracefully (clear “AI disabled” outcome)
-
-And no external AI calls are attempted
-
-Root 4 — Automation and Integrations (GitHub + AI Agents)
-4.1 GitHub connectivity and trust checks
-
-US-0501 — GitHub status endpoint
-
-As a system operator
-
-I want an endpoint to validate GitHub token presence and permissions
-
-So that PR automation fails early with actionable diagnostics
-
-Acceptance (GWT)
-
-Given the system is configured (or misconfigured) with a GitHub token
-
-When I call the GitHub status endpoint
-
-Then the response clearly indicates valid/invalid and includes permission diagnostics
-
-And the endpoint never returns or logs the token value
-
-4.2 PR workflows linked to intent
-
-US-0511 — Create PR from story
-
-As a developer
-
-I want to create a GitHub PR from a story from within AIPM
-
-So that implementation work is traceable to the approved intent
-
-Acceptance (GWT)
-
-Given a story is Ready (or otherwise eligible)
-
-When I request PR creation
-
-Then AIPM creates a PR in the configured repo and stores PR metadata on the story
-
-And the PR includes a specification artifact (e.g., TASK.md) derived from the story
-
-US-0512 — PR description from story fields
-
-As a reviewer
-
-I want PR title/body to include structured story intent and acceptance context
-
-So that reviews are aligned to requirements rather than ad hoc code changes
-
-Acceptance (GWT)
-
-Given PR creation is triggered from a story
-
-When the PR is created
-
-Then the PR body contains the story’s As-a/I-want/So-that and key acceptance criteria references
-
-And the formatting is consistent across PRs
-
-US-0521 — Merge PR from AIPM
-
-As a maintainer
-
-I want to request PR merge via AIPM (subject to checks/policy)
-
-So that execution can be driven from a single system of record
-
-Acceptance (GWT)
-
-Given a PR exists and required checks are satisfied (per policy)
-
-When I request merge from AIPM
-
-Then AIPM attempts merge and updates PR status on the story
-
-And failures return actionable messages (e.g., checks failing, conflicts)
-
-4.3 Agent execution (Kiro queue + processing)
-
-US-0601 — Enqueue code-generation task
-
-As a developer
-
-I want AIPM to enqueue a code-generation task linked to story + PR
-
-So that AI code generation is decoupled, asynchronous, and auditable
-
-Acceptance (GWT)
-
-Given a story has an associated PR
-
-When I request “Generate Code”
-
-Then a task record is persisted in the queue with references to storyId and PR branch
-
-And the UI shows the queued state
-
-US-0611 — Process queued tasks via Kiro API
-
-As a system operator
-
-I want the Kiro API server to consume queued tasks and push code to the PR branch
-
-So that code changes are produced automatically and attached to the correct PR
-
-Acceptance (GWT)
-
-Given a queued task exists
-
-When the Kiro API server processes the task
-
-Then code is generated/updated on the PR branch and committed
-
-And task status is updated with success/failure and relevant logs/links
-
-US-0621 — Enforce code-generation template
-
-As a tech lead
-
-I want code generation to follow the standard workflow template (checkout/rebase/analyze/implement/add gating tests/commit/push)
-
-So that AI-generated changes are predictable and reviewable
-
-Acceptance (GWT)
-
-Given a code-generation task is executed
-
-When the agent runs
-
-Then the workflow follows the prescribed steps and produces a structured output
-
-And gating tests are added/updated as part of the change when required by the story
-
-4.4 Semantic API content generation (story drafts, tests, INVEST)
-
-US-0631 — Generate story drafts via Semantic API templates
-
-As a product manager
-
-I want story drafts to be generated by the Semantic API using the POST-aipm-story-draft template
-
-So that story creation follows the documented architecture (Semantic API → Session Pool → Kiro CLI) and emits consistent payloads for storage and UI display
-
-Acceptance (GWT)
-
-Given I request a story draft with feature description, components, and requestId
-
-When the Semantic API runs the story draft template and streams the result
-
-Then the response contains a complete story draft payload with title, description, As-a/I-want/So-that, story points, and acceptance tests
-
-And the draft is delivered through the SSE channel specified by the Semantic API architecture
-
-US-0632 — Generate acceptance test drafts from story context
-
-As a QA/SDET
-
-I want acceptance tests to be generated by the Semantic API using the POST-aipm-acceptance-test-draft template
-
-So that GWT tests are consistently produced from story intent and can be stored in the acceptance tests table
-
-Acceptance (GWT)
-
-Given a story draft or saved story includes title, description, and intent fields
-
-When I request an acceptance test draft with a requestId and optional focus idea
-
-Then the Semantic API returns a specific Given/When/Then test with title and summary
-
-And the generated test is associated with the originating story context for traceability
-
-US-0633 — Generate AI-based INVEST analysis via Semantic API
-
-As a project owner
-
-I want INVEST analysis to be generated by the Semantic API using the POST-aipm-invest-analysis template
-
-So that AI scoring and warnings are produced consistently with the documented architecture and rules
-
-Acceptance (GWT)
-
-Given a story with title, description, and intent fields is submitted for analysis with a requestId
-
-When the Semantic API runs the INVEST analysis template and streams the result
-
-Then the response includes a summary, score, warnings array, and strengths array
-
-And the output includes source attribution for AI generation
-
-4.4.1 Template contract outputs (unit-level)
-
-US-0634 — Story draft output includes required fields
-
-As a system operator
-
-I want story draft template outputs to include all required fields
-
-So that downstream storage and UI rendering do not fail due to missing keys
-
-Acceptance (GWT)
-
-Given the POST-aipm-story-draft template completes successfully
-
-When the response payload is validated
-
-Then it includes requestId, status, title, description, asA, iWant, soThat, components, storyPoint, acceptWarnings, parentId, and acceptanceTests
-
-And it includes assigneeEmail (may be empty) for parity with stored story records
-
-And each acceptance test includes title, given, when, then, and status
-
-US-0635 — Acceptance test draft output includes required fields
-
-As a system operator
-
-I want acceptance test template outputs to include all required fields
-
-So that acceptance tests can be persisted and displayed without schema errors
-
-Acceptance (GWT)
-
-Given the POST-aipm-acceptance-test-draft template completes successfully
-
-When the response payload is validated
-
-Then it includes requestId, status, title, given, when, then, source, and summary
-
-And the given/when/then arrays are non-empty
-
-US-0636 — INVEST analysis output includes required fields
-
-As a system operator
-
-I want INVEST analysis template outputs to include all required fields
-
-So that story quality metadata is stored consistently and displayed reliably
-
-Acceptance (GWT)
-
-Given the POST-aipm-invest-analysis template completes successfully
-
-When the response payload is validated
-
-Then it includes requestId, status, storyId, summary, score, warnings, strengths, source, and model
-
-And each warning includes criterion, message, and suggestion
-
-US-0637 — SSE streaming behavior for template responses
-
-As a frontend client
-
-I want Semantic API template responses to stream via SSE with complete and terminal status signals
-
-So that the UI can show progressive output and know when generation has finished
-
-Acceptance (GWT)
-
-Given a Semantic API request is made with stream=true
-
-When the Semantic API streams the template response
-
-Then the SSE stream emits incremental updates followed by a final status of complete
-
-And the connection closes cleanly after the final message is delivered
-
-US-0638 — Error handling for template execution failures
-
-As a system operator
-
-I want Semantic API template execution failures to return structured error payloads
-
-So that clients can surface actionable messages without crashing or masking failures
-
-Acceptance (GWT)
-
-Given the Semantic API fails to execute a template (timeout, missing input, or downstream failure)
-
-When the error is returned to the client
-
-Then the response includes requestId, status=error, and a clear error message
-
-And the SSE stream (if used) terminates with an error status event
-
-Root 5 — Delivery and Operations (CI/CD + Runtime)
-5.1 Environment boot and configuration
-
-US-0001 — Local dev boot
-
-As a developer
-
-I want to start AIPM locally with a single command and verify UI + API are reachable
-
-So that development iteration is fast and reliable
-
-Acceptance (GWT)
-
-Given environment variables are set for tables and GitHub token (as needed)
-
-When I start the service
-
-Then the server starts on port 4000 (or next available) and serves UI + API successfully
-
-And the health endpoint reports running
-
-US-0002 — Stage-aware configuration
-
-As a DevOps engineer
-
-I want STAGE=dev|prod to select environment-specific resources (tables, endpoints, deployment targets)
-
-So that dev and prod are isolated and safe
-
-Acceptance (GWT)
-
-Given STAGE=dev
-
-When the backend starts and handles requests
-
-Then it reads/writes to dev resources (dev tables / dev endpoints)
-
-And it never writes into prod resources unless explicitly configured
-
-5.2 Service readiness and observability
-
-US-0003 — Health endpoint
-
-As a system operator
-
-I want a health endpoint that confirms service readiness
-
-So that deployments and monitoring can verify correctness quickly
-
-Acceptance (GWT)
-
-Given the backend is running
-
-When /health is called
-
-Then it returns a success status and basic service info
-
-And failures are clearly surfaced when dependencies are unavailable
-
-US-1001 — Structured server logging
-
-As a system operator
-
-I want structured logs for key workflows (story CRUD, PR creation, deployment triggers, AI requests)
-
-So that troubleshooting is efficient and auditable
-
-Acceptance (GWT)
-
-Given a request is handled by the backend
-
-When it succeeds or fails
-
-Then logs include request context (endpoint/action, correlation id if used, outcome)
-
-And logs never include secrets (tokens/keys)
-
-US-1011 — Deployment result surfaced to users
-
-As a developer
-
-I want deployment outcomes visible (e.g., PR comment and/or UI status)
-
-So that I can quickly determine whether dev validation succeeded
-
-Acceptance (GWT)
-
-Given a deployment is triggered from AIPM or CI
-
-When the workflow completes
-
-Then the result (success/failure) is surfaced with a concise summary and relevant links (health/test logs)
-
-5.3 CI gating and deployments
-
-US-0701 — Run structured gating tests script
-
-As a CI system
-
-I want a standardized gating test runner with phased checks
-
-So that releases are blocked on critical safety/quality conditions
-
-Acceptance (GWT)
-
-Given a commit or PR is being validated
-
-When gating tests run
-
-Then tests execute by phases and report pass/fail per phase
-
-And critical failures block progression
-
-US-0702 — Phase coverage: Security/Data Safety
-
-As a security-conscious operator
-
-I want Phase 1 gating to validate security and data safety prerequisites (e.g., token/AWS/table integrity constraints)
-
-So that deployments do not proceed with unsafe configuration
-
-Acceptance (GWT)
-
-Given required security prerequisites are missing or invalid
-
-When Phase 1 runs
-
-Then it fails fast with actionable remediation guidance
-
-And later phases do not execute
-
-US-0711 — “Test in Dev” deployment trigger
-
-As a developer
-
-I want to deploy a PR branch to the dev environment via a controlled workflow
-
-So that changes are validated before merging to main
-
-Acceptance (GWT)
-
-Given a PR exists
-
-When I trigger “Test in Dev”
-
-Then CI deploys the PR branch to dev, runs validation, and records results
-
-And AIPM/PR shows the deployment result
-
-US-0721 — Automatic production deployment on main
-
-As a release manager
-
-I want merges/pushes to main to run gating tests and deploy to production automatically
-
-So that production remains current with controlled quality gates
-
-Acceptance (GWT)
-
-Given a change is merged into main
-
-When the production pipeline runs
-
-Then gating tests execute and production deploy is performed if gates pass
-
-And production health verification is performed post-deploy
-
-US-0731 — Unified deploy-to-environment script
-
-As a DevOps engineer
-
-I want a unified deployment script (dev|prod) used consistently by CI and humans
-
-So that deployment behavior is predictable and repeatable
-
-Acceptance (GWT)
-
-Given a target environment is specified
-
-When the deploy script runs
-
-Then it deploys frontend and backend to the correct targets for that stage
-
-And it provides clear success/failure output and a verification step (health)
-
-5.4 Security baseline
-
-US-0901 — Never store secrets in code
-
-As a security reviewer
-
-I want all secrets (GitHub token, AI keys, AWS credentials if any) to be provided via environment/secret managers only
-
-So that secrets are not leaked in repository history or logs
-
-Acceptance (GWT)
-
-Given the system is running
-
-When I inspect code and logs
-
-Then secrets are not hardcoded or printed
-
-And missing secrets yield clear configuration errors without disclosure
-
-US-0902 — GitHub token handling in backend services (tokens)
-
-As a backend engineer
-
-I want GitHub API clients to read tokens from environment variables and fail safely when missing
-
-So that PR automation never leaks tokens and returns clear configuration errors
-
-Acceptance (GWT)
-
-Given `apps/backend/app.js` uses `ensureGithubToken()` and `githubRequest()` for GitHub API calls
-
-When `GITHUB_TOKEN` is missing and a GitHub-backed endpoint is called
-
-Then the request returns a 400/500 configuration error without including token values
-
-And logs never print the token or Authorization header (only sanitized error messages)
-
-And when `GITHUB_TOKEN` is present, requests set `Authorization: Bearer <token>` without logging it
-
-US-0903 — Secret redaction in backend logs (secrets)
-
-As a security reviewer
-
-I want backend logs to redact secrets in configuration and error output
-
-So that operational logging is safe for shared access
-
-Acceptance (GWT)
-
-Given `apps/backend/dynamodb.js` and `apps/backend/app.js` emit debug/info/error logs
-
-When logs include configuration or request context
-
-Then any secret-like fields (tokens, keys, credentials) are redacted or omitted
-
-And no logs contain `GITHUB_TOKEN`, AWS keys, or similar secrets in plain text
-
-And missing secret configuration produces a clear, non-sensitive error message
-
-US-0904 — IAM-based AWS access in data layer (IAM)
-
-As an operator
-
-I want the DynamoDB data layer to rely on IAM role credentials instead of static keys
-
-So that AWS access follows least privilege and avoids embedded credentials
-
-Acceptance (GWT)
-
-Given `apps/backend/dynamodb.js` and `apps/backend/story-prs.js` construct AWS SDK clients
-
-When the service runs on AWS with an instance/task role
-
-Then no static AWS access keys are required in environment variables
-
-And if `AWS_REGION` or required table names are missing, the service fails fast with a safe configuration error
-
-US-0905 — Structured logging redaction for security events (logging)
-
-As a system operator
-
-I want structured logging to include request context while redacting sensitive fields
-
-So that audit trails are useful without exposing secrets
-
-Acceptance (GWT)
-
-Given `apps/backend/app.js` emits structured logs for API requests and GitHub workflows
-
-When a request succeeds or fails
-
-Then logs include endpoint/action context and correlation metadata (when available)
-
-And logs never include secrets (tokens/keys), even when errors include upstream payloads
-
-And missing configuration errors are logged once with sanitized details
-
-US-0911 — Basic API access control policy
-
-As a system owner
-
-I want an explicit baseline access control policy for the API (even if minimal initially)
-
-So that production hardening is trackable and auditable
-
-Acceptance (GWT)
-
-Given production is deployed
-
-When unauthenticated or disallowed requests are made (per configured policy)
-
-Then the system responds according to policy (deny/allow with constraints)
-
-And the policy is documented and testable
-
-5.5 Documentation and runbooks
-
-US-1101 — Keep the dev guide accurate
-
-As a new contributor
-
-I want documentation that accurately reflects setup, environment variables, local run, and test commands
-
-So that onboarding is fast and consistent
-
-Acceptance (GWT)
-
-Given a clean environment and repository checkout
-
-When I follow the documentation end-to-end
-
-Then I can run the app locally and execute gating tests successfully
-
-And any prerequisites are explicitly stated
-
-US-1111 — Emergency deploy and rollback runbook
-
-As a system operator
-
-I want an emergency runbook for deploy/rollback procedures
-
-So that incidents can be mitigated quickly and safely
-
-Acceptance (GWT)
-
-Given a production incident requires rollback
-
-When I follow the runbook steps
-
-Then the system returns to a known-good version and passes health verification
-
-And the procedure records what changed and how it was validated
+  - 300 Leaf Stories (L3–L6)
+- **Total Acceptance Tests**: 300
+- **Average Tests per Story**: 1.0
