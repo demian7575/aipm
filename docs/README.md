@@ -14,6 +14,7 @@ Documentation index for AIPM project.
 
 - **[API Reference](API_REFERENCE.md)** - REST endpoints
 - **[Configuration](CONFIGURATION.md)** - Config files
+- **[DynamoDB User Story & Acceptance Tests](DYNAMODB_USER_STORY_ACCEPTANCE_TESTS.md)** - Table schema and requirements
 - **[Kiro Services Setup](KIRO_SERVICES_SETUP.md)** - AI services
 
 ## Development
