@@ -2,13 +2,21 @@
 
 This document lists only the **verified Implemented** user stories, organized under the approved **6-root hierarchy**. Stories are sourced from the existing catalog and verified against implementation evidence.
 
+Hierarchy depth follows the **5-level** structure defined in the current hierarchy plan, with implemented stories populated through Level 3 (leaf stories). This stays within the requested maximum depth of 7 levels.
+
+- **Level 1**: Root domains (e.g., Requirement Management)
+- **Level 2**: Major capability groups (e.g., Story Lifecycle)
+- **Level 3**: Implemented leaf stories (US-xxxx)
+- **Level 4**: Not currently populated by implemented stories
+- **Level 5**: Not currently populated by implemented stories
+
 ---
 
-## Root 1 — Requirement Management
+## Level 1 — Root 1: Requirement Management
 
-### 1100 Story Lifecycle
+### Level 2 — 1100 Story Lifecycle
 
-**US-0101 — Create story**
+#### Level 3 — US-0101 Create story
 
 As a project user
 
@@ -26,7 +34,7 @@ Then the story is persisted and returned with an id and timestamps
 
 And it appears in the outline and details views
 
-**US-0102 — Edit story**
+#### Level 3 — US-0102 Edit story
 
 As a project user
 
@@ -44,7 +52,7 @@ Then the persisted story reflects the updated fields
 
 And updatedAt is refreshed and UI renders the changes
 
-**US-0103 — Delete story**
+#### Level 3 — US-0103 Delete story
 
 As a project owner
 
@@ -62,9 +70,9 @@ Then it is removed from storage
 
 And it no longer appears in story list queries or UI navigation
 
-### 1200 Story Hierarchy & Relationships
+### Level 2 — 1200 Story Hierarchy & Relationships
 
-**US-0111 — Parent/child linkage**
+#### Level 3 — US-0111 Parent/child linkage
 
 As a project user
 
@@ -82,7 +90,7 @@ Then the child is associated to the parent
 
 And outline ordering shows the child beneath the parent
 
-**US-0112 — Hierarchical query**
+#### Level 3 — US-0112 Hierarchical query
 
 As a frontend client
 
@@ -100,9 +108,9 @@ Then each story includes id and parentId (when applicable)
 
 And the result set is sufficient to rebuild the hierarchy deterministically
 
-### 1300 Story Metadata & Attributes
+### Level 2 — 1300 Story Metadata & Attributes
 
-**US-0121 — Components tagging**
+#### Level 3 — US-0121 Components tagging
 
 As a tech lead
 
@@ -120,9 +128,9 @@ Then tags are persisted and returned by the API
 
 And the UI can filter/search by these tags
 
-### 1400 Story Validation & Quality
+### Level 2 — 1400 Story Validation & Quality
 
-**US-0122 — Override controls**
+#### Level 3 — US-0122 Override controls
 
 As a project owner
 
@@ -140,7 +148,7 @@ Then the system allows progression while preserving the warning record
 
 And the override is visible in story details for review
 
-**US-0801 — Consistent schema enforcement**
+#### Level 3 — US-0801 Consistent schema enforcement
 
 As a system operator
 
@@ -158,7 +166,7 @@ Then the API rejects it with a clear validation error
 
 And no partial/invalid data is persisted
 
-**US-0401 — Run heuristic INVEST validation on save**
+#### Level 3 — US-0401 Run heuristic INVEST validation on save
 
 As a project user
 
@@ -178,11 +186,11 @@ And warnings do not prevent saving unless configured as blocking
 
 ---
 
-## Root 2 — Document Management
+## Level 1 — Root 2: Document Management
 
-### 2300 Import & Export
+### Level 2 — 2300 Import & Export
 
-**US-0811 — DynamoDB backup export procedure**
+#### Level 3 — US-0811 DynamoDB backup export procedure
 
 As a system operator
 
@@ -202,11 +210,11 @@ And restoration steps are documented and verifiable
 
 ---
 
-## Root 3 — Visualization & Interaction
+## Level 1 — Root 3: Visualization & Interaction
 
-### 3300 View Switching & Layout
+### Level 2 — 3300 View Switching & Layout
 
-**US-0301 — Three-panel workspace**
+#### Level 3 — US-0301 Three-panel workspace
 
 As a user
 
@@ -224,7 +232,7 @@ Then the layout updates immediately without losing the selected story context
 
 And the details panel always reflects the currently selected story
 
-**US-0302 — Restore UI state**
+#### Level 3 — US-0302 Restore UI state
 
 As a returning user
 
@@ -242,9 +250,9 @@ Then the UI restores the saved configuration
 
 And the selection state is consistent (or gracefully falls back if unavailable)
 
-### 3100 Mindmap View
+### Level 2 — 3100 Mindmap View
 
-**US-0311 — Render mindmap nodes**
+#### Level 3 — US-0311 Render mindmap nodes
 
 As a user
 
@@ -262,7 +270,7 @@ Then nodes render with readable labels
 
 And parent-child relationships appear as edges
 
-**US-0312 — Navigate via mindmap**
+#### Level 3 — US-0312 Navigate via mindmap
 
 As a user
 
@@ -282,11 +290,11 @@ And outline selection is synchronized (same story highlighted)
 
 ---
 
-## Root 4 — AI-Powered Development
+## Level 1 — Root 4: AI-Powered Development
 
-### 4200 AI Code Generation
+### Level 2 — 4200 AI Code Generation
 
-**US-0621 — Enforce code-generation template**
+#### Level 3 — US-0621 Enforce code-generation template
 
 As a tech lead
 
@@ -304,9 +312,9 @@ Then the workflow follows the prescribed steps and produces a structured output
 
 And gating tests are added/updated as part of the change when required by the story
 
-### 4400 AI Analysis & Insights
+### Level 2 — 4400 AI Analysis & Insights
 
-**US-0411 — AI-based INVEST analysis (optional)**
+#### Level 3 — US-0411 AI-based INVEST analysis (optional)
 
 As a project owner
 
@@ -326,11 +334,11 @@ And the result indicates it was AI-generated (source attribution)
 
 ---
 
-## Root 5 — GitHub Integration & Deployment
+## Level 1 — Root 5: GitHub Integration & Deployment
 
-### 5100 Pull Request Management
+### Level 2 — 5100 Pull Request Management
 
-**US-0501 — GitHub status endpoint**
+#### Level 3 — US-0501 GitHub status endpoint
 
 As a system operator
 
@@ -348,7 +356,7 @@ Then the response clearly indicates valid/invalid and includes permission diagno
 
 And the endpoint never returns or logs the token value
 
-**US-0511 — Create PR from story**
+#### Level 3 — US-0511 Create PR from story
 
 As a developer
 
@@ -366,7 +374,7 @@ Then AIPM creates a PR in the configured repo and stores PR metadata on the stor
 
 And the PR includes a specification artifact (e.g., TASK.md) derived from the story
 
-**US-0512 — PR description from story fields**
+#### Level 3 — US-0512 PR description from story fields
 
 As a reviewer
 
@@ -384,7 +392,7 @@ Then the PR body contains the story’s As-a/I-want/So-that and key acceptance c
 
 And the formatting is consistent across PRs
 
-**US-0521 — Merge PR from AIPM**
+#### Level 3 — US-0521 Merge PR from AIPM
 
 As a maintainer
 
@@ -402,9 +410,9 @@ Then AIPM attempts merge and updates PR status on the story
 
 And failures return actionable messages (e.g., checks failing, conflicts)
 
-### 5400 Development Environment
+### Level 2 — 5400 Development Environment
 
-**US-0001 — Local dev boot**
+#### Level 3 — US-0001 Local dev boot
 
 As a developer
 
@@ -422,7 +430,7 @@ Then the server starts on port 4000 (or next available) and serves UI + API succ
 
 And the health endpoint reports running
 
-**US-0002 — Stage-aware configuration**
+#### Level 3 — US-0002 Stage-aware configuration
 
 As a DevOps engineer
 
@@ -440,9 +448,9 @@ Then it reads/writes to dev resources (dev tables / dev endpoints)
 
 And it never writes into prod resources unless explicitly configured
 
-### 5500 Production Deployment
+### Level 2 — 5500 Production Deployment
 
-**US-0711 — “Test in Dev” deployment trigger**
+#### Level 3 — US-0711 “Test in Dev” deployment trigger
 
 As a developer
 
@@ -460,7 +468,7 @@ Then CI deploys the PR branch to dev, runs validation, and records results
 
 And AIPM/PR shows the deployment result
 
-**US-0721 — Automatic production deployment on main**
+#### Level 3 — US-0721 Automatic production deployment on main
 
 As a release manager
 
@@ -478,9 +486,9 @@ Then gating tests execute and production deploy is performed if gates pass
 
 And production health verification is performed post-deploy
 
-### 5600 CI/CD Pipeline
+### Level 2 — 5600 CI/CD Pipeline
 
-**US-0731 — Unified deploy-to-environment script**
+#### Level 3 — US-0731 Unified deploy-to-environment script
 
 As a DevOps engineer
 
@@ -498,9 +506,9 @@ Then it deploys frontend and backend to the correct targets for that stage
 
 And it provides clear success/failure output and a verification step (health)
 
-### 5610 GitHub Actions / Health & Readiness
+### Level 2 — 5610 GitHub Actions / Health & Readiness
 
-**US-0003 — Health endpoint**
+#### Level 3 — US-0003 Health endpoint
 
 As a system operator
 
@@ -518,9 +526,9 @@ Then it returns a success status and basic service info
 
 And failures are clearly surfaced when dependencies are unavailable
 
-### 5700 Documentation & Runbooks
+### Level 2 — 5700 Documentation & Runbooks
 
-**US-1101 — Keep the dev guide accurate**
+#### Level 3 — US-1101 Keep the dev guide accurate
 
 As a new contributor
 
@@ -538,7 +546,7 @@ Then I can run the app locally and execute gating tests successfully
 
 And any prerequisites are explicitly stated
 
-**US-1111 — Emergency deploy and rollback runbook**
+#### Level 3 — US-1111 Emergency deploy and rollback runbook
 
 As a system operator
 
@@ -558,11 +566,11 @@ And the procedure records what changed and how it was validated
 
 ---
 
-## Root 6 — Quality & Testing
+## Level 1 — Root 6: Quality & Testing
 
-### 6100 Acceptance Test Management
+### Level 2 — 6100 Acceptance Test Management
 
-**US-0201 — Create acceptance test**
+#### Level 3 — US-0201 Create acceptance test
 
 As a QA/SDET
 
@@ -580,7 +588,7 @@ Then the acceptance test is persisted and retrievable by storyId
 
 And the story details show linked tests
 
-**US-0202 — Update acceptance test**
+#### Level 3 — US-0202 Update acceptance test
 
 As a QA/SDET
 
@@ -598,7 +606,7 @@ Then the updated content is persisted and returned
 
 And updatedAt reflects the edit
 
-**US-0203 — Delete acceptance test**
+#### Level 3 — US-0203 Delete acceptance test
 
 As a QA/SDET
 
@@ -616,9 +624,9 @@ Then it no longer appears in queries or story details
 
 And story gating logic reflects the updated test set
 
-### 6200 Gating Tests
+### Level 2 — 6200 Gating Tests
 
-**US-0701 — Run structured gating tests script**
+#### Level 3 — US-0701 Run structured gating tests script
 
 As a CI system
 
@@ -636,9 +644,9 @@ Then tests execute by phases and report pass/fail per phase
 
 And critical failures block progression
 
-### 6300 Done Criteria & Validation
+### Level 2 — 6300 Done Criteria & Validation
 
-**US-0211 — Done validation**
+#### Level 3 — US-0211 Done validation
 
 As a project owner
 
