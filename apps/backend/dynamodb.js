@@ -120,7 +120,7 @@ export class DynamoDBDataLayer {
       
       const stories = allItems.map(item => ({
         id: item.id,
-        parentId: item.parentId,
+        parentId: item.parentId || null,
         title: item.title || '',
         description: item.description || '',
         asA: item.asA || '',
@@ -156,7 +156,7 @@ export class DynamoDBDataLayer {
       const item = result.Item;
       const mapped = {
         id: item.id,
-        parentId: item.parentId,
+        parentId: item.parentId || null,
         title: item.title || '',
         description: item.description || '',
         asA: item.asA || '',
