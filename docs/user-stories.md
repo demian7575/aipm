@@ -61,6 +61,9 @@ Acceptance Tests (GWT, minimums by level):
 - **Acceptance Test IDs** must list the linked tests (or explicitly inherit from parent if allowed).
 - Until evidence is recorded, stories should be treated as **Unverified**.
 
+### Implementation mapping note
+Until each story has **Implementation Evidence** and concrete **Acceptance Test IDs**, the catalog does **not** claim that functionality is actually implemented. Treat all stories with **Verification Status: Unverified** as placeholders that still require explicit evidence to map to real functionality.
+
 ### Target distribution (~300 stories)
 Targets reflect the **desired** catalog size and balance across levels and subcategories.
 
