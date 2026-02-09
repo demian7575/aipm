@@ -8432,12 +8432,9 @@ async function fetchVersion() {
   }
 }
 
-function initialize() {
+async function initialize() {
   console.log('AIPM initializing...');
   console.log('API Base URL:', window.__AIPM_API_BASE__);
-  
-  // Initialize EC2 auto-start
-  initializeEC2AutoStart();
   
   // Clear cache if environment changed
   const currentEnv = window.CONFIG?.ENVIRONMENT || 'prod';
@@ -8456,6 +8453,9 @@ function initialize() {
   renderMindmap();
   renderDetails();
   fetchVersion();
+  
+  // Initialize EC2 auto-start (this will load stories when ready)
+  await initializeEC2AutoStart();
 
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
