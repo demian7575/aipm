@@ -69,6 +69,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -765,6 +766,12 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (viewAllStoriesBtn) {
+  viewAllStoriesBtn.addEventListener('click', () => {
+    openViewAllStoriesModal();
   });
 }
 
@@ -7849,6 +7856,50 @@ function openAcceptanceTestModal(storyId, options = {}) {
         }
       },
     }],
+  });
+}
+
+/**
+ * Opens a simple modal showing all story titles
+ */
+function openViewAllStoriesModal() {
+  const container = document.createElement('div');
+  container.className = 'view-all-stories-container';
+  container.style.maxHeight = '70vh';
+  container.style.overflowY = 'auto';
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  allStories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.padding = '8px';
+    item.style.borderBottom = '1px solid #eee';
+    item.style.cursor = 'pointer';
+    item.textContent = story.title;
+    item.dataset.storyId = story.id;
+    
+    item.addEventListener('click', () => {
+      state.selectedStoryId = story.id;
+      expandAncestors(story.id);
+      persistSelection();
+      renderAll();
+      closeModal();
+    });
+    
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    cancelLabel: 'Close'
   });
 }
 

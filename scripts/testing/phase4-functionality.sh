@@ -622,6 +622,22 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 43: Story 1770658054834 - View All Stories button
+if [ "$1" == "1770658054834" ] || [ -z "$1" ]; then
+  echo "Test 43: Story 1770658054834 - View All Stories button"
+  
+  if grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html && \
+     grep -q 'viewAllStoriesBtn' apps/frontend/public/app.js && \
+     grep -q 'viewAllStoriesBtn.addEventListener' apps/frontend/public/app.js && \
+     grep -q 'function openViewAllStoriesModal' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: View All Stories button implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories button not fully implemented"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
