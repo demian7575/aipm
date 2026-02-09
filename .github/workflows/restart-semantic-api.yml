@@ -24,7 +24,7 @@ jobs:
           ENV_NAME="${{ github.event.inputs.environment }}"
           
           if [ "$ENV_NAME" = "prod" ]; then
-            EC2_IP="44.197.204.18"
+            EC2_IP="100.53.112.192"
           else
             EC2_IP="44.222.168.46"
           fi

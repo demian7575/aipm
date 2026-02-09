@@ -1,7 +1,7 @@
 #!/bin/bash
 # Clean up ALL test stories and set test parent to 1768631018504
 
-PROD_API_BASE="http://44.197.204.18"
+PROD_API_BASE="http://100.53.112.192"
 TEST_PARENT_ID=1768631018504
 
 echo "🧹 Cleaning up ALL test stories..."

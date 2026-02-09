@@ -107,7 +107,7 @@ ExpressionAttributeValues: { ':storyId': parseInt(storyId) }
 
 ```bash
 # Test acceptance test queries
-curl http://44.197.204.18:4000/api/stories/1234/acceptance-tests
+curl http://100.53.112.192:4000/api/stories/1234/acceptance-tests
 
 # Should return tests for story 1234
 ```
@@ -125,7 +125,7 @@ curl http://44.197.204.18:4000/api/stories/1234/acceptance-tests
 - Can be deleted manually via AWS Console
 
 ### "Backend errors after deployment"
-- Check logs: `ssh ec2-user@44.197.204.18 'sudo journalctl -u aipm-backend -n 50'`
+- Check logs: `ssh ec2-user@100.53.112.192 'sudo journalctl -u aipm-backend -n 50'`
 - Run rollback script
 - Restore from backup
 

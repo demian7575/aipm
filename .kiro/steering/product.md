@@ -49,8 +49,8 @@ Self-hosted mindmap workspace for managing user stories with AI-powered code gen
 
 **Production**:
 - Frontend: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
-- API: http://44.197.204.18:4000
-- Semantic API: http://44.197.204.18:8083
+- API: http://100.53.112.192:4000
+- Semantic API: http://100.53.112.192:8083
 
 **Development**:
 - Frontend: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/

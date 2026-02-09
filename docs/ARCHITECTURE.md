@@ -23,7 +23,7 @@ Full-stack web application: Vanilla JS frontend (S3) + Node.js backend (EC2) + D
     ┌────▼──────────────────────▼────┐
     │      EC2 Backend Servers        │
     │                                 │
-    │  Production: 44.197.204.18     │
+    │  Production: 100.53.112.192     │
     │  Development: 44.222.168.46    │
     │                                 │
     │  ┌──────────────────────────┐  │
@@ -139,7 +139,7 @@ Single source of truth: `config/environments.yaml`
 
 ```yaml
 prod:
-  ec2_ip: "44.197.204.18"
+  ec2_ip: "100.53.112.192"
   api_port: 4000
   semantic_api_port: 8083
   # ...
@@ -189,7 +189,7 @@ See [CONFIGURATION.md](CONFIGURATION.md) for details.
 ## Deployment Architecture
 
 ### Production Environment
-- **EC2**: 44.197.204.18 (t3.small)
+- **EC2**: 100.53.112.192 (t3.small)
 - **S3**: aipm-static-hosting-demo
 - **Region**: us-east-1
 - **DynamoDB**: aipm-backend-prod-* tables

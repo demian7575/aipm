@@ -1181,7 +1181,7 @@
 - Database Layer: 15 functionalities
 - Utilities: 7 functionalities
 
-**Status:** All items verified working in production (http://44.197.204.18:4000)
+**Status:** All items verified working in production (http://100.53.112.192:4000)
 
 **Code Coverage:**
 - Backend: 7,455 lines (after removing 452 lines of unused code)
@@ -3003,7 +3003,7 @@
   "asA": "system",
   "iWant": "EC2 instances for backend hosting",
   "soThat": "backend APIs are accessible",
-  "description": "Two EC2 instances: prod (44.197.204.18) and dev (44.222.168.46)",
+  "description": "Two EC2 instances: prod (100.53.112.192) and dev (44.222.168.46)",
   "status": "Done",
   "storyPoint": 6,
   "parentId": null

@@ -42,7 +42,7 @@ else
 fi
 
 # ❌ DON'T - Hardcode URLs
-curl -s http://44.197.204.18:4000/health
+curl -s http://100.53.112.192:4000/health
 ```
 
 ## Test Requirements

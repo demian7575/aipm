@@ -8,10 +8,11 @@
  * 1. Persistent sessions (no kill after each request)
  * 2. Request queue when all sessions busy
  * 3. Graceful stuck recovery (Ctrl+C before kill)
+ * 4. Lock file to prevent multiple instances
  */
 
 import { spawn } from 'child_process';
-import { createWriteStream } from 'fs';
+import { createWriteStream, existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
 import http from 'http';
 
 const POOL_SIZE = 2;
@@ -20,6 +21,136 @@ const MAX_EXECUTION_TIME = 600000; // 10 minutes - absolute maximum
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
 const LOG_FILE = '/tmp/kiro-cli-live.log';
 const PROCESS_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const LOCK_FILE = '/tmp/kiro-session-pool.lock';
+const PID_FILE = '/tmp/kiro-session-pool.pid';
+
+// Resource limits
+const MAX_CPU_PERCENT = 90; // Kill session if CPU > 90%
+const MAX_MEMORY_MB = 1500; // Kill session if memory > 1.5GB
+const RESOURCE_CHECK_INTERVAL = 30000; // Check every 30 seconds
+const MAX_STUCK_TIME = 120000; // Kill if stuck for 2 minutes
+
+// Check if another instance is running
+function checkExistingInstance() {
+  if (existsSync(LOCK_FILE)) {
+    try {
+      const oldPid = parseInt(readFileSync(PID_FILE, 'utf8').trim());
+      
+      // Check if process is actually running
+      try {
+        process.kill(oldPid, 0); // Signal 0 just checks if process exists
+        console.error(`❌ Kiro Session Pool is already running (PID: ${oldPid})`);
+        console.error(`   To kill it: kill -9 ${oldPid}`);
+        console.error(`   Or remove lock: rm ${LOCK_FILE} ${PID_FILE}`);
+        process.exit(1);
+      } catch (e) {
+        // Process doesn't exist, clean up stale lock
+        console.log('⚠️  Stale lock file found, cleaning up...');
+        unlinkSync(LOCK_FILE);
+        unlinkSync(PID_FILE);
+      }
+    } catch (e) {
+      // Lock file corrupted, remove it
+      console.log('⚠️  Corrupted lock file, cleaning up...');
+      try { unlinkSync(LOCK_FILE); } catch {}
+      try { unlinkSync(PID_FILE); } catch {}
+    }
+  }
+}
+
+// Create lock file
+function createLockFile() {
+  writeFileSync(PID_FILE, process.pid.toString());
+  writeFileSync(LOCK_FILE, new Date().toISOString());
+  console.log(`✅ Created lock file (PID: ${process.pid})`);
+}
+
+// Remove lock file
+function removeLockFile() {
+  try {
+    unlinkSync(LOCK_FILE);
+    unlinkSync(PID_FILE);
+    console.log('✅ Removed lock file');
+  } catch (e) {
+    // Ignore errors
+  }
+}
+
+// Get process resource usage
+async function getProcessResources(pid) {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+  
+  try {
+    const { stdout } = await execAsync(`ps -p ${pid} -o %cpu,%mem,rss,etime --no-headers`);
+    const [cpu, mem, rss, etime] = stdout.trim().split(/\s+/);
+    
+    return {
+      cpu: parseFloat(cpu),
+      memPercent: parseFloat(mem),
+      memMB: parseInt(rss) / 1024, // Convert KB to MB
+      uptime: etime
+    };
+  } catch (e) {
+    return null; // Process doesn't exist
+  }
+}
+
+// Monitor and kill resource-heavy sessions
+async function monitorResources(pool) {
+  for (const session of pool.sessions) {
+    if (!session.process || !session.process.pid) continue;
+    
+    const resources = await getProcessResources(session.process.pid);
+    
+    if (!resources) {
+      pool.logStream.write(`[Monitor] Session ${session.id} process not found\n`);
+      continue;
+    }
+    
+    // Check CPU limit
+    if (resources.cpu > MAX_CPU_PERCENT) {
+      pool.logStream.write(`[Monitor] ⚠️  Session ${session.id} CPU: ${resources.cpu}% (limit: ${MAX_CPU_PERCENT}%)\n`);
+      
+      if (session.busy && session.stuckStartTime) {
+        const stuckDuration = Date.now() - session.stuckStartTime;
+        if (stuckDuration > MAX_STUCK_TIME) {
+          pool.logStream.write(`[Monitor] 🔴 Killing session ${session.id} - High CPU + stuck for ${Math.round(stuckDuration/1000)}s\n`);
+          session.kill();
+          continue;
+        }
+      }
+    }
+    
+    // Check memory limit
+    if (resources.memMB > MAX_MEMORY_MB) {
+      pool.logStream.write(`[Monitor] ⚠️  Session ${session.id} Memory: ${Math.round(resources.memMB)}MB (limit: ${MAX_MEMORY_MB}MB)\n`);
+      
+      if (session.busy) {
+        pool.logStream.write(`[Monitor] 🔴 Killing session ${session.id} - Memory limit exceeded\n`);
+        session.kill();
+        continue;
+      }
+    }
+    
+    // Log normal status periodically
+    if (session.busy) {
+      pool.logStream.write(`[Monitor] Session ${session.id} - CPU: ${resources.cpu}%, Mem: ${Math.round(resources.memMB)}MB, Uptime: ${resources.uptime}\n`);
+    }
+  }
+}
+
+// Start resource monitoring
+function startResourceMonitoring(pool) {
+  setInterval(() => {
+    monitorResources(pool).catch(err => {
+      pool.logStream.write(`[Monitor] Error: ${err.message}\n`);
+    });
+  }, RESOURCE_CHECK_INTERVAL);
+  
+  console.log(`📊 Resource monitoring enabled (CPU: ${MAX_CPU_PERCENT}%, Memory: ${MAX_MEMORY_MB}MB)`);
+}
 
 // Cleanup existing kiro-cli processes before starting
 async function cleanupExistingKiroProcesses() {
@@ -437,6 +568,9 @@ class KiroSessionPool {
 await cleanupExistingKiroProcesses();
 const pool = new KiroSessionPool(POOL_SIZE);
 
+// Start resource monitoring
+startResourceMonitoring(pool);
+
 // Periodic cleanup check (every 5 minutes)
 setInterval(async () => {
   const cleaned = await checkOrphanedProcesses();
@@ -465,6 +599,20 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/health' && req.method === 'GET') {
     const status = pool.getStatus();
     const isHealthy = status.available > 0 || status.busy < POOL_SIZE;
+    
+    // Get resource usage for all sessions
+    const resourcePromises = pool.sessions.map(async (session) => {
+      if (!session.process || !session.process.pid) return null;
+      const resources = await getProcessResources(session.process.pid);
+      return resources ? {
+        sessionId: session.id,
+        pid: session.process.pid,
+        ...resources
+      } : null;
+    });
+    
+    const sessionResources = (await Promise.all(resourcePromises)).filter(r => r !== null);
+    
     res.writeHead(isHealthy ? 200 : 503, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: isHealthy ? 'healthy' : 'unhealthy',
@@ -472,7 +620,13 @@ const server = http.createServer(async (req, res) => {
       available: status.available,
       busy: status.busy,
       stuck: status.stuck,
-      uptime: Math.floor(process.uptime())
+      uptime: Math.floor(process.uptime()),
+      limits: {
+        maxCpu: MAX_CPU_PERCENT,
+        maxMemoryMB: MAX_MEMORY_MB,
+        maxStuckTimeMs: MAX_STUCK_TIME
+      },
+      sessions: sessionResources
     }));
     return;
   }
@@ -623,8 +777,29 @@ const server = http.createServer(async (req, res) => {
 });
 
 const PORT = 8082;
+
+// Check for existing instance before starting
+checkExistingInstance();
+
+// Create lock file
+createLockFile();
+
+// Cleanup lock file on exit
+process.on('exit', removeLockFile);
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down...');
+  removeLockFile();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Shutting down...');
+  removeLockFile();
+  process.exit(0);
+});
+
 server.listen(PORT, () => {
   console.log(`🚀 Kiro Session Pool Server running on port ${PORT}`);
   console.log(`📊 Pool size: ${POOL_SIZE}`);
   console.log(`📝 Log file: ${LOG_FILE}`);
+  console.log(`🔒 Lock file: ${LOCK_FILE} (PID: ${process.pid})`);
 });

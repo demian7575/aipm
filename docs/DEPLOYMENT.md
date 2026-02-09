@@ -30,7 +30,7 @@ All deployment settings are in `config/environments.yaml`:
 
 ```yaml
 production:
-  ec2_ip: "44.197.204.18"
+  ec2_ip: "100.53.112.192"
   api_port: 4000
   semantic_api_port: 8083
   s3_bucket: "aipm-static-hosting-demo"
@@ -80,7 +80,7 @@ If you need to deploy manually:
 
 ```bash
 # SSH to EC2
-ssh -i ~/.ssh/aipm-key.pem ubuntu@44.197.204.18
+ssh -i ~/.ssh/aipm-key.pem ubuntu@100.53.112.192
 
 # Update code
 cd /home/ubuntu/aipm
@@ -259,7 +259,7 @@ Or trigger via GitHub Actions:
 
 1. **Check health endpoint**:
    ```bash
-   curl http://44.197.204.18:4000/health
+   curl http://100.53.112.192:4000/health
    ```
 
 2. **Check frontend**:
@@ -269,14 +269,14 @@ Or trigger via GitHub Actions:
 
 3. **Test story creation**:
    ```bash
-   curl -X POST http://44.197.204.18:4000/api/stories \
+   curl -X POST http://100.53.112.192:4000/api/stories \
      -H 'Content-Type: application/json' \
      -d '{"title":"Test","asA":"user","iWant":"test","soThat":"test"}'
    ```
 
 4. **Check semantic API**:
    ```bash
-   curl http://44.197.204.18:8083/health
+   curl http://100.53.112.192:8083/health
    ```
 
 ## Related Documentation

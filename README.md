@@ -38,7 +38,7 @@ npm run dev  # Starts on http://localhost:4000
 
 ```yaml
 prod:
-  ec2_ip: "44.197.204.18"
+  ec2_ip: "100.53.112.192"
   api_port: 4000
   semantic_api_port: 8083
   s3_bucket: "aipm-static-hosting-demo"
@@ -53,8 +53,8 @@ prod:
 
 **Production**:
 - Frontend: http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/
-- API: http://44.197.204.18:4000
-- Semantic API: http://44.197.204.18:8083
+- API: http://100.53.112.192:4000
+- Semantic API: http://100.53.112.192:8083
 
 **Development**:
 - Frontend: http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com/

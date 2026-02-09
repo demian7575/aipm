@@ -35,5 +35,5 @@ const apiUrl = config.api_url; // from environments.yaml
 
 // ❌ DON'T
 fetchStories().then(result => ...); // no callbacks
-const apiUrl = "http://44.197.204.18:4000"; // no hardcoding
+const apiUrl = "http://100.53.112.192:4000"; // no hardcoding
 ```

@@ -7296,14 +7296,69 @@ export async function createApp() {
     // Handle API 404s before falling back to static files
     // Deployment notifications API
     // RTM APIs
+    // GET /api/test-results - Get latest test results
+    if (pathname === '/api/test-results' && method === 'GET') {
+      try {
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const docClient = DynamoDBDocumentClient.from(client);
+        
+        const result = await docClient.send(new ScanCommand({
+          TableName: 'aipm-backend-prod-test-results',
+          Limit: 1000
+        }));
+        
+        sendJson(res, 200, result.Items || []);
+        return;
+      } catch (error) {
+        console.error('Error getting test results:', error);
+        sendJson(res, 500, { error: 'Failed to get test results' });
+        return;
+      }
+    }
+
     if (pathname === '/api/rtm/matrix' && method === 'GET') {
       try {
         const stories = await db.getAllStories();
+        
+        // Get latest test results
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const docClient = DynamoDBDocumentClient.from(client);
+        
+        let testResults = {};
+        try {
+          const result = await docClient.send(new QueryCommand({
+            TableName: 'aipm-backend-prod-test-results',
+            ScanIndexForward: false,
+            Limit: 1000
+          }));
+          
+          // Group by testId, keep latest
+          for (const item of result.Items || []) {
+            if (!testResults[item.testId] || item.timestamp > testResults[item.testId].timestamp) {
+              testResults[item.testId] = item;
+            }
+          }
+        } catch (e) {
+          console.warn('Test results table not available:', e.message);
+        }
         
         // Compute coverage for each story (return ALL stories for hierarchy)
         const matrixData = await Promise.all(stories.map(async (story) => {
           const children = stories.filter(s => s.parentId === story.id);
           const latestTestRun = await db.getLatestTestRunByStoryId(story.id);
+          
+          // Get acceptance tests for this story
+          const acceptanceTests = await getAcceptanceTests(db, story.id);
+          
+          // Count test results for this story's acceptance tests
+          const testIds = acceptanceTests.map(t => String(t.id));
+          const passedTests = testIds.filter(id => testResults[id]?.status === 'PASS').length;
+          const failedTests = testIds.filter(id => testResults[id]?.status === 'FAIL').length;
+          const totalTests = testIds.length;
           
           return {
             id: story.id,
@@ -7312,12 +7367,14 @@ export async function createApp() {
             parentId: story.parentId,
             coverage: {
               stories: children.length,
-              acceptanceTests: story.acceptanceTests?.length || 0,
+              acceptanceTests: totalTests,
               code: story.status === 'Done' ? 1 : 0,
               docs: story.referenceDocuments?.length || 0,
-              ci: latestTestRun ? {
-                count: 1,
-                status: latestTestRun.storyStatus
+              ci: totalTests > 0 ? {
+                count: totalTests,
+                passed: passedTests,
+                failed: failedTests,
+                status: failedTests > 0 ? 'FAIL' : passedTests > 0 ? 'PASS' : 'PENDING'
               } : { count: 0, status: null }
             }
           };

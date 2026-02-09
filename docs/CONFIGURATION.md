@@ -8,7 +8,7 @@ All environment configuration is centralized in `config/environments.yaml`. This
 
 ```yaml
 production:
-  ec2_ip: "44.197.204.18"
+  ec2_ip: "100.53.112.192"
   api_port: 4000
   semantic_api_port: 8083
   terminal_port: 8080

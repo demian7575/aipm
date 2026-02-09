@@ -82,7 +82,7 @@ Tests use centralized configuration from `config/environments.yaml`:
 
 ```yaml
 production:
-  ec2_ip: "44.197.204.18"
+  ec2_ip: "100.53.112.192"
   api_port: 4000
   semantic_api_port: 8083
 ```
@@ -104,7 +104,7 @@ Tests are in `tests/` directory using Node's built-in test runner.
 ### Test Story Creation
 
 ```bash
-curl -X POST http://44.197.204.18:4000/api/stories \
+curl -X POST http://100.53.112.192:4000/api/stories \
   -H 'Content-Type: application/json' \
   -d '{
     "title": "Test Story",
@@ -119,7 +119,7 @@ curl -X POST http://44.197.204.18:4000/api/stories \
 ### Test INVEST Analysis
 
 ```bash
-curl -X POST http://44.197.204.18:8083/aipm/invest-analysis?stream=true \
+curl -X POST http://100.53.112.192:8083/aipm/invest-analysis?stream=true \
   -H 'Content-Type: application/json' \
   -d '{
     "requestId": "test-123",
@@ -133,7 +133,7 @@ curl -X POST http://44.197.204.18:8083/aipm/invest-analysis?stream=true \
 ### Test Story Draft Generation
 
 ```bash
-curl -X POST http://44.197.204.18:8083/aipm/story-draft?stream=true \
+curl -X POST http://100.53.112.192:8083/aipm/story-draft?stream=true \
   -H 'Content-Type: application/json' \
   -d '{
     "requestId": "test-456",
@@ -179,10 +179,10 @@ curl -X POST http://44.197.204.18:8083/aipm/story-draft?stream=true \
 **Health check fails**:
 ```bash
 # Check if backend is running
-curl http://44.197.204.18:4000/health
+curl http://100.53.112.192:4000/health
 
 # Check EC2 service
-ssh ubuntu@44.197.204.18 'sudo systemctl status aipm-backend'
+ssh ubuntu@100.53.112.192 'sudo systemctl status aipm-backend'
 ```
 
 **Database connection fails**:
@@ -198,13 +198,13 @@ aws dynamodb describe-table --table-name aipm-backend-prod-stories
 **Story draft generation fails**:
 ```bash
 # Check Semantic API
-curl http://44.197.204.18:8083/health
+curl http://100.53.112.192:8083/health
 
 # Check Session Pool
-ssh ubuntu@44.197.204.18 'sudo systemctl status kiro-session-pool'
+ssh ubuntu@100.53.112.192 'sudo systemctl status kiro-session-pool'
 
 # Check Kiro CLI authentication
-ssh ubuntu@44.197.204.18 'kiro-cli --version'
+ssh ubuntu@100.53.112.192 'kiro-cli --version'
 ```
 
 **INVEST score too low**:

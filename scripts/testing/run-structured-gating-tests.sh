@@ -114,7 +114,7 @@ main() {
     echo "📊 Test Configuration:"
     echo "   Backend: $API_BASE"
     echo "   Database: Development DynamoDB (all tests use dev tables for isolation)"
-    if [[ "$API_BASE" == *"44.197.204.18"* ]]; then
+    if [[ "$API_BASE" == *"100.53.112.192"* ]]; then
         echo "   Mode: Production EC2 with Development DynamoDB (X-Use-Dev-Tables header)"
     else
         echo "   Mode: Development EC2 with Development DynamoDB"
@@ -189,19 +189,34 @@ main() {
             echo "⚠️  Base workflow issues detected"
         fi
         
-        # Run accumulated Phase 4 functionality tests
+        # Run Phase 4 API functionality tests
         echo ""
-        echo "🧪 Running Phase 4 Functionality Tests..."
+        echo "🧪 Running Phase 4 API Functionality Tests..."
         
         if [[ -f ./scripts/testing/phase4-functionality.sh ]]; then
             if bash ./scripts/testing/phase4-functionality.sh; then
-                echo "✅ Phase 4 Functionality Tests passed"
+                echo "✅ Phase 4 API Tests passed"
             else
-                echo "❌ Phase 4 Functionality Tests failed"
+                echo "❌ Phase 4 API Tests failed"
                 ((PHASE_FAILED++))
             fi
         else
-            echo "⚠️  Phase 4 functionality test file not found"
+            echo "⚠️  Phase 4 API test file not found"
+        fi
+        
+        # Run Phase 4 Extended (UI/Integration) tests
+        echo ""
+        echo "🧪 Running Phase 4 Extended (UI/Integration) Tests..."
+        
+        if [[ -f ./scripts/testing/phase4-extended.sh ]]; then
+            if bash ./scripts/testing/phase4-extended.sh; then
+                echo "✅ Phase 4 Extended Tests passed"
+            else
+                echo "❌ Phase 4 Extended Tests failed"
+                ((PHASE_FAILED++))
+            fi
+        else
+            echo "⚠️  Phase 4 Extended test file not found"
         fi
         
         local phase4_end=$(date +%s)

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Clean up orphaned test stories created by gating tests
 
-PROD_API_BASE="http://44.197.204.18"
+PROD_API_BASE="http://100.53.112.192"
 
 echo "🧹 Cleaning up orphaned gating test stories..."
 

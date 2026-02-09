@@ -561,7 +561,7 @@ config/
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     EC2 Backend Servers                      │
-│  Production: 44.197.204.18                                   │
+│  Production: 100.53.112.192                                   │
 │  Development: 44.222.168.46                                  │
 │                                                              │
 │  Services:                                                   │
@@ -610,7 +610,7 @@ EC2 instance role requires:
 #### environments.yaml (Single Source of Truth)
 ```yaml
 prod:
-  ec2_ip: "44.197.204.18"
+  ec2_ip: "100.53.112.192"
   api_port: 4000
   semantic_api_port: 8083
   s3_bucket: "aipm-static-hosting-demo"
@@ -962,13 +962,13 @@ All resources follow the pattern: `{service}-{env}-{resource}`
 - Semantic API: `http://44.222.168.46:8083`
 
 **Production (env: prod)**
-- EC2: `44.197.204.18`
+- EC2: `100.53.112.192`
 - Stories Table: `aipm-backend-prod-stories`
 - Tests Table: `aipm-backend-prod-acceptance-tests`
 - PRs Table: `aipm-backend-prod-prs`
 - S3 Bucket: `aipm-static-hosting-demo`
-- API: `http://44.197.204.18:4000`
-- Semantic API: `http://44.197.204.18:8083`
+- API: `http://100.53.112.192:4000`
+- Semantic API: `http://100.53.112.192:8083`
 
 #### Configuration Management
 
@@ -1065,7 +1065,7 @@ git push origin main
 
 **Deployment includes:**
 1. ✅ Run gating tests (Phase 1, 2, 4)
-2. ✅ Backend to EC2 (44.197.204.18)
+2. ✅ Backend to EC2 (100.53.112.192)
 3. ✅ Restart services (API, Semantic API, Session Pool)
 4. ✅ Frontend to S3 (aipm-static-hosting-demo)
 5. ✅ Auto-configures frontend to use prod API

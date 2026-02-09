@@ -36,7 +36,7 @@ inclusion: always
 - Continue feature development
 
 ## Architecture Status
-- Dual EC2 setup (prod: 44.197.204.18, dev: 44.222.168.46)
+- Dual EC2 setup (prod: 100.53.112.192, dev: 44.222.168.46)
 - DynamoDB for data storage
 - S3 for static hosting
 - GitHub Actions for CI/CD
