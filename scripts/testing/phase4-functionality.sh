@@ -624,6 +624,19 @@ fi
 
 echo ""
 
+# Test 43: Story List Button (Story 1770658216652)
+if [ "$STORY_ID" = "1770658216652" ]; then
+  echo "Test 43: Story List Button functionality"
+  if grep -q "story-list-btn" apps/frontend/public/index.html && grep -q "storyListBtn" apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Story List button implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
