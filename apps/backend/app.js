@@ -7320,6 +7320,13 @@ export async function createApp() {
 
     if (pathname === '/api/rtm/matrix' && method === 'GET') {
       try {
+        // Debug: Check AWS credentials
+        console.log('RTM: Checking AWS credentials...');
+        console.log('RTM: AWS_REGION:', process.env.AWS_REGION);
+        console.log('RTM: ACCEPTANCE_TESTS_TABLE:', process.env.ACCEPTANCE_TESTS_TABLE);
+        console.log('RTM: AWS_ACCESS_KEY_ID set:', !!process.env.AWS_ACCESS_KEY_ID);
+        console.log('RTM: AWS_SECRET_ACCESS_KEY set:', !!process.env.AWS_SECRET_ACCESS_KEY);
+        
         const stories = await db.getAllStories();
         
         // Get latest test results
