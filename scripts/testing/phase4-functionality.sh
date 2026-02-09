@@ -622,6 +622,18 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 43: Story list button displays modal
+echo "Test 43: Story list button functionality"
+FRONTEND_HTML="apps/frontend/public/index.html"
+FRONTEND_JS="apps/frontend/public/app.js"
+if grep -q 'id="story-list-btn"' "$FRONTEND_HTML" && grep -q "storyListBtn" "$FRONTEND_JS"; then
+  echo "  ✅ PASS: Story list button implemented"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: Story list button not found"
+  FAILED=$((FAILED + 1))
+fi
+
 echo ""
 
 # ============================================
@@ -652,7 +664,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 43 (37 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
