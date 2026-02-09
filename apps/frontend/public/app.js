@@ -41,6 +41,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -8502,6 +8503,44 @@ function initialize() {
   if (rtmExportBtn) {
     rtmExportBtn.addEventListener('click', exportRTMToCSV);
   }
+
+  storyListBtn?.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      
+      const flatStories = flattenStories(stories);
+      const titles = flatStories.slice(0, 50).map(s => s.title || 'Untitled');
+      
+      const container = document.createElement('div');
+      container.style.maxHeight = '400px';
+      container.style.overflowY = 'auto';
+      
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      titles.forEach(title => {
+        const item = document.createElement('li');
+        item.style.padding = '8px 0';
+        item.textContent = title;
+        list.appendChild(item);
+      });
+      
+      container.appendChild(list);
+      
+      openModal({
+        title: 'Story List',
+        content: container,
+        cancelLabel: 'Close'
+      });
+    } catch (error) {
+      console.error('Failed to load story list:', error);
+      showToast('Failed to load story list', 'error');
+    }
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();

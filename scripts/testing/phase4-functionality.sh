@@ -140,6 +140,19 @@ else
 fi
 echo ""
 
+# Test for Story 1770624552402: Story List Button
+if [ "$1" = "1770624552402" ]; then
+  echo "Test 9: Story List Button (Story 1770624552402)"
+  if curl -s "$FRONTEND_URL" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # Summary
 echo "====================================="
 echo "Phase 4 Results:"
