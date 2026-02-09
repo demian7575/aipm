@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -69,6 +70,8 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -765,6 +768,18 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
+}
+
+if (viewAllStoriesBtn) {
+  viewAllStoriesBtn.addEventListener('click', () => {
+    openViewAllStoriesModal();
   });
 }
 
@@ -7959,6 +7974,144 @@ function openFilterModal() {
   });
 }
 
+/**
+ * Opens story list modal showing all stories grouped by status
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.maxHeight = '70vh';
+  container.style.overflowY = 'auto';
+  
+  // Get all stories recursively
+  function getAllStories(story) {
+    const stories = [story];
+    if (story.children) {
+      story.children.forEach(child => stories.push(...getAllStories(child)));
+    }
+    return stories;
+  }
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  // Group by status
+  const statusGroups = {
+    'Draft': [],
+    'Ready': [],
+    'In Progress': [],
+    'Blocked': [],
+    'Approved': [],
+    'Done': []
+  };
+  
+  allStories.forEach(story => {
+    const status = story.status || 'Draft';
+    if (statusGroups[status]) {
+      statusGroups[status].push(story);
+    }
+  });
+  
+  // Build HTML
+  let html = '';
+  Object.entries(statusGroups).forEach(([status, stories]) => {
+    if (stories.length === 0) return;
+    
+    html += `
+      <div class="status-group">
+        <h3 class="status-label">${status} (${stories.length})</h3>
+        <div class="story-cards">
+    `;
+    
+    stories.forEach(story => {
+      const truncatedDesc = (story.description || '').substring(0, 100);
+      const descDisplay = truncatedDesc + ((story.description || '').length > 100 ? '...' : '');
+      
+      html += `
+        <div class="story-card" data-story-id="${story.id}">
+          <div class="story-title"><strong>${escapeHtml(story.title)}</strong></div>
+          <div class="story-description">${escapeHtml(descDisplay)}</div>
+          <div class="story-status-badge status-${status.toLowerCase().replace(/\s+/g, '-')}">${status}</div>
+        </div>
+      `;
+    });
+    
+    html += `
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  
+  // Add click handlers to navigate to story
+  container.addEventListener('click', (e) => {
+    const card = e.target.closest('.story-card');
+    if (card) {
+      const storyId = parseInt(card.dataset.storyId);
+      state.selectedStoryId = storyId;
+      expandAncestors(storyId);
+      persistSelection();
+      renderAll();
+      modal.remove();
+    }
+  });
+  
+  openModal({
+    title: 'User Stories by Status',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        onClick: () => true
+      }
+    ]
+  });
+}
+
+/**
+ * Opens a simple modal showing all story titles
+ */
+function openViewAllStoriesModal() {
+  const container = document.createElement('div');
+  container.className = 'view-all-stories-container';
+  container.style.maxHeight = '70vh';
+  container.style.overflowY = 'auto';
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  allStories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.padding = '8px';
+    item.style.borderBottom = '1px solid #eee';
+    item.style.cursor = 'pointer';
+    item.textContent = story.title;
+    item.dataset.storyId = story.id;
+    
+    item.addEventListener('click', () => {
+      state.selectedStoryId = story.id;
+      expandAncestors(story.id);
+      persistSelection();
+      renderAll();
+      closeModal();
+    });
+    
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    cancelLabel: 'Close'
+  });
+}
+
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
   container.style.display = 'flex';
@@ -8466,6 +8619,43 @@ async function initialize() {
   
   // Fetch version after EC2 is ready
   fetchVersion();
+
+  viewStoriesBtn?.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      
+      const content = document.createElement('div');
+      content.style.maxHeight = '400px';
+      content.style.overflowY = 'auto';
+      
+      if (stories.length === 0) {
+        content.innerHTML = '<p>No stories found.</p>';
+      } else {
+        const list = document.createElement('ul');
+        list.style.listStyle = 'none';
+        list.style.padding = '0';
+        stories.forEach(story => {
+          const item = document.createElement('li');
+          item.style.padding = '8px';
+          item.style.borderBottom = '1px solid #eee';
+          item.textContent = story.title || `Story ${story.id}`;
+          list.appendChild(item);
+        });
+        content.appendChild(list);
+      }
+      
+      openModal({
+        title: 'All Stories',
+        content,
+        actions: []
+      });
+    } catch (error) {
+      console.error('Failed to load stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
+  });
 
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
