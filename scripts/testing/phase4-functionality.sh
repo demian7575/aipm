@@ -625,6 +625,40 @@ fi
 echo ""
 
 # ============================================
+# SECTION 13: Story-Specific Functionality Tests
+# ============================================
+echo "🎯 SECTION 13: Story-Specific Functionality"
+echo "-----------------------------------"
+
+# Check if story ID was provided
+if [ -n "$1" ]; then
+  STORY_ID=$1
+  echo "Testing functionality for Story ID: $STORY_ID"
+  
+  # Test 43: Story List Button exists in frontend
+  echo "Test 43: Story List Button in header"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html | grep -q "story-list-btn"; then
+    echo "  ✅ PASS: Story List button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 44: Story List modal function exists
+  echo "Test 44: Story List modal function"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "storyListBtn"; then
+    echo "  ✅ PASS: Story List button handler exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button handler not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
@@ -635,7 +669,8 @@ echo "  ❌ Failed: $FAILED"
 if [ $SKIPPED -gt 0 ]; then
   echo "  ⏭️  Skipped: $SKIPPED"
 fi
-echo "  Total: $((PASSED + FAILED + SKIPPED))"
+TOTAL_TESTS=$((PASSED + FAILED + SKIPPED))
+echo "  Total: $TOTAL_TESTS"
 echo ""
 echo "Coverage:"
 echo "  - Core API: 9 endpoints tested"
@@ -651,8 +686,11 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+if [ -n "$1" ]; then
+  echo "  - Story-Specific: 2 tests executed"
+fi
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: $TOTAL_TESTS"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
