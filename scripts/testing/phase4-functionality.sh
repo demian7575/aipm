@@ -622,6 +622,16 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 43: Story List Button (Story 1770643214635)
+echo "Test 43: Story List Button exists"
+if grep -q 'id="story-list-btn"' apps/frontend/public/index.html && grep -q 'storyListBtn' apps/frontend/public/app.js; then
+  echo "  ✅ PASS: Story List Button implemented"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: Story List Button not found"
+  FAILED=$((FAILED + 1))
+fi
+
 echo ""
 
 # ============================================
@@ -651,8 +661,9 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+echo "  - Story Features: 1 feature tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 43 (37 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
