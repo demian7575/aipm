@@ -8460,10 +8460,12 @@ async function initialize() {
   renderOutline();
   renderMindmap();
   renderDetails();
-  fetchVersion();
   
   // Initialize EC2 auto-start (this will load stories when ready)
   await initializeEC2AutoStart();
+  
+  // Fetch version after EC2 is ready
+  fetchVersion();
 
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
