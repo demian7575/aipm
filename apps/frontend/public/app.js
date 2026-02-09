@@ -2,12 +2,20 @@
 // Simplified architecture - removed Worker, using API server internal queue only
 
 function getApiBaseUrl() {
+  // Check if EC2 config has been loaded with dynamic IP
+  if (window.__EC2_CONFIG__?.apiBaseUrl) {
+    const baseUrl = window.__EC2_CONFIG__.apiBaseUrl.replace(/\/$/, '');
+    console.log('getApiBaseUrl - returning from EC2 config:', baseUrl);
+    return baseUrl;
+  }
+  
+  // Fallback to static config
   if (!window.CONFIG?.API_BASE_URL) {
     console.error('❌ FATAL: window.CONFIG.API_BASE_URL is required');
     throw new Error('API_BASE_URL not configured');
   }
   const baseUrl = window.CONFIG.API_BASE_URL.replace(/\/$/, '');
-  console.log('getApiBaseUrl - returning:', baseUrl);
+  console.log('getApiBaseUrl - returning from static config:', baseUrl);
   return baseUrl;
 }
 
@@ -8996,7 +9004,18 @@ async function initializeEC2AutoStart() {
     
     if (status.state === 'running') {
       updateStatus('running', 'Running');
-      // Load stories normally
+      
+      // Get current config from S3
+      const config = await EC2Manager.getConfig(env);
+      console.log(`[EC2] ${env} config:`, config);
+      
+      // Update global config
+      window.__EC2_CONFIG__ = config;
+      window.__AIPM_API_BASE__ = config.apiBaseUrl;
+      window.CONFIG.API_BASE_URL = config.apiBaseUrl;
+      window.CONFIG.SEMANTIC_API_URL = config.semanticApiUrl;
+      
+      // Load stories
       await loadStories();
     } else if (status.state === 'stopped') {
       updateStatus('starting', 'Starting...');
@@ -9006,7 +9025,8 @@ async function initializeEC2AutoStart() {
       const config = await EC2Manager.ensureRunning(env);
       console.log(`[EC2] ${env} ready:`, config);
       
-      // Update API URLs
+      // Update global config
+      window.__EC2_CONFIG__ = config;
       window.__AIPM_API_BASE__ = config.apiBaseUrl;
       window.CONFIG.API_BASE_URL = config.apiBaseUrl;
       window.CONFIG.SEMANTIC_API_URL = config.semanticApiUrl;
@@ -9023,6 +9043,9 @@ async function initializeEC2AutoStart() {
       
       // Wait for it to be ready
       const config = await EC2Manager.waitForReady(env);
+      
+      // Update global config
+      window.__EC2_CONFIG__ = config;
       window.__AIPM_API_BASE__ = config.apiBaseUrl;
       window.CONFIG.API_BASE_URL = config.apiBaseUrl;
       window.CONFIG.SEMANTIC_API_URL = config.semanticApiUrl;
