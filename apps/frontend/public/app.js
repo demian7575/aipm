@@ -40,6 +40,7 @@ const detailsContent = document.getElementById('details-content');
 const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
+const storyListBtn = document.getElementById('story-list-btn');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
@@ -8463,7 +8464,33 @@ function initialize() {
     openDocumentPanel();
   });
 
-
+  storyListBtn?.addEventListener('click', async () => {
+    try {
+      const stories = await fetch(resolveApiUrl('/api/stories')).then(r => r.json());
+      const titles = stories.map(s => s.title).filter(Boolean);
+      
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      titles.forEach(title => {
+        const li = document.createElement('li');
+        li.textContent = title;
+        li.style.padding = '8px 0';
+        li.style.borderBottom = '1px solid #eee';
+        list.appendChild(li);
+      });
+      
+      openModal({
+        title: 'All Stories',
+        content: list,
+        cancelLabel: 'Close'
+      });
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
+  });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
