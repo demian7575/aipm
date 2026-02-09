@@ -140,6 +140,30 @@ else
 fi
 echo ""
 
+# Test 9: Story list button (Story 1770604616357)
+if [ "$1" = "1770604616357" ]; then
+  echo "Test 9: Story list button"
+  if curl -s "$FRONTEND_URL" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+  
+  echo "Test 10: Story list functions"
+  JS_CONTENT=$(curl -s "$FRONTEND_URL/app.js")
+  if echo "$JS_CONTENT" | grep -q "fetchAllStories" && echo "$JS_CONTENT" | grep -q "openStoryListModal"; then
+    echo "  ✅ PASS"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # Summary
 echo "====================================="
 echo "Phase 4 Results:"
