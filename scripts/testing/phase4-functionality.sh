@@ -625,6 +625,45 @@ fi
 echo ""
 
 # ============================================
+# SECTION 10: Story-Specific Functionality Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "🎯 SECTION 10: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test: Story list button functionality
+  echo "Test 43: Story list button in header"
+  if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Story list button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 44: Story list button event handler"
+  if grep -q 'storyListBtn.addEventListener' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Story list button has event handler"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button event handler not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 45: Modal opens with story list"
+  if grep -q "openModal" apps/frontend/public/app.js && grep -q "Story List" apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Modal implementation found"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal implementation not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
@@ -653,6 +692,9 @@ echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
 echo "Total Tests: 42 (36 executable + 6 workflow)"
+if [ -n "$1" ]; then
+  echo "Story-Specific Tests: 3 additional tests for Story ID $1"
+fi
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 

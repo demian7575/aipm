@@ -49,10 +49,12 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -746,6 +748,50 @@ function toggleDependencyOverlay() {
   setDependencyOverlayVisible(!state.showDependencies);
 }
 
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      
+      const content = document.createElement('div');
+      content.style.maxHeight = '400px';
+      content.style.overflowY = 'auto';
+      
+      if (stories.length === 0) {
+        content.innerHTML = '<p>No stories found.</p>';
+      } else {
+        const ul = document.createElement('ul');
+        ul.style.listStyle = 'none';
+        ul.style.padding = '0';
+        ul.style.margin = '0';
+        
+        const flatStories = flattenStories(stories);
+        flatStories.slice(0, 50).forEach(story => {
+          const li = document.createElement('li');
+          li.style.padding = '8px';
+          li.style.borderBottom = '1px solid #eee';
+          li.textContent = story.title;
+          ul.appendChild(li);
+        });
+        
+        content.appendChild(ul);
+      }
+      
+      openModal({
+        title: 'Story List',
+        content,
+        actions: [],
+        size: 'medium'
+      });
+    } catch (error) {
+      console.error('Error loading story list:', error);
+      showToast('Failed to load story list', 'error');
+    }
+  });
+}
+
 if (referenceBtn) {
   referenceBtn.addEventListener('click', () => {
     if (state.selectedStoryId == null) {
@@ -753,6 +799,27 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/work-model'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const data = await response.json();
+      const stories = data.stories || [];
+      
+      const storyList = stories.length > 0
+        ? stories.map(s => `<div class="story-list-item">${s.title || 'Untitled'}</div>`).join('')
+        : '<p>No stories found</p>';
+      
+      showModal('All Stories', storyList, [
+        { label: 'Close', className: 'secondary', onClick: closeModal }
+      ]);
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
   });
 }
 
