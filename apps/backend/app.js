@@ -24,21 +24,9 @@ async function getDynamoClient() {
 // Helper function to get acceptance tests for a story
 async function getAcceptanceTests(db, storyId) {
   if (db.constructor.name === 'DynamoDBDataLayer') {
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client);
-    
-    const result = await docClient.send(new QueryCommand({
-      TableName: process.env.ACCEPTANCE_TESTS_TABLE,
-      IndexName: 'storyId-index',
-      KeyConditionExpression: 'storyId = :storyId',
-      ExpressionAttributeValues: {
-        ':storyId': storyId
-      }
-    }));
-    
-    return result.Items || [];
+    // Use db's existing method instead of creating new client
+    const allTests = await db.getAllAcceptanceTests();
+    return allTests.filter(test => test.storyId === storyId);
   } else {
     const stmt = db.prepare('SELECT * FROM acceptance_tests WHERE story_id = ?');
     return stmt.all(storyId);
@@ -7320,13 +7308,6 @@ export async function createApp() {
 
     if (pathname === '/api/rtm/matrix' && method === 'GET') {
       try {
-        // Debug: Check AWS credentials
-        console.log('RTM: Checking AWS credentials...');
-        console.log('RTM: AWS_REGION:', process.env.AWS_REGION);
-        console.log('RTM: ACCEPTANCE_TESTS_TABLE:', process.env.ACCEPTANCE_TESTS_TABLE);
-        console.log('RTM: AWS_ACCESS_KEY_ID set:', !!process.env.AWS_ACCESS_KEY_ID);
-        console.log('RTM: AWS_SECRET_ACCESS_KEY set:', !!process.env.AWS_SECRET_ACCESS_KEY);
-        
         const stories = await db.getAllStories();
         
         // Get latest test results
@@ -7390,8 +7371,7 @@ export async function createApp() {
         return;
       } catch (error) {
         console.error('Error getting RTM matrix:', error);
-        console.error('Stack:', error.stack);
-        sendJson(res, 500, { error: 'Failed to get RTM matrix', message: error.message });
+        sendJson(res, 500, { error: 'Failed to get RTM matrix' });
         return;
       }
     }
