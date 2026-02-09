@@ -7324,15 +7324,14 @@ export async function createApp() {
         
         // Get latest test results
         const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-        const { DynamoDBDocumentClient, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+        const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
         const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
         const docClient = DynamoDBDocumentClient.from(client);
         
         let testResults = {};
         try {
-          const result = await docClient.send(new QueryCommand({
+          const result = await docClient.send(new ScanCommand({
             TableName: 'aipm-backend-prod-test-results',
-            ScanIndexForward: false,
             Limit: 1000
           }));
           
