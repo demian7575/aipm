@@ -140,6 +140,19 @@ else
 fi
 echo ""
 
+# Gating test for story 1770604839870
+echo "Gating Test: Story 1770604839870"
+if grep -q "story-list-btn" "$SCRIPT_DIR/../../apps/frontend/public/index.html" && \
+   grep -q "fetchAllStories" "$SCRIPT_DIR/../../apps/frontend/public/app.js" && \
+   grep -q "story-list-container" "$SCRIPT_DIR/../../apps/frontend/public/styles.css"; then
+  echo "  ✅ PASS: Story list button implemented"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: Story list button not found"
+  FAILED=$((FAILED + 1))
+fi
+echo ""
+
 # Summary
 echo "====================================="
 echo "Phase 4 Results:"

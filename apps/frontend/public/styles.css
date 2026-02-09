@@ -2890,3 +2890,20 @@ dialog[data-size='content'] .modal-shell {
   align-items: center;
   gap: 5px;
 }
+
+.story-list-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.story-list-item {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
