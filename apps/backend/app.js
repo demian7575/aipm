@@ -5596,8 +5596,22 @@ async function handleFileUpload(req, res, url) {
   });
 }
 
+// Activity tracking for auto-stop
+function updateActivity() {
+  try {
+    const fs = require('fs');
+    const activityFile = '/tmp/aipm-last-activity';
+    fs.writeFileSync(activityFile, String(Math.floor(Date.now() / 1000)));
+  } catch (error) {
+    // Silently fail - don't break requests if activity tracking fails
+  }
+}
+
 export async function createApp() {
   const server = createServer(async (req, res) => {
+    // Track activity for auto-stop monitoring
+    updateActivity();
+    
     // Create db instance per-request to support X-Use-Dev-Tables header
     const db = await ensureDatabase(req);
     
