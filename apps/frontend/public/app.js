@@ -8436,6 +8436,9 @@ function initialize() {
   console.log('AIPM initializing...');
   console.log('API Base URL:', window.__AIPM_API_BASE__);
   
+  // Initialize EC2 auto-start
+  initializeEC2AutoStart();
+  
   // Clear cache if environment changed
   const currentEnv = window.CONFIG?.ENVIRONMENT || 'prod';
   const cachedEnv = localStorage.getItem('aipm_environment');
@@ -8966,3 +8969,78 @@ window.cleanupKiroQueue = async function() {
     throw error;
   }
 };
+
+
+// EC2 Auto-Start Integration
+async function initializeEC2AutoStart() {
+  const statusEl = document.getElementById('ec2-status');
+  if (!statusEl || !window.EC2Manager) {
+    console.warn('EC2 manager not available');
+    return;
+  }
+  
+  const env = window.CONFIG?.ENVIRONMENT || 'prod';
+  
+  function updateStatus(state, text) {
+    statusEl.className = `ec2-status ${state}`;
+    statusEl.querySelector('.status-text').textContent = text;
+    statusEl.title = `EC2 ${env}: ${text}`;
+  }
+  
+  try {
+    updateStatus('checking', 'Checking...');
+    
+    // Check EC2 status
+    const status = await EC2Manager.getStatus(env);
+    console.log(`[EC2] ${env} status:`, status);
+    
+    if (status.state === 'running') {
+      updateStatus('running', 'Running');
+      // Load stories normally
+      await loadStories();
+    } else if (status.state === 'stopped') {
+      updateStatus('starting', 'Starting...');
+      showToast(`Starting ${env} EC2 instance...`, 'info');
+      
+      // Start EC2 and wait for it to be ready
+      const config = await EC2Manager.ensureRunning(env);
+      console.log(`[EC2] ${env} ready:`, config);
+      
+      // Update API URLs
+      window.__AIPM_API_BASE__ = config.apiBaseUrl;
+      window.CONFIG.API_BASE_URL = config.apiBaseUrl;
+      window.CONFIG.SEMANTIC_API_URL = config.semanticApiUrl;
+      
+      updateStatus('running', 'Running');
+      showToast(`${env} EC2 started successfully!`, 'success');
+      
+      // Load stories
+      await loadStories();
+    } else {
+      // starting, stopping, etc
+      updateStatus(status.state, status.state.charAt(0).toUpperCase() + status.state.slice(1));
+      showToast(`EC2 is ${status.state}, waiting...`, 'info');
+      
+      // Wait for it to be ready
+      const config = await EC2Manager.waitForReady(env);
+      window.__AIPM_API_BASE__ = config.apiBaseUrl;
+      window.CONFIG.API_BASE_URL = config.apiBaseUrl;
+      window.CONFIG.SEMANTIC_API_URL = config.semanticApiUrl;
+      
+      updateStatus('running', 'Running');
+      showToast(`${env} EC2 ready!`, 'success');
+      await loadStories();
+    }
+  } catch (error) {
+    console.error('[EC2] Initialization failed:', error);
+    updateStatus('error', 'Error');
+    showToast(`Failed to start EC2: ${error.message}`, 'error');
+    
+    // Try to load stories anyway (might work if EC2 is actually running)
+    try {
+      await loadStories();
+    } catch (e) {
+      console.error('Failed to load stories:', e);
+    }
+  }
+}

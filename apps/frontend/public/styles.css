@@ -131,6 +131,53 @@ textarea {
   border-radius: 4px;
 }
 
+.ec2-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.6rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+  cursor: help;
+}
+
+.ec2-status .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9ca3af;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.ec2-status.running .status-dot {
+  background: #10b981;
+  animation: none;
+}
+
+.ec2-status.stopped .status-dot {
+  background: #ef4444;
+  animation: none;
+}
+
+.ec2-status.starting .status-dot {
+  background: #f59e0b;
+}
+
+.ec2-status.stopping .status-dot {
+  background: #f59e0b;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.ec2-status .status-text {
+  color: #666;
+  font-weight: 500;
+}
+
 #runtime-data-link {
   font-weight: 700;
 }
