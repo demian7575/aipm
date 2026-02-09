@@ -550,6 +550,47 @@ fi
 echo ""
 
 # ============================================
+# SECTION 13: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "📝 SECTION 13: Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test 43: Story List Modal - Button exists in HTML
+  echo "Test 43: Story List button in header"
+  if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Story List button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 44: Story List Modal - JavaScript handler exists
+  echo "Test 44: Story List modal handler"
+  if grep -q 'openStoryListModal' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 45: Story List Modal - Event listener exists
+  echo "Test 45: Story List button event listener"
+  if grep -q 'storyListBtn.addEventListener' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Event listener configured"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Event listener not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # SECTION 12: GitHub Actions Workflow
 # ============================================
 echo "⚙️  SECTION 12: GitHub Actions Workflow"
