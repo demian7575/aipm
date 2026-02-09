@@ -145,10 +145,12 @@ sudo sed -i '/^Environment=DEPLOY_VERSION=/d' /etc/systemd/system/$SERVICE_NAME
 sudo sed -i '/^Environment=COMMIT_HASH=/d' /etc/systemd/system/$SERVICE_NAME
 sudo sed -i '/^Environment=PR_NUMBER=/d' /etc/systemd/system/$SERVICE_NAME
 sudo sed -i '/^Environment=ACCEPTANCE_TESTS_TABLE=/d' /etc/systemd/system/$SERVICE_NAME
+sudo sed -i '/^Environment=AWS_REGION=/d' /etc/systemd/system/$SERVICE_NAME
 sudo sed -i '/^\[Service\]/a Environment=DEPLOY_VERSION=$DEPLOY_VERSION' /etc/systemd/system/$SERVICE_NAME
 sudo sed -i '/^\[Service\]/a Environment=COMMIT_HASH=$COMMIT_HASH' /etc/systemd/system/$SERVICE_NAME
 sudo sed -i '/^\[Service\]/a Environment=PR_NUMBER=$PR_NUMBER' /etc/systemd/system/$SERVICE_NAME
 sudo sed -i '/^\[Service\]/a Environment=ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE' /etc/systemd/system/$SERVICE_NAME
+sudo sed -i '/^\[Service\]/a Environment=AWS_REGION=us-east-1' /etc/systemd/system/$SERVICE_NAME
 
 sudo systemctl daemon-reload
 EOF
