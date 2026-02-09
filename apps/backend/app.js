@@ -7383,7 +7383,8 @@ export async function createApp() {
         return;
       } catch (error) {
         console.error('Error getting RTM matrix:', error);
-        sendJson(res, 500, { error: 'Failed to get RTM matrix' });
+        console.error('Stack:', error.stack);
+        sendJson(res, 500, { error: 'Failed to get RTM matrix', message: error.message });
         return;
       }
     }
