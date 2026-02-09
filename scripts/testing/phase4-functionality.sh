@@ -557,7 +557,7 @@ if [ -n "$1" ]; then
   echo "📝 SECTION 13: Story-Specific Tests (ID: $STORY_ID)"
   echo "-----------------------------------"
   
-  # Test 43: Story List Modal - Button exists in HTML
+  # Test 43: Story List button exists in HTML
   echo "Test 43: Story List button in header"
   if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
     echo "  ✅ PASS: Story List button exists in HTML"
@@ -567,17 +567,19 @@ if [ -n "$1" ]; then
     FAILED=$((FAILED + 1))
   fi
   
-  # Test 44: Story List Modal - JavaScript handler exists
+  echo ""
+  
+  # Test 44: Story List modal handler exists
   echo "Test 44: Story List modal handler"
-  if grep -q 'openStoryListModal' apps/frontend/public/app.js; then
-    echo "  ✅ PASS: openStoryListModal function exists"
+  if grep -q 'storyListBtn' apps/frontend/public/app.js && grep -q 'openStoryListModal' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Modal handler implemented"
     PASSED=$((PASSED + 1))
   else
-    echo "  ❌ FAIL: openStoryListModal function not found"
+    echo "  ❌ FAIL: Modal handler not found"
     FAILED=$((FAILED + 1))
   fi
   
-  # Test 45: Story List Modal - Event listener exists
+  # Test 45: Story List button event listener
   echo "Test 45: Story List button event listener"
   if grep -q 'storyListBtn.addEventListener' apps/frontend/public/app.js; then
     echo "  ✅ PASS: Event listener configured"
