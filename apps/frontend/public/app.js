@@ -8267,6 +8267,42 @@ async function uploadReferenceFile(file) {
   return await response.json();
 }
 
+/**
+ * Opens a modal displaying all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.padding = '1rem';
+  
+  const stories = Array.from(storyIndex.values());
+  
+  if (stories.length === 0) {
+    container.innerHTML = '<p>No stories available.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    stories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '0.5rem';
+      li.style.borderBottom = '1px solid #eee';
+      li.textContent = story.title;
+      list.appendChild(li);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    actions: [],
+    size: 'medium'
+  });
+}
+
 function formatInvestWarnings(warnings) {
   return warnings
     .map((warning) => {
