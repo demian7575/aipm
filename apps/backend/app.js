@@ -5844,7 +5844,8 @@ export async function createApp() {
         
         const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
         const docClient = DynamoDBDocumentClient.from(client);
-        const tableName = process.env.STORIES_TABLE;
+        // Use correct table based on X-Use-Dev-Tables header
+        const tableName = db.useDevTables ? 'aipm-backend-dev-stories' : process.env.STORIES_TABLE;
         
         // Allow specifying ID (for dev environment mirroring), otherwise generate new one
         newStoryId = payload.id || Date.now();
@@ -5882,10 +5883,12 @@ export async function createApp() {
         
         // Create acceptance tests BEFORE INVEST analysis
         if (acceptanceTests.length > 0) {
+          // Use correct table based on X-Use-Dev-Tables header
+          const testsTableName = db.useDevTables ? 'aipm-backend-dev-acceptance-tests' : process.env.ACCEPTANCE_TESTS_TABLE;
           for (const test of acceptanceTests) {
             const testId = Date.now() + Math.floor(Math.random() * 1000);
             await docClient.send(new PutCommand({
-              TableName: process.env.ACCEPTANCE_TESTS_TABLE,
+              TableName: testsTableName,
               Item: {
                 id: testId,
                 storyId: newStoryId,
@@ -5955,7 +5958,7 @@ export async function createApp() {
         
         // Update story with analysis results
         await docClient.send(new UpdateCommand({
-          TableName: process.env.STORIES_TABLE,
+          TableName: tableName,
           Key: { id: newStoryId },
           UpdateExpression: 'SET investWarnings = :warnings, investAnalysis = :analysis',
           ExpressionAttributeValues: {
