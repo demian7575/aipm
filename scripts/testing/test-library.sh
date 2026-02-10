@@ -694,6 +694,39 @@ test_environment_health() {
     fi
 }
 
+test_mindmap_story_loading() {
+    local api_base="${1:-$API_BASE}"
+    log_test "Mindmap Story Loading"
+    
+    # Test the /api/stories endpoint that mindmap uses
+    local response=$(curl -s "$api_base/api/stories")
+    
+    # Check if response is valid JSON array
+    if ! echo "$response" | jq -e 'type == "array"' > /dev/null 2>&1; then
+        fail_test "Mindmap Story Loading (Invalid JSON response)"
+        return
+    fi
+    
+    # Check if we can parse the response
+    local story_count=$(echo "$response" | jq 'length')
+    if [[ -z "$story_count" || "$story_count" == "null" ]]; then
+        fail_test "Mindmap Story Loading (Cannot count stories)"
+        return
+    fi
+    
+    # Verify each story has required fields for mindmap rendering
+    local invalid_stories=$(echo "$response" | jq '[.[] | select(.id == null or .title == null)] | length')
+    if [[ "$invalid_stories" -gt 0 ]]; then
+        fail_test "Mindmap Story Loading ($invalid_stories stories missing required fields)"
+        return
+    fi
+    
+    # Check for nested children structure (mindmap requires this)
+    local has_children=$(echo "$response" | jq '[.[] | select(.children != null)] | length')
+    
+    pass_test "Mindmap Story Loading ($story_count stories, $has_children with children)"
+}
+
 # Source test-functions.sh for helper functions
 source "$SCRIPT_DIR/test-functions.sh"
 

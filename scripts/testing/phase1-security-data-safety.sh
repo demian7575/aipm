@@ -62,6 +62,7 @@ pids=()
 (test_s3_config "$FRONTEND_URL") & pids+=($!)
 (test_network_connectivity "$API_BASE") & pids+=($!)
 (test_api_security_headers "$API_BASE") & pids+=($!)
+(test_mindmap_story_loading "$API_BASE") & pids+=($!)
 
 # Wait for all parallel tests to complete
 for pid in "${pids[@]}"; do
