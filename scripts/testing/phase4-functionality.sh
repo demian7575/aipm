@@ -622,6 +622,27 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 43: Story 1770726558964 - View All Stories button
+if [ "$1" = "1770726558964" ]; then
+  echo "Test 43: View All Stories button exists in HTML"
+  if grep -q "view-all-stories-btn" apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Button added to header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 44: View All Stories handler exists in JS"
+  if grep -q "viewAllStoriesBtn" apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Button handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Button handler not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================

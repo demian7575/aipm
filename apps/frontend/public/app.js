@@ -756,6 +756,18 @@ if (referenceBtn) {
   });
 }
 
+if (viewAllStoriesBtn) {
+  viewAllStoriesBtn.addEventListener('click', async () => {
+    try {
+      const stories = await fetchStories();
+      const storyTitles = stories.map(s => `<li>${s.title || 'Untitled'}</li>`).join('');
+      openModal('All Stories', `<ul style="list-style: none; padding: 0;">${storyTitles}</ul>`);
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
