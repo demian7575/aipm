@@ -625,6 +625,42 @@ fi
 echo ""
 
 # ============================================
+# SECTION 13: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  echo "🎯 SECTION 13: Story-Specific Tests (Story ID: $1)"
+  echo "-----------------------------------"
+  
+  case "$1" in
+    1770736139363)
+      # Test: View All Stories Modal
+      echo "Test 43: View All Stories button exists in frontend"
+      if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html | grep -q "view-all-stories-btn"; then
+        echo "  ✅ PASS: View All Stories button found in HTML"
+        PASSED=$((PASSED + 1))
+      else
+        echo "  ❌ FAIL: View All Stories button not found"
+        FAILED=$((FAILED + 1))
+      fi
+      
+      echo "Test 44: openViewAllStoriesModal function exists"
+      if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "openViewAllStoriesModal"; then
+        echo "  ✅ PASS: openViewAllStoriesModal function found"
+        PASSED=$((PASSED + 1))
+      else
+        echo "  ❌ FAIL: openViewAllStoriesModal function not found"
+        FAILED=$((FAILED + 1))
+      fi
+      ;;
+    *)
+      echo "  ⚠️  No specific tests defined for story $1"
+      ;;
+  esac
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
