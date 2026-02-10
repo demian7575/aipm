@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -753,6 +754,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewAllStoriesBtn) {
+  viewAllStoriesBtn.addEventListener('click', () => {
+    openViewAllStoriesModal();
   });
 }
 
@@ -7957,6 +7964,42 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+/**
+ * Opens modal displaying all story titles
+ */
+function openViewAllStoriesModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  container.style.maxHeight = '60vh';
+  container.style.overflowY = 'auto';
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  if (allStories.length === 0) {
+    const placeholder = document.createElement('p');
+    placeholder.textContent = 'No stories found.';
+    placeholder.style.color = '#666';
+    container.appendChild(placeholder);
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.textContent = story.title || 'Untitled Story';
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({ title: 'All Stories', content: container, cancelLabel: 'Close' });
 }
 
 function openReferenceModal(storyId) {

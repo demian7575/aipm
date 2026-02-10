@@ -500,6 +500,60 @@ fi
 echo ""
 
 # ============================================
+# SECTION 12: Story-Specific Functionality Tests
+# ============================================
+STORY_ID="${1:-}"
+
+if [ -n "$STORY_ID" ]; then
+  echo "🎯 SECTION 12: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for Story 1770686377423: View All Stories Modal
+  if [ "$STORY_ID" = "1770686377423" ]; then
+    echo "Test 43: View All Stories button exists in frontend"
+    if curl -s "$S3_FRONTEND_URL" | grep -q "view-all-stories-btn"; then
+      echo "  ✅ PASS: View All Stories button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View All Stories button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 44: openAllStoriesModal function exists"
+    if curl -s "$S3_FRONTEND_URL/app.js" | grep -q "openAllStoriesModal"; then
+      echo "  ✅ PASS: openAllStoriesModal function found"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openAllStoriesModal function not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+  
+  # Test for Story 1770686435418: Add Story List Button
+  if [ "$STORY_ID" = "1770686435418" ]; then
+    echo "Test 43: View All Stories button exists in header"
+    if curl -s "$S3_FRONTEND_URL" | grep -q "view-all-stories-btn"; then
+      echo "  ✅ PASS: View All Stories button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View All Stories button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 44: openViewAllStoriesModal function exists"
+    if curl -s "$S3_FRONTEND_URL/app.js" | grep -q "openViewAllStoriesModal"; then
+      echo "  ✅ PASS: openViewAllStoriesModal function found"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openViewAllStoriesModal function not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # SECTION 11: Deployment & CI/CD
 # ============================================
 echo "🚀 SECTION 11: Deployment & CI/CD"
@@ -652,7 +706,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 44 (38 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
