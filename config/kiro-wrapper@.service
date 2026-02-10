@@ -9,12 +9,10 @@ WorkingDirectory=/home/ec2-user/aipm
 ExecStart=/usr/bin/node scripts/kiro-wrapper.js %i 900%i
 Restart=always
 RestartSec=5
-StartLimitBurst=5
-StartLimitIntervalSec=60
 
 # Resource limits
 MemoryMax=200M
-CPUQuota=50%%
+CPUQuota=50%
 TasksMax=20
 
 # Logging
