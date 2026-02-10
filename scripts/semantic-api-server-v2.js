@@ -148,11 +148,12 @@ const server = http.createServer(async (req, res) => {
         }
       }, 300000);
       
-      // Send to session pool and wait for response
+      // Send to session pool and wait for response (with long timeout for AI processing)
       fetch(`${SESSION_POOL_URL}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, requestId })
+        body: JSON.stringify({ prompt, requestId }),
+        signal: AbortSignal.timeout(600000) // 10 minute timeout
       })
       .then(async response => {
         if (!response.ok) {
