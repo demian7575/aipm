@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -8025,6 +8026,48 @@ function openFilterModal() {
   });
 }
 
+/**
+ * Opens modal showing all story titles
+ */
+function openAllStoriesModal() {
+  const container = document.createElement('div');
+  container.className = 'all-stories-list';
+  
+  const allStories = flattenStories(state.stories);
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p class="empty-state">No stories yet.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.cursor = 'pointer';
+      item.textContent = story.title;
+      item.addEventListener('click', () => {
+        closeModal();
+        handleStorySelection(story);
+      });
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = '';
+      });
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({ title: 'All Stories', content: container, cancelLabel: 'Close' });
+}
+
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
   container.style.display = 'flex';
@@ -8591,6 +8634,10 @@ async function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  viewAllStoriesBtn?.addEventListener('click', () => {
+    openAllStoriesModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {

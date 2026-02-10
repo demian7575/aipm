@@ -622,6 +622,26 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 43: View All Stories button exists
+echo "Test 43: View All Stories button in frontend"
+if grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html; then
+  echo "  ✅ PASS: View All Stories button exists"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: View All Stories button not found"
+  FAILED=$((FAILED + 1))
+fi
+
+# Test 44: View All Stories modal function exists
+echo "Test 44: openAllStoriesModal function in app.js"
+if grep -q 'function openAllStoriesModal' apps/frontend/public/app.js; then
+  echo "  ✅ PASS: openAllStoriesModal function exists"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: openAllStoriesModal function not found"
+  FAILED=$((FAILED + 1))
+fi
+
 echo ""
 
 # ============================================
@@ -652,7 +672,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 44 (38 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
