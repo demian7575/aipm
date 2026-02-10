@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -753,6 +754,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8022,6 +8029,46 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+/**
+ * Opens a modal displaying all story titles
+ */
+async function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '0.5rem';
+
+  const listEl = document.createElement('ul');
+  listEl.style.listStyle = 'none';
+  listEl.style.padding = '0';
+  listEl.style.margin = '0';
+  container.appendChild(listEl);
+
+  try {
+    const stories = await fetchStories();
+    if (stories.length === 0) {
+      listEl.innerHTML = '<li style="color: #666;">No stories found</li>';
+    } else {
+      stories.forEach(story => {
+        const li = document.createElement('li');
+        li.style.padding = '0.5rem';
+        li.style.borderBottom = '1px solid #eee';
+        li.textContent = story.title;
+        listEl.appendChild(li);
+      });
+    }
+  } catch (error) {
+    listEl.innerHTML = '<li style="color: red;">Error loading stories</li>';
+    console.error('Failed to load stories:', error);
+  }
+
+  openModal({
+    title: 'All Stories',
+    content: container,
+    actions: []
   });
 }
 
