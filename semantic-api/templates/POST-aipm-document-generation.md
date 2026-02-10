@@ -71,3 +71,7 @@ Generate a comprehensive document based on:
 6. Return ONLY the final markdown document
 
 **Output:** Complete markdown document following the template structure.
+
+## TASK COMPLETE
+
+**STOP HERE. This task is now complete. Do not make any further changes or analysis.**
