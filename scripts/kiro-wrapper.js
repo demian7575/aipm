@@ -113,8 +113,14 @@ class KiroWrapper {
         this.currentReject(error);
       }
     } else {
-      // Strip ANSI codes
-      const cleaned = this.outputBuffer.replace(/\x1b\[[0-9;]*m/g, '').trim();
+      // Strip ANSI codes and control characters
+      let cleaned = this.outputBuffer
+        .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '') // ANSI escape sequences
+        .replace(/\r/g, '') // Carriage returns
+        .replace(/^[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏\s]*Thinking\.\.\.$/gm, '') // Spinner lines
+        .replace(/▸\s*Time:.*$/gm, '') // Time info
+        .trim();
+      
       console.log(`[Session ${this.sessionId}] Completed successfully (${cleaned.length} chars)`);
       if (this.currentResolve) {
         this.currentResolve(cleaned);
