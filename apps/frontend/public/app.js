@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -753,6 +754,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewAllStoriesBtn) {
+  viewAllStoriesBtn.addEventListener('click', () => {
+    openAllStoriesModal();
   });
 }
 
@@ -8022,6 +8029,58 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+/**
+ * Opens modal displaying all story titles
+ */
+function openAllStoriesModal() {
+  const container = document.createElement('div');
+  container.className = 'all-stories-list';
+  container.style.maxHeight = '60vh';
+  container.style.overflowY = 'auto';
+  
+  const allStories = flattenStories(state.stories);
+  
+  if (allStories.length === 0) {
+    const placeholder = document.createElement('p');
+    placeholder.textContent = 'No stories available';
+    placeholder.style.textAlign = 'center';
+    placeholder.style.padding = '2rem';
+    container.appendChild(placeholder);
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '0.5rem';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.cursor = 'pointer';
+      item.textContent = story.title;
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = '';
+      });
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    cancelLabel: 'Close'
   });
 }
 

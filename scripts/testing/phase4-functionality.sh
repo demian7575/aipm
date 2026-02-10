@@ -585,6 +585,27 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story 1770736392398: View All Stories button
+if [ "$1" = "1770736392398" ]; then
+  echo "Test 43: View All Stories button exists in header"
+  if grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: View All Stories button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 44: View All Stories modal function exists"
+  if grep -q 'function openAllStoriesModal' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: openAllStoriesModal function found"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openAllStoriesModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 # Test 40: Check workflow has deployment steps
 echo "Test 40: Workflow includes deployment"
 if cat .github/workflows/deploy-to-prod.yml | grep -q "deploy-prod" || cat .github/workflows/deploy-to-prod.yml | grep -q "Deploy to"; then
