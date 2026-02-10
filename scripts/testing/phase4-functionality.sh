@@ -550,9 +550,60 @@ fi
 echo ""
 
 # ============================================
-# SECTION 12: GitHub Actions Workflow
+# SECTION 12: Story-Specific Tests
 # ============================================
-echo "⚙️  SECTION 12: GitHub Actions Workflow"
+echo "📖 SECTION 12: Story-Specific Tests"
+echo "-----------------------------------"
+
+# Story 1770739631729: Add Story List Button
+test_story_1770739631729() {
+  echo "Test: Story List Button (ID: 1770739631729)"
+  
+  # Verify button exists in HTML
+  if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Story list button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in HTML"
+    FAILED=$((FAILED + 1))
+    return
+  fi
+  
+  # Verify event listener in app.js
+  if grep -q 'storyListBtn.*addEventListener' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Story list button event listener configured"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button event listener not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Verify API call to /api/stories
+  if grep -q "resolveApiUrl('/api/stories')" apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Story list fetches from API"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: API call to /api/stories not found"
+    FAILED=$((FAILED + 1))
+  fi
+}
+
+# Run story-specific tests if story ID provided
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  if declare -f "test_story_$STORY_ID" > /dev/null; then
+    "test_story_$STORY_ID"
+  else
+    echo "⚠️  No specific tests for story $STORY_ID"
+  fi
+fi
+
+echo ""
+
+# ============================================
+# SECTION 13: GitHub Actions Workflow
+# ============================================
+echo "⚙️  SECTION 13: GitHub Actions Workflow"
 echo "-----------------------------------"
 
 # Test 37: Check workflow file exists
