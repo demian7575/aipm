@@ -6430,7 +6430,7 @@ export async function createApp() {
         // Get parent story context if provided
         let parent = null;
         if (parentId) {
-          const stories = await getAllStories(db);
+          const stories = await db.getAllStories();
           parent = flattenStories(stories).find((story) => story.id === Number(parentId)) ?? null;
         }
 
