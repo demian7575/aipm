@@ -622,6 +622,18 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 43: Story 1770717747539 - View All Stories button exists
+if [ "$1" = "1770717747539" ]; then
+  echo "Test 43: View All Stories button in header"
+  if curl -s "$FRONTEND_URL" | grep -q 'id="view-all-stories-btn"'; then
+    echo "  ✅ PASS: View All Stories button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories button not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
