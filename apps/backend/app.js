@@ -5935,9 +5935,9 @@ export async function createApp() {
           const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
           const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
           const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-          const docClient = DynamoDBDocumentClient.from(client);
-          await docClient.send(new DeleteCommand({
-            TableName: process.env.STORIES_TABLE,
+          const docClient2 = DynamoDBDocumentClient.from(client);
+          await docClient2.send(new DeleteCommand({
+            TableName: tableName,
             Key: { id: newStoryId }
           }));
           
