@@ -6103,36 +6103,23 @@ export async function createApp() {
         }
         
         // Update story with analysis results
-        if (db.constructor.name === 'DynamoDBDataLayer') {
-          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-          const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-          const docClient = DynamoDBDocumentClient.from(client);
-          await docClient.send(new UpdateCommand({
-            TableName: process.env.STORIES_TABLE,
-            Key: { id: newStoryId },
-            UpdateExpression: 'SET investWarnings = :warnings, investAnalysis = :analysis',
-            ExpressionAttributeValues: {
-              ':warnings': JSON.stringify(warnings),
-              ':analysis': JSON.stringify({
-                source: analysis.source || 'completed',
-                summary: analysis.summary || '',
-                model: analysis.ai?.model || ''
-              })
-            }
-          }));
-        } else {
-          const stmt = db.prepare('UPDATE user_stories SET invest_warnings = ?, invest_analysis = ? WHERE id = ?');
-          await stmt.run(
-            JSON.stringify(warnings),
-            JSON.stringify({
-              source: analysis.source,
-              summary: analysis.summary,
-              model: analysis.ai?.model || null,
-            }),
-            newStoryId
-          );
-        }
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const docClient = DynamoDBDocumentClient.from(client);
+        await docClient.send(new UpdateCommand({
+          TableName: process.env.STORIES_TABLE,
+          Key: { id: newStoryId },
+          UpdateExpression: 'SET investWarnings = :warnings, investAnalysis = :analysis',
+          ExpressionAttributeValues: {
+            ':warnings': JSON.stringify(warnings),
+            ':analysis': JSON.stringify({
+              source: analysis.source || 'completed',
+              summary: analysis.summary || '',
+              model: analysis.ai?.model || ''
+            })
+          }
+        }));
         
         // Return the created story directly without loading all stories
         const createdStory = {
