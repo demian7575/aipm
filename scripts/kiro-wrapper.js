@@ -47,10 +47,17 @@ class KiroWrapper {
       this.outputBuffer += chunk;
       this.lastActivity = Date.now();
       
-      // Detect completion - Kiro outputs to stderr
-      if (this.detectCompletion(chunk)) {
-        this.complete();
+      // Reset completion timer on new data
+      if (this.completionTimer) {
+        clearTimeout(this.completionTimer);
       }
+      
+      // Complete after 500ms of silence
+      this.completionTimer = setTimeout(() => {
+        if (this.busy) {
+          this.complete();
+        }
+      }, 500);
     });
     
     this.process.on('close', (code) => {
