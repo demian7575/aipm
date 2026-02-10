@@ -15,9 +15,49 @@ echo "=============================================="
 echo ""
 
 # ============================================
-# SECTION 1: Core API Endpoints (with dev DB)
+# SECTION 1: Story-Specific Tests
 # ============================================
-echo "📦 SECTION 1: Core API Endpoints"
+if [ -n "$STORY_ID" ]; then
+  echo "📦 SECTION 1: Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for Story 1770701647159: View All Stories Modal
+  if [ "$STORY_ID" = "1770701647159" ]; then
+    echo "Test 1: Verify View All Stories button exists in HTML"
+    if grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html; then
+      echo "  ✅ PASS: View All Stories button exists in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View All Stories button not found in HTML"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 2: Verify openViewAllStoriesModal function exists"
+    if grep -q 'function openViewAllStoriesModal' apps/frontend/public/app.js; then
+      echo "  ✅ PASS: openViewAllStoriesModal function exists"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openViewAllStoriesModal function not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 3: Verify button event listener exists"
+    if grep -q 'viewAllStoriesBtn.*addEventListener' apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Button event listener exists"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Button event listener not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+  
+  echo ""
+fi
+
+# ============================================
+# SECTION 2: Core API Endpoints (with dev DB)
+# ============================================
+echo "📦 SECTION 2: Core API Endpoints"
 echo "-----------------------------------"
 
 # Test 1: GET /api/stories
