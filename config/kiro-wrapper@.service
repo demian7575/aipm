@@ -15,8 +15,8 @@ MemoryMax=300M
 TasksMax=100
 
 # Logging
-StandardOutput=append:/tmp/kiro-cli-live.log
-StandardError=append:/tmp/kiro-cli-live.log
+StandardOutput=append:/home/ec2-user/kiro-wrapper.log
+StandardError=append:/home/ec2-user/kiro-wrapper.log
 SyslogIdentifier=kiro-wrapper-%i
 
 [Install]
