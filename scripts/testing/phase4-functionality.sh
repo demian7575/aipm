@@ -622,6 +622,19 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 43: Story 1770688577588 - View All Stories button exists
+STORY_ID="${1:-1770688577588}"
+if [ "$STORY_ID" = "1770688577588" ]; then
+  echo "Test 43: View All Stories button in header"
+  if grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html && grep -q 'viewAllStoriesBtn' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: View All Stories button implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories button not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
@@ -651,8 +664,9 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+echo "  - Story Features: 1 feature tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 43 (37 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
