@@ -6987,6 +6987,19 @@ export async function createApp() {
       }
     }
 
+    // GET /api/stories - Get all stories
+    if (pathname === '/api/stories' && method === 'GET') {
+      try {
+        const stories = await db.getAllStories();
+        sendJson(res, 200, stories);
+        return;
+      } catch (error) {
+        console.error('Error getting stories:', error);
+        sendJson(res, 500, { error: 'Failed to get stories' });
+        return;
+      }
+    }
+
     if (pathname === '/api/rtm/matrix' && method === 'GET') {
       try {
         const stories = await db.getAllStories();
