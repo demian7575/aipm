@@ -1,6 +1,7 @@
 #!/bin/bash
 # Phase 4: Comprehensive Functionality Tests
 # Tests ALL endpoints, services, and UI accessibility
+# Usage: phase4-functionality.sh [storyId]
 
 set -e
 
@@ -9,10 +10,71 @@ source "$SCRIPT_DIR/../utilities/load-env-config.sh" prod
 
 PASSED=0
 FAILED=0
+STORY_ID="${1:-}"
 
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo ""
+
+# ============================================
+# Story-Specific Tests (if storyId provided)
+# ============================================
+if [ -n "$STORY_ID" ]; then
+  echo "📝 Story-Specific Tests for Story ID: $STORY_ID"
+  echo "-----------------------------------"
+  
+  # Test for Story 1770735355728: Story List Button
+  if [ "$STORY_ID" == "1770735355728" ]; then
+    echo "Test: Story List Button functionality"
+    
+    # Check HTML has button
+    if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+      echo "  ✅ PASS: Story list button exists in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button not found in HTML"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check JS has button reference
+    if grep -q "getElementById('story-list-btn')" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Story list button referenced in JS"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button not referenced in JS"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check JS has event listener
+    if grep -q "storyListBtn.addEventListener" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Story list button has event listener"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button event listener not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check modal function exists
+    if grep -q "function openStoryListModal" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: openStoryListModal function exists"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openStoryListModal function not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check empty state handling
+    if grep -q "No stories available" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Empty state message exists"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Empty state message not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+  
+  echo ""
+fi
 
 # ============================================
 # SECTION 1: Core API Endpoints (with dev DB)
