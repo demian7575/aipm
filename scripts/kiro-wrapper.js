@@ -32,7 +32,7 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    this.process = spawn('kiro-cli', ['chat', '--trust-all-tools'], {
+    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
       stdio: ['pipe', 'pipe', 'pipe']
     });
     
