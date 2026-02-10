@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -4713,6 +4714,42 @@ async function bedrockImplementation(prEntry) {
   }
 }
 
+/**
+ * Open modal showing all story titles
+ */
+function openViewAllStoriesModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  const list = document.createElement('ul');
+  list.style.cssText = 'list-style: none; padding: 0; margin: 0; max-height: 60vh; overflow-y: auto;';
+  
+  state.stories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.cssText = 'padding: 0.5rem; border-bottom: 1px solid #eee; cursor: pointer;';
+    item.textContent = story.title || 'Untitled Story';
+    item.addEventListener('click', () => {
+      selectStory(story.id);
+      closeModal();
+    });
+    item.addEventListener('mouseenter', () => {
+      item.style.backgroundColor = '#f5f5f5';
+    });
+    item.addEventListener('mouseleave', () => {
+      item.style.backgroundColor = '';
+    });
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    cancelLabel: 'Close'
+  });
+}
+
 function buildHeatmapModalContent() {
   const container = document.createElement('div');
   container.className = 'heatmap-modal';
@@ -8581,6 +8618,10 @@ async function initialize() {
   if (rtmExportBtn) {
     rtmExportBtn.addEventListener('click', exportRTMToCSV);
   }
+
+  viewAllStoriesBtn?.addEventListener('click', () => {
+    openViewAllStoriesModal();
+  });
 
   openHeatmapBtn?.addEventListener('click', () => {
     const { element, onClose } = buildHeatmapModalContent();
