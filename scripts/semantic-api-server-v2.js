@@ -148,12 +148,42 @@ const server = http.createServer(async (req, res) => {
         }
       }, 300000);
       
-      // Send to session pool
+      // Send to session pool and wait for response
       fetch(`${SESSION_POOL_URL}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, requestId })
-      }).catch(err => {
+      })
+      .then(async response => {
+        if (!response.ok) {
+          throw new Error(`Session pool returned ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // Parse Kiro's output for JSON response
+        let parsedResult;
+        try {
+          // Kiro might return the result directly or wrapped
+          parsedResult = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+        } catch (e) {
+          // If not JSON, treat as error
+          parsedResult = { status: 'error', message: data.result || 'Invalid response' };
+        }
+        
+        // Add requestId if not present
+        if (!parsedResult.requestId) {
+          parsedResult.requestId = requestId;
+        }
+        
+        // Send to client via SSE
+        if (pendingRequests.has(requestId)) {
+          const pending = pendingRequests.get(requestId);
+          pending.res.write(`data: ${JSON.stringify(parsedResult)}\n\n`);
+          pending.res.end();
+          pendingRequests.delete(requestId);
+        }
+      })
+      .catch(err => {
         console.error('Error sending to session pool:', err);
         if (pendingRequests.has(requestId)) {
           const pending = pendingRequests.get(requestId);
