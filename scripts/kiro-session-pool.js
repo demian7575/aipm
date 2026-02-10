@@ -19,6 +19,7 @@ const POOL_SIZE = 2;
 const OUTPUT_IDLE_TIMEOUT = 30000; // 30 seconds - stuck if no output for 30s
 const MAX_EXECUTION_TIME = 600000; // 10 minutes - absolute maximum
 const RECOVERY_TIMEOUT = 5000; // 5 seconds to recover after Ctrl+C
+const STILL_STUCK_OUTPUT_WINDOW = 5000; // 5 seconds without output after recovery
 const LOG_FILE = '/tmp/kiro-cli-live.log';
 const PROCESS_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const LOCK_FILE = '/tmp/kiro-session-pool.lock';
@@ -212,6 +213,7 @@ class KiroSession {
     this.idleTimeoutHandle = null;
     this.maxTimeoutHandle = null;
     this.currentRequestId = null;
+    this.lastRecoveryAttemptAt = null;
     
     this.start();
   }
@@ -338,12 +340,11 @@ class KiroSession {
     }
     
     this.stuck = true;
-    this.stuckCount++;
     
-    this.log(`⚠️  Session ${this.id} stuck (attempt ${this.stuckCount}/${this.maxStuckRetries})`);
-    
-    if (this.stuckCount <= this.maxStuckRetries) {
-      // Attempt recovery
+    while (this.stuckCount < this.maxStuckRetries) {
+      this.stuckCount++;
+      this.log(`⚠️  Session ${this.id} stuck (attempt ${this.stuckCount}/${this.maxStuckRetries})`);
+      
       await this.attemptRecovery();
       
       // Wait and check if recovered
@@ -355,23 +356,19 @@ class KiroSession {
         this.stuckCount = 0;  // Reset on success
         return;
       }
-      
-      // Still stuck, try again
-      this.stuck = false;  // Allow next attempt
-      await this.handleStuck();
-      
-    } else {
-      // Failed 3 times - complete recreation
-      this.log(`❌ Session ${this.id} failed ${this.maxStuckRetries} times, recreating...`);
-      this.destroy();
-      this.stuckCount = 0;  // Reset counter
-      setTimeout(() => this.start(), 1000);
     }
+    
+    // Failed max attempts - complete recreation
+    this.log(`❌ Session ${this.id} failed ${this.maxStuckRetries} times, recreating...`);
+    this.destroy();
+    this.stuckCount = 0;  // Reset counter
+    setTimeout(() => this.start(), 1000);
   }
   
   async attemptRecovery() {
     try {
       // Step 1: Ctrl+C (gentle)
+      this.lastRecoveryAttemptAt = Date.now();
       this.process.stdin.write('\x03');
       this.log(`  → Sent Ctrl+C to session ${this.id}`);
       await this.wait(2000);
@@ -387,6 +384,10 @@ class KiroSession {
         // Step 3: SIGKILL (force)
         this.process.kill('SIGKILL');
         this.log(`  → Sent SIGKILL to session ${this.id}`);
+        await this.wait(500);
+        if (this.process && this.process.pid && this.isProcessAlive(this.process.pid)) {
+          this.log(`  ⚠️  Session ${this.id} process still alive after SIGKILL`);
+        }
       }
     } catch (err) {
       this.log(`  ⚠️  Recovery error: ${err.message}`);
@@ -394,8 +395,29 @@ class KiroSession {
   }
   
   isStillStuck() {
-    return this.busy && this.lastOutputTime && 
-           (Date.now() - this.lastOutputTime > 5000);
+    if (!this.busy) {
+      return false;
+    }
+    
+    const now = Date.now();
+    if (this.lastRecoveryAttemptAt && now - this.lastRecoveryAttemptAt < RECOVERY_TIMEOUT) {
+      return false;
+    }
+    
+    if (!this.lastOutputTime) {
+      return true;
+    }
+    
+    return now - this.lastOutputTime > STILL_STUCK_OUTPUT_WINDOW;
+  }
+  
+  isProcessAlive(pid) {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (err) {
+      return false;
+    }
   }
   
   destroy() {
@@ -445,6 +467,7 @@ class KiroSession {
     this.currentReject = null;
     this.currentRequestId = null;
     this.outputBuffer = '';
+    this.lastRecoveryAttemptAt = null;
   }
   
   kill() {
