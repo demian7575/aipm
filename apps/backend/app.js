@@ -130,36 +130,6 @@ async function githubRequest(path, options = {}) {
   }
 }
 
-async function getAllStories(db) {
-  const query = 'SELECT * FROM stories ORDER BY id';
-  const rows = await new Promise((resolve, reject) => {
-    db.all(query, [], (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows || []);
-    });
-  });
-  
-  return rows.map(row => ({
-    id: row.id,
-    title: row.title,
-    description: row.description,
-    status: row.status,
-    storyPoints: row.story_points,
-    parentId: row.parent_id,
-    assignee: row.assignee,
-    component: row.component
-  }));
-}
-
-function getAllDescendants(stories, parentId) {
-  const children = stories.filter(s => s.parentId === parentId);
-  const descendants = [...children];
-  children.forEach(child => {
-    descendants.push(...getAllDescendants(stories, child.id));
-  });
-  return descendants;
-}
-
 async function handleCreatePRWithCodeRequest(req, res) {
   const startTime = Date.now();
   let success = false;
