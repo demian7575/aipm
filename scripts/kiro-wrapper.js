@@ -117,8 +117,10 @@ class KiroWrapper {
       let cleaned = this.outputBuffer
         .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '') // ANSI escape sequences
         .replace(/\r/g, '') // Carriage returns
-        .replace(/^[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏\s]*Thinking\.\.\.$/gm, '') // Spinner lines
+        .replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]\s*Thinking\.\.\./g, '') // Spinner
         .replace(/▸\s*Time:.*$/gm, '') // Time info
+        .replace(/^>\s*/gm, '') // Prompt markers
+        .replace(/\n+/g, '\n') // Multiple newlines
         .trim();
       
       console.log(`[Session ${this.sessionId}] Completed successfully (${cleaned.length} chars)`);
