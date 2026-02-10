@@ -7349,7 +7349,13 @@ export async function createApp() {
         
         // Compute coverage for each story (return ALL stories for hierarchy)
         const matrixData = await Promise.all(stories.map(async (story) => {
-          const children = stories.filter(s => s.parentId === story.id);
+          // Count all descendants recursively
+          const countDescendants = (parentId) => {
+            const directChildren = stories.filter(s => s.parentId === parentId);
+            return directChildren.length + directChildren.reduce((sum, child) => sum + countDescendants(child.id), 0);
+          };
+          const descendantCount = countDescendants(story.id);
+          
           const latestTestRun = await db.getLatestTestRunByStoryId(story.id);
           
           // Get acceptance tests for this story
@@ -7367,7 +7373,7 @@ export async function createApp() {
             status: story.status,
             parentId: story.parentId,
             coverage: {
-              stories: children.length,
+              stories: descendantCount,
               acceptanceTests: totalTests,
               code: story.status === 'Done' ? 1 : 0,
               docs: story.referenceDocuments?.length || 0,
