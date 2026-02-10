@@ -237,10 +237,33 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Story-specific tests (if STORY_ID provided)
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "Test 17: Story $STORY_ID - View Stories button exists"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html | grep -q "view-stories-btn"; then
+    echo "  ✅ PASS: View Stories button in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View Stories button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 18: Story $STORY_ID - showStoriesModal function exists"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "function showStoriesModal"; then
+    echo "  ✅ PASS: showStoriesModal function in app.js"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: showStoriesModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
-# SECTION 5: DynamoDB Tables
+# SECTION 5: Database Tables
 # ============================================
 echo "💾 SECTION 5: Database Tables"
 echo "-----------------------------------"
