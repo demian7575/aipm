@@ -6319,47 +6319,6 @@ export async function createApp() {
             ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
             ExpressionAttributeValues: expressionAttributeValues
           }));
-        } else {
-          // SQLite update
-          const existing = await new Promise((resolve, reject) => {
-            db.get('SELECT * FROM user_stories WHERE id = ?', [storyId], (err, row) => {
-              if (err) reject(err);
-              else resolve(row);
-            });
-          });
-          
-          if (!existing) {
-            sendJson(res, 404, { message: 'Story not found' });
-            return;
-          }
-          
-          const updates = {
-            title: payload.title ?? existing.title,
-            asA: payload.asA ?? existing.asA,
-            iWant: payload.iWant ?? existing.iWant,
-            soThat: payload.soThat ?? existing.soThat,
-            description: payload.description ?? existing.description,
-            storyPoint: payload.storyPoint ?? existing.storyPoint,
-            assigneeEmail: payload.assigneeEmail ?? existing.assigneeEmail,
-            status: payload.status ?? existing.status,
-            components: JSON.stringify(payload.components ?? JSON.parse(existing.components || '[]')),
-            parentId: payload.parentId ?? existing.parent_id
-          };
-          
-          await new Promise((resolve, reject) => {
-            db.run(
-              `UPDATE user_stories SET 
-                title = ?, asA = ?, iWant = ?, soThat = ?, description = ?,
-                story_point = ?, assigneeEmail = ?, status = ?, components = ?, parent_id = ?
-              WHERE id = ?`,
-              [updates.title, updates.asA, updates.iWant, updates.soThat, updates.description,
-               updates.storyPoint, updates.assigneeEmail, updates.status, updates.components, updates.parentId, storyId],
-              (err) => {
-                if (err) reject(err);
-                else resolve();
-              }
-            );
-          });
         }
         
         // Update Task Specification file if story has associated PRs
