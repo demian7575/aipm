@@ -15,8 +15,8 @@ MemoryMax=300M
 TasksMax=100
 
 # Logging
-StandardOutput=journal
-StandardError=journal
+StandardOutput=append:/tmp/kiro-cli-live.log
+StandardError=append:/tmp/kiro-cli-live.log
 SyslogIdentifier=kiro-wrapper-%i
 
 [Install]
