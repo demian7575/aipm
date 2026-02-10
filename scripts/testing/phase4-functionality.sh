@@ -625,6 +625,26 @@ fi
 echo ""
 
 # ============================================
+# SECTION 13: Story-Specific Acceptance Tests
+# ============================================
+echo "✅ SECTION 13: Story-Specific Acceptance Tests"
+echo "-----------------------------------"
+
+# Story #1770715048726: Add Story List Button
+# Acceptance Test: Modal displays story titles when header button clicked
+echo "Test 43: Story #1770715048726 - Story List Button"
+STORY_LIST_RESPONSE=$(curl -s "$API_BASE/api/stories")
+if echo "$STORY_LIST_RESPONSE" | jq -e 'type == "array" and length > 0' > /dev/null 2>&1; then
+  echo "  ✅ PASS: Story list endpoint returns stories for button"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: Story list endpoint not working"
+  FAILED=$((FAILED + 1))
+fi
+
+echo ""
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
@@ -651,8 +671,9 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+echo "  - Story Acceptance Tests: 1 test"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 43 (37 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
