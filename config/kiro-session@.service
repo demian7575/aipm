@@ -1,0 +1,27 @@
+[Unit]
+Description=Kiro CLI Session %i
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+ExecStart=/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools
+StandardInput=socket
+StandardOutput=journal
+StandardError=journal
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Resource limits
+MemoryMax=200M
+CPUQuota=50%%
+
+# Security
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

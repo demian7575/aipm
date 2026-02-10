@@ -1,0 +1,12 @@
+[Unit]
+Description=Kiro CLI Session %i Socket
+PartOf=kiro-session@%i.service
+
+[Socket]
+ListenStream=/tmp/kiro-session-%i.sock
+SocketMode=0660
+SocketUser=ec2-user
+SocketGroup=ec2-user
+
+[Install]
+WantedBy=sockets.target
