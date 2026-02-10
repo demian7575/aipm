@@ -137,7 +137,13 @@ class SessionPool {
     
     if (wrapper) {
       console.log(`[Pool] Routing to session ${wrapper.sessionId}`);
-      return await wrapper.execute(prompt, requestId);
+      wrapper.busy = true; // Mark busy immediately
+      try {
+        const result = await wrapper.execute(prompt, requestId);
+        return result;
+      } finally {
+        wrapper.busy = false; // Mark available after completion
+      }
     }
     
     // All busy, queue request
