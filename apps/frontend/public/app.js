@@ -7421,101 +7421,109 @@ function openChildStoryModal(parentId) {
         components = componentsField.value.split(',').map(c => c.trim()).filter(c => c);
       }
       
-      // Generate draft data only (no database save) - use Backend server
-      const response = await fetch(`${apiBaseUrl}/api/generate-draft`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          templateId: 'user-story-generation',
-          feature_description: idea,
-          parentId: String(parentId),
-          components: components
-        })
+      // Generate draft using SSE stream
+      const params = new URLSearchParams({
+        idea: idea,
+        parentId: String(parentId),
+        components: components.join(',')
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
       
-      if (result.success && result.draft) {
-        // Use the actual generated story data and populate the form
-        const draftData = result.draft;
+      const eventSource = new EventSource(`${apiBaseUrl}/api/stories/draft-stream?${params}`);
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.status === 'complete' && data.story) {
+          eventSource.close();
+          const draftData = data.story;
             
-            // Populate form fields
-            const titleInput = container.querySelector('#child-title');
-            const pointInput = container.querySelector('#child-point');
-            const descriptionInput = container.querySelector('#child-description');
-            const asADisplay = container.querySelector('#child-asa-display');
-            const iWantDisplay = container.querySelector('#child-iwant-display');
-            const soThatDisplay = container.querySelector('#child-sothat-display');
+          // Populate form fields
+          const titleInput = container.querySelector('#child-title');
+          const pointInput = container.querySelector('#child-point');
+          const descriptionInput = container.querySelector('#child-description');
+          const asADisplay = container.querySelector('#child-asa-display');
+          const iWantDisplay = container.querySelector('#child-iwant-display');
+          const soThatDisplay = container.querySelector('#child-sothat-display');
 
-            if (titleInput) titleInput.value = draftData.title || '';
-            if (pointInput) pointInput.value = draftData.storyPoint || '';
-            if (descriptionInput) descriptionInput.value = draftData.description || '';
-            if (asADisplay) asADisplay.value = draftData.asA || '';
-            if (iWantDisplay) iWantDisplay.value = draftData.iWant || '';
-            if (soThatDisplay) soThatDisplay.value = draftData.soThat || '';
+          if (titleInput) titleInput.value = draftData.title || '';
+          if (pointInput) pointInput.value = draftData.storyPoint || '';
+          if (descriptionInput) descriptionInput.value = draftData.description || '';
+          if (asADisplay) asADisplay.value = draftData.asA || '';
+          if (iWantDisplay) iWantDisplay.value = draftData.iWant || '';
+          if (soThatDisplay) soThatDisplay.value = draftData.soThat || '';
+          
+          // Update components
+          if (Array.isArray(draftData.components)) {
+            childComponents = normalizeComponentSelection(draftData.components);
+            refreshChildComponents();
+          }
+          
+          // Display acceptance tests in manual input fields
+          if (draftData.acceptanceTests && draftData.acceptanceTests.length > 0) {
+            const testsList = container.querySelector('#child-acceptance-tests-list');
             
-            // Update components
-            if (Array.isArray(draftData.components)) {
-              childComponents = normalizeComponentSelection(draftData.components);
-              refreshChildComponents();
+            // Clear existing tests except the first one
+            const existingTests = testsList.querySelectorAll('.acceptance-test-item');
+            for (let i = 1; i < existingTests.length; i++) {
+              existingTests[i].remove();
             }
             
-            // Display acceptance tests in manual input fields
-            if (draftData.acceptanceTests && draftData.acceptanceTests.length > 0) {
-              const testsList = container.querySelector('#child-acceptance-tests-list');
-              
-              // Clear existing tests except the first one
-              const existingTests = testsList.querySelectorAll('.acceptance-test-item');
-              for (let i = 1; i < existingTests.length; i++) {
-                existingTests[i].remove();
+            // Populate tests
+            draftData.acceptanceTests.forEach((test, index) => {
+              if (index === 0) {
+                // Populate first test
+                const titleField = container.querySelector('#child-test-title-1');
+                const givenField = container.querySelector('#child-test-given-1');
+                const whenField = container.querySelector('#child-test-when-1');
+                const thenField = container.querySelector('#child-test-then-1');
+                
+                if (titleField) titleField.value = test.title || '';
+                if (givenField) givenField.value = test.given || '';
+                if (whenField) whenField.value = test.when || '';
+                if (thenField) thenField.value = test.then || '';
+              } else {
+                // Add additional tests
+                addNewTest();
+                const titleField = container.querySelector(`#child-test-title-${testCounter}`);
+                const givenField = container.querySelector(`#child-test-given-${testCounter}`);
+                const whenField = container.querySelector(`#child-test-when-${testCounter}`);
+                const thenField = container.querySelector(`#child-test-then-${testCounter}`);
+                
+                if (titleField) titleField.value = test.title || '';
+                if (givenField) givenField.value = test.given || '';
+                if (whenField) whenField.value = test.when || '';
+                if (thenField) thenField.value = test.then || '';
               }
-              
-              // Populate tests
-              draftData.acceptanceTests.forEach((test, index) => {
-                if (index === 0) {
-                  // Populate first test
-                  const titleField = container.querySelector('#child-test-title-1');
-                  const givenField = container.querySelector('#child-test-given-1');
-                  const whenField = container.querySelector('#child-test-when-1');
-                  const thenField = container.querySelector('#child-test-then-1');
-                  
-                  if (titleField) titleField.value = test.title || '';
-                  if (givenField) givenField.value = test.given || '';
-                  if (whenField) whenField.value = test.when || '';
-                  if (thenField) thenField.value = test.then || '';
-                } else {
-                  // Add additional tests
-                  addNewTest();
-                  const titleField = container.querySelector(`#child-test-title-${testCounter}`);
-                  const givenField = container.querySelector(`#child-test-given-${testCounter}`);
-                  const whenField = container.querySelector(`#child-test-when-${testCounter}`);
-                  const thenField = container.querySelector(`#child-test-then-${testCounter}`);
-                  
-                  if (titleField) titleField.value = test.title || '';
-                  if (givenField) givenField.value = test.given || '';
-                  if (whenField) whenField.value = test.when || '';
-                  if (thenField) thenField.value = test.then || '';
-                }
-              });
-              
-              showToast(`✨ Story draft generated with ${draftData.acceptanceTests.length} acceptance test(s)! Review and click Create Story to save.`, 'success');
+            });
+            
+            showToast(`✨ Story draft generated with ${draftData.acceptanceTests.length} acceptance test(s)! Review and click Create Story to save.`, 'success');
           } else {
             showToast('✨ Story draft generated! Review and click Create Story to save.', 'success');
           }
-        } else {
-          throw new Error('Draft generation failed - no draft data received');
+          
+          generateBtn.textContent = restore.text;
+          generateBtn.disabled = restore.disabled;
+        } else if (data.status === 'error') {
+          eventSource.close();
+          generateBtn.textContent = restore.text;
+          generateBtn.disabled = restore.disabled;
+          showToast(`Draft generation failed: ${data.message}`, 'error');
         }
-      } catch (error) {
+      };
+      
+      eventSource.onerror = (error) => {
         console.error('Draft generation failed:', error);
-        showToast(`Draft generation failed: ${error.message}`, 'error');
-      } finally {
+        eventSource.close();
         generateBtn.textContent = restore.text;
         generateBtn.disabled = restore.disabled;
-      }
+        showToast('Draft generation failed', 'error');
+      };
+    } catch (error) {
+      console.error('Draft generation failed:', error);
+      showToast(`Draft generation failed: ${error.message}`, 'error');
+      generateBtn.textContent = restore.text;
+      generateBtn.disabled = restore.disabled;
+    }
   });
 
   openModal({
