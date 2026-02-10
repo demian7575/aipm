@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -753,6 +754,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewAllStoriesBtn) {
+  viewAllStoriesBtn.addEventListener('click', () => {
+    openAllStoriesModal();
   });
 }
 
@@ -8023,6 +8030,47 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+/**
+ * Opens modal displaying all story titles
+ */
+function openAllStoriesModal() {
+  const container = document.createElement('div');
+  container.style.cssText = 'max-height: 400px; overflow-y: auto;';
+  
+  const list = document.createElement('ul');
+  list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+  
+  const stories = state.stories || [];
+  if (stories.length === 0) {
+    const emptyMsg = document.createElement('p');
+    emptyMsg.textContent = 'No stories available.';
+    emptyMsg.style.color = '#666';
+    container.appendChild(emptyMsg);
+  } else {
+    stories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.cssText = 'padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;';
+      li.textContent = story.title || `Story ${story.id}`;
+      li.addEventListener('click', () => {
+        closeModal();
+        selectStory(story.id);
+      });
+      li.addEventListener('mouseenter', () => {
+        li.style.backgroundColor = '#f5f5f5';
+      });
+      li.addEventListener('mouseleave', () => {
+        li.style.backgroundColor = '';
+      });
+      list.appendChild(li);
+    });
+    container.appendChild(list);
+  }
+  
+  openModal('All Stories', container, [
+    { label: 'Close', onClick: closeModal }
+  ]);
 }
 
 function openReferenceModal(storyId) {

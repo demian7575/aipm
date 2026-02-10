@@ -625,6 +625,42 @@ fi
 echo ""
 
 # ============================================
+# Story-Specific Tests
+# ============================================
+
+# Test for Story 1770714838507: View All Stories Modal
+if [ "$STORY_ID" = "1770714838507" ]; then
+  echo "Test 43: Story 1770714838507 - View All Stories button exists"
+  if grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: View All Stories button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories button not found"
+    FAILED=$((FAILED + 1))
+  fi
+
+  echo "Test 44: Story 1770714838507 - Modal function implemented"
+  if grep -q 'function openAllStoriesModal' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: openAllStoriesModal function found"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openAllStoriesModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+
+  echo "Test 45: Story 1770714838507 - Event listener attached"
+  if grep -q 'viewAllStoriesBtn.addEventListener' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Event listener found"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Event listener not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
