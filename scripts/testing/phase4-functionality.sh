@@ -652,6 +652,38 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
+
+# ============================================
+# SECTION 9: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "📋 SECTION 9: Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for story 1770715616276: View All Stories Modal
+  if [ "$STORY_ID" = "1770715616276" ]; then
+    echo "Test: View All Stories button exists in frontend"
+    if curl -s "$FRONTEND_BASE" | grep -q "view-all-stories-btn"; then
+      echo "  ✅ PASS: View All Stories button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View All Stories button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test: openAllStoriesModal function exists"
+    if curl -s "$FRONTEND_BASE/app.js" | grep -q "function openAllStoriesModal"; then
+      echo "  ✅ PASS: openAllStoriesModal function found"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openAllStoriesModal function not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+  echo ""
+fi
+
 echo "Total Tests: 42 (36 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
