@@ -180,6 +180,26 @@ export class DynamoDBDataLayer {
     }
   }
 
+  async getChildStories(parentId) {
+    try {
+      const result = await docClient.send(new ScanCommand({
+        TableName: getStoriesTable(this.useDevTables),
+        FilterExpression: 'parentId = :parentId',
+        ExpressionAttributeValues: {
+          ':parentId': parseInt(parentId)
+        },
+        ProjectionExpression: 'id, title, #status',
+        ExpressionAttributeNames: {
+          '#status': 'status'
+        }
+      }));
+      return result.Items || [];
+    } catch (error) {
+      console.error('Error getting child stories:', error);
+      return [];
+    }
+  }
+
   async createStory(story) {
     try {
       const id = Date.now(); // Simple ID generation
