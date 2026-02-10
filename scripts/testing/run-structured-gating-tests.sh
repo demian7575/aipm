@@ -71,12 +71,6 @@ else
     echo "🔧 Target Environment: PRODUCTION"
 fi
 
-# Legacy variables for backward compatibility
-PROD_API_BASE="$API_BASE"
-DEV_API_BASE="http://44.222.168.46:4000"
-PROD_FRONTEND_URL="$FRONTEND_URL"
-DEV_FRONTEND_URL="http://aipm-dev-frontend-hosting.s3-website-us-east-1.amazonaws.com"
-
 # Export for phase scripts
 export API_BASE SEMANTIC_API_BASE FRONTEND_URL TARGET_ENV
 
