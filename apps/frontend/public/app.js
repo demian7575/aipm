@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -744,6 +745,12 @@ function setDependencyOverlayVisible(visible) {
 
 function toggleDependencyOverlay() {
   setDependencyOverlayVisible(!state.showDependencies);
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
 }
 
 if (referenceBtn) {
