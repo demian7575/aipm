@@ -8593,6 +8593,34 @@ async function initialize() {
     });
   });
 
+  const storyListBtn = document.getElementById('story-list-btn');
+  storyListBtn?.addEventListener('click', () => {
+    const container = document.createElement('div');
+    container.className = 'story-list-modal';
+    
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    const stories = Array.from(storyIndex.values());
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.textContent = story.title;
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+    
+    openModal({
+      title: 'Story List',
+      content: container,
+      cancelLabel: 'Close'
+    });
+  });
+
   autoLayoutToggle.addEventListener('click', () => {
     if (state.autoLayout) {
       seedManualPositionsFromAutoLayout();
