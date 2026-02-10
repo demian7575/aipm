@@ -5851,58 +5851,52 @@ export async function createApp() {
         const db = await ensureDatabase();
         let newStoryId;
         
-        if (db.constructor.name === 'DynamoDBDataLayer') {
-          // DynamoDB implementation
-          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-          const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
-          
-          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-          const docClient = DynamoDBDocumentClient.from(client);
-          const tableName = process.env.STORIES_TABLE;
-          
-          // Allow specifying ID (for dev environment mirroring), otherwise generate new one
-          newStoryId = payload.id || Date.now();
-          
-          const dynamoItem = {
-            id: newStoryId,
-            mrId: 1,
-            title,
-            description,
-            asA: asA,
-            iWant: iWant,
-            soThat: soThat,
-            components: serializeComponents(components),
-            storyPoint: storyPoint,
-            assigneeEmail: assigneeEmail,
-            status: 'Draft',
-            createdAt: timestamp,
-            updatedAt: timestamp,
-            investWarnings: '[]',
-            investAnalysis: JSON.stringify({
-              source: 'pending',
-              summary: '',
-              model: ''
-            })
-          };
-          
-          if (parentId !== null && parentId !== undefined) {
-            dynamoItem.parentId = parentId;
-          }
-          
-          await docClient.send(new PutCommand({
-            TableName: tableName,
-            Item: dynamoItem
-          }));
+        // DynamoDB implementation
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, PutCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+        
+        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const docClient = DynamoDBDocumentClient.from(client);
+        const tableName = process.env.STORIES_TABLE;
+        
+        // Allow specifying ID (for dev environment mirroring), otherwise generate new one
+        newStoryId = payload.id || Date.now();
+        
+        const dynamoItem = {
+          id: newStoryId,
+          mrId: 1,
+          title,
+          description,
+          asA: asA,
+          iWant: iWant,
+          soThat: soThat,
+          components: serializeComponents(components),
+          storyPoint: storyPoint,
+          assigneeEmail: assigneeEmail,
+          status: 'Draft',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          investWarnings: '[]',
+          investAnalysis: JSON.stringify({
+            source: 'pending',
+            summary: '',
+            model: ''
+          })
+        };
+        
+        if (parentId !== null && parentId !== undefined) {
+          dynamoItem.parentId = parentId;
         }
+        
+        await docClient.send(new PutCommand({
+          TableName: tableName,
+          Item: dynamoItem
+        }));
         
         // Create acceptance tests BEFORE INVEST analysis
         if (acceptanceTests.length > 0) {
           for (const test of acceptanceTests) {
             const testId = Date.now() + Math.floor(Math.random() * 1000);
-            const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-            const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
-            const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-            const docClient = DynamoDBDocumentClient.from(client);
             await docClient.send(new PutCommand({
               TableName: process.env.ACCEPTANCE_TESTS_TABLE,
               Item: {
@@ -5973,10 +5967,6 @@ export async function createApp() {
         }
         
         // Update story with analysis results
-        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-        const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-        const docClient = DynamoDBDocumentClient.from(client);
         await docClient.send(new UpdateCommand({
           TableName: process.env.STORIES_TABLE,
           Key: { id: newStoryId },
@@ -6042,93 +6032,90 @@ export async function createApp() {
         const storyId = Number(updateMatch[1]);
         const payload = await parseJson(req);
         
-        // Check if using DynamoDB or SQLite
-        if (db.constructor.name === 'DynamoDBDataLayer') {
-          // DynamoDB update
-          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-          const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-          
-          const tableName = process.env.STORIES_TABLE;
-          if (!tableName) {
-            throw new Error('STORIES_TABLE environment variable not set');
-          }
-          
-          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-          const docClient = DynamoDBDocumentClient.from(client);
-          
-          // Get existing story
-          const getResult = await docClient.send(new GetCommand({
-            TableName: tableName,
-            Key: { id: storyId }
-          }));
-          
-          if (!getResult.Item) {
-            sendJson(res, 404, { message: 'Story not found' });
-            return;
-          }
-          
-          // Build update expression dynamically to handle missing fields
-          const updateExpressions = [];
-          const expressionAttributeNames = {};
-          const expressionAttributeValues = {};
-          
-          if (payload.title !== undefined) {
-            updateExpressions.push('title = :title');
-            expressionAttributeValues[':title'] = payload.title;
-          }
-          if (payload.asA !== undefined) {
-            updateExpressions.push('asA = :asA');
-            expressionAttributeValues[':asA'] = payload.asA;
-          }
-          if (payload.iWant !== undefined) {
-            updateExpressions.push('iWant = :iWant');
-            expressionAttributeValues[':iWant'] = payload.iWant;
-          }
-          if (payload.soThat !== undefined) {
-            updateExpressions.push('soThat = :soThat');
-            expressionAttributeValues[':soThat'] = payload.soThat;
-          }
-          if (payload.description !== undefined) {
-            updateExpressions.push('description = :description');
-            expressionAttributeValues[':description'] = payload.description;
-          }
-          if (payload.storyPoint !== undefined) {
-            updateExpressions.push('storyPoint = :storyPoint');
-            expressionAttributeValues[':storyPoint'] = payload.storyPoint;
-          }
-          if (payload.assigneeEmail !== undefined) {
-            updateExpressions.push('assigneeEmail = :assigneeEmail');
-            expressionAttributeValues[':assigneeEmail'] = payload.assigneeEmail;
-          }
-          if (payload.status !== undefined) {
-            updateExpressions.push('#status = :status');
-            expressionAttributeNames['#status'] = 'status';
-            expressionAttributeValues[':status'] = payload.status;
-          }
-          if (payload.components !== undefined) {
-            updateExpressions.push('components = :components');
-            expressionAttributeValues[':components'] = JSON.stringify(payload.components || []);
-          }
-          if (payload.parentId !== undefined) {
-            updateExpressions.push('parentId = :parentId');
-            expressionAttributeValues[':parentId'] =
-              payload.parentId == null ? null : Number(payload.parentId);
-          }
-          
-          if (updateExpressions.length === 0) {
-            sendJson(res, 400, { message: 'No fields to update' });
-            return;
-          }
-          
-          // Update story
-          await docClient.send(new UpdateCommand({
-            TableName: tableName,
-            Key: { id: storyId },
-            UpdateExpression: 'SET ' + updateExpressions.join(', '),
-            ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
-            ExpressionAttributeValues: expressionAttributeValues
-          }));
+        // DynamoDB update
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+        
+        const tableName = process.env.STORIES_TABLE;
+        if (!tableName) {
+          throw new Error('STORIES_TABLE environment variable not set');
         }
+        
+        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const docClient = DynamoDBDocumentClient.from(client);
+        
+        // Get existing story
+        const getResult = await docClient.send(new GetCommand({
+          TableName: tableName,
+          Key: { id: storyId }
+        }));
+        
+        if (!getResult.Item) {
+          sendJson(res, 404, { message: 'Story not found' });
+          return;
+        }
+        
+        // Build update expression dynamically to handle missing fields
+        const updateExpressions = [];
+        const expressionAttributeNames = {};
+        const expressionAttributeValues = {};
+        
+        if (payload.title !== undefined) {
+          updateExpressions.push('title = :title');
+          expressionAttributeValues[':title'] = payload.title;
+        }
+        if (payload.asA !== undefined) {
+          updateExpressions.push('asA = :asA');
+          expressionAttributeValues[':asA'] = payload.asA;
+        }
+        if (payload.iWant !== undefined) {
+          updateExpressions.push('iWant = :iWant');
+          expressionAttributeValues[':iWant'] = payload.iWant;
+        }
+        if (payload.soThat !== undefined) {
+          updateExpressions.push('soThat = :soThat');
+          expressionAttributeValues[':soThat'] = payload.soThat;
+        }
+        if (payload.description !== undefined) {
+          updateExpressions.push('description = :description');
+          expressionAttributeValues[':description'] = payload.description;
+        }
+        if (payload.storyPoint !== undefined) {
+          updateExpressions.push('storyPoint = :storyPoint');
+          expressionAttributeValues[':storyPoint'] = payload.storyPoint;
+        }
+        if (payload.assigneeEmail !== undefined) {
+          updateExpressions.push('assigneeEmail = :assigneeEmail');
+          expressionAttributeValues[':assigneeEmail'] = payload.assigneeEmail;
+        }
+        if (payload.status !== undefined) {
+          updateExpressions.push('#status = :status');
+          expressionAttributeNames['#status'] = 'status';
+          expressionAttributeValues[':status'] = payload.status;
+        }
+        if (payload.components !== undefined) {
+          updateExpressions.push('components = :components');
+          expressionAttributeValues[':components'] = JSON.stringify(payload.components || []);
+        }
+        if (payload.parentId !== undefined) {
+          updateExpressions.push('parentId = :parentId');
+          expressionAttributeValues[':parentId'] =
+            payload.parentId == null ? null : Number(payload.parentId);
+        }
+        
+        if (updateExpressions.length === 0) {
+          sendJson(res, 400, { message: 'No fields to update' });
+          return;
+        }
+        
+        // Update story
+        await docClient.send(new UpdateCommand({
+          TableName: tableName,
+          Key: { id: storyId },
+          UpdateExpression: 'SET ' + updateExpressions.join(', '),
+          ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+          ExpressionAttributeValues: expressionAttributeValues
+        }));
         
         // Update Task Specification file if story has associated PRs
         // NOTE: Disabled to prevent duplicate commits during code generation
@@ -6439,27 +6426,25 @@ export async function createApp() {
         if (includeAiInvest && story.investAnalysis?.source === 'ai') {
           console.log('🏥 Saving AI analysis to database...');
           
-          if (db.constructor.name === 'DynamoDBDataLayer') {
-            // DynamoDB update
-            const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-            const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-            
-            const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-            const docClient = DynamoDBDocumentClient.from(client);
-            const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-            
-            await docClient.send(new UpdateCommand({
-              TableName: tableName,
-              Key: { id: storyId },
-              UpdateExpression: 'SET invest_analysis = :analysis, updated_at = :updatedAt',
-              ExpressionAttributeValues: {
-                ':analysis': story.investAnalysis || {},
-                ':updatedAt': new Date().toISOString()
-              }
-            }));
-            
-            console.log('🏥 AI analysis saved to DynamoDB');
-          }
+          // DynamoDB update
+          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+          
+          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const docClient = DynamoDBDocumentClient.from(client);
+          const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+          
+          await docClient.send(new UpdateCommand({
+            TableName: tableName,
+            Key: { id: storyId },
+            UpdateExpression: 'SET invest_analysis = :analysis, updated_at = :updatedAt',
+            ExpressionAttributeValues: {
+              ':analysis': story.investAnalysis || {},
+              ':updatedAt': new Date().toISOString()
+            }
+          }));
+          
+          console.log('🏥 AI analysis saved to DynamoDB');
         }
         
         sendJson(res, 200, story);
@@ -6482,46 +6467,44 @@ export async function createApp() {
         await writeFile('/tmp/aipm-delete-try.log', `Inside try block for story ${storyId}\n`, { flag: 'a' });
         console.log(`🗑️  Starting delete for story ${storyId}`);
         
-        // Delete acceptance tests first (DynamoDB only)
-        if (db.constructor.name === 'DynamoDBDataLayer') {
-          console.log(`  Using DynamoDB for deletion`);
-          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-          const { DynamoDBDocumentClient, DeleteCommand, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
-          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-          const docClient = DynamoDBDocumentClient.from(client);
-          
-          // Query and delete all acceptance tests for this story
-          const testsTableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
-          console.log(`  Querying acceptance tests from ${testsTableName}...`);
-          const queryResult = await docClient.send(new QueryCommand({
-            TableName: testsTableName,
-            IndexName: 'storyId-index',
-            KeyConditionExpression: 'storyId = :storyId',
-            ExpressionAttributeValues: {
-              ':storyId': storyId
-            }
-          }));
-          
-          console.log(`  Found ${queryResult.Items?.length || 0} acceptance tests`);
-          if (queryResult.Items && queryResult.Items.length > 0) {
-            for (const test of queryResult.Items) {
-              await docClient.send(new DeleteCommand({
-                TableName: testsTableName,
-                Key: { id: test.id }
-              }));
-            }
-            console.log(`🗑️ Deleted ${queryResult.Items.length} acceptance tests for story ${storyId}`);
+        // Delete acceptance tests first (DynamoDB)
+        console.log(`  Using DynamoDB for deletion`);
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, DeleteCommand, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const docClient = DynamoDBDocumentClient.from(client);
+        
+        // Query and delete all acceptance tests for this story
+        const testsTableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+        console.log(`  Querying acceptance tests from ${testsTableName}...`);
+        const queryResult = await docClient.send(new QueryCommand({
+          TableName: testsTableName,
+          IndexName: 'storyId-index',
+          KeyConditionExpression: 'storyId = :storyId',
+          ExpressionAttributeValues: {
+            ':storyId': storyId
           }
-          
-          // Delete the story
-          const storiesTableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-          console.log(`  Deleting story from ${storiesTableName}...`);
-          await docClient.send(new DeleteCommand({
-            TableName: storiesTableName,
-            Key: { id: storyId }
-          }));
-          console.log(`✅ Deleted story ${storyId}`);
+        }));
+        
+        console.log(`  Found ${queryResult.Items?.length || 0} acceptance tests`);
+        if (queryResult.Items && queryResult.Items.length > 0) {
+          for (const test of queryResult.Items) {
+            await docClient.send(new DeleteCommand({
+              TableName: testsTableName,
+              Key: { id: test.id }
+            }));
+          }
+          console.log(`🗑️ Deleted ${queryResult.Items.length} acceptance tests for story ${storyId}`);
         }
+        
+        // Delete the story
+        const storiesTableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+        console.log(`  Deleting story from ${storiesTableName}...`);
+        await docClient.send(new DeleteCommand({
+          TableName: storiesTableName,
+          Key: { id: storyId }
+        }));
+        console.log(`✅ Deleted story ${storyId}`);
         
         console.log(`✅ Successfully deleted story ${storyId}`);
         sendJson(res, 204, {});
