@@ -90,8 +90,8 @@ class KiroWrapper {
       this.currentResolve = resolve;
       this.currentReject = reject;
       
-      // Set completion timeout
-      this.completionTimer = setTimeout(() => {
+      // Set max timeout (separate from silence timer)
+      this.maxTimeout = setTimeout(() => {
         this.complete(new Error('Request timeout'));
       }, COMPLETION_TIMEOUT);
       
@@ -105,6 +105,11 @@ class KiroWrapper {
     if (this.completionTimer) {
       clearTimeout(this.completionTimer);
       this.completionTimer = null;
+    }
+    
+    if (this.maxTimeout) {
+      clearTimeout(this.maxTimeout);
+      this.maxTimeout = null;
     }
     
     if (error) {
