@@ -23,14 +23,8 @@ async function getDynamoClient() {
 
 // Helper function to get acceptance tests for a story
 async function getAcceptanceTests(db, storyId) {
-  if (db.constructor.name === 'DynamoDBDataLayer') {
-    // Use db's existing method instead of creating new client
-    const allTests = await db.getAllAcceptanceTests();
-    return allTests.filter(test => test.storyId === storyId);
-  } else {
-    const stmt = db.prepare('SELECT * FROM acceptance_tests WHERE story_id = ?');
-    return stmt.all(storyId);
-  }
+  const allTests = await db.getAllAcceptanceTests();
+  return allTests.filter(test => test.storyId === storyId);
 }
 
 // Load configuration from environments.yaml
@@ -4407,68 +4401,32 @@ async function insertAcceptanceTest(
   db,
   { storyId, title = '', given, when, then, status = ACCEPTANCE_TEST_STATUS_DRAFT, timestamp = now() }
 ) {
-  if (db.constructor.name === 'DynamoDBDataLayer') {
-    // DynamoDB implementation
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client);
-    const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
-    
-    const id = Date.now(); // Generate unique ID
-    
-    await docClient.send(new PutCommand({
-      TableName: tableName,
-      Item: {
-        id,
-        storyId: storyId,
-        title: acceptanceTestsHasTitleColumn ? title : undefined,
-        given: JSON.stringify(given),
-        whenStep: JSON.stringify(when),
-        thenStep: JSON.stringify(then),
-        status,
-        createdAt: timestamp,
-        updatedAt: timestamp
-      }
-    }));
-    
-    return { lastInsertRowid: id };
-  } else {
-    // SQLite implementation
-    const { columns, placeholders } = acceptanceTestColumnsForInsert();
-    const statement = db.prepare(`INSERT INTO acceptance_tests (${columns}) VALUES (${placeholders})`);
-    const params = acceptanceTestsHasTitleColumn
-      ? [
-          storyId,
-          title,
-          JSON.stringify(given),
-          JSON.stringify(when),
-          JSON.stringify(then),
-          status,
-          timestamp,
-          timestamp,
-        ]
-      : [
-          storyId,
-          JSON.stringify(given),
-          JSON.stringify(when),
-          JSON.stringify(then),
-          status,
-          timestamp,
-          timestamp,
-        ];
-    
-    let result;
-    try {
-      result = statement.run(...params);
-    } catch (error) {
-      console.error(`Debug: insertAcceptanceTest SQL error:`, error);
-      throw error;
+  // DynamoDB implementation
+  const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+  const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+  
+  const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+  const docClient = DynamoDBDocumentClient.from(client);
+  const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+  
+  const id = Date.now(); // Generate unique ID
+  
+  await docClient.send(new PutCommand({
+    TableName: tableName,
+    Item: {
+      id,
+      storyId: storyId,
+      title: acceptanceTestsHasTitleColumn ? title : undefined,
+      given: JSON.stringify(given),
+      whenStep: JSON.stringify(when),
+      thenStep: JSON.stringify(then),
+      status,
+      createdAt: timestamp,
+      updatedAt: timestamp
     }
-    
-    return result;
-  }
+  }));
+  
+  return { lastInsertRowid: id };
 }
 
   function insertDependency(db, { storyId, dependsOnStoryId, relationship = STORY_DEPENDENCY_DEFAULT }) {
@@ -5208,23 +5166,8 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     });
   }
 
-  const docRows = await (async () => {
-    if (db.constructor.name === 'DynamoDBDataLayer') {
-      // Reference documents might be stored differently or not exist as separate table
-      // For now, return empty array and let the regular API handle this
-      return [];
-    } else {
-      // SQLite implementation
-      return safeSelectAll(
-        db,
-        'SELECT * FROM reference_documents WHERE story_id = ? ORDER BY id',
-        storyId
-      );
-    }
-  })();
-  
-  // Ensure docRows is an array
-  const docRowsArray = Array.isArray(docRows) ? docRows : [];
+  // Reference documents not implemented in DynamoDB yet
+  const docRowsArray = [];
   docRowsArray.forEach((docRow) => {
     story.referenceDocuments.push({
       id: docRow.id,
