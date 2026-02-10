@@ -237,6 +237,35 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Story-specific functionality tests
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "📋 Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for story 1770740534957: View All Stories button
+  if [ "$STORY_ID" = "1770740534957" ]; then
+    echo "Test: View All Stories button exists"
+    if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q "view-all-stories-btn"; then
+      echo "  ✅ PASS: View All Stories button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View All Stories button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test: View All Stories event listener exists"
+    if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "viewAllStoriesBtn"; then
+      echo "  ✅ PASS: View All Stories functionality found in app.js"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View All Stories functionality not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+fi
+
 echo ""
 
 # ============================================
