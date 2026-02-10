@@ -1,0 +1,26 @@
+[Unit]
+Description=Kiro Wrapper Session %i
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/aipm
+ExecStart=/usr/bin/node scripts/kiro-wrapper.js %i 900%i
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Resource limits
+MemoryMax=200M
+CPUQuota=50%%
+TasksMax=20
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kiro-wrapper-%i
+
+[Install]
+WantedBy=multi-user.target
