@@ -1,20 +1,6 @@
 #!/bin/bash
 # Shared test functions library - define once, use everywhere
 
-# Load configuration from environments.yaml
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
-# Load prod config
-source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
-PROD_API_BASE="$API_BASE"
-PROD_FRONTEND_URL="$S3_URL"
-
-# Load dev config
-source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" dev
-DEV_API_BASE="$API_BASE"
-DEV_FRONTEND_URL="$S3_URL"
-
 # Test story parent ID - all test stories should be created under this parent
 TEST_PARENT_ID=1768631018504
 
