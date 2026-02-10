@@ -237,6 +237,35 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Story-specific functionality tests
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "📋 Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for story 1770722370303: View All Stories button
+  if [ "$STORY_ID" = "1770722370303" ]; then
+    echo "Test: View All Stories button exists in HTML"
+    if grep -q "view-all-stories-btn" apps/frontend/public/index.html; then
+      echo "  ✅ PASS: Button element exists in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Button element not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test: View All Stories button handler in app.js"
+    if grep -q "viewAllStoriesBtn" apps/frontend/public/app.js && grep -q "All Stories" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Button handler implemented"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Button handler not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+fi
+
 echo ""
 
 # ============================================

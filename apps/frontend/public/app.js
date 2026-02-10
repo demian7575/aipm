@@ -756,6 +756,40 @@ if (referenceBtn) {
   });
 }
 
+/**
+ * Opens modal showing all story titles
+ */
+if (viewAllStoriesBtn) {
+  viewAllStoriesBtn.addEventListener('click', () => {
+    openModal('All Stories', (container) => {
+      const list = document.createElement('ul');
+      list.style.cssText = 'list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto;';
+      
+      if (state.stories.length === 0) {
+        const empty = document.createElement('li');
+        empty.textContent = 'No stories available';
+        empty.style.cssText = 'padding: 8px; color: #666;';
+        list.appendChild(empty);
+      } else {
+        state.stories.forEach(story => {
+          const item = document.createElement('li');
+          item.textContent = story.title;
+          item.style.cssText = 'padding: 8px; border-bottom: 1px solid #eee; cursor: pointer;';
+          item.addEventListener('click', () => {
+            state.selectedStoryId = story.id;
+            persistSelection();
+            renderDetails();
+            closeModal();
+          });
+          list.appendChild(item);
+        });
+      }
+      
+      container.appendChild(list);
+    });
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
