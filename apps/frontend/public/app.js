@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -8524,6 +8525,26 @@ async function initialize() {
       cancelLabel: 'Close',
       size: 'content',
       onClose,
+    });
+  });
+
+  viewAllStoriesBtn?.addEventListener('click', () => {
+    const allStories = getAllStoriesFlat(state.stories);
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    allStories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '8px';
+      li.style.borderBottom = '1px solid #eee';
+      li.textContent = story.title;
+      list.appendChild(li);
+    });
+    openModal({
+      title: 'All Stories',
+      content: list,
+      cancelLabel: 'Close',
+      size: 'medium'
     });
   });
 
