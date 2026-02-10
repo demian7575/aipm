@@ -6023,73 +6023,30 @@ export async function createApp() {
             TableName: tableName,
             Item: dynamoItem
           }));
-        } else {
-          // SQLite implementation
-          const statement = db.prepare(
-            'INSERT INTO user_stories (mr_id, parent_id, title, description, as_a, i_want, so_that, components, story_point, assignee_email, status, created_at, updated_at, invest_warnings, invest_analysis) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)' // prettier-ignore
-          );
-          const { lastInsertRowid } = await statement.run(
-            parentId,
-            title,
-            description,
-            asA,
-            iWant,
-            soThat,
-            serializeComponents(components),
-            storyPoint,
-            assigneeEmail,
-            'Draft',
-            timestamp,
-            timestamp,
-            '[]',
-            JSON.stringify({
-              source: 'pending',
-              summary: '',
-              model: '',
-            })
-          );
-          newStoryId = Number(lastInsertRowid);
         }
         
         // Create acceptance tests BEFORE INVEST analysis
         if (acceptanceTests.length > 0) {
           for (const test of acceptanceTests) {
             const testId = Date.now() + Math.floor(Math.random() * 1000);
-            if (db.constructor.name === 'DynamoDBDataLayer') {
-              const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-              const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
-              const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-              const docClient = DynamoDBDocumentClient.from(client);
-              await docClient.send(new PutCommand({
-                TableName: process.env.ACCEPTANCE_TESTS_TABLE,
-                Item: {
-                  id: testId,
-                  storyId: newStoryId,
-                  title: test.title || '',
-                  given: Array.isArray(test.given) ? test.given : [test.given],
-                  whenStep: Array.isArray(test.when) ? test.when : [test.when],
-                  thenStep: Array.isArray(test.then) ? test.then : [test.then],
-                  status: test.status || 'Draft',
-                  createdAt: timestamp,
-                  updatedAt: timestamp
-                }
-              }));
-            } else {
-              const stmt = db.prepare(
-                'INSERT INTO acceptance_tests (id, story_id, title, given, when_step, then_step, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-              );
-              await stmt.run(
-                testId,
-                newStoryId,
-                test.title || '',
-                JSON.stringify(Array.isArray(test.given) ? test.given : [test.given]),
-                JSON.stringify(Array.isArray(test.when) ? test.when : [test.when]),
-                JSON.stringify(Array.isArray(test.then) ? test.then : [test.then]),
-                test.status || 'Draft',
-                timestamp,
-                timestamp
-              );
-            }
+            const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+            const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+            const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+            const docClient = DynamoDBDocumentClient.from(client);
+            await docClient.send(new PutCommand({
+              TableName: process.env.ACCEPTANCE_TESTS_TABLE,
+              Item: {
+                id: testId,
+                storyId: newStoryId,
+                title: test.title || '',
+                given: Array.isArray(test.given) ? test.given : [test.given],
+                whenStep: Array.isArray(test.when) ? test.when : [test.when],
+                thenStep: Array.isArray(test.then) ? test.then : [test.then],
+                status: test.status || 'Draft',
+                createdAt: timestamp,
+                updatedAt: timestamp
+              }
+            }));
           }
         }
         
@@ -6121,19 +6078,14 @@ export async function createApp() {
         
         const INVEST_SCORE_THRESHOLD = 80;
         if (score < INVEST_SCORE_THRESHOLD && !payload.acceptWarnings) {
-          if (db.constructor.name === 'DynamoDBDataLayer') {
-            const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-            const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
-            const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-            const docClient = DynamoDBDocumentClient.from(client);
-            await docClient.send(new DeleteCommand({
-              TableName: process.env.STORIES_TABLE,
-              Key: { id: newStoryId }
-            }));
-          } else {
-            const stmt = db.prepare('DELETE FROM user_stories WHERE id = ?');
-            await stmt.run(newStoryId);
-          }
+          const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
+          const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+          const docClient = DynamoDBDocumentClient.from(client);
+          await docClient.send(new DeleteCommand({
+            TableName: process.env.STORIES_TABLE,
+            Key: { id: newStoryId }
+          }));
           
           sendJson(res, 409, {
             code: 'INVEST_SCORE_TOO_LOW',
