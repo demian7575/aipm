@@ -5104,43 +5104,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
     blocking: [],
   };
 
-  const testRows = await (async () => {
-    console.log('🔍 Loading acceptance tests for story:', storyId, 'DB type:', db.constructor.name);
-    if (db.constructor.name === 'DynamoDBDataLayer') {
-      // DynamoDB implementation for acceptance tests
-      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-      const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
-      
-      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-      const docClient = DynamoDBDocumentClient.from(client);
-      const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
-      
-      try {
-        console.log('🔍 Scanning DynamoDB table:', tableName, 'for storyId:', storyId);
-        const result = await docClient.send(new ScanCommand({
-          TableName: tableName,
-          FilterExpression: 'storyId = :storyId',
-          ExpressionAttributeValues: {
-            ':storyId': storyId
-          }
-        }));
-        
-        console.log('🔍 DynamoDB returned', result.Items?.length || 0, 'acceptance tests');
-        return result.Items || [];
-      } catch (error) {
-        console.error('Error loading acceptance tests from DynamoDB:', error);
-        return [];
-      }
-    } else {
-      // SQLite implementation
-      console.log('🔍 Using SQLite for acceptance tests');
-      return safeSelectAll(
-        db,
-        'SELECT * FROM acceptance_tests WHERE story_id = ? ORDER BY id',
-        storyId
-      );
-    }
-  })();
+  const testRows = await getAcceptanceTests(db, storyId);
   
   // Ensure testRows is an array
   const testRowsArray = Array.isArray(testRows) ? testRows : [];
