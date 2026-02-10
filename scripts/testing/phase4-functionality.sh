@@ -237,6 +237,27 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story 1770742386843: View All Stories button
+if [ "$1" == "1770742386843" ]; then
+  echo "Test 17: View All Stories button exists"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html | grep -q "view-all-stories-btn"; then
+    echo "  ✅ PASS: View All Stories button in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 18: openAllStoriesModal function exists"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "openAllStoriesModal"; then
+    echo "  ✅ PASS: openAllStoriesModal function in app.js"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openAllStoriesModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
