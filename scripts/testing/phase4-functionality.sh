@@ -622,6 +622,37 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# ============================================
+# SECTION 8: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "📦 SECTION 8: Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for story 1770723222094: View All Stories Modal
+  if [ "$STORY_ID" = "1770723222094" ]; then
+    echo "Test 43: View All Stories button exists in header"
+    if curl -s "$S3_FRONTEND_URL" | grep -q 'id="view-all-stories-btn"'; then
+      echo "  ✅ PASS: View All Stories button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View All Stories button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 44: openViewAllStoriesModal function exists"
+    if curl -s "$S3_FRONTEND_URL/app.js" | grep -q 'function openViewAllStoriesModal'; then
+      echo "  ✅ PASS: openViewAllStoriesModal function found"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openViewAllStoriesModal function not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+fi
+
 echo ""
 
 # ============================================
