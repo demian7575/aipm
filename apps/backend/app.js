@@ -5060,21 +5060,8 @@ async function loadStories(db, options = {}) {
 async function loadStoryWithDetails(db, storyId, options = {}) {
   const { includeAiInvest = false } = options;
   
-  let row;
-  // DynamoDB implementation
-  const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-  const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
-  
-  const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-  const docClient = DynamoDBDocumentClient.from(client);
-  const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-  
-  const result = await docClient.send(new GetCommand({
-    TableName: tableName,
-    Key: { id: storyId }
-  }));
-  
-  row = result.Item;
+  // Use db.getStoryById to respect X-Use-Dev-Tables header
+  const row = await db.getStoryById(storyId);
   
   if (!row) {
     return null;
