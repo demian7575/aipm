@@ -260,6 +260,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   
+  if (url.pathname === '/complete' && req.method === 'POST') {
+    // Legacy endpoint for semantic API compatibility
+    // HTTP pool doesn't need explicit completion notification
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'success' }));
+    return;
+  }
+  
   res.writeHead(404);
   res.end('Not found');
 });
