@@ -2684,6 +2684,7 @@ function renderAll() {
   updateWorkspaceColumns();
   renderOutline();
   renderMindmap();
+  renderKanban();
   renderDetails();
 }
 
