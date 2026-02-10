@@ -5103,25 +5103,20 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   const { includeAiInvest = false } = options;
   
   let row;
-  if (db.constructor.name === 'DynamoDBDataLayer') {
-    // DynamoDB implementation
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
-    
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-    const docClient = DynamoDBDocumentClient.from(client);
-    const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-    
-    const result = await docClient.send(new GetCommand({
-      TableName: tableName,
-      Key: { id: storyId }
-    }));
-    
-    row = result.Item;
-  } else {
-    // SQLite implementation
-    row = db.prepare('SELECT * FROM user_stories WHERE id = ?').get(storyId);
-  }
+  // DynamoDB implementation
+  const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+  const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
+  
+  const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+  const docClient = DynamoDBDocumentClient.from(client);
+  const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+  
+  const result = await docClient.send(new GetCommand({
+    TableName: tableName,
+    Key: { id: storyId }
+  }));
+  
+  row = result.Item;
   
   if (!row) {
     return null;
@@ -5242,39 +5237,7 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   });
 
 
-  const childRows = await (async () => {
-    if (db.constructor.name === 'DynamoDBDataLayer') {
-      // DynamoDB implementation for child stories - use scan since no index exists
-      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-      const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
-      
-      const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-      const docClient = DynamoDBDocumentClient.from(client);
-      const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-      
-      try {
-        const result = await docClient.send(new ScanCommand({
-          TableName: tableName,
-          FilterExpression: 'parentId = :parentId',
-          ExpressionAttributeValues: {
-            ':parentId': storyId
-          },
-          ProjectionExpression: 'id, #status',
-          ExpressionAttributeNames: {
-            '#status': 'status'
-          }
-        }));
-        
-        return result.Items || [];
-      } catch (error) {
-        console.error('Error loading child stories from DynamoDB:', error);
-        return [];
-      }
-    } else {
-      // SQLite implementation
-      return db.prepare('SELECT id, status FROM user_stories WHERE parent_id = ?').all(storyId);
-    }
-  })();
+  const childRows = await db.getChildStories(storyId);
   if (safeNormalizeStoryStatus(story.status) === 'Ready' && hasActiveProgressChild(childRows)) {
     story.status = 'In Progress';
   }
@@ -6418,33 +6381,7 @@ export async function createApp() {
         story.prs = prs;
         
         // Load children stories
-        const childRows = await (async () => {
-          if (db.constructor.name === 'DynamoDBDataLayer') {
-            const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-            const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
-            
-            const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-            const docClient = DynamoDBDocumentClient.from(client);
-            const tableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
-            
-            try {
-              const result = await docClient.send(new ScanCommand({
-                TableName: tableName,
-                FilterExpression: 'parentId = :parentId',
-                ExpressionAttributeValues: {
-                  ':parentId': storyId
-                }
-              }));
-              
-              return result.Items || [];
-            } catch (error) {
-              console.error('Error loading child stories from DynamoDB:', error);
-              return [];
-            }
-          } else {
-            return db.prepare('SELECT * FROM user_stories WHERE parent_id = ?').all(storyId);
-          }
-        })();
+        const childRows = await db.getChildStories(storyId);
         
         story.children = childRows.map(row => ({
           id: row.id,
@@ -6677,23 +6614,6 @@ export async function createApp() {
             Key: { id: storyId }
           }));
           console.log(`✅ Deleted story ${storyId}`);
-          
-        } else {
-          // SQLite: Delete acceptance tests
-          const deleteTestsStmt = db.prepare('DELETE FROM acceptance_tests WHERE story_id = ?');
-          const testsResult = deleteTestsStmt.run(storyId);
-          if (testsResult.changes > 0) {
-            console.log(`🗑️ Deleted ${testsResult.changes} acceptance tests for story ${storyId}`);
-          }
-          
-          // Delete the story
-          const statement = db.prepare('DELETE FROM user_stories WHERE id = ?');
-          const result = statement.run(storyId);
-          
-          if (result.changes === 0) {
-            sendJson(res, 404, { message: 'Story not found' });
-            return;
-          }
         }
         
         console.log(`✅ Successfully deleted story ${storyId}`);
