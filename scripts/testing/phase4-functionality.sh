@@ -625,6 +625,37 @@ fi
 echo ""
 
 # ============================================
+# SECTION 13: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "🎯 SECTION 13: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test 43: Story List Button exists in HTML
+  echo "Test 43: Story List Button in HTML"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story List Button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List Button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 44: Story List Button handler in app.js
+  echo "Test 44: Story List Button handler in app.js"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q 'storyListBtn'; then
+    echo "  ✅ PASS: Story List Button handler found in app.js"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List Button handler not found in app.js"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
