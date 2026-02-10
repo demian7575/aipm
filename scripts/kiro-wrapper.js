@@ -40,15 +40,17 @@ class KiroWrapper {
       const chunk = data.toString();
       this.outputBuffer += chunk;
       this.lastActivity = Date.now();
-      
-      // Detect completion signals
-      if (this.detectCompletion(chunk)) {
-        this.complete();
-      }
     });
     
     this.process.stderr.on('data', (data) => {
-      console.error(`[Session ${this.sessionId}] stderr:`, data.toString());
+      const chunk = data.toString();
+      this.outputBuffer += chunk;
+      this.lastActivity = Date.now();
+      
+      // Detect completion - Kiro outputs to stderr
+      if (this.detectCompletion(chunk)) {
+        this.complete();
+      }
     });
     
     this.process.on('close', (code) => {
@@ -64,10 +66,8 @@ class KiroWrapper {
   }
   
   detectCompletion(chunk) {
-    // Look for Kiro completion signals
-    return chunk.includes('TASK COMPLETE') || 
-           chunk.includes('You:') ||
-           chunk.match(/\n\s*$/); // Empty line after output
+    // Kiro shows "You:" prompt when ready for next input
+    return chunk.includes('You:');
   }
   
   async execute(prompt) {
@@ -106,9 +106,11 @@ class KiroWrapper {
         this.currentReject(error);
       }
     } else {
-      console.log(`[Session ${this.sessionId}] Completed successfully (${this.outputBuffer.length} chars)`);
+      // Strip ANSI codes
+      const cleaned = this.outputBuffer.replace(/\x1b\[[0-9;]*m/g, '').trim();
+      console.log(`[Session ${this.sessionId}] Completed successfully (${cleaned.length} chars)`);
       if (this.currentResolve) {
-        this.currentResolve(this.outputBuffer);
+        this.currentResolve(cleaned);
       }
     }
     
