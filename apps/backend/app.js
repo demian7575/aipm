@@ -7372,6 +7372,14 @@ export async function createApp() {
             title: story.title,
             status: story.status,
             parentId: story.parentId,
+            acceptanceTests: acceptanceTests.map(t => ({
+              id: t.id,
+              title: t.title,
+              given: t.given,
+              when: t.when,
+              then: t.then,
+              status: t.status
+            })),
             coverage: {
               stories: descendantCount,
               acceptanceTests: totalTests,

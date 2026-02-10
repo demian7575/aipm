@@ -3924,6 +3924,63 @@ function updateRTMTable() {
     tdTitle.appendChild(titleContainer);
     tr.appendChild(tdTitle);
     
+    // Acceptance Tests column (new)
+    const tdTests = document.createElement('td');
+    tdTests.className = 'rtm-col-tests';
+    
+    if (row.acceptanceTests && row.acceptanceTests.length > 0) {
+      const testList = document.createElement('div');
+      testList.className = 'rtm-test-list';
+      
+      row.acceptanceTests.forEach(test => {
+        const testItem = document.createElement('div');
+        testItem.className = 'rtm-test-item';
+        
+        const testHeader = document.createElement('div');
+        testHeader.className = 'rtm-test-header';
+        testHeader.innerHTML = `
+          <span class="rtm-test-expand">▶</span>
+          <span class="rtm-test-title">${test.title || 'Untitled Test'}</span>
+          <span class="rtm-test-status status-${test.status?.toLowerCase() || 'draft'}">${test.status || 'Draft'}</span>
+        `;
+        
+        const testDetails = document.createElement('div');
+        testDetails.className = 'rtm-test-details';
+        testDetails.style.display = 'none';
+        testDetails.innerHTML = `
+          <div class="rtm-test-section">
+            <strong>Given:</strong>
+            <ul>${(test.given || []).map(g => `<li>${g}</li>`).join('')}</ul>
+          </div>
+          <div class="rtm-test-section">
+            <strong>When:</strong>
+            <ul>${(test.when || []).map(w => `<li>${w}</li>`).join('')}</ul>
+          </div>
+          <div class="rtm-test-section">
+            <strong>Then:</strong>
+            <ul>${(test.then || []).map(t => `<li>${t}</li>`).join('')}</ul>
+          </div>
+        `;
+        
+        testHeader.addEventListener('click', () => {
+          const isExpanded = testDetails.style.display !== 'none';
+          testDetails.style.display = isExpanded ? 'none' : 'block';
+          testHeader.querySelector('.rtm-test-expand').textContent = isExpanded ? '▶' : '▼';
+        });
+        
+        testItem.appendChild(testHeader);
+        testItem.appendChild(testDetails);
+        testList.appendChild(testItem);
+      });
+      
+      tdTests.appendChild(testList);
+    } else {
+      tdTests.textContent = '-';
+      tdTests.style.color = '#999';
+    }
+    
+    tr.appendChild(tdTests);
+    
     // Coverage columns
     ['stories', 'acceptanceTests', 'code', 'docs', 'ci'].forEach(type => {
       const td = document.createElement('td');

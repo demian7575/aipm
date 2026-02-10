@@ -2753,6 +2753,114 @@ dialog[data-size='content'] .modal-shell {
   z-index: 5;
 }
 
+.rtm-col-tests {
+  min-width: 300px;
+  max-width: 500px;
+  position: sticky;
+  left: 330px;
+  background: #fff;
+  z-index: 5;
+  padding: 0.5rem;
+}
+
+.rtm-test-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rtm-test-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rtm-test-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  background: #f8fafc;
+  transition: background 0.2s;
+}
+
+.rtm-test-header:hover {
+  background: #f1f5f9;
+}
+
+.rtm-test-expand {
+  font-size: 0.7rem;
+  color: #64748b;
+  user-select: none;
+}
+
+.rtm-test-title {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.rtm-test-status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.rtm-test-status.status-draft {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.rtm-test-status.status-ready {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.rtm-test-status.status-pass {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.rtm-test-status.status-fail {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rtm-test-details {
+  padding: 0.75rem;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+}
+
+.rtm-test-section {
+  margin-bottom: 0.75rem;
+}
+
+.rtm-test-section:last-child {
+  margin-bottom: 0;
+}
+
+.rtm-test-section strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #475569;
+}
+
+.rtm-test-section ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+.rtm-test-section li {
+  margin-bottom: 0.25rem;
+  color: #64748b;
+}
+
 .rtm-col-coverage {
   width: 80px;
   text-align: center;
