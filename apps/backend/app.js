@@ -5834,8 +5834,6 @@ export async function createApp() {
         // Create story first
         const timestamp = now();
         
-        // Check if using DynamoDB or SQLite
-        const db = await ensureDatabase();
         let newStoryId;
         
         // DynamoDB implementation
