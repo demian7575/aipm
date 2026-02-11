@@ -45,6 +45,4 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
     "model": "kiro-cli"
   }'
 
-4. After curl completes, say exactly: "Task Complete"
-
-**STOP after step 4. Do not analyze, explain, or continue.**
+4. Output "Task Complete" (per SEMANTIC_API_GUIDELINES.md)

@@ -39,3 +39,14 @@ All templates follow this pattern:
 3. Generate/analyze content
 4. Replace placeholders in curl command
 5. Execute curl command with bash tool
+6. **After curl completes successfully, output exactly: "Task Complete"**
+
+## COMPLETION SIGNAL
+
+**CRITICAL**: After executing the curl command and receiving a response, you MUST output exactly:
+
+```
+Task Complete
+```
+
+This signals the wrapper that the task is finished. Do NOT continue thinking, analyzing, or explaining after this point.
