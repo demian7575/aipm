@@ -62,23 +62,15 @@ class KiroWrapper {
   }
   
   restart() {
-    console.log(`[Session ${this.sessionId}] Restarting Kiro process...`);
+    console.log(`[Session ${this.sessionId}] Timeout - exiting for systemd restart`);
     
-    // Kill existing process
+    // Kill Kiro process
     if (this.process) {
       this.process.kill('SIGTERM');
     }
     
-    // Clear state
-    this.busy = false;
-    this.outputBuffer = '';
-    if (this.busyTimeout) {
-      clearTimeout(this.busyTimeout);
-      this.busyTimeout = null;
-    }
-    
-    // Restart after brief delay
-    setTimeout(() => this.start(), 1000);
+    // Exit wrapper - systemd will restart it cleanly
+    process.exit(1);
   }
   
   checkIfReady(output) {
