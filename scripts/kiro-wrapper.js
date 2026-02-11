@@ -31,12 +31,8 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Use script to fake a TTY so Kiro doesn't exit immediately
-    this.process = spawn('script', [
-      '-q', '-c', 
-      '/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools',
-      '/dev/null'
-    ], {
+    // Start Kiro with --no-interactive flag
+    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools', '--no-interactive'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: '/home/ec2-user/aipm'
     });
@@ -47,12 +43,14 @@ class KiroWrapper {
       console.log(`[Session ${this.sessionId}] Stdin error: ${err.message}`);
     });
     
-    // Send empty line to keep Kiro alive (it expects input)
+    // Send initial prompt after startup to keep Kiro alive
     setTimeout(() => {
-      if (this.process && this.process.stdin.writable) {
-        this.process.stdin.write('\n');
+      if (this.process && this.process.stdin.writable && !this.busy) {
+        console.log(`[Session ${this.sessionId}] Sending keepalive prompt`);
+        this.process.stdin.write('Say "ready" and nothing else.\n');
+        this.busy = true; // Mark as busy until we get response
       }
-    }, 2000);
+    }, 3000);
     
     // Capture stdout
     this.process.stdout.on('data', (data) => {
