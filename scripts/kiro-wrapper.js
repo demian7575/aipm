@@ -170,16 +170,14 @@ class KiroWrapper extends EventEmitter {
 
     // Handle process exit
     child.onExit(({ exitCode, signal }) => {
-      this.onExit(exitCode, signal);
+      if (this && typeof this.onExit === 'function') {
+        this.onExit(exitCode, signal);
+      }
     });
 
     child.on('error', (err) => {
-      try {
-        this.lastError = `process error: ${err.message}`;
-        this.log(`Process error: ${err.message}`);
-      } catch (e) {
-        console.error(`[Session ${this.sessionId}] Error in error handler: ${e.message}`);
-      }
+      this.lastError = `process error: ${err.message}`;
+      this.log(`Process error: ${err.message}`);
     });
 
     this.log(`Started (PID: ${child.pid})`);
