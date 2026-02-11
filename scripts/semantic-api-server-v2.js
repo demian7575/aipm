@@ -153,7 +153,15 @@ const server = http.createServer(async (req, res) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, requestId })
-      }).catch(err => {
+      })
+      .then(response => {
+        // Consume response but don't wait for callback
+        if (!response.ok) {
+          throw new Error(`Session pool returned ${response.status}`);
+        }
+        // Success - Kiro will callback when done
+      })
+      .catch(err => {
         console.error('Error sending to session pool:', err);
         if (pendingRequests.has(requestId)) {
           const pending = pendingRequests.get(requestId);
