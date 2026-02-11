@@ -59,6 +59,7 @@ const CONFIG = {
   maxRestartsPerWindow: Number.parseInt(process.env.KIRO_RESTART_BURST_MAX, 10) || 8,
   restartWindowMs: Number.parseInt(process.env.KIRO_RESTART_WINDOW_MS, 10) || 300_000,
   stopGraceMs: Number.parseInt(process.env.KIRO_STOP_GRACE_MS, 10) || 7_500,
+  stableUptimeResetMs: Number.parseInt(process.env.KIRO_STABLE_UPTIME_RESET_MS, 10) || 60_000,
 };
 
 const stripAnsi = (text) => text.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '');
@@ -82,8 +83,10 @@ class KiroWrapper extends EventEmitter {
     this.outputBuffer = '';
     this.lastActivityAt = Date.now();
     this.startedAt = null;
+    this.processStartedAt = null;
     this.lastExit = null;
     this.lastError = null;
+    this.expectedExitReason = null;
 
     this.promptTimer = null;
     this.stallTimer = null;
@@ -134,6 +137,8 @@ class KiroWrapper extends EventEmitter {
 
     this.state = 'starting';
     this.startedAt = Date.now();
+    this.processStartedAt = Date.now();
+    this.expectedExitReason = null;
     this.metrics.starts += 1;
     this.lastActivityAt = Date.now();
 
@@ -245,14 +250,24 @@ class KiroWrapper extends EventEmitter {
     this.metrics.exits += 1;
 
     const hadBusyWork = this.busy;
+    const expectedExitReason = this.expectedExitReason;
+    const wasShutdown = this.state === 'shutting_down';
+    const uptimeMs = this.processStartedAt ? Date.now() - this.processStartedAt : 0;
+    const cleanExit = code === 0 && !signal;
+    const countTowardsCircuit = !expectedExitReason && (hadBusyWork || !cleanExit);
+
     this.lastExit = {
       code,
       signal,
       at: new Date().toISOString(),
+      expectedExitReason,
+      uptimeMs,
     };
 
     this.log(`Kiro process closed (code=${String(code)}, signal=${String(signal)})`);
     this.process = null;
+    this.processStartedAt = null;
+    this.expectedExitReason = null;
     this.state = 'stopped';
     this.clearPromptTimer();
 
@@ -263,38 +278,52 @@ class KiroWrapper extends EventEmitter {
       this.currentPrompt = null;
     }
 
-    this.scheduleRecovery('process exited');
-  }
-
-  scheduleRecovery(reason) {
-    this.clearRecoveryTimer();
-
-    const now = Date.now();
-    this.restartHistory.push(now);
-    this.restartHistory = this.restartHistory.filter(
-      (ts) => now - ts <= this.config.restartWindowMs,
-    );
-
-    const attempts = this.restartHistory.length;
-    const base = this.config.restartBaseDelayMs;
-    const capped = Math.min(
-      this.config.restartMaxDelayMs,
-      base * 2 ** Math.max(attempts - 1, 0),
-    );
-    const jitter = Math.floor(Math.random() * 500);
-    const delay = capped + jitter;
-
-    if (attempts > this.config.maxRestartsPerWindow) {
-      this.state = 'degraded';
-      this.lastError =
-        `restart circuit open: ${attempts} restarts in ${this.config.restartWindowMs}ms`;
-      this.log(`Recovery paused (${this.lastError})`);
+    if (wasShutdown) {
       return;
     }
 
+    if (uptimeMs >= this.config.stableUptimeResetMs) {
+      this.restartHistory = [];
+    }
+
+    this.scheduleRecovery('process exited', { countTowardsCircuit });
+  }
+
+  scheduleRecovery(reason, options = {}) {
+    this.clearRecoveryTimer();
+
+    const { countTowardsCircuit = true } = options;
+    let attempts = 1;
+
+    if (countTowardsCircuit) {
+      const now = Date.now();
+      this.restartHistory.push(now);
+      this.restartHistory = this.restartHistory.filter(
+        (ts) => now - ts <= this.config.restartWindowMs,
+      );
+      attempts = this.restartHistory.length;
+
+      if (attempts > this.config.maxRestartsPerWindow) {
+        this.state = 'degraded';
+        this.lastError =
+          `restart circuit open: ${attempts} restarts in ${this.config.restartWindowMs}ms`;
+        this.log(`Recovery paused (${this.lastError})`);
+        return;
+      }
+    }
+
+    const base = this.config.restartBaseDelayMs;
+    const capped = countTowardsCircuit
+      ? Math.min(this.config.restartMaxDelayMs, base * 2 ** Math.max(attempts - 1, 0))
+      : base;
+    const jitter = Math.floor(Math.random() * 500);
+    const delay = capped + jitter;
+
     this.metrics.restarts += 1;
     this.state = 'recovering';
-    this.log(`Scheduling recovery in ${delay}ms (reason: ${reason}, attempt=${attempts})`);
+    this.log(
+      `Scheduling recovery in ${delay}ms (reason: ${reason}, attempt=${attempts}, counted=${countTowardsCircuit})`,
+    );
 
     this.recoveryTimer = setTimeout(() => {
       this.recoveryTimer = null;
@@ -316,6 +345,7 @@ class KiroWrapper extends EventEmitter {
     this.currentPrompt = null;
     this.clearPromptTimer();
 
+    this.expectedExitReason = `restart:${reason}`;
     child.kill('SIGTERM');
 
     setTimeout(() => {
@@ -406,6 +436,7 @@ class KiroWrapper extends EventEmitter {
     }
 
     const child = this.process;
+    this.expectedExitReason = 'shutdown';
     child.kill('SIGTERM');
 
     await new Promise((resolve) => {
