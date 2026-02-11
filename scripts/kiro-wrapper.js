@@ -31,16 +31,18 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Use socat to create a proper PTY
-    // socat creates a bidirectional PTY and keeps it open
-    this.process = spawn('socat', 
-      ['EXEC:"/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools",pty,setsid,ctty', 'STDIO'], 
+    // Use script command to create a PTY session
+    this.process = spawn('script', 
+      ['-q', '-c', '/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools', '/dev/null'], 
       {
         cwd: '/home/ec2-user/aipm',
         env: process.env,
         stdio: ['pipe', 'pipe', 'pipe']
       }
     );
+    
+    // Keep stdin open - don't end it
+    this.process.stdin.setEncoding('utf8');
     
     this.process.stdout.on('data', (data) => {
       const output = data.toString();
