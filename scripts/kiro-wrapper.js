@@ -43,6 +43,13 @@ class KiroWrapper {
       console.log(`[Session ${this.sessionId}] Stdin error: ${err.message}`);
     });
     
+    // Send empty line to keep Kiro alive (it expects input)
+    setTimeout(() => {
+      if (this.process && this.process.stdin.writable) {
+        this.process.stdin.write('\n');
+      }
+    }, 2000);
+    
     // Capture stdout
     this.process.stdout.on('data', (data) => {
       const output = data.toString();
