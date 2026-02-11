@@ -45,8 +45,6 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
     "model": "kiro-cli"
   }'
 
-**CRITICAL**: You MUST execute the curl command using bash tool
+4. After curl succeeds, output exactly: "Task Complete"
 
-## TASK COMPLETE
-
-**STOP HERE. This task is now complete. Do not make any further changes or analysis.**
+**CRITICAL**: Execute curl then immediately output "Task Complete" and stop.
