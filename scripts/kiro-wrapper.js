@@ -33,6 +33,8 @@ class KiroWrapper {
     this.lastActivity = Date.now();
     
     return new Promise((resolve, reject) => {
+      const promptPreview = prompt.length > 100 ? prompt.substring(0, 100) + '...' : prompt;
+      console.log(`[Session ${this.sessionId}] [STDIN] Executing prompt: ${promptPreview}`);
       console.log(`[Session ${this.sessionId}] Starting Kiro for request`);
       
       // Spawn Kiro with the prompt as input argument
