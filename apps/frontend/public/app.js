@@ -52,6 +52,7 @@ const collapseAllBtn = document.getElementById('collapse-all');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const referenceBtn = document.getElementById('reference-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
@@ -753,6 +754,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8176,6 +8183,53 @@ function openReferenceModal(storyId) {
   }
 
   openModal({ title: 'Reference Document List', content: container });
+}
+
+/**
+ * Opens modal showing list of all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  container.style.maxHeight = '60vh';
+  container.style.overflowY = 'auto';
+  
+  const allStories = flattenStories(state.stories);
+  
+  if (allStories.length === 0) {
+    const placeholder = document.createElement('p');
+    placeholder.className = 'placeholder';
+    placeholder.textContent = 'No stories available.';
+    container.appendChild(placeholder);
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.cursor = 'pointer';
+      item.textContent = story.title;
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = '';
+      });
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({ title: 'Story List', content: container, cancelLabel: 'Close' });
 }
 
 async function createRootStory() {

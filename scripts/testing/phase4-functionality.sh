@@ -237,6 +237,26 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 17: Story List Button functionality (Story ID: 1770792254142)
+echo "Test 17: Story List Button"
+if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html | grep -q "story-list-btn"; then
+  echo "  ✅ PASS: Story List button exists in HTML"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: Story List button not found"
+  FAILED=$((FAILED + 1))
+fi
+
+# Test 18: Story List Modal function exists (Story ID: 1770792254142)
+echo "Test 18: Story List Modal function"
+if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "openStoryListModal"; then
+  echo "  ✅ PASS: openStoryListModal function exists"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: openStoryListModal function not found"
+  FAILED=$((FAILED + 1))
+fi
+
 echo ""
 
 # ============================================
@@ -245,8 +265,8 @@ echo ""
 echo "💾 SECTION 5: Database Tables"
 echo "-----------------------------------"
 
-# Test 17: Stories table exists
-echo "Test 17: Stories table"
+# Test 19: Stories table exists
+echo "Test 19: Stories table"
 if aws dynamodb describe-table --table-name aipm-backend-prod-stories --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Stories table active"
   PASSED=$((PASSED + 1))
@@ -255,7 +275,7 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 18: Acceptance tests table exists
+# Test 20: Acceptance tests table exists
 echo "Test 18: Acceptance tests table"
 if aws dynamodb describe-table --table-name aipm-backend-prod-acceptance-tests --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Acceptance tests table active"
@@ -265,7 +285,7 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 19: Test results table exists
+# Test 21: Test results table exists
 echo "Test 19: Test results table"
 if aws dynamodb describe-table --table-name aipm-backend-prod-test-results --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Test results table active"
@@ -275,8 +295,8 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 20: PRs table exists
-echo "Test 20: PRs table"
+# Test 22: PRs table exists
+echo "Test 22: PRs table"
 if aws dynamodb describe-table --table-name aipm-backend-prod-prs --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
   echo "  ✅ PASS: PRs table active"
   PASSED=$((PASSED + 1))
@@ -293,7 +313,7 @@ echo ""
 echo "⚙️  SECTION 6: Configuration"
 echo "-----------------------------------"
 
-# Test 21: Environment config file exists
+# Test 23: Environment config file exists
 echo "Test 21: Environment config"
 if [ -f "$SCRIPT_DIR/../../config/environments.yaml" ]; then
   echo "  ✅ PASS: environments.yaml exists"
@@ -303,8 +323,8 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 22: Backend process running (verified by health endpoint)
-echo "Test 22: Backend process"
+# Test 24: Backend process running (verified by health endpoint)
+echo "Test 24: Backend process"
 if curl -s "$API_BASE/health" | jq -e '.status == "running"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Backend process running (health endpoint responds)"
   PASSED=$((PASSED + 1))
@@ -313,8 +333,8 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 23: Semantic API process running (verified by health endpoint)
-echo "Test 23: Semantic API process"
+# Test 25: Semantic API process running (verified by health endpoint)
+echo "Test 25: Semantic API process"
 if curl -s http://100.53.112.192:8083/health | jq -e '.status == "healthy"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Semantic API process running (health endpoint responds)"
   PASSED=$((PASSED + 1))
@@ -323,8 +343,8 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 24: Session Pool process running (verified by health endpoint)
-echo "Test 24: Session Pool process"
+# Test 26: Session Pool process running (verified by health endpoint)
+echo "Test 26: Session Pool process"
 if curl -s http://100.53.112.192:8082/health | jq -e '.status == "healthy"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Session Pool process running (health endpoint responds)"
   PASSED=$((PASSED + 1))
@@ -341,7 +361,7 @@ echo ""
 echo "💾 SECTION 7: DynamoDB Direct Operations"
 echo "-----------------------------------"
 
-# Test 25: Count stories in production
+# Test 27: Count stories in production
 echo "Test 25: Count stories in production DB"
 STORY_COUNT=$(aws dynamodb scan --table-name aipm-backend-prod-stories --select COUNT --region us-east-1 2>/dev/null | jq -r '.Count')
 if [ "$STORY_COUNT" -gt 0 ]; then
@@ -352,7 +372,7 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 26: Count acceptance tests
+# Test 28: Count acceptance tests
 echo "Test 26: Count acceptance tests"
 TEST_COUNT=$(aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --select COUNT --region us-east-1 2>/dev/null | jq -r '.Count')
 if [ "$TEST_COUNT" -ge 92 ]; then
@@ -363,7 +383,7 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 27: Verify storyId index exists
+# Test 29: Verify storyId index exists
 echo "Test 27: Verify storyId index"
 if aws dynamodb describe-table --table-name aipm-backend-prod-acceptance-tests --region us-east-1 2>/dev/null | jq -e '.Table.GlobalSecondaryIndexes[]? | select(.IndexName == "storyId-index")' > /dev/null 2>&1; then
   echo "  ✅ PASS: storyId-index exists"
@@ -381,7 +401,7 @@ echo ""
 echo "🖥️  SECTION 8: System Health"
 echo "-----------------------------------"
 
-# Test 28: Check disk space
+# Test 30: Check disk space
 echo "Test 28: Check disk space"
 DISK_USAGE=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 ubuntu@100.53.112.192 "df -h / | tail -1 | awk '{print \$5}' | sed 's/%//'" 2>/dev/null || echo "0")
 if [ "$DISK_USAGE" -gt 0 ] && [ "$DISK_USAGE" -lt 90 ]; then
@@ -395,7 +415,7 @@ else
   PASSED=$((PASSED + 1))
 fi
 
-# Test 29: Check Node.js version
+# Test 31: Check Node.js version
 echo "Test 29: Check Node.js version"
 NODE_VERSION=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 ubuntu@100.53.112.192 "node --version 2>/dev/null" 2>/dev/null || echo "")
 if [[ "$NODE_VERSION" == v18* ]] || [[ "$NODE_VERSION" == v20* ]]; then
@@ -426,7 +446,7 @@ TEST_STORY_GEN=$(curl -s -X POST "$API_BASE/api/stories" \
 if echo "$TEST_STORY_GEN" | jq -e '.id' > /dev/null 2>&1; then
   GEN_STORY_ID=$(echo "$TEST_STORY_GEN" | jq -r '.id')
   
-  # Test 30: Code generation endpoint
+  # Test 32: Code generation endpoint
   echo "Test 30: Code generation endpoint"
   GEN_RESULT=$(curl -s -X POST "$API_BASE/api/generate-code-branch" \
     -H 'Content-Type: application/json' \
@@ -441,7 +461,7 @@ if echo "$TEST_STORY_GEN" | jq -e '.id' > /dev/null 2>&1; then
     FAILED=$((FAILED + 1))
   fi
   
-  # Test 31: Personal delegate endpoint
+  # Test 33: Personal delegate endpoint
   echo "Test 31: Personal delegate endpoint"
   DELEGATE_RESULT=$(curl -s -X POST "$API_BASE/api/personal-delegate" \
     -H 'Content-Type: application/json' \
@@ -471,8 +491,8 @@ echo ""
 echo "📄 SECTION 10: Template Management"
 echo "-----------------------------------"
 
-# Test 32: List templates
-echo "Test 32: List templates"
+# Test 34: List templates
+echo "Test 34: List templates"
 TEMPLATES=$(curl -s "$API_BASE/api/templates")
 if echo "$TEMPLATES" | jq -e 'type == "array" and length > 0' > /dev/null 2>&1; then
   TEMPLATE_COUNT=$(echo "$TEMPLATES" | jq 'length')
@@ -505,7 +525,7 @@ echo ""
 echo "🚀 SECTION 11: Deployment & CI/CD"
 echo "-----------------------------------"
 
-# Test 34: Trigger deployment endpoint
+# Test 36: Trigger deployment endpoint
 echo "Test 34: Trigger deployment endpoint"
 DEPLOY_RESULT=$(curl -s -X POST "$API_BASE/api/trigger-deployment" \
   -H 'Content-Type: application/json' \
@@ -519,7 +539,7 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 35: Deploy PR endpoint
+# Test 37: Deploy PR endpoint
 echo "Test 35: Deploy PR endpoint"
 DEPLOY_PR_RESULT=$(curl -s -X POST "$API_BASE/api/deploy-pr" \
   -H 'Content-Type: application/json' \
@@ -533,7 +553,7 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 36: Merge PR endpoint
+# Test 38: Merge PR endpoint
 echo "Test 36: Merge PR endpoint"
 MERGE_RESULT=$(curl -s -X POST "$API_BASE/api/merge-pr" \
   -H 'Content-Type: application/json' \
@@ -555,7 +575,7 @@ echo ""
 echo "⚙️  SECTION 12: GitHub Actions Workflow"
 echo "-----------------------------------"
 
-# Test 37: Check workflow file exists
+# Test 39: Check workflow file exists
 echo "Test 37: GitHub Actions workflow file"
 if [ -f ".github/workflows/deploy-to-prod.yml" ]; then
   echo "  ✅ PASS: deploy-to-prod.yml exists"
@@ -565,7 +585,7 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 38: Verify workflow syntax
+# Test 40: Verify workflow syntax
 echo "Test 38: Workflow YAML syntax"
 if cat .github/workflows/deploy-to-prod.yml | grep -q "on:" && cat .github/workflows/deploy-to-prod.yml | grep -q "jobs:"; then
   echo "  ✅ PASS: Workflow has valid structure"
@@ -575,7 +595,7 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 39: Check workflow has gating tests
+# Test 41: Check workflow has gating tests
 echo "Test 39: Workflow includes gating tests"
 if cat .github/workflows/deploy-to-prod.yml | grep -q "run-structured-gating-tests"; then
   echo "  ✅ PASS: Gating tests configured in workflow"
@@ -585,8 +605,8 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 40: Check workflow has deployment steps
-echo "Test 40: Workflow includes deployment"
+# Test 42: Check workflow has deployment steps
+echo "Test 42: Workflow includes deployment"
 if cat .github/workflows/deploy-to-prod.yml | grep -q "deploy-prod" || cat .github/workflows/deploy-to-prod.yml | grep -q "Deploy to"; then
   echo "  ✅ PASS: Deployment steps configured"
   PASSED=$((PASSED + 1))
@@ -595,7 +615,7 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# Test 41: Verify latest workflow run status (via GitHub API)
+# Test 43: Verify latest workflow run status (via GitHub API)
 echo "Test 41: Latest workflow run status"
 WORKFLOW_STATUS=$(curl -s -H "Accept: application/vnd.github.v3+json" \
   "https://api.github.com/repos/demian7575/aipm/actions/runs?per_page=1" 2>/dev/null | \
@@ -612,7 +632,7 @@ else
   PASSED=$((PASSED + 1))
 fi
 
-# Test 42: Check workflow triggers
+# Test 44: Check workflow triggers
 echo "Test 42: Workflow triggers configured"
 if cat .github/workflows/deploy-to-prod.yml | grep -q "push:" || cat .github/workflows/deploy-to-prod.yml | grep -q "workflow_dispatch:"; then
   echo "  ✅ PASS: Workflow triggers configured"
@@ -652,7 +672,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 44 (36 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
