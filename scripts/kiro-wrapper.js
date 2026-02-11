@@ -11,6 +11,7 @@
 
 import { spawn } from 'child_process';
 import http from 'http';
+import pty from 'node-pty';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
@@ -31,30 +32,24 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Start Kiro in interactive mode (no --no-interactive flag)
-    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      cwd: '/home/ec2-user/aipm'
+    // Use PTY to fake a real terminal
+    this.process = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
+      name: 'xterm-color',
+      cols: 80,
+      rows: 30,
+      cwd: '/home/ec2-user/aipm',
+      env: process.env
     });
     
-    // Capture stdout
-    this.process.stdout.on('data', (data) => {
-      const output = data.toString();
-      process.stdout.write(output); // Pass through to systemd log
-      this.outputBuffer += output;
-      this.checkIfReady(output);
+    // Capture output
+    this.process.onData((data) => {
+      process.stdout.write(data); // Pass through to systemd log
+      this.outputBuffer += data;
+      this.checkIfReady(data);
     });
     
-    // Capture stderr (Kiro outputs here)
-    this.process.stderr.on('data', (data) => {
-      const output = data.toString();
-      process.stderr.write(output); // Pass through to systemd log
-      this.outputBuffer += output;
-      this.checkIfReady(output);
-    });
-    
-    this.process.on('close', (code) => {
-      console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
+    this.process.onExit(({ exitCode }) => {
+      console.log(`[Session ${this.sessionId}] Kiro process closed with code ${exitCode}`);
       this.process = null;
       this.markAvailable();
     });
@@ -120,7 +115,7 @@ class KiroWrapper {
     // Send prompt to Kiro
     console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
     console.log(`[Session ${this.sessionId}] Prompt: ${prompt}`);
-    this.process.stdin.write(prompt + '\n');
+    this.process.write(prompt + '\n');
     
     // Safety timeout - restart Kiro if it doesn't complete
     this.busyTimeout = setTimeout(() => {
