@@ -11,7 +11,6 @@
 
 import { spawn } from 'child_process';
 import http from 'http';
-import pty from 'node-pty';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
@@ -35,34 +34,26 @@ class KiroWrapper {
     return new Promise((resolve, reject) => {
       console.log(`[Session ${this.sessionId}] Starting Kiro for request`);
       
-      // Spawn Kiro in interactive mode
-      const kiroProcess = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', 
-        ['chat', '--trust-all-tools'], 
-        {
-          name: 'xterm-color',
-          cols: 80,
-          rows: 30,
-          cwd: '/home/ec2-user/aipm',
-          env: process.env
-        }
-      );
-      
-      let output = '';
-      let ready = false;
-      
-      kiroProcess.onData((data) => {
-        output += data;
-        process.stdout.write(data);
-        
-        // Wait for prompt to appear, then send our prompt
-        if (!ready && data.includes('> ')) {
-          ready = true;
-          console.log(`[Session ${this.sessionId}] Kiro ready, sending prompt`);
-          kiroProcess.write(prompt + '\n');
-        }
+      // Use echo to pipe prompt to Kiro stdin
+      const kiroProcess = spawn('bash', ['-c', 
+        `echo ${JSON.stringify(prompt)} | /home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools`
+      ], {
+        cwd: '/home/ec2-user/aipm',
+        env: process.env
       });
       
-      kiroProcess.onExit(({ exitCode }) => {
+      let output = '';
+      
+      kiroProcess.stdout.on('data', (data) => {
+        output += data.toString();
+        process.stdout.write(data);
+      });
+      
+      kiroProcess.stderr.on('data', (data) => {
+        process.stderr.write(data);
+      });
+      
+      kiroProcess.on('close', (exitCode) => {
         console.log(`[Session ${this.sessionId}] Kiro completed with code ${exitCode}`);
         this.busy = false;
         this.lastActivity = Date.now();
