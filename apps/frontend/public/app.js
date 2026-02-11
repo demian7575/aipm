@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -753,6 +754,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewAllStoriesBtn) {
+  viewAllStoriesBtn.addEventListener('click', () => {
+    openViewAllStoriesModal();
   });
 }
 
@@ -8023,6 +8030,48 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+async function openViewAllStoriesModal() {
+  try {
+    const response = await fetch(resolveApiUrl('/api/data'));
+    if (!response.ok) throw new Error('Failed to fetch stories');
+    const stories = await response.json();
+    
+    const container = document.createElement('div');
+    container.style.maxHeight = '60vh';
+    container.style.overflowY = 'auto';
+    
+    const flatStories = flattenStories(stories);
+    
+    if (flatStories.length === 0) {
+      container.innerHTML = '<p>No stories found.</p>';
+    } else {
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      flatStories.forEach(story => {
+        const item = document.createElement('li');
+        item.style.padding = '0.5rem';
+        item.style.borderBottom = '1px solid #eee';
+        item.textContent = story.title;
+        list.appendChild(item);
+      });
+      
+      container.appendChild(list);
+    }
+    
+    openModal({
+      title: 'All Stories',
+      content: container,
+      actions: []
+    });
+  } catch (error) {
+    console.error('Failed to load stories:', error);
+    showToast('Failed to load stories', 'error');
+  }
 }
 
 function openReferenceModal(storyId) {
