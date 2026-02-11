@@ -117,6 +117,8 @@ const server = http.createServer(async (req, res) => {
     try {
       const parameters = body ? JSON.parse(body) : Object.fromEntries(url.searchParams);
       
+      console.log(`📦 Parameters received:`, JSON.stringify(parameters).substring(0, 200));
+      
       // Generate requestId if not provided
       const requestId = parameters.requestId || crypto.randomUUID();
       
