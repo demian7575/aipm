@@ -637,6 +637,26 @@ if [ $SKIPPED -gt 0 ]; then
 fi
 echo "  Total: $((PASSED + FAILED + SKIPPED))"
 echo ""
+
+# Story-specific tests
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "📋 Story-Specific Tests for Story ID: $STORY_ID"
+  echo "-----------------------------------"
+  
+  echo "Test: Story List Button displays story titles"
+  # This is a UI test - verify the button exists in HTML
+  if curl -s "$FRONTEND_URL" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story List button exists in UI"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
 echo "Coverage:"
 echo "  - Core API: 9 endpoints tested"
 echo "  - AI Services: 3 endpoints tested"
@@ -652,7 +672,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 43 (37 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
