@@ -60,8 +60,8 @@ class KiroWrapper {
   }
   
   checkIfReady(output) {
-    // Kiro shows "You:" when ready for next input
-    if (this.busy && output.includes('You:')) {
+    // Kiro shows "Task Complete" or ready indicators when done
+    if (this.busy && (output.includes('Task Complete') || output.includes('You:'))) {
       console.log(`[Session ${this.sessionId}] Kiro ready for next input`);
       this.markAvailable();
     }
