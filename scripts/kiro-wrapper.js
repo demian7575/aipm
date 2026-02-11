@@ -35,9 +35,9 @@ class KiroWrapper {
     return new Promise((resolve, reject) => {
       console.log(`[Session ${this.sessionId}] Starting Kiro for request`);
       
-      // Spawn Kiro with the prompt as input argument
-      const process = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', 
-        ['chat', '--trust-all-tools', prompt], 
+      // Spawn Kiro in interactive mode
+      const kiroProcess = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', 
+        ['chat', '--trust-all-tools'], 
         {
           name: 'xterm-color',
           cols: 80,
@@ -48,13 +48,21 @@ class KiroWrapper {
       );
       
       let output = '';
+      let ready = false;
       
-      process.onData((data) => {
+      kiroProcess.onData((data) => {
         output += data;
         process.stdout.write(data);
+        
+        // Wait for prompt to appear, then send our prompt
+        if (!ready && data.includes('> ')) {
+          ready = true;
+          console.log(`[Session ${this.sessionId}] Kiro ready, sending prompt`);
+          kiroProcess.write(prompt + '\n');
+        }
       });
       
-      process.onExit(({ exitCode }) => {
+      kiroProcess.onExit(({ exitCode }) => {
         console.log(`[Session ${this.sessionId}] Kiro completed with code ${exitCode}`);
         this.busy = false;
         this.lastActivity = Date.now();
@@ -68,7 +76,7 @@ class KiroWrapper {
       
       // Timeout
       setTimeout(() => {
-        process.kill();
+        kiroProcess.kill();
         this.busy = false;
         reject(new Error('Request timeout'));
       }, BUSY_TIMEOUT);
