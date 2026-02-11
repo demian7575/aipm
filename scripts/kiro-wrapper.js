@@ -37,6 +37,12 @@ class KiroWrapper {
       cwd: '/home/ec2-user/aipm'
     });
     
+    // Keep stdin open - don't let it close
+    this.process.stdin.setDefaultEncoding('utf8');
+    this.process.stdin.on('error', (err) => {
+      console.log(`[Session ${this.sessionId}] Stdin error: ${err.message}`);
+    });
+    
     // Capture stdout
     this.process.stdout.on('data', (data) => {
       const output = data.toString();
