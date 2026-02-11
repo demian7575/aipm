@@ -59,6 +59,26 @@ class KiroWrapper {
     console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
   }
   
+  restart() {
+    console.log(`[Session ${this.sessionId}] Restarting Kiro process...`);
+    
+    // Kill existing process
+    if (this.process) {
+      this.process.kill('SIGTERM');
+    }
+    
+    // Clear state
+    this.busy = false;
+    this.outputBuffer = '';
+    if (this.busyTimeout) {
+      clearTimeout(this.busyTimeout);
+      this.busyTimeout = null;
+    }
+    
+    // Restart after brief delay
+    setTimeout(() => this.start(), 1000);
+  }
+  
   checkIfReady(output) {
     // Strip ANSI codes before checking
     const clean = output.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '');
@@ -91,10 +111,10 @@ class KiroWrapper {
     console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
     this.process.stdin.write(prompt + '\n');
     
-    // Safety timeout in case "You:" is never detected
+    // Safety timeout - restart Kiro if it doesn't complete
     this.busyTimeout = setTimeout(() => {
-      console.log(`[Session ${this.sessionId}] Timeout - forcing available`);
-      this.markAvailable();
+      console.log(`[Session ${this.sessionId}] Timeout - restarting Kiro`);
+      this.restart();
     }, BUSY_TIMEOUT);
     
     return 'Request sent to Kiro';
