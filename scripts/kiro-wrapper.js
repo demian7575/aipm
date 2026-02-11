@@ -196,15 +196,8 @@ class KiroWrapper extends EventEmitter {
     this.lastActivityAt = Date.now();
     this.outputBuffer += text;
 
-    // Log output in real-time
-    this.log(`[STDOUT] ${text}`);
-
-    // Keep wrapper pass-through behavior for integration/debugging.
-    if (stream === 'stdout') {
-      process.stdout.write(text);
-    } else {
-      process.stderr.write(text);
-    }
+    // Write output directly (already includes formatting from Kiro)
+    process.stdout.write(text);
 
     this.checkCompletion(text);
   }
