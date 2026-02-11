@@ -625,6 +625,42 @@ fi
 echo ""
 
 # ============================================
+# SECTION 13: Story-Specific Acceptance Tests
+# ============================================
+echo "✅ SECTION 13: Story-Specific Acceptance Tests"
+echo "-----------------------------------"
+
+# Story 1770779912364: View All Stories Modal
+if [ "$1" == "1770779912364" ] || [ -z "$1" ]; then
+  echo "Test 43: Story 1770779912364 - View All Stories Modal"
+  echo "  Given: User is on any page"
+  echo "  Given: Stories exist in the system"
+  echo "  When: User clicks the View All Stories button in header"
+  echo "  Then: A modal opens"
+  echo "  Then: The modal displays a list of all story titles"
+  
+  # Check button exists in HTML
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q "view-all-stories-btn"; then
+    echo "  ✅ PASS: View All Stories button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check function exists in app.js
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "openViewAllStoriesModal"; then
+    echo "  ✅ PASS: openViewAllStoriesModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openViewAllStoriesModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
