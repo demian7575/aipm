@@ -31,14 +31,20 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', 
-      ['chat', '--trust-all-tools'], 
+    // Use unbuffer or script to provide a pseudo-TTY
+    this.process = spawn('unbuffer', 
+      ['/home/ec2-user/.local/bin/kiro-cli', 'chat', '--trust-all-tools'], 
       {
         cwd: '/home/ec2-user/aipm',
         env: process.env,
         stdio: ['pipe', 'pipe', 'pipe']
       }
     );
+    
+    // Keep stdin open - prevent EOF
+    this.process.stdin.on('error', (err) => {
+      console.log(`[Session ${this.sessionId}] Stdin error: ${err.message}`);
+    });
     
     this.process.stdout.on('data', (data) => {
       const output = data.toString();
@@ -58,14 +64,9 @@ class KiroWrapper {
       console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
       this.process = null;
       
-      // If Kiro closed while not busy, restart it
-      if (!this.busy) {
-        console.log(`[Session ${this.sessionId}] Restarting Kiro...`);
-        setTimeout(() => this.start(), 2000);
-      } else {
-        // If busy, mark as available (task failed)
-        this.busy = false;
-      }
+      // Always restart - Kiro should never close
+      console.log(`[Session ${this.sessionId}] Restarting Kiro...`);
+      setTimeout(() => this.start(), 2000);
     });
     
     console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
