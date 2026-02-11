@@ -44,6 +44,10 @@ class KiroWrapper extends EventEmitter {
       this.lastActivity = Date.now();
       this.outputBuffer += data;
       
+      // Log all output for debugging
+      const preview = data.length > 200 ? data.substring(0, 200) + '...' : data;
+      console.log(`[Session ${this.sessionId}] [OUTPUT] ${preview}`);
+      
       // Check for completion
       if (this.busy && this.completionMarkers.some(marker => this.outputBuffer.includes(marker))) {
         this.handleCompletion();
