@@ -68,15 +68,10 @@ class KiroWrapper {
     
     this.process.on('close', (code) => {
       console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
-      // If Kiro crashed (non-zero exit), restart it
-      // If Kiro exited cleanly (code 0 or null), exit wrapper and let systemd restart
-      if (code && code !== 0) {
-        console.log(`[Session ${this.sessionId}] Kiro crashed, restarting...`);
-        setTimeout(() => this.start(), 1000);
-      } else {
-        console.log(`[Session ${this.sessionId}] Kiro exited cleanly, exiting wrapper`);
-        process.exit(0);
-      }
+      // Kiro keeps closing - just restart it internally
+      // Don't exit wrapper, let it keep running
+      console.log(`[Session ${this.sessionId}] Restarting Kiro in 2 seconds...`);
+      setTimeout(() => this.start(), 2000);
     });
     
     console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
