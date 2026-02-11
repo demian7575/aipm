@@ -45,7 +45,7 @@ const CONFIG = {
   kiroCommand:
     process.env.KIRO_COMMAND ||
     '/home/ec2-user/.local/bin/kiro-cli',
-  kiroArgs: ['chat', '--trust-all-tools'],
+  kiroArgs: ['chat', '--no-interactive', '--trust-all-tools'],
   cwd: process.env.KIRO_CWD || '/home/ec2-user/aipm',
 
   // Timeouts and restart policy
