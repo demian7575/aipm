@@ -31,9 +31,9 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Use unbuffer or script to provide a pseudo-TTY
-    this.process = spawn('unbuffer', 
-      ['/home/ec2-user/.local/bin/kiro-cli', 'chat', '--trust-all-tools'], 
+    // Start Kiro directly - it will stay alive as long as stdin is open
+    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', 
+      ['chat', '--trust-all-tools'], 
       {
         cwd: '/home/ec2-user/aipm',
         env: process.env,
@@ -41,10 +41,18 @@ class KiroWrapper {
       }
     );
     
-    // Keep stdin open - prevent EOF
+    // Keep stdin open
+    this.process.stdin.setDefaultEncoding('utf8');
     this.process.stdin.on('error', (err) => {
       console.log(`[Session ${this.sessionId}] Stdin error: ${err.message}`);
     });
+    
+    // Send a newline periodically to keep Kiro alive
+    this.keepaliveInterval = setInterval(() => {
+      if (this.process && this.process.stdin.writable && !this.busy) {
+        this.process.stdin.write('\n');
+      }
+    }, 30000); // Every 30 seconds
     
     this.process.stdout.on('data', (data) => {
       const output = data.toString();
@@ -62,6 +70,13 @@ class KiroWrapper {
     
     this.process.on('close', (code) => {
       console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
+      
+      // Clear keepalive interval
+      if (this.keepaliveInterval) {
+        clearInterval(this.keepaliveInterval);
+        this.keepaliveInterval = null;
+      }
+      
       this.process = null;
       
       // Always restart - Kiro should never close
