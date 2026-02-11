@@ -1,82 +1,137 @@
 #!/usr/bin/env node
 
 /**
- * Kiro Wrapper - Single session HTTP server
- * Manages one Kiro CLI process and exposes HTTP API
- * Kiro executes curl commands directly to callback to semantic API
- * 
- * Usage: node kiro-wrapper.js <session-id> <port>
- * Example: node kiro-wrapper.js 1 9001
+ * Kiro Wrapper - Persistent Kiro session with bash shell
+ * Based on Codex's approach: spawn bash → launch Kiro → send prompts via write()
  */
 
-import { spawn } from 'child_process';
-import http from 'http';
 import pty from 'node-pty';
+import http from 'http';
+import { EventEmitter } from 'events';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
-const BUSY_TIMEOUT = 300000; // 5 minutes - enough for code generation
 
-class KiroWrapper {
+class KiroWrapper extends EventEmitter {
   constructor(sessionId) {
+    super();
     this.sessionId = sessionId;
+    this.pty = null;
     this.busy = false;
     this.lastActivity = Date.now();
+    this.outputBuffer = '';
+    this.currentResolve = null;
+    this.currentReject = null;
+    this.requestTimeout = null;
+    
+    // Completion markers
+    this.completionMarkers = ['SEMANTIC-API Task Complete', '▸ Time:'];
   }
-  
+
+  start() {
+    console.log(`[Session ${this.sessionId}] Starting bash shell...`);
+    
+    // Spawn interactive login shell
+    this.pty = pty.spawn('bash', ['--login', '-i'], {
+      name: 'xterm-256color',
+      cols: 120,
+      rows: 40,
+      cwd: '/home/ec2-user/aipm',
+      env: process.env
+    });
+
+    this.pty.onData(data => {
+      this.lastActivity = Date.now();
+      this.outputBuffer += data;
+      
+      // Check for completion
+      if (this.busy && this.completionMarkers.some(marker => this.outputBuffer.includes(marker))) {
+        this.handleCompletion();
+      }
+    });
+
+    // Launch Kiro after shell is ready
+    setTimeout(() => {
+      console.log(`[Session ${this.sessionId}] Launching Kiro CLI...`);
+      this.pty.write('kiro-cli chat --trust-all-tools\n');
+    }, 500);
+
+    // Hang monitor
+    setInterval(() => {
+      if (this.busy && Date.now() - this.lastActivity > 120000) {
+        console.log(`[Session ${this.sessionId}] Detected hang, restarting...`);
+        this.restart();
+      }
+    }, 5000);
+  }
+
   async execute(prompt) {
     if (this.busy) {
       throw new Error('Session is busy');
     }
-    
+
+    if (!this.pty) {
+      throw new Error('PTY not initialized');
+    }
+
     this.busy = true;
-    this.lastActivity = Date.now();
+    this.outputBuffer = '';
     
+    const promptPreview = prompt.length > 100 ? prompt.substring(0, 100) + '...' : prompt;
+    console.log(`[Session ${this.sessionId}] [STDIN] ${promptPreview}`);
+
     return new Promise((resolve, reject) => {
-      const promptPreview = prompt.length > 100 ? prompt.substring(0, 100) + '...' : prompt;
-      console.log(`[Session ${this.sessionId}] [STDIN] Executing prompt: ${promptPreview}`);
-      console.log(`[Session ${this.sessionId}] Starting Kiro for request`);
-      
-      // Spawn Kiro with the prompt as input argument
-      const process = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', 
-        ['chat', '--trust-all-tools', prompt], 
-        {
-          name: 'xterm-color',
-          cols: 80,
-          rows: 30,
-          cwd: '/home/ec2-user/aipm',
-          env: process.env
-        }
-      );
-      
-      let output = '';
-      
-      process.onData((data) => {
-        output += data;
-        process.stdout.write(data);
-      });
-      
-      process.onExit(({ exitCode }) => {
-        console.log(`[Session ${this.sessionId}] Kiro completed with code ${exitCode}`);
+      this.currentResolve = resolve;
+      this.currentReject = reject;
+
+      // Send prompt to Kiro
+      this.pty.write(prompt + '\n');
+
+      // Timeout after 5 minutes
+      this.requestTimeout = setTimeout(() => {
         this.busy = false;
-        this.lastActivity = Date.now();
-        
-        if (exitCode === 0) {
-          resolve('Request completed');
-        } else {
-          reject(new Error(`Kiro exited with code ${exitCode}`));
-        }
-      });
-      
-      // Timeout
-      setTimeout(() => {
-        process.kill();
-        this.busy = false;
+        this.currentReject = null;
+        this.currentResolve = null;
         reject(new Error('Request timeout'));
-      }, BUSY_TIMEOUT);
+      }, 300000);
     });
   }
-  
+
+  handleCompletion() {
+    if (this.requestTimeout) {
+      clearTimeout(this.requestTimeout);
+      this.requestTimeout = null;
+    }
+
+    this.busy = false;
+    console.log(`[Session ${this.sessionId}] Request completed`);
+
+    if (this.currentResolve) {
+      this.currentResolve({ status: 'completed' });
+      this.currentResolve = null;
+      this.currentReject = null;
+    }
+  }
+
+  restart() {
+    console.log(`[Session ${this.sessionId}] Restarting Kiro...`);
+    
+    if (this.pty) {
+      this.pty.kill();
+    }
+
+    if (this.currentReject) {
+      this.currentReject(new Error('Session restarted'));
+      this.currentReject = null;
+      this.currentResolve = null;
+    }
+
+    this.busy = false;
+    this.outputBuffer = '';
+    
+    setTimeout(() => this.start(), 1000);
+  }
+
   getStatus() {
     return {
       sessionId: this.sessionId,
@@ -87,24 +142,25 @@ class KiroWrapper {
   }
 }
 
-// Create wrapper
+// Create wrapper instance
 const wrapper = new KiroWrapper(SESSION_ID);
+wrapper.start();
 
 // HTTP server
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  
-  // CORS headers
+  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
     res.end();
     return;
   }
-  
+
+  const url = new URL(req.url, `http://localhost:${PORT}`);
+
   // Health check
   if (url.pathname === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -114,7 +170,7 @@ const server = http.createServer(async (req, res) => {
     }));
     return;
   }
-  
+
   // Execute prompt
   if (url.pathname === '/execute' && req.method === 'POST') {
     let body = '';
@@ -133,7 +189,7 @@ const server = http.createServer(async (req, res) => {
     });
     return;
   }
-  
+
   res.writeHead(404);
   res.end('Not found');
 });
@@ -145,5 +201,10 @@ server.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log(`[Session ${SESSION_ID}] Received SIGTERM, shutting down...`);
+  if (wrapper.pty) {
+    wrapper.pty.write('exit\n');
+  }
   setTimeout(() => process.exit(0), 1000);
 });
+
+console.log(`[Session ${SESSION_ID}] Kiro Wrapper started`);
