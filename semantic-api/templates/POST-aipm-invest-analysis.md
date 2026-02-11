@@ -6,11 +6,12 @@
 **YOUR AUTHORITY**: Analyze user stories against INVEST principles
 **EXECUTION ACTION**: Analyze story and execute curl POST with results
 
-## Extract following variables from injected user story:
-- storyId, title, description
-- asA, iWant, soThat
-- storyPoint, components, acceptanceTests
-- requestId (for API callbacks)
+## Extract following variables from input data:
+- requestId: Request ID for API callbacks (top-level field)
+- story: Full story object containing:
+  - storyId, title, description
+  - asA, iWant, soThat
+  - storyPoint, components, acceptanceTests
 
 ## INVEST Principles
 
