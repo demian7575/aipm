@@ -14,7 +14,7 @@ import http from 'http';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
-const BUSY_TIMEOUT = 600000; // 10 minutes - match max Kiro processing time
+const BUSY_TIMEOUT = 30000; // 30 seconds - mark available after Kiro starts processing
 
 class KiroWrapper {
   constructor(sessionId) {
@@ -30,10 +30,21 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Don't capture stdio - let Kiro execute curl commands directly
+    // Capture output for debugging (curl still works via network)
     this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
-      stdio: ['pipe', 'inherit', 'inherit'], // stdin piped, stdout/stderr inherited
+      stdio: ['pipe', 'pipe', 'pipe'],
       cwd: '/home/ec2-user/aipm'
+    });
+    
+    // Log output for debugging
+    this.process.stdout.on('data', (data) => {
+      const output = data.toString();
+      console.log(`[Session ${this.sessionId}] stdout: ${output.substring(0, 200)}`);
+    });
+    
+    this.process.stderr.on('data', (data) => {
+      const output = data.toString();
+      console.log(`[Session ${this.sessionId}] stderr: ${output.substring(0, 200)}`);
     });
     
     this.process.on('close', (code) => {
