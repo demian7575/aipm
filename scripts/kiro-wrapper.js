@@ -21,6 +21,7 @@ class KiroWrapper {
     this.sessionId = sessionId;
     this.process = null;
     this.busy = false;
+    this.outputBuffer = '';
     this.lastActivity = Date.now();
     this.busyTimeout = null;
     
@@ -30,30 +31,48 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Capture output for debugging (curl still works via network)
+    // Capture output to detect when Kiro is ready
     this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: '/home/ec2-user/aipm'
     });
     
-    // Log output for debugging
+    // Capture stdout
     this.process.stdout.on('data', (data) => {
       const output = data.toString();
-      console.log(`[Session ${this.sessionId}] stdout: ${output.substring(0, 200)}`);
+      this.outputBuffer += output;
+      this.checkIfReady(output);
     });
     
+    // Capture stderr (Kiro outputs here)
     this.process.stderr.on('data', (data) => {
       const output = data.toString();
-      console.log(`[Session ${this.sessionId}] stderr: ${output.substring(0, 200)}`);
+      this.outputBuffer += output;
+      this.checkIfReady(output);
     });
     
     this.process.on('close', (code) => {
       console.log(`[Session ${this.sessionId}] Process closed with code ${code}`);
-      // Systemd will restart us
       process.exit(code || 1);
     });
     
     console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
+  }
+  
+  checkIfReady(output) {
+    // Kiro shows "You:" when ready for next input
+    if (this.busy && output.includes('You:')) {
+      console.log(`[Session ${this.sessionId}] Kiro ready for next input`);
+      this.markAvailable();
+    }
+  }
+  
+  markAvailable() {
+    this.busy = false;
+    if (this.busyTimeout) {
+      clearTimeout(this.busyTimeout);
+      this.busyTimeout = null;
+    }
   }
   
   async execute(prompt) {
@@ -63,19 +82,16 @@ class KiroWrapper {
     
     this.busy = true;
     this.lastActivity = Date.now();
+    this.outputBuffer = ''; // Clear buffer for new request
     
     // Send prompt to Kiro
     console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
     this.process.stdin.write(prompt + '\n');
     
-    // Mark available after timeout (Kiro callbacks via curl, we don't wait for response)
-    if (this.busyTimeout) {
-      clearTimeout(this.busyTimeout);
-    }
-    
+    // Safety timeout in case "You:" is never detected
     this.busyTimeout = setTimeout(() => {
-      this.busy = false;
-      console.log(`[Session ${this.sessionId}] Marked available after timeout`);
+      console.log(`[Session ${this.sessionId}] Timeout - forcing available`);
+      this.markAvailable();
     }, BUSY_TIMEOUT);
     
     return 'Request sent to Kiro';
