@@ -622,6 +622,35 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story 1770778270755: Story List Button
+test_story_1770778270755() {
+  echo "Test: Story List Button displays modal with story titles"
+  
+  # Verify button exists in HTML
+  if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in header"
+    FAILED=$((FAILED + 1))
+    return
+  fi
+  
+  # Verify click handler exists
+  if grep -q 'storyListBtn.addEventListener' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Story list button click handler exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler not found"
+    FAILED=$((FAILED + 1))
+  fi
+}
+
+# Run story-specific test if story ID provided
+if [ "$1" = "1770778270755" ]; then
+  test_story_1770778270755
+fi
+
 echo ""
 
 # ============================================
