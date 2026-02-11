@@ -32,33 +32,14 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
+    // Don't capture stdio - let Kiro execute curl commands directly
     this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'inherit', 'inherit'], // stdin piped, stdout/stderr inherited
+      cwd: '/home/ec2-user/aipm'
     });
     
-    this.process.stdout.on('data', (data) => {
-      const chunk = data.toString();
-      this.outputBuffer += chunk;
-      this.lastActivity = Date.now();
-    });
-    
-    this.process.stderr.on('data', (data) => {
-      const chunk = data.toString();
-      this.outputBuffer += chunk;
-      this.lastActivity = Date.now();
-      
-      // Reset completion timer on new data
-      if (this.completionTimer) {
-        clearTimeout(this.completionTimer);
-      }
-      
-      // Complete after 500ms of silence
-      this.completionTimer = setTimeout(() => {
-        if (this.busy) {
-          this.complete();
-        }
-      }, 500);
-    });
+    // No output capture - Kiro executes curl directly
+    // Just track activity via stdin writes
     
     this.process.on('close', (code) => {
       console.log(`[Session ${this.sessionId}] Process closed with code ${code}`);
@@ -83,17 +64,18 @@ class KiroWrapper {
     }
     
     this.busy = true;
-    this.outputBuffer = '';
     this.lastActivity = Date.now();
     
     return new Promise((resolve, reject) => {
       this.currentResolve = resolve;
       this.currentReject = reject;
       
-      // Set max timeout (separate from silence timer)
+      // Set max timeout (Kiro will callback via curl, we just need to mark available after reasonable time)
       this.maxTimeout = setTimeout(() => {
-        this.complete(new Error('Request timeout'));
-      }, COMPLETION_TIMEOUT);
+        // Kiro should have completed by now (it callbacks via curl)
+        this.busy = false;
+        resolve('Request sent to Kiro');
+      }, 30000); // 30 seconds should be enough for Kiro to start processing
       
       // Send prompt to Kiro
       console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
