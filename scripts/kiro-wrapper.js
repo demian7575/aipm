@@ -111,6 +111,7 @@ class KiroWrapper {
     
     // Send prompt to Kiro
     console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
+    console.log(`[Session ${this.sessionId}] Prompt: ${prompt.substring(0, 500)}${prompt.length > 500 ? '...' : ''}`);
     this.process.stdin.write(prompt + '\n');
     
     // Safety timeout - restart Kiro if it doesn't complete
