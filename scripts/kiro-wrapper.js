@@ -57,7 +57,15 @@ class KiroWrapper {
     this.process.on('close', (code) => {
       console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
       this.process = null;
-      this.busy = false;
+      
+      // If Kiro closed while not busy, restart it
+      if (!this.busy) {
+        console.log(`[Session ${this.sessionId}] Restarting Kiro...`);
+        setTimeout(() => this.start(), 2000);
+      } else {
+        // If busy, mark as available (task failed)
+        this.busy = false;
+      }
     });
     
     console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
