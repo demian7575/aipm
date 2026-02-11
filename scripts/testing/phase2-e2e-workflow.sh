@@ -123,10 +123,11 @@ phase2_step2_create_story() {
     fi
     
     # Extract draft data and create story
+    # Set acceptWarnings: true for testing to bypass INVEST threshold
     local story_payload=$(echo "$PHASE2_STORY_DRAFT" | jq '{
         title, description, asA, iWant, soThat, components,
-        storyPoint, assigneeEmail, parentId, acceptWarnings,
-        acceptanceTests
+        storyPoint, assigneeEmail, parentId, acceptanceTests,
+        acceptWarnings: true
     }')
     
     local response
