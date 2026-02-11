@@ -285,6 +285,44 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# ============================================
+# SECTION 5.1: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "🎯 Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test: Story List Modal Button
+  echo "Test: Story List Modal Button exists"
+  if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Story List button in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test: Story List Modal function exists"
+  if grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test: Story List button event listener"
+  if grep -q 'storyListBtn.addEventListener' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Event listener attached"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Event listener not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
