@@ -106,15 +106,19 @@ class KiroWrapper extends EventEmitter {
     this.healthTicker = setInterval(() => this.healthTick(), this.config.healthTickMs);
 
     this.start('initial start');
+    this.attachParentStdin();
   }
 
-  log(message, extra) {
+  log(message, extra, stream = 'stdout') {
     const prefix = `[Session ${this.sessionId}]`;
+    const destination = stream === 'stderr' ? console.error : console.log;
+
     if (extra !== undefined) {
-      console.log(`${prefix} ${message}`, extra);
+      destination(`${prefix} ${message}`, extra);
       return;
     }
-    console.log(`${prefix} ${message}`);
+
+    destination(`${prefix} ${message}`);
   }
 
   buildSpawnArgs() {
@@ -166,15 +170,15 @@ class KiroWrapper extends EventEmitter {
       } catch (err) {
         // Ignore EIO errors (PTY closed)
         if (err.code !== 'EIO') {
-          this.log(`Error handling output: ${err.message}`);
+          this.log(`Error handling output: ${err.message}`, undefined, 'stderr');
         }
       }
     });
 
     // Handle process exit
     child.onExit(({ exitCode, signal }) => {
-      if (this && typeof this.onExit === 'function') {
-        this.onExit(exitCode, signal);
+      if (this && typeof this.onClose === 'function') {
+        this.onClose(exitCode, signal);
       }
     });
 
@@ -184,11 +188,39 @@ class KiroWrapper extends EventEmitter {
         return;
       }
       this.lastError = `process error: ${err.message}`;
-      this.log(`Process error: ${err.message}`);
+      this.log(`Process error: ${err.message}`, undefined, 'stderr');
     });
 
     this.log(`Started (PID: ${child.pid})`);
     this.emit('started', { pid: child.pid, reason });
+  }
+
+  attachParentStdin() {
+    if (this.parentStdinAttached) {
+      return;
+    }
+
+    this.parentStdinAttached = true;
+    process.stdin.setEncoding('utf8');
+    process.stdin.resume();
+
+    process.stdin.on('data', (chunk) => {
+      if (!this.process) {
+        return;
+      }
+
+      this.log(`[STDIN] ${chunk.replace(/\r?\n$/, '')}`);
+      this.process.write(chunk);
+    });
+  }
+
+  writeToHostStream(stream, text) {
+    if (stream === 'stderr') {
+      process.stderr.write(text);
+      return;
+    }
+
+    process.stdout.write(text);
   }
 
   onOutput(stream, data) {
@@ -197,7 +229,7 @@ class KiroWrapper extends EventEmitter {
     this.outputBuffer += text;
 
     // Write output directly (already includes formatting from Kiro)
-    process.stdout.write(text);
+    this.writeToHostStream(stream, text);
 
     this.checkCompletion(text);
   }
@@ -312,7 +344,7 @@ class KiroWrapper extends EventEmitter {
       this.state = 'degraded';
       this.lastError =
         `restart circuit open: ${attempts} restarts in ${this.config.restartWindowMs}ms`;
-      this.log(`Recovery paused (${this.lastError})`);
+      this.log(`Recovery paused (${this.lastError})`, undefined, 'stderr');
       return;
     }
 
@@ -346,7 +378,7 @@ class KiroWrapper extends EventEmitter {
     setTimeout(() => {
       if (this.process && this.process.pid === child.pid) {
         this.metrics.forcedKills += 1;
-        this.log(`SIGTERM grace exceeded; forcing kill for PID ${child.pid}`);
+        this.log(`SIGTERM grace exceeded; forcing kill for PID ${child.pid}`, undefined, 'stderr');
         child.kill('SIGKILL');
       }
     }, this.config.stopGraceMs);
