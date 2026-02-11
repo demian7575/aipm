@@ -32,8 +32,11 @@ class KiroWrapper {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
     // Use script command to create a PTY session
+    // -q: quiet (no start/done messages)
+    // -f: flush output after each write
+    // -e: return exit code of child
     this.process = spawn('script', 
-      ['-q', '-c', '/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools', '/dev/null'], 
+      ['-q', '-f', '-e', '-c', '/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools', '/dev/null'], 
       {
         cwd: '/home/ec2-user/aipm',
         env: process.env,
@@ -41,8 +44,14 @@ class KiroWrapper {
       }
     );
     
-    // Keep stdin open - don't end it
+    // CRITICAL: Keep stdin open by not ending it
+    // The key is that the pipe stays open as long as we don't call stdin.end()
     this.process.stdin.setEncoding('utf8');
+    
+    // Prevent stdin from closing on error
+    this.process.stdin.on('error', (err) => {
+      console.log(`[Session ${this.sessionId}] Stdin error (ignored): ${err.message}`);
+    });
     
     this.process.stdout.on('data', (data) => {
       const output = data.toString();
