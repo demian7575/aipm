@@ -143,6 +143,8 @@ class SessionPool {
         return result;
       } finally {
         wrapper.busy = false; // Mark available after completion
+        // Process any queued requests now that wrapper is available
+        setImmediate(() => this.processQueue());
       }
     }
     
