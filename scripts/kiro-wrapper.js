@@ -27,6 +27,7 @@
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import http from 'http';
+import pty from 'node-pty';
 
 /**
  * ---------------------------------------------------------------------------
@@ -40,15 +41,11 @@ const PORT =
   9000 + Number.parseInt(SESSION_ID, 10);
 
 const CONFIG = {
-  // CLI + terminal launcher
+  // CLI command
   kiroCommand:
     process.env.KIRO_COMMAND ||
-    '/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools',
-  launcher: process.env.KIRO_LAUNCHER || 'socat',
-  launcherArgsPrefix: process.env.KIRO_LAUNCHER === 'script' 
-    ? ['-q', '-f', '-e', '-c']
-    : ['EXEC:"', '",pty,setsid,ctty', 'STDIO'],
-  launcherOutputFile: process.env.KIRO_SCRIPT_OUTPUT || '/dev/null',
+    '/home/ec2-user/.local/bin/kiro-cli',
+  kiroArgs: ['chat', '--trust-all-tools'],
   cwd: process.env.KIRO_CWD || '/home/ec2-user/aipm',
 
   // Timeouts and restart policy
@@ -148,33 +145,32 @@ class KiroWrapper extends EventEmitter {
     this.metrics.starts += 1;
     this.lastActivityAt = Date.now();
 
-    const args = this.buildSpawnArgs();
-    this.log(`Starting Kiro (reason: ${reason}) with ${this.config.launcher} ${args.join(' ')}`);
+    this.log(`Starting Kiro (reason: ${reason}) with node-pty`);
 
-    const child = spawn(this.config.launcher, args, {
+    // Use node-pty to create a proper PTY with session leader
+    const child = pty.spawn(this.config.kiroCommand, this.config.kiroArgs, {
+      name: 'xterm-256color',
+      cols: 120,
+      rows: 30,
       cwd: this.config.cwd,
-      env: process.env,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      env: process.env
     });
 
     this.process = child;
     this.state = 'running';
 
-    child.stdin.setEncoding('utf8');
-    child.stdin.on('error', (err) => {
-      this.lastError = `stdin error: ${err.message}`;
-      this.log(`Stdin error observed: ${err.message}`);
-    });
+    // Handle data output
+    child.onData((data) => this.onOutput('stdout', data));
 
-    child.stdout.on('data', (data) => this.onOutput('stdout', data));
-    child.stderr.on('data', (data) => this.onOutput('stderr', data));
+    // Handle process exit
+    child.onExit(({ exitCode, signal }) => {
+      this.onExit(exitCode, signal);
+    });
 
     child.on('error', (err) => {
       this.lastError = `process error: ${err.message}`;
       this.log(`Process error: ${err.message}`);
     });
-
-    child.on('close', (code, signal) => this.onClose(code, signal));
 
     this.log(`Started (PID: ${child.pid})`);
     this.emit('started', { pid: child.pid, reason });
@@ -373,7 +369,7 @@ class KiroWrapper extends EventEmitter {
     this.metrics.promptsAccepted += 1;
 
     this.log(`Executing prompt (${this.currentPrompt.length} chars)`);
-    this.process.stdin.write(`${this.currentPrompt}\n`);
+    this.process.write(`${this.currentPrompt}\n`);
 
     this.clearPromptTimer();
     this.promptTimer = setTimeout(() => {
