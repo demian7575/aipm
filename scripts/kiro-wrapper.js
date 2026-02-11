@@ -11,7 +11,6 @@
 
 import { spawn } from 'child_process';
 import http from 'http';
-import pty from 'node-pty';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
@@ -32,27 +31,33 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Use node-pty to create a real pseudo-TTY
-    this.process = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', 
-      ['chat', '--trust-all-tools'], 
+    // Use script command to create a proper terminal session
+    // script -q -c "command" /dev/null runs command in a PTY and discards typescript
+    this.process = spawn('script', 
+      ['-q', '-f', '-c', '/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools', '/dev/null'], 
       {
-        name: 'xterm-256color',
-        cols: 120,
-        rows: 30,
         cwd: '/home/ec2-user/aipm',
-        env: process.env
+        env: process.env,
+        stdio: ['pipe', 'pipe', 'pipe']
       }
     );
     
-    // Capture output
-    this.process.onData((data) => {
-      process.stdout.write(data);
-      this.outputBuffer += data;
-      this.checkIfReady(data);
+    this.process.stdout.on('data', (data) => {
+      const output = data.toString();
+      process.stdout.write(output);
+      this.outputBuffer += output;
+      this.checkIfReady(output);
     });
     
-    this.process.onExit(({ exitCode }) => {
-      console.log(`[Session ${this.sessionId}] Kiro process closed with code ${exitCode}`);
+    this.process.stderr.on('data', (data) => {
+      const output = data.toString();
+      process.stderr.write(output);
+      this.outputBuffer += output;
+      this.checkIfReady(output);
+    });
+    
+    this.process.on('close', (code) => {
+      console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
       this.process = null;
       
       // Always restart
@@ -100,7 +105,7 @@ class KiroWrapper {
     this.outputBuffer = '';
     
     console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
-    this.process.write(prompt + '\n');
+    this.process.stdin.write(prompt + '\n');
     
     this.busyTimeout = setTimeout(() => {
       console.log(`[Session ${this.sessionId}] Timeout - restarting`);
