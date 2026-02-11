@@ -44,8 +44,10 @@ const CONFIG = {
   kiroCommand:
     process.env.KIRO_COMMAND ||
     '/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools',
-  launcher: process.env.KIRO_LAUNCHER || 'script',
-  launcherArgsPrefix: ['-q', '-f', '-e', '-c'],
+  launcher: process.env.KIRO_LAUNCHER || 'socat',
+  launcherArgsPrefix: process.env.KIRO_LAUNCHER === 'script' 
+    ? ['-q', '-f', '-e', '-c']
+    : ['EXEC:"', '",pty,setsid,ctty', 'STDIO'],
   launcherOutputFile: process.env.KIRO_SCRIPT_OUTPUT || '/dev/null',
   cwd: process.env.KIRO_CWD || '/home/ec2-user/aipm',
 
@@ -119,11 +121,20 @@ class KiroWrapper extends EventEmitter {
   }
 
   buildSpawnArgs() {
-    return [
-      ...this.config.launcherArgsPrefix,
-      this.config.kiroCommand,
-      this.config.launcherOutputFile,
-    ];
+    if (this.config.launcher === 'socat') {
+      // socat format: EXEC:"command",pty,setsid,ctty STDIO
+      return [
+        `EXEC:"${this.config.kiroCommand}",pty,setsid,ctty`,
+        'STDIO'
+      ];
+    } else {
+      // script format: -q -f -e -c "command" /dev/null
+      return [
+        ...this.config.launcherArgsPrefix,
+        this.config.kiroCommand,
+        this.config.launcherOutputFile,
+      ];
+    }
   }
 
   start(reason = 'unspecified') {
