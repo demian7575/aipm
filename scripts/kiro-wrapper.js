@@ -44,11 +44,8 @@ class KiroWrapper extends EventEmitter {
       this.lastActivity = Date.now();
       this.outputBuffer += data;
       
-      // Only log significant output (skip ASCII art and noise)
-      const text = data.toString();
-      if (text.includes('!>') || text.includes('Task Complete') || text.includes('Time:')) {
-        console.log(`[Session ${this.sessionId}] [OUTPUT] ${text}`);
-      }
+      // Log all output
+      console.log(`[Session ${this.sessionId}] [OUTPUT] ${data.toString()}`);
       
       // Check for completion
       if (this.busy && this.completionMarkers.some(marker => this.outputBuffer.includes(marker))) {
