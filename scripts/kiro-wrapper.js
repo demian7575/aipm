@@ -256,6 +256,9 @@ class KiroWrapper extends EventEmitter {
     this.state = 'stopped';
     this.clearPromptTimer();
 
+    const cleanExit = code === 0 && signal === null;
+    const shouldCountRestart = hadBusyWork || !cleanExit;
+
     if (hadBusyWork) {
       this.metrics.unexpectedExits += 1;
       this.lastError = 'process exited during active task';
@@ -263,17 +266,20 @@ class KiroWrapper extends EventEmitter {
       this.currentPrompt = null;
     }
 
-    this.scheduleRecovery('process exited');
+    this.scheduleRecovery('process exited', { countTowardsCircuit: shouldCountRestart });
   }
 
-  scheduleRecovery(reason) {
+  scheduleRecovery(reason, options = {}) {
+    const { countTowardsCircuit = true } = options;
     this.clearRecoveryTimer();
 
     const now = Date.now();
-    this.restartHistory.push(now);
-    this.restartHistory = this.restartHistory.filter(
-      (ts) => now - ts <= this.config.restartWindowMs,
-    );
+    if (countTowardsCircuit) {
+      this.restartHistory.push(now);
+      this.restartHistory = this.restartHistory.filter(
+        (ts) => now - ts <= this.config.restartWindowMs,
+      );
+    }
 
     const attempts = this.restartHistory.length;
     const base = this.config.restartBaseDelayMs;
@@ -284,7 +290,7 @@ class KiroWrapper extends EventEmitter {
     const jitter = Math.floor(Math.random() * 500);
     const delay = capped + jitter;
 
-    if (attempts > this.config.maxRestartsPerWindow) {
+    if (countTowardsCircuit && attempts > this.config.maxRestartsPerWindow) {
       this.state = 'degraded';
       this.lastError =
         `restart circuit open: ${attempts} restarts in ${this.config.restartWindowMs}ms`;
@@ -294,7 +300,8 @@ class KiroWrapper extends EventEmitter {
 
     this.metrics.restarts += 1;
     this.state = 'recovering';
-    this.log(`Scheduling recovery in ${delay}ms (reason: ${reason}, attempt=${attempts})`);
+    const attemptLabel = countTowardsCircuit ? attempts : 'not-counted';
+    this.log(`Scheduling recovery in ${delay}ms (reason: ${reason}, attempt=${attemptLabel})`);
 
     this.recoveryTimer = setTimeout(() => {
       this.recoveryTimer = null;
