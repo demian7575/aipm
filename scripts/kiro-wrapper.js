@@ -85,8 +85,16 @@ class KiroWrapper {
     // Strip ANSI codes before checking
     const clean = output.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '');
     
-    // Kiro shows "Task Complete" or ready indicators when done
-    if (this.busy && (clean.includes('Task Complete') || clean.includes('You:'))) {
+    // Kiro shows various completion indicators when done
+    const completionIndicators = [
+      'Task Complete',
+      'You:',
+      'analysis complete',
+      'complete. Posted results',
+      '▸ Time:'
+    ];
+    
+    if (this.busy && completionIndicators.some(indicator => clean.includes(indicator))) {
       console.log(`[Session ${this.sessionId}] Kiro ready for next input`);
       this.markAvailable();
     }
