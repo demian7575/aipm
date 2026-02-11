@@ -130,7 +130,7 @@ phase2_step2_create_story() {
     }')
     
     local response
-    response=$(curl -s $USE_DEV_TABLES_HEADER -X POST "$API_BASE/api/stories" \
+    response=$(timeout 60 curl -s $USE_DEV_TABLES_HEADER -X POST "$API_BASE/api/stories" \
         -H 'Content-Type: application/json' \
         -d "$story_payload")
     
