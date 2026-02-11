@@ -196,6 +196,9 @@ class KiroWrapper extends EventEmitter {
     this.lastActivityAt = Date.now();
     this.outputBuffer += text;
 
+    // Log output in real-time
+    this.log(`[STDOUT] ${text}`);
+
     // Keep wrapper pass-through behavior for integration/debugging.
     if (stream === 'stdout') {
       process.stdout.write(text);
@@ -384,6 +387,7 @@ class KiroWrapper extends EventEmitter {
     this.metrics.promptsAccepted += 1;
 
     this.log(`Executing prompt (${this.currentPrompt.length} chars)`);
+    this.log(`[STDIN] ${this.currentPrompt}`);
     this.process.write(`${this.currentPrompt}\n`);
 
     this.clearPromptTimer();
