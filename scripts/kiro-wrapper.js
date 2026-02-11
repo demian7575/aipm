@@ -44,9 +44,11 @@ class KiroWrapper extends EventEmitter {
       this.lastActivity = Date.now();
       this.outputBuffer += data;
       
-      // Log all output for debugging
-      const preview = data.length > 200 ? data.substring(0, 200) + '...' : data;
-      console.log(`[Session ${this.sessionId}] [OUTPUT] ${preview}`);
+      // Only log significant output (skip ASCII art and noise)
+      const text = data.toString();
+      if (text.includes('!>') || text.includes('Task Complete') || text.includes('Time:')) {
+        console.log(`[Session ${this.sessionId}] [OUTPUT] ${text}`);
+      }
       
       // Check for completion
       if (this.busy && this.completionMarkers.some(marker => this.outputBuffer.includes(marker))) {
@@ -81,8 +83,7 @@ class KiroWrapper extends EventEmitter {
     this.busy = true;
     this.outputBuffer = '';
     
-    const promptPreview = prompt.length > 100 ? prompt.substring(0, 100) + '...' : prompt;
-    console.log(`[Session ${this.sessionId}] [STDIN] ${promptPreview}`);
+    console.log(`[Session ${this.sessionId}] [STDIN] ${prompt}`);
 
     return new Promise((resolve, reject) => {
       this.currentResolve = resolve;
