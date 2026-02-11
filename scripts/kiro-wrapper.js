@@ -37,7 +37,7 @@ class KiroWrapper {
       
       // Spawn Kiro with the prompt as input argument
       const process = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', 
-        ['chat', '--trust-all-tools', '--no-interactive', prompt], 
+        ['chat', '--trust-all-tools', prompt], 
         {
           name: 'xterm-color',
           cols: 80,
