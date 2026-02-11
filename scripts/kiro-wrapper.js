@@ -32,7 +32,7 @@ class KiroWrapper {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
     // Capture output to detect when Kiro is ready
-    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
+    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools', '--no-interactive'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: '/home/ec2-user/aipm'
     });
