@@ -54,8 +54,9 @@ class KiroWrapper {
     });
     
     this.process.on('close', (code) => {
-      console.log(`[Session ${this.sessionId}] Process closed with code ${code}`);
-      process.exit(code || 1);
+      console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}, restarting...`);
+      // Restart Kiro after brief delay
+      setTimeout(() => this.start(), 1000);
     });
     
     console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
