@@ -19,8 +19,70 @@ const BUSY_TIMEOUT = 300000; // 5 minutes - enough for code generation
 class KiroWrapper {
   constructor(sessionId) {
     this.sessionId = sessionId;
+    this.process = null;
     this.busy = false;
+    this.outputBuffer = '';
     this.lastActivity = Date.now();
+    this.busyTimeout = null;
+    
+    this.start();
+  }
+  
+  start() {
+    console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
+    
+    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', 
+      ['chat', '--trust-all-tools'], 
+      {
+        cwd: '/home/ec2-user/aipm',
+        env: process.env,
+        stdio: ['pipe', 'pipe', 'pipe']
+      }
+    );
+    
+    this.process.stdout.on('data', (data) => {
+      const output = data.toString();
+      process.stdout.write(output);
+      this.outputBuffer += output;
+      this.checkIfReady(output);
+    });
+    
+    this.process.stderr.on('data', (data) => {
+      const output = data.toString();
+      process.stderr.write(output);
+      this.outputBuffer += output;
+      this.checkIfReady(output);
+    });
+    
+    this.process.on('close', (code) => {
+      console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
+      this.process = null;
+      this.busy = false;
+    });
+    
+    console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
+  }
+  
+  checkIfReady(output) {
+    const clean = output.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '');
+    
+    const completionIndicators = [
+      'SEMANTIC-API Task Complete',
+      '▸ Time:'
+    ];
+    
+    if (this.busy && completionIndicators.some(indicator => clean.includes(indicator))) {
+      console.log(`[Session ${this.sessionId}] Task completed`);
+      this.markAvailable();
+    }
+  }
+  
+  markAvailable() {
+    this.busy = false;
+    if (this.busyTimeout) {
+      clearTimeout(this.busyTimeout);
+      this.busyTimeout = null;
+    }
   }
   
   async execute(prompt) {
@@ -28,61 +90,34 @@ class KiroWrapper {
       throw new Error('Session is busy');
     }
     
+    if (!this.process) {
+      this.start();
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    
     this.busy = true;
     this.lastActivity = Date.now();
+    this.outputBuffer = '';
     
-    return new Promise((resolve, reject) => {
-      console.log(`[Session ${this.sessionId}] Starting Kiro for request`);
-      
-      // Spawn Kiro and write prompt to stdin
-      const kiroProcess = spawn('/home/ec2-user/.local/bin/kiro-cli', 
-        ['chat', '--trust-all-tools'], 
-        {
-          cwd: '/home/ec2-user/aipm',
-          env: process.env,
-          stdio: ['pipe', 'pipe', 'pipe']
-        }
-      );
-      
-      // Write prompt to stdin
-      kiroProcess.stdin.write(prompt + '\n');
-      kiroProcess.stdin.end();
-      
-      let output = '';
-      
-      kiroProcess.stdout.on('data', (data) => {
-        output += data.toString();
-        process.stdout.write(data);
-      });
-      
-      kiroProcess.stderr.on('data', (data) => {
-        process.stderr.write(data);
-      });
-      
-      kiroProcess.on('close', (exitCode) => {
-        console.log(`[Session ${this.sessionId}] Kiro completed with code ${exitCode}`);
-        this.busy = false;
-        this.lastActivity = Date.now();
-        
-        if (exitCode === 0) {
-          resolve('Request completed');
-        } else {
-          reject(new Error(`Kiro exited with code ${exitCode}`));
-        }
-      });
-      
-      // Timeout
-      setTimeout(() => {
-        kiroProcess.kill();
-        this.busy = false;
-        reject(new Error('Request timeout'));
-      }, BUSY_TIMEOUT);
-    });
+    console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
+    this.process.stdin.write(prompt + '\n');
+    
+    this.busyTimeout = setTimeout(() => {
+      console.log(`[Session ${this.sessionId}] Timeout - restarting`);
+      if (this.process) {
+        this.process.kill();
+      }
+      this.busy = false;
+      this.start();
+    }, BUSY_TIMEOUT);
+    
+    return 'Request sent to Kiro';
   }
   
   getStatus() {
     return {
       sessionId: this.sessionId,
+      pid: this.process?.pid,
       busy: this.busy,
       lastActivity: new Date(this.lastActivity).toISOString(),
       idleTime: Date.now() - this.lastActivity
@@ -148,5 +183,8 @@ server.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log(`[Session ${SESSION_ID}] Received SIGTERM, shutting down...`);
+  if (wrapper.process) {
+    wrapper.process.kill('SIGTERM');
+  }
   setTimeout(() => process.exit(0), 1000);
 });
