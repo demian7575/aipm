@@ -25,19 +25,17 @@ class KiroWrapper {
     this.lastActivity = Date.now();
     this.busyTimeout = null;
     
-    this.start();
+    // Don't start Kiro yet - start on first request
   }
   
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Start Kiro - it will exit after each response in --no-interactive mode
-    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools', '--no-interactive'], {
+    // Start Kiro in interactive mode (no --no-interactive flag)
+    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: '/home/ec2-user/aipm'
     });
-    
-    // Don't send keepalive - let Kiro exit and restart on demand
     
     // Capture stdout
     this.process.stdout.on('data', (data) => {
@@ -57,10 +55,8 @@ class KiroWrapper {
     
     this.process.on('close', (code) => {
       console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
-      // Kiro exits after each response in --no-interactive mode
-      // Restart immediately, but don't mark as busy
-      this.markAvailable(); // Make sure we're available for next request
-      setTimeout(() => this.start(), 500); // Quick restart
+      this.process = null;
+      this.markAvailable();
     });
     
     console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
@@ -108,6 +104,13 @@ class KiroWrapper {
   async execute(prompt) {
     if (this.busy) {
       throw new Error('Session is busy');
+    }
+    
+    // Start Kiro if not running
+    if (!this.process) {
+      this.start();
+      // Wait for Kiro to be ready
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
     
     this.busy = true;
