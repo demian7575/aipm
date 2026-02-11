@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -8025,6 +8026,53 @@ function openFilterModal() {
   });
 }
 
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  const allStories = flattenStories(state.stories);
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p class="empty-state">No stories available.</p>';
+    openModal({ title: 'All Stories', content: container, cancelLabel: 'Close' });
+    return;
+  }
+  
+  const list = document.createElement('ul');
+  list.className = 'story-list';
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  list.style.maxHeight = '400px';
+  list.style.overflowY = 'auto';
+  
+  allStories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.padding = '8px';
+    item.style.borderBottom = '1px solid #eee';
+    item.style.cursor = 'pointer';
+    item.style.transition = 'background 0.2s';
+    
+    item.addEventListener('mouseenter', () => {
+      item.style.background = '#f5f5f5';
+    });
+    item.addEventListener('mouseleave', () => {
+      item.style.background = '';
+    });
+    item.addEventListener('click', () => {
+      handleStorySelection(story);
+      closeModal();
+    });
+    
+    item.textContent = story.title || `Story ${story.id}`;
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({ title: 'All Stories', content: container, cancelLabel: 'Close' });
+}
+
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
   container.style.display = 'flex';
@@ -8591,6 +8639,10 @@ async function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {
