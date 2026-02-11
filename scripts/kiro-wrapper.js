@@ -164,7 +164,10 @@ class KiroWrapper extends EventEmitter {
       try {
         this.onOutput('stdout', data);
       } catch (err) {
-        this.log(`Error handling output: ${err.message}`);
+        // Ignore EIO errors (PTY closed)
+        if (err.code !== 'EIO') {
+          this.log(`Error handling output: ${err.message}`);
+        }
       }
     });
 
@@ -176,6 +179,10 @@ class KiroWrapper extends EventEmitter {
     });
 
     child.on('error', (err) => {
+      // Ignore EIO errors (expected when PTY closes)
+      if (err.code === 'EIO') {
+        return;
+      }
       this.lastError = `process error: ${err.message}`;
       this.log(`Process error: ${err.message}`);
     });
