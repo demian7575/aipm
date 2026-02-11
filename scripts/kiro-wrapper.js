@@ -101,8 +101,8 @@ class KiroWrapper {
       throw new Error('Session is busy');
     }
     
-    // Start Kiro if not running
-    if (!this.process) {
+    // Start Kiro if not running or if process is dead
+    if (!this.process || !this.process.pid) {
       this.start();
       // Wait for Kiro to be ready
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -115,7 +115,16 @@ class KiroWrapper {
     // Send prompt to Kiro
     console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
     console.log(`[Session ${this.sessionId}] Prompt: ${prompt}`);
-    this.process.write(prompt + '\n');
+    
+    try {
+      this.process.write(prompt + '\n');
+    } catch (err) {
+      console.log(`[Session ${this.sessionId}] Error writing to Kiro: ${err.message}`);
+      // Restart and retry
+      this.start();
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      this.process.write(prompt + '\n');
+    }
     
     // Safety timeout - restart Kiro if it doesn't complete
     this.busyTimeout = setTimeout(() => {
