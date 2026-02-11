@@ -29,7 +29,7 @@ Empty array if no issues: `[]`
 
 2. Analyze against INVEST principles (score 0-100, warnings array, strengths array)
 
-3. Send Complete:
+3. Execute curl POST with results:
 
 curl -X POST http://localhost:8083/api/invest-analysis-response \
   -H 'Content-Type: application/json' \
@@ -45,6 +45,6 @@ curl -X POST http://localhost:8083/api/invest-analysis-response \
     "model": "kiro-cli"
   }'
 
-4. After curl succeeds, output exactly: "Task Complete"
+4. After curl completes, say exactly: "Task Complete"
 
-**CRITICAL**: Execute curl then immediately output "Task Complete" and stop.
+**STOP after step 4. Do not analyze, explain, or continue.**
