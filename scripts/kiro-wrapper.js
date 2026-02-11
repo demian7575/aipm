@@ -34,9 +34,9 @@ class KiroWrapper {
     return new Promise((resolve, reject) => {
       console.log(`[Session ${this.sessionId}] Starting Kiro for request`);
       
-      // Use echo to pipe prompt to Kiro stdin
+      // Use echo to pipe prompt to Kiro with --no-interactive
       const kiroProcess = spawn('bash', ['-c', 
-        `echo ${JSON.stringify(prompt)} | /home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools`
+        `echo ${JSON.stringify(prompt)} | /home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools --no-interactive`
       ], {
         cwd: '/home/ec2-user/aipm',
         env: process.env
