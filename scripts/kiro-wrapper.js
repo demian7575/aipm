@@ -14,7 +14,7 @@ import http from 'http';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
-const BUSY_TIMEOUT = 30000; // 30 seconds - mark available after Kiro starts processing
+const BUSY_TIMEOUT = 600000; // 10 minutes - match max Kiro processing time
 
 class KiroWrapper {
   constructor(sessionId) {
