@@ -622,6 +622,40 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for Story 1770781872174: View All Stories Modal
+if [ "$1" == "1770781872174" ]; then
+  echo ""
+  echo "📦 Story 1770781872174: View All Stories Modal"
+  echo "-----------------------------------"
+  
+  echo "Test: View All Stories button exists in HTML"
+  if grep -q 'id="view-all-stories-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test: Button element reference in app.js"
+  if grep -q "getElementById('view-all-stories-btn')" apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Button element reference exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Button element reference missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test: Click handler implementation"
+  if grep -q "viewAllStoriesBtn.addEventListener" apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
