@@ -40,6 +40,7 @@ class KiroWrapper {
     // Capture stdout
     this.process.stdout.on('data', (data) => {
       const output = data.toString();
+      process.stdout.write(output); // Pass through to systemd log
       this.outputBuffer += output;
       this.checkIfReady(output);
     });
@@ -47,6 +48,7 @@ class KiroWrapper {
     // Capture stderr (Kiro outputs here)
     this.process.stderr.on('data', (data) => {
       const output = data.toString();
+      process.stderr.write(output); // Pass through to systemd log
       this.outputBuffer += output;
       this.checkIfReady(output);
     });
