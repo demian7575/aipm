@@ -159,8 +159,14 @@ class KiroWrapper extends EventEmitter {
     this.process = child;
     this.state = 'running';
 
-    // Handle data output
-    child.onData((data) => this.onOutput('stdout', data));
+    // Handle data output with error handling
+    child.onData((data) => {
+      try {
+        this.onOutput('stdout', data);
+      } catch (err) {
+        this.log(`Error handling output: ${err.message}`);
+      }
+    });
 
     // Handle process exit
     child.onExit(({ exitCode, signal }) => {
