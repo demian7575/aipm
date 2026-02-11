@@ -3,6 +3,7 @@
 /**
  * Kiro Wrapper - Single session HTTP server
  * Manages one Kiro CLI process and exposes HTTP API
+ * Kiro executes curl commands directly to callback to semantic API
  * 
  * Usage: node kiro-wrapper.js <session-id> <port>
  * Example: node kiro-wrapper.js 1 9001
@@ -13,18 +14,15 @@ import http from 'http';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
-const COMPLETION_TIMEOUT = 600000; // 10 minutes max per request
+const BUSY_TIMEOUT = 30000; // 30 seconds - mark available after Kiro starts processing
 
 class KiroWrapper {
   constructor(sessionId) {
     this.sessionId = sessionId;
     this.process = null;
     this.busy = false;
-    this.outputBuffer = '';
-    this.currentResolve = null;
-    this.currentReject = null;
     this.lastActivity = Date.now();
-    this.completionTimer = null;
+    this.busyTimeout = null;
     
     this.start();
   }
@@ -38,24 +36,13 @@ class KiroWrapper {
       cwd: '/home/ec2-user/aipm'
     });
     
-    // No output capture - Kiro executes curl directly
-    // Just track activity via stdin writes
-    
     this.process.on('close', (code) => {
       console.log(`[Session ${this.sessionId}] Process closed with code ${code}`);
-      if (this.currentReject) {
-        this.currentReject(new Error('Kiro process closed'));
-      }
       // Systemd will restart us
       process.exit(code || 1);
     });
     
     console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
-  }
-  
-  detectCompletion(chunk) {
-    // Kiro shows "You:" prompt when ready for next input
-    return chunk.includes('You:');
   }
   
   async execute(prompt) {
@@ -66,59 +53,21 @@ class KiroWrapper {
     this.busy = true;
     this.lastActivity = Date.now();
     
-    return new Promise((resolve, reject) => {
-      this.currentResolve = resolve;
-      this.currentReject = reject;
-      
-      // Set max timeout (Kiro will callback via curl, we just need to mark available after reasonable time)
-      this.maxTimeout = setTimeout(() => {
-        // Kiro should have completed by now (it callbacks via curl)
-        this.busy = false;
-        resolve('Request sent to Kiro');
-      }, 30000); // 30 seconds should be enough for Kiro to start processing
-      
-      // Send prompt to Kiro
-      console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
-      this.process.stdin.write(prompt + '\n');
-    });
-  }
-  
-  complete(error = null) {
-    if (this.completionTimer) {
-      clearTimeout(this.completionTimer);
-      this.completionTimer = null;
+    // Send prompt to Kiro
+    console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
+    this.process.stdin.write(prompt + '\n');
+    
+    // Mark available after timeout (Kiro callbacks via curl, we don't wait for response)
+    if (this.busyTimeout) {
+      clearTimeout(this.busyTimeout);
     }
     
-    if (this.maxTimeout) {
-      clearTimeout(this.maxTimeout);
-      this.maxTimeout = null;
-    }
+    this.busyTimeout = setTimeout(() => {
+      this.busy = false;
+      console.log(`[Session ${this.sessionId}] Marked available after timeout`);
+    }, BUSY_TIMEOUT);
     
-    if (error) {
-      console.error(`[Session ${this.sessionId}] Completed with error:`, error.message);
-      if (this.currentReject) {
-        this.currentReject(error);
-      }
-    } else {
-      // Strip ANSI codes and control characters
-      let cleaned = this.outputBuffer
-        .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '') // ANSI escape sequences
-        .replace(/\r/g, '') // Carriage returns
-        .replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]\s*Thinking\.\.\./g, '') // Spinner
-        .replace(/▸\s*Time:.*$/gm, '') // Time info
-        .replace(/^>\s*/gm, '') // Prompt markers
-        .replace(/\n+/g, '\n') // Multiple newlines
-        .trim();
-      
-      console.log(`[Session ${this.sessionId}] Completed successfully (${cleaned.length} chars)`);
-      if (this.currentResolve) {
-        this.currentResolve(cleaned);
-      }
-    }
-    
-    this.currentResolve = null;
-    this.currentReject = null;
-    this.busy = false;
+    return 'Request sent to Kiro';
   }
   
   getStatus() {
@@ -167,30 +116,13 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const { prompt } = JSON.parse(body);
-        
-        if (!prompt) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Missing prompt' }));
-          return;
-        }
-        
         const result = await wrapper.execute(prompt);
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
-          status: 'success',
-          result,
-          sessionId: SESSION_ID
-        }));
-        
+        res.end(JSON.stringify({ status: 'success', result }));
       } catch (err) {
-        res.writeHead(err.message.includes('busy') ? 503 : 500, { 
-          'Content-Type': 'application/json' 
-        });
-        res.end(JSON.stringify({ 
-          error: err.message,
-          sessionId: SESSION_ID
-        }));
+        res.writeHead(err.message.includes('busy') ? 503 : 500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message, sessionId: SESSION_ID }));
       }
     });
     return;
@@ -207,7 +139,6 @@ server.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log(`[Session ${SESSION_ID}] Received SIGTERM, shutting down...`);
-  server.close();
   if (wrapper.process) {
     wrapper.process.kill('SIGTERM');
   }
