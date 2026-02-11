@@ -31,26 +31,13 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Start Kiro with --no-interactive flag
+    // Start Kiro - it will exit after each response in --no-interactive mode
     this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools', '--no-interactive'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: '/home/ec2-user/aipm'
     });
     
-    // Keep stdin open - don't let it close
-    this.process.stdin.setDefaultEncoding('utf8');
-    this.process.stdin.on('error', (err) => {
-      console.log(`[Session ${this.sessionId}] Stdin error: ${err.message}`);
-    });
-    
-    // Send initial prompt after startup to keep Kiro alive
-    setTimeout(() => {
-      if (this.process && this.process.stdin.writable && !this.busy) {
-        console.log(`[Session ${this.sessionId}] Sending keepalive prompt`);
-        this.process.stdin.write('Say "ready" and nothing else.\n');
-        this.busy = true; // Mark as busy until we get response
-      }
-    }, 3000);
+    // Don't send keepalive - let Kiro exit and restart on demand
     
     // Capture stdout
     this.process.stdout.on('data', (data) => {
@@ -70,10 +57,10 @@ class KiroWrapper {
     
     this.process.on('close', (code) => {
       console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
-      // Kiro keeps closing - just restart it internally
-      // Don't exit wrapper, let it keep running
-      console.log(`[Session ${this.sessionId}] Restarting Kiro in 2 seconds...`);
-      setTimeout(() => this.start(), 2000);
+      // Kiro exits after each response in --no-interactive mode
+      // Restart immediately, but don't mark as busy
+      this.markAvailable(); // Make sure we're available for next request
+      setTimeout(() => this.start(), 500); // Quick restart
     });
     
     console.log(`[Session ${this.sessionId}] Started (PID: ${this.process.pid})`);
