@@ -60,8 +60,11 @@ class KiroWrapper {
   }
   
   checkIfReady(output) {
+    // Strip ANSI codes before checking
+    const clean = output.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '');
+    
     // Kiro shows "Task Complete" or ready indicators when done
-    if (this.busy && (output.includes('Task Complete') || output.includes('You:'))) {
+    if (this.busy && (clean.includes('Task Complete') || clean.includes('You:'))) {
       console.log(`[Session ${this.sessionId}] Kiro ready for next input`);
       this.markAvailable();
     }
