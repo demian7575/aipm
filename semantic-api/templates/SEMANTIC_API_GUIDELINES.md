@@ -46,7 +46,7 @@ All templates follow this pattern:
 **CRITICAL**: After executing the curl command and receiving a response, you MUST output exactly:
 
 ```
-Task Complete
+SEMANTIC-API Task Complete
 ```
 
 This signals the wrapper that the task is finished. Do NOT continue thinking, analyzing, or explaining after this point.
