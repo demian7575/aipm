@@ -111,13 +111,7 @@ class KiroWrapper {
     
     // Send prompt to Kiro
     console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
-    // Log first 300 and last 200 chars to see both template path and requestId
-    if (prompt.length > 500) {
-      console.log(`[Session ${this.sessionId}] Prompt start: ${prompt.substring(0, 300)}...`);
-      console.log(`[Session ${this.sessionId}] Prompt end: ...${prompt.substring(prompt.length - 200)}`);
-    } else {
-      console.log(`[Session ${this.sessionId}] Prompt: ${prompt}`);
-    }
+    console.log(`[Session ${this.sessionId}] Prompt: ${prompt}`);
     this.process.stdin.write(prompt + '\n');
     
     // Safety timeout - restart Kiro if it doesn't complete
