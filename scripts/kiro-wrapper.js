@@ -36,7 +36,7 @@ class KiroWrapper {
       
       // Spawn Kiro and write prompt to stdin
       const kiroProcess = spawn('/home/ec2-user/.local/bin/kiro-cli', 
-        ['chat', '--trust-all-tools', '--no-interactive'], 
+        ['chat', '--trust-all-tools'], 
         {
           cwd: '/home/ec2-user/aipm',
           env: process.env,
