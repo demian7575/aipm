@@ -213,8 +213,16 @@ phase2_step4_invest_analysis() {
     # Get story data
     local story_data=$(curl -s $USE_DEV_TABLES_HEADER "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
+    # Debug: Check if story data was retrieved
+    if [[ -z "$story_data" ]]; then
+        fail_test "INVEST Analysis (Failed to fetch story data)"
+        echo "   ❌ Story ID: $PHASE2_CHILD_STORY_ID"
+        return
+    fi
+    
     if ! json_check "$story_data" '.id'; then
         fail_test "INVEST Analysis (Story not found)"
+        echo "   ❌ Response: $story_data"
         return
     fi
     
@@ -227,6 +235,15 @@ phase2_step4_invest_analysis() {
         --arg rid "$request_id" \
         --argjson story "$story_data" \
         '{requestId: $rid, story: $story}')
+    
+    # Debug: Verify payload has requestId
+    local payload_rid=$(echo "$payload" | jq -r '.requestId // "MISSING"')
+    if [[ "$payload_rid" == "MISSING" ]]; then
+        fail_test "INVEST Analysis (Payload missing requestId)"
+        echo "   ❌ Expected: $request_id"
+        echo "   ❌ Payload: $(echo "$payload" | jq -c '.')"
+        return
+    fi
     
     local response
     response=$(timeout 120 curl -s -N -X POST "$SEMANTIC_API_BASE/aipm/invest-analysis?stream=true" \
