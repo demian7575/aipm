@@ -11,6 +11,7 @@
 
 import { spawn } from 'child_process';
 import http from 'http';
+import pty from 'node-pty';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
@@ -31,55 +32,30 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Start Kiro directly - it will stay alive as long as stdin is open
-    this.process = spawn('/home/ec2-user/.local/bin/kiro-cli', 
+    // Use node-pty to create a real pseudo-TTY
+    this.process = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', 
       ['chat', '--trust-all-tools'], 
       {
+        name: 'xterm-256color',
+        cols: 120,
+        rows: 30,
         cwd: '/home/ec2-user/aipm',
-        env: process.env,
-        stdio: ['pipe', 'pipe', 'pipe']
+        env: process.env
       }
     );
     
-    // Keep stdin open
-    this.process.stdin.setDefaultEncoding('utf8');
-    this.process.stdin.on('error', (err) => {
-      console.log(`[Session ${this.sessionId}] Stdin error: ${err.message}`);
+    // Capture output
+    this.process.onData((data) => {
+      process.stdout.write(data);
+      this.outputBuffer += data;
+      this.checkIfReady(data);
     });
     
-    // Send a newline periodically to keep Kiro alive
-    this.keepaliveInterval = setInterval(() => {
-      if (this.process && this.process.stdin.writable && !this.busy) {
-        this.process.stdin.write('\n');
-      }
-    }, 30000); // Every 30 seconds
-    
-    this.process.stdout.on('data', (data) => {
-      const output = data.toString();
-      process.stdout.write(output);
-      this.outputBuffer += output;
-      this.checkIfReady(output);
-    });
-    
-    this.process.stderr.on('data', (data) => {
-      const output = data.toString();
-      process.stderr.write(output);
-      this.outputBuffer += output;
-      this.checkIfReady(output);
-    });
-    
-    this.process.on('close', (code) => {
-      console.log(`[Session ${this.sessionId}] Kiro process closed with code ${code}`);
-      
-      // Clear keepalive interval
-      if (this.keepaliveInterval) {
-        clearInterval(this.keepaliveInterval);
-        this.keepaliveInterval = null;
-      }
-      
+    this.process.onExit(({ exitCode }) => {
+      console.log(`[Session ${this.sessionId}] Kiro process closed with code ${exitCode}`);
       this.process = null;
       
-      // Always restart - Kiro should never close
+      // Always restart
       console.log(`[Session ${this.sessionId}] Restarting Kiro...`);
       setTimeout(() => this.start(), 2000);
     });
@@ -124,7 +100,7 @@ class KiroWrapper {
     this.outputBuffer = '';
     
     console.log(`[Session ${this.sessionId}] Executing prompt (${prompt.length} chars)`);
-    this.process.stdin.write(prompt + '\n');
+    this.process.write(prompt + '\n');
     
     this.busyTimeout = setTimeout(() => {
       console.log(`[Session ${this.sessionId}] Timeout - restarting`);
