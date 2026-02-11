@@ -45,7 +45,7 @@ const CONFIG = {
   kiroCommand:
     process.env.KIRO_COMMAND ||
     '/home/ec2-user/.local/bin/kiro-cli',
-  kiroArgs: ['chat', '--no-interactive', '--trust-all-tools'],
+  kiroArgs: ['chat', '--trust-all-tools'],
   cwd: process.env.KIRO_CWD || '/home/ec2-user/aipm',
 
   // Timeouts and restart policy
@@ -381,7 +381,7 @@ class KiroWrapper extends EventEmitter {
 
     this.log(`Executing prompt (${this.currentPrompt.length} chars)`);
     this.log(`[STDIN] ${this.currentPrompt}`);
-    this.process.write(`${this.currentPrompt}\n`);
+    this.process.write(`${this.currentPrompt}\r`);
 
     this.clearPromptTimer();
     this.promptTimer = setTimeout(() => {
