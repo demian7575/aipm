@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -754,6 +755,45 @@ if (referenceBtn) {
     }
     openReferenceModal(state.selectedStoryId);
   });
+}
+
+/**
+ * Opens modal showing list of all story titles
+ */
+async function openStoryListModal() {
+  try {
+    const response = await fetch(resolveApiUrl('/api/stories'));
+    if (!response.ok) throw new Error('Failed to fetch stories');
+    const stories = await response.json();
+    
+    const content = document.createElement('div');
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.textContent = story.title;
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      list.appendChild(item);
+    });
+    
+    content.appendChild(list);
+    
+    openModal({
+      title: 'Story List',
+      content,
+      actions: []
+    });
+  } catch (error) {
+    console.error('Failed to load story list:', error);
+    showToast('Failed to load story list', 'error');
+  }
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', openStoryListModal);
 }
 
 if (dependencyToggleBtn) {

@@ -625,6 +625,46 @@ fi
 echo ""
 
 # ============================================
+# SECTION 13: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "🎯 SECTION 13: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test 43: Story List Button - Modal displays all story titles
+  echo "Test 43: Story List Button - Modal displays all story titles"
+  # Verify button exists in HTML
+  if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Story List button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Verify button handler exists in app.js
+  if grep -q 'storyListBtn' apps/frontend/public/app.js && grep -q 'openStoryListModal' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Story List button handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button handler not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Verify modal function fetches stories
+  if grep -q "resolveApiUrl('/api/stories')" apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Modal fetches stories from API"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal does not fetch stories"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
