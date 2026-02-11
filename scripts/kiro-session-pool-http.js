@@ -84,7 +84,7 @@ class WrapperClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, requestId }),
-        signal: AbortSignal.timeout(600000) // 10 minutes
+        signal: AbortSignal.timeout(310000) // 310s = wrapper timeout + 10s buffer
       });
       
       const data = await response.json();

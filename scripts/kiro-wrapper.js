@@ -14,7 +14,7 @@ import http from 'http';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
-const BUSY_TIMEOUT = 120000; // 2 minutes safety timeout
+const BUSY_TIMEOUT = 300000; // 5 minutes - enough for code generation
 
 class KiroWrapper {
   constructor(sessionId) {

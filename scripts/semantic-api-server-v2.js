@@ -141,14 +141,14 @@ const server = http.createServer(async (req, res) => {
       // Store response object for SSE
       pendingRequests.set(requestId, { res });
       
-      // Timeout after 300 seconds (5 minutes) to allow complex code generation
+      // Timeout after 320 seconds (session pool + 10s buffer) to allow complex code generation
       setTimeout(() => {
         if (pendingRequests.has(requestId)) {
           res.write(`data: ${JSON.stringify({ status: 'error', message: 'Request timeout' })}\n\n`);
           res.end();
           pendingRequests.delete(requestId);
         }
-      }, 300000);
+      }, 320000);
       
       // Send to session pool (fire-and-forget, Kiro will callback via curl)
       fetch(`${SESSION_POOL_URL}/execute`, {
