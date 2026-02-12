@@ -625,6 +625,47 @@ fi
 echo ""
 
 # ============================================
+# SECTION 9: Story-Specific Functionality Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID=$1
+  echo "📦 SECTION 9: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test 43: Story List Button - Verify button exists in HTML
+  echo "Test 43: Story list button exists in HTML"
+  if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Story list button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 44: Story List Modal - Verify function exists in app.js
+  echo "Test 44: Story list modal function exists"
+  if grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: openStoryListModal function found"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 45: Story List Button - Verify event listener
+  echo "Test 45: Story list button event listener configured"
+  if grep -q 'storyListBtn.addEventListener' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Event listener configured"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Event listener not configured"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
+echo ""
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
@@ -651,8 +692,15 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+if [ -n "$1" ]; then
+  echo "  - Story-Specific: 3 functionality tests"
+fi
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+if [ -n "$1" ]; then
+  echo "Total Tests: 45 (39 executable + 6 workflow)"
+else
+  echo "Total Tests: 42 (36 executable + 6 workflow)"
+fi
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
