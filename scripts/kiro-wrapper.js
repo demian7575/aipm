@@ -110,9 +110,17 @@ class KiroWrapper {
       this.pty.write(prompt + '\r');
 
       this.requestTimeout = setTimeout(() => {
+        console.log(`[Session ${this.sessionId}] Request timeout after 5 minutes, restarting Kiro...`);
         this.busy = false;
         this.currentReject = null;
         this.currentResolve = null;
+        this.outputBuffer = '';
+        
+        // Kill and restart Kiro
+        if (this.pty) {
+          this.pty.kill();
+        }
+        
         reject(new Error('Request timeout after 5 minutes'));
       }, 300000);
     });
