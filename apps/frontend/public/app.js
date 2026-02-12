@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -8593,6 +8594,10 @@ async function initialize() {
     });
   });
 
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
+  });
+
   autoLayoutToggle.addEventListener('click', () => {
     if (state.autoLayout) {
       seedManualPositionsFromAutoLayout();
@@ -9017,6 +9022,40 @@ function openCreatePRModal(story, taskEntry = null) {
     title: 'Create Pull Request',
     content: form,
     actions: [{ label: 'Create PR', onClick: handleSubmit }],
+  });
+}
+
+/**
+ * Open story list modal showing all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  const list = document.createElement('ul');
+  list.className = 'story-list';
+  
+  const allStories = Array.from(storyIndex.values());
+  
+  allStories.forEach(story => {
+    const item = document.createElement('li');
+    item.className = 'story-list-item';
+    item.textContent = story.title || 'Untitled Story';
+    item.addEventListener('click', () => {
+      state.selectedStoryId = story.id;
+      persistSelection();
+      renderDetails();
+      closeModal();
+    });
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close'
   });
 }
 
