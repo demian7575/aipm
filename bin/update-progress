@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Update progress.md with current system status
+# Usage: ./bin/update-progress
+
+set -e
+
+PROGRESS_FILE=".kiro/steering/progress.md"
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M %Z')
+
+echo "📝 Updating progress.md..."
+
+# Get current system status
+if command -v ssh &> /dev/null && [ -f "bin/ssh-ec2" ]; then
+    echo "🔍 Checking EC2 status..."
+    
+    # Try to get prod EC2 status
+    PROD_IP=$(aws ec2 describe-instances \
+        --instance-ids i-016241c7a18884e80 \
+        --region us-east-1 \
+        --query 'Reservations[0].Instances[0].PublicIpAddress' \
+        --output text 2>/dev/null || echo "unknown")
+    
+    if [ "$PROD_IP" != "None" ] && [ "$PROD_IP" != "unknown" ]; then
+        echo "✅ Production EC2: $PROD_IP"
+    fi
+fi
+
+# Update timestamp in progress.md
+sed -i "s/\*\*Last Updated\*\*:.*/\*\*Last Updated\*\*: $TIMESTAMP/" "$PROGRESS_FILE"
+
+echo "✅ Updated timestamp in $PROGRESS_FILE"
+echo ""
+echo "To commit this update:"
+echo "  git add $PROGRESS_FILE"
+echo "  git commit -m 'Update progress timestamp'"
+echo "  git push origin main"
