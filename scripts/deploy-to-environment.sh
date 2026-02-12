@@ -122,6 +122,11 @@ EOF
         fi
     }
     
+    # Install dependencies
+    echo "📦 Installing dependencies..."
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && npm install --production 2>&1 | tail -3"
+    echo "✅ Dependencies installed"
+    
     # Update version in code
     echo "⚙️ Updating deployment version..."
     VERSION_STRING="${DEPLOY_VERSION}-${COMMIT_HASH}"
