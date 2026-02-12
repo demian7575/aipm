@@ -40,6 +40,9 @@ class KiroWrapper {
       this.lastActivity = Date.now();
       this.outputBuffer += data;
       
+      // Log output for debugging
+      console.log(`[Session ${this.sessionId}] [OUTPUT] ${data.toString()}`);
+      
       // Check for completion
       if (this.busy && this.completionMarkers.some(marker => this.outputBuffer.includes(marker))) {
         this.handleCompletion();
