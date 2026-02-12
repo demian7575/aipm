@@ -15,8 +15,8 @@
     };
   } else if (isDev) {
     window.CONFIG = {
-      API_BASE_URL: 'http://44.222.168.46:4000',
-      EC2_TERMINAL_URL: 'ws://44.222.168.46:8080',
+      API_BASE_URL: 'http://3.230.169.156:4000',
+      EC2_TERMINAL_URL: 'ws://3.230.169.156:8080',
       ENVIRONMENT: 'dev'
     };
   } else {
