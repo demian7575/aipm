@@ -1,39 +1,34 @@
 #!/usr/bin/env node
 
 /**
- * Kiro Wrapper - Persistent Kiro session with bash shell
- * Based on Codex's approach: spawn bash → launch Kiro → send prompts via write()
+ * Kiro Wrapper - Simplified direct PTY approach
+ * No bash, no HTTP complexity - just PTY → Kiro
  */
 
 import pty from 'node-pty';
 import http from 'http';
-import { EventEmitter } from 'events';
 
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
 
-class KiroWrapper extends EventEmitter {
+class KiroWrapper {
   constructor(sessionId) {
-    super();
     this.sessionId = sessionId;
     this.pty = null;
     this.busy = false;
-    this.kiroStarted = false;
-    this.lastActivity = Date.now();
     this.outputBuffer = '';
     this.currentResolve = null;
     this.currentReject = null;
     this.requestTimeout = null;
+    this.lastActivity = Date.now();
     
-    // Completion markers
     this.completionMarkers = ['SEMANTIC-API Task Complete', '▸ Time:'];
   }
 
   start() {
-    console.log(`[Session ${this.sessionId}] Starting bash shell...`);
+    console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    // Spawn interactive login shell
-    this.pty = pty.spawn('bash', ['--login', '-i'], {
+    this.pty = pty.spawn('kiro-cli', ['chat', '--trust-all-tools'], {
       name: 'xterm-256color',
       cols: 120,
       rows: 40,
@@ -45,44 +40,26 @@ class KiroWrapper extends EventEmitter {
       this.lastActivity = Date.now();
       this.outputBuffer += data;
       
-      // Log all output
-      console.log(`[Session ${this.sessionId}] [OUTPUT] ${data.toString()}`);
-      
-      // Detect when Kiro starts (shows prompt)
-      if (data.toString().includes('!>')) {
-        this.kiroStarted = true;
-      }
-      
-      // Detect if Kiro exited (bash prompt appears after Kiro was running)
-      if (data.toString().includes('[ec2-user@') && data.toString().includes(']$')) {
-        if (this.kiroStarted && !this.busy) {
-          console.log(`[Session ${this.sessionId}] Kiro exited, restarting...`);
-          this.kiroStarted = false;
-          setTimeout(() => {
-            this.pty.write('kiro-cli chat --trust-all-tools\n');
-          }, 1000);
-        }
-      }
-      
       // Check for completion
       if (this.busy && this.completionMarkers.some(marker => this.outputBuffer.includes(marker))) {
         this.handleCompletion();
       }
     });
 
-    // Launch Kiro after shell is ready
-    setTimeout(() => {
-      console.log(`[Session ${this.sessionId}] Launching Kiro CLI...`);
-      this.pty.write('kiro-cli chat --trust-all-tools\n');
-    }, 500);
-
-    // Hang monitor
-    setInterval(() => {
-      if (this.busy && Date.now() - this.lastActivity > 120000) {
-        console.log(`[Session ${this.sessionId}] Detected hang, restarting...`);
-        this.restart();
+    this.pty.onExit(({ exitCode, signal }) => {
+      console.log(`[Session ${this.sessionId}] Kiro exited (code=${exitCode}, signal=${signal}), restarting...`);
+      
+      if (this.currentReject) {
+        this.currentReject(new Error('Kiro exited unexpectedly'));
+        this.currentReject = null;
+        this.currentResolve = null;
       }
-    }, 5000);
+      
+      this.busy = false;
+      setTimeout(() => this.start(), 1000);
+    });
+
+    console.log(`[Session ${this.sessionId}] Kiro started (PID: ${this.pty.pid})`);
   }
 
   async execute(prompt) {
@@ -103,15 +80,13 @@ class KiroWrapper extends EventEmitter {
       this.currentResolve = resolve;
       this.currentReject = reject;
 
-      // Send prompt to Kiro
       this.pty.write(prompt + '\n');
 
-      // Timeout after 5 minutes
       this.requestTimeout = setTimeout(() => {
         this.busy = false;
         this.currentReject = null;
         this.currentResolve = null;
-        reject(new Error('Request timeout'));
+        reject(new Error('Request timeout after 5 minutes'));
       }, 300000);
     });
   }
@@ -132,28 +107,10 @@ class KiroWrapper extends EventEmitter {
     }
   }
 
-  restart() {
-    console.log(`[Session ${this.sessionId}] Restarting Kiro...`);
-    
-    if (this.pty) {
-      this.pty.kill();
-    }
-
-    if (this.currentReject) {
-      this.currentReject(new Error('Session restarted'));
-      this.currentReject = null;
-      this.currentResolve = null;
-    }
-
-    this.busy = false;
-    this.outputBuffer = '';
-    
-    setTimeout(() => this.start(), 1000);
-  }
-
   getStatus() {
     return {
       sessionId: this.sessionId,
+      pid: this.pty?.pid || null,
       busy: this.busy,
       lastActivity: new Date(this.lastActivity).toISOString(),
       idleTime: Date.now() - this.lastActivity
@@ -161,13 +118,12 @@ class KiroWrapper extends EventEmitter {
   }
 }
 
-// Create wrapper instance
+// Create and start wrapper
 const wrapper = new KiroWrapper(SESSION_ID);
 wrapper.start();
 
 // HTTP server
 const server = http.createServer(async (req, res) => {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -180,17 +136,12 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
-  // Health check
   if (url.pathname === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      status: 'healthy',
-      ...wrapper.getStatus()
-    }));
+    res.end(JSON.stringify({ status: 'healthy', ...wrapper.getStatus() }));
     return;
   }
 
-  // Execute prompt
   if (url.pathname === '/execute' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -217,11 +168,10 @@ server.listen(PORT, () => {
   console.log(`[Session ${SESSION_ID}] HTTP server listening on port ${PORT}`);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
   console.log(`[Session ${SESSION_ID}] Received SIGTERM, shutting down...`);
   if (wrapper.pty) {
-    wrapper.pty.write('exit\n');
+    wrapper.pty.kill();
   }
   setTimeout(() => process.exit(0), 1000);
 });
