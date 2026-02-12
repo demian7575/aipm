@@ -215,12 +215,11 @@ sudo pkill -9 -f 'node.*apps/backend' || true
 sleep 2
 
 echo 'Installing/updating service files...'
-sudo cp scripts/systemd/aipm-kiro-api.service /etc/systemd/system/
-sudo cp scripts/systemd/aipm-kiro-cli.service /etc/systemd/system/
-sudo cp scripts/systemd/kiro-session-pool.service /etc/systemd/system/
-sudo cp scripts/systemd/aipm-semantic-api.service /etc/systemd/system/
+sudo cp config/kiro-wrapper@.service /etc/systemd/system/
+sudo cp config/kiro-session-pool.service /etc/systemd/system/
+sudo cp config/semantic-api-server.service /etc/systemd/system/aipm-semantic-api.service
 sudo systemctl daemon-reload
-sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool aipm-semantic-api
+sudo systemctl enable kiro-wrapper@{1,2} kiro-session-pool aipm-semantic-api
 
 # Install IP update service (runs on boot)
 echo '🔄 Installing IP update service...'
@@ -237,12 +236,12 @@ sudo /usr/local/bin/update-ec2-ip-to-s3.sh $ENV || echo '⚠️  IP update faile
 
 echo 'Starting backend services...'
 sudo systemctl start $SERVICE_NAME
-sudo systemctl start aipm-kiro-api
 
 if [ "$NEEDS_SESSION_POOL_RESTART" = "true" ]; then
   echo '🔄 Restarting Session Pool services...'
   sudo systemctl start kiro-session-pool
-  sudo systemctl start aipm-kiro-cli
+  sudo systemctl start kiro-wrapper@1
+  sudo systemctl start kiro-wrapper@2
   sudo systemctl start aipm-semantic-api
   sudo systemctl start queue-cleanup || true
   

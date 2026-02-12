@@ -18,7 +18,8 @@
     "@octokit/rest": "^22.0.1",
     "@vendia/serverless-express": "^4.12.6",
     "busboy": "^1.6.0",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "node-pty": "^1.0.0"
   },
   "devDependencies": {
     "serverless": "^3.40.0"
