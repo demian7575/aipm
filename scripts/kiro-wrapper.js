@@ -29,7 +29,7 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    this.pty = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
+    this.pty = pty.spawn('bash', ['-l', '-i'], {
       name: 'xterm-256color',
       cols: 120,
       rows: 40,
@@ -41,10 +41,22 @@ class KiroWrapper {
         FORCE_COLOR: '1'
       }
     });
+    
+    // Wait for bash prompt, then start kiro
+    let bashReady = false;
+    const startKiro = () => {
+      this.pty.write('/home/ec2-user/.local/bin/kiro-cli chat --trust-all-tools\r');
+    };
 
     this.pty.onData(data => {
       this.lastActivity = Date.now();
       this.outputBuffer += data;
+      
+      // Start kiro when bash is ready
+      if (!bashReady && data.includes('$')) {
+        bashReady = true;
+        setTimeout(startKiro, 500);
+      }
       
       // Log output for debugging
       const text = data.toString();
@@ -95,7 +107,7 @@ class KiroWrapper {
       this.currentResolve = resolve;
       this.currentReject = reject;
 
-      this.pty.write(prompt + '\n');
+      this.pty.write(prompt + '\r');
 
       this.requestTimeout = setTimeout(() => {
         this.busy = false;
