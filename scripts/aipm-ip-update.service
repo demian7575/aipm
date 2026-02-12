@@ -5,7 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/update-ec2-ip-to-s3.sh
+# Detect environment from instance tags, fallback to dev
+ExecStart=/bin/bash -c 'INSTANCE_ID=$(ec2-metadata --instance-id 2>/dev/null | cut -d" " -f2); ENV_TAG=$(aws ec2 describe-tags --region us-east-1 --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Environment" --query "Tags[0].Value" --output text 2>/dev/null); if [[ "$ENV_TAG" == "production" ]]; then ENV="prod"; else ENV="dev"; fi; /usr/local/bin/update-ec2-ip-to-s3.sh $ENV'
 RemainAfterExit=yes
 StandardOutput=journal
 StandardError=journal
