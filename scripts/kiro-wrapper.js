@@ -34,7 +34,12 @@ class KiroWrapper {
       cols: 120,
       rows: 40,
       cwd: '/home/ec2-user/aipm',
-      env: process.env
+      env: {
+        ...process.env,
+        TERM: 'xterm-256color',
+        COLORTERM: 'truecolor',
+        FORCE_COLOR: '1'
+      }
     });
 
     this.pty.onData(data => {
