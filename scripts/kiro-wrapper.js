@@ -47,6 +47,16 @@ class KiroWrapper extends EventEmitter {
       // Log all output
       console.log(`[Session ${this.sessionId}] [OUTPUT] ${data.toString()}`);
       
+      // Detect if Kiro exited (bash prompt appears)
+      if (data.toString().includes('[ec2-user@') && data.toString().includes(']$')) {
+        if (!this.busy) {
+          console.log(`[Session ${this.sessionId}] Kiro exited, restarting...`);
+          setTimeout(() => {
+            this.pty.write('kiro-cli chat --trust-all-tools\n');
+          }, 1000);
+        }
+      }
+      
       // Check for completion
       if (this.busy && this.completionMarkers.some(marker => this.outputBuffer.includes(marker))) {
         this.handleCompletion();
