@@ -23,6 +23,16 @@ npm run dev  # Starts on http://localhost:4000
 
 **Requirements**: Node.js 18+
 
+### SSH to EC2
+
+```bash
+# Connect to production EC2 (auto-detects current IP)
+./bin/ssh-ec2 prod
+
+# Connect to development EC2
+./bin/ssh-ec2 dev
+```
+
 ### Deploy to AWS
 
 ```bash
