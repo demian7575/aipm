@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -753,6 +754,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8023,6 +8030,60 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+/**
+ * Opens a modal displaying all story titles
+ */
+async function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+
+  const listEl = document.createElement('div');
+  listEl.textContent = 'Loading stories...';
+  container.appendChild(listEl);
+
+  openModal({
+    title: 'All Stories',
+    content: container,
+    actions: [],
+    size: 'default'
+  });
+
+  try {
+    const response = await fetch(resolveApiUrl('/api/stories'));
+    if (!response.ok) {
+      throw new Error(`Failed to fetch stories: ${response.statusText}`);
+    }
+    const stories = await response.json();
+
+    if (stories.length === 0) {
+      listEl.textContent = 'No stories available';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.padding = '0';
+    ul.style.margin = '0';
+
+    stories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '0.5rem';
+      li.style.borderBottom = '1px solid #eee';
+      li.textContent = story.title || 'Untitled Story';
+      ul.appendChild(li);
+    });
+
+    listEl.appendChild(ul);
+  } catch (error) {
+    console.error('Failed to load stories:', error);
+    listEl.textContent = 'Failed to load stories. Please try again.';
+    showToast('Failed to load stories', 'error');
+  }
 }
 
 function openReferenceModal(storyId) {
