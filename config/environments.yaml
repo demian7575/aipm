@@ -3,7 +3,7 @@
 
 prod:
   ec2_ip: "100.53.112.192"
-  instance_id: "i-0e50e798f8c0e3e3e"
+  instance_id: "i-PLACEHOLDER"  # TODO: Create prod instance
   api_port: 4000
   semantic_api_port: 8083
   session_pool_port: 8082
@@ -17,7 +17,7 @@ prod:
 
 dev:
   ec2_ip: "44.221.87.105"
-  instance_id: "i-0c9b5e0a8b5c8f8e8"
+  instance_id: "i-08c78da25af47b3cb"
   api_port: 4000
   semantic_api_port: 8083
   session_pool_port: 8082
