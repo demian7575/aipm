@@ -122,8 +122,16 @@ jobs:
             echo "⚠️  Development EC2 state: $EC2_STATE"
           fi
           
-          # Add SSH host key after EC2 is confirmed running
-          ssh-keyscan -H $DEV_EC2_IP >> ~/.ssh/known_hosts 2>/dev/null || echo "⚠️  Could not scan SSH host key"
+          # Add SSH host key after EC2 is confirmed running (retry up to 30s)
+          echo "🔑 Adding SSH host key..."
+          for i in {1..6}; do
+            if ssh-keyscan -H $DEV_EC2_IP >> ~/.ssh/known_hosts 2>/dev/null; then
+              echo "✅ SSH host key added"
+              break
+            fi
+            echo "⏳ Waiting for SSH to be ready... (attempt $i/6)"
+            sleep 5
+          done
       
       - name: Deploy to Development EC2
         env:
@@ -282,8 +290,16 @@ jobs:
             echo "⚠️  Production EC2 state: $EC2_STATE"
           fi
           
-          # Add SSH host key after EC2 is confirmed running
-          ssh-keyscan -H $PROD_EC2_IP >> ~/.ssh/known_hosts 2>/dev/null || echo "⚠️  Could not scan SSH host key"
+          # Add SSH host key after EC2 is confirmed running (retry up to 30s)
+          echo "🔑 Adding SSH host key..."
+          for i in {1..6}; do
+            if ssh-keyscan -H $PROD_EC2_IP >> ~/.ssh/known_hosts 2>/dev/null; then
+              echo "✅ SSH host key added"
+              break
+            fi
+            echo "⏳ Waiting for SSH to be ready... (attempt $i/6)"
+            sleep 5
+          done
       
       - name: Deploy backend to Production EC2
         env:
