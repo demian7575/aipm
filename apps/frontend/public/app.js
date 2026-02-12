@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -8532,6 +8533,38 @@ async function initialize() {
   
   // Fetch version after EC2 is ready
   fetchVersion();
+
+  viewAllStoriesBtn?.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      
+      const listEl = document.createElement('ul');
+      listEl.style.listStyle = 'none';
+      listEl.style.padding = '0';
+      listEl.style.maxHeight = '400px';
+      listEl.style.overflowY = 'auto';
+      
+      stories.forEach(story => {
+        const li = document.createElement('li');
+        li.style.padding = '8px';
+        li.style.borderBottom = '1px solid #eee';
+        li.textContent = story.title || `Story ${story.id}`;
+        listEl.appendChild(li);
+      });
+      
+      openModal({
+        title: 'All Stories',
+        content: listEl,
+        actions: [],
+        cancelLabel: 'Close'
+      });
+    } catch (error) {
+      console.error('Failed to load stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
+  });
 
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
