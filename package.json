@@ -19,6 +19,7 @@
     "@vendia/serverless-express": "^4.12.6",
     "busboy": "^1.6.0",
     "express": "^5.1.0",
+    "js-yaml": "^4.1.0",
     "node-pty": "^1.0.0"
   },
   "devDependencies": {
