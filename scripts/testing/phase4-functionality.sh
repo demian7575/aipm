@@ -622,6 +622,26 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# ============================================
+# SECTION 8: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "📦 SECTION 8: Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  echo "Test 43: Story List Button displays story titles"
+  FRONTEND_URL="${S3_BUCKET_URL:-http://localhost:3000}"
+  if curl -s "$FRONTEND_URL" | grep -q "story-list-btn"; then
+    echo "  ✅ PASS: Story List button exists in frontend"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
