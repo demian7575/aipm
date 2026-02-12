@@ -233,7 +233,7 @@ echo '✅ IP update service installed (will run on boot)'
 
 # Update IP in S3 now
 echo '🔄 Updating current IP in S3...'
-sudo systemctl start aipm-ip-update.service || echo '⚠️  IP update failed (non-fatal)'
+sudo /usr/local/bin/update-ec2-ip-to-s3.sh $ENV || echo '⚠️  IP update failed (non-fatal)'
 
 echo 'Starting backend services...'
 sudo systemctl start $SERVICE_NAME

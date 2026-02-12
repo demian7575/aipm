@@ -1,38 +1,50 @@
 #!/bin/bash
 # Update S3 config with current EC2 IP address
 # Runs on EC2 boot to ensure frontend always has correct IP
+# Usage: update-ec2-ip-to-s3.sh [prod|dev]
 
 set -e
 
-# Determine environment (prod or dev) from instance tags
-INSTANCE_ID=$(ec2-metadata --instance-id | cut -d' ' -f2)
-REGION="us-east-1"
+# Get environment from parameter or detect from instance tags
+ENV_PARAM="$1"
 
-# Get instance name tag to determine environment
-INSTANCE_NAME=$(aws ec2 describe-tags \
-  --region $REGION \
-  --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Name" \
-  --query 'Tags[0].Value' \
-  --output text 2>/dev/null || echo "unknown")
-
-# Also try Environment tag
-ENV_TAG=$(aws ec2 describe-tags \
-  --region $REGION \
-  --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Environment" \
-  --query 'Tags[0].Value' \
-  --output text 2>/dev/null || echo "")
-
-# Determine environment from tags
-if [[ "$ENV_TAG" == "development" ]] || [[ "$INSTANCE_NAME" == *"dev"* ]]; then
-  ENV="dev"
-  S3_CONFIG="s3://aipm-ec2-config/dev-config.json"
-elif [[ "$ENV_TAG" == "production" ]] || [[ "$INSTANCE_NAME" == *"prod"* ]]; then
-  ENV="prod"
-  S3_CONFIG="s3://aipm-ec2-config/prod-config.json"
+if [[ -n "$ENV_PARAM" ]]; then
+  # Use provided parameter
+  ENV="$ENV_PARAM"
 else
-  echo "❌ Could not determine environment from tags: Name=$INSTANCE_NAME, Environment=$ENV_TAG"
+  # Try to detect from instance tags
+  INSTANCE_ID=$(ec2-metadata --instance-id 2>/dev/null | cut -d' ' -f2 || echo "")
+  REGION="us-east-1"
+  
+  if [[ -n "$INSTANCE_ID" ]]; then
+    INSTANCE_NAME=$(aws ec2 describe-tags \
+      --region $REGION \
+      --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Name" \
+      --query 'Tags[0].Value' \
+      --output text 2>/dev/null || echo "unknown")
+    
+    ENV_TAG=$(aws ec2 describe-tags \
+      --region $REGION \
+      --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Environment" \
+      --query 'Tags[0].Value' \
+      --output text 2>/dev/null || echo "")
+    
+    if [[ "$ENV_TAG" == "development" ]] || [[ "$INSTANCE_NAME" == *"dev"* ]]; then
+      ENV="dev"
+    elif [[ "$ENV_TAG" == "production" ]] || [[ "$INSTANCE_NAME" == *"prod"* ]]; then
+      ENV="prod"
+    fi
+  fi
+fi
+
+# Validate environment
+if [[ "$ENV" != "prod" && "$ENV" != "dev" ]]; then
+  echo "❌ Could not determine environment. Usage: $0 [prod|dev]"
   exit 1
 fi
+
+S3_CONFIG="s3://aipm-ec2-config/${ENV}-config.json"
+INSTANCE_ID=$(ec2-metadata --instance-id 2>/dev/null | cut -d' ' -f2 || echo "unknown")
 
 # Get current public IP
 PUBLIC_IP=$(ec2-metadata --public-ipv4 | cut -d' ' -f2)
