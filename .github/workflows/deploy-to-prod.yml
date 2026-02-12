@@ -77,7 +77,6 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $DEV_EC2_IP >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
       - name: Start Development EC2 if stopped
@@ -122,6 +121,9 @@ jobs:
           else
             echo "⚠️  Development EC2 state: $EC2_STATE"
           fi
+          
+          # Add SSH host key after EC2 is confirmed running
+          ssh-keyscan -H $DEV_EC2_IP >> ~/.ssh/known_hosts 2>/dev/null || echo "⚠️  Could not scan SSH host key"
       
       - name: Deploy to Development EC2
         env:
@@ -235,7 +237,6 @@ jobs:
           fi
           sed -i 's/\r$//' ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $PROD_EC2_IP >> ~/.ssh/known_hosts
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
       - name: Start Production EC2 if stopped
@@ -280,6 +281,9 @@ jobs:
           else
             echo "⚠️  Production EC2 state: $EC2_STATE"
           fi
+          
+          # Add SSH host key after EC2 is confirmed running
+          ssh-keyscan -H $PROD_EC2_IP >> ~/.ssh/known_hosts 2>/dev/null || echo "⚠️  Could not scan SSH host key"
       
       - name: Deploy backend to Production EC2
         env:
