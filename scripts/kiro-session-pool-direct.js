@@ -36,12 +36,13 @@ class KiroSession {
     });
 
     this.pty.onData(data => {
-      console.log(`[Session ${this.id}] PTY:`, data.substring(0, 200));
+      // Log to stdout (journalctl captures this)
+      process.stdout.write(`[S${this.id}] ${data}`);
       this.outputBuffer += data;
       
       if (!this.ready && (data.includes('!>') || data.includes('> '))) {
         this.ready = true;
-        console.log(`[Session ${this.id}] Ready`);
+        console.log(`\n[Session ${this.id}] ✅ Ready`);
       }
       
       if (this.busy && (data.includes('SEMANTIC-API Task Complete') || data.includes('▸ Time:'))) {
@@ -74,7 +75,7 @@ class KiroSession {
     this.busy = true;
     this.outputBuffer = '';
     
-    console.log(`[Session ${this.id}] Executing: ${prompt.substring(0, 100)}...`);
+    console.log(`\n[Session ${this.id}] 📝 Executing prompt (${prompt.length} chars)`);
 
     return new Promise((resolve, reject) => {
       this.currentResolve = resolve;
@@ -83,6 +84,7 @@ class KiroSession {
       this.pty.write(prompt + '\n');
 
       this.timeout = setTimeout(() => {
+        console.log(`\n[Session ${this.id}] ⏱️ Timeout after 5 minutes`);
         this.busy = false;
         this.currentReject = null;
         this.currentResolve = null;
@@ -92,6 +94,7 @@ class KiroSession {
   }
 
   handleComplete() {
+    console.log(`\n[Session ${this.id}] ✅ Task complete`);
     if (this.timeout) {
       clearTimeout(this.timeout);
       this.timeout = null;
