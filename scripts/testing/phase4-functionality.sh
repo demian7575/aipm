@@ -9,9 +9,16 @@ source "$SCRIPT_DIR/../utilities/load-env-config.sh" prod
 
 PASSED=0
 FAILED=0
+SKIPPED=0
+
+# Check if story ID provided for story-specific tests
+STORY_ID="${1:-}"
 
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
+if [ -n "$STORY_ID" ]; then
+  echo "Story-specific tests for ID: $STORY_ID"
+fi
 echo ""
 
 # ============================================
@@ -623,6 +630,37 @@ else
 fi
 
 echo ""
+
+# ============================================
+# SECTION 8: Story-Specific Tests
+# ============================================
+if [ -n "$STORY_ID" ]; then
+  echo "📦 SECTION 8: Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for story 1770873424774: Story list button
+  if [ "$STORY_ID" = "1770873424774" ]; then
+    echo "Test 43: Story list button exists in HTML"
+    if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+      echo "  ✅ PASS: Story list button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 44: Story list button handler in JS"
+    if grep -q 'storyListBtn' apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Story list button handler found"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button handler not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+  
+  echo ""
+fi
 
 # ============================================
 # Summary
