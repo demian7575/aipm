@@ -5,6 +5,9 @@
 
 set -e
 
+# Region
+REGION="us-east-1"
+
 # Get environment from parameter or detect from instance tags
 ENV_PARAM="$1"
 
@@ -14,7 +17,6 @@ if [[ -n "$ENV_PARAM" ]]; then
 else
   # Try to detect from instance tags
   INSTANCE_ID=$(ec2-metadata --instance-id 2>/dev/null | cut -d' ' -f2 || echo "")
-  REGION="us-east-1"
   
   if [[ -n "$INSTANCE_ID" ]]; then
     INSTANCE_NAME=$(aws ec2 describe-tags \
