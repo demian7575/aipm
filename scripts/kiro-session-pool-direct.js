@@ -36,6 +36,7 @@ class KiroSession {
     });
 
     this.pty.onData(data => {
+      console.log(`[Session ${this.id}] PTY:`, data.substring(0, 200));
       this.outputBuffer += data;
       
       if (!this.ready && data.includes('!>')) {
