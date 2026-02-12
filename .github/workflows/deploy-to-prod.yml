@@ -342,18 +342,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_ENV: prod
-          API_BASE: ${{ env.PROD_API_BASE }}
-          SEMANTIC_API_BASE: ${{ env.PROD_SEMANTIC_API_BASE }}
-          SSH_HOST: ${{ env.PROD_EC2_IP }}
           SKIP_GATING_TESTS_IN_CODE_GENERATION: true
         run: |
           echo "🔍 Running Post-Production Gating Tests on Production Environment"
-          echo "   Backend: $API_BASE (Production EC2)"
-          echo "   Database: Development DynamoDB (via X-Use-Dev-Tables header)"
-          export PHASE="post-production"
           
           # Wait for deployment to be ready
           sleep 15
+          
+          # Reload environment config to get updated IP after deployment
+          echo "🔄 Reloading production environment configuration..."
+          source scripts/utilities/load-env-config.sh prod
+          export API_BASE="$API_BASE"
+          export SEMANTIC_API_BASE="$SEMANTIC_API_BASE"
+          export SSH_HOST="$EC2_IP"
+          
+          echo "   Backend: $API_BASE (Production EC2)"
+          echo "   Database: Development DynamoDB (via X-Use-Dev-Tables header)"
+          export PHASE="post-production"
           
           # Test production environment health
           echo "Testing production environment..."
