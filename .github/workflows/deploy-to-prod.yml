@@ -124,14 +124,20 @@ jobs:
           
           # Add SSH host key after EC2 is confirmed running (retry up to 30s)
           echo "🔑 Adding SSH host key..."
+          SSH_ADDED=false
           for i in 1 2 3 4 5 6; do
             if ssh-keyscan -H $DEV_EC2_IP >> ~/.ssh/known_hosts 2>/dev/null; then
               echo "✅ SSH host key added"
+              SSH_ADDED=true
               break
             fi
             echo "⏳ Waiting for SSH to be ready... (attempt $i/6)"
             sleep 5
           done
+          
+          if [ "$SSH_ADDED" = "false" ]; then
+            echo "⚠️  Could not add SSH host key, will try with StrictHostKeyChecking=no"
+          fi
       
       - name: Deploy to Development EC2
         env:
@@ -292,14 +298,20 @@ jobs:
           
           # Add SSH host key after EC2 is confirmed running (retry up to 30s)
           echo "🔑 Adding SSH host key..."
+          SSH_ADDED=false
           for i in 1 2 3 4 5 6; do
             if ssh-keyscan -H $PROD_EC2_IP >> ~/.ssh/known_hosts 2>/dev/null; then
               echo "✅ SSH host key added"
+              SSH_ADDED=true
               break
             fi
             echo "⏳ Waiting for SSH to be ready... (attempt $i/6)"
             sleep 5
           done
+          
+          if [ "$SSH_ADDED" = "false" ]; then
+            echo "⚠️  Could not add SSH host key, will try with StrictHostKeyChecking=no"
+          fi
       
       - name: Deploy backend to Production EC2
         env:
