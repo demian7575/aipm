@@ -15,15 +15,22 @@ INSTANCE_NAME=$(aws ec2 describe-tags \
   --query 'Tags[0].Value' \
   --output text 2>/dev/null || echo "unknown")
 
-# Determine environment from instance name
-if [[ "$INSTANCE_NAME" == *"dev"* ]]; then
+# Also try Environment tag
+ENV_TAG=$(aws ec2 describe-tags \
+  --region $REGION \
+  --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Environment" \
+  --query 'Tags[0].Value' \
+  --output text 2>/dev/null || echo "")
+
+# Determine environment from tags
+if [[ "$ENV_TAG" == "development" ]] || [[ "$INSTANCE_NAME" == *"dev"* ]]; then
   ENV="dev"
   S3_CONFIG="s3://aipm-ec2-config/dev-config.json"
-elif [[ "$INSTANCE_NAME" == *"prod"* ]]; then
+elif [[ "$ENV_TAG" == "production" ]] || [[ "$INSTANCE_NAME" == *"prod"* ]]; then
   ENV="prod"
   S3_CONFIG="s3://aipm-ec2-config/prod-config.json"
 else
-  echo "❌ Could not determine environment from instance name: $INSTANCE_NAME"
+  echo "❌ Could not determine environment from tags: Name=$INSTANCE_NAME, Environment=$ENV_TAG"
   exit 1
 fi
 
