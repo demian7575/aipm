@@ -28,7 +28,7 @@ class KiroWrapper {
   start() {
     console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
-    this.pty = pty.spawn('kiro-cli', ['chat', '--trust-all-tools'], {
+    this.pty = pty.spawn('/home/ec2-user/.local/bin/kiro-cli', ['chat', '--trust-all-tools'], {
       name: 'xterm-256color',
       cols: 120,
       rows: 40,
