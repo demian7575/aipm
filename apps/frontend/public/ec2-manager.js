@@ -118,6 +118,37 @@ async function stopEC2(env = 'prod') {
 }
 
 /**
+ * Wait for API to be ready
+ * @param {string} apiBaseUrl - API base URL
+ * @param {number} maxWaitMs - Maximum wait time
+ * @returns {Promise<boolean>} True if ready
+ */
+async function waitForAPIReady(apiBaseUrl, maxWaitMs = 60000) {
+  const startTime = Date.now();
+  const pollInterval = 3000; // 3 seconds
+  
+  while (Date.now() - startTime < maxWaitMs) {
+    try {
+      const response = await fetch(`${apiBaseUrl}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (response.ok) {
+        console.log(`[EC2] API is ready at ${apiBaseUrl}`);
+        return true;
+      }
+    } catch (error) {
+      console.log(`[EC2] API not ready yet, retrying...`);
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+  }
+  
+  return false;
+}
+
+/**
  * Wait for EC2 to be running and config updated
  * @param {string} env - 'prod' or 'dev'
  * @param {number} maxWaitMs - Maximum wait time in milliseconds
@@ -133,16 +164,21 @@ async function waitForEC2Ready(env = 'prod', maxWaitMs = 120000) {
       console.log(`[EC2] ${env} status:`, status.state);
       
       if (status.state === 'running' && status.publicIp) {
-        // Wait a bit more for services to start
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        
         // Get updated config
         delete cachedConfig[env];
         delete lastFetchTime[env];
         const config = await getEC2Config(env);
         
-        console.log(`[EC2] ${env} is ready!`);
-        return config;
+        // Wait for backend API to be ready
+        console.log(`[EC2] ${env} is running, waiting for services...`);
+        const apiReady = await waitForAPIReady(config.apiBaseUrl, 60000);
+        
+        if (apiReady) {
+          console.log(`[EC2] ${env} is ready!`);
+          return config;
+        } else {
+          console.log(`[EC2] ${env} API not ready yet, continuing to wait...`);
+        }
       }
       
       // Wait before next poll
