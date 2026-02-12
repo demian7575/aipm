@@ -16,7 +16,7 @@ fi
 
 # Parse command line arguments
 PHASES_TO_RUN="1,2"
-TARGET_ENV="prod"
+TARGET_ENV="${TARGET_ENV:-prod}"  # Use env var if set, otherwise default to prod
 while [[ $# -gt 0 ]]; do
     case $1 in
         --phases)
