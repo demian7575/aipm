@@ -16,7 +16,7 @@ prod:
   dynamodb_test_runs_table: "aipm-backend-prod-test-runs"
 
 dev:
-  ec2_ip: "44.221.87.105"
+  ec2_ip: "3.230.169.156"
   instance_id: "i-08c78da25af47b3cb"
   api_port: 4000
   semantic_api_port: 8083
