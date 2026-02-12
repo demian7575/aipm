@@ -41,6 +41,49 @@ if [[ -z "$API_BASE" ]] || [[ -z "$SEMANTIC_API_BASE" ]]; then
     source "$(dirname "$0")/../utilities/load-env-config.sh" "$TARGET_ENV"
 fi
 
+# Check if EC2 is running, start if needed
+echo "🔍 Checking EC2 status..."
+INSTANCE_ID=$(yq eval ".${TARGET_ENV}.instance_id // \"\"" "$(dirname "$0")/../../config/environments.yaml")
+
+if [[ -n "$INSTANCE_ID" ]]; then
+    EC2_STATE=$(aws ec2 describe-instances \
+        --instance-ids "$INSTANCE_ID" \
+        --region us-east-1 \
+        --query 'Reservations[0].Instances[0].State.Name' \
+        --output text 2>/dev/null || echo "unknown")
+    
+    if [[ "$EC2_STATE" == "stopped" ]]; then
+        echo "⚠️  EC2 is stopped, starting instance..."
+        aws ec2 start-instances --instance-ids "$INSTANCE_ID" --region us-east-1 > /dev/null
+        
+        echo "⏳ Waiting for EC2 to start (up to 2 minutes)..."
+        aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --region us-east-1
+        
+        echo "⏳ Waiting for services to be ready (60 seconds)..."
+        sleep 60
+        
+        # Wait for API to respond
+        MAX_WAIT=60
+        ELAPSED=0
+        while [[ $ELAPSED -lt $MAX_WAIT ]]; do
+            if curl -s --max-time 5 "${API_BASE}/health" > /dev/null 2>&1; then
+                echo "✅ EC2 and services are ready"
+                break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+        done
+        
+        if [[ $ELAPSED -ge $MAX_WAIT ]]; then
+            echo "⚠️  API not responding after ${MAX_WAIT}s, proceeding anyway..."
+        fi
+    elif [[ "$EC2_STATE" == "running" ]]; then
+        echo "✅ EC2 is already running"
+    else
+        echo "⚠️  EC2 state: $EC2_STATE"
+    fi
+fi
+
 # Initialize test counter directory
 export TEST_COUNTER_DIR="/tmp/aipm-test-$$"
 mkdir -p "$TEST_COUNTER_DIR"
