@@ -222,6 +222,19 @@ sudo cp scripts/systemd/aipm-semantic-api.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable aipm-kiro-api aipm-kiro-cli kiro-session-pool aipm-semantic-api
 
+# Install IP update service (runs on boot)
+echo '🔄 Installing IP update service...'
+sudo cp scripts/update-ec2-ip-to-s3.sh /usr/local/bin/
+sudo chmod +x /usr/local/bin/update-ec2-ip-to-s3.sh
+sudo cp scripts/aipm-ip-update.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable aipm-ip-update.service
+echo '✅ IP update service installed (will run on boot)'
+
+# Update IP in S3 now
+echo '🔄 Updating current IP in S3...'
+sudo systemctl start aipm-ip-update.service || echo '⚠️  IP update failed (non-fatal)'
+
 echo 'Starting backend services...'
 sudo systemctl start $SERVICE_NAME
 sudo systemctl start aipm-kiro-api
