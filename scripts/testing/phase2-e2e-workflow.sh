@@ -10,7 +10,7 @@ source "$SCRIPT_DIR/test-library.sh"
 
 # Load environment config from single source of truth
 # Phase 2 uses prod EC2 with dev DynamoDB via X-Use-Dev-Tables header
-source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" "${TARGET_ENV:-prod}"
 
 # Can be overridden for post-deployment tests
 API_BASE="${API_BASE:-$API_BASE}"

@@ -5,7 +5,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../utilities/load-env-config.sh" prod
+source "$SCRIPT_DIR/../utilities/load-env-config.sh" "${TARGET_ENV:-prod}"
 
 PASSED=0
 FAILED=0

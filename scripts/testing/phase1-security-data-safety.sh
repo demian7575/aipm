@@ -28,7 +28,7 @@ fi
 
 # Load environment config
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" "${TARGET_ENV:-prod}"
 
 # Use variables from parent script or loaded config
 API_BASE="${API_BASE:-$API_BASE}"
