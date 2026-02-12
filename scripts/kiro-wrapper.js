@@ -19,6 +19,7 @@ class KiroWrapper {
     this.outputBuffer = '';
     this.currentResolve = null;
     this.currentReject = null;
+    this.currentPrompt = null;
     this.requestTimeout = null;
     this.lastActivity = Date.now();
     
@@ -41,7 +42,10 @@ class KiroWrapper {
       this.outputBuffer += data;
       
       // Log output for debugging
-      console.log(`[Session ${this.sessionId}] [OUTPUT] ${data.toString()}`);
+      const text = data.toString();
+      if (text.includes('!>') || text.includes('Task Complete') || text.includes('Time:') || text.includes('Terminated')) {
+        console.log(`[Session ${this.sessionId}] [OUTPUT] ${text}`);
+      }
       
       // Check for completion
       if (this.busy && this.completionMarkers.some(marker => this.outputBuffer.includes(marker))) {
@@ -50,7 +54,9 @@ class KiroWrapper {
     });
 
     this.pty.onExit(({ exitCode, signal }) => {
-      console.log(`[Session ${this.sessionId}] Kiro exited (code=${exitCode}, signal=${signal}), restarting...`);
+      const busyState = this.busy ? 'BUSY' : 'IDLE';
+      const promptInfo = this.currentPrompt ? `prompt="${this.currentPrompt.substring(0, 50)}..."` : 'no prompt';
+      console.log(`[Session ${this.sessionId}] Kiro exited (code=${exitCode}, signal=${signal}, state=${busyState}, ${promptInfo}), restarting...`);
       
       if (this.currentReject) {
         this.currentReject(new Error('Kiro exited unexpectedly'));
@@ -76,6 +82,7 @@ class KiroWrapper {
 
     this.busy = true;
     this.outputBuffer = '';
+    this.currentPrompt = prompt;
     
     console.log(`[Session ${this.sessionId}] [STDIN] ${prompt}`);
 
