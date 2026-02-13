@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -753,6 +754,44 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      const flatStories = flattenStories(stories);
+      
+      const listContainer = document.createElement('div');
+      listContainer.style.maxHeight = '400px';
+      listContainer.style.overflowY = 'auto';
+      
+      const ul = document.createElement('ul');
+      ul.style.listStyle = 'none';
+      ul.style.padding = '0';
+      ul.style.margin = '0';
+      
+      flatStories.forEach(story => {
+        const li = document.createElement('li');
+        li.style.padding = '8px';
+        li.style.borderBottom = '1px solid #eee';
+        li.textContent = story.title;
+        ul.appendChild(li);
+      });
+      
+      listContainer.appendChild(ul);
+      
+      openModal({
+        title: 'Story List',
+        content: listContainer,
+        cancelLabel: 'Close'
+      });
+    } catch (error) {
+      showToast('Failed to load story list', 'error');
+    }
   });
 }
 
