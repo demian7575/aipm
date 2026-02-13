@@ -21,7 +21,7 @@ echo "📍 Host: $EC2_IP"
 
 # Step 1: Generate .env file
 echo "📝 Generating .env file..."
-"$SCRIPT_DIR/utilities/generate-env-file.sh" "$ENV" "/tmp/.env.$ENV"
+"$PROJECT_ROOT/scripts/utilities/generate-env-file.sh" "$ENV" "/tmp/.env.$ENV"
 
 # Step 2: Deploy code to EC2
 echo "📦 Deploying code..."
