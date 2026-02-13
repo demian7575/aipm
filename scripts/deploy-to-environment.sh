@@ -244,13 +244,12 @@ sudo systemctl enable $SERVICE_NAME kiro-wrapper@{1,2} kiro-session-pool-http ai
 echo 'Starting backend services...'
 sudo systemctl start $SERVICE_NAME
 sudo systemctl start kiro-session-pool-http
+sudo systemctl start aipm-semantic-api
 
 if [ "$NEEDS_SESSION_POOL_RESTART" = "true" ]; then
   echo '🔄 Restarting Session Pool services...'
-  sudo systemctl start kiro-session-pool-http
   sudo systemctl start kiro-wrapper@1
   sudo systemctl start kiro-wrapper@2
-  sudo systemctl start aipm-semantic-api
   
   echo 'Waiting for Session Pool to be ready...'
   sleep 5
