@@ -9,6 +9,7 @@ WorkingDirectory=/home/ec2-user/aipm
 ExecStart=/usr/bin/node apps/backend/server.js
 Environment=NODE_ENV=production
 Environment=AWS_REGION=us-east-1
+Environment=GITHUB_TOKEN=
 Restart=always
 RestartSec=10
 

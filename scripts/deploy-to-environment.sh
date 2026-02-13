@@ -237,6 +237,7 @@ sudo sed -i "/^\[Service\]/a Environment=PRS_TABLE=$PRS_TABLE" /etc/systemd/syst
 sudo sed -i "/^\[Service\]/a Environment=TEST_RUNS_TABLE=$TEST_RUNS_TABLE" /etc/systemd/system/$SERVICE_NAME
 sudo sed -i "/^\[Service\]/a Environment=ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE" /etc/systemd/system/$SERVICE_NAME
 sudo sed -i "/^\[Service\]/a Environment=PORT=4000" /etc/systemd/system/$SERVICE_NAME
+sudo sed -i "/^\[Service\]/a Environment=GITHUB_TOKEN=${GITHUB_TOKEN:-}" /etc/systemd/system/$SERVICE_NAME
 
 sudo systemctl daemon-reload
 sudo systemctl enable $SERVICE_NAME kiro-wrapper@{1,2} kiro-session-pool-http aipm-semantic-api ec2-idle-monitor.timer aipm-update-s3-config
