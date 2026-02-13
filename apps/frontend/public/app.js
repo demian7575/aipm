@@ -9057,6 +9057,37 @@ async function initializeEC2AutoStart() {
   
   const env = window.CONFIG?.ENVIRONMENT || 'prod';
   
+  // Check and start both prod and dev EC2 if stopped
+  try {
+    console.log('[EC2] Checking all environments...');
+    const [prodStatus, devStatus] = await Promise.all([
+      EC2Manager.getStatus('prod').catch(e => ({ state: 'error', error: e })),
+      EC2Manager.getStatus('dev').catch(e => ({ state: 'error', error: e }))
+    ]);
+    
+    console.log('[EC2] prod status:', prodStatus);
+    console.log('[EC2] dev status:', devStatus);
+    
+    // Start any stopped instances
+    const startPromises = [];
+    if (prodStatus.state === 'stopped') {
+      console.log('[EC2] Starting stopped prod instance...');
+      startPromises.push(EC2Manager.start('prod').catch(e => console.error('[EC2] Failed to start prod:', e)));
+    }
+    if (devStatus.state === 'stopped') {
+      console.log('[EC2] Starting stopped dev instance...');
+      startPromises.push(EC2Manager.start('dev').catch(e => console.error('[EC2] Failed to start dev:', e)));
+    }
+    
+    if (startPromises.length > 0) {
+      await Promise.all(startPromises);
+      console.log('[EC2] Started all stopped instances');
+    }
+  } catch (error) {
+    console.error('[EC2] Failed to check/start instances:', error);
+  }
+  
+  // Now initialize the current environment
   function updateStatus(state, text) {
     statusEl.className = `ec2-status ${state}`;
     statusEl.querySelector('.status-text').textContent = text;
@@ -9073,9 +9104,15 @@ async function initializeEC2AutoStart() {
     if (status.state === 'running') {
       updateStatus('running', 'Running');
       
-      // Get current config from S3
-      const config = await EC2Manager.getConfig(env);
-      console.log(`[EC2] ${env} config:`, config);
+      // Use IP from Lambda status (always current) instead of S3 config (may be stale)
+      const config = {
+        apiBaseUrl: `http://${status.publicIp}:4000`,
+        semanticApiUrl: `http://${status.publicIp}:8083`,
+        instanceId: status.instanceId,
+        status: 'running',
+        updatedAt: new Date().toISOString()
+      };
+      console.log(`[EC2] ${env} config from Lambda:`, config);
       
       // Update global config
       window.__EC2_CONFIG__ = config;
@@ -9093,7 +9130,7 @@ async function initializeEC2AutoStart() {
       const config = await EC2Manager.ensureRunning(env);
       console.log(`[EC2] ${env} ready:`, config);
       
-      // Update global config
+      // Update global config with IP from ensureRunning result
       window.__EC2_CONFIG__ = config;
       window.__AIPM_API_BASE__ = config.apiBaseUrl;
       window.CONFIG.API_BASE_URL = config.apiBaseUrl;
