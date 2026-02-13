@@ -97,22 +97,6 @@ jobs:
             
             echo "⏳ Waiting for services to be ready (60 seconds)..."
             sleep 60
-            
-            # Wait for API to respond
-            MAX_WAIT=60
-            ELAPSED=0
-            while [ $ELAPSED -lt $MAX_WAIT ]; do
-              if curl -s --max-time 5 "${{ env.DEV_API_BASE }}/health" > /dev/null 2>&1; then
-                echo "✅ Development EC2 and services are ready"
-                break
-              fi
-              sleep 5
-              ELAPSED=$((ELAPSED + 5))
-            done
-            
-            if [ $ELAPSED -ge $MAX_WAIT ]; then
-              echo "⚠️  API not responding after ${MAX_WAIT}s, proceeding anyway..."
-            fi
           elif [ "$EC2_STATE" = "running" ]; then
             echo "✅ Development EC2 is already running"
           else
@@ -135,7 +119,23 @@ jobs:
           echo "DEV_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
           echo "DEV_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
           echo "DEV_SEMANTIC_API_BASE=http://$CURRENT_IP:8083" >> $GITHUB_ENV
-          echo "   Current IP: $CURRENT_IP"
+          echo "✅ Current IP: $CURRENT_IP"
+          
+          # Wait for API to respond
+          MAX_WAIT=60
+          ELAPSED=0
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            if curl -s --max-time 5 "http://$CURRENT_IP:4000/health" > /dev/null 2>&1; then
+              echo "✅ Development API is ready"
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          
+          if [ $ELAPSED -ge $MAX_WAIT ]; then
+            echo "⚠️  API not responding after ${MAX_WAIT}s, proceeding anyway..."
+          fi
           
           # Add SSH host key
           SSH_ADDED=false
@@ -300,30 +300,11 @@ jobs:
             
             echo "⏳ Waiting for services to be ready (60 seconds)..."
             sleep 60
-            
-            # Wait for API to respond
-            MAX_WAIT=60
-            ELAPSED=0
-            while [ $ELAPSED -lt $MAX_WAIT ]; do
-              if curl -s --max-time 5 "${{ env.PROD_API_BASE }}/health" > /dev/null 2>&1; then
-                echo "✅ Production EC2 and services are ready"
-                break
-              fi
-              sleep 5
-              ELAPSED=$((ELAPSED + 5))
-            done
-            
-            if [ $ELAPSED -ge $MAX_WAIT ]; then
-              echo "⚠️  API not responding after ${MAX_WAIT}s, proceeding anyway..."
-            fi
           elif [ "$EC2_STATE" = "running" ]; then
             echo "✅ Production EC2 is already running"
           else
             echo "⚠️  Production EC2 state: $EC2_STATE"
           fi
-          
-          # Add SSH host key after EC2 is confirmed running (retry up to 30s)
-          echo "🔑 Adding SSH host key..."
           
           # Get current IP from AWS after EC2 is running
           echo "🔍 Getting current prod EC2 IP from AWS..."
@@ -341,9 +322,26 @@ jobs:
           echo "PROD_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
           echo "PROD_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
           echo "PROD_SEMANTIC_API_BASE=http://$CURRENT_IP:8083" >> $GITHUB_ENV
-          echo "   Current IP: $CURRENT_IP"
+          echo "✅ Current IP: $CURRENT_IP"
           
-          # Add SSH host key
+          # Wait for API to respond
+          MAX_WAIT=60
+          ELAPSED=0
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            if curl -s --max-time 5 "http://$CURRENT_IP:4000/health" > /dev/null 2>&1; then
+              echo "✅ Production API is ready"
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          
+          if [ $ELAPSED -ge $MAX_WAIT ]; then
+            echo "⚠️  API not responding after ${MAX_WAIT}s, proceeding anyway..."
+          fi
+          
+          # Add SSH host key after EC2 is confirmed running (retry up to 30s)
+          echo "🔑 Adding SSH host key..."
           SSH_ADDED=false
           for i in 1 2 3 4 5 6; do
             if ssh-keyscan -H $CURRENT_IP >> ~/.ssh/known_hosts 2>/dev/null; then

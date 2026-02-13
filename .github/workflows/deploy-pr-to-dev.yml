@@ -100,17 +100,6 @@ jobs:
             git diff --name-only origin/main | head -10
           fi
       
-      - name: Load Development environment configuration
-        run: |
-          source scripts/utilities/load-env-config.sh dev
-          echo "DEV_EC2_IP=$EC2_IP" >> $GITHUB_ENV
-          echo "DEV_API_BASE=$API_BASE" >> $GITHUB_ENV
-          echo "DEV_SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
-          echo "DEV_S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
-          echo "DEV_TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
-          echo "DEV_DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
-          echo "DEV_DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
-      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -128,6 +117,76 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+      
+      - name: Load Development environment configuration
+        run: |
+          source scripts/utilities/load-env-config.sh dev
+          echo "DEV_INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+          echo "DEV_S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "DEV_TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
+          echo "DEV_DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
+          echo "DEV_DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
+      
+      - name: Start Development EC2 if stopped
+        run: |
+          echo "🔍 Checking Development EC2 status..."
+          
+          EC2_STATE=$(aws ec2 describe-instances \
+            --instance-ids ${{ env.DEV_INSTANCE_ID }} \
+            --region us-east-1 \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text)
+          
+          echo "Current state: $EC2_STATE"
+          
+          if [ "$EC2_STATE" = "stopped" ]; then
+            echo "⚠️  EC2 is stopped, starting instance..."
+            aws ec2 start-instances --instance-ids ${{ env.DEV_INSTANCE_ID }} --region us-east-1
+            
+            echo "⏳ Waiting for EC2 to start..."
+            aws ec2 wait instance-running --instance-ids ${{ env.DEV_INSTANCE_ID }} --region us-east-1
+            
+            echo "⏳ Waiting for services to be ready (60 seconds)..."
+            sleep 60
+          elif [ "$EC2_STATE" = "running" ]; then
+            echo "✅ Development EC2 is already running"
+          else
+            echo "⚠️  Development EC2 state: $EC2_STATE"
+          fi
+          
+          # Get current IP from AWS after EC2 is running
+          echo "🔍 Getting current dev EC2 IP from AWS..."
+          CURRENT_IP=$(aws ec2 describe-instances \
+            --instance-ids ${{ env.DEV_INSTANCE_ID }} \
+            --region us-east-1 \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+          
+          if [ -z "$CURRENT_IP" ] || [ "$CURRENT_IP" = "None" ]; then
+            echo "❌ Failed to get IP from AWS"
+            exit 1
+          fi
+          
+          echo "DEV_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
+          echo "DEV_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
+          echo "DEV_SEMANTIC_API_BASE=http://$CURRENT_IP:8083" >> $GITHUB_ENV
+          echo "✅ Current IP: $CURRENT_IP"
+          
+          # Wait for API to respond
+          MAX_WAIT=60
+          ELAPSED=0
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            if curl -s --max-time 5 "http://$CURRENT_IP:4000/health" > /dev/null 2>&1; then
+              echo "✅ Development API is ready"
+              break
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+          
+          if [ $ELAPSED -ge $MAX_WAIT ]; then
+            echo "⚠️  API not responding after ${MAX_WAIT}s, proceeding anyway..."
+          fi
       
       - name: Setup SSH key for deployment
         env:

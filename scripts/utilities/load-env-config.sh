@@ -25,11 +25,11 @@ export INSTANCE_ID=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "i
 export EC2_IP=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].PublicIpAddress' --output text 2>/dev/null)
 
 if [[ -z "$EC2_IP" || "$EC2_IP" == "None" ]]; then
-    echo "❌ Could not fetch IP from AWS for instance $INSTANCE_ID"
-    return 1 2>/dev/null || exit 1
+    echo "⚠️  Instance $INSTANCE_ID is stopped or has no public IP"
+    export EC2_IP="INSTANCE_STOPPED"
+else
+    echo "✅ Fetched IP from AWS: $EC2_IP"
 fi
-
-echo "✅ Fetched IP from AWS: $EC2_IP"
 export API_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "api_port")
 export SEMANTIC_API_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "semantic_api_port")
 export SESSION_POOL_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "session_pool_port")
