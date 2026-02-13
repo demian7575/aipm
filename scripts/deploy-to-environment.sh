@@ -283,7 +283,7 @@ EOF
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST bash /tmp/update_service.sh
     
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no /tmp/restart_services.sh ec2-user@$HOST:/tmp/
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "SERVICE_NAME=$SERVICE_NAME FORCE_RESTART_SESSION_POOL=${FORCE_RESTART_SESSION_POOL:-false} bash /tmp/restart_services.sh"
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "SERVICE_NAME=$SERVICE_NAME FORCE_RESTART_SESSION_POOL=${FORCE_RESTART_SESSION_POOL:-false} ENV=$ENV STORIES_TABLE=$STORIES_TABLE TESTS_TABLE=$TESTS_TABLE PRS_TABLE=$PRS_TABLE TEST_RUNS_TABLE=$TEST_RUNS_TABLE GITHUB_TOKEN=$GITHUB_TOKEN bash /tmp/restart_services.sh"
     
     echo "✅ Backend deployed successfully"
 fi
