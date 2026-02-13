@@ -157,8 +157,10 @@ jobs:
         env:
           FORCE_RESTART_SESSION_POOL: ${{ inputs.force_restart_session_pool }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EC2_IP: ${{ env.DEV_EC2_IP }}
         run: |
           echo "🚀 Deploying to Development EC2 for Pre-Production testing..."
+          echo "   Target: $EC2_IP"
           ./scripts/deploy-to-environment.sh dev
           echo "✅ Backend deployed to Development EC2"
       
@@ -354,8 +356,10 @@ jobs:
         env:
           FORCE_RESTART_SESSION_POOL: ${{ inputs.force_restart_session_pool }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EC2_IP: ${{ env.PROD_EC2_IP }}
         run: |
           echo "🚀 Deploying backend to Production EC2..."
+          echo "   Target: $EC2_IP"
           ./scripts/deploy-to-environment.sh prod
           echo "✅ Backend deployed to Production EC2"
       
