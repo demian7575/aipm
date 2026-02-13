@@ -67,7 +67,12 @@ jobs:
             --instance-ids $INSTANCE_ID \
             --region us-east-1 \
             --query 'Reservations[0].Instances[0].PublicIpAddress' \
-            --output text)
+            --output text 2>&1)
+          
+          if [ -z "$CURRENT_IP" ] || [ "$CURRENT_IP" = "None" ]; then
+            echo "❌ Failed to get IP from AWS"
+            exit 1
+          fi
           
           echo "DEV_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
           echo "DEV_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
@@ -253,7 +258,12 @@ jobs:
             --instance-ids $INSTANCE_ID \
             --region us-east-1 \
             --query 'Reservations[0].Instances[0].PublicIpAddress' \
-            --output text)
+            --output text 2>&1)
+          
+          if [ -z "$CURRENT_IP" ] || [ "$CURRENT_IP" = "None" ]; then
+            echo "❌ Failed to get IP from AWS"
+            exit 1
+          fi
           
           echo "PROD_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
           echo "PROD_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
