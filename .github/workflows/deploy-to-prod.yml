@@ -158,6 +158,7 @@ jobs:
       - name: Deploy to Development EC2
         env:
           FORCE_RESTART_SESSION_POOL: ${{ inputs.force_restart_session_pool }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 Deploying to Development EC2 for Pre-Production testing..."
           ./scripts/deploy-to-environment.sh dev
@@ -353,6 +354,7 @@ jobs:
       - name: Deploy backend to Production EC2
         env:
           FORCE_RESTART_SESSION_POOL: ${{ inputs.force_restart_session_pool }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 Deploying backend to Production EC2..."
           ./scripts/deploy-to-environment.sh prod
