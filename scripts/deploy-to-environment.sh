@@ -220,29 +220,31 @@ sudo pkill -9 -f 'node.*apps/backend' || true
 sleep 2
 
 echo 'Installing/updating service files...'
+sudo cp config/aipm-backend.service /etc/systemd/system/$SERVICE_NAME
 sudo cp config/kiro-wrapper@.service /etc/systemd/system/
 sudo cp config/kiro-session-pool.service /etc/systemd/system/
+sudo cp config/kiro-session-pool-http.service /etc/systemd/system/
 sudo cp config/semantic-api-server.service /etc/systemd/system/aipm-semantic-api.service
 sudo cp config/ec2-idle-monitor.service /etc/systemd/system/
 sudo cp config/ec2-idle-monitor.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable kiro-wrapper@{1,2} kiro-session-pool aipm-semantic-api ec2-idle-monitor.timer
+sudo cp config/aipm-update-s3-config.service /etc/systemd/system/
 
-# Install IP update service (runs on boot)
-echo '🔄 Installing IP update service...'
-sudo cp scripts/update-ec2-ip-to-s3.sh /usr/local/bin/
-sudo chmod +x /usr/local/bin/update-ec2-ip-to-s3.sh
-sudo cp scripts/aipm-ip-update.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable aipm-ip-update.service
-echo '✅ IP update service installed (will run on boot)'
+# Update backend service with environment variables
+sudo sed -i "/^Environment=/d" /etc/systemd/system/$SERVICE_NAME
+sudo sed -i "/^\[Service\]/a Environment=ENVIRONMENT=$ENV" /etc/systemd/system/$SERVICE_NAME
+sudo sed -i "/^\[Service\]/a Environment=STAGE=$ENV" /etc/systemd/system/$SERVICE_NAME
+sudo sed -i "/^\[Service\]/a Environment=STORIES_TABLE=$STORIES_TABLE" /etc/systemd/system/$SERVICE_NAME
+sudo sed -i "/^\[Service\]/a Environment=PRS_TABLE=$PRS_TABLE" /etc/systemd/system/$SERVICE_NAME
+sudo sed -i "/^\[Service\]/a Environment=TEST_RUNS_TABLE=$TEST_RUNS_TABLE" /etc/systemd/system/$SERVICE_NAME
+sudo sed -i "/^\[Service\]/a Environment=ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE" /etc/systemd/system/$SERVICE_NAME
+sudo sed -i "/^\[Service\]/a Environment=PORT=4000" /etc/systemd/system/$SERVICE_NAME
 
-# Update IP in S3 now
-echo '🔄 Updating current IP in S3...'
-sudo /usr/local/bin/update-ec2-ip-to-s3.sh $ENV || echo '⚠️  IP update failed (non-fatal)'
+sudo systemctl daemon-reload
+sudo systemctl enable $SERVICE_NAME kiro-wrapper@{1,2} kiro-session-pool kiro-session-pool-http aipm-semantic-api ec2-idle-monitor.timer aipm-update-s3-config
 
 echo 'Starting backend services...'
 sudo systemctl start $SERVICE_NAME
+sudo systemctl start kiro-session-pool-http
 
 if [ "$NEEDS_SESSION_POOL_RESTART" = "true" ]; then
   echo '🔄 Restarting Session Pool services...'
