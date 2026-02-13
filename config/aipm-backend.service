@@ -1,16 +1,23 @@
 [Unit]
-Description=AIPM Backend
-After=network.target
+Description=AIPM Backend API
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=ec2-user
 WorkingDirectory=/home/ec2-user/aipm
-ExecStart=/usr/bin/node apps/backend/server.js
+EnvironmentFile=/home/ec2-user/aipm/.env
 Environment=NODE_ENV=production
-Environment=AWS_REGION=us-east-1
-Restart=always
-RestartSec=10
+ExecStartPre=/usr/bin/fuser -k 4000/tcp || true
+ExecStart=/usr/bin/node apps/backend/server.js
+Restart=on-failure
+RestartSec=5s
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
