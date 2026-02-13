@@ -651,10 +651,29 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+echo "  - Story 1770969006657: 1 feature tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 43 (37 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
+
+# ============================================
+# Story 1770969006657: Story List Button
+# ============================================
+if [ "$1" = "1770969006657" ]; then
+  echo ""
+  echo "🎯 Story 1770969006657: Story List Button"
+  echo "-------------------------------------------"
+  
+  echo "Test: Story list button exists in header"
+  if curl -s "$FRONTEND_URL" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
 
 if [ $FAILED -gt 0 ]; then
   exit 1
