@@ -247,17 +247,17 @@ echo "-----------------------------------"
 
 # Test 17: Stories table exists
 echo "Test 17: Stories table"
-if aws dynamodb describe-table --table-name aipm-backend-prod-stories --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
-  echo "  ✅ PASS: Stories table active"
+if aws dynamodb describe-table --table-name "$DYNAMODB_STORIES_TABLE" --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
+  echo "  ✅ PASS: Stories table active ($DYNAMODB_STORIES_TABLE)"
   PASSED=$((PASSED + 1))
 else
-  echo "  ❌ FAIL: Stories table not accessible"
+  echo "  ❌ FAIL: Stories table not accessible ($DYNAMODB_STORIES_TABLE)"
   FAILED=$((FAILED + 1))
 fi
 
 # Test 18: Acceptance tests table exists
 echo "Test 18: Acceptance tests table"
-if aws dynamodb describe-table --table-name aipm-backend-prod-acceptance-tests --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
+if aws dynamodb describe-table --table-name "$DYNAMODB_TESTS_TABLE" --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Acceptance tests table active"
   PASSED=$((PASSED + 1))
 else
@@ -267,7 +267,7 @@ fi
 
 # Test 19: Test results table exists
 echo "Test 19: Test results table"
-if aws dynamodb describe-table --table-name aipm-backend-prod-test-results --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
+if aws dynamodb describe-table --table-name $DYNAMODB_TEST_RUNS_TABLE --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Test results table active"
   PASSED=$((PASSED + 1))
 else
@@ -277,7 +277,7 @@ fi
 
 # Test 20: PRs table exists
 echo "Test 20: PRs table"
-if aws dynamodb describe-table --table-name aipm-backend-prod-prs --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
+if aws dynamodb describe-table --table-name $DYNAMODB_PRS_TABLE --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
   echo "  ✅ PASS: PRs table active"
   PASSED=$((PASSED + 1))
 else
@@ -343,7 +343,7 @@ echo "-----------------------------------"
 
 # Test 25: Count stories in production
 echo "Test 25: Count stories in production DB"
-STORY_COUNT=$(aws dynamodb scan --table-name aipm-backend-prod-stories --select COUNT --region us-east-1 2>/dev/null | jq -r '.Count')
+STORY_COUNT=$(aws dynamodb scan --table-name $DYNAMODB_STORIES_TABLE --select COUNT --region us-east-1 2>/dev/null | jq -r '.Count')
 if [ "$STORY_COUNT" -gt 0 ]; then
   echo "  ✅ PASS: $STORY_COUNT stories in production"
   PASSED=$((PASSED + 1))
@@ -354,7 +354,7 @@ fi
 
 # Test 26: Count acceptance tests
 echo "Test 26: Count acceptance tests"
-TEST_COUNT=$(aws dynamodb scan --table-name aipm-backend-prod-acceptance-tests --select COUNT --region us-east-1 2>/dev/null | jq -r '.Count')
+TEST_COUNT=$(aws dynamodb scan --table-name $DYNAMODB_TESTS_TABLE --select COUNT --region us-east-1 2>/dev/null | jq -r '.Count')
 if [ "$TEST_COUNT" -ge 92 ]; then
   echo "  ✅ PASS: $TEST_COUNT acceptance tests in DB"
   PASSED=$((PASSED + 1))
@@ -365,7 +365,7 @@ fi
 
 # Test 27: Verify storyId index exists
 echo "Test 27: Verify storyId index"
-if aws dynamodb describe-table --table-name aipm-backend-prod-acceptance-tests --region us-east-1 2>/dev/null | jq -e '.Table.GlobalSecondaryIndexes[]? | select(.IndexName == "storyId-index")' > /dev/null 2>&1; then
+if aws dynamodb describe-table --table-name $DYNAMODB_TESTS_TABLE --region us-east-1 2>/dev/null | jq -e '.Table.GlobalSecondaryIndexes[]? | select(.IndexName == "storyId-index")' > /dev/null 2>&1; then
   echo "  ✅ PASS: storyId-index exists"
   PASSED=$((PASSED + 1))
 else
