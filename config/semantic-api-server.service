@@ -1,7 +1,7 @@
 [Unit]
 Description=Semantic API Server (Kiro CLI Integration)
-After=network.target kiro-session-pool.service
-Requires=kiro-session-pool.service
+After=network.target kiro-session-pool-http.service
+Requires=kiro-session-pool-http.service
 
 [Service]
 Type=simple
