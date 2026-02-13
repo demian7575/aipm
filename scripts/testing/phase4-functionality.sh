@@ -237,6 +237,18 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 17: Story List Button functionality (Story 1770962443192)
+echo "Test 17: Story List Button (Story 1770962443192)"
+STORY_LIST_BTN_TEST=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html | grep -c "story-list-btn")
+STORY_LIST_HANDLER=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -c "storyListBtn")
+if [ "$STORY_LIST_BTN_TEST" -gt 0 ] && [ "$STORY_LIST_HANDLER" -gt 0 ]; then
+  echo "  ✅ PASS: Story List button exists in HTML and has handler in app.js"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: Story List button not found (HTML: $STORY_LIST_BTN_TEST, JS: $STORY_LIST_HANDLER)"
+  FAILED=$((FAILED + 1))
+fi
+
 echo ""
 
 # ============================================
