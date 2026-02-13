@@ -55,14 +55,24 @@ jobs:
       - name: Load Development environment configuration
         run: |
           source scripts/utilities/load-env-config.sh dev
-          echo "DEV_EC2_IP=$EC2_IP" >> $GITHUB_ENV
           echo "DEV_INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
-          echo "DEV_API_BASE=$API_BASE" >> $GITHUB_ENV
-          echo "DEV_SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
           echo "DEV_S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
           echo "DEV_TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
           echo "DEV_DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
           echo "DEV_DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
+          
+          # Always get current IP from AWS (EC2 IPs change on restart)
+          echo "🔍 Getting current dev EC2 IP from AWS..."
+          CURRENT_IP=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --region us-east-1 \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+          
+          echo "DEV_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
+          echo "DEV_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
+          echo "DEV_SEMANTIC_API_BASE=http://$CURRENT_IP:8083" >> $GITHUB_ENV
+          echo "   Current IP: $CURRENT_IP"
       
       - name: Setup SSH key
         env:
@@ -124,20 +134,6 @@ jobs:
           
           # Add SSH host key after EC2 is confirmed running (retry up to 30s)
           echo "🔑 Adding SSH host key..."
-          
-          # Reload config to get updated IP if EC2 was just started
-          if [ "$EC2_STATE" = "stopped" ]; then
-            echo "🔄 Getting current IP from AWS..."
-            CURRENT_IP=$(aws ec2 describe-instances \
-              --instance-ids ${{ env.DEV_INSTANCE_ID }} \
-              --region us-east-1 \
-              --query 'Reservations[0].Instances[0].PublicIpAddress' \
-              --output text)
-            
-            echo "DEV_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
-            echo "DEV_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
-            echo "DEV_SEMANTIC_API_BASE=http://$CURRENT_IP:8083" >> $GITHUB_ENV
-            echo "   Updated IP: $CURRENT_IP"
           fi
           
           SSH_ADDED=false
@@ -244,10 +240,25 @@ jobs:
       - name: Load Production environment configuration
         run: |
           source scripts/utilities/load-env-config.sh prod
-          echo "PROD_EC2_IP=$EC2_IP" >> $GITHUB_ENV
           echo "PROD_INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
-          echo "PROD_API_BASE=$API_BASE" >> $GITHUB_ENV
-          echo "PROD_SEMANTIC_API_BASE=$SEMANTIC_API_BASE" >> $GITHUB_ENV
+          echo "PROD_TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
+          echo "PROD_S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "PROD_S3_URL=$S3_URL" >> $GITHUB_ENV
+          echo "PROD_DYNAMODB_STORIES_TABLE=$DYNAMODB_STORIES_TABLE" >> $GITHUB_ENV
+          echo "PROD_DYNAMODB_TESTS_TABLE=$DYNAMODB_TESTS_TABLE" >> $GITHUB_ENV
+          
+          # Always get current IP from AWS (EC2 IPs change on restart)
+          echo "🔍 Getting current prod EC2 IP from AWS..."
+          CURRENT_IP=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --region us-east-1 \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+          
+          echo "PROD_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
+          echo "PROD_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
+          echo "PROD_SEMANTIC_API_BASE=http://$CURRENT_IP:8083" >> $GITHUB_ENV
+          echo "   Current IP: $CURRENT_IP"
           echo "PROD_TERMINAL_URL=$TERMINAL_URL" >> $GITHUB_ENV
           echo "PROD_S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
           echo "PROD_S3_URL=$S3_URL" >> $GITHUB_ENV
@@ -314,21 +325,6 @@ jobs:
           
           # Add SSH host key after EC2 is confirmed running (retry up to 30s)
           echo "🔑 Adding SSH host key..."
-          
-          # Reload config to get updated IP if EC2 was just started
-          if [ "$EC2_STATE" = "stopped" ]; then
-            echo "🔄 Getting current IP from AWS..."
-            CURRENT_IP=$(aws ec2 describe-instances \
-              --instance-ids ${{ env.PROD_INSTANCE_ID }} \
-              --region us-east-1 \
-              --query 'Reservations[0].Instances[0].PublicIpAddress' \
-              --output text)
-            
-            echo "PROD_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
-            echo "PROD_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
-            echo "PROD_SEMANTIC_API_BASE=http://$CURRENT_IP:8083" >> $GITHUB_ENV
-            echo "   Updated IP: $CURRENT_IP"
-          fi
           
           SSH_ADDED=false
           for i in 1 2 3 4 5 6; do
