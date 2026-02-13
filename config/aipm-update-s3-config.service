@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/home/ec2-user/aipm/scripts/update-ec2-ip-to-s3.sh prod
+ExecStart=/home/ec2-user/aipm/scripts/update-ec2-ip-to-s3.sh
 RemainAfterExit=yes
 
 [Install]
