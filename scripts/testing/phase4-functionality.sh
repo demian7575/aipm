@@ -550,9 +550,46 @@ fi
 echo ""
 
 # ============================================
-# SECTION 12: GitHub Actions Workflow
+# SECTION 12: Story-Specific Functionality Tests
 # ============================================
-echo "⚙️  SECTION 12: GitHub Actions Workflow"
+echo "🎯 SECTION 12: Story-Specific Functionality Tests"
+echo "-----------------------------------"
+
+# Check if story ID was provided
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "Testing functionality for Story ID: $STORY_ID"
+  
+  # Test: View All Stories Button (Story 1770975213962)
+  if [ "$STORY_ID" == "1770975213962" ]; then
+    echo "Test: View All Stories Button exists in frontend"
+    if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html | grep -q "view-all-stories-btn"; then
+      echo "  ✅ PASS: View All Stories button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View All Stories button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test: View All Stories event listener in app.js"
+    if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "viewAllStoriesBtn"; then
+      echo "  ✅ PASS: View All Stories functionality found in app.js"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View All Stories functionality not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+else
+  echo "  ⏭️  SKIP: No story ID provided"
+fi
+
+echo ""
+
+# ============================================
+# SECTION 13: GitHub Actions Workflow
+# ============================================
+echo "⚙️  SECTION 13: GitHub Actions Workflow"
 echo "-----------------------------------"
 
 # Test 37: Check workflow file exists
@@ -644,6 +681,7 @@ echo "  - Code Generation: 2 endpoints tested"
 echo "  - Template Management: 2 endpoints tested"
 echo "  - Deployment/CI/CD: 3 endpoints tested"
 echo "  - GitHub Integration: 1 endpoint tested"
+echo "  - Story-Specific: Variable (based on story ID)"
 echo "  - GitHub Actions: 6 workflow checks tested"
 echo "  - Frontend: 3 resources tested"
 echo "  - Database Tables: 4 tables verified"
@@ -652,7 +690,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 42+ (36 executable + 6 workflow + story-specific)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
