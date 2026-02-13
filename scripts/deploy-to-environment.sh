@@ -203,14 +203,14 @@ fi
 
 echo 'Stopping backend services...'
 sudo systemctl stop $SERVICE_NAME || true
-sudo systemctl stop aipm-kiro-api || true
+sudo systemctl stop kiro-session-pool-http || true
 
 if [ "$NEEDS_SESSION_POOL_RESTART" = "true" ]; then
   echo '🔄 Stopping Session Pool services (changes detected)...'
   sudo systemctl stop kiro-session-pool || true
-  sudo systemctl stop aipm-kiro-cli || true
+  sudo systemctl stop kiro-wrapper@1 || true
+  sudo systemctl stop kiro-wrapper@2 || true
   sudo systemctl stop aipm-semantic-api || true
-  sudo systemctl stop queue-cleanup || true
 else
   echo '✅ Session Pool unchanged - keeping services running'
 fi
@@ -252,7 +252,6 @@ if [ "$NEEDS_SESSION_POOL_RESTART" = "true" ]; then
   sudo systemctl start kiro-wrapper@1
   sudo systemctl start kiro-wrapper@2
   sudo systemctl start aipm-semantic-api
-  sudo systemctl start queue-cleanup || true
   
   echo 'Waiting for Session Pool to be ready...'
   sleep 5
