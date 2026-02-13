@@ -1,0 +1,10 @@
+[Unit]
+Description=EC2 Idle Monitor Timer - Run every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

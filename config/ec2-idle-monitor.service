@@ -1,0 +1,13 @@
+[Unit]
+Description=EC2 Idle Monitor - Auto-stop after 30 minutes
+After=network.target kiro-session-pool.service
+
+[Service]
+Type=oneshot
+User=ec2-user
+ExecStart=/home/ec2-user/aipm/scripts/ec2-idle-monitor.sh
+StandardOutput=append:/var/log/ec2-idle-monitor.log
+StandardError=append:/var/log/ec2-idle-monitor.log
+
+[Install]
+WantedBy=multi-user.target

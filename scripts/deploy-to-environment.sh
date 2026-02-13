@@ -223,8 +223,10 @@ echo 'Installing/updating service files...'
 sudo cp config/kiro-wrapper@.service /etc/systemd/system/
 sudo cp config/kiro-session-pool.service /etc/systemd/system/
 sudo cp config/semantic-api-server.service /etc/systemd/system/aipm-semantic-api.service
+sudo cp config/ec2-idle-monitor.service /etc/systemd/system/
+sudo cp config/ec2-idle-monitor.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable kiro-wrapper@{1,2} kiro-session-pool aipm-semantic-api
+sudo systemctl enable kiro-wrapper@{1,2} kiro-session-pool aipm-semantic-api ec2-idle-monitor.timer
 
 # Install IP update service (runs on boot)
 echo '🔄 Installing IP update service...'
@@ -263,6 +265,11 @@ else
   echo '✅ Session Pool services kept running'
   curl -s http://localhost:8082/health | jq '.' || echo 'Session Pool status check skipped'
 fi
+
+# Start idle monitor timer
+echo '🔄 Starting idle monitor...'
+sudo systemctl start ec2-idle-monitor.timer
+echo '✅ Idle monitor enabled (auto-stop after 30min idle)'
 
 echo 'Waiting for services to start...'
 sleep 3
