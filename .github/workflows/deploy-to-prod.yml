@@ -161,6 +161,13 @@ jobs:
         run: |
           echo "🚀 Deploying to Development EC2 for Pre-Production testing..."
           echo "   Target: $EC2_IP"
+          
+          if [ -z "$EC2_IP" ]; then
+            echo "❌ EC2_IP is not set!"
+            echo "   DEV_EC2_IP from env: ${{ env.DEV_EC2_IP }}"
+            exit 1
+          fi
+          
           ./scripts/deploy-to-environment.sh dev
           echo "✅ Backend deployed to Development EC2"
       
@@ -360,6 +367,13 @@ jobs:
         run: |
           echo "🚀 Deploying backend to Production EC2..."
           echo "   Target: $EC2_IP"
+          
+          if [ -z "$EC2_IP" ]; then
+            echo "❌ EC2_IP is not set!"
+            echo "   PROD_EC2_IP from env: ${{ env.PROD_EC2_IP }}"
+            exit 1
+          fi
+          
           ./scripts/deploy-to-environment.sh prod
           echo "✅ Backend deployed to Production EC2"
       
