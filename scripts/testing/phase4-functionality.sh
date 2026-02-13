@@ -237,16 +237,38 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for Story 1770977224269: Story list button exists
+STORY_ID="${1:-}"
+if [ "$STORY_ID" = "1770977224269" ]; then
+  echo "Test 17: Story list button in header"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 18: Story list modal function"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q 'function openStoryListModal'; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
-# SECTION 5: DynamoDB Tables
+# SECTION 5: Database Tables
 # ============================================
 echo "💾 SECTION 5: Database Tables"
 echo "-----------------------------------"
 
 # Test 17: Stories table exists
-echo "Test 17: Stories table"
+echo "Test 19: Stories table"
 if aws dynamodb describe-table --table-name aipm-backend-prod-stories --region us-east-1 2>/dev/null | jq -e '.Table.TableStatus == "ACTIVE"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Stories table active"
   PASSED=$((PASSED + 1))
