@@ -8025,6 +8025,39 @@ function openFilterModal() {
   });
 }
 
+/**
+ * Opens modal displaying all story titles
+ */
+function openViewStoriesModal() {
+  const container = document.createElement('div');
+  container.style.padding = '8px';
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  const allStories = state.stories.flatMap(s => getAllStories(s));
+  
+  if (allStories.length === 0) {
+    const empty = document.createElement('p');
+    empty.textContent = 'No stories available';
+    empty.style.color = '#666';
+    container.appendChild(empty);
+  } else {
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.textContent = story.title;
+      list.appendChild(item);
+    });
+    container.appendChild(list);
+  }
+  
+  openModal({ title: 'All Stories', content: container, cancelLabel: 'Close' });
+}
+
 function openReferenceModal(storyId) {
   const container = document.createElement('div');
   container.style.display = 'flex';
@@ -8611,6 +8644,13 @@ async function initialize() {
     event.preventDefault();
     closeModal();
   });
+
+  const viewStoriesBtn = document.getElementById('view-stories-btn');
+  if (viewStoriesBtn) {
+    viewStoriesBtn.addEventListener('click', () => {
+      openViewStoriesModal();
+    });
+  }
 
   if (runtimeDataLink) {
     runtimeDataLink.href = resolveApiUrl('/api/runtime-data');
