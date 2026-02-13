@@ -207,7 +207,7 @@ sudo systemctl stop kiro-session-pool-http || true
 
 if [ "$NEEDS_SESSION_POOL_RESTART" = "true" ]; then
   echo '🔄 Stopping Session Pool services (changes detected)...'
-  sudo systemctl stop kiro-session-pool || true
+  sudo systemctl stop kiro-session-pool-http || true
   sudo systemctl stop kiro-wrapper@1 || true
   sudo systemctl stop kiro-wrapper@2 || true
   sudo systemctl stop aipm-semantic-api || true
@@ -222,7 +222,6 @@ sleep 2
 echo 'Installing/updating service files...'
 sudo cp config/aipm-backend.service /etc/systemd/system/$SERVICE_NAME
 sudo cp config/kiro-wrapper@.service /etc/systemd/system/
-sudo cp config/kiro-session-pool.service /etc/systemd/system/
 sudo cp config/kiro-session-pool-http.service /etc/systemd/system/
 sudo cp config/semantic-api-server.service /etc/systemd/system/aipm-semantic-api.service
 sudo cp config/ec2-idle-monitor.service /etc/systemd/system/
@@ -240,7 +239,7 @@ sudo sed -i "/^\[Service\]/a Environment=ACCEPTANCE_TESTS_TABLE=$TESTS_TABLE" /e
 sudo sed -i "/^\[Service\]/a Environment=PORT=4000" /etc/systemd/system/$SERVICE_NAME
 
 sudo systemctl daemon-reload
-sudo systemctl enable $SERVICE_NAME kiro-wrapper@{1,2} kiro-session-pool kiro-session-pool-http aipm-semantic-api ec2-idle-monitor.timer aipm-update-s3-config
+sudo systemctl enable $SERVICE_NAME kiro-wrapper@{1,2} kiro-session-pool-http aipm-semantic-api ec2-idle-monitor.timer aipm-update-s3-config
 
 echo 'Starting backend services...'
 sudo systemctl start $SERVICE_NAME
@@ -248,7 +247,7 @@ sudo systemctl start kiro-session-pool-http
 
 if [ "$NEEDS_SESSION_POOL_RESTART" = "true" ]; then
   echo '🔄 Restarting Session Pool services...'
-  sudo systemctl start kiro-session-pool
+  sudo systemctl start kiro-session-pool-http
   sudo systemctl start kiro-wrapper@1
   sudo systemctl start kiro-wrapper@2
   sudo systemctl start aipm-semantic-api
