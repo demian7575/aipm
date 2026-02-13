@@ -228,6 +228,9 @@ sudo cp config/ec2-idle-monitor.service /etc/systemd/system/
 sudo cp config/ec2-idle-monitor.timer /etc/systemd/system/
 sudo cp config/aipm-update-s3-config.service /etc/systemd/system/
 
+# Update IP update service with correct environment
+sudo sed -i "s|ExecStart=/home/ec2-user/aipm/scripts/update-ec2-ip-to-s3.sh|ExecStart=/home/ec2-user/aipm/scripts/update-ec2-ip-to-s3.sh $ENV|" /etc/systemd/system/aipm-update-s3-config.service
+
 # Update backend service with environment variables
 sudo sed -i "/^Environment=/d" /etc/systemd/system/$SERVICE_NAME
 sudo sed -i "/^\[Service\]/a Environment=ENVIRONMENT=$ENV" /etc/systemd/system/$SERVICE_NAME
