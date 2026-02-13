@@ -216,8 +216,18 @@ else
 fi
 
 echo 'Force killing backend Node.js processes...'
+# Kill by pattern
 sudo pkill -9 -f 'node.*apps/backend' || true
+# Also kill any process using port 4000
+sudo lsof -ti:4000 | xargs -r sudo kill -9 || true
 sleep 2
+
+# Verify port 4000 is free
+if sudo lsof -i:4000 > /dev/null 2>&1; then
+  echo '⚠️  Port 4000 still in use, force killing...'
+  sudo lsof -ti:4000 | xargs -r sudo kill -9 || true
+  sleep 2
+fi
 
 echo 'Installing/updating service files...'
 sudo cp config/aipm-backend.service /etc/systemd/system/$SERVICE_NAME
