@@ -237,6 +237,35 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Story-specific tests (if story ID provided)
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "📋 Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for story 1770958144317: Story List Button
+  if [ "$STORY_ID" = "1770958144317" ]; then
+    echo "Test: Story List Button exists in HTML"
+    if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q 'id="story-list-btn"'; then
+      echo "  ✅ PASS: Story List button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story List button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test: Story List modal function exists"
+    if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q 'openStoryListModal'; then
+      echo "  ✅ PASS: openStoryListModal function found"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openStoryListModal function not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+fi
+
 echo ""
 
 # ============================================
