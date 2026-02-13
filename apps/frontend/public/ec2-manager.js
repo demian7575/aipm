@@ -164,13 +164,17 @@ async function waitForEC2Ready(env = 'prod', maxWaitMs = 120000) {
       console.log(`[EC2] ${env} status:`, status.state);
       
       if (status.state === 'running' && status.publicIp) {
-        // Get updated config
-        delete cachedConfig[env];
-        delete lastFetchTime[env];
-        const config = await getEC2Config(env);
+        // Build config from Lambda status (always current)
+        const config = {
+          apiBaseUrl: `http://${status.publicIp}:4000`,
+          semanticApiUrl: `http://${status.publicIp}:8083`,
+          instanceId: status.instanceId,
+          status: 'running',
+          updatedAt: new Date().toISOString()
+        };
         
         // Wait for backend API to be ready
-        console.log(`[EC2] ${env} is running, waiting for services...`);
+        console.log(`[EC2] ${env} is running at ${status.publicIp}, waiting for services...`);
         const apiReady = await waitForAPIReady(config.apiBaseUrl, 60000);
         
         if (apiReady) {
@@ -203,7 +207,14 @@ async function ensureEC2Running(env = 'prod') {
     
     if (status.state === 'running') {
       console.log(`[EC2] ${env} is already running`);
-      return await getEC2Config(env);
+      // Build config from Lambda status instead of S3
+      return {
+        apiBaseUrl: `http://${status.publicIp}:4000`,
+        semanticApiUrl: `http://${status.publicIp}:8083`,
+        instanceId: status.instanceId,
+        status: 'running',
+        updatedAt: new Date().toISOString()
+      };
     }
     
     if (status.state === 'stopped') {
