@@ -359,6 +359,19 @@ phase2_step5_acceptance_test_draft() {
         echo "   ❌ Response: $response"
     fi
     
+    # Verify acceptance test is attached to story
+    echo "   🔍 Verifying test is attached to story..."
+    local story_with_tests=$(curl -s $USE_DEV_TABLES_HEADER "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local test_count=$(echo "$story_with_tests" | jq -r '.acceptanceTests | length')
+    
+    if [[ "$test_count" -gt 0 ]]; then
+        echo "   ✅ Story has $test_count acceptance test(s) attached"
+        pass_test "Acceptance Test Attached to Story"
+    else
+        echo "   ❌ Story has no acceptance tests attached"
+        fail_test "Acceptance Test Attached to Story"
+    fi
+    
     step_end=$(date +%s)
     echo "   ⏱️  Step 5 Duration: $((step_end - step_start))s"
     echo ""
@@ -413,6 +426,26 @@ EOF
     else
         fail_test "Create PR (Creation failed)"
         echo "   ❌ Response: $response"
+    fi
+    
+    # Verify PR is attached to story
+    echo "   🔍 Verifying PR is attached to story..."
+    local story_with_prs=$(curl -s $USE_DEV_TABLES_HEADER "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local pr_count=$(echo "$story_with_prs" | jq -r '.prs | length')
+    
+    if [[ "$pr_count" -gt 0 ]]; then
+        echo "   ✅ Story has $pr_count PR(s) attached"
+        local attached_pr=$(echo "$story_with_prs" | jq -r ".prs[] | select(.prNumber == $PHASE2_PR_NUMBER) | .prNumber")
+        if [[ "$attached_pr" == "$PHASE2_PR_NUMBER" ]]; then
+            echo "   ✅ PR #$PHASE2_PR_NUMBER is attached to story"
+            pass_test "PR Attached to Story"
+        else
+            echo "   ❌ PR #$PHASE2_PR_NUMBER not found in story's PRs"
+            fail_test "PR Attached to Story"
+        fi
+    else
+        echo "   ❌ Story has no PRs attached"
+        fail_test "PR Attached to Story"
     fi
     
     step_end=$(date +%s)
