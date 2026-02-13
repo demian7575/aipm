@@ -9056,38 +9056,18 @@ async function initializeEC2AutoStart() {
   }
   
   const env = window.CONFIG?.ENVIRONMENT || 'prod';
+  const otherEnv = env === 'prod' ? 'dev' : 'prod';
   
-  // Check and start both prod and dev EC2 if stopped
-  try {
-    console.log('[EC2] Checking all environments...');
-    const [prodStatus, devStatus] = await Promise.all([
-      EC2Manager.getStatus('prod').catch(e => ({ state: 'error', error: e })),
-      EC2Manager.getStatus('dev').catch(e => ({ state: 'error', error: e }))
-    ]);
-    
-    console.log('[EC2] prod status:', prodStatus);
-    console.log('[EC2] dev status:', devStatus);
-    
-    // Start any stopped instances
-    const startPromises = [];
-    if (prodStatus.state === 'stopped') {
-      console.log('[EC2] Starting stopped prod instance...');
-      startPromises.push(EC2Manager.start('prod').catch(e => console.error('[EC2] Failed to start prod:', e)));
-    }
-    if (devStatus.state === 'stopped') {
-      console.log('[EC2] Starting stopped dev instance...');
-      startPromises.push(EC2Manager.start('dev').catch(e => console.error('[EC2] Failed to start dev:', e)));
-    }
-    
-    if (startPromises.length > 0) {
-      await Promise.all(startPromises);
-      console.log('[EC2] Started all stopped instances');
-    }
-  } catch (error) {
-    console.error('[EC2] Failed to check/start instances:', error);
-  }
+  // Check and start the other environment if stopped (background task)
+  EC2Manager.getStatus(otherEnv)
+    .then(status => {
+      if (status.state === 'stopped') {
+        console.log(`[EC2] Starting stopped ${otherEnv} instance in background...`);
+        return EC2Manager.start(otherEnv);
+      }
+    })
+    .catch(e => console.warn(`[EC2] Could not check/start ${otherEnv}:`, e));
   
-  // Now initialize the current environment
   function updateStatus(state, text) {
     statusEl.className = `ec2-status ${state}`;
     statusEl.querySelector('.status-text').textContent = text;
