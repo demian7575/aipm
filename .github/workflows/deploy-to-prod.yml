@@ -139,7 +139,6 @@ jobs:
           
           # Add SSH host key after EC2 is confirmed running (retry up to 30s)
           echo "🔑 Adding SSH host key..."
-          fi
           
           SSH_ADDED=false
           for i in 1 2 3 4 5 6; do
