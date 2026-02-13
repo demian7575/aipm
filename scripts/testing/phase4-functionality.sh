@@ -625,6 +625,39 @@ fi
 echo ""
 
 # ============================================
+# SECTION 13: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  echo "🎯 SECTION 13: Story-Specific Tests (Story ID: $1)"
+  echo "-----------------------------------"
+  
+  STORY_ID="$1"
+  
+  # Test for Story 1770968725510: Story List Button
+  if [ "$STORY_ID" == "1770968725510" ]; then
+    echo "Test 43: Story list button exists in HTML"
+    if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+      echo "  ✅ PASS: Story list button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button not found in HTML"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 44: Story list button handler in JavaScript"
+    if grep -q 'storyListBtn' apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Story list button handler found"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button handler not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+fi
+
+echo ""
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
