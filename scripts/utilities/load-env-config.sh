@@ -18,20 +18,18 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
     return 1 2>/dev/null || exit 1
 fi
 
-# Try to get dynamic IP from S3 config first
-S3_CONFIG_URL="https://aipm-ec2-config.s3.amazonaws.com/${ENV}-config.json"
-DYNAMIC_IP=$(curl -s "$S3_CONFIG_URL" 2>/dev/null | python3 -c "import sys, json; print(json.load(sys.stdin)['apiBaseUrl'].split('://')[1].split(':')[0])" 2>/dev/null)
+# Get instance ID from config
+export INSTANCE_ID=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "instance_id")
 
-if [[ -n "$DYNAMIC_IP" && "$DYNAMIC_IP" != "null" ]]; then
-    echo "🔄 Using dynamic IP from S3: $DYNAMIC_IP"
-    export EC2_IP="$DYNAMIC_IP"
-else
-    echo "⚠️  Could not fetch dynamic IP from S3, using static config"
-    export EC2_IP=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "ec2_ip")
+# Get current public IP from AWS
+export EC2_IP=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].PublicIpAddress' --output text 2>/dev/null)
+
+if [[ -z "$EC2_IP" || "$EC2_IP" == "None" ]]; then
+    echo "❌ Could not fetch IP from AWS for instance $INSTANCE_ID"
+    return 1 2>/dev/null || exit 1
 fi
 
-# Export environment variables by calling Python directly
-export INSTANCE_ID=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "instance_id")
+echo "✅ Fetched IP from AWS: $EC2_IP"
 export API_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "api_port")
 export SEMANTIC_API_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "semantic_api_port")
 export SESSION_POOL_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "session_pool_port")
