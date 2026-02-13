@@ -237,6 +237,26 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 17: Story list button exists in HTML
+echo "Test 17: Story list button in header"
+if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q "story-list-btn"; then
+  echo "  ✅ PASS: Story list button exists"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: Story list button not found"
+  FAILED=$((FAILED + 1))
+fi
+
+echo ""
+echo "Test 16: Frontend CSS"
+if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css | grep -q "body"; then
+  echo "  ✅ PASS: styles.css loads"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: styles.css not found"
+  FAILED=$((FAILED + 1))
+fi
+
 echo ""
 
 # ============================================
@@ -645,14 +665,14 @@ echo "  - Template Management: 2 endpoints tested"
 echo "  - Deployment/CI/CD: 3 endpoints tested"
 echo "  - GitHub Integration: 1 endpoint tested"
 echo "  - GitHub Actions: 6 workflow checks tested"
-echo "  - Frontend: 3 resources tested"
+echo "  - Frontend: 4 resources tested"
 echo "  - Database Tables: 4 tables verified"
 echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 43 (37 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
