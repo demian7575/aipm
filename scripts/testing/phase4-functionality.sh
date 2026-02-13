@@ -550,9 +550,41 @@ fi
 echo ""
 
 # ============================================
-# SECTION 12: GitHub Actions Workflow
+# SECTION 12: Story-Specific Functionality Tests
 # ============================================
-echo "⚙️  SECTION 12: GitHub Actions Workflow"
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "🎯 SECTION 12: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for Story 1770994216557: View all story titles in modal
+  if [ "$STORY_ID" == "1770994216557" ]; then
+    echo "Test 43: View Stories button exists in frontend"
+    if curl -s "$FRONTEND_URL" | grep -q "view-stories-btn"; then
+      echo "  ✅ PASS: View Stories button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: View Stories button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 44: openStoryListModal function exists"
+    if curl -s "$FRONTEND_URL/app.js" | grep -q "function openStoryListModal"; then
+      echo "  ✅ PASS: openStoryListModal function found"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openStoryListModal function not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+  
+  echo ""
+fi
+
+# ============================================
+# SECTION 13: GitHub Actions Workflow
+# ============================================
+echo "⚙️  SECTION 13: GitHub Actions Workflow"
 echo "-----------------------------------"
 
 # Test 37: Check workflow file exists
