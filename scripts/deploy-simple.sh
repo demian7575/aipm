@@ -51,7 +51,20 @@ ssh ec2-user@$EC2_IP "sudo cp /tmp/aipm-backend.service /etc/systemd/system/$SER
 
 # Step 5: Restart service
 echo "🔄 Restarting backend service..."
-ssh ec2-user@$EC2_IP "sudo systemctl restart $SERVICE_NAME"
+ssh ec2-user@$EC2_IP << ENDSSH
+# Kill any process using port 4000
+sudo lsof -ti:4000 | xargs -r sudo kill -9 || true
+sleep 2
+
+# Verify port is free
+if sudo lsof -i:4000 > /dev/null 2>&1; then
+  echo '⚠️  Port 4000 still in use, force killing...'
+  sudo lsof -ti:4000 | xargs -r sudo kill -9 || true
+  sleep 2
+fi
+
+sudo systemctl restart $SERVICE_NAME
+ENDSSH
 
 # Step 6: Wait for health check
 echo "🏥 Waiting for service to be healthy..."
