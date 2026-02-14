@@ -38,12 +38,13 @@ export async function getStoryPRs(db, storyId) {
 
 export async function addStoryPR(db, storyId, prData) {
   const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-  const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+  const { DynamoDBDocumentClient, PutCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
   
   const client = new DynamoDBClient({ region: process.env.AWS_REGION });
   const docClient = DynamoDBDocumentClient.from(client);
   
   const tableName = process.env.PRS_TABLE;
+  const storiesTable = process.env.STORIES_TABLE;
   const timestamp = new Date().toISOString();
   
   const prId = prData.localId || `pr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -65,9 +66,21 @@ export async function addStoryPR(db, storyId, prData) {
     create_tracking_card: prData.createTrackingCard
   };
   
+  // Add PR to PRs table
   await docClient.send(new PutCommand({
     TableName: tableName,
     Item: item
+  }));
+  
+  // Add PR number to story's prs array
+  await docClient.send(new UpdateCommand({
+    TableName: storiesTable,
+    Key: { id: storyId },
+    UpdateExpression: 'SET prs = list_append(if_not_exists(prs, :empty_list), :pr_number)',
+    ExpressionAttributeValues: {
+      ':pr_number': [prData.targetNumber],
+      ':empty_list': []
+    }
   }));
   
   return { success: true, id: prId };
@@ -75,12 +88,13 @@ export async function addStoryPR(db, storyId, prData) {
 
 export async function removeStoryPR(db, storyId, prNumber) {
   const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-  const { DynamoDBDocumentClient, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
+  const { DynamoDBDocumentClient, DeleteCommand, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
   
   const client = new DynamoDBClient({ region: process.env.AWS_REGION });
   const docClient = DynamoDBDocumentClient.from(client);
   
   const tableName = process.env.PRS_TABLE;
+  const storiesTable = process.env.STORIES_TABLE;
   
   const currentPRs = await getStoryPRs(db, storyId);
   const prToDelete = currentPRs.find(pr => pr.number == prNumber);
@@ -94,12 +108,31 @@ export async function removeStoryPR(db, storyId, prNumber) {
       // Continue with database removal even if GitHub close fails
     }
     
+    // Delete from PRs table
     await docClient.send(new DeleteCommand({
       TableName: tableName,
       Key: {
         id: prToDelete.localId
       }
     }));
+    
+    // Remove PR number from story's prs array
+    const story = await docClient.send(new GetCommand({
+      TableName: storiesTable,
+      Key: { id: storyId }
+    }));
+    
+    if (story.Item?.prs) {
+      const updatedPrs = story.Item.prs.filter(num => num != prNumber);
+      await docClient.send(new UpdateCommand({
+        TableName: storiesTable,
+        Key: { id: storyId },
+        UpdateExpression: 'SET prs = :prs',
+        ExpressionAttributeValues: {
+          ':prs': updatedPrs
+        }
+      }));
+    }
   }
   
   return await getStoryPRs(db, storyId);

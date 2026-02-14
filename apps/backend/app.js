@@ -4403,14 +4403,16 @@ async function insertAcceptanceTest(
 ) {
   // DynamoDB implementation
   const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-  const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+  const { DynamoDBDocumentClient, PutCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
   
   const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
   const docClient = DynamoDBDocumentClient.from(client);
   const tableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+  const storiesTable = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
   
   const id = Date.now(); // Generate unique ID
   
+  // Add test to acceptance tests table
   await docClient.send(new PutCommand({
     TableName: tableName,
     Item: {
@@ -4423,6 +4425,17 @@ async function insertAcceptanceTest(
       status,
       createdAt: timestamp,
       updatedAt: timestamp
+    }
+  }));
+  
+  // Add test ID to story's acceptanceTests array
+  await docClient.send(new UpdateCommand({
+    TableName: storiesTable,
+    Key: { id: storyId },
+    UpdateExpression: 'SET acceptanceTests = list_append(if_not_exists(acceptanceTests, :empty_list), :test_id)',
+    ExpressionAttributeValues: {
+      ':test_id': [id],
+      ':empty_list': []
     }
   }));
   
