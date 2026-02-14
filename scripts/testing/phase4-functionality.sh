@@ -228,6 +228,40 @@ else
 fi
 
 # Test 16: Frontend has styles.css
+
+# ============================================
+# Story-Specific Tests
+# ============================================
+
+# Test for Story 1771082668760: Add Story List Button
+if [ "$1" = "1771082668760" ]; then
+  echo ""
+  echo "=============================================="
+  echo "Story 1771082668760: Add Story List Button"
+  echo "=============================================="
+  
+  echo "Test: Story list button exists in header"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test: openStoryListModal function exists"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q 'function openStoryListModal'; then
+    echo "  ✅ PASS: openStoryListModal function found"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+# Test 16: Frontend has styles.css
 echo "Test 16: Frontend CSS"
 if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css | grep -q "body"; then
   echo "  ✅ PASS: styles.css loads"
