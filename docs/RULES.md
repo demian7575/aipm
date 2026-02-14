@@ -7,9 +7,10 @@
 ## 🚨 Critical Rules (MUST FOLLOW)
 
 ### AI Assistant Behavior
+- ❌ **NEVER** make ANY code changes without explicit user approval
 - ❌ **NEVER** make critical changes without explicit user agreement
-- ✅ **ALWAYS** explain proposed changes and wait for approval
-- ✅ Critical changes include: workflow modifications, deployment changes, data deletion, security changes
+- ✅ **ALWAYS** explain proposed changes and wait for approval before implementing
+- ✅ Critical changes include: any code modifications, workflow modifications, deployment changes, data deletion, security changes, configuration changes
 - ✅ For analysis/diagnosis: provide recommendations, don't auto-apply
 - 📍 **Why**: Prevents unintended consequences and maintains user control
 
