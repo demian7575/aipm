@@ -155,7 +155,7 @@ jobs:
       
       - name: Deploy to Development EC2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AIPM_GITHUB_TOKEN }}
         run: |
           echo "🚀 Deploying to Development EC2 for Pre-Production testing..."
           
@@ -181,7 +181,7 @@ jobs:
       - name: Run Pre-Production Gating Tests
         id: gating
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AIPM_GITHUB_TOKEN }}
           TARGET_ENV: dev
           API_BASE: ${{ env.DEV_API_BASE }}
           SEMANTIC_API_BASE: ${{ env.DEV_SEMANTIC_API_BASE }}
@@ -350,7 +350,7 @@ jobs:
       
       - name: Deploy backend to Production EC2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AIPM_GITHUB_TOKEN }}
         run: |
           echo "🚀 Deploying backend to Production EC2..."
           
@@ -376,7 +376,7 @@ jobs:
       - name: Run Post-Production Gating Tests
         id: post_deployment
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AIPM_GITHUB_TOKEN }}
           TARGET_ENV: prod
           SKIP_GATING_TESTS_IN_CODE_GENERATION: true
         run: |
