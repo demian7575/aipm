@@ -625,6 +625,50 @@ fi
 echo ""
 
 # ============================================
+# SECTION 11: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "🎯 SECTION 11: Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test 43: Story List Button - Modal displays story titles
+  echo "Test 43: Story list button functionality"
+  STORY_COUNT=$(curl -s "$API_BASE/api/stories" | jq 'length')
+  if [ "$STORY_COUNT" -gt 0 ]; then
+    echo "  ✅ PASS: Story list endpoint returns $STORY_COUNT stories"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list endpoint returned no stories"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 44: Story List Button - Button exists in HTML
+  echo "Test 44: Story list button exists in frontend"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q "story-list-btn"; then
+    echo "  ✅ PASS: Story list button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 45: Story List Button - Handler exists in JavaScript
+  echo "Test 45: Story list button handler in JavaScript"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "storyListBtn"; then
+    echo "  ✅ PASS: Story list button handler found in app.js"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button handler not found in app.js"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+echo ""
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
@@ -651,8 +695,15 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+if [ -n "$1" ]; then
+  echo "  - Story-Specific: 3 tests executed"
+fi
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+if [ -n "$1" ]; then
+  echo "Total Tests: 45 (39 executable + 6 workflow)"
+else
+  echo "Total Tests: 42 (36 executable + 6 workflow)"
+fi
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
