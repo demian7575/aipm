@@ -622,6 +622,37 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# ============================================
+# SECTION 8: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "📦 SECTION 8: Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for Story 1771064076043: Story List Button
+  if [ "$STORY_ID" = "1771064076043" ]; then
+    echo "Test 43: Story list button exists in HTML"
+    if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+      echo "  ✅ PASS: Story list button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 44: Story list modal function exists"
+    if grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+      echo "  ✅ PASS: openStoryListModal function exists"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openStoryListModal function not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+fi
+
 echo ""
 
 # ============================================
