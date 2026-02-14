@@ -14,7 +14,7 @@ const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
 // Helper to log with timestamp
 function log(message) {
   const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
-  log(`${timestamp} ${message}`);
+  console.log(`${timestamp} ${message}`);
 }
 
 class KiroWrapper {
