@@ -4017,6 +4017,17 @@ function updateRTMTable() {
       tr.appendChild(td);
     });
     
+    // Add click handler to select story and update Details panel
+    tr.addEventListener('click', (e) => {
+      // Don't trigger if clicking on expand icon or PR cells
+      if (e.target.closest('.rtm-expand-icon') || e.target.closest('.rtm-cell')) {
+        return;
+      }
+      state.selectedStoryId = row.id;
+      renderDetails();
+    });
+    tr.style.cursor = 'pointer';
+    
     tbody.appendChild(tr);
   });
 }
