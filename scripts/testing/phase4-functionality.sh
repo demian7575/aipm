@@ -237,6 +237,27 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for Story 1771038153016: Story List Button
+if [ "$1" == "1771038153016" ]; then
+  echo "Test 1771038153016: Story list button exists"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html | grep -q "story-list-btn"; then
+    echo "  ✅ PASS: Story list button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 1771038153016: Story list modal handler"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "storyListBtn.*addEventListener"; then
+    echo "  ✅ PASS: Story list button handler found"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button handler not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
