@@ -18,15 +18,15 @@
 
 ### Given (Preconditions)
 Initial state or context before the action.
-- Example: `"User is logged in and dashboard is loaded"`
+- Example: `["User is logged in", "Dashboard is loaded"]`
 
 ### When (Actions)
 User actions or system events being tested.
-- Example: `"User clicks Export button and selects PDF format"`
+- Example: `["User clicks Export button", "Selects PDF format"]`
 
 ### Then (Expected Results)
 Observable outcomes that verify success.
-- Example: `"PDF file downloads and contains all data"`
+- Example: `["PDF file downloads", "File contains all data"]`
 
 ## Quality Rules
 

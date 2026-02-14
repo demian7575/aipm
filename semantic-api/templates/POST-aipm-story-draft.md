@@ -48,9 +48,9 @@ curl -X POST http://localhost:8083/api/story-draft-response \
     "acceptWarnings": true,
     "acceptanceTests": [{
       "title": "TEST_TITLE",
-      "given": "TEST_GIVEN",
-      "when": "TEST_WHEN",
-      "then": "TEST_THEN",
+      "given": ["TEST_GIVEN"],
+      "when": ["TEST_WHEN"],
+      "then": ["TEST_THEN"],
       "status": "Draft"
     }]
   }'
