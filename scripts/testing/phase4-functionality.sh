@@ -100,6 +100,16 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 7a: Verify RTM click handler exists in frontend
+echo "Test 7a: RTM click handler for details panel"
+if grep -q "tr.addEventListener('click'" apps/frontend/public/app.js && grep -q "selectStory(row.id)" apps/frontend/public/app.js; then
+  echo "  ✅ PASS: RTM click handler implemented"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: RTM click handler not found"
+  FAILED=$((FAILED + 1))
+fi
+
 # Test 8: GET /health
 echo "Test 8: Health check"
 if curl -s "$API_BASE/health" | jq -e '.status == "running"' > /dev/null 2>&1; then
@@ -235,6 +245,33 @@ if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/st
 else
   echo "  ❌ FAIL: styles.css not found"
   FAILED=$((FAILED + 1))
+fi
+
+# Test for US-VIZ-RTM-002: RTM row click updates details panel
+if [ "$1" = "1771076494719" ]; then
+  echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  
+  # Check for row click handler that sets selectedStoryId and calls renderDetails
+  if echo "$APP_JS_CONTENT" | grep -q "state.selectedStoryId = row.id" && \
+     echo "$APP_JS_CONTENT" | grep -q "renderDetails()" && \
+     echo "$APP_JS_CONTENT" | grep -q "rtm-row-selected"; then
+    echo "  ✅ PASS: RTM row click handler implemented with visual selection"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: RTM row click handler or selection styling missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for CSS styling for selected row
+  STYLES_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css)
+  if echo "$STYLES_CONTENT" | grep -q "rtm-row-selected"; then
+    echo "  ✅ PASS: RTM selected row CSS styling present"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: RTM selected row CSS styling missing"
+    FAILED=$((FAILED + 1))
+  fi
 fi
 
 echo ""
@@ -652,7 +689,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 43 (37 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
