@@ -622,6 +622,36 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# ============================================
+# SECTION 8: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "📦 SECTION 8: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test 43: Story list modal button exists
+  echo "Test 43: Story list button in header"
+  if curl -s "$FRONTEND_BASE/index.html" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 44: Story list modal function exists
+  echo "Test 44: Story list modal function"
+  if curl -s "$FRONTEND_BASE/app.js" | grep -q 'function openStoryListModal'; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
@@ -651,8 +681,15 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+if [ -n "$1" ]; then
+  echo "  - Story-Specific: 2 tests executed"
+fi
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+if [ -n "$1" ]; then
+  echo "Total Tests: 44 (38 executable + 6 workflow)"
+else
+  echo "Total Tests: 42 (36 executable + 6 workflow)"
+fi
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
