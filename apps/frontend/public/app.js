@@ -6013,6 +6013,13 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+// Helper to convert test field to string (handles both array and string formats)
+function testFieldToString(field) {
+  if (!field) return '';
+  if (Array.isArray(field)) return field.join('\n');
+  return String(field);
+}
+
 function formatMultilineText(value) {
   const lines = Array.isArray(value) ? value : [value ?? ''];
   const escaped = escapeHtml(lines.join('\n'));
@@ -6361,13 +6368,13 @@ function createDefaultCodeWhispererForm(story) {
       if (test?.title) {
         objective += `${index + 1}. ${test.title}\n`;
         if (test.given && test.given.length > 0) {
-          objective += `   Given: ${test.given.join(', ')}\n`;
+          objective += `   Given: ${testFieldToString(test.given)}\n`;
         }
         if (test.when && test.when.length > 0) {
-          objective += `   When: ${test.when.join(', ')}\n`;
+          objective += `   When: ${testFieldToString(test.when)}\n`;
         }
         if (test.then && test.then.length > 0) {
-          objective += `   Then: ${test.then.join(', ')}\n`;
+          objective += `   Then: ${testFieldToString(test.then)}\n`;
         }
       }
     });
@@ -7781,9 +7788,9 @@ function openAcceptanceTestModal(storyId, options = {}) {
     const whenField = container.querySelector('#test-when');
     const thenField = container.querySelector('#test-then');
     const statusField = container.querySelector('#test-status');
-    givenField.value = Array.isArray(test.given) ? test.given.join('\n') : '';
-    whenField.value = Array.isArray(test.when) ? test.when.join('\n') : '';
-    thenField.value = Array.isArray(test.then) ? test.then.join('\n') : '';
+    givenField.value = testFieldToString(test.given);
+    whenField.value = testFieldToString(test.when);
+    thenField.value = testFieldToString(test.then);
     statusField.value = test.status || 'Draft';
   }
   

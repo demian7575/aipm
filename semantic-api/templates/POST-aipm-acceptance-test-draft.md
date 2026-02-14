@@ -36,9 +36,9 @@ curl -X POST http://localhost:8083/api/acceptance-test-draft-response \
     "requestId": "REQUEST_ID_VALUE",
     "status": "complete",
     "title": "TEST_TITLE",
-    "given": ["GIVEN"],
-    "when": ["WHEN"],
-    "then": ["THEN"],
+    "given": "GIVEN",
+    "when": "WHEN",
+    "then": "THEN",
     "source": "ai",
     "summary": "TEST_SUMMARY"
   }'
