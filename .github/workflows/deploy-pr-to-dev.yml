@@ -253,10 +253,6 @@ jobs:
           echo "   Backend: $API_BASE"
           echo "   Database: Development DynamoDB"
           
-          # Reset EC2 idle timer to prevent auto-stop during tests
-          echo "🔄 Resetting EC2 idle timer..."
-          ssh -o StrictHostKeyChecking=no ec2-user@${{ env.DEV_EC2_IP }} "echo '0' | sudo tee /tmp/ec2-idle-state > /dev/null"
-          
           # Wait for deployment to be ready
           sleep 10
           
