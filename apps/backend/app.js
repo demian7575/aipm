@@ -6184,35 +6184,14 @@ export async function createApp() {
           throw new Error(`Semantic API returned ${response.status}`);
         }
 
-        // Proxy SSE stream and wrap story data for frontend
+        // Proxy SSE stream
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.substring(6));
-                // Wrap story fields in 'story' object for frontend compatibility
-                if (data.status === 'complete' && data.title) {
-                  const { requestId, status, ...storyFields } = data;
-                  res.write(`data: ${JSON.stringify({ status, story: storyFields })}\n\n`);
-                } else {
-                  res.write(`${line}\n`);
-                }
-              } catch (e) {
-                res.write(`${line}\n`);
-              }
-            } else {
-              res.write(`${line}\n`);
-            }
-          }
+          res.write(decoder.decode(value, { stream: true }));
         }
 
         res.end();
