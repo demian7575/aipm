@@ -7479,9 +7479,9 @@ function openChildStoryModal(parentId) {
                 const thenField = container.querySelector('#child-test-then-1');
                 
                 if (titleField) titleField.value = test.title || '';
-                if (givenField) givenField.value = test.given || '';
-                if (whenField) whenField.value = test.when || '';
-                if (thenField) thenField.value = test.then || '';
+                if (givenField) givenField.value = Array.isArray(test.given) ? test.given.join('\n') : (test.given || '');
+                if (whenField) whenField.value = Array.isArray(test.when) ? test.when.join('\n') : (test.when || '');
+                if (thenField) thenField.value = Array.isArray(test.then) ? test.then.join('\n') : (test.then || '');
               } else {
                 // Add additional tests
                 addNewTest();
@@ -7491,9 +7491,9 @@ function openChildStoryModal(parentId) {
                 const thenField = container.querySelector(`#child-test-then-${testCounter}`);
                 
                 if (titleField) titleField.value = test.title || '';
-                if (givenField) givenField.value = test.given || '';
-                if (whenField) whenField.value = test.when || '';
-                if (thenField) thenField.value = test.then || '';
+                if (givenField) givenField.value = Array.isArray(test.given) ? test.given.join('\n') : (test.given || '');
+                if (whenField) whenField.value = Array.isArray(test.when) ? test.when.join('\n') : (test.when || '');
+                if (thenField) thenField.value = Array.isArray(test.then) ? test.then.join('\n') : (test.then || '');
               }
             });
             
