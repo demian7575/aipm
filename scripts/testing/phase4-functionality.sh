@@ -10,9 +10,43 @@ source "$SCRIPT_DIR/../utilities/load-env-config.sh" "${TARGET_ENV:-prod}"
 PASSED=0
 FAILED=0
 
+# Check if story ID is provided
+STORY_ID="${1:-}"
+
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo ""
+
+if [ -n "$STORY_ID" ]; then
+  echo "📝 Testing story-specific functionality for ID: $STORY_ID"
+  echo ""
+  
+  # Test: Story List Modal Button Exists
+  echo "Test: Story list button exists in header"
+  RESPONSE=$(curl -s "$FRONTEND_URL")
+  if echo "$RESPONSE" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test: Story List Modal Function Exists
+  echo "Test: openStoryListModal function exists"
+  if curl -s "$FRONTEND_URL/app.js" | grep -q 'function openStoryListModal'; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+  echo "=============================================="
+  echo "Story-specific tests: $PASSED passed, $FAILED failed"
+  exit $FAILED
+fi
 
 # ============================================
 # SECTION 1: Core API Endpoints (with dev DB)
