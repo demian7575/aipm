@@ -435,7 +435,7 @@ EOF
     
     if [[ "$pr_count" -gt 0 ]]; then
         echo "   ✅ Story has $pr_count PR(s) attached"
-        local attached_pr=$(echo "$story_with_prs" | jq -r ".prs[] | select(.prNumber == $PHASE2_PR_NUMBER) | .prNumber")
+        local attached_pr=$(echo "$story_with_prs" | jq -r ".prs[] | select(.number == $PHASE2_PR_NUMBER) | .number")
         if [[ "$attached_pr" == "$PHASE2_PR_NUMBER" ]]; then
             echo "   ✅ PR #$PHASE2_PR_NUMBER is attached to story"
             pass_test "PR Attached to Story"
