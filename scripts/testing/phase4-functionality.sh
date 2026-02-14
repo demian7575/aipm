@@ -237,6 +237,27 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for Story 1771076920172: Story List Button
+if [ "$1" = "1771076920172" ]; then
+  echo "Test 43: Story list button exists in header"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button found in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 44: Story list modal function exists"
+  if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q 'openStoryListModal'; then
+    echo "  ✅ PASS: openStoryListModal function found"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
