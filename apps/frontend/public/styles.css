@@ -2920,6 +2920,30 @@ dialog[data-size='content'] .modal-shell {
   color: #1e293b;
 }
 
+.rtm-matrix tbody tr:hover {
+  background: #f9fafb;
+}
+
+.rtm-matrix tbody tr.rtm-row-selected {
+  background: #e0e7ff;
+}
+
+.rtm-matrix tbody tr.rtm-row-selected:hover {
+  background: #d0d7ef;
+}
+
+.rtm-matrix tbody tr.rtm-row-selected .rtm-col-id,
+.rtm-matrix tbody tr.rtm-row-selected .rtm-col-title,
+.rtm-matrix tbody tr.rtm-row-selected .rtm-col-tests {
+  background: #e0e7ff;
+}
+
+.rtm-matrix tbody tr.rtm-row-selected:hover .rtm-col-id,
+.rtm-matrix tbody tr.rtm-row-selected:hover .rtm-col-title,
+.rtm-matrix tbody tr.rtm-row-selected:hover .rtm-col-tests {
+  background: #d0d7ef;
+}
+
 
 /* CI/CD Dashboard Styles */
 .cicd-dashboard {

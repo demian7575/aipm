@@ -4025,8 +4025,14 @@ function updateRTMTable() {
       }
       state.selectedStoryId = row.id;
       renderDetails();
+      updateRTMTable();
     });
     tr.style.cursor = 'pointer';
+    
+    // Highlight selected row
+    if (state.selectedStoryId === row.id) {
+      tr.classList.add('rtm-row-selected');
+    }
     
     tbody.appendChild(tr);
   });

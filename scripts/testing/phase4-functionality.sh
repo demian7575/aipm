@@ -247,6 +247,33 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for US-VIZ-RTM-002: RTM row click updates details panel
+if [ "$1" = "1771076494719" ]; then
+  echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  
+  # Check for row click handler that sets selectedStoryId and calls renderDetails
+  if echo "$APP_JS_CONTENT" | grep -q "state.selectedStoryId = row.id" && \
+     echo "$APP_JS_CONTENT" | grep -q "renderDetails()" && \
+     echo "$APP_JS_CONTENT" | grep -q "rtm-row-selected"; then
+    echo "  ✅ PASS: RTM row click handler implemented with visual selection"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: RTM row click handler or selection styling missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for CSS styling for selected row
+  STYLES_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css)
+  if echo "$STYLES_CONTENT" | grep -q "rtm-row-selected"; then
+    echo "  ✅ PASS: RTM selected row CSS styling present"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: RTM selected row CSS styling missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
