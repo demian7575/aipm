@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -7920,6 +7921,46 @@ function openAcceptanceTestModal(storyId, options = {}) {
 }
 
 /**
+ * Opens modal showing list of all story titles
+ */
+function openStoryListModal() {
+  try {
+    const allStories = state.stories.flatMap(s => getAllStories(s));
+    
+    const container = document.createElement('div');
+    container.className = 'modal-form';
+    
+    if (allStories.length === 0) {
+      container.innerHTML = '<p class="empty-state">No stories available</p>';
+    } else {
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      allStories.forEach(story => {
+        const item = document.createElement('li');
+        item.style.padding = '0.5rem';
+        item.style.borderBottom = '1px solid #eee';
+        item.textContent = story.title;
+        list.appendChild(item);
+      });
+      
+      container.appendChild(list);
+    }
+    
+    openModal({
+      title: 'Story List',
+      content: container,
+      cancelLabel: 'Close'
+    });
+  } catch (error) {
+    console.error('Error opening story list modal:', error);
+    showToast('Failed to open story list', 'error');
+  }
+}
+
+/**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
 function openFilterModal() {
@@ -8537,6 +8578,10 @@ async function initialize() {
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   generateDocBtn?.addEventListener('click', () => {
