@@ -625,6 +625,38 @@ fi
 echo ""
 
 # ============================================
+# Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "📋 Story-Specific Tests for Story ID: $STORY_ID"
+  echo "-----------------------------------"
+  
+  # Test: Story List Button (Story 1771060954136)
+  if [ "$STORY_ID" == "1771060954136" ]; then
+    echo "Test: Story List Button exists in frontend"
+    if grep -q "story-list-btn" apps/frontend/public/index.html && grep -q "storyListBtn" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Story List Button implemented"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story List Button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test: Story List modal functionality"
+    if grep -q "All Stories" apps/frontend/public/app.js && grep -q "fetchStories" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Story List modal implemented"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story List modal not implemented"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
