@@ -16,8 +16,16 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Load environment configuration
 source "$SCRIPT_DIR/utilities/load-env-config.sh" "$ENV"
 
+# Set service name based on environment
+if [[ "$ENV" == "prod" ]]; then
+    SERVICE_NAME="aipm-backend"
+else
+    SERVICE_NAME="aipm-dev-backend"
+fi
+
 echo "🚀 Deploying to $ENV environment..."
 echo "📍 Host: $EC2_IP"
+echo "🔧 Service: $SERVICE_NAME"
 
 # Step 1: Generate .env file
 echo "📝 Generating .env file..."
@@ -39,16 +47,11 @@ scp -o StrictHostKeyChecking=no "/tmp/.env.$ENV" ec2-user@$EC2_IP:/home/ec2-user
 # Step 4: Deploy service file
 echo "🔧 Updating service configuration..."
 scp -o StrictHostKeyChecking=no "$PROJECT_ROOT/config/aipm-backend.service" ec2-user@$EC2_IP:/tmp/
-ssh ec2-user@$EC2_IP << 'ENDSSH'
-sudo cp /tmp/aipm-backend.service /etc/systemd/system/aipm-backend.service
-sudo systemctl daemon-reload
-ENDSSH
+ssh ec2-user@$EC2_IP "sudo cp /tmp/aipm-backend.service /etc/systemd/system/$SERVICE_NAME.service && sudo systemctl daemon-reload"
 
 # Step 5: Restart service
 echo "🔄 Restarting backend service..."
-ssh ec2-user@$EC2_IP << 'ENDSSH'
-sudo systemctl restart aipm-backend
-ENDSSH
+ssh ec2-user@$EC2_IP "sudo systemctl restart $SERVICE_NAME"
 
 # Step 6: Wait for health check
 echo "🏥 Waiting for service to be healthy..."
@@ -62,7 +65,7 @@ for i in {1..30}; do
     if [ $i -eq 30 ]; then
         echo "❌ Health check failed after 60s"
         echo "📋 Service status:"
-        ssh ec2-user@$EC2_IP "sudo systemctl status aipm-backend --no-pager -l"
+        ssh ec2-user@$EC2_IP "sudo systemctl status $SERVICE_NAME --no-pager -l"
         exit 1
     fi
     sleep 2
