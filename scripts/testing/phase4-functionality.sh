@@ -100,6 +100,16 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 7a: Verify RTM click handler exists in frontend
+echo "Test 7a: RTM click handler for details panel"
+if grep -q "tr.addEventListener('click'" apps/frontend/public/app.js && grep -q "selectStory(row.id)" apps/frontend/public/app.js; then
+  echo "  ✅ PASS: RTM click handler implemented"
+  PASSED=$((PASSED + 1))
+else
+  echo "  ❌ FAIL: RTM click handler not found"
+  FAILED=$((FAILED + 1))
+fi
+
 # Test 8: GET /health
 echo "Test 8: Health check"
 if curl -s "$API_BASE/health" | jq -e '.status == "running"' > /dev/null 2>&1; then
@@ -652,7 +662,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 42 (36 executable + 6 workflow)"
+echo "Total Tests: 43 (37 executable + 6 workflow)"
 echo "API Endpoints Tested: 20/18 (111% coverage)"
 echo "=============================================="
 
