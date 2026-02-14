@@ -11,6 +11,12 @@ import http from 'http';
 const SESSION_ID = process.argv[2] || '1';
 const PORT = parseInt(process.argv[3]) || 9000 + parseInt(SESSION_ID);
 
+// Helper to log with timestamp
+function log(message) {
+  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  log(`${timestamp} ${message}`);
+}
+
 class KiroWrapper {
   constructor(sessionId) {
     this.sessionId = sessionId;
@@ -27,7 +33,7 @@ class KiroWrapper {
   }
 
   start() {
-    console.log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
+    log(`[Session ${this.sessionId}] Starting Kiro CLI...`);
     
     this.pty = pty.spawn('bash', ['-l', '-i'], {
       name: 'xterm-256color',
@@ -61,7 +67,7 @@ class KiroWrapper {
       // Log output for debugging
       const text = data.toString();
       if (text.includes('!>') || text.includes('Task Complete') || text.includes('Time:') || text.includes('Terminated')) {
-        console.log(`[Session ${this.sessionId}] [OUTPUT] ${text}`);
+        log(`[Session ${this.sessionId}] [OUTPUT] ${text}`);
       }
       
       // Check for completion
@@ -73,7 +79,7 @@ class KiroWrapper {
     this.pty.onExit(({ exitCode, signal }) => {
       const busyState = this.busy ? 'BUSY' : 'IDLE';
       const promptInfo = this.currentPrompt ? `prompt="${this.currentPrompt.substring(0, 50)}..."` : 'no prompt';
-      console.log(`[Session ${this.sessionId}] Kiro exited (code=${exitCode}, signal=${signal}, state=${busyState}, ${promptInfo}), restarting...`);
+      log(`[Session ${this.sessionId}] Kiro exited (code=${exitCode}, signal=${signal}, state=${busyState}, ${promptInfo}), restarting...`);
       
       if (this.currentReject) {
         this.currentReject(new Error('Kiro exited unexpectedly'));
@@ -85,7 +91,7 @@ class KiroWrapper {
       setTimeout(() => this.start(), 1000);
     });
 
-    console.log(`[Session ${this.sessionId}] Kiro started (PID: ${this.pty.pid})`);
+    log(`[Session ${this.sessionId}] Kiro started (PID: ${this.pty.pid})`);
   }
 
   async execute(prompt) {
@@ -101,7 +107,7 @@ class KiroWrapper {
     this.outputBuffer = '';
     this.currentPrompt = prompt;
     
-    console.log(`[Session ${this.sessionId}] [STDIN] ${prompt}`);
+    log(`[Session ${this.sessionId}] [STDIN] ${prompt}`);
 
     return new Promise((resolve, reject) => {
       this.currentResolve = resolve;
@@ -110,7 +116,7 @@ class KiroWrapper {
       this.pty.write(prompt + '\r');
 
       this.requestTimeout = setTimeout(() => {
-        console.log(`[Session ${this.sessionId}] Request timeout after 5 minutes, restarting Kiro...`);
+        log(`[Session ${this.sessionId}] Request timeout after 5 minutes, restarting Kiro...`);
         this.busy = false;
         this.currentReject = null;
         this.currentResolve = null;
@@ -133,7 +139,7 @@ class KiroWrapper {
     }
 
     this.busy = false;
-    console.log(`[Session ${this.sessionId}] Request completed`);
+    log(`[Session ${this.sessionId}] Request completed`);
 
     if (this.currentResolve) {
       this.currentResolve({ status: 'completed' });
@@ -200,15 +206,15 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`[Session ${SESSION_ID}] HTTP server listening on port ${PORT}`);
+  log(`[Session ${SESSION_ID}] HTTP server listening on port ${PORT}`);
 });
 
 process.on('SIGTERM', () => {
-  console.log(`[Session ${SESSION_ID}] Received SIGTERM, shutting down...`);
+  log(`[Session ${SESSION_ID}] Received SIGTERM, shutting down...`);
   if (wrapper.pty) {
     wrapper.pty.kill();
   }
   setTimeout(() => process.exit(0), 1000);
 });
 
-console.log(`[Session ${SESSION_ID}] Kiro Wrapper started`);
+log(`[Session ${SESSION_ID}] Kiro Wrapper started`);
