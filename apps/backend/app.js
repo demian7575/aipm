@@ -5110,8 +5110,8 @@ async function loadStoryWithDetails(db, storyId, options = {}) {
   const testRowsArray = Array.isArray(testRows) ? testRows : [];
   for (const testRow of testRowsArray) {
     const given = parseJsonArray(testRow.given);
-    const when = parseJsonArray(testRow.whenStep);
-    const then = parseJsonArray(testRow.thenStep);
+    const when = parseJsonArray(testRow.when);
+    const then = parseJsonArray(testRow.then);
     const { warnings, suggestions } = measurabilityWarnings(then);
     const gwtHealth = await buildGwtHealth(given, when, then, warnings);
     story.acceptanceTests.push({
