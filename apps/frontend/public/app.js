@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -759,6 +760,12 @@ if (referenceBtn) {
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -7915,6 +7922,58 @@ function openAcceptanceTestModal(storyId, options = {}) {
         }
       },
     }],
+  });
+}
+
+/**
+ * Opens story list modal showing all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  container.style.maxHeight = '60vh';
+  container.style.overflowY = 'auto';
+  
+  const allStories = flattenStories(state.stories);
+  
+  if (allStories.length === 0) {
+    const placeholder = document.createElement('p');
+    placeholder.className = 'placeholder';
+    placeholder.textContent = 'No stories available';
+    container.appendChild(placeholder);
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      
+      const link = document.createElement('a');
+      link.href = '#';
+      link.textContent = story.title;
+      link.style.textDecoration = 'none';
+      link.style.color = '#0066cc';
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        selectStory(story.id);
+        closeModal();
+      });
+      
+      item.appendChild(link);
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close'
   });
 }
 
