@@ -29,6 +29,8 @@ echo "🔧 Service: $SERVICE_NAME"
 
 # Step 1: Generate .env file
 echo "📝 Generating .env file..."
+# Export GITHUB_TOKEN so it's available to generate-env-file.sh
+export GITHUB_TOKEN
 "$PROJECT_ROOT/scripts/utilities/generate-env-file.sh" "$ENV" "/tmp/.env.$ENV"
 
 # Step 2: Deploy code to EC2
