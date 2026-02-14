@@ -6160,9 +6160,12 @@ export async function createApp() {
         // Get parent story context if provided
         let parent = null;
         if (parentId) {
+          res.write(`data: ${JSON.stringify({ status: 'progress', message: 'Loading parent story...' })}\n\n`);
           const stories = await db.getAllStories();
           parent = flattenStories(stories).find((story) => story.id === Number(parentId)) ?? null;
         }
+
+        res.write(`data: ${JSON.stringify({ status: 'progress', message: 'Generating draft with AI...' })}\n\n`);
 
         // Call Semantic API with stream endpoint
         const response = await fetch(`${SEMANTIC_API_URL}/aipm/story-draft?stream=true`, {
