@@ -45,23 +45,23 @@ echo ""
 case "$SERVICE" in
   wrapper)
     echo "🔍 Kiro wrapper logs (Ctrl+C to exit):"
-    ssh ec2-user@$IP "tail -f /home/ec2-user/kiro-wrapper.log"
+    ssh -o StrictHostKeyChecking=no ec2-user@$IP "tail -f /home/ec2-user/kiro-wrapper.log"
     ;;
   backend)
     echo "🔍 Backend API logs (Ctrl+C to exit):"
-    ssh ec2-user@$IP "sudo journalctl -u aipm-backend -f"
+    ssh -o StrictHostKeyChecking=no ec2-user@$IP "sudo journalctl -u aipm-backend -f"
     ;;
   semantic)
     echo "🔍 Semantic API logs (Ctrl+C to exit):"
-    ssh ec2-user@$IP "sudo journalctl -u aipm-semantic-api -f"
+    ssh -o StrictHostKeyChecking=no ec2-user@$IP "sudo journalctl -u aipm-semantic-api -f"
     ;;
   pool)
     echo "🔍 Session pool logs (Ctrl+C to exit):"
-    ssh ec2-user@$IP "sudo journalctl -u kiro-session-pool-http -f"
+    ssh -o StrictHostKeyChecking=no ec2-user@$IP "sudo journalctl -u kiro-session-pool-http -f"
     ;;
   all)
     echo "🔍 All service logs (Ctrl+C to exit):"
-    ssh ec2-user@$IP "sudo journalctl -u aipm-backend -u aipm-semantic-api -u kiro-session-pool-http -f"
+    ssh -o StrictHostKeyChecking=no ec2-user@$IP "sudo journalctl -u aipm-backend -u aipm-semantic-api -u kiro-session-pool-http -f"
     ;;
   *)
     echo "❌ Unknown service: $SERVICE"
