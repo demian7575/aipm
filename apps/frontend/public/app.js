@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -8548,6 +8549,33 @@ async function initialize() {
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
+  });
+
+  storyListBtn?.addEventListener('click', async () => {
+    try {
+      const stories = await fetchStories();
+      const flatStories = flattenStories(stories);
+      
+      const listEl = document.createElement('ul');
+      listEl.style.cssText = 'list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto;';
+      
+      const displayStories = flatStories.slice(0, 50);
+      displayStories.forEach(story => {
+        const li = document.createElement('li');
+        li.style.cssText = 'padding: 8px; border-bottom: 1px solid #eee;';
+        li.textContent = story.title;
+        listEl.appendChild(li);
+      });
+      
+      openModal({
+        title: 'Story List',
+        content: listEl,
+        actions: [],
+        size: 'default'
+      });
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
   });
 
   generateDocBtn?.addEventListener('click', () => {
