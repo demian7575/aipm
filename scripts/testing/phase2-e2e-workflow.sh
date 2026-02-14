@@ -23,7 +23,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Testing full user journey via UI button clicks"
-echo "Backend: $API_BASE (Production EC2)"
+echo "Backend: $API_BASE (${TARGET_ENV:-dev} EC2)"
 echo "Database: Development DynamoDB (via X-Use-Dev-Tables header)"
 echo ""
 
