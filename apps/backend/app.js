@@ -6154,6 +6154,9 @@ export async function createApp() {
           return;
         }
 
+        // Send initial progress to keep connection alive
+        res.write(`data: ${JSON.stringify({ status: 'progress', message: 'Preparing story draft...' })}\n\n`);
+
         // Get parent story context if provided
         let parent = null;
         if (parentId) {
@@ -6213,6 +6216,9 @@ export async function createApp() {
       });
 
       try {
+        // Send initial progress to keep connection alive
+        res.write(`data: ${JSON.stringify({ status: 'progress', message: 'Loading story...' })}\n\n`);
+
         // Load story
         const story = await loadStoryWithDetails(db, storyId);
         if (!story) {
@@ -6220,6 +6226,8 @@ export async function createApp() {
           res.end();
           return;
         }
+
+        res.write(`data: ${JSON.stringify({ status: 'progress', message: 'Generating acceptance test...' })}\n\n`);
 
         // Call Semantic API with stream endpoint
         const response = await fetch(`${SEMANTIC_API_URL}/aipm/acceptance-test-draft?stream=true`, {
