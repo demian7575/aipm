@@ -7433,9 +7433,10 @@ function openChildStoryModal(parentId) {
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
         
-        if (data.status === 'complete' && data.story) {
+        // Handle both formats: {status:'complete', story:{...}} and {status:'complete', title:..., ...}
+        if (data.status === 'complete') {
           eventSource.close();
-          const draftData = data.story;
+          const draftData = data.story || data; // Use data.story if exists, otherwise use data itself
             
           // Populate form fields
           const titleInput = container.querySelector('#child-title');
