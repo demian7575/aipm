@@ -68,6 +68,7 @@ const server = http.createServer(async (req, res) => {
         const requestId = response.requestId;
         
         console.log(`📥 Received ${url.pathname} for requestId: ${requestId}`);
+        console.log(`📦 Response data: ${JSON.stringify(response).substring(0, 200)}...`);
         
         // Find pending request
         const pending = pendingRequests.get(requestId);
