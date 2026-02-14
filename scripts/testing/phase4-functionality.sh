@@ -625,6 +625,38 @@ fi
 echo ""
 
 # ============================================
+# SECTION 12: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "🎯 SECTION 12: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Story 1771050408416: Add Story List Button
+  if [ "$STORY_ID" == "1771050408416" ]; then
+    echo "Test 43: Story list button exists in frontend"
+    if curl -s "$FRONTEND_URL" | grep -q 'id="story-list-btn"'; then
+      echo "  ✅ PASS: Story list button found in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button not found"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo "Test 44: Story list modal functionality"
+    if curl -s "$FRONTEND_URL/app.js" | grep -q 'storyListBtn.addEventListener'; then
+      echo "  ✅ PASS: Story list button event listener implemented"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button handler not found"
+      FAILED=$((FAILED + 1))
+    fi
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
