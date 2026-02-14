@@ -155,20 +155,11 @@ jobs:
       
       - name: Deploy to Development EC2
         env:
-          FORCE_RESTART_SESSION_POOL: ${{ inputs.force_restart_session_pool }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EC2_IP: ${{ env.DEV_EC2_IP }}
         run: |
           echo "🚀 Deploying to Development EC2 for Pre-Production testing..."
-          echo "   Target: $EC2_IP"
           
-          if [ -z "$EC2_IP" ]; then
-            echo "❌ EC2_IP is not set!"
-            echo "   DEV_EC2_IP from env: ${{ env.DEV_EC2_IP }}"
-            exit 1
-          fi
-          
-          ./scripts/deploy-to-environment.sh dev
+          ./scripts/deploy-simple.sh dev
           echo "✅ Backend deployed to Development EC2"
       
       - name: Deploy frontend to Development S3
@@ -359,20 +350,11 @@ jobs:
       
       - name: Deploy backend to Production EC2
         env:
-          FORCE_RESTART_SESSION_POOL: ${{ inputs.force_restart_session_pool }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EC2_IP: ${{ env.PROD_EC2_IP }}
         run: |
           echo "🚀 Deploying backend to Production EC2..."
-          echo "   Target: $EC2_IP"
           
-          if [ -z "$EC2_IP" ]; then
-            echo "❌ EC2_IP is not set!"
-            echo "   PROD_EC2_IP from env: ${{ env.PROD_EC2_IP }}"
-            exit 1
-          fi
-          
-          ./scripts/deploy-to-environment.sh prod
+          ./scripts/deploy-simple.sh prod
           echo "✅ Backend deployed to Production EC2"
       
       - name: Deploy frontend to Production S3
