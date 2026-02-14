@@ -247,6 +247,38 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story 1771090361662: Story list button and modal
+if [ "$1" = "1771090361662" ]; then
+  echo "Test 17: Story 1771090361662 - Story list button and modal"
+  
+  # Check HTML has story-list-btn
+  if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+    echo "  ✅ PASS: Story list button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check app.js has storyListBtn reference
+  if grep -q 'storyListBtn' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Story list button referenced in app.js"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not referenced in app.js"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check app.js has openStoryListModal function
+  if grep -q 'function openStoryListModal' apps/frontend/public/app.js; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
   echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
