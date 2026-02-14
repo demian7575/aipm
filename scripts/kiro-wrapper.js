@@ -64,9 +64,9 @@ class KiroWrapper {
         setTimeout(startKiro, 500);
       }
       
-      // Log output for debugging
+      // Log all output for debugging
       const text = data.toString();
-      if (text.includes('!>') || text.includes('Task Complete') || text.includes('Time:') || text.includes('Terminated')) {
+      if (text.trim()) {
         log(`[Session ${this.sessionId}] [OUTPUT] ${text}`);
       }
       
