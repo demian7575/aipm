@@ -5906,8 +5906,8 @@ export async function createApp() {
                 storyId: newStoryId,
                 title: test.title || '',
                 given: Array.isArray(test.given) ? test.given : [test.given],
-                whenStep: Array.isArray(test.when) ? test.when : [test.when],
-                thenStep: Array.isArray(test.then) ? test.then : [test.then],
+                when: Array.isArray(test.when) ? test.when : [test.when],
+                then: Array.isArray(test.then) ? test.then : [test.then],
                 status: test.status || 'Draft',
                 createdAt: timestamp,
                 updatedAt: timestamp

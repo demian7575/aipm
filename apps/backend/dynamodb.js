@@ -88,11 +88,11 @@ export class DynamoDBDataLayer {
         storyId: item.storyId,
         title: item.title || '',
         given: item.given,
-        when_step: item.whenStep,  // Convert to snake_case
-        then_step: item.thenStep,  // Convert to snake_case
+        when: item.when,
+        then: item.then,
         status: item.status,
-        created_at: item.createdAt,  // Convert to snake_case
-        updated_at: item.updatedAt   // Convert to snake_case
+        created_at: item.createdAt,
+        updated_at: item.updatedAt
       }));
     } catch (error) {
       console.error('DynamoDB: Error getting acceptance tests:', error);
