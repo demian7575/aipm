@@ -9,7 +9,6 @@ User=ec2-user
 WorkingDirectory=/home/ec2-user/aipm
 EnvironmentFile=/home/ec2-user/aipm/.env
 Environment=NODE_ENV=production
-ExecStartPre=-/usr/sbin/fuser -k 4000/tcp
 ExecStart=/usr/bin/node apps/backend/server.js
 Restart=on-failure
 RestartSec=5s
