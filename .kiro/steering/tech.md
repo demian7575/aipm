@@ -17,14 +17,17 @@ inclusion: always
 - **Always use DynamoDB SDK v3** → `@aws-sdk/lib-dynamodb`
 - **Config is single source of truth** → `config/environments.yaml`
 - **ES modules only** → `import/export`, not `require()`
+- **Get user approval before making code changes** → explain the change, wait for confirmation
 - **Never make critical changes without user approval** → explain first, wait for agreement
 
 ## Critical Changes Requiring Approval
+- Any code modifications
 - Workflow/CI/CD modifications
 - Deployment process changes
 - Data deletion operations
 - Security-related changes
 - Architecture modifications
+- Configuration changes
 
 ## Code Style
 
