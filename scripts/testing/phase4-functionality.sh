@@ -292,6 +292,52 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for story 1771141612270: Story List Modal
+if [ "$1" = "1771141612270" ]; then
+  echo "Test 17a: Story List Button - Display modal when header button clicked"
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html)
+  
+  # Check button exists in header
+  if echo "$INDEX_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check click handler opens modal
+  if echo "$APP_JS_CONTENT" | grep -q "storyListBtn.addEventListener" && \
+     echo "$APP_JS_CONTENT" | grep -q "openModal"; then
+    echo "  ✅ PASS: Story list button click handler opens modal"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 17b: Story List Modal - Close modal functionality"
+  # Check modal can be closed (X button and outside click are built-in modal features)
+  if echo "$APP_JS_CONTENT" | grep -q "closeModal"; then
+    echo "  ✅ PASS: Modal close functionality present"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal close functionality missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 17c: Story List Modal - API endpoint for stories"
+  # Check API endpoint exists
+  if curl -s "$API_BASE/api/stories" | jq -e 'type == "array"' > /dev/null 2>&1; then
+    echo "  ✅ PASS: GET /api/stories endpoint returns array"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: GET /api/stories endpoint not working"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================

@@ -5541,6 +5541,19 @@ export async function createApp() {
         return;
       }
 
+      if (pathname === '/api/stories' && method === 'GET') {
+        try {
+          const stories = await db.getAllStories();
+          const flatStories = flattenStories(stories);
+          const titles = flatStories.map(s => ({ id: s.id, title: s.title })).slice(0, 50);
+          sendJson(res, 200, titles);
+        } catch (error) {
+          console.error('Error fetching stories:', error);
+          sendJson(res, 500, { error: 'Failed to fetch stories' });
+        }
+        return;
+      }
+
       if (pathname === '/health' && method === 'GET') {
         res.writeHead(200, {
           'Content-Type': 'application/json',
