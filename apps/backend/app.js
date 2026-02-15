@@ -7011,6 +7011,42 @@ export async function createApp() {
       }
     }
 
+    if (pathname === '/api/test-log' && method === 'GET') {
+      try {
+        const testId = url.searchParams.get('testId');
+        if (!testId) {
+          sendJson(res, 400, { error: 'testId parameter required' });
+          return;
+        }
+        
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const docClient = DynamoDBDocumentClient.from(client);
+        
+        const result = await docClient.send(new ScanCommand({
+          TableName: process.env.TEST_RUNS_TABLE || 'aipm-backend-prod-test-runs',
+          FilterExpression: 'testId = :testId',
+          ExpressionAttributeValues: {
+            ':testId': parseInt(testId)
+          }
+        }));
+        
+        if (!result.Items || result.Items.length === 0) {
+          sendJson(res, 404, { error: 'No test execution found' });
+          return;
+        }
+        
+        const latestTest = result.Items.sort((a, b) => b.timestamp - a.timestamp)[0];
+        sendJson(res, 200, latestTest);
+        return;
+      } catch (error) {
+        console.error('Error getting test log:', error);
+        sendJson(res, 500, { error: 'Failed to get test log' });
+        return;
+      }
+    }
+
     if (pathname === '/api/rtm/matrix' && method === 'GET') {
       try {
         const stories = await db.getAllStories();
@@ -7186,6 +7222,47 @@ export async function createApp() {
       } catch (error) {
         console.error('Error getting RTM evidence:', error);
         sendJson(res, 500, { error: 'Failed to get evidence' });
+        return;
+      }
+    }
+
+    if (pathname.startsWith('/api/tests/') && pathname.endsWith('/log') && method === 'GET') {
+      try {
+        const testId = pathname.split('/')[3];
+        
+        // Scan test-results table for this testId
+        const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+        const client = await getDynamoClient();
+        const { DynamoDBDocumentClient } = await import('@aws-sdk/lib-dynamodb');
+        const docClient = DynamoDBDocumentClient.from(client);
+        
+        const result = await docClient.send(new ScanCommand({
+          TableName: 'aipm-backend-prod-test-results',
+          FilterExpression: 'testId = :testId',
+          ExpressionAttributeValues: {
+            ':testId': testId
+          },
+          Limit: 1
+        }));
+        
+        const testResult = result.Items?.[0];
+        
+        if (!testResult) {
+          sendJson(res, 404, { error: 'Test log not found' });
+          return;
+        }
+        
+        sendJson(res, 200, {
+          testId: testResult.testId,
+          testName: testResult.testName,
+          status: testResult.status,
+          log: testResult.log || 'No log available',
+          timestamp: testResult.timestamp
+        });
+        return;
+      } catch (error) {
+        console.error('Error getting test log:', error);
+        sendJson(res, 500, { error: 'Failed to get test log' });
         return;
       }
     }
