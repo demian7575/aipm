@@ -131,7 +131,7 @@ EOF
     echo "⚙️ Updating deployment version..."
     VERSION_STRING="${DEPLOY_VERSION}-${COMMIT_HASH}"
     
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && sed -i 's/DEPLOYMENT_VERSION_PLACEHOLDER/$VERSION_STRING/g' apps/backend/app.js"
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && sed -i \"s/DEPLOYMENT_VERSION_PLACEHOLDER/${VERSION_STRING}/g\" apps/backend/app.js && grep -q '${VERSION_STRING}' apps/backend/app.js && echo 'Version replaced successfully' || echo 'Version replacement failed'"
     echo "✅ Updated version to: $VERSION_STRING"
     
     # Restart services
