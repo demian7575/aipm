@@ -709,6 +709,21 @@ if [ "$STORY_ID" = "1771083417916" ]; then
   echo ""
 fi
 
+# Test 44: Story 1771168984916 - Story List Button
+if [ "$STORY_ID" = "1771168984916" ]; then
+  echo "Test 44: Story List Button in header"
+  FRONTEND_HTML=$(curl -s "$FRONTEND_URL/index.html")
+  
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story List button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # Test 44: US-VIZ-RTM-002 - Display Test Log on Acceptance Test Click
 if [ "$1" = "1771138996374" ]; then
   echo "Test 44: US-VIZ-RTM-002 - Test log API endpoint"
