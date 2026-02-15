@@ -292,6 +292,64 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for story 1771141025492: Story list button and modal
+if [ "$1" = "1771141025492" ]; then
+  echo "Test 18: Story 1771141025492 - Story list button and modal"
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  INDEX_HTML_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html)
+  
+  # Check for story list button in header
+  if echo "$INDEX_HTML_CONTENT" | grep -q "story-list-btn"; then
+    echo "  ✅ PASS: Story list button present in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for openStoryListModal function
+  if echo "$APP_JS_CONTENT" | grep -q "function openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for event listener
+  if echo "$APP_JS_CONTENT" | grep -q "storyListBtn.*addEventListener"; then
+    echo "  ✅ PASS: Story list button event listener attached"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button event listener missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
+echo ""
+
+# ============================================
+# SECTION 5: Database Tables
+# ============================================
+echo "💾 SECTION 5: Database Tables"
+echo "-----------------------------------"
+
+# Test 17: Stories table exists
+echo "Test 17: Stories table"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for CSS styling for selected row
+  STYLES_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css)
+  if echo "$STYLES_CONTENT" | grep -q "rtm-row-selected"; then
+    echo "  ✅ PASS: RTM selected row CSS styling present"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: RTM selected row CSS styling missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
