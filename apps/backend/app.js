@@ -7063,14 +7063,29 @@ export async function createApp() {
             title: story.title,
             status: story.status,
             parentId: story.parentId,
-            acceptanceTests: acceptanceTests.map(t => ({
-              id: t.id,
-              title: t.title,
-              given: t.given,
-              when: t.when,
-              then: t.then,
-              status: t.status
-            })),
+            acceptanceTests: acceptanceTests.map(t => {
+              const testResult = testResults[String(t.id)];
+              return {
+                id: t.id,
+                title: t.title,
+                given: t.given,
+                when: t.when,
+                then: t.then,
+                status: t.status,
+                coverage: {
+                  stories: 0,
+                  acceptanceTests: 1,
+                  code: 0,
+                  docs: 0,
+                  ci: testResult ? {
+                    count: 1,
+                    passed: testResult.status === 'PASS' ? 1 : 0,
+                    failed: testResult.status === 'FAIL' ? 1 : 0,
+                    status: testResult.status
+                  } : { count: 0, status: null }
+                }
+              };
+            }),
             coverage: {
               stories: descendantCount,
               acceptanceTests: totalTests,
