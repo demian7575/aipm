@@ -709,6 +709,41 @@ if [ "$STORY_ID" = "1771083417916" ]; then
   echo ""
 fi
 
+# Test 45: Story List Button - Header button opens story list modal
+if [ "$1" = "1771166460838" ]; then
+  echo "Test 45: Story List Button - Header button and modal"
+  
+  # Check HTML has story list button
+  HTML_FILE="apps/frontend/public/index.html"
+  if grep -q 'id="story-list-btn"' "$HTML_FILE"; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check JS has openStoryListModal function
+  JS_FILE="apps/frontend/public/app.js"
+  if grep -q "function openStoryListModal" "$JS_FILE"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check button has event listener
+  if grep -q "storyListBtn.addEventListener" "$JS_FILE"; then
+    echo "  ✅ PASS: Story list button has click handler"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
