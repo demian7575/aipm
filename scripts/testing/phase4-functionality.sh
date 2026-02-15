@@ -274,6 +274,31 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for Story 1771135755976: Display Test Log When Clicking Acceptance Test in RTM
+if [ "$1" = "1771135755976" ]; then
+  echo "Test 17: Story 1771135755976 - Test Log Modal"
+  
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  
+  # Check for openTestLogModal function
+  if echo "$APP_JS_CONTENT" | grep -q "openTestLogModal"; then
+    echo "  ✅ PASS: openTestLogModal function implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openTestLogModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for test header click handler that calls openTestLogModal
+  if echo "$APP_JS_CONTENT" | grep -q "openTestLogModal(test)"; then
+    echo "  ✅ PASS: Test header click handler calls openTestLogModal"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Test header click handler not properly configured"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
