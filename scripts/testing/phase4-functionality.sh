@@ -265,6 +265,34 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story 1771140562950: Add Story List Button
+if [ "$1" = "1771140562950" ]; then
+  echo "Test Story-1771140562950: Story List Button"
+  
+  # AT-001: Header button opens story list modal
+  echo "  AT-001: Check story list button exists in HTML"
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  if echo "$INDEX_HTML" | grep -q "story-list-btn"; then
+    echo "    ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "    ❌ FAIL: Story list button not found in header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # AT-002: Modal displays all story titles
+  echo "  AT-002: Check openStoryListModal function exists"
+  APP_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$APP_JS" | grep -q "function openStoryListModal" && \
+     echo "$APP_JS" | grep -q "state.stories.forEach"; then
+    echo "    ✅ PASS: openStoryListModal function implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "    ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
   echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
