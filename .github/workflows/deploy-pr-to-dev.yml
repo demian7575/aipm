@@ -205,8 +205,11 @@ jobs:
           ssh-keygen -l -f ~/.ssh/id_rsa >/dev/null 2>&1 && echo "✅ SSH key configured" || (echo "❌ SSH key validation failed" && exit 1)
       
       - name: Deploy backend to development EC2
+        env:
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
         run: |
-          echo "🚀 Deploying backend to development EC2..."
+          echo "🚀 Deploying backend to development EC2 (PR #$PR_NUMBER)..."
+          export PR_NUMBER=$PR_NUMBER
           ./scripts/deploy-to-environment.sh dev
           echo "✅ Backend deployed to development EC2"
       

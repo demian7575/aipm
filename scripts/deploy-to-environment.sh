@@ -62,9 +62,11 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
     COMMIT_HASH=$(git rev-parse --short HEAD)
     DEPLOY_VERSION=$(date +"%Y%m%d-%H%M%S")
     
-    # Extract PR number from branch name or GitHub environment
-    PR_NUMBER=""
-    if [[ -n "$GITHUB_HEAD_REF" ]]; then
+    # Extract PR number from environment, branch name, or GitHub environment
+    if [[ -n "$PR_NUMBER" && "$PR_NUMBER" != "none" ]]; then
+        # Use PR_NUMBER from environment if set
+        echo "📌 Using PR number from environment: $PR_NUMBER"
+    elif [[ -n "$GITHUB_HEAD_REF" ]]; then
         # GitHub Actions: extract from GITHUB_HEAD_REF
         # Branch format: feature-name-STORYID or pr-NUMBER-feature-name-STORYID
         if [[ "$GITHUB_HEAD_REF" =~ pr-([0-9]+)- ]]; then
@@ -76,6 +78,8 @@ if [[ -n "$GITHUB_ACTIONS" ]]; then
     elif [[ "$TARGET_BRANCH" =~ ^pr-([0-9]+)- ]]; then
         # Local: branch starts with pr-NUMBER-
         PR_NUMBER="${BASH_REMATCH[1]}"
+    else
+        PR_NUMBER=""
     fi
     
     # If no PR number found, leave empty
