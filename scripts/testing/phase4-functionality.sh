@@ -679,6 +679,36 @@ fi
 
 echo ""
 
+# Test 43: US-VIZ-RTM-003 - Test-specific metrics in RTM view
+if [ "$STORY_ID" = "1771083417916" ]; then
+  echo "Test 43: US-VIZ-RTM-003 - Test-specific metrics displayed"
+  RTM_RESPONSE=$(curl -s "$API_URL/api/rtm/matrix")
+  STORY_DATA=$(echo "$RTM_RESPONSE" | jq -r ".[] | select(.id == 1771083417916)")
+  
+  if [ -n "$STORY_DATA" ]; then
+    TEST_COUNT=$(echo "$STORY_DATA" | jq -r '.acceptanceTests | length')
+    if [ "$TEST_COUNT" -gt 0 ]; then
+      FIRST_TEST=$(echo "$STORY_DATA" | jq -r '.acceptanceTests[0]')
+      HAS_COVERAGE=$(echo "$FIRST_TEST" | jq -r 'has("coverage")')
+      
+      if [ "$HAS_COVERAGE" = "true" ]; then
+        echo "  ✅ PASS: Test-specific coverage metrics present"
+        PASSED=$((PASSED + 1))
+      else
+        echo "  ❌ FAIL: Test coverage data missing"
+        FAILED=$((FAILED + 1))
+      fi
+    else
+      echo "  ⏭️  SKIP: No acceptance tests found"
+      SKIPPED=$((SKIPPED + 1))
+    fi
+  else
+    echo "  ⏭️  SKIP: Story not found"
+    SKIPPED=$((SKIPPED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
@@ -707,7 +737,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 44 (38 executable + 6 workflow)"
+echo "Total Tests: 45 (39 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 
