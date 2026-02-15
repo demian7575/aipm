@@ -73,6 +73,15 @@ git reset --hard origin/main
 echo "✅ Code updated"
 ENDSSH
 
+    # Update version in code
+    echo "⚙️ Updating deployment version..."
+    COMMIT_HASH=$(git rev-parse --short HEAD)
+    DEPLOY_VERSION=$(date +%Y%m%d-%H%M%S)
+    VERSION_STRING="${DEPLOY_VERSION}-${COMMIT_HASH}"
+    
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && sed -i \"s/DEPLOYMENT_VERSION_PLACEHOLDER/${VERSION_STRING}/g\" apps/backend/app.js && grep -q '${VERSION_STRING}' apps/backend/app.js && echo 'Version replaced successfully' || echo 'Version replacement failed'"
+    echo "✅ Updated version to: $VERSION_STRING"
+
     # Restart backend service via SSH
     echo "🔄 Restarting backend service..."
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST << ENDSSH
