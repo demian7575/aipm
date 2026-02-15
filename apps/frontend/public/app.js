@@ -3962,10 +3962,15 @@ function updateRTMTable() {
           </div>
         `;
         
-        testHeader.addEventListener('click', () => {
-          const isExpanded = testDetails.style.display !== 'none';
-          testDetails.style.display = isExpanded ? 'none' : 'block';
-          testHeader.querySelector('.rtm-test-expand').textContent = isExpanded ? '▶' : '▼';
+        testHeader.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (e.target.closest('.rtm-test-expand')) {
+            const isExpanded = testDetails.style.display !== 'none';
+            testDetails.style.display = isExpanded ? 'none' : 'block';
+            testHeader.querySelector('.rtm-test-expand').textContent = isExpanded ? '▶' : '▼';
+          } else {
+            openTestLogModal(test);
+          }
         });
         
         testItem.appendChild(testHeader);
@@ -8041,6 +8046,58 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+/**
+ * Opens a modal displaying test log for an acceptance test
+ * @param {Object} test - The acceptance test object
+ */
+async function openTestLogModal(test) {
+  try {
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '1rem';
+    
+    const header = document.createElement('div');
+    header.innerHTML = `
+      <h3>${escapeHtml(test.title || 'Untitled Test')}</h3>
+      <p><strong>Status:</strong> <span class="badge status-${test.status?.toLowerCase() || 'draft'}">${test.status || 'Draft'}</span></p>
+    `;
+    container.appendChild(header);
+    
+    const logContainer = document.createElement('div');
+    logContainer.style.maxHeight = '400px';
+    logContainer.style.overflowY = 'auto';
+    logContainer.style.backgroundColor = '#f5f5f5';
+    logContainer.style.padding = '1rem';
+    logContainer.style.borderRadius = '4px';
+    logContainer.style.fontFamily = 'monospace';
+    logContainer.style.fontSize = '0.9rem';
+    
+    if (test.log) {
+      const logLines = test.log.split('\n');
+      logLines.forEach(line => {
+        const logLine = document.createElement('div');
+        logLine.textContent = line;
+        logLine.style.marginBottom = '0.25rem';
+        logContainer.appendChild(logLine);
+      });
+    } else {
+      logContainer.innerHTML = '<p style="color: #999;">No test log available</p>';
+    }
+    
+    container.appendChild(logContainer);
+    
+    openModal({
+      title: 'Test Execution Log',
+      content: container,
+      cancelLabel: 'Close'
+    });
+  } catch (error) {
+    console.error('Failed to open test log:', error);
+    showToast('Failed to open test log', 'error');
+  }
 }
 
 function openReferenceModal(storyId) {
