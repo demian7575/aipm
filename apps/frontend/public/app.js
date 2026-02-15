@@ -4029,6 +4029,9 @@ function updateRTMTable() {
         testTr.className = 'rtm-test-row';
         testTr.dataset.storyId = row.id;
         testTr.dataset.testId = test.id;
+        testTr.style.cursor = 'pointer';
+        
+        testTr.addEventListener('click', () => openTestLogModal(test.id));
         
         // ID column
         const testTdId = document.createElement('td');
@@ -4088,6 +4091,9 @@ function updateRTMTable() {
           testTr.appendChild(td);
         });
         
+        testTr.addEventListener('click', () => openTestLogModal(test.id));
+        testTr.style.cursor = 'pointer';
+        
         tbody.appendChild(testTr);
       });
     }
@@ -4139,6 +4145,43 @@ async function openRTMDrawer(storyId, type) {
   } catch (error) {
     console.error('Error loading evidence:', error);
     showToast('Failed to load evidence', 'error');
+  }
+}
+
+async function openTestLogModal(testId) {
+  try {
+    const url = resolveApiUrl(`/api/test-log?testId=${testId}`);
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        showToast('No test execution found', 'info');
+        return;
+      }
+      throw new Error('Failed to fetch test log');
+    }
+    
+    const testRun = await response.json();
+    
+    const content = document.createElement('div');
+    content.innerHTML = `
+      <h3>Test Execution Log</h3>
+      <p><strong>Test ID:</strong> ${testRun.testId}</p>
+      <p><strong>Status:</strong> <span class="badge badge-${testRun.status?.toLowerCase() || 'unknown'}">${testRun.status || 'UNKNOWN'}</span></p>
+      <p><strong>Timestamp:</strong> ${new Date(testRun.timestamp).toLocaleString()}</p>
+      ${testRun.duration ? `<p><strong>Duration:</strong> ${testRun.duration}ms</p>` : ''}
+      <h4>Log Output:</h4>
+      <pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto; white-space: pre-wrap;">${testRun.log || 'No log output available'}</pre>
+    `;
+    
+    openModal({
+      title: 'Test Execution Log',
+      content,
+      onClose: () => {}
+    });
+  } catch (error) {
+    console.error('Error loading test log:', error);
+    showToast('Failed to load test log', 'error');
   }
 }
 

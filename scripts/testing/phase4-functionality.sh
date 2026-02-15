@@ -709,6 +709,41 @@ if [ "$STORY_ID" = "1771083417916" ]; then
   echo ""
 fi
 
+# Test 44: US-VIZ-RTM-002 - Display Test Log on Acceptance Test Click
+if [ "$1" = "1771138996374" ]; then
+  echo "Test 44: US-VIZ-RTM-002 - Test log API endpoint"
+  
+  # Check backend has test log endpoint
+  APP_JS=$(cat apps/backend/app.js)
+  if echo "$APP_JS" | grep -q "/api/test-log"; then
+    echo "  ✅ PASS: Test log API endpoint exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Test log API endpoint missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check frontend has openTestLogModal function
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$FRONTEND_JS" | grep -q "openTestLogModal"; then
+    echo "  ✅ PASS: Test log modal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Test log modal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check test row has click handler
+  if echo "$FRONTEND_JS" | grep -q "testTr.addEventListener('click'"; then
+    echo "  ✅ PASS: Test row click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Test row click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
