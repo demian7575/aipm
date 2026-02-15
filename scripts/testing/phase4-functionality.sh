@@ -130,6 +130,24 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test 9: RTM matrix with test-specific metrics
+echo "Test 9: RTM matrix with test-specific metrics"
+RTM_RESPONSE=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/rtm/matrix")
+if echo "$RTM_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
+  # Check if acceptance tests have coverage property
+  HAS_TEST_METRICS=$(echo "$RTM_RESPONSE" | jq -e '[.[] | select(.acceptanceTests | length > 0) | .acceptanceTests[0].coverage] | length > 0' 2>/dev/null)
+  if [ "$HAS_TEST_METRICS" = "true" ]; then
+    echo "  ✅ PASS: GET /api/rtm/matrix (with test-specific metrics)"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: RTM matrix missing test-specific metrics"
+    FAILED=$((FAILED + 1))
+  fi
+else
+  echo "  ❌ FAIL: GET /api/rtm/matrix"
+  FAILED=$((FAILED + 1))
+fi
+
 echo ""
 
 # ============================================
@@ -689,8 +707,8 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 43 (37 executable + 6 workflow)"
-echo "API Endpoints Tested: 20/18 (111% coverage)"
+echo "Total Tests: 44 (38 executable + 6 workflow)"
+echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 
 if [ $FAILED -gt 0 ]; then

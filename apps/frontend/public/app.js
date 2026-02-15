@@ -3705,6 +3705,7 @@ async function updateStoryStatus(storyId, newStatus) {
 let rtmData = [];
 let rtmFilters = { search: '', gapsOnly: false, rootId: null };
 let rtmExpandedStories = new Set();
+let rtmExpandedTests = new Set();
 let cicdExpandedStories = new Set();
 
 async function renderCICD() {
@@ -3932,46 +3933,31 @@ function updateRTMTable() {
       const testList = document.createElement('div');
       testList.className = 'rtm-test-list';
       
-      row.acceptanceTests.forEach(test => {
-        const testItem = document.createElement('div');
-        testItem.className = 'rtm-test-item';
-        
-        const testHeader = document.createElement('div');
-        testHeader.className = 'rtm-test-header';
-        testHeader.innerHTML = `
-          <span class="rtm-test-expand">▶</span>
-          <span class="rtm-test-title">${test.title || 'Untitled Test'}</span>
-          <span class="rtm-test-status status-${test.status?.toLowerCase() || 'draft'}">${test.status || 'Draft'}</span>
-        `;
-        
-        const testDetails = document.createElement('div');
-        testDetails.className = 'rtm-test-details';
-        testDetails.style.display = 'none';
-        testDetails.innerHTML = `
-          <div class="rtm-test-section">
-            <strong>Given:</strong>
-            <ul>${(test.given || []).map(g => `<li>${g}</li>`).join('')}</ul>
-          </div>
-          <div class="rtm-test-section">
-            <strong>When:</strong>
-            <ul>${(test.when || []).map(w => `<li>${w}</li>`).join('')}</ul>
-          </div>
-          <div class="rtm-test-section">
-            <strong>Then:</strong>
-            <ul>${(test.then || []).map(t => `<li>${t}</li>`).join('')}</ul>
-          </div>
-        `;
-        
-        testHeader.addEventListener('click', () => {
-          const isExpanded = testDetails.style.display !== 'none';
-          testDetails.style.display = isExpanded ? 'none' : 'block';
-          testHeader.querySelector('.rtm-test-expand').textContent = isExpanded ? '▶' : '▼';
-        });
-        
-        testItem.appendChild(testHeader);
-        testItem.appendChild(testDetails);
-        testList.appendChild(testItem);
+      const hasExpandedTests = rtmExpandedTests.has(row.id);
+      const expandIcon = document.createElement('span');
+      expandIcon.className = 'rtm-test-expand';
+      expandIcon.textContent = hasExpandedTests ? '▼' : '▶';
+      expandIcon.style.cursor = 'pointer';
+      expandIcon.style.marginRight = '0.5rem';
+      expandIcon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (rtmExpandedTests.has(row.id)) {
+          rtmExpandedTests.delete(row.id);
+        } else {
+          rtmExpandedTests.add(row.id);
+        }
+        updateRTMTable();
       });
+      
+      const summary = document.createElement('span');
+      summary.textContent = `${row.acceptanceTests.length} test${row.acceptanceTests.length !== 1 ? 's' : ''}`;
+      
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.alignItems = 'center';
+      header.appendChild(expandIcon);
+      header.appendChild(summary);
+      testList.appendChild(header);
       
       tdTests.appendChild(testList);
     } else {
@@ -4035,6 +4021,76 @@ function updateRTMTable() {
     }
     
     tbody.appendChild(tr);
+    
+    // Render test rows if expanded
+    if (rtmExpandedTests.has(row.id) && row.acceptanceTests && row.acceptanceTests.length > 0) {
+      row.acceptanceTests.forEach(test => {
+        const testTr = document.createElement('tr');
+        testTr.className = 'rtm-test-row';
+        testTr.dataset.storyId = row.id;
+        testTr.dataset.testId = test.id;
+        
+        // ID column
+        const testTdId = document.createElement('td');
+        testTdId.textContent = test.id;
+        testTdId.className = 'rtm-col-id';
+        testTdId.style.paddingLeft = `${(row.level + 1) * 1.5}rem`;
+        testTr.appendChild(testTdId);
+        
+        // Title column
+        const testTdTitle = document.createElement('td');
+        testTdTitle.className = 'rtm-col-title';
+        testTdTitle.textContent = test.title || 'Untitled Test';
+        testTdTitle.style.paddingLeft = `${(row.level + 1) * 1.5}rem`;
+        testTr.appendChild(testTdTitle);
+        
+        // Tests column (empty for test rows)
+        const testTdTests = document.createElement('td');
+        testTdTests.className = 'rtm-col-tests';
+        testTdTests.textContent = '-';
+        testTr.appendChild(testTdTests);
+        
+        // Coverage columns with test-specific metrics
+        ['stories', 'acceptanceTests', 'code', 'docs', 'ci'].forEach(type => {
+          const td = document.createElement('td');
+          td.className = 'rtm-col-coverage';
+          
+          const cell = document.createElement('div');
+          cell.className = 'rtm-cell';
+          
+          let count, status;
+          if (test.coverage && test.coverage[type] !== undefined) {
+            if (type === 'ci') {
+              count = test.coverage.ci.count;
+              status = test.coverage.ci.status;
+            } else {
+              count = test.coverage[type];
+              status = null;
+            }
+          } else {
+            count = 0;
+            status = null;
+          }
+          
+          cell.textContent = count;
+          
+          if (count === 0) {
+            cell.classList.add('rtm-cell-gap');
+          } else if (status === 'PASS') {
+            cell.classList.add('rtm-cell-pass');
+          } else if (status === 'FAIL') {
+            cell.classList.add('rtm-cell-fail');
+          } else {
+            cell.classList.add('rtm-cell-covered');
+          }
+          
+          td.appendChild(cell);
+          testTr.appendChild(td);
+        });
+        
+        tbody.appendChild(testTr);
+      });
+    }
   });
 }
 
