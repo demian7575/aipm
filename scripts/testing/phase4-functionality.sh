@@ -715,7 +715,7 @@ if [ "$1" = "1771138996374" ]; then
   
   # Check backend has test log endpoint
   APP_JS=$(cat apps/backend/app.js)
-  if echo "$APP_JS" | grep -q "/api/tests/.*log"; then
+  if echo "$APP_JS" | grep -q "/api/test-log"; then
     echo "  ✅ PASS: Test log API endpoint exists"
     PASSED=$((PASSED + 1))
   else
