@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -753,6 +754,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8140,6 +8147,43 @@ function openFilterModal() {
       }
     ]
   });
+}
+
+/**
+ * Opens modal displaying list of all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.maxHeight = '400px';
+  container.style.overflowY = 'auto';
+
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+
+  try {
+    const allStories = Array.from(storyIndex.values());
+    if (allStories.length === 0) {
+      container.innerHTML = '<p>No stories available.</p>';
+    } else {
+      allStories.forEach(story => {
+        const li = document.createElement('li');
+        li.style.padding = '0.5rem';
+        li.style.borderBottom = '1px solid #eee';
+        li.textContent = story.title || 'Untitled Story';
+        list.appendChild(li);
+      });
+      container.appendChild(list);
+    }
+  } catch (error) {
+    console.error('Error loading stories:', error);
+    container.innerHTML = '<p>Error loading stories.</p>';
+  }
+
+  openModal('Story List', container, [
+    { label: 'Close', className: 'secondary', onClick: closeModal }
+  ]);
 }
 
 function openReferenceModal(storyId) {
