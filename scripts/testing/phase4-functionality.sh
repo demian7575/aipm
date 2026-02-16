@@ -745,6 +745,58 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# Story-Specific Tests
+# ============================================
+STORY_ID="$1"
+SKIPPED=0
+
+if [ -n "$STORY_ID" ]; then
+  echo "📋 Story-Specific Tests (ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Story 1771206862840: Add Story List Button
+  if [ "$STORY_ID" = "1771206862840" ]; then
+    echo "Test: Story List Button in Header"
+    
+    FRONTEND_HTML=$(curl -s "$FRONTEND_BASE/index.html")
+    FRONTEND_JS=$(curl -s "$FRONTEND_BASE/app.js")
+    
+    # Check button exists in HTML
+    if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+      echo "  ✅ PASS: Story list button exists in header"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button missing from header"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check button has click handler
+    if echo "$FRONTEND_JS" | grep -q "storyListBtn.*addEventListener"; then
+      echo "  ✅ PASS: Story list button click handler implemented"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button click handler missing"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check modal opens with story list
+    if echo "$FRONTEND_JS" | grep -q "openModal.*Story List"; then
+      echo "  ✅ PASS: Modal opens with story list"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Modal does not open with story list"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo ""
+  else
+    echo "  ⏭️  No tests defined for story $STORY_ID"
+    SKIPPED=$((SKIPPED + 1))
+    echo ""
+  fi
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="

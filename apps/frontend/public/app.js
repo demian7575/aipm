@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -8649,6 +8650,24 @@ async function initialize() {
   
   // Fetch version after EC2 is ready
   fetchVersion();
+
+  storyListBtn?.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      const stories = await response.json();
+      const listEl = document.createElement('ul');
+      listEl.style.cssText = 'list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto;';
+      stories.forEach(story => {
+        const li = document.createElement('li');
+        li.textContent = story.title;
+        li.style.cssText = 'padding: 8px; border-bottom: 1px solid #ddd;';
+        listEl.appendChild(li);
+      });
+      openModal({ title: 'Story List', content: listEl, actions: [] });
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
+  });
 
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
