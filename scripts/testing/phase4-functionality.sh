@@ -292,6 +292,38 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for story 1771207119582: View Stories button and modal
+if [ "$1" = "1771207119582" ]; then
+  echo "Test 17a: Story 1771207119582 - View Stories button exists"
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  if echo "$INDEX_HTML" | grep -q 'id="view-stories-btn"'; then
+    echo "  ✅ PASS: View Stories button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View Stories button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 17b: Story 1771207119582 - Modal displays story titles"
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$APP_JS_CONTENT" | grep -q "openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 17c: Story 1771207119582 - Button click handler"
+  if echo "$APP_JS_CONTENT" | grep -q "viewStoriesBtn.addEventListener"; then
+    echo "  ✅ PASS: View Stories button click handler exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View Stories button click handler not found"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
