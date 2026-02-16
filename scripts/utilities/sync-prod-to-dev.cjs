@@ -20,13 +20,17 @@ async function batchWrite(tableName, items) {
   }
 }
 
-async function clearTable(tableName, keyName = 'id') {
+async function clearTable(tableName, keySchema = ['id']) {
   const items = await client.send(new ScanCommand({ TableName: tableName }));
   if (items.Items.length === 0) return 0;
   
-  const deleteRequests = items.Items.map(item => ({
-    DeleteRequest: { Key: { [keyName]: item[keyName] } }
-  }));
+  const deleteRequests = items.Items.map(item => {
+    const key = {};
+    keySchema.forEach(keyName => {
+      key[keyName] = item[keyName];
+    });
+    return { DeleteRequest: { Key: key } };
+  });
   
   for (let i = 0; i < deleteRequests.length; i += 25) {
     await client.send(new BatchWriteItemCommand({
@@ -49,15 +53,16 @@ async function sync() {
   console.log('🔄 Starting Prod → Dev sync...');
   
   const tables = [
-    { source: 'aipm-backend-prod-stories', target: 'aipm-backend-dev-stories', name: 'stories' },
-    { source: 'aipm-backend-prod-acceptance-tests', target: 'aipm-backend-dev-acceptance-tests', name: 'tests' },
-    { source: 'aipm-backend-prod-prs', target: 'aipm-backend-dev-prs', name: 'PRs' }
+    { source: 'aipm-backend-prod-stories', target: 'aipm-backend-dev-stories', name: 'stories', keys: ['id'] },
+    { source: 'aipm-backend-prod-acceptance-tests', target: 'aipm-backend-dev-acceptance-tests', name: 'tests', keys: ['id'] },
+    { source: 'aipm-backend-prod-prs', target: 'aipm-backend-dev-prs', name: 'PRs', keys: ['id'] },
+    { source: 'aipm-backend-prod-test-runs', target: 'aipm-backend-dev-test-runs', name: 'test-runs', keys: ['runId', 'storyId'] }
   ];
   
   // Clear all dev tables in parallel
   console.log('🗑️ Clearing dev tables...');
   const clearResults = await Promise.all(
-    tables.map(t => clearTable(t.target).then(count => ({ name: t.name, count })))
+    tables.map(t => clearTable(t.target, t.keys).then(count => ({ name: t.name, count })))
   );
   clearResults.forEach(r => console.log(`  Deleted ${r.count} ${r.name} from dev`));
   
