@@ -3707,6 +3707,92 @@ let rtmFilters = { search: '', gapsOnly: false, rootId: null };
 let rtmExpandedStories = new Set();
 let rtmExpandedTests = new Set();
 let cicdExpandedStories = new Set();
+const cicdColumnWidths = new Map();
+let cicdColumnResizeState = null;
+
+const CICD_COLUMN_DEFAULTS = {
+  testId: { width: 120, minWidth: 80 },
+  story: { width: 110, minWidth: 80 },
+  title: { width: 320, minWidth: 160 },
+  run: { width: 140, minWidth: 100 }
+};
+
+function getCicdColumnWidth(columnKey, fallback = CICD_COLUMN_DEFAULTS.run) {
+  if (cicdColumnWidths.has(columnKey)) {
+    return cicdColumnWidths.get(columnKey);
+  }
+  const width = fallback.width;
+  cicdColumnWidths.set(columnKey, width);
+  return width;
+}
+
+function initializeCicdColumnResizing() {
+  const headerRow = document.querySelector('.cicd-matrix thead tr');
+  if (!headerRow || headerRow.dataset.resizeInitialized === 'true') return;
+
+  headerRow.dataset.resizeInitialized = 'true';
+  headerRow.addEventListener('pointerdown', handleCicdColumnResizePointerDown);
+}
+
+function handleCicdColumnResizePointerDown(event) {
+  const resizer = event.target.closest('.cicd-col-resizer');
+  if (!resizer) {
+    return;
+  }
+  if (event.pointerType === 'mouse' && event.button !== 0) {
+    return;
+  }
+
+  const headerCell = resizer.closest('th[data-col-key]');
+  const columnKey = headerCell?.dataset.colKey;
+  if (!headerCell || !columnKey) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  cicdColumnResizeState = {
+    columnKey,
+    minWidth: Number(headerCell.dataset.minWidth || 80),
+    startX: event.clientX,
+    startWidth: headerCell.offsetWidth
+  };
+
+  document.body.classList.add('is-resizing');
+  document.addEventListener('pointermove', handleCicdColumnResizePointerMove);
+  document.addEventListener('pointerup', handleCicdColumnResizePointerUp);
+  document.addEventListener('pointercancel', handleCicdColumnResizePointerUp);
+}
+
+function handleCicdColumnResizePointerMove(event) {
+  if (!cicdColumnResizeState) {
+    return;
+  }
+
+  const { columnKey, minWidth, startX, startWidth } = cicdColumnResizeState;
+  const nextWidth = Math.max(minWidth, startWidth + (event.clientX - startX));
+  cicdColumnWidths.set(columnKey, nextWidth);
+
+  const escapedColumnKey = window.CSS?.escape ? window.CSS.escape(columnKey) : columnKey.replace(/"/g, '\\"');
+  document.querySelectorAll(`[data-col-key="${escapedColumnKey}"]`).forEach((cell) => {
+    cell.style.width = `${nextWidth}px`;
+    cell.style.minWidth = `${minWidth}px`;
+  });
+}
+
+function handleCicdColumnResizePointerUp() {
+  if (!cicdColumnResizeState) {
+    return;
+  }
+
+  cicdColumnResizeState = null;
+  document.body.classList.remove('is-resizing');
+  document.removeEventListener('pointermove', handleCicdColumnResizePointerMove);
+  document.removeEventListener('pointerup', handleCicdColumnResizePointerUp);
+  document.removeEventListener('pointercancel', handleCicdColumnResizePointerUp);
+}
+
 
 async function renderCICD() {
   console.log('renderCICD called');
@@ -3740,13 +3826,49 @@ async function renderCICD() {
     const thead = document.querySelector('.cicd-matrix thead tr');
     if (!tbody || !thead) return;
     
-    // Update header with run columns (resizable)
-    thead.innerHTML = `
-      <th class="cicd-col-test" style="width: 80px; min-width: 60px; resize: horizontal; overflow: auto;">Test ID</th>
-      <th class="cicd-col-story" style="width: 100px; min-width: 80px; resize: horizontal; overflow: auto;">Story</th>
-      <th class="cicd-col-title" style="width: 300px; min-width: 150px; resize: horizontal; overflow: auto;">Test Title</th>
-      ${runs.map(run => `<th class="cicd-col-run" style="width: 120px; min-width: 80px; resize: horizontal; overflow: auto;" title="${run.runId}">${new Date(run.timestamp).toLocaleDateString()}<br/>${new Date(run.timestamp).toLocaleTimeString()}</th>`).join('')}
-    `;
+    const columns = [
+      {
+        key: 'testId',
+        label: 'Test ID',
+        className: 'cicd-col-test',
+        minWidth: CICD_COLUMN_DEFAULTS.testId.minWidth,
+        width: getCicdColumnWidth('testId', CICD_COLUMN_DEFAULTS.testId)
+      },
+      {
+        key: 'story',
+        label: 'Story',
+        className: 'cicd-col-story',
+        minWidth: CICD_COLUMN_DEFAULTS.story.minWidth,
+        width: getCicdColumnWidth('story', CICD_COLUMN_DEFAULTS.story)
+      },
+      {
+        key: 'title',
+        label: 'Test Title',
+        className: 'cicd-col-title',
+        minWidth: CICD_COLUMN_DEFAULTS.title.minWidth,
+        width: getCicdColumnWidth('title', CICD_COLUMN_DEFAULTS.title)
+      },
+      ...runs.map((run) => {
+        const columnKey = `run-${run.runId}`;
+        return {
+          key: columnKey,
+          label: `${new Date(run.timestamp).toLocaleDateString()}<br/>${new Date(run.timestamp).toLocaleTimeString()}`,
+          className: 'cicd-col-run',
+          minWidth: CICD_COLUMN_DEFAULTS.run.minWidth,
+          width: getCicdColumnWidth(columnKey, CICD_COLUMN_DEFAULTS.run),
+          title: run.runId
+        };
+      })
+    ];
+
+    thead.innerHTML = columns
+      .map(
+        (column) => `<th class="${column.className}" data-col-key="${column.key}" data-min-width="${column.minWidth}" title="${column.title || ''}" style="width: ${column.width}px; min-width: ${column.minWidth}px;">
+          <div class="cicd-th-content">${column.label}</div>
+          <span class="cicd-col-resizer" role="separator" aria-label="Resize ${column.label.replace(/<br\/>/g, ' ')} column" title="Resize column"></span>
+        </th>`
+      )
+      .join('');
     
     tbody.innerHTML = '';
     
@@ -3756,12 +3878,18 @@ async function renderCICD() {
       // Test ID column
       const idCell = document.createElement('td');
       idCell.className = 'cicd-col-test';
+      idCell.dataset.colKey = 'testId';
+      idCell.style.width = `${getCicdColumnWidth('testId', CICD_COLUMN_DEFAULTS.testId)}px`;
+      idCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.testId.minWidth}px`;
       idCell.textContent = testId;
       row.appendChild(idCell);
       
       // Story column
       const storyCell = document.createElement('td');
       storyCell.className = 'cicd-col-story';
+      storyCell.dataset.colKey = 'story';
+      storyCell.style.width = `${getCicdColumnWidth('story', CICD_COLUMN_DEFAULTS.story)}px`;
+      storyCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.story.minWidth}px`;
       const storyInfo = testToStoryMap[testId];
       if (storyInfo) {
         storyCell.innerHTML = `<a href="#" onclick="event.preventDefault(); selectStory(${storyInfo.storyId}); return false;" title="${storyInfo.storyTitle}">#${storyInfo.storyId}</a>`;
@@ -3773,6 +3901,9 @@ async function renderCICD() {
       // Test Title column
       const titleCell = document.createElement('td');
       titleCell.className = 'cicd-col-title';
+      titleCell.dataset.colKey = 'title';
+      titleCell.style.width = `${getCicdColumnWidth('title', CICD_COLUMN_DEFAULTS.title)}px`;
+      titleCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.title.minWidth}px`;
       const firstResult = Object.values(matrix[testId]).find(r => r);
       titleCell.textContent = firstResult?.title || 'Unknown Test';
       titleCell.title = firstResult?.title || 'Unknown Test';
@@ -3782,6 +3913,10 @@ async function renderCICD() {
       runs.forEach(run => {
         const resultCell = document.createElement('td');
         resultCell.className = 'cicd-run-col';
+        const runColumnKey = `run-${run.runId}`;
+        resultCell.dataset.colKey = runColumnKey;
+        resultCell.style.width = `${getCicdColumnWidth(runColumnKey, CICD_COLUMN_DEFAULTS.run)}px`;
+        resultCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.run.minWidth}px`;
         const result = matrix[testId][run.runId];
         
         if (result) {
@@ -3819,6 +3954,8 @@ async function renderCICD() {
     if (testIds.length === 0) {
       tbody.innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 20px;">No test results found.</td></tr>';
     }
+
+    initializeCicdColumnResizing();
     
   } catch (error) {
     console.error('Error rendering CI/CD dashboard:', error);
