@@ -744,6 +744,32 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1771344300167 - Story List Button
+if [ "$1" = "1771344300167" ]; then
+  echo "Test 45: Story 1771344300167 - Story List Button"
+  
+  # Check HTML has story list button
+  FRONTEND_HTML=$(curl -s "$S3_URL/index.html")
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check JavaScript has openStoryListModal function
+  FRONTEND_JS=$(curl -s "$S3_URL/app.js")
+  if echo "$FRONTEND_JS" | grep -q "openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
@@ -772,7 +798,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: 47 (41 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 
