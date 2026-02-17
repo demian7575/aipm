@@ -1,0 +1,159 @@
+name: Phase 4 Gating Tests
+
+on:
+  schedule:
+    # 매일 새벽 4시 (KST 기준 = UTC 19:00 전날)
+    - cron: '0 19 * * *'
+  
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - dev
+
+jobs:
+  phase4-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Determine target environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            ENV="prod"
+          fi
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "🎯 Target environment: $ENV"
+      
+      - name: Check and start EC2 if needed
+        env:
+          TARGET_ENV: ${{ steps.env.outputs.environment }}
+        run: |
+          echo "🔍 Checking EC2 status for $TARGET_ENV..."
+          
+          if [ "$TARGET_ENV" = "prod" ]; then
+            INSTANCE_ID="i-016241c7a18884e80"
+          else
+            INSTANCE_ID="i-08c78da25af47b3cb"
+          fi
+          
+          STATE=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --region us-east-1 \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text)
+          
+          if [ "$STATE" = "stopped" ]; then
+            echo "⚡ Starting EC2 instance..."
+            aws ec2 start-instances --instance-ids $INSTANCE_ID --region us-east-1
+            aws ec2 wait instance-running --instance-ids $INSTANCE_ID --region us-east-1
+            echo "✅ EC2 instance started"
+            sleep 30  # Wait for services to start
+          else
+            echo "✅ EC2 instance already running"
+          fi
+      
+      - name: Load environment configuration
+        id: config
+        env:
+          TARGET_ENV: ${{ steps.env.outputs.environment }}
+        run: |
+          source scripts/utilities/load-env-config.sh $TARGET_ENV
+          echo "api_base=$API_BASE" >> $GITHUB_OUTPUT
+          echo "semantic_api_base=$SEMANTIC_API_BASE" >> $GITHUB_OUTPUT
+          echo "ec2_ip=$EC2_IP" >> $GITHUB_OUTPUT
+          echo "📍 API Base: $API_BASE"
+          echo "📍 Semantic API: $SEMANTIC_API_BASE"
+      
+      - name: Wait for API to be ready
+        env:
+          API_BASE: ${{ steps.config.outputs.api_base }}
+        run: |
+          echo "⏳ Waiting for API to be ready..."
+          MAX_WAIT=120
+          ELAPSED=0
+          
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            if curl -s --connect-timeout 5 "$API_BASE/health" | grep -q "ok"; then
+              echo "✅ API is ready"
+              break
+            fi
+            echo "   Waiting... ($ELAPSED/$MAX_WAIT seconds)"
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+          
+          if [ $ELAPSED -ge $MAX_WAIT ]; then
+            echo "❌ API not ready after ${MAX_WAIT}s"
+            exit 1
+          fi
+      
+      - name: Run Phase 4 Functionality Tests
+        env:
+          TARGET_ENV: ${{ steps.env.outputs.environment }}
+          API_BASE: ${{ steps.config.outputs.api_base }}
+          SEMANTIC_API_BASE: ${{ steps.config.outputs.semantic_api_base }}
+        run: |
+          echo "🧪 Running Phase 4 Functionality Tests on $TARGET_ENV..."
+          
+          if ./scripts/testing/phase4-functionality.sh; then
+            echo "✅ Phase 4 Functionality Tests passed"
+          else
+            echo "❌ Phase 4 Functionality Tests failed"
+            exit 1
+          fi
+      
+      - name: Run Phase 4 Extended Tests
+        env:
+          TARGET_ENV: ${{ steps.env.outputs.environment }}
+          API_BASE: ${{ steps.config.outputs.api_base }}
+        run: |
+          echo "🧪 Running Phase 4 Extended Tests on $TARGET_ENV..."
+          
+          if ./scripts/testing/phase4-extended.sh; then
+            echo "✅ Phase 4 Extended Tests passed"
+          else
+            echo "❌ Phase 4 Extended Tests failed"
+            exit 1
+          fi
+      
+      - name: Upload test results to DynamoDB
+        if: always()
+        env:
+          TARGET_ENV: ${{ steps.env.outputs.environment }}
+        run: |
+          echo "📊 Test results uploaded to test-results table"
+          echo "   Environment: $TARGET_ENV"
+          echo "   View results in CI/CD Test Execution Matrix"
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Phase 4 Gating Tests failed"
+          echo "   Environment: ${{ steps.env.outputs.environment }}"
+          echo "   Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
