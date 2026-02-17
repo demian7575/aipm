@@ -5579,7 +5579,7 @@ export async function createApp() {
       
       // Version is replaced during deployment by deploy-to-environment.sh
       const version = { 
-        version: 'DEPLOYMENT_VERSION_PLACEHOLDER',
+        version: '20260217-203911-4b967602',
         prNumber: process.env.PR_NUMBER || null,
         environment: process.env.NODE_ENV || 'production',
         deployTime: process.env.DEPLOY_VERSION || null
