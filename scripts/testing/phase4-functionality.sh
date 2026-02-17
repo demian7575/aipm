@@ -280,6 +280,37 @@ if [ "$1" = "1771076494719" ]; then
     echo "  ❌ FAIL: RTM row click handler or selection styling missing"
     FAILED=$((FAILED + 1))
   fi
+fi
+
+# Test for story 1771328030025: Story list button and modal
+if [ "$1" = "1771328030025" ]; then
+  echo "Test 18: Story list button and modal"
+  FRONTEND_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  if echo "$FRONTEND_JS" | grep -q "openStoryListModal"; then
+    echo "  ✅ PASS: Story list modal function implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list modal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story list button click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
   
   # Check for CSS styling for selected row
   STYLES_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css)
