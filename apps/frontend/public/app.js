@@ -3717,15 +3717,35 @@ async function renderCICD() {
     
     const { runs, testIds, matrix } = await cicdResponse.json();
     
+    // Get acceptance tests to map testId to storyId
+    const storiesUrl = resolveApiUrl('/api/stories');
+    const storiesResponse = await fetch(storiesUrl);
+    const stories = storiesResponse.ok ? await storiesResponse.json() : [];
+    
+    // Build testId -> storyId map
+    const testToStoryMap = {};
+    const flattenStories = (storyList) => {
+      storyList.forEach(story => {
+        if (story.acceptanceTests) {
+          story.acceptanceTests.forEach(test => {
+            testToStoryMap[test.id] = { storyId: story.id, storyTitle: story.title };
+          });
+        }
+        if (story.children) flattenStories(story.children);
+      });
+    };
+    flattenStories(stories);
+    
     const tbody = document.getElementById('cicd-matrix-body');
     const thead = document.querySelector('.cicd-matrix thead tr');
     if (!tbody || !thead) return;
     
-    // Update header with run columns
+    // Update header with run columns (resizable)
     thead.innerHTML = `
-      <th class="cicd-col-test">Test ID</th>
-      <th class="cicd-col-title">Test Title</th>
-      ${runs.map(run => `<th class="cicd-col-run" title="${run.runId}">${new Date(run.timestamp).toLocaleDateString()}<br/>${new Date(run.timestamp).toLocaleTimeString()}</th>`).join('')}
+      <th class="cicd-col-test" style="width: 80px; min-width: 60px; resize: horizontal; overflow: auto;">Test ID</th>
+      <th class="cicd-col-story" style="width: 100px; min-width: 80px; resize: horizontal; overflow: auto;">Story</th>
+      <th class="cicd-col-title" style="width: 300px; min-width: 150px; resize: horizontal; overflow: auto;">Test Title</th>
+      ${runs.map(run => `<th class="cicd-col-run" style="width: 120px; min-width: 80px; resize: horizontal; overflow: auto;" title="${run.runId}">${new Date(run.timestamp).toLocaleDateString()}<br/>${new Date(run.timestamp).toLocaleTimeString()}</th>`).join('')}
     `;
     
     tbody.innerHTML = '';
@@ -3739,11 +3759,23 @@ async function renderCICD() {
       idCell.textContent = testId;
       row.appendChild(idCell);
       
-      // Test Title column (from first available result)
+      // Story column
+      const storyCell = document.createElement('td');
+      storyCell.className = 'cicd-col-story';
+      const storyInfo = testToStoryMap[testId];
+      if (storyInfo) {
+        storyCell.innerHTML = `<a href="#" onclick="event.preventDefault(); selectStory(${storyInfo.storyId}); return false;" title="${storyInfo.storyTitle}">#${storyInfo.storyId}</a>`;
+      } else {
+        storyCell.textContent = '-';
+      }
+      row.appendChild(storyCell);
+      
+      // Test Title column
       const titleCell = document.createElement('td');
       titleCell.className = 'cicd-col-title';
       const firstResult = Object.values(matrix[testId]).find(r => r);
       titleCell.textContent = firstResult?.title || 'Unknown Test';
+      titleCell.title = firstResult?.title || 'Unknown Test';
       row.appendChild(titleCell);
       
       // Result columns for each run
@@ -3756,12 +3788,16 @@ async function renderCICD() {
           const status = result.status?.toUpperCase();
           if (status === 'PASS') {
             resultCell.innerHTML = '<span class="cicd-cell-pass" title="Pass">✓</span>';
+            resultCell.classList.add('status-pass');
           } else if (status === 'FAIL') {
             resultCell.innerHTML = '<span class="cicd-cell-fail" title="Fail">✗</span>';
+            resultCell.classList.add('status-fail');
           } else if (status === 'SKIP') {
             resultCell.innerHTML = '<span class="cicd-cell-skip" title="Skip">○</span>';
+            resultCell.classList.add('status-skip');
           } else {
             resultCell.innerHTML = '<span class="cicd-cell-documented" title="Documented">📝</span>';
+            resultCell.classList.add('status-documented');
           }
           resultCell.style.cursor = 'pointer';
           resultCell.onclick = () => openTestResultModal(result);
@@ -3794,6 +3830,14 @@ async function renderCICD() {
 }
 
 function openTestResultModal(result) {
+  const status = result.status?.toUpperCase();
+  const statusClass = status === 'PASS' ? 'status-pass' : 
+                      status === 'FAIL' ? 'status-fail' : 
+                      status === 'SKIP' ? 'status-skip' : 'status-documented';
+  const statusIcon = status === 'PASS' ? '✓' : 
+                     status === 'FAIL' ? '✗' : 
+                     status === 'SKIP' ? '○' : '📝';
+  
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.innerHTML = `
@@ -3804,10 +3848,17 @@ function openTestResultModal(result) {
       </div>
       <div class="modal-body">
         <div style="margin-bottom: 15px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <span style="font-size: 32px;" class="${statusClass}">${statusIcon}</span>
+            <div>
+              <strong style="font-size: 18px;">${status || 'UNKNOWN'}</strong><br/>
+              <span style="color: #666;">Test Execution Result</span>
+            </div>
+          </div>
+          <hr style="margin: 15px 0;"/>
           <strong>Test ID:</strong> ${result.testId}<br/>
           <strong>Title:</strong> ${result.title}<br/>
           <strong>Run ID:</strong> ${result.runId}<br/>
-          <strong>Status:</strong> <span class="status-${result.status?.toLowerCase()}">${result.status}</span><br/>
           <strong>Phase:</strong> ${result.phase || 'N/A'}<br/>
           <strong>Endpoint:</strong> ${result.endpoint || 'N/A'}<br/>
           <strong>Timestamp:</strong> ${new Date(result.timestamp).toLocaleString()}
