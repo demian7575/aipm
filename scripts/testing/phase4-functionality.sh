@@ -265,6 +265,36 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story 1771328619678: View Stories button and modal
+if [ "$1" = "1771328619678" ]; then
+  echo "Test 16a: View Stories button exists (Story 1771328619678)"
+  if grep -q "view-stories-btn" apps/frontend/public/index.html; then
+    echo "  ✅ PASS: View Stories button in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View Stories button missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 16b: showStoryListModal function exists"
+  if grep -q "showStoryListModal" apps/frontend/public/app.js; then
+    echo "  ✅ PASS: showStoryListModal function implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: showStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 16c: View Stories button event listener"
+  if grep -q "viewStoriesBtn.*addEventListener" apps/frontend/public/app.js; then
+    echo "  ✅ PASS: Event listener attached"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Event listener missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
   echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"

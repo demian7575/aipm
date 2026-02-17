@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -9341,3 +9342,27 @@ async function initializeEC2AutoStart() {
     }
   }
 }
+
+/**
+ * Show modal with list of all story titles
+ */
+function showStoryListModal() {
+  const stories = Array.from(storyIndex.values());
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  stories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.padding = '8px';
+    item.style.borderBottom = '1px solid #eee';
+    item.textContent = story.title || 'Untitled';
+    list.appendChild(item);
+  });
+  
+  openModal('All Stories', list);
+}
+
+viewStoriesBtn?.addEventListener('click', showStoryListModal);
