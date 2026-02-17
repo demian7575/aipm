@@ -56,7 +56,8 @@ async function sync() {
     { source: 'aipm-backend-prod-stories', target: 'aipm-backend-dev-stories', name: 'stories', keys: ['id'] },
     { source: 'aipm-backend-prod-acceptance-tests', target: 'aipm-backend-dev-acceptance-tests', name: 'tests', keys: ['id'] },
     { source: 'aipm-backend-prod-prs', target: 'aipm-backend-dev-prs', name: 'PRs', keys: ['id'] },
-    { source: 'aipm-backend-prod-test-runs', target: 'aipm-backend-dev-test-runs', name: 'test-runs', keys: ['runId', 'storyId'] }
+    { source: 'aipm-backend-prod-test-runs', target: 'aipm-backend-dev-test-runs', name: 'test-runs', keys: ['runId', 'storyId'] },
+    { source: 'aipm-backend-prod-test-results', target: 'aipm-backend-dev-test-results', name: 'test-results', keys: ['runId', 'testId'] }
   ];
   
   // Clear all dev tables in parallel

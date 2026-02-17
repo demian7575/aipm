@@ -156,20 +156,20 @@
           </div>
           <div id="cicd-view" class="view-content" role="tabpanel" tabindex="0" aria-labelledby="view-tab-cicd" hidden>
             <div class="cicd-dashboard">
-              <h2>CI/CD Test Execution History</h2>
+              <h2>CI/CD Test Execution Matrix</h2>
               
               <div class="cicd-controls">
                 <button id="cicd-refresh" class="secondary">Refresh</button>
                 <span id="cicd-last-updated"></span>
               </div>
               
-              <div class="cicd-matrix-container">
+              <div class="cicd-matrix-container" style="overflow-x: auto;">
                 <table class="cicd-matrix">
                   <thead>
                     <tr>
-                      <th class="cicd-col-story">Story</th>
-                      <th class="cicd-col-test">Test</th>
-                      <th class="cicd-col-runs" id="cicd-runs-header">Test Runs →</th>
+                      <th class="cicd-col-test">Test ID</th>
+                      <th class="cicd-col-title">Test Title</th>
+                      <th class="cicd-col-runs">Test Runs →</th>
                     </tr>
                   </thead>
                   <tbody id="cicd-matrix-body">
@@ -180,6 +180,8 @@
               <div class="cicd-legend">
                 <span class="cicd-legend-item"><span class="cicd-cell-pass">✓</span> Pass</span>
                 <span class="cicd-legend-item"><span class="cicd-cell-fail">✗</span> Fail</span>
+                <span class="cicd-legend-item"><span class="cicd-cell-documented">📝</span> Documented</span>
+                <span class="cicd-legend-item"><span class="cicd-cell-skip">○</span> Skip</span>
                 <span class="cicd-legend-item"><span class="cicd-cell-none">-</span> Not Run</span>
               </div>
             </div>

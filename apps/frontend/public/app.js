@@ -3711,97 +3711,118 @@ let cicdExpandedStories = new Set();
 async function renderCICD() {
   console.log('renderCICD called');
   try {
-    const storiesUrl = resolveApiUrl('/api/stories');
-    const storiesResponse = await fetch(storiesUrl);
-    if (!storiesResponse.ok) throw new Error('Failed to fetch stories');
+    const cicdUrl = resolveApiUrl('/api/cicd/matrix');
+    const cicdResponse = await fetch(cicdUrl);
+    if (!cicdResponse.ok) throw new Error('Failed to fetch CI/CD matrix');
     
-    const stories = await storiesResponse.json();
-    
-    const rtmUrl = resolveApiUrl('/api/rtm/matrix');
-    const rtmResponse = await fetch(rtmUrl);
-    if (!rtmResponse.ok) throw new Error('Failed to fetch RTM data');
-    
-    const rtmData = await rtmResponse.json();
+    const { runs, testIds, matrix } = await cicdResponse.json();
     
     const tbody = document.getElementById('cicd-matrix-body');
-    if (!tbody) return;
+    const thead = document.querySelector('.cicd-matrix thead tr');
+    if (!tbody || !thead) return;
+    
+    // Update header with run columns
+    thead.innerHTML = `
+      <th class="cicd-col-test">Test ID</th>
+      <th class="cicd-col-title">Test Title</th>
+      ${runs.map(run => `<th class="cicd-col-run" title="${run.runId}">${new Date(run.timestamp).toLocaleDateString()}<br/>${new Date(run.timestamp).toLocaleTimeString()}</th>`).join('')}
+    `;
+    
     tbody.innerHTML = '';
     
-    let testCount = 0;
-    
-    const renderStoryTests = (story, depth = 0) => {
-      const storyRtm = rtmData.find(r => r.id === story.id);
-      const ciStatus = storyRtm?.coverage?.ci?.status || null;
-      const hasTests = story.acceptanceTests && story.acceptanceTests.length > 0;
-      const hasChildren = story.children && story.children.length > 0;
-      const isExpanded = cicdExpandedStories.has(story.id);
+    testIds.forEach(testId => {
+      const row = document.createElement('tr');
       
-      if (hasTests) {
-        story.acceptanceTests.forEach((test, idx) => {
-          testCount++;
-          const row = document.createElement('tr');
-          
-          if (idx === 0) {
-            const storyCell = document.createElement('td');
-            storyCell.className = 'cicd-col-story';
-            storyCell.style.paddingLeft = (depth * 20 + 10) + 'px';
-            storyCell.rowSpan = story.acceptanceTests.length;
-            
-            if (hasChildren) {
-              const expandIcon = document.createElement('span');
-              expandIcon.className = 'cicd-expand-icon';
-              expandIcon.textContent = isExpanded ? '▼' : '▶';
-              expandIcon.style.cursor = 'pointer';
-              expandIcon.style.marginRight = '5px';
-              expandIcon.onclick = () => toggleCICDExpand(story.id);
-              storyCell.appendChild(expandIcon);
-            } else {
-              storyCell.style.paddingLeft = (depth * 20 + 25) + 'px';
-            }
-            
-            storyCell.appendChild(document.createTextNode(`#${story.id}`));
-            row.appendChild(storyCell);
+      // Test ID column
+      const idCell = document.createElement('td');
+      idCell.className = 'cicd-col-test';
+      idCell.textContent = testId;
+      row.appendChild(idCell);
+      
+      // Test Title column (from first available result)
+      const titleCell = document.createElement('td');
+      titleCell.className = 'cicd-col-title';
+      const firstResult = Object.values(matrix[testId]).find(r => r);
+      titleCell.textContent = firstResult?.title || 'Unknown Test';
+      row.appendChild(titleCell);
+      
+      // Result columns for each run
+      runs.forEach(run => {
+        const resultCell = document.createElement('td');
+        resultCell.className = 'cicd-run-col';
+        const result = matrix[testId][run.runId];
+        
+        if (result) {
+          const status = result.status?.toUpperCase();
+          if (status === 'PASS') {
+            resultCell.innerHTML = '<span class="cicd-cell-pass" title="Pass">✓</span>';
+          } else if (status === 'FAIL') {
+            resultCell.innerHTML = '<span class="cicd-cell-fail" title="Fail">✗</span>';
+          } else if (status === 'SKIP') {
+            resultCell.innerHTML = '<span class="cicd-cell-skip" title="Skip">○</span>';
+          } else {
+            resultCell.innerHTML = '<span class="cicd-cell-documented" title="Documented">📝</span>';
           }
-          
-          const testCell = document.createElement('td');
-          testCell.className = 'cicd-col-test';
-          testCell.textContent = test.title || `Test ${test.id}`;
-          row.appendChild(testCell);
-          
-          const resultCell = document.createElement('td');
-          resultCell.className = 'cicd-run-col';
-          resultCell.innerHTML = ciStatus === 'pass' ? '<span class="cicd-cell-pass">✓</span>' :
-                                 ciStatus === 'fail' ? '<span class="cicd-cell-fail">✗</span>' :
-                                 '<span class="cicd-cell-none">-</span>';
-          row.appendChild(resultCell);
-          
-          tbody.appendChild(row);
-        });
-      }
+          resultCell.style.cursor = 'pointer';
+          resultCell.onclick = () => openTestResultModal(result);
+        } else {
+          resultCell.innerHTML = '<span class="cicd-cell-none" title="Not Run">-</span>';
+        }
+        
+        row.appendChild(resultCell);
+      });
       
-      if (hasChildren && isExpanded) {
-        story.children.forEach(child => renderStoryTests(child, depth + 1));
-      }
-    };
-    
-    stories.forEach(story => renderStoryTests(story, 0));
+      tbody.appendChild(row);
+    });
     
     const lastUpdated = document.getElementById('cicd-last-updated');
     if (lastUpdated) {
-      lastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+      lastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()} (${testIds.length} tests, ${runs.length} runs)`;
     }
     
-    if (testCount === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">No acceptance tests found.</td></tr>';
+    if (testIds.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 20px;">No test results found.</td></tr>';
     }
     
   } catch (error) {
     console.error('Error rendering CI/CD dashboard:', error);
     const tbody = document.getElementById('cicd-matrix-body');
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: red;">Error: ' + error.message + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 20px; color: red;">Error: ' + error.message + '</td></tr>';
     }
   }
+}
+
+function openTestResultModal(result) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3>Test Execution Details</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 15px;">
+          <strong>Test ID:</strong> ${result.testId}<br/>
+          <strong>Title:</strong> ${result.title}<br/>
+          <strong>Run ID:</strong> ${result.runId}<br/>
+          <strong>Status:</strong> <span class="status-${result.status?.toLowerCase()}">${result.status}</span><br/>
+          <strong>Phase:</strong> ${result.phase || 'N/A'}<br/>
+          <strong>Endpoint:</strong> ${result.endpoint || 'N/A'}<br/>
+          <strong>Timestamp:</strong> ${new Date(result.timestamp).toLocaleString()}
+        </div>
+        ${result.executionDetails ? `
+          <div style="margin-top: 20px;">
+            <h4>Execution Details</h4>
+            <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow: auto; max-height: 300px;">${JSON.stringify(result.executionDetails, null, 2)}</pre>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 }
 
 function toggleCICDExpand(storyId) {

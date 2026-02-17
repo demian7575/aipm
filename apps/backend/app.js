@@ -7011,6 +7011,52 @@ export async function createApp() {
       }
     }
 
+    // GET /api/cicd/matrix - Get test execution matrix
+    if (pathname === '/api/cicd/matrix' && method === 'GET') {
+      try {
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const docClient = DynamoDBDocumentClient.from(client);
+        
+        const result = await docClient.send(new ScanCommand({
+          TableName: 'aipm-backend-prod-test-results',
+          Limit: 5000
+        }));
+        
+        const items = result.Items || [];
+        
+        // Get unique runIds sorted by timestamp (most recent first)
+        const runs = [...new Set(items.map(i => i.runId))]
+          .map(runId => {
+            const item = items.find(i => i.runId === runId);
+            return { runId, timestamp: item.timestamp };
+          })
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .slice(0, 10); // Last 10 runs
+        
+        // Get unique testIds
+        const testIds = [...new Set(items.map(i => i.testId))].sort((a, b) => parseInt(a) - parseInt(b));
+        
+        // Build matrix: { testId: { runId: {status, title, ...} } }
+        const matrix = {};
+        testIds.forEach(testId => {
+          matrix[testId] = {};
+          runs.forEach(run => {
+            const result = items.find(i => i.testId === testId && i.runId === run.runId);
+            matrix[testId][run.runId] = result || null;
+          });
+        });
+        
+        sendJson(res, 200, { runs, testIds, matrix });
+        return;
+      } catch (error) {
+        console.error('Error getting CI/CD matrix:', error);
+        sendJson(res, 500, { error: 'Failed to get CI/CD matrix' });
+        return;
+      }
+    }
+
     if (pathname === '/api/test-log' && method === 'GET') {
       try {
         const testId = url.searchParams.get('testId');
