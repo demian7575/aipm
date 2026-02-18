@@ -4,7 +4,7 @@ inclusion: always
 
 # Project Status & Progress
 
-**Last Updated**: 2026-02-18 16:46 KST
+**Last Updated**: 2026-02-18 17:04 KST
 
 ## Recent Changes (Today)
 - Fixed Kiro CLI PTY issue - spawn bash then run kiro inside it (not direct spawn)
@@ -16,8 +16,11 @@ inclusion: always
 - Created helper scripts: `./bin/ssh-ec2` and `./bin/ec2-logs`
 - Cleaned up outdated services and scripts
 - Improved timeout handling - kills and restarts Kiro on 5min timeout
-- **NEW**: Discovered EC2 IP mismatch - environments.yaml shows 52.90.170.160 but actual prod IP is 44.200.41.31
-- **NEW**: Old prod instance (i-016241c7a18884e80) still running with services operational on 44.200.41.31
+- **MIGRATION COMPLETE**: Switched from old 50GB instance to new 20GB instance
+- Fixed aipm-update-s3-config.service to pass 'prod' argument
+- Updated Lambda function to use new instance ID (i-09971cca92b9bf3a9)
+- Fixed SSH key access to new instance using EC2 Instance Connect
+- Updated environments.yaml and deployed to new instance
 - **NEW**: New instance (i-09971cca92b9bf3a9) exists but not being used
 
 ## Current Status
@@ -85,9 +88,10 @@ Frontend (S3) → Backend API (4000) → Semantic API (8083)
 - All services healthy and operational
 
 ## EC2 Instance Status
-- **Old Prod Instance** (i-016241c7a18884e80): Running on 44.200.41.31 with 50GB volume
-  - Backend and semantic-api services operational via PM2
-  - PM2 startup configured for auto-restart
-- **New Prod Instance** (i-09971cca92b9bf3a9): Created but not in use (52.90.170.160, 20GB volume)
-  - Services were started but not currently active
-  - environments.yaml incorrectly points to this instance
+- **New Prod Instance** (i-09971cca92b9bf3a9): Active on 52.90.170.160 with 20GB volume
+  - All services operational
+  - SSH key configured
+  - Cost savings: $2.40/month (volume) + reduced snapshot costs
+- **Old Prod Instance** (i-016241c7a18884e80): Stopped, ready for termination
+  - 50GB volume can be deleted after verification
+- **Dev Instance** (i-08c78da25af47b3cb): Stopped
