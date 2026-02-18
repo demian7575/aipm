@@ -5,6 +5,11 @@
 
 set -e
 
+# Load config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+
 PROGRESS_FILE=".kiro/steering/progress.md"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M %Z')
 
@@ -16,7 +21,7 @@ if command -v ssh &> /dev/null && [ -f "bin/ssh-ec2" ]; then
     
     # Try to get prod EC2 status
     PROD_IP=$(aws ec2 describe-instances \
-        --instance-ids i-016241c7a18884e80 \
+        --instance-ids "$INSTANCE_ID" \
         --region us-east-1 \
         --query 'Reservations[0].Instances[0].PublicIpAddress' \
         --output text 2>/dev/null || echo "unknown")

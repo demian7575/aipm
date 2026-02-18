@@ -1,0 +1,117 @@
+#!/bin/bash
+# Shrink EC2 root volume from 50GB to 15GB
+set -e
+
+# Load config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" prod
+
+INSTANCE_ID="$INSTANCE_ID"
+OLD_VOLUME_ID="vol-04bf191c4df5b4681"
+NEW_SIZE=15
+REGION="us-east-1"
+AZ="us-east-1f"
+
+echo "🔍 Step 1: Creating new 15GB volume..."
+NEW_VOLUME_ID=$(aws ec2 create-volume \
+  --availability-zone $AZ \
+  --size $NEW_SIZE \
+  --volume-type gp3 \
+  --region $REGION \
+  --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value=aipm-prod-root-new}]' \
+  --query 'VolumeId' \
+  --output text)
+
+echo "✅ Created volume: $NEW_VOLUME_ID"
+echo "⏳ Waiting for volume to be available..."
+aws ec2 wait volume-available --volume-ids $NEW_VOLUME_ID --region $REGION
+
+echo ""
+echo "🔍 Step 2: Stopping EC2 instance..."
+aws ec2 stop-instances --instance-ids $INSTANCE_ID --region $REGION
+aws ec2 wait instance-stopped --instance-ids $INSTANCE_ID --region $REGION
+echo "✅ Instance stopped"
+
+echo ""
+echo "🔍 Step 3: Attaching new volume as /dev/sdf..."
+aws ec2 attach-volume \
+  --volume-id $NEW_VOLUME_ID \
+  --instance-id $INSTANCE_ID \
+  --device /dev/sdf \
+  --region $REGION
+aws ec2 wait volume-in-use --volume-ids $NEW_VOLUME_ID --region $REGION
+echo "✅ New volume attached"
+
+echo ""
+echo "🔍 Step 4: Starting instance to copy data..."
+aws ec2 start-instances --instance-ids $INSTANCE_ID --region $REGION
+aws ec2 wait instance-running --instance-ids $INSTANCE_ID --region $REGION
+sleep 30  # Wait for SSH
+
+IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --region $REGION --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+echo "✅ Instance running at $IP"
+
+echo ""
+echo "🔍 Step 5: Formatting and copying data..."
+ssh -o StrictHostKeyChecking=no ec2-user@$IP << 'ENDSSH'
+set -e
+echo "Formatting new volume..."
+sudo mkfs.ext4 /dev/nvme1n1
+sudo mkdir -p /mnt/new
+sudo mount /dev/nvme1n1 /mnt/new
+
+echo "Copying data (this may take a few minutes)..."
+sudo rsync -aAXv / /mnt/new \
+  --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"}
+
+echo "Installing bootloader..."
+sudo grub2-install --root-directory=/mnt/new /dev/nvme1n1
+sudo cp /boot/grub2/grub.cfg /mnt/new/boot/grub2/
+
+echo "Updating fstab..."
+OLD_UUID=$(sudo blkid /dev/nvme0n1p1 -s UUID -o value)
+NEW_UUID=$(sudo blkid /dev/nvme1n1 -s UUID -o value)
+sudo sed -i "s/$OLD_UUID/$NEW_UUID/g" /mnt/new/etc/fstab
+
+sudo umount /mnt/new
+echo "✅ Data copied successfully"
+ENDSSH
+
+echo ""
+echo "🔍 Step 6: Stopping instance to swap volumes..."
+aws ec2 stop-instances --instance-ids $INSTANCE_ID --region $REGION
+aws ec2 wait instance-stopped --instance-ids $INSTANCE_ID --region $REGION
+
+echo ""
+echo "🔍 Step 7: Detaching old root volume..."
+aws ec2 detach-volume --volume-id $OLD_VOLUME_ID --region $REGION
+aws ec2 wait volume-available --volume-ids $OLD_VOLUME_ID --region $REGION
+
+echo ""
+echo "🔍 Step 8: Detaching new volume..."
+aws ec2 detach-volume --volume-id $NEW_VOLUME_ID --region $REGION
+aws ec2 wait volume-available --volume-ids $NEW_VOLUME_ID --region $REGION
+
+echo ""
+echo "🔍 Step 9: Attaching new volume as root (/dev/xvda)..."
+aws ec2 attach-volume \
+  --volume-id $NEW_VOLUME_ID \
+  --instance-id $INSTANCE_ID \
+  --device /dev/xvda \
+  --region $REGION
+aws ec2 wait volume-in-use --volume-ids $NEW_VOLUME_ID --region $REGION
+
+echo ""
+echo "🔍 Step 10: Starting instance with new volume..."
+aws ec2 start-instances --instance-ids $INSTANCE_ID --region $REGION
+aws ec2 wait instance-running --instance-ids $INSTANCE_ID --region $REGION
+
+NEW_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --region $REGION --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+echo ""
+echo "✅ SUCCESS! Instance running with new 15GB volume"
+echo "   IP: $NEW_IP"
+echo ""
+echo "⚠️  Old volume $OLD_VOLUME_ID is detached but not deleted"
+echo "   Test the system, then delete it with:"
+echo "   aws ec2 delete-volume --volume-id $OLD_VOLUME_ID --region $REGION"

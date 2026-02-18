@@ -45,7 +45,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 aws ec2 describe-instances \
-    --instance-ids i-016241c7a18884e80 \
+    --instance-ids "$INSTANCE_ID" \
     --region us-east-1 \
     --query 'Reservations[0].Instances[0].[InstanceId,State.Name,PublicIpAddress,InstanceType]' \
     --output table
