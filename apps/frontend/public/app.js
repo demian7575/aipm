@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -7286,6 +7287,45 @@ function openHealthIssueModal(title, issue, context = null) {
   openModal({ title, content: container, cancelLabel: 'Close' });
 }
 
+/**
+ * Opens a modal displaying all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  list.style.maxHeight = '400px';
+  list.style.overflowY = 'auto';
+  
+  if (allStories.length === 0) {
+    const emptyMsg = document.createElement('li');
+    emptyMsg.textContent = 'No stories available';
+    emptyMsg.style.padding = '1rem';
+    emptyMsg.style.color = '#666';
+    list.appendChild(emptyMsg);
+  } else {
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.textContent = story.title || `Story ${story.id}`;
+      item.style.padding = '0.5rem';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', () => {
+        selectStory(story.id);
+        closeModal();
+      });
+      list.appendChild(item);
+    });
+  }
+  
+  container.appendChild(list);
+  openModal({ title: 'Story List', content: container, cancelLabel: 'Close' });
+}
+
 function openDocumentPanel() {
   const container = document.createElement('div');
   container.className = 'document-panel';
@@ -8858,6 +8898,10 @@ async function initialize() {
   
   // Fetch version after EC2 is ready
   fetchVersion();
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
+  });
 
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
