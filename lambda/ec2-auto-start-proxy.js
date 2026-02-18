@@ -7,7 +7,7 @@ const { EC2Client, DescribeInstancesCommand, StartInstancesCommand } = require('
 const https = require('https');
 const http = require('http');
 
-const INSTANCE_ID = 'i-016241c7a18884e80';
+const INSTANCE_ID = 'i-09971cca92b9bf3a9';
 const REGION = 'us-east-1';
 const MAX_WAIT_TIME = 120000; // 2 minutes
 const POLL_INTERVAL = 5000; // 5 seconds
