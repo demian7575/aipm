@@ -4,7 +4,7 @@ inclusion: always
 
 # Project Status & Progress
 
-**Last Updated**: 2026-02-18 01:05 KST
+**Last Updated**: 2026-02-18 16:43 KST
 
 ## Recent Changes (Today)
 - Fixed Kiro CLI PTY issue - spawn bash then run kiro inside it (not direct spawn)
@@ -16,6 +16,9 @@ inclusion: always
 - Created helper scripts: `./bin/ssh-ec2` and `./bin/ec2-logs`
 - Cleaned up outdated services and scripts
 - Improved timeout handling - kills and restarts Kiro on 5min timeout
+- **NEW**: Discovered EC2 IP mismatch - environments.yaml shows 52.90.170.160 but actual prod IP is 44.200.41.31
+- **NEW**: Old prod instance (i-016241c7a18884e80) still running with services operational on 44.200.41.31
+- **NEW**: New instance (i-09971cca92b9bf3a9) exists but not being used
 
 ## Current Status
 - ✅ Kiro wrappers stable and working correctly
@@ -75,8 +78,16 @@ Frontend (S3) → Backend API (4000) → Semantic API (8083)
 - Continue feature development
 
 ## Architecture Status
-- Dual EC2 setup (prod: 100.48.102.121, dev: 44.222.168.46)
+- Dual EC2 setup (prod: 44.200.41.31, dev: 44.222.168.46)
 - DynamoDB for data storage
 - S3 for static hosting
 - GitHub Actions for CI/CD with EC2 auto-start
 - All services healthy and operational
+
+## EC2 Instance Status
+- **Old Prod Instance** (i-016241c7a18884e80): Running on 44.200.41.31 with 50GB volume
+  - Backend and semantic-api services operational via PM2
+  - PM2 startup configured for auto-restart
+- **New Prod Instance** (i-09971cca92b9bf3a9): Created but not in use (52.90.170.160, 20GB volume)
+  - Services were started but not currently active
+  - environments.yaml incorrectly points to this instance

@@ -2,8 +2,8 @@
 # Update IPs here only - all scripts and workflows read from this file
 
 prod:
-  ec2_ip: "3.214.216.125"
-  instance_id: "i-016241c7a18884e80"
+  ec2_ip: "52.90.170.160"
+  instance_id: "i-09971cca92b9bf3a9"
   api_port: 4000
   semantic_api_port: 8083
   session_pool_port: 8082
