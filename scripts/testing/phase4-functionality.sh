@@ -9,10 +9,47 @@ source "$SCRIPT_DIR/../utilities/load-env-config.sh" "${TARGET_ENV:-prod}"
 
 PASSED=0
 FAILED=0
+STORY_ID="${1:-}"
 
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo ""
+
+# Story-specific tests for CI/CD Pipeline Status Visualization (Story ID: 1771418755165)
+if [ "$STORY_ID" = "1771418755165" ]; then
+  echo "📦 Testing Story 1771418755165: CI/CD Pipeline Status Visualization"
+  echo "-------------------------------------------------------------------"
+  
+  # Test 1: Pipeline status endpoint exists
+  echo "Test 1: GET /api/stories/:id/pipeline-status endpoint"
+  RESPONSE=$(curl -s -w "\n%{http_code}" "$API_BASE/api/stories/1771418755165/pipeline-status")
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | head -n-1)
+  
+  if [ "$HTTP_CODE" = "200" ] && echo "$BODY" | jq -e '.status' > /dev/null 2>&1; then
+    echo "  ✅ PASS: Pipeline status endpoint returns valid response"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Pipeline status endpoint (HTTP $HTTP_CODE)"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test 2: Frontend includes pipeline status indicator
+  echo "Test 2: Frontend renders pipeline status indicator"
+  if grep -q "pipeline-status-indicator" "$SCRIPT_DIR/../../apps/frontend/public/app.js"; then
+    echo "  ✅ PASS: Pipeline status indicator code exists in frontend"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Pipeline status indicator not found in frontend"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+  echo "Story 1771418755165 Test Results:"
+  echo "  Passed: $PASSED"
+  echo "  Failed: $FAILED"
+  exit $FAILED
+fi
 
 # ============================================
 # SECTION 1: Core API Endpoints (with dev DB)
