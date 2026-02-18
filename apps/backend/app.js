@@ -5573,6 +5573,60 @@ export async function createApp() {
       return;
     }
 
+    /**
+     * GET /api/stories/:storyId/pipeline-status
+     * Fetch CI/CD pipeline status for a story's PRs
+     */
+    if (pathname.match(/^\/api\/stories\/\d+\/pipeline-status$/) && method === 'GET') {
+      const storyId = Number(pathname.split('/')[3]);
+      try {
+        const prs = await getStoryPRs(db, storyId);
+        if (!prs || prs.length === 0) {
+          sendJson(res, 200, { status: 'no-pr', prs: [] });
+          return;
+        }
+        
+        const token = process.env.GITHUB_TOKEN;
+        if (!token) {
+          sendJson(res, 200, { status: 'no-token', prs });
+          return;
+        }
+
+        // Fetch status for each PR
+        const prStatuses = await Promise.all(prs.map(async (pr) => {
+          try {
+            const [owner, repo] = pr.repo.split('/');
+            const checksResponse = await githubRequest(`/repos/${owner}/${repo}/commits/HEAD/check-runs?per_page=1`);
+            const runsResponse = await githubRequest(`/repos/${owner}/${repo}/actions/runs?per_page=1`);
+            
+            let status = 'pending';
+            if (checksResponse?.check_runs?.length > 0) {
+              const conclusion = checksResponse.check_runs[0].conclusion;
+              status = conclusion === 'success' ? 'success' : conclusion === 'failure' ? 'failure' : 'pending';
+            } else if (runsResponse?.workflow_runs?.length > 0) {
+              const run = runsResponse.workflow_runs[0];
+              status = run.conclusion === 'success' ? 'success' : run.conclusion === 'failure' ? 'failure' : 'pending';
+            }
+            
+            return {
+              prNumber: pr.number,
+              prUrl: pr.prUrl,
+              status,
+              lastRun: checksResponse?.check_runs?.[0]?.completed_at || runsResponse?.workflow_runs?.[0]?.updated_at
+            };
+          } catch (error) {
+            return { prNumber: pr.number, prUrl: pr.prUrl, status: 'unknown', error: error.message };
+          }
+        }));
+
+        sendJson(res, 200, { status: 'ok', prs: prStatuses });
+      } catch (error) {
+        console.error('Pipeline status error:', error);
+        sendJson(res, 500, { message: error.message });
+      }
+      return;
+    }
+
     if (pathname === '/api/version' && method === 'GET') {
       const { readFile } = await import('fs/promises');
       const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));

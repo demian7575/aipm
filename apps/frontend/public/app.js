@@ -2648,6 +2648,10 @@ async function loadStories(preserveSelection = true) {
       state.stories = apiStories;
       rebuildStoryIndex();
       console.log('Stories loaded from API, count:', apiStories.length);
+      
+      // Fetch pipeline status for stories with PRs
+      await loadPipelineStatuses();
+      
       // Auto-backup after successful API load
       autoBackupData();
     } else {
@@ -2678,6 +2682,41 @@ async function loadStories(preserveSelection = true) {
   mindmapHasCentered = false;
   console.log('Calling renderAll...');
   renderAll();
+}
+
+/**
+ * Load pipeline status for all stories with PRs
+ */
+async function loadPipelineStatuses() {
+  const storiesWithPRs = [];
+  function collectStories(stories) {
+    for (const story of stories) {
+      if (story.prs && story.prs.length > 0) {
+        storiesWithPRs.push(story);
+      }
+      if (story.children) {
+        collectStories(story.children);
+      }
+    }
+  }
+  collectStories(state.stories);
+  
+  await Promise.all(storiesWithPRs.map(async (story) => {
+    try {
+      const url = resolveApiUrl(`/api/stories/${story.id}/pipeline-status`);
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.prs && data.prs.length > 0) {
+          const latest = data.prs[0];
+          story.pipelineStatus = latest.status;
+          story.pipelineLastRun = latest.lastRun;
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to load pipeline status for story ${story.id}:`, error);
+    }
+  }));
 }
 
 function renderAll() {
@@ -3496,6 +3535,25 @@ function renderMindmap() {
         toggleStoryExpansion(node.story.id);
       });
       group.appendChild(symbol);
+    }
+
+    // CI/CD Pipeline Status Indicator
+    if (node.story.pipelineStatus) {
+      const statusX = node.x + 8;
+      const statusY = node.y + 8;
+      const statusCircle = document.createElementNS(svgNS, 'circle');
+      statusCircle.classList.add('pipeline-status-indicator');
+      statusCircle.setAttribute('cx', String(statusX));
+      statusCircle.setAttribute('cy', String(statusY));
+      statusCircle.setAttribute('r', '6');
+      statusCircle.setAttribute('fill', 
+        node.story.pipelineStatus === 'success' ? '#22c55e' : 
+        node.story.pipelineStatus === 'failure' ? '#ef4444' : '#eab308');
+      
+      const titleEl = document.createElementNS(svgNS, 'title');
+      titleEl.textContent = `Pipeline: ${node.story.pipelineStatus}${node.story.pipelineLastRun ? `\nLast run: ${new Date(node.story.pipelineLastRun).toLocaleString()}` : ''}`;
+      statusCircle.appendChild(titleEl);
+      group.appendChild(statusCircle);
     }
 
     if (state.showDependencies) {
