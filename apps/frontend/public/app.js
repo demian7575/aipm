@@ -53,6 +53,10 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
+const storyListModal = document.getElementById('story-list-modal');
+const storyListModalClose = document.getElementById('story-list-modal-close');
+const storyListItems = document.getElementById('story-list-items');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -8868,7 +8872,28 @@ async function initialize() {
     openDocumentPanel();
   });
 
+  /**
+   * Open story list modal showing all story titles
+   */
+  storyListBtn?.addEventListener('click', () => {
+    storyListItems.innerHTML = '';
+    state.stories.forEach(story => {
+      const li = document.createElement('li');
+      li.textContent = story.title || 'Untitled';
+      storyListItems.appendChild(li);
+    });
+    storyListModal.style.display = 'flex';
+  });
 
+  storyListModalClose?.addEventListener('click', () => {
+    storyListModal.style.display = 'none';
+  });
+
+  storyListModal?.addEventListener('click', (e) => {
+    if (e.target === storyListModal) {
+      storyListModal.style.display = 'none';
+    }
+  });
 
   expandAllBtn.addEventListener('click', () => setAllExpanded(true));
   collapseAllBtn.addEventListener('click', () => setAllExpanded(false));
