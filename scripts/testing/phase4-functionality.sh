@@ -679,9 +679,43 @@ fi
 
 echo ""
 
-# Test 43: US-VIZ-RTM-003 - Test-specific metrics in RTM view
+# Test 43: Story 1771433219492 - Story List Button
+if [ "$STORY_ID" = "1771433219492" ]; then
+  echo "Test 43: Story 1771433219492 - Story List Button"
+  
+  # Check button exists in HTML
+  if curl -s "$FRONTEND_URL" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check event listener in JS
+  FRONTEND_JS=$(curl -s "$FRONTEND_URL/app.js")
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.*addEventListener"; then
+    echo "  ✅ PASS: Story list button click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check modal opening logic
+  if echo "$FRONTEND_JS" | grep -q "openModal"; then
+    echo "  ✅ PASS: Modal opening logic present"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal opening logic missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
+# Test 44: US-VIZ-RTM-003 - Test-specific metrics in RTM view
 if [ "$STORY_ID" = "1771083417916" ]; then
-  echo "Test 43: US-VIZ-RTM-003 - Test-specific metrics displayed"
+  echo "Test 44: US-VIZ-RTM-003 - Test-specific metrics displayed"
   RTM_RESPONSE=$(curl -s "$API_URL/api/rtm/matrix")
   STORY_DATA=$(echo "$RTM_RESPONSE" | jq -r ".[] | select(.id == 1771083417916)")
   
@@ -709,9 +743,9 @@ if [ "$STORY_ID" = "1771083417916" ]; then
   echo ""
 fi
 
-# Test 44: US-VIZ-RTM-002 - Display Test Log on Acceptance Test Click
+# Test 45: US-VIZ-RTM-002 - Display Test Log on Acceptance Test Click
 if [ "$1" = "1771138996374" ]; then
-  echo "Test 44: US-VIZ-RTM-002 - Test log API endpoint"
+  echo "Test 45: US-VIZ-RTM-002 - Test log API endpoint"
   
   # Check backend has test log endpoint
   APP_JS=$(cat apps/backend/app.js)
