@@ -53,6 +53,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -753,6 +754,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    await openStoryListModal();
   });
 }
 
@@ -8502,6 +8509,42 @@ function openReferenceModal(storyId) {
   }
 
   openModal({ title: 'Reference Document List', content: container });
+}
+
+/**
+ * Opens a modal displaying all story titles
+ */
+async function openStoryListModal() {
+  try {
+    const stories = await sendJson(resolveApiUrl('/api/stories'), { method: 'GET' });
+    
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '0.5rem';
+    container.style.maxHeight = '400px';
+    container.style.overflowY = 'auto';
+    
+    if (!stories || stories.length === 0) {
+      container.innerHTML = '<p>No stories found.</p>';
+    } else {
+      stories.forEach(story => {
+        const titleEl = document.createElement('div');
+        titleEl.textContent = story.title;
+        titleEl.style.padding = '0.5rem';
+        titleEl.style.borderBottom = '1px solid #eee';
+        container.appendChild(titleEl);
+      });
+    }
+    
+    openModal({ 
+      title: 'Story List', 
+      content: container,
+      actions: []
+    });
+  } catch (error) {
+    showToast(error.message || 'Failed to load stories', 'error');
+  }
 }
 
 async function createRootStory() {
