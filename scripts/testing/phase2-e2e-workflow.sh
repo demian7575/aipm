@@ -674,8 +674,8 @@ echo ""
 # Exit with failure if any tests failed
 if [[ $PHASE_FAILED -gt 0 ]]; then
     echo "❌ Phase 2 FAILED: $PHASE_FAILED test(s) failed"
-    return 1
+    exit 1
 fi
 
 echo "✅ Phase 2 PASSED - E2E workflow validated"
-return 0
+exit 0

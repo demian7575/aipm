@@ -20,12 +20,12 @@ if [ "$ENV" != "prod" ] && [ "$ENV" != "dev" ]; then
   exit 1
 fi
 
-# Get instance ID
-if [ "$ENV" = "prod" ]; then
-  INSTANCE_ID="i-016241c7a18884e80"
-else
-  INSTANCE_ID="i-0c5326fb2c8e6a2f7"
-fi
+# Load config from environments.yaml
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$PROJECT_ROOT/scripts/utilities/load-env-config.sh" "$ENV" > /dev/null
+
+INSTANCE_ID="$INSTANCE_ID"
 
 # Get current IP
 IP=$(aws ec2 describe-instances \

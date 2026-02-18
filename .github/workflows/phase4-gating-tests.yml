@@ -57,7 +57,7 @@ jobs:
           echo "🔍 Checking EC2 status for $TARGET_ENV..."
           
           if [ "$TARGET_ENV" = "prod" ]; then
-            INSTANCE_ID="i-016241c7a18884e80"
+            INSTANCE_ID="i-09971cca92b9bf3a9"
           else
             INSTANCE_ID="i-08c78da25af47b3cb"
           fi
