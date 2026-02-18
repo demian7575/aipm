@@ -94,6 +94,10 @@ fi
 
 echo "✅ Backend deployed"
 
+# Deploy Lambda functions
+echo "⚡ Deploying Lambda functions..."
+"$SCRIPT_DIR/../scripts/deploy-lambda.sh" "$ENV"
+
 # Deploy frontend
 echo "🌐 Deploying frontend to S3..."
 aws s3 sync apps/frontend/public/ s3://$FRONTEND_BUCKET/ --exclude "*.md" --exclude ".DS_Store"

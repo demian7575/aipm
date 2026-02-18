@@ -4,7 +4,7 @@ inclusion: always
 
 # Project Status & Progress
 
-**Last Updated**: 2026-02-19 00:18 KST
+**Last Updated**: 2026-02-19 01:20 KST
 
 ## Recent Changes (Today)
 - Fixed Kiro CLI PTY issue - spawn bash then run kiro inside it (not direct spawn)

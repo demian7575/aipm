@@ -213,6 +213,12 @@ jobs:
           ./scripts/deploy-to-environment.sh dev
           echo "✅ Backend deployed to development EC2"
       
+      - name: Deploy Lambda functions to Development
+        run: |
+          echo "⚡ Deploying Lambda functions to Development..."
+          ./scripts/deploy-lambda.sh dev
+          echo "✅ Lambda functions deployed"
+      
       - name: Sync database from production to development
         run: |
           echo "🔄 Syncing database from production to development..."

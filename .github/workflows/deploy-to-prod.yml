@@ -162,6 +162,12 @@ jobs:
           ./scripts/deploy-simple.sh dev
           echo "✅ Backend deployed to Development EC2"
       
+      - name: Deploy Lambda functions to Development
+        run: |
+          echo "⚡ Deploying Lambda functions to Development..."
+          ./scripts/deploy-lambda.sh dev
+          echo "✅ Lambda functions deployed"
+      
       - name: Deploy frontend to Development S3
         run: |
           echo "📦 Deploying frontend to Development S3..."
@@ -356,6 +362,12 @@ jobs:
           
           ./scripts/deploy-simple.sh prod
           echo "✅ Backend deployed to Production EC2"
+      
+      - name: Deploy Lambda functions to Production
+        run: |
+          echo "⚡ Deploying Lambda functions to Production..."
+          ./scripts/deploy-lambda.sh prod
+          echo "✅ Lambda functions deployed"
       
       - name: Deploy frontend to Production S3
         run: |
