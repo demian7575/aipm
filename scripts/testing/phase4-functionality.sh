@@ -744,6 +744,67 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1771400891939 - Display story list modal when header button is clicked
+if [ "$1" = "1771400891939" ]; then
+  echo "Test 45: Display story list modal when header button is clicked"
+  
+  # Check HTML has story list button
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  if echo "$INDEX_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check frontend has openStoryListModal function
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$FRONTEND_JS" | grep -q "openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check button has click handler
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story list button click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
+# Test 46: Story 1771400891939 - Close modal when user clicks outside or on X button
+if [ "$1" = "1771400891939" ]; then
+  echo "Test 46: Close modal when user clicks outside or on X button"
+  
+  # Check modal has close functionality (already exists in base modal)
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$FRONTEND_JS" | grep -q "closeModal"; then
+    echo "  ✅ PASS: closeModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: closeModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check modal close button exists
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  if echo "$INDEX_HTML" | grep -q 'id="modal-close"'; then
+    echo "  ✅ PASS: Modal close button exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal close button not found"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
