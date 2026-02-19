@@ -192,6 +192,7 @@ jobs:
           API_BASE: ${{ env.DEV_API_BASE }}
           SEMANTIC_API_BASE: ${{ env.DEV_SEMANTIC_API_BASE }}
           SSH_HOST: ${{ env.DEV_EC2_IP }}
+          INSTANCE_ID: ${{ env.DEV_INSTANCE_ID }}
           SKIP_GATING_TESTS_IN_CODE_GENERATION: true
         run: |
           echo "🧪 Running Pre-Production Gating Tests on Development Environment"
@@ -390,6 +391,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.AIPM_GITHUB_TOKEN }}
           TARGET_ENV: prod
+          INSTANCE_ID: ${{ env.PROD_INSTANCE_ID }}
           SKIP_GATING_TESTS_IN_CODE_GENERATION: true
         run: |
           echo "🔍 Running Post-Production Gating Tests on Production Environment"
