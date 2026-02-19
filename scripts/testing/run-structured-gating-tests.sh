@@ -43,16 +43,7 @@ fi
 
 # Check if EC2 is running, start if needed
 echo "🔍 Checking EC2 status..."
-
-# Use environment variable if set, otherwise read from config
-if [[ -n "$INSTANCE_ID" ]]; then
-    echo "Using INSTANCE_ID from environment: $INSTANCE_ID"
-elif command -v yq &> /dev/null; then
-    INSTANCE_ID=$(yq eval ".${TARGET_ENV}.instance_id // \"\"" "$(dirname "$0")/../../config/environments.yaml")
-else
-    # Fallback: parse YAML with python
-    INSTANCE_ID=$(python3 -c "import yaml; print(yaml.safe_load(open('$(dirname "$0")/../../config/environments.yaml'))['${TARGET_ENV}']['instance_id'])" 2>/dev/null || echo "")
-fi
+INSTANCE_ID=$(yq eval ".${TARGET_ENV}.instance_id // \"\"" "$(dirname "$0")/../../config/environments.yaml")
 
 if [[ -n "$INSTANCE_ID" ]]; then
     EC2_STATE=$(aws ec2 describe-instances \
