@@ -29,7 +29,7 @@ record_test_result "47" "AT-UX-CORE-L5-006-01: Select node" "SKIP" "$PHASE" "0"
 # Test 69: AT-CS-DATA-L4-002-01: Create story in DynamoDB (Story #2102)
 echo "Test 69: AT-CS-DATA-L4-002-01: Create story in DynamoDB"
 START_TIME=$(date +%s)
-RESPONSE=$(curl -s -X POST "$API_BASE/api/story" -H "Content-Type: application/json" 2>&1)
+RESPONSE=$(curl -s -X POST "$API_BASE/api/stories" -H "Content-Type: application/json" -H "X-Use-Dev-Tables: true" -d '{"title":"Test Story","asA":"tester","iWant":"test","soThat":"test","acceptWarnings":true}' 2>&1)
 DURATION=$((($(date +%s) - START_TIME)))
 if echo "$RESPONSE" | grep -qE '(^\[|^\{|"id"|"status")'; then
   echo "  ✅ PASS: AT-CS-DATA-L4-002-01: Create story in DynamoDB"
@@ -347,9 +347,17 @@ record_test_result "36" "AT-UX-CORE-L4-004-02: Submit new story" "SKIP" "$PHASE"
 # Test 71: AT-CS-DATA-L4-002-03: Update story (Story #2102)
 echo "Test 71: AT-CS-DATA-L4-002-03: Update story"
 START_TIME=$(date +%s)
-RESPONSE=$(curl -s -X PUT "$API_BASE/api/story" -H "Content-Type: application/json" 2>&1)
+# Create a test story first, then update it
+TEST_STORY=$(curl -s -X POST "$API_BASE/api/stories" -H "Content-Type: application/json" -H "X-Use-Dev-Tables: true" -d '{"title":"Update Test","asA":"tester","iWant":"test","soThat":"test","acceptWarnings":true}')
+STORY_ID=$(echo "$TEST_STORY" | jq -r '.id')
+if [ "$STORY_ID" != "null" ] && [ -n "$STORY_ID" ]; then
+  RESPONSE=$(curl -s -X PUT "$API_BASE/api/stories/$STORY_ID" -H "Content-Type: application/json" -H "X-Use-Dev-Tables: true" -d '{"title":"Updated","asA":"tester","iWant":"test","soThat":"test"}' 2>&1)
+  curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -H "X-Use-Dev-Tables: true" > /dev/null
+else
+  RESPONSE=""
+fi
 DURATION=$((($(date +%s) - START_TIME)))
-if echo "$RESPONSE" | grep -qE '(^\[|^\{|"id"|"status")'; then
+if echo "$RESPONSE" | grep -qE '(^\[|^\{|"id"|"status"|"success")'; then
   echo "  ✅ PASS: AT-CS-DATA-L4-002-03: Update story"
   PASSED=$((PASSED + 1))
   record_test_result "71" "AT-CS-DATA-L4-002-03: Update story" "PASS" "$PHASE" "$DURATION"
