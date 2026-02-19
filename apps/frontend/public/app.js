@@ -3879,7 +3879,10 @@ async function renderCICD() {
         link.title = info.storyTitle || '';
         link.onclick = (e) => {
           e.preventDefault();
-          selectStory(info.storyId);
+          const story = storyIndex.get(info.storyId);
+          if (story) {
+            handleStorySelection(story);
+          }
           return false;
         };
         storyCell.appendChild(link);

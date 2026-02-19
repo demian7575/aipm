@@ -25,6 +25,34 @@ json_check() {
 # Import base functions from test-functions.sh
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
+# Generate unique run ID for this test execution
+export TEST_RUN_ID="${TEST_RUN_ID:-$(date +%s)-$$}"
+
+# Record test result to database
+record_test_result() {
+    local test_id="$1"
+    local test_name="$2"
+    local status="$3"  # PASS, FAIL, SKIP
+    local phase="${4:-unknown}"
+    local duration="${5:-0}"
+    
+    # Only record if API_BASE is set
+    if [ -z "$API_BASE" ]; then
+        return 0
+    fi
+    
+    curl -s -X POST "$API_BASE/api/test-results" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"testId\": \"$test_id\",
+            \"testName\": \"$test_name\",
+            \"status\": \"$status\",
+            \"runId\": \"$TEST_RUN_ID\",
+            \"phase\": \"$phase\",
+            \"duration\": $duration
+        }" > /dev/null 2>&1
+}
+
 # ============================================
 # SECURITY TESTS
 # ============================================

@@ -21,12 +21,30 @@ fi
 # Get instance ID from config
 export INSTANCE_ID=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "instance_id")
 
+# Check instance state and wake up if stopped
+INSTANCE_STATE=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].State.Name' --output text 2>/dev/null)
+
+if [[ "$INSTANCE_STATE" == "stopped" ]]; then
+    echo "🔄 Starting $ENV EC2 instance ($INSTANCE_ID)..."
+    aws ec2 start-instances --instance-ids "$INSTANCE_ID" --region us-east-1 > /dev/null 2>&1
+    
+    # Wait for instance to be running
+    echo "⏳ Waiting for instance to start..."
+    aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --region us-east-1
+    
+    # Wait for services to initialize
+    echo "⏳ Waiting for services to initialize (30s)..."
+    sleep 30
+    
+    echo "✅ Instance started"
+fi
+
 # Get current public IP from AWS
 export EC2_IP=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].PublicIpAddress' --output text 2>/dev/null)
 
 if [[ -z "$EC2_IP" || "$EC2_IP" == "None" ]]; then
-    echo "⚠️  Instance $INSTANCE_ID is stopped or has no public IP"
-    export EC2_IP="INSTANCE_STOPPED"
+    echo "❌ Failed to get instance IP"
+    export EC2_IP="INSTANCE_ERROR"
 else
     echo "✅ Fetched IP from AWS: $EC2_IP"
 fi
