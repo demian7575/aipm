@@ -299,6 +299,41 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for Story 1771486036560: View Stories button and modal
+if [ "$1" = "1771486036560" ]; then
+  echo "Test 17: Story 1771486036560 - View Stories button and modal"
+  
+  # Check HTML has View Stories button
+  HTML_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html)
+  if echo "$HTML_CONTENT" | grep -q 'id="view-stories-btn"'; then
+    echo "  ✅ PASS: View Stories button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View Stories button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check JS has button reference and event listener
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$APP_JS_CONTENT" | grep -q "viewStoriesBtn" && \
+     echo "$APP_JS_CONTENT" | grep -q "openStoryListModal"; then
+    echo "  ✅ PASS: View Stories button wired with event listener"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View Stories button event listener missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check openStoryListModal function exists
+  if echo "$APP_JS_CONTENT" | grep -q "function openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
