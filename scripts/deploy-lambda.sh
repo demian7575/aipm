@@ -15,7 +15,8 @@ echo "🚀 Deploying Lambda functions to $ENV..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utilities/load-env-config.sh" "$ENV"
 
-LAMBDA_DIR="$SCRIPT_DIR/../lambda"
+# Set lambda dir after sourcing config (in case it changes directory)
+LAMBDA_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/lambda"
 TEMP_DIR=$(mktemp -d)
 DEPLOY_SUCCESS=0
 
