@@ -3801,26 +3801,7 @@ async function renderCICD() {
     const cicdResponse = await fetch(cicdUrl);
     if (!cicdResponse.ok) throw new Error('Failed to fetch CI/CD matrix');
     
-    const { runs, testIds, matrix } = await cicdResponse.json();
-    
-    // Get acceptance tests to map testId to storyId
-    const storiesUrl = resolveApiUrl('/api/stories');
-    const storiesResponse = await fetch(storiesUrl);
-    const stories = storiesResponse.ok ? await storiesResponse.json() : [];
-    
-    // Build testId -> storyId map
-    const testToStoryMap = {};
-    const flattenStories = (storyList) => {
-      storyList.forEach(story => {
-        if (story.acceptanceTests) {
-          story.acceptanceTests.forEach(test => {
-            testToStoryMap[test.id] = { storyId: story.id, storyTitle: story.title };
-          });
-        }
-        if (story.children) flattenStories(story.children);
-      });
-    };
-    flattenStories(stories);
+    const { runs, testIds, testInfo, matrix } = await cicdResponse.json();
     
     const tbody = document.getElementById('cicd-matrix-body');
     const thead = document.querySelector('.cicd-matrix thead tr');
@@ -3890,9 +3871,9 @@ async function renderCICD() {
       storyCell.dataset.colKey = 'story';
       storyCell.style.width = `${getCicdColumnWidth('story', CICD_COLUMN_DEFAULTS.story)}px`;
       storyCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.story.minWidth}px`;
-      const storyInfo = testToStoryMap[testId];
-      if (storyInfo) {
-        storyCell.innerHTML = `<a href="#" onclick="event.preventDefault(); selectStory(${storyInfo.storyId}); return false;" title="${storyInfo.storyTitle}">#${storyInfo.storyId}</a>`;
+      const info = testInfo?.[testId];
+      if (info?.storyId) {
+        storyCell.innerHTML = `<a href="#" onclick="event.preventDefault(); selectStory(${info.storyId}); return false;" title="${info.storyTitle || ''}">#${info.storyId}</a>`;
       } else {
         storyCell.textContent = '-';
       }
@@ -3904,9 +3885,8 @@ async function renderCICD() {
       titleCell.dataset.colKey = 'title';
       titleCell.style.width = `${getCicdColumnWidth('title', CICD_COLUMN_DEFAULTS.title)}px`;
       titleCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.title.minWidth}px`;
-      const firstResult = Object.values(matrix[testId]).find(r => r);
-      titleCell.textContent = firstResult?.title || 'Unknown Test';
-      titleCell.title = firstResult?.title || 'Unknown Test';
+      titleCell.textContent = info?.testTitle || 'Unknown Test';
+      titleCell.title = info?.testTitle || 'Unknown Test';
       row.appendChild(titleCell);
       
       // Result columns for each run

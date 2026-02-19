@@ -7011,6 +7011,47 @@ export async function createApp() {
       }
     }
 
+    // POST /api/test-results - Record test result
+    if (pathname === '/api/test-results' && method === 'POST') {
+      try {
+        const body = await readRequestBody(req);
+        const { testId, testName, status, runId, phase, duration } = JSON.parse(body);
+        
+        if (!testId || !testName || !status || !runId) {
+          sendJson(res, 400, { error: 'Missing required fields: testId, testName, status, runId' });
+          return;
+        }
+
+        const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+        const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+        const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+        const docClient = DynamoDBDocumentClient.from(client);
+        
+        const timestamp = new Date().toISOString();
+        const item = {
+          testId: String(testId),
+          runId: String(runId),
+          testName,
+          status, // PASS, FAIL, SKIP
+          phase: phase || 'unknown',
+          duration: duration || 0,
+          timestamp
+        };
+
+        await docClient.send(new PutCommand({
+          TableName: 'aipm-backend-prod-test-results',
+          Item: item
+        }));
+        
+        sendJson(res, 201, item);
+        return;
+      } catch (error) {
+        console.error('Error recording test result:', error);
+        sendJson(res, 500, { error: 'Failed to record test result' });
+        return;
+      }
+    }
+
     // GET /api/cicd/matrix - Get test execution matrix
     if (pathname === '/api/cicd/matrix' && method === 'GET') {
       try {
@@ -7019,6 +7060,7 @@ export async function createApp() {
         const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
         const docClient = DynamoDBDocumentClient.from(client);
         
+        // Get test results
         const result = await docClient.send(new ScanCommand({
           TableName: 'aipm-backend-prod-test-results',
           Limit: 5000
@@ -7038,9 +7080,46 @@ export async function createApp() {
         // Get unique testIds
         const testIds = [...new Set(items.map(i => i.testId))].sort((a, b) => parseInt(a) - parseInt(b));
         
-        // Build matrix: { testId: { runId: {status, title, ...} } }
+        // Get acceptance tests and stories for titles
+        const acceptanceTests = {};
+        const stories = {};
+        
+        try {
+          const testsResult = await docClient.send(new ScanCommand({
+            TableName: 'aipm-backend-prod-acceptance-tests',
+            Limit: 1000
+          }));
+          
+          for (const test of testsResult.Items || []) {
+            acceptanceTests[test.id] = {
+              title: test.title,
+              storyId: test.storyId
+            };
+          }
+          
+          // Get stories
+          const allStories = await db.getAllStories();
+          for (const story of allStories) {
+            stories[story.id] = story.title;
+          }
+        } catch (e) {
+          console.warn('Could not load acceptance tests/stories:', e.message);
+        }
+        
+        // Build matrix with titles
         const matrix = {};
+        const testInfo = {};
+        
         testIds.forEach(testId => {
+          const test = acceptanceTests[testId];
+          const storyId = test?.storyId;
+          
+          testInfo[testId] = {
+            testTitle: test?.title || items.find(i => i.testId === testId)?.testName || `Test ${testId}`,
+            storyId: storyId,
+            storyTitle: storyId ? stories[storyId] || `Story ${storyId}` : null
+          };
+          
           matrix[testId] = {};
           runs.forEach(run => {
             const result = items.find(i => i.testId === testId && i.runId === run.runId);
@@ -7048,7 +7127,7 @@ export async function createApp() {
           });
         });
         
-        sendJson(res, 200, { runs, testIds, matrix });
+        sendJson(res, 200, { runs, testIds, testInfo, matrix });
         return;
       } catch (error) {
         console.error('Error getting CI/CD matrix:', error);
