@@ -8811,6 +8811,35 @@ function splitLines(value) {
     .filter(Boolean);
 }
 
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  
+  const allStories = flattenStories(state.stories);
+  const storyTitles = allStories.map(s => s.title).slice(0, 50);
+  
+  const list = document.createElement('ul');
+  list.className = 'story-list';
+  
+  storyTitles.forEach(title => {
+    const item = document.createElement('li');
+    item.textContent = title;
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'default'
+  });
+}
+
 async function fetchVersion() {
   try {
     const res = await fetch(resolveApiUrl('/api/version'));
@@ -8910,6 +8939,9 @@ async function initialize() {
       onClose,
     });
   });
+
+  const storyListBtn = document.getElementById('story-list-btn');
+  storyListBtn?.addEventListener('click', openStoryListModal);
 
   autoLayoutToggle.addEventListener('click', () => {
     if (state.autoLayout) {

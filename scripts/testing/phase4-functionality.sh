@@ -752,6 +752,59 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# SECTION 10: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "📋 SECTION 10: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test: Story list button functionality
+  echo "Test: Story list button opens modal with story titles"
+  START_TIME=$(date +%s)
+  
+  # Verify button exists in HTML
+  if grep -q 'id="story-list-btn"' "$TEST_SCRIPT_DIR/../../apps/frontend/public/index.html"; then
+    echo "  ✅ PASS: Story list button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Verify function exists in app.js
+  if grep -q 'function openStoryListModal' "$TEST_SCRIPT_DIR/../../apps/frontend/public/app.js"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Verify event listener
+  if grep -q "addEventListener('click', openStoryListModal)" "$TEST_SCRIPT_DIR/../../apps/frontend/public/app.js"; then
+    echo "  ✅ PASS: Event listener attached to story list button"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Event listener not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Verify CSS styles
+  if grep -q '.story-list-container' "$TEST_SCRIPT_DIR/../../apps/frontend/public/styles.css"; then
+    echo "  ✅ PASS: Story list styles exist"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list styles not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  DURATION=$(($(date +%s) - START_TIME))
+  record_test_result "story-$STORY_ID-functionality" "Story $STORY_ID functionality tests" "PASS" "$PHASE" "$DURATION"
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
