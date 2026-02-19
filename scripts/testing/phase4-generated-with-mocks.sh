@@ -18,37 +18,185 @@ echo "=============================================="
 echo "Run ID: $TEST_RUN_ID"
 echo ""
 
-# Mock helper functions
+# Mock helper functions that verify actual functionality
 mock_createStory() {
-  echo '{"id": 999, "title": "Mock Story", "status": "Draft"}'
+  # Actually create a story via API and verify
+  TIMESTAMP=$(date +%s)
+  RESULT=$(curl -s -X POST "$API_BASE/api/stories" \
+    -H 'Content-Type: application/json' \
+    -H 'X-Use-Dev-Tables: true' \
+    -d "{\"title\": \"Mock Test $TIMESTAMP\", \"asA\": \"tester\", \"iWant\": \"verify create\", \"soThat\": \"test passes\", \"acceptWarnings\": true}")
+  
+  if echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
+    STORY_ID=$(echo "$RESULT" | jq -r '.id')
+    # Cleanup
+    curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true' > /dev/null
+    echo "$RESULT"
+  else
+    echo ""
+  fi
 }
 
 mock_updateStory() {
-  echo '{"success": true, "message": "Story updated"}'
+  # Create, update, verify, cleanup
+  TIMESTAMP=$(date +%s)
+  STORY=$(curl -s -X POST "$API_BASE/api/stories" \
+    -H 'Content-Type: application/json' \
+    -H 'X-Use-Dev-Tables: true' \
+    -d "{\"title\": \"Update Test $TIMESTAMP\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\", \"acceptWarnings\": true}")
+  
+  STORY_ID=$(echo "$STORY" | jq -r '.id')
+  if [ "$STORY_ID" != "null" ]; then
+    RESULT=$(curl -s -X PUT "$API_BASE/api/stories/$STORY_ID" \
+      -H 'Content-Type: application/json' \
+      -H 'X-Use-Dev-Tables: true' \
+      -d "{\"title\": \"Updated\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\"}")
+    
+    curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true' > /dev/null
+    echo "$RESULT"
+  else
+    echo ""
+  fi
 }
 
 mock_deleteStory() {
-  echo '{"success": true, "message": "Story deleted"}'
+  # Create then delete and verify it's gone
+  TIMESTAMP=$(date +%s)
+  STORY=$(curl -s -X POST "$API_BASE/api/stories" \
+    -H 'Content-Type: application/json' \
+    -H 'X-Use-Dev-Tables: true' \
+    -d "{\"title\": \"Delete Test $TIMESTAMP\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\", \"acceptWarnings\": true}")
+  
+  STORY_ID=$(echo "$STORY" | jq -r '.id')
+  if [ "$STORY_ID" != "null" ]; then
+    curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true' > /dev/null
+    # Verify it's deleted
+    CHECK=$(curl -s "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true')
+    if echo "$CHECK" | jq -e '.message' | grep -q "not found"; then
+      echo '{"success": true, "message": "Story deleted and verified"}'
+    else
+      echo ""
+    fi
+  else
+    echo ""
+  fi
 }
 
 mock_createAcceptanceTest() {
-  echo '{"id": 888, "title": "Mock Test", "storyId": 999}'
+  # Create story, add test, verify, cleanup
+  TIMESTAMP=$(date +%s)
+  STORY=$(curl -s -X POST "$API_BASE/api/stories" \
+    -H 'Content-Type: application/json' \
+    -H 'X-Use-Dev-Tables: true' \
+    -d "{\"title\": \"Test Story $TIMESTAMP\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\", \"acceptWarnings\": true}")
+  
+  STORY_ID=$(echo "$STORY" | jq -r '.id')
+  if [ "$STORY_ID" != "null" ]; then
+    RESULT=$(curl -s -X POST "$API_BASE/api/stories/$STORY_ID/tests" \
+      -H 'Content-Type: application/json' \
+      -H 'X-Use-Dev-Tables: true' \
+      -d "{\"title\": \"Test $TIMESTAMP\", \"given\": [\"test\"], \"when\": [\"test\"], \"then\": [\"test\"]}")
+    
+    curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true' > /dev/null
+    echo "$RESULT"
+  else
+    echo ""
+  fi
 }
 
 mock_updateAcceptanceTest() {
-  echo '{"success": true, "message": "Test updated"}'
+  # Create story with test, update test, verify, cleanup
+  TIMESTAMP=$(date +%s)
+  STORY=$(curl -s -X POST "$API_BASE/api/stories" \
+    -H 'Content-Type: application/json' \
+    -H 'X-Use-Dev-Tables: true' \
+    -d "{\"title\": \"Test Story $TIMESTAMP\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\", \"acceptWarnings\": true}")
+  
+  STORY_ID=$(echo "$STORY" | jq -r '.id')
+  if [ "$STORY_ID" != "null" ]; then
+    TEST=$(curl -s -X POST "$API_BASE/api/stories/$STORY_ID/tests" \
+      -H 'Content-Type: application/json' \
+      -H 'X-Use-Dev-Tables: true' \
+      -d "{\"title\": \"Test $TIMESTAMP\", \"given\": [\"test\"], \"when\": [\"test\"], \"then\": [\"test\"]}")
+    
+    TEST_ID=$(echo "$TEST" | jq -r '.id')
+    if [ "$TEST_ID" != "null" ]; then
+      RESULT=$(curl -s -X PUT "$API_BASE/api/stories/$STORY_ID/tests/$TEST_ID" \
+        -H 'Content-Type: application/json' \
+        -H 'X-Use-Dev-Tables: true' \
+        -d "{\"title\": \"Updated Test\", \"given\": [\"updated\"], \"when\": [\"updated\"], \"then\": [\"updated\"]}")
+      
+      curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true' > /dev/null
+      echo "$RESULT"
+    else
+      curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true' > /dev/null
+      echo ""
+    fi
+  else
+    echo ""
+  fi
 }
 
 mock_deleteAcceptanceTest() {
-  echo '{"success": true, "message": "Test deleted"}'
+  # Create story with test, delete test, verify, cleanup
+  TIMESTAMP=$(date +%s)
+  STORY=$(curl -s -X POST "$API_BASE/api/stories" \
+    -H 'Content-Type: application/json' \
+    -H 'X-Use-Dev-Tables: true' \
+    -d "{\"title\": \"Test Story $TIMESTAMP\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\", \"acceptWarnings\": true}")
+  
+  STORY_ID=$(echo "$STORY" | jq -r '.id')
+  if [ "$STORY_ID" != "null" ]; then
+    TEST=$(curl -s -X POST "$API_BASE/api/stories/$STORY_ID/tests" \
+      -H 'Content-Type: application/json' \
+      -H 'X-Use-Dev-Tables: true' \
+      -d "{\"title\": \"Test $TIMESTAMP\", \"given\": [\"test\"], \"when\": [\"test\"], \"then\": [\"test\"]}")
+    
+    TEST_ID=$(echo "$TEST" | jq -r '.id')
+    if [ "$TEST_ID" != "null" ]; then
+      curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID/tests/$TEST_ID" -H 'X-Use-Dev-Tables: true' > /dev/null
+      # Verify deleted
+      STORY_CHECK=$(curl -s "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true')
+      TEST_COUNT=$(echo "$STORY_CHECK" | jq '.acceptanceTests | length')
+      
+      curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true' > /dev/null
+      
+      if [ "$TEST_COUNT" = "0" ]; then
+        echo '{"success": true, "message": "Test deleted and verified"}'
+      else
+        echo ""
+      fi
+    else
+      curl -s -X DELETE "$API_BASE/api/stories/$STORY_ID" -H 'X-Use-Dev-Tables: true' > /dev/null
+      echo ""
+    fi
+  else
+    echo ""
+  fi
 }
 
 mock_getAllStories() {
-  echo '[{"id": 1, "title": "Story 1"}, {"id": 2, "title": "Story 2"}]'
+  # Actually fetch all stories from dev table
+  RESULT=$(curl -s "$API_BASE/api/stories" -H 'X-Use-Dev-Tables: true')
+  if echo "$RESULT" | jq -e 'type == "array"' > /dev/null 2>&1; then
+    echo "$RESULT"
+  else
+    echo ""
+  fi
 }
 
 mock_getAllAcceptanceTests() {
-  echo '[{"id": 1, "title": "Test 1"}, {"id": 2, "title": "Test 2"}]'
+  # Fetch all acceptance tests from DynamoDB
+  RESULT=$(aws dynamodb scan \
+    --table-name aipm-backend-dev-acceptance-tests \
+    --region us-east-1 \
+    --output json 2>/dev/null | jq '[.Items[] | {id: .id.N, title: .title.S}]')
+  
+  if [ -n "$RESULT" ]; then
+    echo "$RESULT"
+  else
+    echo ""
+  fi
 }
 
 mock_getStoriesTable() {
