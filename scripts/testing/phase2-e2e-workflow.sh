@@ -46,11 +46,20 @@ phase2_step1_story_draft_generation() {
     
     log_test "Story Draft Generation (SSE)"
     
-    # Get parent story ID
+    # Get parent story ID (create one if none exists)
     local parent_story=$(curl -s $USE_DEV_TABLES_HEADER "$API_BASE/api/stories" | jq -r '.[0] | select(.id != null) | .id')
     if [[ -z "$parent_story" ]]; then
-        fail_test "Story Draft Generation (No parent story found)"
-        return
+        echo "   📝 No parent story found, creating one..."
+        local create_result=$(curl -s -X POST "$API_BASE/api/stories" \
+            $USE_DEV_TABLES_HEADER \
+            -H 'Content-Type: application/json' \
+            -d '{"title": "Phase 2 Test Parent Story", "asA": "tester", "iWant": "run phase 2 tests", "soThat": "verify E2E workflow", "acceptWarnings": true}')
+        parent_story=$(echo "$create_result" | jq -r '.id')
+        if [[ -z "$parent_story" ]] || [[ "$parent_story" == "null" ]]; then
+            fail_test "Story Draft Generation (Failed to create parent story)"
+            return
+        fi
+        echo "   ✅ Created parent story: $parent_story"
     fi
     PHASE2_PARENT_STORY_ID="$parent_story"
     echo "   📍 Parent Story ID: $PHASE2_PARENT_STORY_ID"
