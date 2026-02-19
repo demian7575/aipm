@@ -6038,7 +6038,8 @@ export async function createApp() {
         const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
         const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
         
-        const tableName = process.env.STORIES_TABLE;
+        const useDevTables = req.headers['x-use-dev-tables'] === 'true';
+        const tableName = useDevTables ? 'aipm-backend-dev-stories' : process.env.STORIES_TABLE;
         if (!tableName) {
           throw new Error('STORIES_TABLE environment variable not set');
         }
@@ -6487,8 +6488,10 @@ export async function createApp() {
         const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
         const docClient = DynamoDBDocumentClient.from(client);
         
+        const useDevTables = req.headers['x-use-dev-tables'] === 'true';
+        
         // Query and delete all acceptance tests for this story
-        const testsTableName = process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests';
+        const testsTableName = useDevTables ? 'aipm-backend-dev-acceptance-tests' : (process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests');
         console.log(`  Querying acceptance tests from ${testsTableName}...`);
         const queryResult = await docClient.send(new QueryCommand({
           TableName: testsTableName,
@@ -6511,7 +6514,7 @@ export async function createApp() {
         }
         
         // Delete the story
-        const storiesTableName = process.env.STORIES_TABLE || 'aipm-backend-prod-stories';
+        const storiesTableName = useDevTables ? 'aipm-backend-dev-stories' : (process.env.STORIES_TABLE || 'aipm-backend-prod-stories');
         console.log(`  Deleting story from ${storiesTableName}...`);
         await docClient.send(new DeleteCommand({
           TableName: storiesTableName,

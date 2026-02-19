@@ -109,7 +109,7 @@ fi
 
 # Test 7a: Verify RTM click handler exists in frontend
 echo "Test 7a: RTM click handler for details panel"
-if grep -q "tr.addEventListener('click'" apps/frontend/public/app.js && grep -q "selectStory(row.id)" apps/frontend/public/app.js; then
+if grep -q "tr.addEventListener('click'" apps/frontend/public/app.js && grep -q "state.selectedStoryId = row.id" apps/frontend/public/app.js; then
   echo "  ✅ PASS: RTM click handler implemented"
   PASSED=$((PASSED + 1))
 else
