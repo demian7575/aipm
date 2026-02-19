@@ -3873,7 +3873,16 @@ async function renderCICD() {
       storyCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.story.minWidth}px`;
       const info = testInfo?.[testId];
       if (info?.storyId) {
-        storyCell.innerHTML = `<a href="#" onclick="event.preventDefault(); selectStory(${info.storyId}); return false;" title="${info.storyTitle || ''}">#${info.storyId}</a>`;
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = info.storyTitle || `Story #${info.storyId}`;
+        link.title = info.storyTitle || '';
+        link.onclick = (e) => {
+          e.preventDefault();
+          selectStory(info.storyId);
+          return false;
+        };
+        storyCell.appendChild(link);
       } else {
         storyCell.textContent = '-';
       }
