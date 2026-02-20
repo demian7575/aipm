@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -752,6 +753,50 @@ function setDependencyOverlayVisible(visible) {
 
 function toggleDependencyOverlay() {
   setDependencyOverlayVisible(!state.showDependencies);
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/data'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const data = await response.json();
+      const stories = data.stories || [];
+      
+      const listContainer = document.createElement('div');
+      listContainer.style.maxHeight = '400px';
+      listContainer.style.overflowY = 'auto';
+      
+      if (stories.length === 0) {
+        listContainer.innerHTML = '<p>No stories found.</p>';
+      } else {
+        const ul = document.createElement('ul');
+        ul.style.listStyle = 'none';
+        ul.style.padding = '0';
+        ul.style.margin = '0';
+        
+        stories.slice(0, 50).forEach(story => {
+          const li = document.createElement('li');
+          li.style.padding = '8px';
+          li.style.borderBottom = '1px solid #eee';
+          li.textContent = story.title || 'Untitled Story';
+          ul.appendChild(li);
+        });
+        
+        listContainer.appendChild(ul);
+      }
+      
+      openModal({
+        title: 'Story List',
+        content: listContainer,
+        actions: [],
+        size: 'medium'
+      });
+    } catch (error) {
+      console.error('Error fetching stories:', error);
+      showToast('Failed to load story list', 'error');
+    }
+  });
 }
 
 if (referenceBtn) {
