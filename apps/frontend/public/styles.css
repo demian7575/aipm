@@ -3107,6 +3107,15 @@ dialog[data-size='content'] .modal-shell {
   background: white;
 }
 
+
+.cicd-matrix td.cicd-col-story > a {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .cicd-col-run,
 .cicd-run-col {
   position: relative;
