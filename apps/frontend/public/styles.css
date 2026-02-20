@@ -3156,3 +3156,30 @@ dialog[data-size='content'] .modal-shell {
   align-items: center;
   gap: 5px;
 }
+
+.story-list-container {
+  width: 100%;
+}
+
+.story-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.story-list-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e9f5;
+}
+
+.story-list-item:last-child {
+  border-bottom: none;
+}
+
+.story-list .empty-message {
+  padding: 1rem;
+  text-align: center;
+  color: #6b7280;
+}
