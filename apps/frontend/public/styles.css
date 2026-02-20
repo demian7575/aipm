@@ -3039,8 +3039,9 @@ dialog[data-size='content'] .modal-shell {
 }
 
 .cicd-col-test {
-  width: 120px;
+  width: var(--cicd-col-test-width);
   min-width: 80px;
+  max-width: var(--cicd-col-test-width);
   position: sticky;
   left: 0;
   z-index: 5;
@@ -3051,8 +3052,9 @@ dialog[data-size='content'] .modal-shell {
 }
 
 .cicd-col-story {
-  width: 110px;
+  width: var(--cicd-col-story-width);
   min-width: 80px;
+  max-width: var(--cicd-col-story-width);
   position: sticky;
   left: var(--cicd-col-test-width);
   z-index: 4;
