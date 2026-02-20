@@ -49,6 +49,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -7401,6 +7402,24 @@ function openDocumentPanel() {
   // Enable/disable generate button based on template selection
   templateSelect.addEventListener('change', () => {
     generateDocBtn.disabled = !templateSelect.value || state.stories.length === 0;
+  });
+
+  // Story list button handler
+  storyListBtn.addEventListener('click', () => {
+    try {
+      const storyTitles = state.stories.map(s => s.title || 'Untitled').slice(0, 50);
+      const listHtml = `
+        <div class="story-list-modal">
+          <ul class="story-titles-list">
+            ${storyTitles.map(title => `<li>${escapeHtml(title)}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+      openModal('Story List', listHtml);
+    } catch (error) {
+      console.error('Failed to display story list:', error);
+      showToast('Failed to display story list', 'error');
+    }
   });
 
   // Generate document handler
