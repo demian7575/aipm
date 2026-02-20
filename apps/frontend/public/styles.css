@@ -3062,7 +3062,9 @@ dialog[data-size='content'] .modal-shell {
   background: white;
 }
 
-.cicd-col-runs {
+.cicd-col-runs,
+.cicd-col-run,
+.cicd-run-col {
   text-align: center;
   min-width: 100px;
 }
@@ -3087,9 +3089,10 @@ dialog[data-size='content'] .modal-shell {
   background: white;
 }
 
+.cicd-col-run,
 .cicd-run-col {
   text-align: center;
-  min-width: 80px;
+  min-width: 100px;
   border-left: 1px solid #eee;
 }
 
