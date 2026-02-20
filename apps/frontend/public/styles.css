@@ -3041,6 +3041,26 @@ dialog[data-size='content'] .modal-shell {
 
 .cicd-col-test {
   min-width: 80px;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: white;
+}
+
+.cicd-col-story {
+  min-width: 150px;
+  position: sticky;
+  left: 80px;
+  z-index: 3;
+  background: white;
+}
+
+.cicd-col-title {
+  min-width: 200px;
+  position: sticky;
+  left: 230px;
+  z-index: 3;
+  background: white;
 }
 
 .cicd-col-runs {

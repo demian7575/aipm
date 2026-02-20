@@ -470,7 +470,7 @@ const state = {
     assignee: []
   },
   mindmapZoom: 1,
-  activeView: 'mindmap',
+  activeView: localStorage.getItem('aipm-active-view') || 'mindmap',
   panelVisibility: {
     outline: true,
     mindmap: true,
@@ -533,6 +533,14 @@ function setActiveView(nextView, { force = false } = {}) {
     return;
   }
   state.activeView = nextView;
+  
+  // Save active view to localStorage
+  try {
+    localStorage.setItem('aipm-active-view', nextView);
+  } catch (e) {
+    console.warn('Could not save active view:', e);
+  }
+  
   updateViewVisibility(state.activeView);
   if (state.activeView === 'mindmap') {
     requestAnimationFrame(() => {

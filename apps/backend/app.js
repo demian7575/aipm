@@ -5579,10 +5579,10 @@ export async function createApp() {
       
       // Version is replaced during deployment by deploy-to-environment.sh
       const version = { 
-        version: 'DEPLOYMENT_VERSION_PLACEHOLDER',
+        version: process.env.DEPLOY_VERSION || pkg.version || 'unknown',
         prNumber: process.env.PR_NUMBER || null,
         environment: process.env.NODE_ENV || 'production',
-        deployTime: process.env.DEPLOY_VERSION || null
+        deployTime: process.env.DEPLOY_TIME || null
       };
       
       sendJson(res, 200, version);
@@ -7204,12 +7204,32 @@ export async function createApp() {
         
         // Compute coverage for each story (return ALL stories for hierarchy)
         const matrixData = await Promise.all(stories.map(async (story) => {
-          // Count all descendants recursively
-          const countDescendants = (parentId) => {
-            const directChildren = stories.filter(s => s.parentId === parentId);
-            return directChildren.length + directChildren.reduce((sum, child) => sum + countDescendants(child.id), 0);
+          // Count cumulative descendants (including self)
+          const countCumulativeStories = (storyId) => {
+            const children = stories.filter(s => s.parentId === storyId);
+            return 1 + children.reduce((sum, child) => sum + countCumulativeStories(child.id), 0);
           };
-          const descendantCount = countDescendants(story.id);
+          
+          // Get all tests for a story and its descendants
+          const getAllTestsForStory = async (storyId) => {
+            const children = stories.filter(s => s.parentId === storyId);
+            const selfTests = await getAcceptanceTests(db, storyId);
+            const childTestArrays = await Promise.all(children.map(c => getAllTestsForStory(c.id)));
+            return [...selfTests, ...childTestArrays.flat()];
+          };
+          
+          // Count cumulative docs (including self + all descendants)
+          const countCumulativeDocs = (storyId) => {
+            const children = stories.filter(s => s.parentId === storyId);
+            const selfStory = stories.find(s => s.id === storyId);
+            const selfDocs = selfStory?.referenceDocuments?.length || 0;
+            return selfDocs + children.reduce((sum, child) => sum + countCumulativeDocs(child.id), 0);
+          };
+          
+          const cumulativeStories = countCumulativeStories(story.id);
+          const allTests = await getAllTestsForStory(story.id);
+          const cumulativeTests = allTests.length;
+          const cumulativeDocs = countCumulativeDocs(story.id);
           
           const latestTestRun = await db.getLatestTestRunByStoryId(story.id);
           
@@ -7251,10 +7271,10 @@ export async function createApp() {
               };
             }),
             coverage: {
-              stories: descendantCount,
-              acceptanceTests: totalTests,
+              stories: cumulativeStories,
+              acceptanceTests: cumulativeTests,
               code: story.status === 'Done' ? 1 : 0,
-              docs: story.referenceDocuments?.length || 0,
+              docs: cumulativeDocs,
               ci: totalTests > 0 ? {
                 count: totalTests,
                 passed: passedTests,
