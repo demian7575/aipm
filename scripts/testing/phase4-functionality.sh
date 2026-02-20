@@ -272,6 +272,39 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story 1771576070947: Story list button and modal
+if [ "$1" = "1771576070947" ]; then
+  echo "Test 17: Story list button and modal"
+  
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  if echo "$INDEX_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  APP_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$APP_JS" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story list button click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  STYLES_CSS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css)
+  if echo "$STYLES_CSS" | grep -q "story-list-modal"; then
+    echo "  ✅ PASS: Story list modal CSS styles exist"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list modal CSS styles missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
   echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"

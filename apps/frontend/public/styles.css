@@ -1972,6 +1972,26 @@ dialog[data-size='content'] .modal-shell {
   overflow: auto;
 }
 
+.story-list-modal {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.story-titles-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.story-titles-list li {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e9f5;
+}
+
+.story-titles-list li:last-child {
+  border-bottom: none;
+}
+
 .acceptance-test-form label {
   display: flex;
   flex-direction: column;
