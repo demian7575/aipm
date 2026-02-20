@@ -2973,9 +2973,12 @@ dialog[data-size='content'] .modal-shell {
 }
 
 .cicd-matrix {
+  --cicd-col-test-width: 120px;
+  --cicd-col-story-width: 110px;
   width: max-content;
   min-width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 13px;
 }
 
@@ -3003,8 +3006,8 @@ dialog[data-size='content'] .modal-shell {
 .cicd-col-resizer {
   position: absolute;
   top: 0;
-  right: -6px;
-  width: 12px;
+  right: 0;
+  width: 10px;
   height: 100%;
   cursor: col-resize;
   display: inline-flex;
@@ -3048,7 +3051,7 @@ dialog[data-size='content'] .modal-shell {
   width: 110px;
   min-width: 80px;
   position: sticky;
-  left: 120px;  /* Test column width */
+  left: var(--cicd-col-test-width);
   z-index: 3;
   background: white;
 }
@@ -3057,12 +3060,14 @@ dialog[data-size='content'] .modal-shell {
   width: 320px;
   min-width: 160px;
   position: sticky;
-  left: 230px;  /* Test (120px) + Story (110px) */
+  left: calc(var(--cicd-col-test-width) + var(--cicd-col-story-width));
   z-index: 3;
   background: white;
 }
 
-.cicd-col-runs {
+.cicd-col-runs,
+.cicd-col-run,
+.cicd-run-col {
   text-align: center;
   min-width: 100px;
 }
@@ -3087,9 +3092,10 @@ dialog[data-size='content'] .modal-shell {
   background: white;
 }
 
+.cicd-col-run,
 .cicd-run-col {
   text-align: center;
-  min-width: 80px;
+  min-width: 100px;
   border-left: 1px solid #eee;
 }
 
