@@ -272,6 +272,40 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story-specific functionality
+if [ "$1" = "1771571132555" ]; then
+  echo "Test 16a: Story List Button - HTML element exists"
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  if echo "$INDEX_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story List button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 16b: Story List Button - Click handler implemented"
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$APP_JS_CONTENT" | grep -q "storyListBtn.addEventListener('click'" && \
+     echo "$APP_JS_CONTENT" | grep -q "openModal"; then
+    echo "  ✅ PASS: Story List button click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 16c: Story List Button - Fetches stories from API"
+  if echo "$APP_JS_CONTENT" | grep -q "/api/data" && \
+     echo "$APP_JS_CONTENT" | grep -q "data.stories"; then
+    echo "  ✅ PASS: Story List fetches from /api/data"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List API fetch missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
   echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
