@@ -18,6 +18,12 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # Load environment configuration
 source "$SCRIPT_DIR/load-env-config.sh" "$ENV"
 
+# Generate version string
+COMMIT_HASH=$(cd "$PROJECT_ROOT" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+DEPLOY_VERSION=$(date +%Y%m%d-%H%M%S)
+VERSION_STRING="${DEPLOY_VERSION}-${COMMIT_HASH}"
+DEPLOY_TIME=$(date -Iseconds)
+
 # Generate .env file
 cat > "$OUTPUT_FILE" << EOF
 # AIPM Backend Environment Configuration
@@ -40,8 +46,12 @@ PRS_TABLE=$DYNAMODB_PRS_TABLE
 # AWS
 AWS_REGION=us-east-1
 
+# Deployment Info
+DEPLOY_VERSION=$VERSION_STRING
+DEPLOY_TIME=$DEPLOY_TIME
+
 # GitHub (from secrets)
 GITHUB_TOKEN=${GITHUB_TOKEN:-}
 EOF
 
-echo "✅ Generated $OUTPUT_FILE for $ENV environment"
+echo "✅ Generated $OUTPUT_FILE for $ENV environment (version: $VERSION_STRING)"

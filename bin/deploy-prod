@@ -73,15 +73,12 @@ git reset --hard origin/main
 echo "✅ Code updated"
 ENDSSH
 
-    # Update version in code
-    echo "⚙️ Updating deployment version..."
-    COMMIT_HASH=$(git rev-parse --short HEAD)
-    DEPLOY_VERSION=$(date +%Y%m%d-%H%M%S)
-    VERSION_STRING="${DEPLOY_VERSION}-${COMMIT_HASH}"
-    DEPLOY_TIME=$(date -Iseconds)
-    
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && echo 'DEPLOY_VERSION=${VERSION_STRING}' >> .env && echo 'DEPLOY_TIME=${DEPLOY_TIME}' >> .env"
-    echo "✅ Updated version to: $VERSION_STRING"
+    # Generate and upload .env file
+    echo "⚙️ Generating .env file..."
+    "$SCRIPT_DIR/../scripts/utilities/generate-env-file.sh" "$ENV" "/tmp/.env.$ENV"
+    scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "/tmp/.env.$ENV" ec2-user@$HOST:aipm/.env
+    rm "/tmp/.env.$ENV"
+    echo "✅ .env file updated"
 
     # Restart backend service via SSH
     echo "🔄 Restarting backend service..."
