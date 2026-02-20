@@ -3059,9 +3059,10 @@ dialog[data-size='content'] .modal-shell {
 .cicd-col-title {
   width: 320px;
   min-width: 160px;
-  position: sticky;
-  left: calc(var(--cicd-col-test-width) + var(--cicd-col-story-width));
-  z-index: 3;
+  max-width: 560px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background: white;
 }
 
@@ -3094,9 +3095,12 @@ dialog[data-size='content'] .modal-shell {
 
 .cicd-col-run,
 .cicd-run-col {
+  position: relative;
+  z-index: 1;
   text-align: center;
   min-width: 100px;
   border-left: 1px solid #eee;
+  background: white;
 }
 
 .cicd-cell-pass {
