@@ -2993,6 +2993,7 @@ dialog[data-size='content'] .modal-shell {
   border-bottom: 2px solid #ddd;
   font-weight: 600;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .cicd-th-content {
@@ -3066,6 +3067,7 @@ dialog[data-size='content'] .modal-shell {
 .cicd-matrix td {
   padding: 8px 10px;
   border-bottom: 1px solid #eee;
+  box-sizing: border-box;
 }
 
 .cicd-matrix tbody tr:hover {
