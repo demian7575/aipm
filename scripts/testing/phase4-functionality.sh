@@ -11,10 +11,14 @@ source "$TEST_SCRIPT_DIR/test-library.sh"
 PASSED=0
 FAILED=0
 PHASE="phase4"
+STORY_ID="${1:-}"
 
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo "Run ID: $TEST_RUN_ID"
+if [ -n "$STORY_ID" ]; then
+  echo "Story ID: $STORY_ID"
+fi
 echo ""
 
 # ============================================
@@ -747,6 +751,47 @@ if [ "$1" = "1771138996374" ]; then
   else
     echo "  ❌ FAIL: Test row click handler missing"
     FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
+# ============================================
+# Story-Specific Tests
+# ============================================
+if [ -n "$STORY_ID" ]; then
+  echo "=============================================="
+  echo "📝 Story-Specific Tests for Story #$STORY_ID"
+  echo "=============================================="
+  
+  # Story 1771599217750: Add Story List Button
+  if [ "$STORY_ID" = "1771599217750" ]; then
+    echo "Test: Story list button exists in header"
+    START_TIME=$(date +%s)
+    RESPONSE=$(curl -s "$API_BASE/")
+    DURATION=$(($(date +%s) - START_TIME))
+    if echo "$RESPONSE" | grep -q 'id="story-list-btn"'; then
+      echo "  ✅ PASS: Story list button exists"
+      PASSED=$((PASSED + 1))
+      record_test_result "story-$STORY_ID-button" "Story list button exists" "PASS" "$PHASE" "$DURATION"
+    else
+      echo "  ❌ FAIL: Story list button not found"
+      FAILED=$((FAILED + 1))
+      record_test_result "story-$STORY_ID-button" "Story list button exists" "FAIL" "$PHASE" "$DURATION"
+    fi
+    
+    echo "Test: Story list modal function exists"
+    START_TIME=$(date +%s)
+    RESPONSE=$(curl -s "$API_BASE/app.js")
+    DURATION=$(($(date +%s) - START_TIME))
+    if echo "$RESPONSE" | grep -q 'openStoryListModal'; then
+      echo "  ✅ PASS: Story list modal function exists"
+      PASSED=$((PASSED + 1))
+      record_test_result "story-$STORY_ID-function" "Story list modal function exists" "PASS" "$PHASE" "$DURATION"
+    else
+      echo "  ❌ FAIL: Story list modal function not found"
+      FAILED=$((FAILED + 1))
+      record_test_result "story-$STORY_ID-function" "Story list modal function exists" "FAIL" "$PHASE" "$DURATION"
+    fi
   fi
   echo ""
 fi
