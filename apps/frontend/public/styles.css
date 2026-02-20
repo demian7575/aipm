@@ -2977,7 +2977,6 @@ dialog[data-size='content'] .modal-shell {
   min-width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  table-layout: fixed;
 }
 
 .cicd-matrix thead {
