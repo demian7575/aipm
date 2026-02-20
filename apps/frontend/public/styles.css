@@ -2997,10 +2997,15 @@ dialog[data-size='content'] .modal-shell {
   font-weight: 600;
   white-space: nowrap;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .cicd-th-content {
-  /* Removed padding-right to prevent width mismatch */
+  display: block;
+  width: 100%;
+  padding-right: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cicd-col-resizer {
