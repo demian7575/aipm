@@ -272,9 +272,41 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story 1771569836748: Story List Button
+if [ "$1" = "1771569836748" ]; then
+  echo "Test 17: Story List Button - Modal opens with story list"
+  FRONTEND_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story list button click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  if echo "$FRONTEND_JS" | grep -q "openModal.*Story List"; then
+    echo "  ✅ PASS: Modal opens with story list"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal does not open with story list"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
-  echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
+  echo "Test 18: US-VIZ-RTM-002 - RTM row click handler"
   APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
   
   # Check for row click handler that sets selectedStoryId and calls renderDetails
