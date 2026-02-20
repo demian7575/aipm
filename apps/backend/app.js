@@ -5577,9 +5577,13 @@ export async function createApp() {
       const { readFile } = await import('fs/promises');
       const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf-8'));
       
-      // Version is replaced during deployment by deploy-to-environment.sh
+      const deployVersion = process.env.DEPLOY_VERSION;
+      const isProduction = process.env.NODE_ENV === 'production';
+      
+      // In production, DEPLOY_VERSION must be set by deployment script
+      // In development, use package.json version with -dev suffix
       const version = { 
-        version: process.env.DEPLOY_VERSION || pkg.version || 'unknown',
+        version: deployVersion || (isProduction ? 'NOT_DEPLOYED' : `${pkg.version}-dev`),
         prNumber: process.env.PR_NUMBER || null,
         environment: process.env.NODE_ENV || 'production',
         deployTime: process.env.DEPLOY_TIME || null

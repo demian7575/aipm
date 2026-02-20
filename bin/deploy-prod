@@ -78,8 +78,9 @@ ENDSSH
     COMMIT_HASH=$(git rev-parse --short HEAD)
     DEPLOY_VERSION=$(date +%Y%m%d-%H%M%S)
     VERSION_STRING="${DEPLOY_VERSION}-${COMMIT_HASH}"
+    DEPLOY_TIME=$(date -Iseconds)
     
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && grep -v '^DEPLOY_VERSION=' .env > .env.tmp && mv .env.tmp .env && grep -v '^DEPLOY_TIME=' .env > .env.tmp && mv .env.tmp .env && echo 'DEPLOY_VERSION=${VERSION_STRING}' >> .env && echo 'DEPLOY_TIME=\$(date -Iseconds)' >> .env"
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$HOST "cd aipm && echo 'DEPLOY_VERSION=${VERSION_STRING}' >> .env && echo 'DEPLOY_TIME=${DEPLOY_TIME}' >> .env"
     echo "✅ Updated version to: $VERSION_STRING"
 
     # Restart backend service via SSH
