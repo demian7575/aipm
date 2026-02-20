@@ -75,7 +75,8 @@ ENDSSH
 
     # Generate and upload .env file
     echo "⚙️ Generating .env file..."
-    bash "$SCRIPT_DIR/../scripts/utilities/generate-env-file.sh" "$ENV" "/tmp/.env.$ENV"
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    bash "$PROJECT_ROOT/scripts/utilities/generate-env-file.sh" "$ENV" "/tmp/.env.$ENV"
     scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "/tmp/.env.$ENV" ec2-user@$HOST:aipm/.env
     rm "/tmp/.env.$ENV"
     echo "✅ .env file updated"
