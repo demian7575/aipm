@@ -3034,10 +3034,6 @@ dialog[data-size='content'] .modal-shell {
   background: #94a3ff;
 }
 
-.cicd-col-story {
-  min-width: 80px;
-}
-
 .cicd-col-test {
   min-width: 80px;
   position: sticky;
@@ -3047,17 +3043,17 @@ dialog[data-size='content'] .modal-shell {
 }
 
 .cicd-col-story {
-  min-width: 150px;
+  min-width: 80px;
   position: sticky;
-  left: 80px;
+  left: 120px;  /* Test column width */
   z-index: 3;
   background: white;
 }
 
 .cicd-col-title {
-  min-width: 200px;
+  min-width: 160px;
   position: sticky;
-  left: 230px;
+  left: 230px;  /* Test (120px) + Story (110px) */
   z-index: 3;
   background: white;
 }
