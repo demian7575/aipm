@@ -3787,6 +3787,22 @@ function handleCicdColumnResizePointerMove(event) {
     cell.style.width = `${nextWidth}px`;
     cell.style.minWidth = `${minWidth}px`;
   });
+  
+  // Update sticky positions when resizing first 3 columns
+  if (columnKey === 'testId') {
+    const storyWidth = getCicdColumnWidth('story', CICD_COLUMN_DEFAULTS.story);
+    document.querySelectorAll('.cicd-col-story').forEach(cell => {
+      cell.style.left = `${nextWidth}px`;
+    });
+    document.querySelectorAll('.cicd-col-title').forEach(cell => {
+      cell.style.left = `${nextWidth + storyWidth}px`;
+    });
+  } else if (columnKey === 'story') {
+    const testIdWidth = getCicdColumnWidth('testId', CICD_COLUMN_DEFAULTS.testId);
+    document.querySelectorAll('.cicd-col-title').forEach(cell => {
+      cell.style.left = `${testIdWidth + nextWidth}px`;
+    });
+  }
 }
 
 function handleCicdColumnResizePointerUp() {
