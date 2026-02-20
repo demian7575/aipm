@@ -7084,8 +7084,10 @@ export async function createApp() {
           .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
           .slice(0, 10); // Last 10 runs
         
-        // Get unique testIds
-        const testIds = [...new Set(items.map(i => i.testId))].sort((a, b) => parseInt(a) - parseInt(b));
+        // Get unique testIds (only numeric - acceptance tests)
+        const testIds = [...new Set(items.map(i => i.testId))]
+          .filter(id => !isNaN(parseInt(id))) // Only numeric test IDs
+          .sort((a, b) => parseInt(a) - parseInt(b));
         
         // Get acceptance tests and stories for titles
         const acceptanceTests = {};
