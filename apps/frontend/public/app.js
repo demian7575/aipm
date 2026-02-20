@@ -8870,6 +8870,9 @@ async function initialize() {
   // Fetch version after EC2 is ready
   fetchVersion();
 
+  const storyListBtn = document.getElementById('story-list-btn');
+  storyListBtn?.addEventListener('click', openStoryListModal);
+
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
@@ -9385,6 +9388,31 @@ window.cleanupKiroQueue = async function() {
 
 
 // EC2 Auto-Start Integration
+/**
+ * Opens modal displaying all story titles
+ */
+async function openStoryListModal() {
+  try {
+    const response = await fetch(resolveApiUrl('/api/story-titles'));
+    if (!response.ok) throw new Error('Failed to fetch story titles');
+    const titles = await response.json();
+    
+    openModal({
+      title: 'All Stories',
+      content: `
+        <div class="story-list-container">
+          <ul class="story-list">
+            ${titles.map(s => `<li>${escapeHtml(s.title)}</li>`).join('')}
+          </ul>
+        </div>
+      `,
+      actions: [{ label: 'Close', variant: 'secondary', action: closeModal }]
+    });
+  } catch (error) {
+    showToast(`Failed to load story list: ${error.message}`, 'error');
+  }
+}
+
 async function initializeEC2AutoStart() {
   const statusEl = document.getElementById('ec2-status');
   if (!statusEl || !window.EC2Manager) {

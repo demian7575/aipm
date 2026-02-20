@@ -5633,6 +5633,18 @@ export async function createApp() {
       return;
     }
 
+    if (pathname === '/api/story-titles' && method === 'GET') {
+      try {
+        const stories = await loadStories(db);
+        const titles = flattenStories(stories).slice(0, 50).map(s => ({ id: s.id, title: s.title }));
+        sendJson(res, 200, titles);
+      } catch (error) {
+        console.error('Failed to fetch story titles', error);
+        sendJson(res, 500, { message: 'Failed to fetch story titles', details: error.message });
+      }
+      return;
+    }
+
     // SSE endpoint for code generation with real-time progress
     const generateCodeStreamMatch = pathname.match(/^\/api\/stories\/([^/]+)\/generate-code-stream$/);
     if (generateCodeStreamMatch && method === 'GET') {

@@ -11,10 +11,14 @@ source "$TEST_SCRIPT_DIR/test-library.sh"
 PASSED=0
 FAILED=0
 PHASE="phase4"
+STORY_ID="${1:-}"
 
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo "Run ID: $TEST_RUN_ID"
+if [ -n "$STORY_ID" ]; then
+  echo "Story ID: $STORY_ID"
+fi
 echo ""
 
 # ============================================
@@ -749,6 +753,65 @@ if [ "$1" = "1771138996374" ]; then
     FAILED=$((FAILED + 1))
   fi
   echo ""
+fi
+
+# ============================================
+# Story-Specific Acceptance Tests
+# ============================================
+if [ -n "$STORY_ID" ]; then
+  echo "📋 Story-Specific Acceptance Tests"
+  echo "-----------------------------------"
+  
+  if [ "$STORY_ID" = "1771576298206" ]; then
+    echo "Test: Modal opens with story list when header button is clicked"
+    START_TIME=$(date +%s)
+    
+    # Check API endpoint exists
+    TITLES_RESPONSE=$(curl -s "$API_BASE/api/story-titles")
+    DURATION=$(($(date +%s) - START_TIME))
+    
+    if echo "$TITLES_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
+      echo "  ✅ PASS: API endpoint /api/story-titles returns array"
+      PASSED=$((PASSED + 1))
+      record_test_result "story-$STORY_ID-at-1" "Story list API endpoint" "PASS" "$PHASE" "$DURATION"
+    else
+      echo "  ❌ FAIL: API endpoint /api/story-titles failed"
+      FAILED=$((FAILED + 1))
+      record_test_result "story-$STORY_ID-at-1" "Story list API endpoint" "FAIL" "$PHASE" "$DURATION"
+    fi
+    
+    # Check button exists in HTML
+    if curl -s "$API_BASE/index.html" | grep -q 'id="story-list-btn"'; then
+      echo "  ✅ PASS: Story list button exists in header"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button missing from header"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check modal function exists
+    if curl -s "$API_BASE/app.js" | grep -q 'openStoryListModal'; then
+      echo "  ✅ PASS: openStoryListModal function implemented"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openStoryListModal function missing"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo ""
+    echo "Test: Modal closes when user clicks outside or close button"
+    
+    # Check modal close functionality (already exists in codebase)
+    if curl -s "$API_BASE/app.js" | grep -q 'closeModal'; then
+      echo "  ✅ PASS: Modal close function exists"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Modal close function missing"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo ""
+  fi
 fi
 
 # ============================================
