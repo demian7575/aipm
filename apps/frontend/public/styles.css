@@ -3043,7 +3043,10 @@ dialog[data-size='content'] .modal-shell {
   min-width: 80px;
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background: white;
 }
 
@@ -3052,7 +3055,10 @@ dialog[data-size='content'] .modal-shell {
   min-width: 80px;
   position: sticky;
   left: var(--cicd-col-test-width);
-  z-index: 3;
+  z-index: 4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background: white;
 }
 
@@ -3064,6 +3070,14 @@ dialog[data-size='content'] .modal-shell {
   text-overflow: ellipsis;
   white-space: nowrap;
   background: white;
+}
+
+.cicd-matrix thead .cicd-col-test {
+  z-index: 13;
+}
+
+.cicd-matrix thead .cicd-col-story {
+  z-index: 12;
 }
 
 .cicd-col-runs,
@@ -3091,6 +3105,15 @@ dialog[data-size='content'] .modal-shell {
 
 .cicd-matrix .cicd-col-test {
   background: white;
+}
+
+
+.cicd-matrix td.cicd-col-story > a {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cicd-col-run,
