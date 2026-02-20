@@ -3036,6 +3036,7 @@ dialog[data-size='content'] .modal-shell {
 }
 
 .cicd-col-test {
+  width: 120px;
   min-width: 80px;
   position: sticky;
   left: 0;
@@ -3044,6 +3045,7 @@ dialog[data-size='content'] .modal-shell {
 }
 
 .cicd-col-story {
+  width: 110px;
   min-width: 80px;
   position: sticky;
   left: 120px;  /* Test column width */
@@ -3052,6 +3054,7 @@ dialog[data-size='content'] .modal-shell {
 }
 
 .cicd-col-title {
+  width: 320px;
   min-width: 160px;
   position: sticky;
   left: 230px;  /* Test (120px) + Story (110px) */
