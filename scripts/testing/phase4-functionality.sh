@@ -11,10 +11,14 @@ source "$TEST_SCRIPT_DIR/test-library.sh"
 PASSED=0
 FAILED=0
 PHASE="phase4"
+STORY_ID="${1:-}"
 
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo "Run ID: $TEST_RUN_ID"
+if [ -n "$STORY_ID" ]; then
+  echo "Story ID: $STORY_ID"
+fi
 echo ""
 
 # ============================================
@@ -749,6 +753,49 @@ if [ "$1" = "1771138996374" ]; then
     FAILED=$((FAILED + 1))
   fi
   echo ""
+fi
+
+# ============================================
+# Story-Specific Tests
+# ============================================
+if [ -n "$STORY_ID" ]; then
+  echo "📦 Story-Specific Tests for Story $STORY_ID"
+  echo "-----------------------------------"
+  
+  # Test: Story List Button (Story 1771593341940)
+  if [ "$STORY_ID" = "1771593341940" ]; then
+    echo "Test: Story List Button functionality"
+    
+    # Check button exists in HTML
+    if grep -q 'id="story-list-btn"' "$TEST_SCRIPT_DIR/../../apps/frontend/public/index.html"; then
+      echo "  ✅ PASS: Story List button exists in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story List button missing from HTML"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check button handler in JS
+    if grep -q "storyListBtn.addEventListener" "$TEST_SCRIPT_DIR/../../apps/frontend/public/app.js"; then
+      echo "  ✅ PASS: Story List button handler implemented"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story List button handler missing"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check modal opens with story titles
+    if grep -q "openModal" "$TEST_SCRIPT_DIR/../../apps/frontend/public/app.js" && \
+       grep -q "story.title" "$TEST_SCRIPT_DIR/../../apps/frontend/public/app.js"; then
+      echo "  ✅ PASS: Modal displays story titles"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Modal story title display missing"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo ""
+  fi
 fi
 
 # ============================================
