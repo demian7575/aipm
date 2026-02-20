@@ -3734,6 +3734,16 @@ function getCicdColumnWidth(columnKey, fallback = CICD_COLUMN_DEFAULTS.run) {
   return width;
 }
 
+function setCicdStickyColumnOffsets() {
+  const cicdTable = document.querySelector('.cicd-matrix');
+  if (!cicdTable) return;
+
+  const testWidth = getCicdColumnWidth('testId', CICD_COLUMN_DEFAULTS.testId);
+  const storyWidth = getCicdColumnWidth('story', CICD_COLUMN_DEFAULTS.story);
+  cicdTable.style.setProperty('--cicd-col-test-width', `${testWidth}px`);
+  cicdTable.style.setProperty('--cicd-col-story-width', `${storyWidth}px`);
+}
+
 function initializeCicdColumnResizing() {
   const headerRow = document.querySelector('.cicd-matrix thead tr');
   if (!headerRow || headerRow.dataset.resizeInitialized === 'true') return;
@@ -3788,20 +3798,8 @@ function handleCicdColumnResizePointerMove(event) {
     cell.style.minWidth = `${minWidth}px`;
   });
   
-  // Update sticky positions when resizing first 3 columns
-  if (columnKey === 'testId') {
-    const storyWidth = getCicdColumnWidth('story', CICD_COLUMN_DEFAULTS.story);
-    document.querySelectorAll('.cicd-col-story').forEach(cell => {
-      cell.style.left = `${nextWidth}px`;
-    });
-    document.querySelectorAll('.cicd-col-title').forEach(cell => {
-      cell.style.left = `${nextWidth + storyWidth}px`;
-    });
-  } else if (columnKey === 'story') {
-    const testIdWidth = getCicdColumnWidth('testId', CICD_COLUMN_DEFAULTS.testId);
-    document.querySelectorAll('.cicd-col-title').forEach(cell => {
-      cell.style.left = `${testIdWidth + nextWidth}px`;
-    });
+  if (columnKey === 'testId' || columnKey === 'story') {
+    setCicdStickyColumnOffsets();
   }
 }
 
@@ -3829,7 +3827,8 @@ async function renderCICD() {
     
     const tbody = document.getElementById('cicd-matrix-body');
     const thead = document.querySelector('.cicd-matrix thead tr');
-    if (!tbody || !thead) return;
+    const colgroup = document.getElementById('cicd-matrix-colgroup');
+    if (!tbody || !thead || !colgroup) return;
     
     const columns = [
       {
@@ -3866,6 +3865,14 @@ async function renderCICD() {
       })
     ];
 
+    colgroup.innerHTML = columns
+      .map(
+        (column) => `<col data-col-key="${column.key}" style="width: ${column.width}px; min-width: ${column.minWidth}px;">`
+      )
+      .join('');
+
+    setCicdStickyColumnOffsets();
+
     thead.innerHTML = columns
       .map(
         (column) => `<th class="${column.className}" data-col-key="${column.key}" data-min-width="${column.minWidth}" title="${column.title || ''}" style="width: ${column.width}px; min-width: ${column.minWidth}px;">
@@ -3884,8 +3891,6 @@ async function renderCICD() {
       const idCell = document.createElement('td');
       idCell.className = 'cicd-col-test';
       idCell.dataset.colKey = 'testId';
-      idCell.style.width = `${getCicdColumnWidth('testId', CICD_COLUMN_DEFAULTS.testId)}px`;
-      idCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.testId.minWidth}px`;
       idCell.textContent = testId;
       row.appendChild(idCell);
       
@@ -3893,8 +3898,6 @@ async function renderCICD() {
       const storyCell = document.createElement('td');
       storyCell.className = 'cicd-col-story';
       storyCell.dataset.colKey = 'story';
-      storyCell.style.width = `${getCicdColumnWidth('story', CICD_COLUMN_DEFAULTS.story)}px`;
-      storyCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.story.minWidth}px`;
       const info = testInfo?.[testId];
       if (info?.storyId) {
         const link = document.createElement('a');
@@ -3919,8 +3922,6 @@ async function renderCICD() {
       const titleCell = document.createElement('td');
       titleCell.className = 'cicd-col-title';
       titleCell.dataset.colKey = 'title';
-      titleCell.style.width = `${getCicdColumnWidth('title', CICD_COLUMN_DEFAULTS.title)}px`;
-      titleCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.title.minWidth}px`;
       titleCell.textContent = info?.testTitle || 'Unknown Test';
       titleCell.title = info?.testTitle || 'Unknown Test';
       row.appendChild(titleCell);
@@ -3931,8 +3932,6 @@ async function renderCICD() {
         resultCell.className = 'cicd-col-run';
         const runColumnKey = `run-${run.runId}`;
         resultCell.dataset.colKey = runColumnKey;
-        resultCell.style.width = `${getCicdColumnWidth(runColumnKey, CICD_COLUMN_DEFAULTS.run)}px`;
-        resultCell.style.minWidth = `${CICD_COLUMN_DEFAULTS.run.minWidth}px`;
         const result = matrix[testId][run.runId];
         
         if (result) {
