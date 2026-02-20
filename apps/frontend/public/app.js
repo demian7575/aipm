@@ -8850,7 +8850,18 @@ async function initialize() {
   initializePanelResizers();
   updateWorkspaceColumns();
   renderOutline();
-  renderMindmap();
+  
+  // Render the active view (restored from localStorage)
+  if (state.activeView === 'mindmap') {
+    renderMindmap();
+  } else if (state.activeView === 'kanban') {
+    renderKanban();
+  } else if (state.activeView === 'rtm') {
+    renderRTM();
+  } else if (state.activeView === 'cicd') {
+    renderCICD();
+  }
+  
   renderDetails();
   
   // Initialize EC2 auto-start (this will load stories when ready)
