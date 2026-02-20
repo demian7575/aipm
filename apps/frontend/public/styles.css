@@ -2988,7 +2988,7 @@ dialog[data-size='content'] .modal-shell {
 
 .cicd-matrix th {
   position: relative;
-  padding: 10px;
+  padding: 8px 10px;
   text-align: left;
   border-bottom: 2px solid #ddd;
   font-weight: 600;
