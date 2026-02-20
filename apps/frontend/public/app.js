@@ -3912,7 +3912,7 @@ async function renderCICD() {
       // Result columns for each run
       runs.forEach(run => {
         const resultCell = document.createElement('td');
-        resultCell.className = 'cicd-run-col';
+        resultCell.className = 'cicd-col-run';
         const runColumnKey = `run-${run.runId}`;
         resultCell.dataset.colKey = runColumnKey;
         resultCell.style.width = `${getCicdColumnWidth(runColumnKey, CICD_COLUMN_DEFAULTS.run)}px`;
