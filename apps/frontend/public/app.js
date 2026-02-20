@@ -764,6 +764,35 @@ if (referenceBtn) {
   });
 }
 
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      
+      const content = document.createElement('div');
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      stories.forEach(story => {
+        const item = document.createElement('li');
+        item.textContent = story.title;
+        item.style.padding = '8px';
+        item.style.borderBottom = '1px solid #eee';
+        list.appendChild(item);
+      });
+      
+      content.appendChild(list);
+      openModal({ title: 'Story List', content, cancelLabel: 'Close' });
+    } catch (error) {
+      showToast('Failed to load stories', 'error');
+    }
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
