@@ -2997,7 +2997,7 @@ dialog[data-size='content'] .modal-shell {
 }
 
 .cicd-th-content {
-  padding-right: 12px;
+  /* Removed padding-right to prevent width mismatch */
 }
 
 .cicd-col-resizer {
