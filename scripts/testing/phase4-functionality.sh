@@ -751,6 +751,41 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1771563024887 - View Stories Button
+if [ "$1" = "1771563024887" ]; then
+  echo "Test 45: Story 1771563024887 - View Stories button in header"
+  
+  # Check button exists in HTML
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html)
+  if echo "$INDEX_HTML" | grep -q 'id="view-stories-btn"'; then
+    echo "  ✅ PASS: View Stories button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View Stories button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check button click handler in app.js
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$FRONTEND_JS" | grep -q "viewStoriesBtn.addEventListener"; then
+    echo "  ✅ PASS: View Stories button click handler exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View Stories button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check modal opens with story list
+  if echo "$FRONTEND_JS" | grep -q "openModal"; then
+    echo "  ✅ PASS: Modal functionality implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal functionality missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
@@ -779,7 +814,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: 48 (42 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 
