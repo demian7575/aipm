@@ -3756,6 +3756,11 @@ function setCicdColumnWidth(columnKey, width, minWidth) {
     headerCell.style.width = `${width}px`;
     headerCell.style.minWidth = `${minWidth}px`;
   });
+
+  document.querySelectorAll(`td[data-col-key="${escapedColumnKey}"]`).forEach((bodyCell) => {
+    bodyCell.style.width = `${width}px`;
+    bodyCell.style.minWidth = `${minWidth}px`;
+  });
 }
 
 function initializeCicdColumnResizing() {
@@ -3900,12 +3905,14 @@ async function renderCICD() {
       // Test ID column
       const idCell = document.createElement('td');
       idCell.className = 'cicd-col-test';
+      idCell.dataset.colKey = 'testId';
       idCell.textContent = testId;
       row.appendChild(idCell);
       
       // Story column
       const storyCell = document.createElement('td');
       storyCell.className = 'cicd-col-story';
+      storyCell.dataset.colKey = 'story';
       const info = testInfo?.[testId];
       if (info?.storyId) {
         const link = document.createElement('a');
@@ -3929,6 +3936,7 @@ async function renderCICD() {
       // Test Title column
       const titleCell = document.createElement('td');
       titleCell.className = 'cicd-col-title';
+      titleCell.dataset.colKey = 'title';
       titleCell.textContent = info?.testTitle || 'Unknown Test';
       titleCell.title = info?.testTitle || 'Unknown Test';
       row.appendChild(titleCell);
@@ -3938,6 +3946,7 @@ async function renderCICD() {
         const resultCell = document.createElement('td');
         resultCell.className = 'cicd-col-run';
         const runColumnKey = `run-${run.runId}`;
+        resultCell.dataset.colKey = runColumnKey;
         const result = matrix[testId][run.runId];
         
         if (result) {
