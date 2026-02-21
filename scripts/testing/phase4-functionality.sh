@@ -299,6 +299,33 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for story 1771634912269: Story List Button
+if [ "$1" = "1771634912269" ]; then
+  echo "Test 17: Story List Button - Header button opens modal"
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html)
+  
+  # Check button exists in HTML
+  if echo "$INDEX_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check click handler fetches stories and opens modal
+  if echo "$APP_JS_CONTENT" | grep -q "storyListBtn.addEventListener" && \
+     echo "$APP_JS_CONTENT" | grep -q "/api/rtm/matrix" && \
+     echo "$APP_JS_CONTENT" | grep -q "openModal"; then
+    echo "  ✅ PASS: Story list button click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
