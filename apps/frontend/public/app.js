@@ -8306,6 +8306,50 @@ function openAcceptanceTestModal(storyId, options = {}) {
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
+/**
+ * Opens modal displaying list of all story titles
+ */
+function openStoryListModal() {
+  const allStories = flattenStories(state.stories);
+  
+  const container = document.createElement('div');
+  container.className = 'story-list-container';
+  container.style.cssText = 'max-height: 500px; overflow-y: auto;';
+  
+  if (allStories.length === 0) {
+    container.innerHTML = '<p style="padding: 20px; text-align: center;">No stories found</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+    
+    allStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.cssText = 'padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;';
+      item.textContent = story.title;
+      item.addEventListener('click', () => {
+        handleStorySelection(story);
+        closeModal();
+      });
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = '';
+      });
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'medium'
+  });
+}
+
 function openFilterModal() {
   const container = document.createElement('div');
   container.className = 'modal-form filter-form';
@@ -8988,6 +9032,8 @@ async function initialize() {
       onClose,
     });
   });
+
+  document.getElementById('story-list-btn')?.addEventListener('click', openStoryListModal);
 
   autoLayoutToggle.addEventListener('click', () => {
     if (state.autoLayout) {

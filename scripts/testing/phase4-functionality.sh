@@ -11,10 +11,14 @@ source "$TEST_SCRIPT_DIR/test-library.sh"
 PASSED=0
 FAILED=0
 PHASE="phase4"
+STORY_ID_FILTER="${1:-}"
 
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo "Run ID: $TEST_RUN_ID"
+if [ -n "$STORY_ID_FILTER" ]; then
+  echo "Story Filter: $STORY_ID_FILTER"
+fi
 echo ""
 
 # ============================================
@@ -782,6 +786,56 @@ echo ""
 echo "Total Tests: 45 (39 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
+
+# ============================================
+# Story-Specific Tests (if STORY_ID_FILTER provided)
+# ============================================
+if [ -n "$STORY_ID_FILTER" ]; then
+  echo ""
+  echo "📋 Story-Specific Tests for ID: $STORY_ID_FILTER"
+  echo "=============================================="
+  
+  case "$STORY_ID_FILTER" in
+    1771664852234)
+      echo "Test: Story List Button Modal"
+      
+      # Test 1: Frontend has story list button
+      echo "  Test 1: Story list button exists in HTML"
+      START_TIME=$(date +%s)
+      if curl -s "$FRONTEND_URL" | grep -q 'id="story-list-btn"'; then
+        DURATION=$(($(date +%s) - START_TIME))
+        echo "    ✅ PASS: Story list button found in HTML"
+        PASSED=$((PASSED + 1))
+        record_test_result "story-1771664852234-button" "Story list button in HTML" "PASS" "$PHASE" "$DURATION"
+      else
+        DURATION=$(($(date +%s) - START_TIME))
+        echo "    ❌ FAIL: Story list button not found"
+        FAILED=$((FAILED + 1))
+        record_test_result "story-1771664852234-button" "Story list button in HTML" "FAIL" "$PHASE" "$DURATION"
+      fi
+      
+      # Test 2: JavaScript has openStoryListModal function
+      echo "  Test 2: openStoryListModal function exists"
+      START_TIME=$(date +%s)
+      if curl -s "$FRONTEND_URL/app.js" | grep -q 'function openStoryListModal'; then
+        DURATION=$(($(date +%s) - START_TIME))
+        echo "    ✅ PASS: openStoryListModal function found"
+        PASSED=$((PASSED + 1))
+        record_test_result "story-1771664852234-function" "openStoryListModal function" "PASS" "$PHASE" "$DURATION"
+      else
+        DURATION=$(($(date +%s) - START_TIME))
+        echo "    ❌ FAIL: openStoryListModal function not found"
+        FAILED=$((FAILED + 1))
+        record_test_result "story-1771664852234-function" "openStoryListModal function" "FAIL" "$PHASE" "$DURATION"
+      fi
+      ;;
+    *)
+      echo "  ⏭️  No specific tests defined for story $STORY_ID_FILTER"
+      ;;
+  esac
+  
+  echo ""
+fi
 
 if [ $FAILED -gt 0 ]; then
   exit 1
