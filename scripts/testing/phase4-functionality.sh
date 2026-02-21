@@ -751,6 +751,59 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1771652148882 - Add Story List Button
+if [ "$1" = "1771652148882" ]; then
+  echo "Test 45: Story 1771652148882 - Add Story List Button"
+  
+  # Check header button exists in HTML
+  FRONTEND_HTML=$(cat apps/frontend/public/index.html)
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check button element reference in JS
+  FRONTEND_JS=$(cat apps/frontend/public/app.js)
+  if echo "$FRONTEND_JS" | grep -q "getElementById('story-list-btn')"; then
+    echo "  ✅ PASS: Button element reference exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Button element reference missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check click handler opens modal
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.*addEventListener.*click"; then
+    echo "  ✅ PASS: Click handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check fetches stories from API
+  if echo "$FRONTEND_JS" | grep -q "fetch.*resolveApiUrl.*/api/stories"; then
+    echo "  ✅ PASS: Fetches stories from API"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: API fetch missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check opens modal with story list
+  if echo "$FRONTEND_JS" | grep -q "openModal"; then
+    echo "  ✅ PASS: Opens modal"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal opening missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
