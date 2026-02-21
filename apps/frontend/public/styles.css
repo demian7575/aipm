@@ -3087,6 +3087,11 @@ dialog[data-size='content'] .modal-shell {
   z-index: 12;
 }
 
+.cicd-matrix thead .cicd-col-test,
+.cicd-matrix thead .cicd-col-story {
+  left: auto;
+}
+
 .cicd-col-runs,
 .cicd-col-run,
 .cicd-run-col {
