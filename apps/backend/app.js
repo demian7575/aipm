@@ -1,5 +1,6 @@
 import { DynamoDBDataLayer } from './dynamodb.js';
 import { getStoryPRs, addStoryPR, removeStoryPR } from './story-prs.js';
+import { loadProjects, getProject, addProject, updateProject, deleteProject } from './projects.js';
 import { spawnSync, spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
@@ -5556,6 +5557,104 @@ export async function createApp() {
           commit: commitHash
         }));
         return;
+      }
+
+      // Project Management Endpoints
+      if (pathname === '/api/projects' && method === 'GET') {
+        try {
+          const projects = loadProjects();
+          sendJson(res, 200, projects);
+          return;
+        } catch (error) {
+          console.error('Error loading projects:', error);
+          sendJson(res, 500, { error: 'Failed to load projects' });
+          return;
+        }
+      }
+
+      if (pathname === '/api/projects' && method === 'POST') {
+        try {
+          const body = await parseJson(req);
+          
+          if (!body.id || !body.name || !body.github) {
+            sendJson(res, 400, { error: 'Missing required fields: id, name, github' });
+            return;
+          }
+          
+          const existing = getProject(body.id);
+          if (existing) {
+            sendJson(res, 409, { error: 'Project already exists' });
+            return;
+          }
+          
+          const project = {
+            id: body.id,
+            name: body.name,
+            description: body.description || '',
+            github: body.github,
+            aws: body.aws || {
+              region: 'us-east-1',
+              dynamodb: {
+                stories: `${body.id}-stories`,
+                tests: `${body.id}-tests`,
+                prs: `${body.id}-prs`,
+                results: `${body.id}-test-results`
+              },
+              s3: {
+                documents: `${body.id}-documents`
+              }
+            },
+            created: new Date().toISOString(),
+            status: 'active'
+          };
+          
+          addProject(project);
+          sendJson(res, 201, project);
+          return;
+        } catch (error) {
+          console.error('Error creating project:', error);
+          sendJson(res, 500, { error: 'Failed to create project' });
+          return;
+        }
+      }
+
+      if (pathname.match(/^\/api\/projects\/[^\/]+$/) && method === 'GET') {
+        try {
+          const projectId = pathname.split('/')[3];
+          const project = getProject(projectId);
+          
+          if (!project) {
+            sendJson(res, 404, { error: 'Project not found' });
+            return;
+          }
+          
+          sendJson(res, 200, project);
+          return;
+        } catch (error) {
+          console.error('Error getting project:', error);
+          sendJson(res, 500, { error: 'Failed to get project' });
+          return;
+        }
+      }
+
+      if (pathname.match(/^\/api\/projects\/[^\/]+$/) && method === 'DELETE') {
+        try {
+          const projectId = pathname.split('/')[3];
+          const project = getProject(projectId);
+          
+          if (!project) {
+            sendJson(res, 404, { error: 'Project not found' });
+            return;
+          }
+          
+          deleteProject(projectId);
+          sendJson(res, 200, { message: 'Project deleted' });
+          return;
+        } catch (error) {
+          console.error('Error deleting project:', error);
+          sendJson(res, 500, { error: 'Failed to delete project' });
+          return;
+        }
       }
 
     if (pathname === '/api/deploy-pr' && method === 'POST') {

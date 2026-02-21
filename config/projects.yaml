@@ -1,0 +1,20 @@
+# AIPM Framework Project Registry
+projects:
+  - id: aipm
+    name: "AI Project Manager"
+    description: "AIPM framework itself"
+    github:
+      owner: demian7575
+      repo: aipm
+      branch: main
+    aws:
+      region: us-east-1
+      dynamodb:
+        stories: aipm-backend-prod-stories
+        tests: aipm-backend-prod-acceptance-tests
+        prs: aipm-backend-prod-prs
+        results: aipm-backend-prod-test-results
+      s3:
+        documents: aipm-documents
+    created: "2026-02-21T06:17:00Z"
+    status: active
