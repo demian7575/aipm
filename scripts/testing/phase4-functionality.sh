@@ -751,6 +751,41 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1771634714964 - Story List Button
+if [ "$1" = "1771634714964" ]; then
+  echo "Test 45: Story 1771634714964 - Story List Button"
+  
+  # Check button exists in HTML
+  FRONTEND_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html)
+  if echo "$FRONTEND_HTML" | grep -q "story-list-btn"; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check button has event listener
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story list button event listener exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button event listener missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check modal opens with story titles
+  if echo "$FRONTEND_JS" | grep -q "openModal" && echo "$FRONTEND_JS" | grep -q "Story List"; then
+    echo "  ✅ PASS: Modal opens with story list"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal functionality incomplete"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
