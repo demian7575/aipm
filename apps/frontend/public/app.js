@@ -3750,17 +3750,27 @@ function setCicdColumnWidth(columnKey, width, minWidth) {
   document.querySelectorAll(`col[data-col-key="${escapedColumnKey}"]`).forEach((col) => {
     col.style.width = `${width}px`;
     col.style.minWidth = `${minWidth}px`;
+    col.style.maxWidth = `${width}px`;
   });
 
   document.querySelectorAll(`th[data-col-key="${escapedColumnKey}"]`).forEach((headerCell) => {
     headerCell.style.width = `${width}px`;
     headerCell.style.minWidth = `${minWidth}px`;
+    headerCell.style.maxWidth = `${width}px`;
   });
 
   document.querySelectorAll(`td[data-col-key="${escapedColumnKey}"]`).forEach((bodyCell) => {
     bodyCell.style.width = `${width}px`;
     bodyCell.style.minWidth = `${minWidth}px`;
+    bodyCell.style.maxWidth = `${width}px`;
   });
+}
+
+function applyCicdColumnStyles(cell, column) {
+  if (!cell || !column) return;
+  cell.style.width = `${column.width}px`;
+  cell.style.minWidth = `${column.minWidth}px`;
+  cell.style.maxWidth = `${column.width}px`;
 }
 
 function initializeCicdColumnResizing() {
@@ -3882,7 +3892,7 @@ async function renderCICD() {
 
     colgroup.innerHTML = columns
       .map(
-        (column) => `<col data-col-key="${column.key}" style="width: ${column.width}px; min-width: ${column.minWidth}px;">`
+        (column) => `<col data-col-key="${column.key}" style="width: ${column.width}px; min-width: ${column.minWidth}px; max-width: ${column.width}px;">`
       )
       .join('');
 
@@ -3890,12 +3900,14 @@ async function renderCICD() {
 
     thead.innerHTML = columns
       .map(
-        (column) => `<th class="${column.className}" data-col-key="${column.key}" data-min-width="${column.minWidth}" title="${column.title || ''}" style="width: ${column.width}px; min-width: ${column.minWidth}px;">
+        (column) => `<th class="${column.className}" data-col-key="${column.key}" data-min-width="${column.minWidth}" title="${column.title || ''}" style="width: ${column.width}px; min-width: ${column.minWidth}px; max-width: ${column.width}px;">
           <div class="cicd-th-content">${column.label}</div>
           <span class="cicd-col-resizer" role="separator" aria-label="Resize ${column.label.replace(/<br\/>/g, ' ')} column" title="Resize column"></span>
         </th>`
       )
       .join('');
+
+    const columnConfigByKey = new Map(columns.map((column) => [column.key, column]));
     
     tbody.innerHTML = '';
     
@@ -3907,12 +3919,14 @@ async function renderCICD() {
       idCell.className = 'cicd-col-test';
       idCell.dataset.colKey = 'testId';
       idCell.textContent = testId;
+      applyCicdColumnStyles(idCell, columnConfigByKey.get('testId'));
       row.appendChild(idCell);
       
       // Story column
       const storyCell = document.createElement('td');
       storyCell.className = 'cicd-col-story';
       storyCell.dataset.colKey = 'story';
+      applyCicdColumnStyles(storyCell, columnConfigByKey.get('story'));
       const info = testInfo?.[testId];
       if (info?.storyId) {
         const link = document.createElement('a');
@@ -3939,6 +3953,7 @@ async function renderCICD() {
       titleCell.dataset.colKey = 'title';
       titleCell.textContent = info?.testTitle || 'Unknown Test';
       titleCell.title = info?.testTitle || 'Unknown Test';
+      applyCicdColumnStyles(titleCell, columnConfigByKey.get('title'));
       row.appendChild(titleCell);
       
       // Result columns for each run
@@ -3947,6 +3962,7 @@ async function renderCICD() {
         resultCell.className = 'cicd-col-run';
         const runColumnKey = `run-${run.runId}`;
         resultCell.dataset.colKey = runColumnKey;
+        applyCicdColumnStyles(resultCell, columnConfigByKey.get(runColumnKey));
         const result = matrix[testId][run.runId];
         
         if (result) {
