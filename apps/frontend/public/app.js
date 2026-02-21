@@ -1,6 +1,10 @@
 // Cache refresh: 1734828699
 // Simplified architecture - removed Worker, using API server internal queue only
 
+// Project Management
+let projects = [];
+let activeProjectId = localStorage.getItem('aipm-active-project') || 'aipm';
+
 function getApiBaseUrl() {
   // Check if EC2 config has been loaded with dynamic IP
   if (window.__EC2_CONFIG__?.apiBaseUrl) {
@@ -9535,3 +9539,142 @@ async function initializeEC2AutoStart() {
     }
   }
 }
+
+// ============================================================================
+// Project Management
+// ============================================================================
+
+async function loadProjects() {
+  try {
+    const response = await fetch(resolveApiUrl('/api/projects'));
+    if (!response.ok) throw new Error('Failed to load projects');
+    projects = await response.json();
+    updateProjectDropdown();
+  } catch (error) {
+    console.error('Error loading projects:', error);
+    showToast('Failed to load projects', 'error');
+  }
+}
+
+function updateProjectDropdown() {
+  const dropdown = document.getElementById('project-dropdown');
+  dropdown.innerHTML = projects.map(p => 
+    `<option value="${p.id}" ${p.id === activeProjectId ? 'selected' : ''}>${p.name}</option>`
+  ).join('');
+}
+
+function switchProject(projectId) {
+  localStorage.setItem('aipm-active-project', projectId);
+  activeProjectId = projectId;
+  location.reload();
+}
+
+function openProjectManager() {
+  const modal = document.getElementById('project-manager-modal');
+  modal.hidden = false;
+  renderProjectsList();
+}
+
+function closeProjectManager() {
+  document.getElementById('project-manager-modal').hidden = true;
+}
+
+function renderProjectsList() {
+  const tbody = document.getElementById('projects-list');
+  tbody.innerHTML = projects.map(p => `
+    <tr>
+      <td>${p.name}</td>
+      <td><code>${p.id}</code></td>
+      <td>${p.github.owner}/${p.github.repo}</td>
+      <td><span class="badge">${p.status}</span></td>
+      <td>
+        <button onclick="selectProject('${p.id}')">Select</button>
+        <button class="danger" onclick="confirmDeleteProject('${p.id}')">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function selectProject(projectId) {
+  switchProject(projectId);
+}
+
+function confirmDeleteProject(projectId) {
+  const project = projects.find(p => p.id === projectId);
+  if (!confirm(`Delete project "${project.name}"? This will remove the registry entry only. Use project-delete.sh to remove AWS resources.`)) {
+    return;
+  }
+  deleteProject(projectId);
+}
+
+async function deleteProject(projectId) {
+  try {
+    const response = await fetch(resolveApiUrl(`/api/projects/${projectId}`), {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) throw new Error('Failed to delete project');
+    
+    showToast('Project deleted', 'success');
+    await loadProjects();
+    renderProjectsList();
+    
+    if (projectId === activeProjectId) {
+      switchProject('aipm');
+    }
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    showToast('Failed to delete project', 'error');
+  }
+}
+
+function openNewProjectForm() {
+  document.getElementById('new-project-modal').hidden = false;
+}
+
+function closeNewProjectForm() {
+  document.getElementById('new-project-modal').hidden = true;
+  document.getElementById('new-project-form').reset();
+}
+
+async function createProject(event) {
+  event.preventDefault();
+  
+  const form = event.target;
+  const formData = new FormData(form);
+  
+  const project = {
+    id: formData.get('id'),
+    name: formData.get('name'),
+    description: formData.get('description'),
+    github: {
+      owner: formData.get('github_owner'),
+      repo: formData.get('github_repo'),
+      branch: 'main'
+    }
+  };
+  
+  try {
+    const response = await fetch(resolveApiUrl('/api/projects'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(project)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create project');
+    }
+    
+    showToast('Project created! Run ./scripts/project-init.sh to initialize AWS resources.', 'success');
+    closeNewProjectForm();
+    await loadProjects();
+    renderProjectsList();
+  } catch (error) {
+    console.error('Error creating project:', error);
+    showToast(error.message, 'error');
+  }
+}
+
+// Load projects on init
+loadProjects();
