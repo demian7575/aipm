@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
-import { parse, stringify } from 'yaml';
+import yaml from 'yaml';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -18,7 +18,7 @@ export function loadProjects() {
   
   const configPath = join(__dirname, '../../config/projects.yaml');
   const content = readFileSync(configPath, 'utf-8');
-  const config = parse(content);
+  const config = yaml.parse(content);
   
   projectsCache = config.projects || [];
   lastLoadTime = now;
@@ -57,6 +57,6 @@ export function deleteProject(projectId) {
 
 function saveProjects(projects) {
   const configPath = join(__dirname, '../../config/projects.yaml');
-  const content = stringify({ projects });
+  const content = yaml.stringify({ projects });
   writeFileSync(configPath, content, 'utf-8');
 }
