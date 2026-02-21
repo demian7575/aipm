@@ -50,6 +50,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -6496,6 +6497,40 @@ function closeModal() {
   }
 }
 
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.maxHeight = '400px';
+  container.style.overflowY = 'auto';
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  const allStories = flattenStories(state.stories);
+  const maxStories = Math.min(allStories.length, 50);
+  
+  for (let i = 0; i < maxStories; i++) {
+    const story = allStories[i];
+    const item = document.createElement('li');
+    item.style.padding = '8px';
+    item.style.borderBottom = '1px solid #eee';
+    item.textContent = story.title || 'Untitled Story';
+    list.appendChild(item);
+  }
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close'
+  });
+}
+
 function openModal({
   title,
   content,
@@ -8919,6 +8954,10 @@ async function initialize() {
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   generateDocBtn?.addEventListener('click', () => {
