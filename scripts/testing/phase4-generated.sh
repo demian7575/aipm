@@ -557,6 +557,20 @@ SKIPPED=$((SKIPPED + 1))
 record_test_result "1771076495046" "AC-001: Details panel updates on user story click" "SKIP" "$PHASE" "0"
 
 
+# Test 1771652516126: Header button opens modal with story list (Story #1771652515761) - UI Test
+echo "Test 1771652516126: Header button opens modal with story list"
+echo "  ⚠️  SKIP: UI test (requires browser automation)"
+SKIPPED=$((SKIPPED + 1))
+record_test_result "1771652516126" "Header button opens modal with story list" "SKIP" "$PHASE" "0"
+
+
+# Test 1771652516781: Modal closes when user clicks outside or X button (Story #1771652515761) - UI Test
+echo "Test 1771652516781: Modal closes when user clicks outside or X button"
+echo "  ⚠️  SKIP: UI test (requires browser automation)"
+SKIPPED=$((SKIPPED + 1))
+record_test_result "1771652516781" "Modal closes when user clicks outside or X button" "SKIP" "$PHASE" "0"
+
+
 # Test 48: AT-UX-CORE-L5-007-01: Collapse children (Story #4207) - UI Test
 echo "Test 48: AT-UX-CORE-L5-007-01: Collapse children"
 echo "  ⚠️  SKIP: UI test (requires browser automation)"
