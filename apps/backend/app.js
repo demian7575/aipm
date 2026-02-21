@@ -4772,8 +4772,9 @@ async function removeUploadIfLocal(urlPath) {
 
 async function ensureDatabase(req = null) {
   const useDevTables = req?.headers?.['x-use-dev-tables'] === 'true';
-  console.log('🔧 Using DynamoDB', useDevTables ? '(dev tables)' : '(prod tables)');
-  return new DynamoDBDataLayer(useDevTables);
+  const project = req?.project || null;
+  console.log('🔧 Using DynamoDB', useDevTables ? '(dev tables)' : '(prod tables)', project ? `(project: ${project.id})` : '');
+  return new DynamoDBDataLayer(useDevTables, project);
 }
 
 function attachChildren(stories) {
@@ -5453,12 +5454,30 @@ export async function createApp() {
     // Track activity for auto-stop monitoring
     updateActivity();
     
-    // Create db instance per-request to support X-Use-Dev-Tables header
+    // Attach project context (skip for project management and health endpoints)
+    const url = new URL(req.url, 'http://localhost');
+    const pathname = url.pathname;
+    
+    if (!pathname.startsWith('/api/projects') && pathname !== '/health') {
+      const projectId = req.headers['x-project-id'] || 'aipm';
+      const project = getProject(projectId);
+      
+      if (!project) {
+        res.writeHead(404, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({ error: `Project '${projectId}' not found` }));
+        return;
+      }
+      
+      req.project = project;
+    }
+    
+    // Create db instance per-request to support X-Use-Dev-Tables header and project context
     const db = await ensureDatabase(req);
     
     try {
-      const url = new URL(req.url, 'http://localhost');
-      const pathname = url.pathname;
       const method = req.method ?? 'GET';
 
       if (method === 'DELETE' && pathname.includes('/api/stories/')) {
@@ -5471,7 +5490,7 @@ export async function createApp() {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, X-Use-Dev-Tables',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Use-Dev-Tables, X-Project-Id',
         });
         res.end();
         return;

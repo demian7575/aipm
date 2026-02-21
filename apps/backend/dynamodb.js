@@ -10,23 +10,33 @@ const DEFAULT_TEST_RUNS_TABLE = process.env.TEST_RUNS_TABLE;
 
 console.log('DynamoDB: Default tables:', { DEFAULT_STORIES_TABLE, DEFAULT_ACCEPTANCE_TESTS_TABLE, DEFAULT_TEST_RUNS_TABLE });
 
-// Table name resolver - checks for dev table override
-function getStoriesTable(useDevTables = false) {
+// Table name resolver - checks for dev table override or project-specific tables
+function getStoriesTable(useDevTables = false, project = null) {
+  if (project?.aws?.dynamodb?.stories) {
+    return project.aws.dynamodb.stories;
+  }
   return useDevTables ? 'aipm-backend-dev-stories' : DEFAULT_STORIES_TABLE;
 }
 
-function getAcceptanceTestsTable(useDevTables = false) {
+function getAcceptanceTestsTable(useDevTables = false, project = null) {
+  if (project?.aws?.dynamodb?.tests) {
+    return project.aws.dynamodb.tests;
+  }
   return useDevTables ? 'aipm-backend-dev-acceptance-tests' : DEFAULT_ACCEPTANCE_TESTS_TABLE;
 }
 
-function getTestRunsTable(useDevTables = false) {
+function getTestRunsTable(useDevTables = false, project = null) {
+  if (project?.aws?.dynamodb?.results) {
+    return project.aws.dynamodb.results;
+  }
   return useDevTables ? 'aipm-backend-dev-test-runs' : DEFAULT_TEST_RUNS_TABLE;
 }
 
 export class DynamoDBDataLayer {
-  constructor(useDevTables = false) {
+  constructor(useDevTables = false, project = null) {
     this.docClient = docClient;
     this.useDevTables = useDevTables;
+    this.project = project;
   }
 
   // SQLite compatibility methods
@@ -81,7 +91,7 @@ export class DynamoDBDataLayer {
   async getAllAcceptanceTests() {
     try {
       const result = await docClient.send(new ScanCommand({
-        TableName: getAcceptanceTestsTable(this.useDevTables)
+        TableName: getAcceptanceTestsTable(this.useDevTables, this.project)
       }));
       return (result.Items || []).map(item => ({
         id: item.id,
@@ -108,7 +118,7 @@ export class DynamoDBDataLayer {
       
       do {
         const result = await docClient.send(new ScanCommand({
-          TableName: getStoriesTable(this.useDevTables),
+          TableName: getStoriesTable(this.useDevTables, this.project),
           ExclusiveStartKey: lastKey
         }));
         
@@ -116,7 +126,7 @@ export class DynamoDBDataLayer {
         lastKey = result.LastEvaluatedKey;
       } while (lastKey);
       
-      console.log('DynamoDB: getAllStories result:', allItems.length, 'items from', getStoriesTable(this.useDevTables));
+      console.log('DynamoDB: getAllStories result:', allItems.length, 'items from', getStoriesTable(this.useDevTables, this.project));
       
       const stories = allItems.map(item => ({
         id: item.id,
@@ -147,7 +157,7 @@ export class DynamoDBDataLayer {
   async getStoryById(id) {
     try {
       const result = await docClient.send(new GetCommand({
-        TableName: getStoriesTable(this.useDevTables),
+        TableName: getStoriesTable(this.useDevTables, this.project),
         Key: { id: parseInt(id) }
       }));
       console.log('getStoryById raw result:', JSON.stringify(result.Item));
@@ -183,7 +193,7 @@ export class DynamoDBDataLayer {
   async getChildStories(parentId) {
     try {
       const result = await docClient.send(new ScanCommand({
-        TableName: getStoriesTable(this.useDevTables),
+        TableName: getStoriesTable(this.useDevTables, this.project),
         FilterExpression: 'parentId = :parentId',
         ExpressionAttributeValues: {
           ':parentId': parseInt(parentId)
@@ -218,7 +228,7 @@ export class DynamoDBDataLayer {
       console.log('DynamoDB: Creating story:', JSON.stringify(storyWithId, null, 2));
       
       await docClient.send(new PutCommand({
-        TableName: getStoriesTable(this.useDevTables),
+        TableName: getStoriesTable(this.useDevTables, this.project),
         Item: storyWithId
       }));
       
@@ -233,7 +243,7 @@ export class DynamoDBDataLayer {
   async deleteStory(id) {
     try {
       await docClient.send(new DeleteCommand({
-        TableName: getStoriesTable(this.useDevTables),
+        TableName: getStoriesTable(this.useDevTables, this.project),
         Key: { id: parseInt(id) }
       }));
       console.log('DynamoDB: Deleted story with ID:', id);
@@ -259,7 +269,7 @@ export class DynamoDBDataLayer {
       });
 
       await docClient.send(new UpdateCommand({
-        TableName: getStoriesTable(this.useDevTables),
+        TableName: getStoriesTable(this.useDevTables, this.project),
         Key: { id: parseInt(id) },
         UpdateExpression: `SET ${updateExpression.join(', ')}`,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -276,7 +286,7 @@ export class DynamoDBDataLayer {
   async deleteStory(id) {
     try {
       await docClient.send(new DeleteCommand({
-        TableName: getStoriesTable(this.useDevTables),
+        TableName: getStoriesTable(this.useDevTables, this.project),
         Key: { id: parseInt(id) }
       }));
       return true;
@@ -290,7 +300,7 @@ export class DynamoDBDataLayer {
   async getAcceptanceTestsByStoryId(storyId) {
     try {
       const result = await docClient.send(new QueryCommand({
-        TableName: getAcceptanceTestsTable(this.useDevTables),
+        TableName: getAcceptanceTestsTable(this.useDevTables, this.project),
         IndexName: 'storyId-index',
         KeyConditionExpression: 'storyId = :storyId',
         ExpressionAttributeValues: {
@@ -309,7 +319,7 @@ export class DynamoDBDataLayer {
       const id = Date.now() + Math.floor(Math.random() * 1000);
       const testWithId = { ...test, id, storyId: parseInt(test.storyId) };
       await docClient.send(new PutCommand({
-        TableName: getAcceptanceTestsTable(this.useDevTables),
+        TableName: getAcceptanceTestsTable(this.useDevTables, this.project),
         Item: testWithId
       }));
       return testWithId;
@@ -334,7 +344,7 @@ export class DynamoDBDataLayer {
       });
 
       await docClient.send(new UpdateCommand({
-        TableName: getAcceptanceTestsTable(this.useDevTables),
+        TableName: getAcceptanceTestsTable(this.useDevTables, this.project),
         Key: { id: parseInt(id) },
         UpdateExpression: `SET ${updateExpression.join(', ')}`,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -351,7 +361,7 @@ export class DynamoDBDataLayer {
   async getAcceptanceTestById(id) {
     try {
       const result = await docClient.send(new GetCommand({
-        TableName: getAcceptanceTestsTable(this.useDevTables),
+        TableName: getAcceptanceTestsTable(this.useDevTables, this.project),
         Key: { id: parseInt(id) }
       }));
       return result.Item || null;
@@ -364,7 +374,7 @@ export class DynamoDBDataLayer {
   async deleteAcceptanceTest(id) {
     try {
       await docClient.send(new DeleteCommand({
-        TableName: getAcceptanceTestsTable(this.useDevTables),
+        TableName: getAcceptanceTestsTable(this.useDevTables, this.project),
         Key: { id: parseInt(id) }
       }));
       return true;
@@ -378,7 +388,7 @@ export class DynamoDBDataLayer {
   async createTestRun(testRun) {
     try {
       await docClient.send(new PutCommand({
-        TableName: getTestRunsTable(this.useDevTables),
+        TableName: getTestRunsTable(this.useDevTables, this.project),
         Item: testRun
       }));
       return testRun;
@@ -391,7 +401,7 @@ export class DynamoDBDataLayer {
   async getLatestTestRunByStoryId(storyId) {
     try {
       const result = await docClient.send(new QueryCommand({
-        TableName: getTestRunsTable(this.useDevTables),
+        TableName: getTestRunsTable(this.useDevTables, this.project),
         IndexName: 'storyId-timestamp-index',
         KeyConditionExpression: 'storyId = :storyId',
         ExpressionAttributeValues: {
@@ -410,7 +420,7 @@ export class DynamoDBDataLayer {
   async getTestRunsByRunId(runId) {
     try {
       const result = await docClient.send(new QueryCommand({
-        TableName: getTestRunsTable(this.useDevTables),
+        TableName: getTestRunsTable(this.useDevTables, this.project),
         KeyConditionExpression: 'runId = :runId',
         ExpressionAttributeValues: {
           ':runId': runId

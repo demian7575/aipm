@@ -25,6 +25,15 @@ function getApiBaseUrl() {
 
 const DEFAULT_REPO_API_URL = 'https://api.github.com';
 
+// Helper to add project header to fetch calls
+function fetchWithProject(url, options = {}) {
+  const headers = {
+    ...options.headers,
+    'X-Project-Id': activeProjectId
+  };
+  return fetch(url, { ...options, headers });
+}
+
 function resolveApiUrl(path) {
   const API_BASE_URL = getApiBaseUrl();
   
@@ -1635,7 +1644,7 @@ async function setCodeWhispererDelegations(storyId, entries) {
 
   // Update story's PRs via API
   try {
-    const response = await fetch(resolveApiUrl(`/api/stories/${key}/prs`), {
+    const response = await fetchWithProject(resolveApiUrl(`/api/stories/${key}/prs`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prs: normalizedEntries })
@@ -1658,7 +1667,7 @@ async function setCodeWhispererDelegations(storyId, entries) {
 async function addCodeWhispererDelegationEntry(storyId, entry) {
   const key = Number(storyId);
   try {
-    const response = await fetch(resolveApiUrl(`/api/stories/${key}/prs`), {
+    const response = await fetchWithProject(resolveApiUrl(`/api/stories/${key}/prs`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entry)
@@ -1689,7 +1698,7 @@ async function removeCodeWhispererDelegation(storyId, localId) {
   }
   
   try {
-    const response = await fetch(resolveApiUrl(`/api/stories/${storyId}/prs/${entry.number}`), {
+    const response = await fetchWithProject(resolveApiUrl(`/api/stories/${storyId}/prs/${entry.number}`), {
       method: 'DELETE'
     });
     if (response.ok) {
@@ -1761,7 +1770,7 @@ async function mergePR(prEntry) {
     
     console.log('🔀 Merging PR:', payload);
     
-    const response = await fetch(resolveApiUrl('/api/merge-pr'), {
+    const response = await fetchWithProject(resolveApiUrl('/api/merge-pr'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -2108,7 +2117,7 @@ function renderCodeWhispererSectionList(container, story) {
           status.textContent = `Deploying PR #${prNumber} to Development environment...`;
           
           // Use backend API endpoint instead of direct GitHub API call
-          const response = await fetch(resolveApiUrl('/api/trigger-deployment'), {
+          const response = await fetchWithProject(resolveApiUrl('/api/trigger-deployment'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -2255,7 +2264,7 @@ function buildCodeWhispererSection(story) {
       
       console.log('📤 Sending payload:', payload);
       
-      const response = await fetch(resolveApiUrl('/api/create-pr'), {
+      const response = await fetchWithProject(resolveApiUrl('/api/create-pr'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -2595,7 +2604,7 @@ async function recheckStoryHealth(storyId, options = {}) {
     requestInit.headers = { 'Content-Type': 'application/json' };
     requestInit.body = JSON.stringify({ includeAiInvest: true });
   }
-  const response = await fetch(resolveApiUrl(`/api/stories/${storyId}/health-check`), requestInit);
+  const response = await fetchWithProject(resolveApiUrl(`/api/stories/${storyId}/health-check`), requestInit);
   if (!response.ok) {
     const message = await safeReadError(response);
     const error = new Error(message || 'Failed to refresh story health');
@@ -2643,7 +2652,7 @@ async function loadStories(preserveSelection = true) {
   try {
     const url = resolveApiUrl('/api/stories');
     console.log('Fetching from API:', url);
-    const response = await fetch(url, { cache: 'no-store' });
+    const response = await fetchWithProject(url, { cache: 'no-store' });
     console.log('API response status:', response.status);
     
     if (!response.ok) {
@@ -5055,7 +5064,7 @@ async function bedrockImplementation(prEntry) {
     
     console.log('📤 Deploying PR to staging:', payload);
     
-    const response = await fetch(resolveApiUrl('/api/deploy-pr'), {
+    const response = await fetchWithProject(resolveApiUrl('/api/deploy-pr'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -7430,7 +7439,7 @@ function openDocumentPanel() {
   // Load available templates
   async function loadTemplates() {
     try {
-      const response = await fetch(resolveApiUrl('/api/templates'));
+      const response = await fetchWithProject(resolveApiUrl('/api/templates'));
       if (response.ok) {
         const templates = await response.json();
         templateSelect.innerHTML = '<option value="">-- Select a template --</option>';
@@ -7492,7 +7501,7 @@ function openDocumentPanel() {
 
     try {
       // Load the selected template content
-      const templateResponse = await fetch(resolveApiUrl(`/api/templates/${selectedTemplate}`));
+      const templateResponse = await fetchWithProject(resolveApiUrl(`/api/templates/${selectedTemplate}`));
       const templateContent = await templateResponse.text();
 
       // Call Semantic API to generate document
@@ -7585,7 +7594,7 @@ function openDocumentPanel() {
       formData.append('template', file);
 
       try {
-        const response = await fetch(resolveApiUrl('/api/templates/upload'), {
+        const response = await fetchWithProject(resolveApiUrl('/api/templates/upload'), {
           method: 'POST',
           body: formData
         });
@@ -7983,7 +7992,7 @@ function openChildStoryModal(parentId) {
           showToast('Checking story quality...', 'info');
           
           try {
-            const response = await fetch(resolveApiUrl('/api/stories'), {
+            const response = await fetchWithProject(resolveApiUrl('/api/stories'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
@@ -8027,7 +8036,7 @@ function openChildStoryModal(parentId) {
               
               // Create with acceptWarnings
               payload.acceptWarnings = true;
-              const retryResponse = await fetch(resolveApiUrl('/api/stories'), {
+              const retryResponse = await fetchWithProject(resolveApiUrl('/api/stories'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -8695,7 +8704,7 @@ async function deleteDependencyLink(storyId, dependsOnStoryId) {
 
 async function uploadReferenceFile(file) {
   const params = new URLSearchParams({ filename: file.name || 'document' });
-  const response = await fetch(resolveApiUrl(`/api/uploads?${params}`), {
+  const response = await fetchWithProject(resolveApiUrl(`/api/uploads?${params}`), {
     method: 'POST',
     headers: {
       'Content-Type': file.type || 'application/octet-stream',
@@ -8871,7 +8880,7 @@ function splitLines(value) {
 
 async function fetchVersion() {
   try {
-    const res = await fetch(resolveApiUrl('/api/version'));
+    const res = await fetchWithProject(resolveApiUrl('/api/version'));
     const data = await res.json();
     const versionEl = document.getElementById('version-display');
     if (versionEl) {
@@ -9074,7 +9083,7 @@ function openCreateIssueModal(story, taskEntry = null) {
     try {
       updateProgress('Starting code generation with gating tests...');
       
-      const response = await fetch(resolveApiUrl('/api/personal-delegate'), {
+      const response = await fetchWithProject(resolveApiUrl('/api/personal-delegate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -9221,7 +9230,7 @@ function openUpdatePRWithCodeModal(story, taskEntry = null) {
       updateProgress('Creating fresh branch from main...');
       
       // Use new fresh branch API
-      const response = await fetch(resolveApiUrl('/api/generate-code-branch'), {
+      const response = await fetchWithProject(resolveApiUrl('/api/generate-code-branch'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -9345,7 +9354,7 @@ function openCreatePRModal(story, taskEntry = null) {
       console.log('Create PR - Payload:', payload);
       console.log('Create PR - API URL:', resolveApiUrl('/api/create-pr'));
 
-      const response = await fetch(resolveApiUrl('/api/create-pr'), {
+      const response = await fetchWithProject(resolveApiUrl('/api/create-pr'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -9546,7 +9555,7 @@ async function initializeEC2AutoStart() {
 
 async function loadProjects() {
   try {
-    const response = await fetch(resolveApiUrl('/api/projects'));
+    const response = await fetchWithProject(resolveApiUrl('/api/projects'));
     if (!response.ok) throw new Error('Failed to load projects');
     projects = await response.json();
     updateProjectDropdown();
@@ -9609,7 +9618,7 @@ function confirmDeleteProject(projectId) {
 
 async function deleteProject(projectId) {
   try {
-    const response = await fetch(resolveApiUrl(`/api/projects/${projectId}`), {
+    const response = await fetchWithProject(resolveApiUrl(`/api/projects/${projectId}`), {
       method: 'DELETE'
     });
     
@@ -9655,7 +9664,7 @@ async function createProject(event) {
   };
   
   try {
-    const response = await fetch(resolveApiUrl('/api/projects'), {
+    const response = await fetchWithProject(resolveApiUrl('/api/projects'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(project)
