@@ -299,6 +299,40 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for story list modal button and functionality
+if [ "$1" = "1771744670858" ]; then
+  echo "Test 18: Story list modal button and functionality"
+  
+  # Check HTML has story list button
+  FRONTEND_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check JS has openStoryListModal function
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$FRONTEND_JS" | grep -q "function openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check button has event listener
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story list button event listener attached"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button event listener missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
