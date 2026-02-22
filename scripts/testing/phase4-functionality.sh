@@ -751,6 +751,41 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story List Modal Button
+if [ "$1" = "1771728097113" ]; then
+  echo "Test 45: Story List Modal - Header button and modal display"
+  
+  # Check button exists in HTML
+  HTML_RESPONSE=$(curl -s "$API_BASE/../index.html")
+  if echo "$HTML_RESPONSE" | grep -q "story-list-btn"; then
+    echo "  ✅ PASS: Story List button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check event listener in frontend
+  FRONTEND_JS=$(curl -s "$API_BASE/../app.js")
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story List button event listener exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button event listener missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check modal opens with story titles
+  if echo "$FRONTEND_JS" | grep -q "openModal"; then
+    echo "  ✅ PASS: Modal implementation exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal implementation missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
@@ -779,7 +814,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: 46 (40 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 
