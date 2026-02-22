@@ -8926,6 +8926,9 @@ async function initialize() {
   // Initialize EC2 auto-start (this will load stories when ready)
   await initializeEC2AutoStart();
   
+  // Load projects after EC2 is ready
+  await loadProjects();
+  
   // Fetch version after EC2 is ready
   fetchVersion();
 
@@ -9685,5 +9688,4 @@ async function createProject(event) {
   }
 }
 
-// Load projects on init
-loadProjects();
+// Load projects after EC2 is ready (called from initialize function)
