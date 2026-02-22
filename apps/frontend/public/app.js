@@ -777,6 +777,13 @@ if (referenceBtn) {
   });
 }
 
+const storyListBtn = document.getElementById('story-list-btn');
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
@@ -9689,3 +9696,31 @@ async function createProject(event) {
 }
 
 // Load projects after EC2 is ready (called from initialize function)
+
+/**
+ * Opens modal displaying list of all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.maxHeight = '400px';
+  container.style.overflowY = 'auto';
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  state.stories.slice(0, 50).forEach(story => {
+    const item = document.createElement('li');
+    item.style.padding = '0.5rem';
+    item.style.borderBottom = '1px solid #eee';
+    item.textContent = story.title || 'Untitled Story';
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal('Story List', container, [
+    { label: 'Close', handler: closeModal }
+  ]);
+}
