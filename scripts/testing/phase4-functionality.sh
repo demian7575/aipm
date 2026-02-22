@@ -752,6 +752,48 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# Story-Specific Tests
+# ============================================
+if [ -n "$STORY_ID" ]; then
+  echo "📋 Story-Specific Tests for Story ID: $STORY_ID"
+  echo "-----------------------------------"
+  
+  # Story 1771743613174: Add Story List Button
+  if [ "$STORY_ID" = "1771743613174" ]; then
+    echo "Test: Story List Button and Modal"
+    
+    # Check button exists in HTML
+    if curl -s "$API_BASE/" | grep -q 'id="story-list-btn"'; then
+      echo "  ✅ PASS: Story list button exists in header"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button not found in header"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check function exists in JS
+    FRONTEND_JS=$(curl -s "$API_BASE/app.js")
+    if echo "$FRONTEND_JS" | grep -q "function openStoryListModal"; then
+      echo "  ✅ PASS: openStoryListModal function implemented"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openStoryListModal function missing"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check event listener
+    if echo "$FRONTEND_JS" | grep -q "storyListBtn.*addEventListener"; then
+      echo "  ✅ PASS: Story list button event listener attached"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button event listener missing"
+      FAILED=$((FAILED + 1))
+    fi
+    echo ""
+  fi
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
