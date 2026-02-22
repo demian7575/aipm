@@ -9558,7 +9558,7 @@ async function initializeEC2AutoStart() {
 
 async function loadProjects() {
   try {
-    const response = await fetchWithProject(resolveApiUrl('/api/projects'));
+    const response = await fetch(resolveApiUrl('/api/projects'));
     if (!response.ok) throw new Error('Failed to load projects');
     projects = await response.json();
     updateProjectDropdown();
