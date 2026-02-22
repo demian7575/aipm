@@ -63,6 +63,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -6700,6 +6701,50 @@ function kebabCase(text) {
     .replace(/-{2,}/g, '-');
 }
 
+/**
+ * Opens a modal displaying all story titles
+ */
+async function openStoryListModal() {
+  try {
+    const stories = await fetchStories();
+    
+    const content = document.createElement('div');
+    content.className = 'story-list-modal-content';
+    
+    if (!stories || stories.length === 0) {
+      content.innerHTML = '<p>No stories found.</p>';
+    } else {
+      const list = document.createElement('ul');
+      list.className = 'story-list';
+      list.style.maxHeight = '400px';
+      list.style.overflowY = 'auto';
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      stories.slice(0, 50).forEach(story => {
+        const item = document.createElement('li');
+        item.style.padding = '8px';
+        item.style.borderBottom = '1px solid #eee';
+        item.textContent = story.title || `Story ${story.id}`;
+        list.appendChild(item);
+      });
+      
+      content.appendChild(list);
+    }
+    
+    openModal({
+      title: 'Story List',
+      content,
+      actions: [],
+      cancelLabel: 'Close'
+    });
+  } catch (error) {
+    console.error('Error loading story list:', error);
+    showToast('Failed to load story list', 'error');
+  }
+}
+
 function createDefaultCodeWhispererForm(story) {
   // Generate branch name from title, limited to 200 chars (GitHub limit is 255 bytes)
   let branchName = '';
@@ -8935,6 +8980,10 @@ async function initialize() {
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   generateDocBtn?.addEventListener('click', () => {
