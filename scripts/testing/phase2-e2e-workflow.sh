@@ -17,7 +17,7 @@ API_BASE="${API_BASE:-$API_BASE}"
 SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-$SEMANTIC_API_BASE}"
 
 # Use dev tables via header for data isolation
-USE_DEV_TABLES_HEADER="-H 'X-Use-Dev-Tables: true'"
+USE_DEV_TABLES_HEADER="-H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm'"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
