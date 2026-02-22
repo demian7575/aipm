@@ -752,6 +752,29 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# SECTION 10: Story-Specific Tests
+# ============================================
+if [ -n "$STORY_ID" ]; then
+  echo "📋 SECTION 10: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test: Story List Button Modal
+  if [ "$STORY_ID" = "1771763042744" ]; then
+    echo "Test: Story List Button Modal (Story 1771763042744)"
+    echo "  ℹ️  Manual verification required:"
+    echo "  1. Open frontend in browser"
+    echo "  2. Click 'Story List' button in header"
+    echo "  3. Verify modal appears with story titles"
+    echo "  4. Verify X button closes modal"
+    echo "  5. Verify clicking outside modal closes it"
+    echo "  ⏭️  SKIP: Manual UI test"
+    SKIPPED=$((SKIPPED + 1))
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="

@@ -9587,6 +9587,40 @@ function openProjectManager() {
   renderProjectsList();
 }
 
+/**
+ * Opens a modal displaying all story titles
+ */
+function openStoryListModal() {
+  const content = document.createElement('div');
+  content.style.maxHeight = '400px';
+  content.style.overflowY = 'auto';
+  
+  if (!stories || stories.length === 0) {
+    content.textContent = 'No stories available';
+  } else {
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.padding = '0';
+    ul.style.margin = '0';
+    
+    stories.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '8px';
+      li.style.borderBottom = '1px solid #eee';
+      li.textContent = story.title;
+      ul.appendChild(li);
+    });
+    
+    content.appendChild(ul);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content,
+    cancelLabel: 'Close'
+  });
+}
+
 function closeProjectManager() {
   document.getElementById('project-manager-modal').hidden = true;
 }
@@ -9689,3 +9723,7 @@ async function createProject(event) {
 }
 
 // Load projects after EC2 is ready (called from initialize function)
+
+// Story List Button Handler
+document.getElementById('story-list-btn')?.addEventListener('click', openStoryListModal);
+
