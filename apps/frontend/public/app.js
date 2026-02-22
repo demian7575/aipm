@@ -6633,6 +6633,47 @@ function openModal({
   modal.style.display = 'flex';
 }
 
+/**
+ * Opens a modal displaying all story titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.maxHeight = '400px';
+  container.style.overflowY = 'auto';
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  const stories = state.stories || [];
+  
+  if (stories.length === 0) {
+    const emptyMsg = document.createElement('li');
+    emptyMsg.textContent = 'No stories available';
+    emptyMsg.style.padding = '8px';
+    emptyMsg.style.color = '#666';
+    list.appendChild(emptyMsg);
+  } else {
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.textContent = story.title || `Story ${story.id}`;
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      list.appendChild(item);
+    });
+  }
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'default'
+  });
+}
+
 // Automatic PR creation function
 async function createAutomaticPR(story) {
   if (!story) return;
@@ -8939,6 +8980,11 @@ async function initialize() {
 
   generateDocBtn?.addEventListener('click', () => {
     openDocumentPanel();
+  });
+
+  const storyListBtn = document.getElementById('story-list-btn');
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
 
