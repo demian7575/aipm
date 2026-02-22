@@ -195,8 +195,22 @@ jobs:
           SKIP_GATING_TESTS_IN_CODE_GENERATION: true
         run: |
           echo "🧪 Running Pre-Production Gating Tests on Development Environment"
-          echo "   Backend: $API_BASE"
+          echo "   TARGET_ENV: $TARGET_ENV"
+          echo "   API_BASE: $API_BASE"
+          echo "   SEMANTIC_API_BASE: $SEMANTIC_API_BASE"
+          echo "   SSH_HOST: $SSH_HOST"
           echo "   Database: Development DynamoDB"
+          
+          # Validate environment variables
+          if [[ -z "$API_BASE" ]]; then
+            echo "❌ API_BASE is not set"
+            exit 1
+          fi
+          if [[ -z "$SEMANTIC_API_BASE" ]]; then
+            echo "❌ SEMANTIC_API_BASE is not set"
+            exit 1
+          fi
+          
           export PHASE="pre-production"
           
           # Wait for deployment to be ready
