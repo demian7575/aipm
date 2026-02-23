@@ -6607,13 +6607,12 @@ export async function createApp() {
         console.log(`  Using DynamoDB for deletion`);
         const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
         const { DynamoDBDocumentClient, DeleteCommand, QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+        const { getStoriesTable, getAcceptanceTestsTable } = await import('./dynamodb.js');
         const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
         const docClient = DynamoDBDocumentClient.from(client);
         
-        const useDevTables = req.headers['x-use-dev-tables'] === 'true';
-        
         // Query and delete all acceptance tests for this story
-        const testsTableName = useDevTables ? 'aipm-backend-dev-acceptance-tests' : (process.env.ACCEPTANCE_TESTS_TABLE || 'aipm-backend-prod-acceptance-tests');
+        const testsTableName = getAcceptanceTestsTable(db.useDevTables, db.project);
         console.log(`  Querying acceptance tests from ${testsTableName}...`);
         const queryResult = await docClient.send(new QueryCommand({
           TableName: testsTableName,
@@ -6636,7 +6635,7 @@ export async function createApp() {
         }
         
         // Delete the story
-        const storiesTableName = useDevTables ? 'aipm-backend-dev-stories' : (process.env.STORIES_TABLE || 'aipm-backend-prod-stories');
+        const storiesTableName = getStoriesTable(db.useDevTables, db.project);
         console.log(`  Deleting story from ${storiesTableName}...`);
         await docClient.send(new DeleteCommand({
           TableName: storiesTableName,
