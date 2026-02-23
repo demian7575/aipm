@@ -751,6 +751,33 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1771830452217 - View all stories in modal list
+if [ "$1" = "1771830452217" ]; then
+  echo "Test 45: Story 1771830452217 - Story list button and modal"
+  
+  # Check HTML has story list button
+  INDEX_HTML=$(cat apps/frontend/public/index.html)
+  if echo "$INDEX_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check frontend has openStoryListModal function
+  FRONTEND_JS=$(cat apps/frontend/public/app.js)
+  if echo "$FRONTEND_JS" | grep -q "function openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================

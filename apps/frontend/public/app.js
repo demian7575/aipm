@@ -66,6 +66,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -7345,6 +7346,37 @@ function openHealthIssueModal(title, issue, context = null) {
   openModal({ title, content: container, cancelLabel: 'Close' });
 }
 
+/**
+ * Opens a modal displaying all story titles in a simple list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.padding = '1rem';
+  
+  const list = document.createElement('ul');
+  list.style.listStyle = 'none';
+  list.style.padding = '0';
+  list.style.margin = '0';
+  
+  const allStories = flattenStories(state.stories);
+  
+  allStories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.padding = '0.5rem';
+    item.style.borderBottom = '1px solid #eee';
+    item.textContent = story.title;
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'All Stories',
+    content: container,
+    actions: []
+  });
+}
+
 function openDocumentPanel() {
   const container = document.createElement('div');
   container.className = 'document-panel';
@@ -8939,6 +8971,10 @@ async function initialize() {
 
   generateDocBtn?.addEventListener('click', () => {
     openDocumentPanel();
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
 
