@@ -5977,10 +5977,9 @@ export async function createApp() {
         
         const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
         const docClient = DynamoDBDocumentClient.from(client);
-        // Use correct table based on X-Use-Dev-Tables header
-        const useDevTables = req.headers['x-use-dev-tables'] === 'true';
-        const tableName = useDevTables ? 'aipm-backend-dev-stories' : process.env.STORIES_TABLE;
-        console.log(`📝 Creating story in table: ${tableName} (useDevTables: ${useDevTables})`);
+        // Use table from db instance (respects X-Use-Dev-Tables header)
+        const tableName = db.getStoriesTableName();
+        console.log(`📝 Creating story in table: ${tableName}`);
         
         // Allow specifying ID (for dev environment mirroring), otherwise generate new one
         newStoryId = payload.id || Date.now();
@@ -6018,8 +6017,8 @@ export async function createApp() {
         
         // Create acceptance tests BEFORE INVEST analysis
         if (acceptanceTests.length > 0) {
-          // Use correct table based on X-Use-Dev-Tables header
-          const testsTableName = useDevTables ? 'aipm-backend-dev-acceptance-tests' : process.env.ACCEPTANCE_TESTS_TABLE;
+          // Use table from db instance
+          const testsTableName = db.getAcceptanceTestsTableName();
           for (const test of acceptanceTests) {
             const testId = Date.now() + Math.floor(Math.random() * 1000);
             await docClient.send(new PutCommand({
