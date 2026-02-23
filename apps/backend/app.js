@@ -5979,7 +5979,7 @@ export async function createApp() {
         const docClient = DynamoDBDocumentClient.from(client);
         // Use table from db instance (respects X-Use-Dev-Tables header)
         const tableName = db.useDevTables ? 'aipm-backend-dev-stories' : process.env.STORIES_TABLE;
-        console.log(`📝 Creating story in table: ${tableName}`);
+        console.log(`📝 Creating story in table: ${tableName} (db.useDevTables=${db.useDevTables}, header=${req.headers['x-use-dev-tables']})`);
         
         // Allow specifying ID (for dev environment mirroring), otherwise generate new one
         newStoryId = payload.id || Date.now();
