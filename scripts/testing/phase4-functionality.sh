@@ -287,6 +287,23 @@ if [ "$1" = "1771076494719" ]; then
     echo "  ❌ FAIL: RTM row click handler or selection styling missing"
     FAILED=$((FAILED + 1))
   fi
+fi
+
+# Test for Story List Modal feature
+if [ "$1" = "1771821570209" ]; then
+  echo "Test 18: Story List Modal - Button and handler"
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  
+  if echo "$INDEX_HTML" | grep -q 'id="story-list-btn"' && \
+     echo "$APP_JS_CONTENT" | grep -q "storyListBtn" && \
+     echo "$APP_JS_CONTENT" | grep -q "openModal"; then
+    echo "  ✅ PASS: Story List button and modal handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button or handler missing"
+    FAILED=$((FAILED + 1))
+  fi
   
   # Check for CSS styling for selected row
   STYLES_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css)
@@ -778,8 +795,9 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+echo "  - Story List Modal: 1 feature tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: 46 (40 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 
