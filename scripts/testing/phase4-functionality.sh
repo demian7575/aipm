@@ -299,6 +299,47 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for Story 1771809601863: Story List Modal
+if [ "$1" = "1771809601863" ]; then
+  echo "Test 17a: Story List Modal - Button exists in header"
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  if echo "$INDEX_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story List button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button not found in header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 17b: Story List Modal - openStoryListModal function exists"
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$APP_JS_CONTENT" | grep -q "function openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 17c: Story List Modal - Button click handler"
+  if echo "$APP_JS_CONTENT" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story List button click handler exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story List button click handler not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 17d: Story List Modal - Fetches stories from API"
+  if echo "$APP_JS_CONTENT" | grep -q "resolveApiUrl('/api/stories')"; then
+    echo "  ✅ PASS: Modal fetches stories from API"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal does not fetch stories from API"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
