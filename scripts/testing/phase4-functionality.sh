@@ -272,6 +272,30 @@ else
   FAILED=$((FAILED + 1))
 fi
 
+# Test for story list modal button and functionality
+if [ "$1" = "1771809118086" ]; then
+  echo "Test 17: Story List Modal - Button exists in header"
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/)
+  if echo "$INDEX_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button not found in header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo "Test 18: Story List Modal - Function implementation"
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$APP_JS_CONTENT" | grep -q "function openStoryListModal" && \
+     echo "$APP_JS_CONTENT" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story list modal function and event listener implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list modal function or event listener missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
   echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
