@@ -299,6 +299,33 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for US-1771830082522: View All Stories Modal
+if [ "$1" = "1771830082522" ]; then
+  echo "Test: US-1771830082522 - View All Stories Modal"
+  
+  # Check HTML for button
+  INDEX_HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html)
+  if echo "$INDEX_HTML" | grep -q 'id="view-all-stories-btn"'; then
+    echo "  ✅ PASS: View All Stories button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories button missing from HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check JavaScript for event listener and modal logic
+  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$APP_JS_CONTENT" | grep -q "viewAllStoriesBtn.addEventListener" && \
+     echo "$APP_JS_CONTENT" | grep -q "/api/stories" && \
+     echo "$APP_JS_CONTENT" | grep -q "openModal"; then
+    echo "  ✅ PASS: View All Stories modal logic implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View All Stories modal logic missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
