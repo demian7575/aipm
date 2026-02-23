@@ -11,14 +11,14 @@ const DEFAULT_TEST_RUNS_TABLE = process.env.TEST_RUNS_TABLE;
 console.log('DynamoDB: Default tables:', { DEFAULT_STORIES_TABLE, DEFAULT_ACCEPTANCE_TESTS_TABLE, DEFAULT_TEST_RUNS_TABLE });
 
 // Table name resolver - checks for dev table override or project-specific tables
-function getStoriesTable(useDevTables = false, project = null) {
+export function getStoriesTable(useDevTables = false, project = null) {
   if (project?.aws?.dynamodb?.stories) {
     return project.aws.dynamodb.stories;
   }
   return useDevTables ? 'aipm-backend-dev-stories' : DEFAULT_STORIES_TABLE;
 }
 
-function getAcceptanceTestsTable(useDevTables = false, project = null) {
+export function getAcceptanceTestsTable(useDevTables = false, project = null) {
   if (project?.aws?.dynamodb?.tests) {
     return project.aws.dynamodb.tests;
   }
