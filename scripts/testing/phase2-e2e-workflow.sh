@@ -47,11 +47,11 @@ phase2_step1_story_draft_generation() {
     log_test "Story Draft Generation (SSE)"
     
     # Get parent story ID (create one if none exists)
-    local parent_story=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories" | jq -r '.[0] | select(.id != null) | .id')
+    local parent_story=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories" | jq -r '.[0] | select(.id != null) | .id')
     if [[ -z "$parent_story" ]]; then
         echo "   📝 No parent story found, creating one..."
         local create_result=$(curl -s -X POST "$API_BASE/api/stories" \
-            -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' \
+            -H 'X-Use-Dev-Tables: true' \
             -H 'Content-Type: application/json' \
             -d '{"title": "Phase 2 Test Parent Story", "asA": "tester", "iWant": "run phase 2 tests", "soThat": "verify E2E workflow", "acceptWarnings": true}')
         parent_story=$(echo "$create_result" | jq -r '.id')
@@ -139,7 +139,7 @@ phase2_step2_create_story() {
     }')
     
     local response
-    response=$(timeout 60 curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' -X POST "$API_BASE/api/stories" \
+    response=$(timeout 60 curl -s -H 'X-Use-Dev-Tables: true' -X POST "$API_BASE/api/stories" \
         -H 'Content-Type: application/json' \
         -d "$story_payload")
     
@@ -186,7 +186,7 @@ EOF
 )
     
     local response
-    response=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' -X PUT "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID" \
+    response=$(curl -s -H 'X-Use-Dev-Tables: true' -X PUT "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID" \
         -H 'Content-Type: application/json' \
         -d "$updated_payload")
     
@@ -220,7 +220,7 @@ phase2_step4_invest_analysis() {
     fi
     
     # Get story data
-    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     # Debug: Check if story data was retrieved
     if [[ -z "$story_data" ]]; then
@@ -319,7 +319,7 @@ phase2_step5_acceptance_test_draft() {
     fi
     
     # Get story data
-    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     # Generate acceptance test draft via SSE
     local request_id="phase2-at-draft-$(date +%s)"
@@ -370,7 +370,7 @@ phase2_step5_acceptance_test_draft() {
     
     # Verify acceptance test is attached to story
     echo "   🔍 Verifying test is attached to story..."
-    local story_with_tests=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_with_tests=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     local test_count=$(echo "$story_with_tests" | jq -r '.acceptanceTests | length')
     
     if [[ "$test_count" -gt 0 ]]; then
@@ -403,7 +403,7 @@ phase2_step6_create_pr() {
     fi
     
     # Get story data for PR
-    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     local story_title=$(echo "$story_data" | jq -r '.title')
     
     # Generate branch name
@@ -421,7 +421,7 @@ EOF
 )
     
     local response
-    response=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' -X POST "$API_BASE/api/create-pr" \
+    response=$(curl -s -H 'X-Use-Dev-Tables: true' -X POST "$API_BASE/api/create-pr" \
         -H 'Content-Type: application/json' \
         -d "$pr_payload")
     
@@ -439,7 +439,7 @@ EOF
     
     # Verify PR is attached to story
     echo "   🔍 Verifying PR is attached to story..."
-    local story_with_prs=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_with_prs=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     local pr_count=$(echo "$story_with_prs" | jq -r '.prs | length')
     
     if [[ "$pr_count" -gt 0 ]]; then
@@ -491,7 +491,7 @@ phase2_step7_generate_code() {
     echo "   📍 Branch: $PHASE2_BRANCH_NAME"
     
     # Get full story data
-    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_data=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     # Build JSON payload - pass through SKIP_GATING_TESTS_IN_CODE_GENERATION
     local skip_gating=${SKIP_GATING_TESTS_IN_CODE_GENERATION:-false}
@@ -555,7 +555,7 @@ phase2_step8_test_in_dev() {
     fi
     
     # Check data consistency
-    local story_check=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local story_check=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if json_check "$story_check" '.id' && json_check "$story_check" '.title'; then
         pass_test "Deploy to Dev & Data Consistency"
@@ -589,11 +589,11 @@ phase2_step9_stop_tracking() {
     
     # Delete PR via API (closes GitHub PR and removes from DB)
     local response
-    response=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' -X DELETE "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID/prs/$PHASE2_PR_NUMBER")
+    response=$(curl -s -H 'X-Use-Dev-Tables: true' -X DELETE "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID/prs/$PHASE2_PR_NUMBER")
     
     # Verify PR was deleted
     sleep 2
-    local verify=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID/prs")
+    local verify=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID/prs")
     
     if ! echo "$verify" | jq -e ".[] | select(.number == $PHASE2_PR_NUMBER)" > /dev/null 2>&1; then
         pass_test "Stop Tracking (Delete PR)"
@@ -627,11 +627,11 @@ phase2_step10_delete_story() {
     
     # Delete story
     local response
-    response=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' -X DELETE "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    response=$(curl -s -H 'X-Use-Dev-Tables: true' -X DELETE "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     # Verify deletion
     sleep 1
-    local verify=$(curl -s -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
+    local verify=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if json_check "$verify" '.message' '"Story not found"' || json_check "$verify" '.error' || [[ "$verify" == "null" ]] || [[ -z "$verify" ]]; then
         pass_test "Delete Story"
