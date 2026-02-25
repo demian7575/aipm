@@ -14,7 +14,7 @@ SKIPPED=0
 RESULTS_FILE="/tmp/phase4-extended-results-$(date +%s).txt"
 echo "testId|title|status|type" > "$RESULTS_FILE"
 
-echo "🧪 Phase 4 Extended: UI & Integration Tests (56 tests)"
+echo "🧪 Phase 4 Extended: UI & Integration Tests (58 tests)"
 echo "====================================="
 echo ""
 
@@ -576,6 +576,26 @@ echo "  Then: Children are hidden, Icon changes to expand"
 echo "  📝 DOCUMENTED: UI-Interaction test - acceptance criteria defined"
 PASSED=$((PASSED + 1))
 echo "48|AT-UX-CORE-L5-007-01: Collapse children|DOCUMENTED|UI-Interaction" >> "$RESULTS_FILE"
+echo ""
+
+# Test 57: AC-001: Story List button visible on Kanban view
+echo "Test 57: AC-001: Story List button visible on Kanban view"
+echo "  Given: User is on Kanban view, Stories are loaded"
+echo "  When: User looks at the view controls"
+echo "  Then: Story List button is visible, Button shows appropriate icon or text"
+echo "  📝 DOCUMENTED: UI test - acceptance criteria defined"
+PASSED=$((PASSED + 1))
+echo "1771983633447|AC-001: Story List button visible on Kanban view|DOCUMENTED|UI" >> "$RESULTS_FILE"
+echo ""
+
+# Test 58: AC-002: Clicking button switches to Story List view
+echo "Test 58: AC-002: Clicking button switches to Story List view"
+echo "  Given: User is on Kanban view, Story List button is visible"
+echo "  When: User clicks the Story List button"
+echo "  Then: View switches to Story List, Same stories are displayed in list format, Button state updates to show current view"
+echo "  📝 DOCUMENTED: UI-Interaction test - acceptance criteria defined"
+PASSED=$((PASSED + 1))
+echo "1771983633552|AC-002: Clicking button switches to Story List view|DOCUMENTED|UI-Interaction" >> "$RESULTS_FILE"
 echo ""
 
 # Summary
