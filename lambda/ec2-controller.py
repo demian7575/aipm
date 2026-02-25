@@ -7,7 +7,8 @@ ec2 = boto3.client('ec2', region_name='us-east-1')
 # EC2 Instance IDs
 INSTANCES = {
     'prod': 'i-09971cca92b9bf3a9',
-    'dev': 'i-08c78da25af47b3cb'
+    'dev': 'i-08c78da25af47b3cb',
+    'semantic-api': 'i-08c78da25af47b3cb'  # Same instance as dev
 }
 
 def lambda_handler(event, context):
