@@ -751,6 +751,32 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1772005850851 - Header button opens story list modal
+if [ "$1" = "1772005850851" ]; then
+  echo "Test 45: Story 1772005850851 - Story list modal"
+  
+  # Check button exists in HTML
+  HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html)
+  if echo "$HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check openStoryListModal function exists
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$FRONTEND_JS" | grep -q "openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
@@ -779,7 +805,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: 46 (40 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 

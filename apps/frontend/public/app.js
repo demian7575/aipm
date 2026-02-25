@@ -8937,6 +8937,8 @@ async function initialize() {
     window.open(terminalUrl.toString(), '_blank', 'noopener');
   });
 
+  document.getElementById('story-list-btn')?.addEventListener('click', openStoryListModal);
+
   generateDocBtn?.addEventListener('click', () => {
     openDocumentPanel();
   });
@@ -9686,6 +9688,24 @@ async function createProject(event) {
     console.error('Error creating project:', error);
     showToast(error.message, 'error');
   }
+}
+
+/**
+ * Opens modal displaying list of all story titles
+ */
+function openStoryListModal() {
+  const stories = state.stories.slice(0, 50);
+  
+  modalTitle.textContent = 'Story List';
+  modalBody.innerHTML = `
+    <div style="max-height: 400px; overflow-y: auto;">
+      <ul style="list-style: none; padding: 0; margin: 0;">
+        ${stories.map(s => `<li style="padding: 8px; border-bottom: 1px solid #eee;">${s.title}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+  modalFooter.innerHTML = '';
+  modal.style.display = 'flex';
 }
 
 // Load projects after EC2 is ready (called from initialize function)
