@@ -92,6 +92,7 @@ const runtimeDataLink = document.getElementById('runtime-data-link');
 const viewTabs = Array.from(document.querySelectorAll('.view-tab'));
 const mindmapView = document.getElementById('mindmap-view');
 const kanbanView = document.getElementById('kanban-view');
+const kanbanToggleStoryListBtn = document.getElementById('kanban-toggle-story-list');
 
 // Modal drag state
 let modalDragState = null;
@@ -8949,6 +8950,19 @@ async function initialize() {
   toggleOutline.addEventListener('change', (event) => setPanelVisibility('outline', event.target.checked));
   toggleMindmap.addEventListener('change', (event) => setPanelVisibility('mindmap', event.target.checked));
   toggleDetails.addEventListener('change', (event) => setPanelVisibility('details', event.target.checked));
+
+  /**
+   * Kanban Story List button - toggles outline panel visibility
+   */
+  if (kanbanToggleStoryListBtn) {
+    kanbanToggleStoryListBtn.addEventListener('click', () => {
+      const newVisibility = !state.panelVisibility.outline;
+      setPanelVisibility('outline', newVisibility);
+      if (toggleOutline) {
+        toggleOutline.checked = newVisibility;
+      }
+    });
+  }
 
   // RTM event listeners
   const rtmSearch = document.getElementById('rtm-search');

@@ -565,6 +565,15 @@ body.is-mindmap-panning {
   overflow-x: auto;
 }
 
+.kanban-controls {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f8f9ff;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+}
+
 .kanban-column {
   flex: 1 1 25%;
   display: flex;
