@@ -8992,6 +8992,44 @@ async function initialize() {
     });
   });
 
+  /**
+   * Open story list modal showing all story titles
+   */
+  const storyListBtn = document.getElementById('story-list-btn');
+  storyListBtn?.addEventListener('click', async () => {
+    try {
+      const stories = await fetchWithProject(resolveApiUrl('/api/stories')).then(r => r.json());
+      const container = document.createElement('div');
+      container.style.maxHeight = '400px';
+      container.style.overflowY = 'auto';
+      
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      stories.forEach(story => {
+        const item = document.createElement('li');
+        item.style.padding = '8px';
+        item.style.borderBottom = '1px solid #eee';
+        item.textContent = story.title;
+        list.appendChild(item);
+      });
+      
+      container.appendChild(list);
+      
+      openModal({
+        title: 'Story List',
+        content: container,
+        cancelLabel: 'Close',
+        size: 'default',
+      });
+    } catch (error) {
+      console.error('Failed to load stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
+  });
+
   autoLayoutToggle.addEventListener('click', () => {
     if (state.autoLayout) {
       seedManualPositionsFromAutoLayout();
