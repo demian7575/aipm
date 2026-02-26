@@ -783,6 +783,50 @@ echo "Total Tests: 45 (39 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 
+# Story-specific tests (if STORY_ID provided)
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo ""
+  echo "🎯 Story-Specific Tests for Story ID: $STORY_ID"
+  echo "=============================================="
+  
+  # Test: Story List Modal Button Exists
+  echo "Test: Story List Modal Button Exists"
+  START_TIME=$(date +%s)
+  RESPONSE=$(curl -s "$FRONTEND_BASE/index.html")
+  DURATION=$(($(date +%s) - START_TIME))
+  if echo "$RESPONSE" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story List button exists in header"
+    PASSED=$((PASSED + 1))
+    record_test_result "story-$STORY_ID-button" "Story List button in header" "PASS" "$PHASE" "$DURATION"
+  else
+    echo "  ❌ FAIL: Story List button not found"
+    FAILED=$((FAILED + 1))
+    record_test_result "story-$STORY_ID-button" "Story List button in header" "FAIL" "$PHASE" "$DURATION"
+  fi
+  
+  # Test: Story List Modal Function Exists
+  echo "Test: Story List Modal Function Exists"
+  START_TIME=$(date +%s)
+  RESPONSE=$(curl -s "$FRONTEND_BASE/app.js")
+  DURATION=$(($(date +%s) - START_TIME))
+  if echo "$RESPONSE" | grep -q 'function openStoryListModal'; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+    record_test_result "story-$STORY_ID-function" "openStoryListModal function" "PASS" "$PHASE" "$DURATION"
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+    record_test_result "story-$STORY_ID-function" "openStoryListModal function" "FAIL" "$PHASE" "$DURATION"
+  fi
+  
+  echo ""
+  echo "Story-Specific Test Results:"
+  echo "  ✅ Passed: $PASSED"
+  echo "  ❌ Failed: $FAILED"
+  echo "=============================================="
+fi
+
 if [ $FAILED -gt 0 ]; then
   exit 1
 fi

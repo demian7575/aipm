@@ -66,6 +66,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -774,6 +775,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8441,6 +8448,55 @@ function openReferenceModal(storyId) {
   function renderReferenceList(story) {
     if (!story.referenceDocuments || story.referenceDocuments.length === 0) {
       listEl.innerHTML = '<p>No reference documents yet.</p>';
+
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Story List</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="story-list-container" style="max-height: 400px; overflow-y: auto;"></div>
+      </div>
+    </div>
+  `;
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+  
+  document.body.appendChild(modal);
+  
+  const container = modal.querySelector('#story-list-container');
+  const stories = Array.from(state.stories).slice(0, 50);
+  
+  if (stories.length === 0) {
+    container.innerHTML = '<p>No stories available.</p>';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.textContent = story.title || 'Untitled Story';
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+  }
+}
       return;
     }
     const table = document.createElement('table');
