@@ -59,9 +59,10 @@ jobs:
           API_GATEWAY_URL="https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com"
           
           echo "api_base=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
-          echo "semantic_api_base=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
+          echo "semantic_api_base=$API_GATEWAY_URL/aipm" >> $GITHUB_OUTPUT
           echo "target_env=$TARGET_ENV" >> $GITHUB_OUTPUT
           echo "📍 API Base: $API_GATEWAY_URL"
+          echo "📍 Semantic API Base: $API_GATEWAY_URL/aipm"
           echo "📍 Environment: $TARGET_ENV"
           echo "📍 Using API Gateway Proxy (auto-starts EC2 if needed)"
       
