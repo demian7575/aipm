@@ -98,10 +98,13 @@ jobs:
       - name: Run Phase 4 Functionality Tests
         env:
           TARGET_ENV: ${{ steps.env.outputs.environment }}
-          API_BASE: ${{ steps.config.outputs.api_base }}?env=${{ steps.config.outputs.target_env }}
-          SEMANTIC_API_BASE: ${{ steps.config.outputs.semantic_api_base }}?env=${{ steps.config.outputs.target_env }}
+          API_BASE: ${{ steps.config.outputs.api_base }}
+          SEMANTIC_API_BASE: ${{ steps.config.outputs.semantic_api_base }}
+          AIPM_ENV: ${{ steps.config.outputs.target_env }}
         run: |
           echo "🧪 Running Phase 4 Functionality Tests on $TARGET_ENV..."
+          echo "API_BASE: $API_BASE"
+          echo "AIPM_ENV: $AIPM_ENV"
           
           if ./scripts/testing/phase4-functionality.sh; then
             echo "✅ Phase 4 Functionality Tests passed"
@@ -113,7 +116,8 @@ jobs:
       - name: Run Phase 4 Extended Tests
         env:
           TARGET_ENV: ${{ steps.env.outputs.environment }}
-          API_BASE: ${{ steps.config.outputs.api_base }}?env=${{ steps.config.outputs.target_env }}
+          API_BASE: ${{ steps.config.outputs.api_base }}
+          AIPM_ENV: ${{ steps.config.outputs.target_env }}
         run: |
           echo "🧪 Running Phase 4 Extended Tests on $TARGET_ENV..."
           

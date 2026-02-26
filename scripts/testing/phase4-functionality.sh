@@ -12,6 +12,19 @@ PASSED=0
 FAILED=0
 PHASE="phase4"
 
+# Override API_BASE to include environment parameter if AIPM_ENV is set
+if [[ -n "$AIPM_ENV" ]]; then
+  # Store original base
+  ORIGINAL_API_BASE="$API_BASE"
+  # Create wrapper function that appends env parameter
+  API_BASE_FUNC() {
+    local path="$1"
+    echo "${ORIGINAL_API_BASE}${path}?env=${AIPM_ENV}"
+  }
+  # Replace API_BASE usage in this script
+  export -f API_BASE_FUNC
+fi
+
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo "Run ID: $TEST_RUN_ID"
@@ -26,7 +39,7 @@ echo "-----------------------------------"
 # Test 1: GET /api/stories
 echo "Test 1: List all stories"
 START_TIME=$(date +%s)
-RESPONSE=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories")
+RESPONSE=$(curl -s -H 'X-Use-Dev-Tables: true' "${API_BASE}/api/stories${AIPM_ENV:+?env=$AIPM_ENV}")
 DURATION=$(($(date +%s) - START_TIME))
 if echo "$RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
   echo "  ✅ PASS: GET /api/stories"
@@ -41,7 +54,7 @@ fi
 # Test 2-7: Story CRUD operations
 echo "Test 2: Create story"
 TIMESTAMP=$(date +%s)
-NEW_STORY=$(curl -s -X POST "$API_BASE/api/stories" \
+NEW_STORY=$(curl -s -X POST "${API_BASE}/api/stories${AIPM_ENV:+?env=$AIPM_ENV}" \
   -H 'Content-Type: application/json' \
   -H 'X-Use-Dev-Tables: true' \
   -d "{\"title\": \"Test $TIMESTAMP\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\", \"acceptWarnings\": true}")
@@ -52,7 +65,7 @@ if echo "$NEW_STORY" | jq -e '.id' > /dev/null 2>&1; then
   PASSED=$((PASSED + 1))
   
   echo "Test 3: Get single story"
-  if curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$NEW_ID" | jq -e '.id' > /dev/null 2>&1; then
+  if curl -s -H 'X-Use-Dev-Tables: true' "${API_BASE}/api/stories/$NEW_ID${AIPM_ENV:+?env=$AIPM_ENV}" | jq -e '.id' > /dev/null 2>&1; then
     echo "  ✅ PASS: GET /api/stories/:id"
     PASSED=$((PASSED + 1))
   else
@@ -61,7 +74,7 @@ if echo "$NEW_STORY" | jq -e '.id' > /dev/null 2>&1; then
   fi
   
   echo "Test 4: Update story"
-  if curl -s -X PUT "$API_BASE/api/stories/$NEW_ID" \
+  if curl -s -X PUT "${API_BASE}/api/stories/$NEW_ID${AIPM_ENV:+?env=$AIPM_ENV}" \
     -H 'Content-Type: application/json' \
     -H 'X-Use-Dev-Tables: true' \
     -d "{\"title\": \"Updated\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\"}" | jq -e '.success' > /dev/null 2>&1; then
@@ -73,9 +86,9 @@ if echo "$NEW_STORY" | jq -e '.id' > /dev/null 2>&1; then
   fi
   
   echo "Test 5: Delete story"
-  curl -s -X DELETE -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$NEW_ID" > /dev/null
+  curl -s -X DELETE -H 'X-Use-Dev-Tables: true' "${API_BASE}/api/stories/$NEW_ID${AIPM_ENV:+?env=$AIPM_ENV}" > /dev/null
   sleep 1
-  if curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$NEW_ID" | jq -e '.message' | grep -q "not found"; then
+  if curl -s -H 'X-Use-Dev-Tables: true' "${API_BASE}/api/stories/$NEW_ID${AIPM_ENV:+?env=$AIPM_ENV}" | jq -e '.message' | grep -q "not found"; then
     echo "  ✅ PASS: DELETE /api/stories/:id"
     PASSED=$((PASSED + 1))
   else
@@ -89,7 +102,7 @@ fi
 
 # Test 6: GET /api/templates
 echo "Test 6: List templates"
-if curl -s "$API_BASE/api/templates" | jq -e 'type == "array"' > /dev/null 2>&1; then
+if curl -s "${API_BASE}/api/templates${AIPM_ENV:+?env=$AIPM_ENV}" | jq -e 'type == "array"' > /dev/null 2>&1; then
   echo "  ✅ PASS: GET /api/templates"
   PASSED=$((PASSED + 1))
 else
@@ -99,7 +112,7 @@ fi
 
 # Test 7: GET /api/rtm/matrix
 echo "Test 7: Get RTM matrix"
-if curl -s "$API_BASE/api/rtm/matrix" | jq -e 'type == "array"' > /dev/null 2>&1; then
+if curl -s "${API_BASE}/api/rtm/matrix${AIPM_ENV:+?env=$AIPM_ENV}" | jq -e 'type == "array"' > /dev/null 2>&1; then
   echo "  ✅ PASS: GET /api/rtm/matrix"
   PASSED=$((PASSED + 1))
 else
@@ -119,7 +132,7 @@ fi
 
 # Test 8: GET /health
 echo "Test 8: Health check"
-if curl -s "$API_BASE/health" | jq -e '.status == "running"' > /dev/null 2>&1; then
+if curl -s "${API_BASE}/health${AIPM_ENV:+?env=$AIPM_ENV}" | jq -e '.status == "running"' > /dev/null 2>&1; then
   echo "  ✅ PASS: GET /health"
   PASSED=$((PASSED + 1))
 else
@@ -129,7 +142,7 @@ fi
 
 # Test 9: GET /api/version
 echo "Test 9: Version info"
-if curl -s "$API_BASE/api/version" | jq -e '.version' > /dev/null 2>&1; then
+if curl -s "${API_BASE}/api/version${AIPM_ENV:+?env=$AIPM_ENV}" | jq -e '.version' > /dev/null 2>&1; then
   echo "  ✅ PASS: GET /api/version"
   PASSED=$((PASSED + 1))
 else
@@ -139,7 +152,7 @@ fi
 
 # Test 9: RTM matrix with test-specific metrics
 echo "Test 9: RTM matrix with test-specific metrics"
-RTM_RESPONSE=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/rtm/matrix")
+RTM_RESPONSE=$(curl -s -H 'X-Use-Dev-Tables: true' "${API_BASE}/api/rtm/matrix${AIPM_ENV:+?env=$AIPM_ENV}")
 if echo "$RTM_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
   # Check if acceptance tests have coverage property
   HAS_TEST_METRICS=$(echo "$RTM_RESPONSE" | jq '[.[] | select(.acceptanceTests | length > 0) | .acceptanceTests[0].coverage] | length > 0' 2>/dev/null || echo "false")
@@ -205,7 +218,7 @@ echo "-----------------------------------"
 
 # Test 13: POST /api/create-pr (with test story)
 echo "Test 13: Create PR endpoint"
-TEST_STORY=$(curl -s -X POST "$API_BASE/api/stories" \
+TEST_STORY=$(curl -s -X POST "${API_BASE}/api/stories${AIPM_ENV:+?env=$AIPM_ENV}" \
   -H 'Content-Type: application/json' \
   -H 'X-Use-Dev-Tables: true' \
   -d "{\"title\": \"PR Test $TIMESTAMP\", \"asA\": \"tester\", \"iWant\": \"test PR creation\", \"soThat\": \"I can verify GitHub integration\", \"acceptWarnings\": true}")
@@ -214,7 +227,7 @@ if echo "$TEST_STORY" | jq -e '.id' > /dev/null 2>&1; then
   TEST_STORY_ID=$(echo "$TEST_STORY" | jq -r '.id')
   
   # Try to create PR (may fail if no GitHub token, but endpoint should respond)
-  PR_RESULT=$(curl -s -X POST "$API_BASE/api/create-pr" \
+  PR_RESULT=$(curl -s -X POST "${API_BASE}/api/create-pr${AIPM_ENV:+?env=$AIPM_ENV}" \
     -H 'Content-Type: application/json' \
     -H 'X-Use-Dev-Tables: true' \
     -d "{\"storyId\": $TEST_STORY_ID}")
@@ -228,7 +241,7 @@ if echo "$TEST_STORY" | jq -e '.id' > /dev/null 2>&1; then
   fi
   
   # Cleanup
-  curl -s -X DELETE -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$TEST_STORY_ID" > /dev/null
+  curl -s -X DELETE -H 'X-Use-Dev-Tables: true' "${API_BASE}/api/stories/$TEST_STORY_ID${AIPM_ENV:+?env=$AIPM_ENV}" > /dev/null
 else
   echo "  ❌ FAIL: Could not create test story for PR"
   FAILED=$((FAILED + 1))
@@ -367,7 +380,7 @@ fi
 
 # Test 22: Backend process running (verified by health endpoint)
 echo "Test 22: Backend process"
-if curl -s "$API_BASE/health" | jq -e '.status == "running"' > /dev/null 2>&1; then
+if curl -s "${API_BASE}/health${AIPM_ENV:+?env=$AIPM_ENV}" | jq -e '.status == "running"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Backend process running (health endpoint responds)"
   PASSED=$((PASSED + 1))
 else
@@ -480,7 +493,7 @@ echo "🤖 SECTION 9: Code Generation & AI"
 echo "-----------------------------------"
 
 # Create test story for code generation
-TEST_STORY_GEN=$(curl -s -X POST "$API_BASE/api/stories" \
+TEST_STORY_GEN=$(curl -s -X POST "${API_BASE}/api/stories${AIPM_ENV:+?env=$AIPM_ENV}" \
   -H 'Content-Type: application/json' \
   -H 'X-Use-Dev-Tables: true' \
   -d "{\"title\": \"Code Gen Test $TIMESTAMP\", \"asA\": \"developer\", \"iWant\": \"to generate code\", \"soThat\": \"I can test code generation\", \"description\": \"Test story for code generation\", \"acceptWarnings\": true}")
@@ -490,7 +503,7 @@ if echo "$TEST_STORY_GEN" | jq -e '.id' > /dev/null 2>&1; then
   
   # Test 30: Code generation endpoint
   echo "Test 30: Code generation endpoint"
-  GEN_RESULT=$(curl -s -X POST "$API_BASE/api/generate-code-branch" \
+  GEN_RESULT=$(curl -s -X POST "${API_BASE}/api/generate-code-branch${AIPM_ENV:+?env=$AIPM_ENV}" \
     -H 'Content-Type: application/json' \
     -H 'X-Use-Dev-Tables: true' \
     -d "{\"storyId\": $GEN_STORY_ID, \"branchName\": \"test-branch-$TIMESTAMP\"}")
@@ -505,7 +518,7 @@ if echo "$TEST_STORY_GEN" | jq -e '.id' > /dev/null 2>&1; then
   
   # Test 31: Personal delegate endpoint
   echo "Test 31: Personal delegate endpoint"
-  DELEGATE_RESULT=$(curl -s -X POST "$API_BASE/api/personal-delegate" \
+  DELEGATE_RESULT=$(curl -s -X POST "${API_BASE}/api/personal-delegate${AIPM_ENV:+?env=$AIPM_ENV}" \
     -H 'Content-Type: application/json' \
     -H 'X-Use-Dev-Tables: true' \
     -d "{\"storyId\": $GEN_STORY_ID, \"task\": \"test delegation\"}")
@@ -519,7 +532,7 @@ if echo "$TEST_STORY_GEN" | jq -e '.id' > /dev/null 2>&1; then
   fi
   
   # Cleanup
-  curl -s -X DELETE -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$GEN_STORY_ID" > /dev/null
+  curl -s -X DELETE -H 'X-Use-Dev-Tables: true' "${API_BASE}/api/stories/$GEN_STORY_ID${AIPM_ENV:+?env=$AIPM_ENV}" > /dev/null
 else
   echo "  ❌ FAIL: Could not create test story for code generation"
   FAILED=$((FAILED + 2))
@@ -535,7 +548,7 @@ echo "-----------------------------------"
 
 # Test 32: List templates
 echo "Test 32: List templates"
-TEMPLATES=$(curl -s "$API_BASE/api/templates")
+TEMPLATES=$(curl -s "${API_BASE}/api/templates${AIPM_ENV:+?env=$AIPM_ENV}")
 if echo "$TEMPLATES" | jq -e 'type == "array" and length > 0' > /dev/null 2>&1; then
   TEMPLATE_COUNT=$(echo "$TEMPLATES" | jq 'length')
   echo "  ✅ PASS: Found $TEMPLATE_COUNT templates"
@@ -547,7 +560,7 @@ fi
 
 # Test 33: Upload template (test endpoint availability)
 echo "Test 33: Template upload endpoint"
-UPLOAD_RESULT=$(curl -s -X POST "$API_BASE/api/templates/upload" \
+UPLOAD_RESULT=$(curl -s -X POST "${API_BASE}/api/templates/upload${AIPM_ENV:+?env=$AIPM_ENV}" \
   -H 'Content-Type: application/json' \
   -d "{\"name\": \"test-template-$TIMESTAMP.md\", \"content\": \"# Test Template\"}")
 
@@ -569,7 +582,7 @@ echo "-----------------------------------"
 
 # Test 34: Trigger deployment endpoint
 echo "Test 34: Trigger deployment endpoint"
-DEPLOY_RESULT=$(curl -s -X POST "$API_BASE/api/trigger-deployment" \
+DEPLOY_RESULT=$(curl -s -X POST "${API_BASE}/api/trigger-deployment${AIPM_ENV:+?env=$AIPM_ENV}" \
   -H 'Content-Type: application/json' \
   -d "{\"environment\": \"dev\", \"dryRun\": true}")
 
@@ -583,7 +596,7 @@ fi
 
 # Test 35: Deploy PR endpoint
 echo "Test 35: Deploy PR endpoint"
-DEPLOY_PR_RESULT=$(curl -s -X POST "$API_BASE/api/deploy-pr" \
+DEPLOY_PR_RESULT=$(curl -s -X POST "${API_BASE}/api/deploy-pr${AIPM_ENV:+?env=$AIPM_ENV}" \
   -H 'Content-Type: application/json' \
   -d "{\"prNumber\": 999, \"dryRun\": true}")
 
@@ -597,7 +610,7 @@ fi
 
 # Test 36: Merge PR endpoint
 echo "Test 36: Merge PR endpoint"
-MERGE_RESULT=$(curl -s -X POST "$API_BASE/api/merge-pr" \
+MERGE_RESULT=$(curl -s -X POST "${API_BASE}/api/merge-pr${AIPM_ENV:+?env=$AIPM_ENV}" \
   -H 'Content-Type: application/json' \
   -d "{\"prNumber\": 999, \"dryRun\": true}")
 
