@@ -72,8 +72,10 @@ jobs:
           ELAPSED=0
           
           while [ $ELAPSED -lt $MAX_WAIT ]; do
-            if curl -s --connect-timeout 10 "$API_BASE/health" | grep -q "running"; then
+            RESPONSE=$(curl -s --connect-timeout 10 "$API_BASE/health" || echo "")
+            if echo "$RESPONSE" | grep -q "running"; then
               echo "✅ API is ready"
+              echo "Response: $RESPONSE"
               break
             fi
             echo "   Waiting... ($ELAPSED/$MAX_WAIT seconds)"
