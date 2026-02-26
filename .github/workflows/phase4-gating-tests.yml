@@ -68,16 +68,20 @@ jobs:
           API_BASE: ${{ steps.config.outputs.api_base }}
         run: |
           echo "⏳ Waiting for API to be ready..."
+          echo "API_BASE: $API_BASE"
           MAX_WAIT=180
           ELAPSED=0
           
           while [ $ELAPSED -lt $MAX_WAIT ]; do
-            RESPONSE=$(curl -s --connect-timeout 10 "$API_BASE/health" || echo "")
+            echo "Attempting curl to $API_BASE/health..."
+            RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 "$API_BASE/health" 2>&1 || echo "CURL_FAILED")
+            echo "Response: $RESPONSE"
+            
             if echo "$RESPONSE" | grep -q "running"; then
               echo "✅ API is ready"
-              echo "Response: $RESPONSE"
               break
             fi
+            
             echo "   Waiting... ($ELAPSED/$MAX_WAIT seconds)"
             sleep 10
             ELAPSED=$((ELAPSED + 10))
