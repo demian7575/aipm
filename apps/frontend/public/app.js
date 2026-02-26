@@ -66,6 +66,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -774,6 +775,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8306,6 +8313,108 @@ function openAcceptanceTestModal(storyId, options = {}) {
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
+/**
+ * Open modal displaying paginated story list with clickable titles
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+  
+  const allStories = flattenStories(state.stories);
+  const itemsPerPage = 20;
+  let currentPage = 1;
+  const totalPages = Math.ceil(allStories.length / itemsPerPage);
+  
+  const listContainer = document.createElement('div');
+  listContainer.style.maxHeight = '400px';
+  listContainer.style.overflowY = 'auto';
+  listContainer.style.border = '1px solid #ddd';
+  listContainer.style.borderRadius = '4px';
+  
+  const paginationContainer = document.createElement('div');
+  paginationContainer.style.display = 'flex';
+  paginationContainer.style.justifyContent = 'space-between';
+  paginationContainer.style.alignItems = 'center';
+  
+  function renderPage(page) {
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageStories = allStories.slice(start, end);
+    
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    pageStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '0.75rem';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.cursor = 'pointer';
+      item.textContent = story.title;
+      item.addEventListener('click', () => {
+        state.selectedStoryId = story.id;
+        expandAncestors(story.id);
+        renderDetails();
+        closeModal();
+      });
+      item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = '#f5f5f5';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = '';
+      });
+      list.appendChild(item);
+    });
+    
+    listContainer.innerHTML = '';
+    listContainer.appendChild(list);
+    
+    paginationContainer.innerHTML = `<span>Page ${page} of ${totalPages}</span>`;
+    
+    if (totalPages > 1) {
+      const btnContainer = document.createElement('div');
+      btnContainer.style.display = 'flex';
+      btnContainer.style.gap = '0.5rem';
+      
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = 'Previous';
+      prevBtn.className = 'secondary';
+      prevBtn.disabled = page === 1;
+      prevBtn.addEventListener('click', () => {
+        currentPage--;
+        renderPage(currentPage);
+      });
+      
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.className = 'secondary';
+      nextBtn.disabled = page === totalPages;
+      nextBtn.addEventListener('click', () => {
+        currentPage++;
+        renderPage(currentPage);
+      });
+      
+      btnContainer.appendChild(prevBtn);
+      btnContainer.appendChild(nextBtn);
+      paginationContainer.appendChild(btnContainer);
+    }
+  }
+  
+  renderPage(currentPage);
+  
+  container.appendChild(listContainer);
+  container.appendChild(paginationContainer);
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: []
+  });
+}
+
 function openFilterModal() {
   const container = document.createElement('div');
   container.className = 'modal-form filter-form';

@@ -299,6 +299,53 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for story 1772095241081: Story List Modal with Pagination
+if [ "$1" = "1772095241081" ]; then
+  echo "Test 18: Story List Modal - Pagination and clickable titles"
+  FRONTEND_HTML=$(curl -s "$S3_URL"/index.html)
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
+  
+  # Check for story list button in header
+  if echo "$FRONTEND_HTML" | grep -q "story-list-btn"; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for openStoryListModal function with pagination
+  if echo "$FRONTEND_JS" | grep -q "function openStoryListModal" && \
+     echo "$FRONTEND_JS" | grep -q "itemsPerPage = 20"; then
+    echo "  ✅ PASS: openStoryListModal function with 20 items per page"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function or pagination missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for clickable story titles
+  if echo "$FRONTEND_JS" | grep -q "item.addEventListener('click'" && \
+     echo "$FRONTEND_JS" | grep -q "state.selectedStoryId = story.id"; then
+    echo "  ✅ PASS: Story titles are clickable and update selection"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Clickable story titles missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for pagination controls
+  if echo "$FRONTEND_JS" | grep -q "Previous" && \
+     echo "$FRONTEND_JS" | grep -q "Next" && \
+     echo "$FRONTEND_JS" | grep -q "totalPages"; then
+    echo "  ✅ PASS: Pagination controls implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Pagination controls missing"
+    FAILED=$((FAILED + 1))
+  fi
+fi
+
 echo ""
 
 # ============================================
