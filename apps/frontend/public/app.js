@@ -8923,10 +8923,8 @@ async function initialize() {
   
   renderDetails();
   
-  // Initialize EC2 auto-start (this will load stories when ready)
-  await initializeEC2AutoStart();
-  
-  // Load projects after EC2 is ready
+  // Load stories and projects (API Gateway handles EC2 auto-start)
+  await loadStories();
   await loadProjects();
   
   // Fetch version after EC2 is ready
