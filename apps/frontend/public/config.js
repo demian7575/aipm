@@ -1,4 +1,4 @@
-// Auto-detect environment from URL
+// API Gateway Proxy - no hardcoded IPs needed
 (function() {
   const hostname = window.location.hostname;
   
@@ -6,25 +6,18 @@
   const isProd = hostname.includes('aipm-static-hosting-demo');
   const isDev = hostname.includes('aipm-dev-frontend-hosting');
   
-  // Set config based on environment
-  if (isProd) {
-    window.CONFIG = {
-      API_BASE_URL: 'http://100.53.112.192:4000',
-      EC2_TERMINAL_URL: 'ws://100.53.112.192:8080',
-      ENVIRONMENT: 'prod'
-    };
-  } else if (isDev) {
-    window.CONFIG = {
-      API_BASE_URL: 'http://3.230.169.156:4000',
-      EC2_TERMINAL_URL: 'ws://3.230.169.156:8080',
-      ENVIRONMENT: 'dev'
-    };
-  } else {
-    // Local development
-    window.CONFIG = {
-      API_BASE_URL: 'http://localhost:4000',
-      EC2_TERMINAL_URL: 'ws://localhost:8080',
-      ENVIRONMENT: 'local'
-    };
-  }
+  let environment = 'local';
+  if (isProd) environment = 'prod';
+  if (isDev) environment = 'dev';
+  
+  // Use API Gateway proxy for all environments
+  const API_GATEWAY_URL = 'https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com';
+  
+  window.CONFIG = {
+    API_BASE_URL: API_GATEWAY_URL,
+    SEMANTIC_API_URL: API_GATEWAY_URL + '/semantic',
+    ENVIRONMENT: environment
+  };
+  
+  console.log('✅ Config loaded:', window.CONFIG.ENVIRONMENT);
 })();

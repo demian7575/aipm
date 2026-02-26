@@ -4,9 +4,15 @@ inclusion: always
 
 # Project Status & Progress
 
-**Last Updated**: 2026-02-26 10:07 KST
+**Last Updated**: 2026-02-26 16:40 KST
 
 ## Recent Changes (Today)
+- **MAJOR**: Implemented API Gateway Proxy architecture
+  - Created API Gateway `aipm-api-proxy` (kx0u99e7o0.execute-api.us-east-1.amazonaws.com)
+  - All frontend requests now go through Lambda proxy
+  - EC2 auto-starts on first request
+  - No hardcoded IPs in frontend anymore
+  - Single source of truth: Lambda `aipm-ec2-proxy`
 - Fixed Kiro CLI PTY issue - spawn bash then run kiro inside it (not direct spawn)
 - Kiro now responds properly via PTY using `\r` instead of `\n`
 - All Phase 2 E2E tests passing (10/10 steps)

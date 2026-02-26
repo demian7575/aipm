@@ -67,10 +67,10 @@ async function proxyRequest(ip, event) {
   let port;
   if (path.startsWith('/aipm/')) {
     port = 8083; // AIPM's embedded semantic API
-  } else if (path.match(/^\/(weather|templates|template\/|callback\/|health)/)) {
+  } else if (path.match(/^\/(weather|templates|template\/|callback\/)/)) {
     port = 9000; // Standalone semantic API
   } else {
-    port = 4000; // Default backend
+    port = 4000; // Default backend (includes /health, /api/*)
   }
   
   return new Promise((resolve, reject) => {

@@ -50,56 +50,29 @@ jobs:
           echo "environment=$ENV" >> $GITHUB_OUTPUT
           echo "🎯 Target environment: $ENV"
       
-      - name: Check and start EC2 if needed
-        env:
-          TARGET_ENV: ${{ steps.env.outputs.environment }}
-        run: |
-          echo "🔍 Checking EC2 status for $TARGET_ENV..."
-          
-          if [ "$TARGET_ENV" = "prod" ]; then
-            INSTANCE_ID="i-09971cca92b9bf3a9"
-          else
-            INSTANCE_ID="i-08c78da25af47b3cb"
-          fi
-          
-          STATE=$(aws ec2 describe-instances \
-            --instance-ids $INSTANCE_ID \
-            --region us-east-1 \
-            --query 'Reservations[0].Instances[0].State.Name' \
-            --output text)
-          
-          if [ "$STATE" = "stopped" ]; then
-            echo "⚡ Starting EC2 instance..."
-            aws ec2 start-instances --instance-ids $INSTANCE_ID --region us-east-1
-            aws ec2 wait instance-running --instance-ids $INSTANCE_ID --region us-east-1
-            echo "✅ EC2 instance started"
-            sleep 30  # Wait for services to start
-          else
-            echo "✅ EC2 instance already running"
-          fi
-      
       - name: Load environment configuration
         id: config
         env:
           TARGET_ENV: ${{ steps.env.outputs.environment }}
         run: |
-          source scripts/utilities/load-env-config.sh $TARGET_ENV
-          echo "api_base=$API_BASE" >> $GITHUB_OUTPUT
-          echo "semantic_api_base=$SEMANTIC_API_BASE" >> $GITHUB_OUTPUT
-          echo "ec2_ip=$EC2_IP" >> $GITHUB_OUTPUT
-          echo "📍 API Base: $API_BASE"
-          echo "📍 Semantic API: $SEMANTIC_API_BASE"
+          # Use API Gateway proxy instead of direct EC2 IP
+          API_GATEWAY_URL="https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com"
+          
+          echo "api_base=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
+          echo "semantic_api_base=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
+          echo "📍 API Base: $API_GATEWAY_URL"
+          echo "📍 Using API Gateway Proxy (auto-starts EC2 if needed)"
       
       - name: Wait for API to be ready
         env:
           API_BASE: ${{ steps.config.outputs.api_base }}
         run: |
           echo "⏳ Waiting for API to be ready..."
-          MAX_WAIT=120
+          MAX_WAIT=180
           ELAPSED=0
           
           while [ $ELAPSED -lt $MAX_WAIT ]; do
-            if curl -s --connect-timeout 5 "$API_BASE/health" | grep -q "ok"; then
+            if curl -s --connect-timeout 10 "$API_BASE/health" | grep -q "running"; then
               echo "✅ API is ready"
               break
             fi
