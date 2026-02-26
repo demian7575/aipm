@@ -6,20 +6,13 @@ let projects = [];
 let activeProjectId = localStorage.getItem('aipm-active-project') || 'aipm';
 
 function getApiBaseUrl() {
-  // Check if EC2 config has been loaded with dynamic IP
-  if (window.__EC2_CONFIG__?.apiBaseUrl) {
-    const baseUrl = window.__EC2_CONFIG__.apiBaseUrl.replace(/\/$/, '');
-    console.log('getApiBaseUrl - returning from EC2 config:', baseUrl);
-    return baseUrl;
-  }
-  
-  // Fallback to static config
+  // Use static config from config.js (API Gateway URL)
   if (!window.CONFIG?.API_BASE_URL) {
     console.error('❌ FATAL: window.CONFIG.API_BASE_URL is required');
     throw new Error('API_BASE_URL not configured');
   }
   const baseUrl = window.CONFIG.API_BASE_URL.replace(/\/$/, '');
-  console.log('getApiBaseUrl - returning from static config:', baseUrl);
+  console.log('getApiBaseUrl - returning from config:', baseUrl);
   return baseUrl;
 }
 
