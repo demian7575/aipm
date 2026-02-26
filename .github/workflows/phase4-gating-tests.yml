@@ -55,16 +55,29 @@ jobs:
         env:
           TARGET_ENV: ${{ steps.env.outputs.environment }}
         run: |
-          # Use API Gateway proxy instead of direct EC2 IP
+          # Use API Gateway proxy for main API
           API_GATEWAY_URL="https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com"
           
+          # Get EC2 IP for semantic API (internal service, not proxied)
+          if [ "$TARGET_ENV" = "prod" ]; then
+            INSTANCE_ID="i-09971cca92b9bf3a9"
+          else
+            INSTANCE_ID="i-08c78da25af47b3cb"
+          fi
+          
+          EC2_IP=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --region us-east-1 \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+          
           echo "api_base=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
-          echo "semantic_api_base=$API_GATEWAY_URL/aipm" >> $GITHUB_OUTPUT
+          echo "semantic_api_base=http://${EC2_IP}:8083" >> $GITHUB_OUTPUT
           echo "target_env=$TARGET_ENV" >> $GITHUB_OUTPUT
           echo "📍 API Base: $API_GATEWAY_URL"
-          echo "📍 Semantic API Base: $API_GATEWAY_URL/aipm"
+          echo "📍 Semantic API Base: http://${EC2_IP}:8083 (direct)"
           echo "📍 Environment: $TARGET_ENV"
-          echo "📍 Using API Gateway Proxy (auto-starts EC2 if needed)"
+          echo "📍 Using API Gateway Proxy for main API"
       
       - name: Wait for API to be ready
         env:
