@@ -67,6 +67,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -7377,6 +7378,27 @@ function openDocumentPanel() {
       </label>
       <label style="display: flex; align-items: center; margin-bottom: 0.5rem;">
         <input type="radio" name="story-filter" value="depth" style="margin: 0 0.25rem 0 0; width: auto;" />
+
+/**
+ * Opens a modal displaying all story titles
+ */
+function openStoryListModal() {
+  const allStories = flattenStories(state.stories);
+  
+  const list = document.createElement('ul');
+  list.style.cssText = 'list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto;';
+  
+  allStories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.cssText = 'padding: 0.5rem; border-bottom: 1px solid #eee;';
+    item.textContent = story.title;
+    list.appendChild(item);
+  });
+  
+  openModal('Story List', list, [
+    { label: 'Close', className: 'secondary', onClick: closeModal }
+  ]);
+}
         By Depth Level
       </label>
       <div style="margin-left: 1.5rem; margin-bottom: 0.5rem;" id="depth-controls">
@@ -8938,6 +8960,10 @@ async function initialize() {
 
   generateDocBtn?.addEventListener('click', () => {
     openDocumentPanel();
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
 
