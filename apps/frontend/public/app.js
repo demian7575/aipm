@@ -66,6 +66,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -774,6 +775,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8561,6 +8568,45 @@ function openReferenceModal(storyId) {
   }
 
   openModal({ title: 'Reference Document List', content: container });
+}
+
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  try {
+    const container = document.createElement('div');
+    container.style.maxHeight = '60vh';
+    container.style.overflowY = 'auto';
+    
+    if (!state.stories || state.stories.length === 0) {
+      container.innerHTML = '<p>No stories available.</p>';
+      openModal({ title: 'Story List', content: container });
+      return;
+    }
+    
+    const allStories = flattenStories(state.stories);
+    const displayStories = allStories.slice(0, 50);
+    
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    displayStories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '0.5rem';
+      item.style.borderBottom = '1px solid #e5e9f5';
+      item.textContent = story.title || 'Untitled Story';
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+    openModal({ title: 'Story List', content: container });
+  } catch (error) {
+    console.error('Failed to open story list modal:', error);
+    showToast('Failed to display story list', 'error');
+  }
 }
 
 async function createRootStory() {

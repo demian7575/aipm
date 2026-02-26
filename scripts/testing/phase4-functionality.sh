@@ -751,6 +751,41 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1772068448826 - View Stories Button Modal
+if [ "$1" = "1772068448826" ]; then
+  echo "Test 45: Story 1772068448826 - View Stories button and modal"
+  
+  # Check button exists in HTML
+  HTML=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/index.html)
+  if echo "$HTML" | grep -q 'id="view-stories-btn"'; then
+    echo "  ✅ PASS: View Stories button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: View Stories button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check openStoryListModal function exists
+  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  if echo "$FRONTEND_JS" | grep -q "openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check event listener is attached
+  if echo "$FRONTEND_JS" | grep -q "viewStoriesBtn.*addEventListener"; then
+    echo "  ✅ PASS: Event listener attached to button"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Event listener not attached"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
