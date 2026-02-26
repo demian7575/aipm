@@ -4,100 +4,84 @@ inclusion: always
 
 # Project Status & Progress
 
-**Last Updated**: 2026-02-26 18:31 KST
+**Last Updated**: 2026-02-26 19:26 KST
 
 ## Recent Changes (Today)
 - **MAJOR**: Implemented API Gateway Proxy architecture
   - Created API Gateway `aipm-api-proxy` (kx0u99e7o0.execute-api.us-east-1.amazonaws.com)
   - All frontend requests now go through Lambda proxy
-  - EC2 auto-starts on first request
+  - EC2 auto-starts on first request via Lambda
   - No hardcoded IPs in frontend anymore
   - Single source of truth: Lambda `aipm-ec2-proxy`
-- Fixed Kiro CLI PTY issue - spawn bash then run kiro inside it (not direct spawn)
-- Kiro now responds properly via PTY using `\r` instead of `\n`
-- All Phase 2 E2E tests passing (10/10 steps)
-- Added EC2 auto-stop after 30 minutes of inactivity
-- Added EC2 auto-start in gating tests and GitHub workflows
-- Frontend now waits for API health check before loading (not just EC2 running)
-- Created helper scripts: `./bin/ssh-ec2` and `./bin/ec2-logs`
-- Cleaned up outdated services and scripts
-- Improved timeout handling - kills and restarts Kiro on 5min timeout
-- **MIGRATION COMPLETE**: Switched from old 50GB instance to new 20GB instance
-- Fixed aipm-update-s3-config.service to pass 'prod' argument
-- Updated Lambda function to use new instance ID (i-09971cca92b9bf3a9)
-- Fixed SSH key access to new instance using EC2 Instance Connect
-- Updated environments.yaml and deployed to new instance
-- **NEW**: New instance (i-09971cca92b9bf3a9) exists but not being used
+  - Lambda supports both prod/dev environments via `?env=` parameter
+- **Fixed**: X-Use-Dev-Tables header now respected in POST /api/stories
+  - Root cause: project-specific tables were overriding dev/prod selection
+  - Solution: force project=null when useDevTables=true
+  - All CRUD operations now correctly use dev tables when header is set
+- **Fixed**: Test script issues
+  - Added AIPM_ENV support for API Gateway routing
+  - Fixed SEMANTIC_API_BASE to use direct EC2 (internal service)
+  - Replaced hardcoded S3 URLs with $S3_URL variable
+  - Fixed Test 4 to check for .id instead of .success
+- **Cleaned up**: Removed leftover code and fixed inconsistencies
+  - Removed unused EC2Manager code from earlier attempts
+  - Fixed all sed-replaced URLs to use proper quoting
+  - Consistent header checking across all endpoints
 
 ## Current Status
-- ✅ Kiro wrappers stable and working correctly
-- ✅ Phase 2 E2E workflow fully functional (10/10 steps passing)
-- ✅ Session pool healthy (2 wrappers available)
+- ✅ API Gateway Proxy fully operational
+- ✅ Phase 1: All tests passing
+- ✅ Phase 2: All 12 tests passing
+- ✅ Phase 4: 43/44 tests passing (1 pre-existing failure)
+- ✅ GitHub workflow uses API Gateway for main API
 - ✅ All services operational
-- ✅ EC2 auto-stop/start implemented
-
-## Active Services
-- ✅ Backend API (port 4000) - healthy
-- ✅ Semantic API (port 8083) - healthy
-- ✅ Kiro Session Pool HTTP (port 8082) - 2 sessions, quick restart on completion
-- ✅ Kiro Wrapper @1 (port 9001) - bash → kiro-cli
-- ✅ Kiro Wrapper @2 (port 9002) - bash → kiro-cli
 
 ## Architecture
 ```
-Frontend (S3) → Backend API (4000) → Semantic API (8083)
-                                          ↓
-                                   Session Pool (8082)
-                                          ↓
-                        ┌─────────────────┴─────────────────┐
-                        ↓                                   ↓
-                 Wrapper 1 (9001)                    Wrapper 2 (9002)
-                        ↓                                   ↓
-                    bash → kiro-cli                    bash → kiro-cli
+Frontend (S3) → API Gateway → Lambda (aipm-ec2-proxy) → EC2 Backend
+                                  ↓
+                            Auto-starts EC2 if stopped
+                            Routes to correct instance (prod/dev)
+                            Proxies to port 4000 or 8083
+
+Tests → API Gateway (main API) + Direct EC2:8083 (semantic API)
 ```
+
+## Active Services
+- ✅ Backend API (port 4000) - healthy
+- ✅ Semantic API (port 8083) - healthy  
+- ✅ Kiro Session Pool HTTP (port 8082) - 2 sessions
+- ✅ Kiro Wrapper @1 (port 9001) - bash → kiro-cli
+- ✅ Kiro Wrapper @2 (port 9002) - bash → kiro-cli
+- ✅ API Gateway (kx0u99e7o0.execute-api.us-east-1.amazonaws.com)
+- ✅ Lambda (aipm-ec2-proxy) - auto-start + proxy
 
 ## Key Fixes Applied
-- **PTY Issue**: Changed from spawning kiro-cli directly to spawning bash then running kiro inside it
-- **Input Method**: Use `\r` (carriage return) instead of `\n` for terminal input
-- **Timeout Handling**: Kill and restart Kiro process on 5-minute timeout
-- **EC2 Auto-Stop**: Cron job monitors idle time, stops after 30 minutes
-- **EC2 Auto-Start**: Gating tests and workflows check/start EC2 before running
-- **Frontend Wait**: Polls `/health` endpoint until API responds (not just EC2 state)
-
-## Helper Scripts
-```bash
-# SSH to EC2 (auto-detects current IP)
-./bin/ssh-ec2 prod
-./bin/ssh-ec2 dev
-
-# View live logs
-./bin/ec2-logs prod wrapper   # Kiro wrapper logs
-./bin/ec2-logs prod backend    # Backend API logs
-./bin/ec2-logs prod semantic   # Semantic API logs
-./bin/ec2-logs prod pool       # Session pool logs
-./bin/ec2-logs prod all        # All services
-```
+- **API Gateway Proxy**: Eliminates hardcoded IPs, enables auto-start
+- **X-Use-Dev-Tables**: Now correctly routes to dev tables for all operations
+- **Test Scripts**: Support both direct EC2 and API Gateway URLs
+- **URL Construction**: Proper query parameter handling (?env=prod)
+- **Project Override**: Disabled when using dev tables
 
 ## Known Issues
 - None currently
 
 ## Next Steps
-- Monitor EC2 auto-stop/start in production
-- Consider implementing Lambda auto-start proxy (optional)
+- Monitor API Gateway proxy in production
+- Consider cleanup of old EC2 IP update mechanisms
 - Continue feature development
 
 ## Architecture Status
-- Dual EC2 setup (prod: 44.200.41.31, dev: 44.222.168.46)
-- DynamoDB for data storage
+- Dual EC2 setup (prod: 3.87.129.233, dev: stopped)
+- DynamoDB for data storage (prod/dev tables working correctly)
 - S3 for static hosting
-- GitHub Actions for CI/CD with EC2 auto-start
-- All services healthy and operational
+- API Gateway for dynamic IP resolution
+- Lambda for EC2 auto-start and request proxying
+- GitHub Actions for CI/CD
 
 ## EC2 Instance Status
-- **New Prod Instance** (i-09971cca92b9bf3a9): Active on 52.90.170.160 with 20GB volume
+- **Prod Instance** (i-09971cca92b9bf3a9): Active on 3.87.129.233
   - All services operational
-  - SSH key configured
-  - Cost savings: $2.40/month (volume) + reduced snapshot costs
-- **Old Prod Instance** (i-016241c7a18884e80): Stopped, ready for termination
-  - 50GB volume can be deleted after verification
+  - Auto-starts via Lambda when stopped
 - **Dev Instance** (i-08c78da25af47b3cb): Stopped
+  - Auto-starts via Lambda when needed
