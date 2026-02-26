@@ -777,6 +777,18 @@ if (referenceBtn) {
   });
 }
 
+const storyListBtn = document.getElementById('story-list-btn');
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const stories = await fetchStories();
+      openStoryListModal(stories);
+    } catch (err) {
+      showToast('Failed to load stories', 'error');
+    }
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
@@ -8366,6 +8378,56 @@ function openFilterModal() {
   
   const assigneeList = container.querySelector('#filter-assignee-list');
   allAssignees.forEach(assignee => {
+
+/**
+ * Opens modal displaying all story titles in a scrollable list
+ * @param {Array} stories - Array of story objects
+ */
+function openStoryListModal(stories) {
+  const allStories = stories.flatMap(s => getAllStoriesFlat(s));
+  const displayStories = allStories.slice(0, 50);
+  
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+  container.style.cssText = 'max-height: 400px; overflow-y: auto;';
+  
+  const list = document.createElement('ul');
+  list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+  
+  displayStories.forEach(story => {
+    const item = document.createElement('li');
+    item.style.cssText = 'padding: 8px; border-bottom: 1px solid #eee;';
+    item.textContent = story.title;
+    list.appendChild(item);
+  });
+  
+  container.appendChild(list);
+  
+  openModal({
+    title: 'Story List',
+    content: container,
+    actions: [
+      {
+        label: 'Close',
+        variant: 'secondary',
+        onClick: () => closeModal()
+      }
+    ]
+  });
+}
+
+/**
+ * Helper to flatten story tree
+ * @param {Object} story - Story object
+ * @returns {Array} Flat array of stories
+ */
+function getAllStoriesFlat(story) {
+  const stories = [story];
+  if (story.children) {
+    story.children.forEach(child => stories.push(...getAllStoriesFlat(child)));
+  }
+  return stories;
+}
     const label = document.createElement('label');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';

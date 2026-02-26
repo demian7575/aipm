@@ -788,3 +788,41 @@ if [ $FAILED -gt 0 ]; then
 fi
 
 exit 0
+
+# Story-specific test: Story List Button (Story #1772103621049)
+if [ "$1" = "1772103621049" ]; then
+  STORY_ID="1772103621049"
+  echo ""
+  echo "📋 Story-Specific Test: Story List Button (Story #$STORY_ID)"
+  echo "-----------------------------------------------------------"
+  
+  echo "Test: Story list button exists in header"
+  START_TIME=$(date +%s)
+  FRONTEND_HTML=$(curl -s "${S3_URL}/index.html")
+  DURATION=$(($(date +%s) - START_TIME))
+  
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button found in header"
+    PASSED=$((PASSED + 1))
+    record_test_result "story-$STORY_ID-button" "Story list button in header" "PASS" "$PHASE" "$DURATION"
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+    record_test_result "story-$STORY_ID-button" "Story list button in header" "FAIL" "$PHASE" "$DURATION"
+  fi
+  
+  echo "Test: Story list modal function exists"
+  START_TIME=$(date +%s)
+  FRONTEND_JS=$(curl -s "${S3_URL}/app.js")
+  DURATION=$(($(date +%s) - START_TIME))
+  
+  if echo "$FRONTEND_JS" | grep -q 'function openStoryListModal'; then
+    echo "  ✅ PASS: openStoryListModal function found"
+    PASSED=$((PASSED + 1))
+    record_test_result "story-$STORY_ID-modal" "Story list modal function" "PASS" "$PHASE" "$DURATION"
+  else
+    echo "  ❌ FAIL: openStoryListModal function not found"
+    FAILED=$((FAILED + 1))
+    record_test_result "story-$STORY_ID-modal" "Story list modal function" "FAIL" "$PHASE" "$DURATION"
+  fi
+fi
