@@ -5978,9 +5978,10 @@ export async function createApp() {
         
         const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
         const docClient = DynamoDBDocumentClient.from(client);
-        // Use same table resolution logic as DynamoDBDataLayer
-        const tableName = getStoriesTable(db.useDevTables, db.project);
-        console.log(`📝 POST /api/stories - useDevTables=${db.useDevTables}, tableName=${tableName}`);
+        // Check header directly to ensure it's respected
+        const useDevTables = req.headers['x-use-dev-tables'] === 'true';
+        const tableName = getStoriesTable(useDevTables, db.project);
+        console.log(`📝 POST /api/stories - useDevTables=${useDevTables}, tableName=${tableName}`);
         
         // Allow specifying ID (for dev environment mirroring), otherwise generate new one
         newStoryId = payload.id || Date.now();
@@ -6018,7 +6019,7 @@ export async function createApp() {
         
         // Create acceptance tests BEFORE INVEST analysis
         if (acceptanceTests.length > 0) {
-          const testsTableName = getAcceptanceTestsTable(db.useDevTables, db.project);
+          const testsTableName = getAcceptanceTestsTable(useDevTables, db.project);
           for (const test of acceptanceTests) {
             const testId = Date.now() + Math.floor(Math.random() * 1000);
             await docClient.send(new PutCommand({
