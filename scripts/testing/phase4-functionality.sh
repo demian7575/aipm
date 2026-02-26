@@ -765,6 +765,47 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# SECTION 12: Story-Specific Tests
+# ============================================
+STORY_ID="$1"
+if [ -n "$STORY_ID" ]; then
+  echo "📋 SECTION 12: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test: Story List Modal Button Exists
+  echo "Test: Story list button exists in header"
+  START_TIME=$(date +%s)
+  RESPONSE=$(curl -s "$API_BASE/")
+  DURATION=$(($(date +%s) - START_TIME))
+  if echo "$RESPONSE" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists"
+    PASSED=$((PASSED + 1))
+    record_test_result "story-$STORY_ID-button" "Story list button exists" "PASS" "$PHASE" "$DURATION"
+  else
+    echo "  ❌ FAIL: Story list button not found"
+    FAILED=$((FAILED + 1))
+    record_test_result "story-$STORY_ID-button" "Story list button exists" "FAIL" "$PHASE" "$DURATION"
+  fi
+  
+  # Test: Story List Modal Styles Exist
+  echo "Test: Story list modal styles exist"
+  START_TIME=$(date +%s)
+  RESPONSE=$(curl -s "$API_BASE/styles.css")
+  DURATION=$(($(date +%s) - START_TIME))
+  if echo "$RESPONSE" | grep -q 'story-list-modal'; then
+    echo "  ✅ PASS: Story list modal styles exist"
+    PASSED=$((PASSED + 1))
+    record_test_result "story-$STORY_ID-styles" "Story list modal styles" "PASS" "$PHASE" "$DURATION"
+  else
+    echo "  ❌ FAIL: Story list modal styles not found"
+    FAILED=$((FAILED + 1))
+    record_test_result "story-$STORY_ID-styles" "Story list modal styles" "FAIL" "$PHASE" "$DURATION"
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="

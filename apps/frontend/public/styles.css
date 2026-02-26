@@ -2583,6 +2583,34 @@ dialog[data-size='content'] .modal-shell {
   overflow: hidden;
 }
 
+/* Story List Modal */
+.story-list-modal {
+  width: 100%;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.story-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.story-list-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e9f5;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.story-list-item:hover {
+  background-color: #f5f7fa;
+}
+
+.story-list-item:last-child {
+  border-bottom: none;
+}
+
 #modal[data-size="fullscreen"] #terminal-container {
   width: 100% !important;
 }
