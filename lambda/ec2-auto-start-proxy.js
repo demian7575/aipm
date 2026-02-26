@@ -7,16 +7,37 @@ const { EC2Client, DescribeInstancesCommand, StartInstancesCommand } = require('
 const https = require('https');
 const http = require('http');
 
-const INSTANCE_ID = 'i-09971cca92b9bf3a9';
+const INSTANCE_IDS = {
+  prod: 'i-09971cca92b9bf3a9',
+  dev: 'i-08c78da25af47b3cb'
+};
 const REGION = 'us-east-1';
 const MAX_WAIT_TIME = 120000; // 2 minutes
 const POLL_INTERVAL = 5000; // 5 seconds
 
 const ec2Client = new EC2Client({ region: REGION });
 
-async function getInstanceStatus() {
+function getEnvironment(event) {
+  // Check X-Environment header
+  const headers = event.headers || {};
+  const envHeader = headers['x-environment'] || headers['X-Environment'];
+  if (envHeader && INSTANCE_IDS[envHeader]) {
+    return envHeader;
+  }
+  
+  // Check query parameter
+  const queryParams = event.queryStringParameters || {};
+  if (queryParams.env && INSTANCE_IDS[queryParams.env]) {
+    return queryParams.env;
+  }
+  
+  // Default to prod
+  return 'prod';
+}
+
+async function getInstanceStatus(instanceId) {
   const command = new DescribeInstancesCommand({
-    InstanceIds: [INSTANCE_ID]
+    InstanceIds: [instanceId]
   });
   
   const response = await ec2Client.send(command);
@@ -28,20 +49,20 @@ async function getInstanceStatus() {
   };
 }
 
-async function startInstance() {
-  console.log('Starting EC2 instance...');
+async function startInstance(instanceId) {
+  console.log('Starting EC2 instance:', instanceId);
   const command = new StartInstancesCommand({
-    InstanceIds: [INSTANCE_ID]
+    InstanceIds: [instanceId]
   });
   
   await ec2Client.send(command);
 }
 
-async function waitForInstance() {
+async function waitForInstance(instanceId) {
   const startTime = Date.now();
   
   while (Date.now() - startTime < MAX_WAIT_TIME) {
-    const status = await getInstanceStatus();
+    const status = await getInstanceStatus(instanceId);
     
     if (status.state === 'running' && status.ip) {
       // Wait additional 30 seconds for services to start
@@ -111,26 +132,31 @@ exports.handler = async (event) => {
   try {
     console.log('Request received:', JSON.stringify(event, null, 2));
     
+    // Determine environment
+    const env = getEnvironment(event);
+    const instanceId = INSTANCE_IDS[env];
+    console.log(`Environment: ${env}, Instance: ${instanceId}`);
+    
     // Check instance status
-    let status = await getInstanceStatus();
+    let status = await getInstanceStatus(instanceId);
     console.log('Instance status:', status);
     
     // Start if stopped
     if (status.state === 'stopped') {
-      await startInstance();
-      const ip = await waitForInstance();
+      await startInstance(instanceId);
+      const ip = await waitForInstance(instanceId);
       status = { state: 'running', ip };
     } else if (status.state === 'stopping') {
       // Wait for it to stop, then start
       console.log('Instance is stopping, waiting...');
       await new Promise(resolve => setTimeout(resolve, 30000));
-      await startInstance();
-      const ip = await waitForInstance();
+      await startInstance(instanceId);
+      const ip = await waitForInstance(instanceId);
       status = { state: 'running', ip };
     } else if (status.state === 'pending' || status.state === 'running') {
       // Wait for it to be fully running
       if (!status.ip) {
-        const ip = await waitForInstance();
+        const ip = await waitForInstance(instanceId);
         status = { state: 'running', ip };
       }
     }
@@ -145,7 +171,7 @@ exports.handler = async (event) => {
         ...response.headers,
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, X-Use-Dev-Tables'
+        'Access-Control-Allow-Headers': 'Content-Type, X-Use-Dev-Tables, X-Environment'
       },
       body: response.body
     };

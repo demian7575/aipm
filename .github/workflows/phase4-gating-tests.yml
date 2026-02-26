@@ -56,7 +56,7 @@ jobs:
           TARGET_ENV: ${{ steps.env.outputs.environment }}
         run: |
           # Use API Gateway proxy instead of direct EC2 IP
-          API_GATEWAY_URL="https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com"
+          API_GATEWAY_URL="https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com?env=$TARGET_ENV"
           
           echo "api_base=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
           echo "semantic_api_base=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
