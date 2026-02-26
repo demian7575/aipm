@@ -4772,7 +4772,8 @@ async function removeUploadIfLocal(urlPath) {
 
 async function ensureDatabase(req = null) {
   const useDevTables = req?.headers?.['x-use-dev-tables'] === 'true';
-  const project = req?.project || null;
+  // When using dev tables, don't use project-specific tables
+  const project = useDevTables ? null : (req?.project || null);
   console.log('🔧 Using DynamoDB', useDevTables ? '(dev tables)' : '(prod tables)', project ? `(project: ${project.id})` : '');
   return new DynamoDBDataLayer(useDevTables, project);
 }
@@ -5980,7 +5981,7 @@ export async function createApp() {
         const docClient = DynamoDBDocumentClient.from(client);
         // Check header directly to ensure it's respected
         const useDevTables = req.headers['x-use-dev-tables'] === 'true';
-        const tableName = getStoriesTable(useDevTables, null); // Don't pass project to force dev/prod table selection
+        const tableName = getStoriesTable(useDevTables, db.project);
         console.log(`📝 POST /api/stories - useDevTables=${useDevTables}, project=${db.project?.id}, tableName=${tableName}`);
         
         // Allow specifying ID (for dev environment mirroring), otherwise generate new one
@@ -6019,7 +6020,7 @@ export async function createApp() {
         
         // Create acceptance tests BEFORE INVEST analysis
         if (acceptanceTests.length > 0) {
-          const testsTableName = getAcceptanceTestsTable(useDevTables, null); // Don't pass project
+          const testsTableName = getAcceptanceTestsTable(useDevTables, db.project);
           for (const test of acceptanceTests) {
             const testId = Date.now() + Math.floor(Math.random() * 1000);
             await docClient.send(new PutCommand({
