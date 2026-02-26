@@ -64,7 +64,7 @@ if echo "$NEW_STORY" | jq -e '.id' > /dev/null 2>&1; then
   if curl -s -X PUT "${API_BASE}/api/stories/$NEW_ID${AIPM_ENV:+?env=$AIPM_ENV}" \
     -H 'Content-Type: application/json' \
     -H 'X-Use-Dev-Tables: true' \
-    -d "{\"title\": \"Updated\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\"}" | jq -e '.success' > /dev/null 2>&1; then
+    -d "{\"title\": \"Updated\", \"asA\": \"tester\", \"iWant\": \"test\", \"soThat\": \"test\"}" | jq -e '.id' > /dev/null 2>&1; then
     echo "  ✅ PASS: PUT /api/stories/:id"
     PASSED=$((PASSED + 1))
   else
