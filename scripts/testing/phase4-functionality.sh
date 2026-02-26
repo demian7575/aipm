@@ -12,19 +12,6 @@ PASSED=0
 FAILED=0
 PHASE="phase4"
 
-# Override API_BASE to include environment parameter if AIPM_ENV is set
-if [[ -n "$AIPM_ENV" ]]; then
-  # Store original base
-  ORIGINAL_API_BASE="$API_BASE"
-  # Create wrapper function that appends env parameter
-  API_BASE_FUNC() {
-    local path="$1"
-    echo "${ORIGINAL_API_BASE}${path}?env=${AIPM_ENV}"
-  }
-  # Replace API_BASE usage in this script
-  export -f API_BASE_FUNC
-fi
-
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo "Run ID: $TEST_RUN_ID"
@@ -178,7 +165,7 @@ echo "-----------------------------------"
 
 # Test 10: Semantic API health
 echo "Test 10: Semantic API health"
-if curl -s $SEMANTIC_API_BASE/health | jq -e '.status == "healthy"' > /dev/null 2>&1; then
+if curl -s "${SEMANTIC_API_BASE}/health${AIPM_ENV:+?env=$AIPM_ENV}" | jq -e '.status == "healthy"' > /dev/null 2>&1; then
   echo "  ✅ PASS: GET /health (Semantic API)"
   PASSED=$((PASSED + 1))
 else
@@ -257,7 +244,7 @@ echo "-----------------------------------"
 
 # Test 14: Frontend loads
 echo "Test 14: Frontend accessibility"
-if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/ | grep -q "AI Project Manager"; then
+if curl -s "$S3_URL"/ | grep -q "AI Project Manager"; then
   echo "  ✅ PASS: Frontend loads"
   PASSED=$((PASSED + 1))
 else
@@ -267,7 +254,7 @@ fi
 
 # Test 15: Frontend has app.js
 echo "Test 15: Frontend JavaScript"
-if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js | grep -q "function"; then
+if curl -s "$S3_URL"/app.js | grep -q "function"; then
   echo "  ✅ PASS: app.js loads"
   PASSED=$((PASSED + 1))
 else
@@ -277,7 +264,7 @@ fi
 
 # Test 16: Frontend has styles.css
 echo "Test 16: Frontend CSS"
-if curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css | grep -q "body"; then
+if curl -s "$S3_URL"/styles.css | grep -q "body"; then
   echo "  ✅ PASS: styles.css loads"
   PASSED=$((PASSED + 1))
 else
@@ -288,7 +275,7 @@ fi
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
   echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
-  APP_JS_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  APP_JS_CONTENT=$(curl -s "$S3_URL"/app.js)
   
   # Check for row click handler that sets selectedStoryId and calls renderDetails
   if echo "$APP_JS_CONTENT" | grep -q "state.selectedStoryId = row.id" && \
@@ -302,7 +289,7 @@ if [ "$1" = "1771076494719" ]; then
   fi
   
   # Check for CSS styling for selected row
-  STYLES_CONTENT=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/styles.css)
+  STYLES_CONTENT=$(curl -s "$S3_URL"/styles.css)
   if echo "$STYLES_CONTENT" | grep -q "rtm-row-selected"; then
     echo "  ✅ PASS: RTM selected row CSS styling present"
     PASSED=$((PASSED + 1))
@@ -390,7 +377,7 @@ fi
 
 # Test 23: Semantic API process running (verified by health endpoint)
 echo "Test 23: Semantic API process"
-if curl -s $SEMANTIC_API_BASE/health | jq -e '.status == "healthy"' > /dev/null 2>&1; then
+if curl -s "${SEMANTIC_API_BASE}/health${AIPM_ENV:+?env=$AIPM_ENV}" | jq -e '.status == "healthy"' > /dev/null 2>&1; then
   echo "  ✅ PASS: Semantic API process running (health endpoint responds)"
   PASSED=$((PASSED + 1))
 else
@@ -744,7 +731,7 @@ if [ "$1" = "1771138996374" ]; then
   fi
   
   # Check frontend has openTestLogModal function
-  FRONTEND_JS=$(curl -s http://aipm-static-hosting-demo.s3-website-us-east-1.amazonaws.com/app.js)
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
   if echo "$FRONTEND_JS" | grep -q "openTestLogModal"; then
     echo "  ✅ PASS: Test log modal function exists"
     PASSED=$((PASSED + 1))
