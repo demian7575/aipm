@@ -82,6 +82,7 @@ const mindmapZoomInBtn = document.getElementById('mindmap-zoom-in');
 const mindmapZoomDisplay = document.getElementById('mindmap-zoom-display');
 const outlinePanel = document.getElementById('outline-panel');
 const filterBtn = document.getElementById('filter-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -786,6 +787,49 @@ if (dependencyToggleBtn) {
 if (filterBtn) {
   filterBtn.addEventListener('click', () => {
     openFilterModal();
+  });
+}
+
+/**
+ * Opens a modal displaying all story titles in a paginated list
+ */
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const stories = await fetchStories();
+      const content = document.createElement('div');
+      content.className = 'story-list-modal';
+      
+      const list = document.createElement('ul');
+      list.className = 'story-list';
+      
+      const itemsPerPage = 20;
+      const displayStories = stories.slice(0, itemsPerPage);
+      
+      displayStories.forEach(story => {
+        const item = document.createElement('li');
+        item.className = 'story-list-item';
+        item.textContent = story.title || `Story ${story.id}`;
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', () => {
+          selectStory(story.id);
+          closeModal();
+        });
+        list.appendChild(item);
+      });
+      
+      content.appendChild(list);
+      
+      openModal({
+        title: 'Story List',
+        content,
+        actions: [],
+        cancelLabel: 'Close'
+      });
+    } catch (error) {
+      console.error('Failed to load story list:', error);
+      showToast('Failed to load story list', 'error');
+    }
   });
 }
 
