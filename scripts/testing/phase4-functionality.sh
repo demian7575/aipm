@@ -686,9 +686,41 @@ fi
 
 echo ""
 
-# Test 43: US-VIZ-RTM-003 - Test-specific metrics in RTM view
+# Story-specific tests
+if [ "$STORY_ID" = "1772122248934" ]; then
+  echo "Test 43: Story 1772122248934 - Story List Button"
+  FRONTEND_HTML=$(cat apps/frontend/public/index.html)
+  FRONTEND_JS=$(cat apps/frontend/public/app.js)
+  
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in HTML"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing in HTML"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story list button handler implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  if echo "$FRONTEND_JS" | grep -q "modalTitle.textContent.*Story List"; then
+    echo "  ✅ PASS: Modal displays story list"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Modal story list display missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
+# Test 44: US-VIZ-RTM-003 - Test-specific metrics in RTM view
 if [ "$STORY_ID" = "1771083417916" ]; then
-  echo "Test 43: US-VIZ-RTM-003 - Test-specific metrics displayed"
+  echo "Test 44: US-VIZ-RTM-003 - Test-specific metrics displayed"
   RTM_RESPONSE=$(curl -s "$API_URL/api/rtm/matrix")
   STORY_DATA=$(echo "$RTM_RESPONSE" | jq -r ".[] | select(.id == 1771083417916)")
   
