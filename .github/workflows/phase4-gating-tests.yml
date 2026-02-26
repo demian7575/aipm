@@ -56,25 +56,28 @@ jobs:
           TARGET_ENV: ${{ steps.env.outputs.environment }}
         run: |
           # Use API Gateway proxy instead of direct EC2 IP
-          API_GATEWAY_URL="https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com?env=$TARGET_ENV"
+          API_GATEWAY_URL="https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com"
           
           echo "api_base=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
           echo "semantic_api_base=$API_GATEWAY_URL" >> $GITHUB_OUTPUT
+          echo "target_env=$TARGET_ENV" >> $GITHUB_OUTPUT
           echo "📍 API Base: $API_GATEWAY_URL"
+          echo "📍 Environment: $TARGET_ENV"
           echo "📍 Using API Gateway Proxy (auto-starts EC2 if needed)"
       
       - name: Wait for API to be ready
         env:
           API_BASE: ${{ steps.config.outputs.api_base }}
+          TARGET_ENV: ${{ steps.config.outputs.target_env }}
         run: |
           echo "⏳ Waiting for API to be ready..."
           echo "API_BASE: $API_BASE"
+          echo "Environment: $TARGET_ENV"
           MAX_WAIT=180
           ELAPSED=0
           
           while [ $ELAPSED -lt $MAX_WAIT ]; do
-            echo "Attempting curl to $API_BASE/health..."
-            RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 "$API_BASE/health" 2>&1 || echo "CURL_FAILED")
+            RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 "$API_BASE/health?env=$TARGET_ENV" 2>&1 || echo "CURL_FAILED")
             echo "Response: $RESPONSE"
             
             if echo "$RESPONSE" | grep -q "running"; then
@@ -95,8 +98,8 @@ jobs:
       - name: Run Phase 4 Functionality Tests
         env:
           TARGET_ENV: ${{ steps.env.outputs.environment }}
-          API_BASE: ${{ steps.config.outputs.api_base }}
-          SEMANTIC_API_BASE: ${{ steps.config.outputs.semantic_api_base }}
+          API_BASE: ${{ steps.config.outputs.api_base }}?env=${{ steps.config.outputs.target_env }}
+          SEMANTIC_API_BASE: ${{ steps.config.outputs.semantic_api_base }}?env=${{ steps.config.outputs.target_env }}
         run: |
           echo "🧪 Running Phase 4 Functionality Tests on $TARGET_ENV..."
           
@@ -110,7 +113,7 @@ jobs:
       - name: Run Phase 4 Extended Tests
         env:
           TARGET_ENV: ${{ steps.env.outputs.environment }}
-          API_BASE: ${{ steps.config.outputs.api_base }}
+          API_BASE: ${{ steps.config.outputs.api_base }}?env=${{ steps.config.outputs.target_env }}
         run: |
           echo "🧪 Running Phase 4 Extended Tests on $TARGET_ENV..."
           
