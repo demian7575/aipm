@@ -223,7 +223,7 @@ async function ensureEC2Running(env = 'prod') {
       return await waitForEC2Ready(env);
     }
     
-    if (status.state === 'stopping' || status.state === 'starting') {
+    if (status.state === 'stopping' || status.state === 'starting' || status.state === 'pending') {
       console.log(`[EC2] ${env} is ${status.state}, waiting...`);
       return await waitForEC2Ready(env);
     }
