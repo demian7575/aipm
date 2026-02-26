@@ -59,11 +59,22 @@ export DYNAMODB_TESTS_TABLE=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" 
 export DYNAMODB_PRS_TABLE=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "dynamodb_prs_table")
 export DYNAMODB_TEST_RUNS_TABLE=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "dynamodb_test_runs_table")
 
-# Computed values
-export API_BASE="http://${EC2_IP}:${API_PORT}"
-export SEMANTIC_API_BASE="http://${EC2_IP}:${SEMANTIC_API_PORT}"
-export SESSION_POOL_URL="http://${EC2_IP}:${SESSION_POOL_PORT}"
-export TERMINAL_URL="ws://${EC2_IP}:${TERMINAL_PORT}"
+# Computed values (only if not already set - allows override from workflow)
+if [[ -z "$API_BASE" ]]; then
+  export API_BASE="http://${EC2_IP}:${API_PORT}"
+fi
+
+if [[ -z "$SEMANTIC_API_BASE" ]]; then
+  export SEMANTIC_API_BASE="http://${EC2_IP}:${SEMANTIC_API_PORT}"
+fi
+
+if [[ -z "$SESSION_POOL_URL" ]]; then
+  export SESSION_POOL_URL="http://${EC2_IP}:${SESSION_POOL_PORT}"
+fi
+
+if [[ -z "$TERMINAL_URL" ]]; then
+  export TERMINAL_URL="ws://${EC2_IP}:${TERMINAL_PORT}"
+fi
 
 echo "✅ Loaded $ENV environment configuration"
 echo "   EC2: $EC2_IP"
