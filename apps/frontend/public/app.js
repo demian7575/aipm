@@ -66,6 +66,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -774,6 +775,12 @@ if (referenceBtn) {
       return;
     }
     openReferenceModal(state.selectedStoryId);
+  });
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
   });
 }
 
@@ -8561,6 +8568,113 @@ function openReferenceModal(storyId) {
   }
 
   openModal({ title: 'Reference Document List', content: container });
+}
+
+/**
+ * Opens a modal displaying all story titles in a paginated list
+ */
+function openStoryListModal() {
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '1rem';
+  container.style.maxHeight = '400px';
+
+  const listContainer = document.createElement('div');
+  listContainer.style.flex = '1';
+  listContainer.style.overflowY = 'auto';
+  listContainer.style.border = '1px solid var(--border-color, #ddd)';
+  listContainer.style.borderRadius = '4px';
+  listContainer.style.padding = '0.5rem';
+
+  const paginationContainer = document.createElement('div');
+  paginationContainer.style.display = 'flex';
+  paginationContainer.style.justifyContent = 'space-between';
+  paginationContainer.style.alignItems = 'center';
+  paginationContainer.style.padding = '0.5rem 0';
+
+  const pageInfo = document.createElement('span');
+  const prevBtn = document.createElement('button');
+  prevBtn.textContent = 'Previous';
+  prevBtn.className = 'secondary';
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Next';
+  nextBtn.className = 'secondary';
+
+  const allStories = flattenStories(state.stories);
+  const itemsPerPage = 20;
+  let currentPage = 1;
+  const totalPages = Math.ceil(allStories.length / itemsPerPage);
+
+  function renderPage() {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageStories = allStories.slice(startIndex, endIndex);
+
+    listContainer.innerHTML = '';
+    
+    pageStories.forEach(story => {
+      const storyItem = document.createElement('div');
+      storyItem.style.padding = '0.5rem';
+      storyItem.style.cursor = 'pointer';
+      storyItem.style.borderBottom = '1px solid var(--border-color, #eee)';
+      storyItem.style.transition = 'background-color 0.2s';
+      
+      storyItem.addEventListener('mouseenter', () => {
+        storyItem.style.backgroundColor = 'var(--hover-bg, #f5f5f5)';
+      });
+      storyItem.addEventListener('mouseleave', () => {
+        storyItem.style.backgroundColor = '';
+      });
+      
+      storyItem.addEventListener('click', () => {
+        state.selectedStoryId = story.id;
+        expandAncestors(story.id);
+        renderAll();
+        closeModal();
+      });
+
+      const titleEl = document.createElement('div');
+      titleEl.textContent = story.title || 'Untitled Story';
+      titleEl.style.fontWeight = '500';
+      storyItem.appendChild(titleEl);
+
+      listContainer.appendChild(storyItem);
+    });
+
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${allStories.length} stories)`;
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      renderPage();
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderPage();
+    }
+  });
+
+  paginationContainer.appendChild(prevBtn);
+  paginationContainer.appendChild(pageInfo);
+  paginationContainer.appendChild(nextBtn);
+
+  container.appendChild(listContainer);
+  container.appendChild(paginationContainer);
+
+  renderPage();
+
+  openModal({ 
+    title: 'All Stories', 
+    content: container,
+    size: 'medium'
+  });
 }
 
 async function createRootStory() {

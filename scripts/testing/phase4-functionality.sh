@@ -751,6 +751,62 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test for story list modal feature
+if [ "$1" = "1772095429350" ]; then
+  echo "Test 45: Story List Modal - Header button and modal function"
+  
+  # Check HTML has story list button
+  HTML_CONTENT=$(curl -s "$S3_URL"/index.html)
+  if echo "$HTML_CONTENT" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check JavaScript has openStoryListModal function
+  APP_JS_CONTENT=$(curl -s "$S3_URL"/app.js)
+  if echo "$APP_JS_CONTENT" | grep -q "function openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function exists"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check button click handler is wired up
+  if echo "$APP_JS_CONTENT" | grep -q "storyListBtn.addEventListener"; then
+    echo "  ✅ PASS: Story list button click handler wired"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check pagination implementation (20 items per page)
+  if echo "$APP_JS_CONTENT" | grep -q "itemsPerPage = 20"; then
+    echo "  ✅ PASS: Pagination with 20 items per page implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Pagination not properly configured"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check story titles are clickable and navigate to details
+  if echo "$APP_JS_CONTENT" | grep -q "state.selectedStoryId = story.id" && \
+     echo "$APP_JS_CONTENT" | grep -q "expandAncestors(story.id)" && \
+     echo "$APP_JS_CONTENT" | grep -q "closeModal()"; then
+    echo "  ✅ PASS: Story titles clickable with navigation to details"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story click navigation not properly implemented"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
