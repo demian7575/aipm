@@ -14,8 +14,8 @@
   const API_GATEWAY_URL = 'https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com';
   
   window.CONFIG = {
-    API_BASE_URL: API_GATEWAY_URL + '?env=' + environment,
-    SEMANTIC_API_URL: API_GATEWAY_URL + '?env=' + environment,
+    API_BASE_URL: API_GATEWAY_URL,
+    SEMANTIC_API_URL: API_GATEWAY_URL,
     ENVIRONMENT: environment
   };
   

@@ -43,8 +43,16 @@ function resolveApiUrl(path) {
     return normalizedPath;
   }
 
-  // Simply concatenate base URL with the path
-  return `${API_BASE_URL}${normalizedPath}`;
+  // Concatenate base URL with path, then add env parameter if using API Gateway
+  const url = `${API_BASE_URL}${normalizedPath}`;
+  
+  // Add env parameter for API Gateway (not for localhost)
+  if (API_BASE_URL.includes('execute-api') && window.CONFIG?.ENVIRONMENT) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}env=${window.CONFIG.ENVIRONMENT}`;
+  }
+  
+  return url;
 }
 
 const outlineTreeEl = document.getElementById('outline-tree');
