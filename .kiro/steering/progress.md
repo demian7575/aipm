@@ -68,8 +68,15 @@ Tests → API Gateway (main API) + Direct EC2:8083 (semantic API)
 
 ## Next Steps
 - Monitor API Gateway proxy in production
-- Consider cleanup of old EC2 IP update mechanisms
 - Continue feature development
+
+## Completed Cleanup (Phase 4)
+- ✅ Removed ec2-manager.js and S3 config update mechanisms
+- ✅ Deleted S3 bucket aipm-ec2-config
+- ✅ Deleted unused Lambda function refresh-service
+- ✅ Removed systemd service aipm-update-s3-config from EC2
+- ✅ Simplified frontend initialization
+- ✅ Cleaned up 383 lines of obsolete code
 
 ## Architecture Status
 - Dual EC2 setup (prod: 3.87.129.233, dev: stopped)
