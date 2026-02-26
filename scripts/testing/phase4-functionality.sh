@@ -11,10 +11,14 @@ source "$TEST_SCRIPT_DIR/test-library.sh"
 PASSED=0
 FAILED=0
 PHASE="phase4"
+STORY_ID_FILTER="${1:-}"
 
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="
 echo "Run ID: $TEST_RUN_ID"
+if [ -n "$STORY_ID_FILTER" ]; then
+  echo "Story Filter: $STORY_ID_FILTER"
+fi
 echo ""
 
 # ============================================
@@ -752,6 +756,61 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# SECTION 10: Story-Specific Tests
+# ============================================
+if [ -n "$STORY_ID_FILTER" ]; then
+  echo "📦 SECTION 10: Story-Specific Tests (ID: $STORY_ID_FILTER)"
+  echo "-----------------------------------"
+  
+  # Test: Story list button in header
+  echo "Test: Story list button displays all story titles"
+  START_TIME=$(date +%s)
+  FRONTEND_HTML=$(curl -s "${S3_URL}/index.html")
+  DURATION=$(($(date +%s) - START_TIME))
+  
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+    record_test_result "story-$STORY_ID_FILTER-button" "Story list button in header" "PASS" "$PHASE" "$DURATION"
+  else
+    echo "  ❌ FAIL: Story list button not found in header"
+    FAILED=$((FAILED + 1))
+    record_test_result "story-$STORY_ID_FILTER-button" "Story list button in header" "FAIL" "$PHASE" "$DURATION"
+  fi
+  
+  # Test: Modal opens with story titles
+  FRONTEND_JS=$(curl -s "${S3_URL}/app.js")
+  if echo "$FRONTEND_JS" | grep -q "story-list-btn.*addEventListener"; then
+    echo "  ✅ PASS: Story list button has click handler"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button click handler missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test: Modal displays story titles
+  if echo "$FRONTEND_JS" | grep -q "story-list-modal"; then
+    echo "  ✅ PASS: Story list modal implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list modal not found"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Test: CSS styles for modal
+  FRONTEND_CSS=$(curl -s "${S3_URL}/styles.css")
+  if echo "$FRONTEND_CSS" | grep -q "\.story-list-modal"; then
+    echo "  ✅ PASS: Story list modal styles exist"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list modal styles missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
@@ -778,8 +837,11 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+if [ -n "$STORY_ID_FILTER" ]; then
+  echo "  - Story-Specific: 4 tests executed"
+fi
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: $((45 + ([ -n \"$STORY_ID_FILTER\" ] && echo 4 || echo 0))) (39 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 

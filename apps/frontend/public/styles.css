@@ -2583,6 +2583,19 @@ dialog[data-size='content'] .modal-shell {
   overflow: hidden;
 }
 
+.story-list-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.story-list-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e5e9f5;
+}
+
 #modal[data-size="fullscreen"] #terminal-container {
   width: 100% !important;
 }

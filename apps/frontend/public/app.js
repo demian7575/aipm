@@ -778,6 +778,28 @@ if (referenceBtn) {
   });
 }
 
+const storyListBtn = document.getElementById('story-list-btn');
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetchWithProject(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      
+      const modalContent = `
+        <div class="story-list-modal">
+          ${stories.map(s => `<div class="story-list-item">${s.title}</div>`).join('')}
+        </div>
+      `;
+      
+      openModal('Story List', modalContent);
+    } catch (error) {
+      showToast('Failed to load story list', 'error');
+      console.error(error);
+    }
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
