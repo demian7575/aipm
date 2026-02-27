@@ -19,6 +19,7 @@ inclusion: always
 - **ES modules only** → `import/export`, not `require()`
 - **Get user approval before making code changes** → explain the change, wait for confirmation
 - **Never make critical changes without user approval** → explain first, wait for agreement
+- **Always fix root cause, not symptoms** → proper solutions over workarounds; long-term fixes over temporary patches
 
 ## Critical Changes Requiring Approval
 - Any code modifications
