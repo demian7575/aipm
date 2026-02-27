@@ -3,8 +3,7 @@
 # Usage: source scripts/utilities/load-env-config.sh <prod|dev|production|development>
 
 ENV_ARG="${1:-prod}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/../../config/environments.yaml"
+CONFIG_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../config/environments.yaml"
 
 # Normalize environment name (production -> prod, development -> dev)
 case "$ENV_ARG" in
@@ -19,7 +18,7 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
 fi
 
 # Get instance ID from config
-export INSTANCE_ID=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "instance_id")
+export INSTANCE_ID=$(python3 "$(dirname "$CONFIG_FILE")/../scripts/utilities/read-yaml.py" "$CONFIG_FILE" "$ENV" "instance_id")
 
 # Check instance state and wake up if stopped
 INSTANCE_STATE=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query 'Reservations[0].Instances[0].State.Name' --output text 2>/dev/null)
@@ -48,16 +47,22 @@ if [[ -z "$EC2_IP" || "$EC2_IP" == "None" ]]; then
 else
     echo "✅ Fetched IP from AWS: $EC2_IP"
 fi
-export API_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "api_port")
-export SEMANTIC_API_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "semantic_api_port")
-export SESSION_POOL_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "session_pool_port")
-export TERMINAL_PORT=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "terminal_port")
-export S3_BUCKET=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "s3_bucket")
-export S3_URL=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "s3_url")
-export DYNAMODB_STORIES_TABLE=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "dynamodb_stories_table")
-export DYNAMODB_TESTS_TABLE=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "dynamodb_tests_table")
-export DYNAMODB_PRS_TABLE=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "dynamodb_prs_table")
-export DYNAMODB_TEST_RUNS_TABLE=$(python3 "$SCRIPT_DIR/read-yaml.py" "$CONFIG_FILE" "$ENV" "dynamodb_test_runs_table")
+
+# Helper to call read-yaml.py without polluting parent's SCRIPT_DIR
+_read_yaml() {
+    python3 "$(dirname "$CONFIG_FILE")/../scripts/utilities/read-yaml.py" "$CONFIG_FILE" "$ENV" "$1"
+}
+
+export API_PORT=$(_read_yaml "api_port")
+export SEMANTIC_API_PORT=$(_read_yaml "semantic_api_port")
+export SESSION_POOL_PORT=$(_read_yaml "session_pool_port")
+export TERMINAL_PORT=$(_read_yaml "terminal_port")
+export S3_BUCKET=$(_read_yaml "s3_bucket")
+export S3_URL=$(_read_yaml "s3_url")
+export DYNAMODB_STORIES_TABLE=$(_read_yaml "dynamodb_stories_table")
+export DYNAMODB_TESTS_TABLE=$(_read_yaml "dynamodb_tests_table")
+export DYNAMODB_PRS_TABLE=$(_read_yaml "dynamodb_prs_table")
+export DYNAMODB_TEST_RUNS_TABLE=$(_read_yaml "dynamodb_test_runs_table")
 
 # Computed values (only if not already set - allows override from workflow)
 if [[ -z "$API_BASE" ]]; then
