@@ -18,3 +18,21 @@ projects:
         documents: aipm-documents
     created: "2026-02-21T06:17:00Z"
     status: active
+  - id: filecompare
+    name: "FileCompare"
+    description: ""
+    github:
+      owner: demian7575
+      repo: filecompare
+      branch: main
+    aws:
+      region: us-east-1
+      dynamodb:
+        stories: filecompare-stories
+        tests: filecompare-tests
+        prs: filecompare-prs
+        results: filecompare-test-results
+      s3:
+        documents: filecompare-documents
+    created: "2026-02-28T02:12:00Z"
+    status: active
