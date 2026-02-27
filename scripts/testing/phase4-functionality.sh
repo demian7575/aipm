@@ -597,6 +597,48 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# Story 1772177092481: Story List Button
+# ============================================
+if [ -z "$STORY_ID" ] || [ "$STORY_ID" = "1772177092481" ]; then
+  echo "=============================================="
+  echo "🧪 Story 1772177092481: Story List Button"
+  echo "=============================================="
+  
+  START=$(date +%s%3N)
+  
+  # Check button exists in HTML
+  if grep -q 'id="story-list-btn"' "$FRONTEND_HTML"; then
+    p4_pass "story-1772177092481-button" "Story list button added to header" "$(($(date +%s%3N) - START))"
+  else
+    p4_fail "story-1772177092481-button" "Story list button missing from header" "$(($(date +%s%3N) - START))"
+  fi
+  
+  # Check button element reference in JS
+  if grep -q 'storyListBtn' "$FRONTEND_JS"; then
+    p4_pass "story-1772177092481-element" "Story list button element reference exists" "$(($(date +%s%3N) - START))"
+  else
+    p4_fail "story-1772177092481-element" "Story list button element reference missing" "$(($(date +%s%3N) - START))"
+  fi
+  
+  # Check event listener
+  if grep -q "storyListBtn.*addEventListener.*click" "$FRONTEND_JS"; then
+    p4_pass "story-1772177092481-listener" "Story list button click listener implemented" "$(($(date +%s%3N) - START))"
+  else
+    p4_fail "story-1772177092481-listener" "Story list button click listener missing" "$(($(date +%s%3N) - START))"
+  fi
+  
+  # Check modal function exists
+  if grep -q "function openStoryListModal" "$FRONTEND_JS"; then
+    p4_pass "story-1772177092481-modal" "Story list modal function implemented" "$(($(date +%s%3N) - START))"
+  else
+    p4_fail "story-1772177092481-modal" "Story list modal function missing" "$(($(date +%s%3N) - START))"
+  fi
+  
+  DURATION=$(($(date +%s%3N) - START))
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
@@ -624,7 +666,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: 49 (43 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 

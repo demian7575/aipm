@@ -63,6 +63,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const storyListBtn = document.getElementById('story-list-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -6494,6 +6495,45 @@ function createSSEHandler(url, options = {}) {
   return eventSource;
 }
 
+/**
+ * Opens a modal displaying all story titles in a scrollable list
+ */
+function openStoryListModal() {
+  try {
+    const allStories = getAllStoriesFlat(state.stories);
+    const storiesToShow = allStories.slice(0, 50);
+    
+    const listContainer = document.createElement('div');
+    listContainer.style.maxHeight = '400px';
+    listContainer.style.overflowY = 'auto';
+    
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.padding = '0';
+    ul.style.margin = '0';
+    
+    storiesToShow.forEach(story => {
+      const li = document.createElement('li');
+      li.style.padding = '8px';
+      li.style.borderBottom = '1px solid #eee';
+      li.textContent = story.title;
+      ul.appendChild(li);
+    });
+    
+    listContainer.appendChild(ul);
+    
+    openModal({
+      title: 'Story List',
+      content: listContainer,
+      actions: [],
+      size: 'medium'
+    });
+  } catch (error) {
+    console.error('Failed to open story list modal:', error);
+    showToast('Failed to load story list', 'error');
+  }
+}
+
 function closeModal() {
   modal.style.display = 'none';
   delete modal.dataset.size;
@@ -8930,6 +8970,10 @@ async function initialize() {
   
   // Fetch version after EC2 is ready
   fetchVersion();
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
+  });
 
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
