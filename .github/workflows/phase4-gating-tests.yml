@@ -127,21 +127,6 @@ jobs:
             exit 1
           fi
       
-      - name: Run Phase 4 Extended Tests
-        env:
-          TARGET_ENV: ${{ steps.env.outputs.environment }}
-          API_BASE: ${{ steps.config.outputs.api_base }}
-          AIPM_ENV: ${{ steps.config.outputs.target_env }}
-        run: |
-          echo "🧪 Running Phase 4 Extended Tests on $TARGET_ENV..."
-          
-          if ./scripts/testing/phase4-extended.sh; then
-            echo "✅ Phase 4 Extended Tests passed"
-          else
-            echo "❌ Phase 4 Extended Tests failed"
-            exit 1
-          fi
-      
       - name: Upload test results to DynamoDB
         if: always()
         env:

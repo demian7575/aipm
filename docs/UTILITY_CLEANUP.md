@@ -43,7 +43,7 @@
 
 ### Test Generation & Execution
 3. **generate-phase4-tests.mjs** - Generates API tests from acceptance tests
-4. **generate-phase4-extended.mjs** - Generates UI/integration tests
+4. ~~**generate-phase4-extended.mjs** - Generates UI/integration tests~~ (removed)
 5. **upload-test-results.mjs** - Uploads test results to DynamoDB for RTM
 
 ### Acceptance Test Management

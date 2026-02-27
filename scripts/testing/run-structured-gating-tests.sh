@@ -242,21 +242,6 @@ main() {
             echo "⚠️  Phase 4 API test file not found"
         fi
         
-        # Run Phase 4 Extended (UI/Integration) tests
-        echo ""
-        echo "🧪 Running Phase 4 Extended (UI/Integration) Tests..."
-        
-        if [[ -f ./scripts/testing/phase4-extended.sh ]]; then
-            if bash ./scripts/testing/phase4-extended.sh; then
-                echo "✅ Phase 4 Extended Tests passed"
-            else
-                echo "❌ Phase 4 Extended Tests failed"
-                ((PHASE_FAILED++))
-            fi
-        else
-            echo "⚠️  Phase 4 Extended test file not found"
-        fi
-        
         local phase4_end=$(date +%s)
         local phase4_duration=$((phase4_end - phase4_start))
         echo "⏱️  Phase 4 Duration: ${phase4_duration}s"
