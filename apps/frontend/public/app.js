@@ -67,6 +67,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -766,6 +767,12 @@ function setDependencyOverlayVisible(visible) {
 
 function toggleDependencyOverlay() {
   setDependencyOverlayVisible(!state.showDependencies);
+}
+
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
 }
 
 if (referenceBtn) {
@@ -8408,6 +8415,42 @@ function openFilterModal() {
         }
       }
     ]
+  });
+}
+
+function openStoryListModal() {
+  const allStories = flattenStories(state.stories);
+  
+  const listContainer = document.createElement('div');
+  listContainer.style.maxHeight = '60vh';
+  listContainer.style.overflowY = 'auto';
+  
+  const ul = document.createElement('ul');
+  ul.style.listStyle = 'none';
+  ul.style.padding = '0';
+  ul.style.margin = '0';
+  
+  allStories.forEach(story => {
+    const li = document.createElement('li');
+    li.style.padding = '0.5rem';
+    li.style.borderBottom = '1px solid #eee';
+    li.textContent = story.title;
+    ul.appendChild(li);
+  });
+  
+  listContainer.appendChild(ul);
+  
+  openModal({
+    title: 'All Stories',
+    body: listContainer,
+    actions: [{
+      label: 'Close',
+      variant: 'secondary',
+      handler: () => {
+        closeModal();
+        return true;
+      }
+    }]
   });
 }
 
