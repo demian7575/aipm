@@ -8931,6 +8931,43 @@ async function initialize() {
   // Fetch version after EC2 is ready
   fetchVersion();
 
+  storyListBtn?.addEventListener('click', async () => {
+    try {
+      const stories = state.stories || [];
+      const content = document.createElement('div');
+      content.style.maxHeight = '400px';
+      content.style.overflowY = 'auto';
+      
+      if (stories.length === 0) {
+        content.textContent = 'No stories available';
+      } else {
+        const list = document.createElement('ul');
+        list.style.listStyle = 'none';
+        list.style.padding = '0';
+        list.style.margin = '0';
+        
+        stories.forEach(story => {
+          const item = document.createElement('li');
+          item.style.padding = '8px 0';
+          item.style.borderBottom = '1px solid #eee';
+          item.textContent = story.title || 'Untitled Story';
+          list.appendChild(item);
+        });
+        
+        content.appendChild(list);
+      }
+      
+      openModal({
+        title: 'Story List',
+        content,
+        cancelLabel: 'Close'
+      });
+    } catch (error) {
+      console.error('Failed to display story list:', error);
+      showToast('Failed to display story list', 'error');
+    }
+  });
+
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
