@@ -624,6 +624,30 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
+
+# Story-specific test: Story List Button (ID: 1772180985796)
+if [ "$1" = "1772180985796" ]; then
+  echo "Test 45: Story List Button - Header button and modal"
+  
+  # Check frontend has story list button
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
+  if echo "$FRONTEND_JS" | grep -q "openStoryListModal"; then
+    p4_pass "ui-007-story-list-modal" "Story list modal function exists" "$DURATION"
+  else
+    p4_fail "ui-007-story-list-modal" "Story list modal function missing" "$DURATION"
+  fi
+  
+  # Check HTML has story list button
+  FRONTEND_HTML=$(curl -s "$S3_URL"/index.html)
+  if echo "$FRONTEND_HTML" | grep -q "story-list-btn"; then
+    p4_pass "ui-008-story-list-button" "Story list button exists in header" "$DURATION"
+  else
+    p4_fail "ui-008-story-list-button" "Story list button missing from header" "$DURATION"
+  fi
+  
+  echo ""
+fi
+
 echo "Total Tests: 45 (39 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
