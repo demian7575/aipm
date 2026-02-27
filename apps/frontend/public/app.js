@@ -786,6 +786,60 @@ if (referenceBtn) {
   });
 }
 
+/**
+ * Opens modal displaying all story titles
+ */
+async function openViewStoriesModal() {
+  try {
+    const url = resolveApiUrl('/api/stories');
+    const response = await fetchWithProject(url, { cache: 'no-store' });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch stories: ${response.status}`);
+    }
+    
+    const stories = await response.json();
+    
+    const content = document.createElement('div');
+    content.style.maxHeight = '400px';
+    content.style.overflowY = 'auto';
+    
+    if (!stories || stories.length === 0) {
+      content.innerHTML = '<p style="text-align: center; color: #888; padding: 20px;">No stories available</p>';
+    } else {
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      stories.forEach(story => {
+        const li = document.createElement('li');
+        li.style.padding = '8px 12px';
+        li.style.borderBottom = '1px solid #eee';
+        li.textContent = story.title || 'Untitled Story';
+        list.appendChild(li);
+      });
+      
+      content.appendChild(list);
+    }
+    
+    openModal({
+      title: 'All Stories',
+      content,
+      actions: [],
+      cancelLabel: 'Close'
+    });
+  } catch (error) {
+    console.error('Failed to load stories:', error);
+    showToast('Failed to load stories', 'error');
+  }
+}
+
+const viewStoriesBtn = document.getElementById('view-stories-btn');
+if (viewStoriesBtn) {
+  viewStoriesBtn.addEventListener('click', openViewStoriesModal);
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();

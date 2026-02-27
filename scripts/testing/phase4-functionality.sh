@@ -260,6 +260,34 @@ check_grep "$S3_URL/app.js" "function" "ui-003-frontend-javascript" "app.js load
 echo "Test 16: Frontend CSS"
 check_grep "$S3_URL/styles.css" "body" "ui-004-frontend-css" "styles.css loads" "styles.css not found"
 
+# Test for Story 1772186611737: View Stories button
+if [ "$1" = "1772186611737" ]; then
+  echo "Test 17: Story 1772186611737 - View Stories button"
+  APP_JS_CONTENT=$(curl -s "$S3_URL"/app.js)
+  INDEX_HTML_CONTENT=$(curl -s "$S3_URL"/index.html)
+  
+  # Check for button in HTML
+  if echo "$INDEX_HTML_CONTENT" | grep -q "view-stories-btn"; then
+    p4_pass "ui-005-view-stories-btn" "View Stories button present in header" "0"
+  else
+    p4_fail "ui-005-view-stories-btn" "View Stories button missing from header" "0"
+  fi
+  
+  # Check for modal function in JavaScript
+  if echo "$APP_JS_CONTENT" | grep -q "openViewStoriesModal"; then
+    p4_pass "ui-006-view-stories-modal" "View Stories modal function implemented" "0"
+  else
+    p4_fail "ui-006-view-stories-modal" "View Stories modal function missing" "0"
+  fi
+  
+  # Check for empty state handling
+  if echo "$APP_JS_CONTENT" | grep -q "No stories available"; then
+    p4_pass "ui-007-view-stories-empty" "Empty state message implemented" "0"
+  else
+    p4_fail "ui-007-view-stories-empty" "Empty state message missing" "0"
+  fi
+fi
+
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
   echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
