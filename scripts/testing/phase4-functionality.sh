@@ -596,6 +596,35 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1772197106673 - View All Stories button
+if [ "$1" = "1772197106673" ]; then
+  echo "Test 45: Story 1772197106673 - View All Stories button"
+  
+  # Check button exists in HTML
+  INDEX_HTML=$(curl -s "$S3_URL"/index.html)
+  if echo "$INDEX_HTML" | grep -q "view-all-stories-btn"; then
+    p4_pass "ui-007-view-all-stories" "View All Stories button exists in header" "$DURATION"
+  else
+    p4_fail "ui-007-view-all-stories" "View All Stories button missing from header" "$DURATION"
+  fi
+  
+  # Check modal function exists
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
+  if echo "$FRONTEND_JS" | grep -q "openViewAllStoriesModal"; then
+    p4_pass "ui-007-view-all-stories" "openViewAllStoriesModal function exists" "$DURATION"
+  else
+    p4_fail "ui-007-view-all-stories" "openViewAllStoriesModal function missing" "$DURATION"
+  fi
+  
+  # Check event listener attached
+  if echo "$FRONTEND_JS" | grep -q "view-all-stories-btn.*addEventListener"; then
+    p4_pass "ui-007-view-all-stories" "Button click handler implemented" "$DURATION"
+  else
+    p4_fail "ui-007-view-all-stories" "Button click handler missing" "$DURATION"
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================

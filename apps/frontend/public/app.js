@@ -6518,6 +6518,51 @@ function closeModal() {
   }
 }
 
+/**
+ * Opens a modal displaying all story titles
+ */
+async function openViewAllStoriesModal() {
+  try {
+    const response = await fetchWithProject(resolveApiUrl('/api/stories'));
+    if (!response.ok) throw new Error('Failed to fetch stories');
+    
+    const stories = await response.json();
+    
+    const content = document.createElement('div');
+    content.style.maxHeight = '400px';
+    content.style.overflowY = 'auto';
+    
+    if (stories.length === 0) {
+      content.innerHTML = '<p style="text-align: center; color: #666;">No stories found</p>';
+    } else {
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      
+      stories.forEach(story => {
+        const item = document.createElement('li');
+        item.style.padding = '8px';
+        item.style.borderBottom = '1px solid #eee';
+        item.textContent = story.title;
+        list.appendChild(item);
+      });
+      
+      content.appendChild(list);
+    }
+    
+    openModal({
+      title: 'All Stories',
+      content,
+      actions: []
+    });
+  } catch (error) {
+    console.error('Failed to load stories:', error);
+    showToast('Failed to load stories', 'error');
+  }
+}
+
+
 function openModal({
   title,
   content,
@@ -8945,6 +8990,11 @@ async function initialize() {
 
   generateDocBtn?.addEventListener('click', () => {
     openDocumentPanel();
+  });
+
+  const viewAllStoriesBtn = document.getElementById('view-all-stories-btn');
+  viewAllStoriesBtn?.addEventListener('click', async () => {
+    await openViewAllStoriesModal();
   });
 
 
