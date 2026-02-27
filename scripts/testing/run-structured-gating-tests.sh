@@ -35,6 +35,7 @@ done
 
 # Import shared test functions
 source "$(dirname "$0")/test-functions.sh"
+export TEST_RUN_ID="${TEST_RUN_ID:-$(date +%s)-$$}"
 
 # Load environment configuration from single source of truth if not already set
 if [[ -z "$API_BASE" ]] || [[ -z "$SEMANTIC_API_BASE" ]]; then
