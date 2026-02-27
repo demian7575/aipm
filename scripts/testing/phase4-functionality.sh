@@ -21,11 +21,13 @@ p4_pass() {
   local test_id="$1" name="$2" duration="${3:-0}"
   echo "  ✅ PASS: $name"
   PASSED=$((PASSED + 1))
+  record_test_result "$test_id" "$name" "PASS" "$PHASE" "$duration"
 }
 p4_fail() {
   local test_id="$1" name="$2" duration="${3:-0}"
   echo "  ❌ FAIL: $name"
   FAILED=$((FAILED + 1))
+  record_test_result "$test_id" "$name" "FAIL" "$PHASE" "$duration"
 }
 p4_skip() {
   echo "  ⚠️  SKIP: $1"
