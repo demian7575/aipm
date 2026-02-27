@@ -260,6 +260,41 @@ check_grep "$S3_URL/app.js" "function" "ui-003-frontend-javascript" "app.js load
 echo "Test 16: Frontend CSS"
 check_grep "$S3_URL/styles.css" "body" "ui-004-frontend-css" "styles.css loads" "styles.css not found"
 
+# Test for story 1772167256016: Story List Button
+if [ "$1" = "1772167256016" ]; then
+  echo "Test 17: Story List Button - Header button and modal"
+  FRONTEND_HTML=$(curl -s "$S3_URL"/index.html)
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
+  
+  # Check for story list button in header
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    echo "  ✅ PASS: Story list button exists in header"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button missing from header"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for openStoryListModal function
+  if echo "$FRONTEND_JS" | grep -q "function openStoryListModal"; then
+    echo "  ✅ PASS: openStoryListModal function implemented"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: openStoryListModal function missing"
+    FAILED=$((FAILED + 1))
+  fi
+  
+  # Check for event listener
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.*addEventListener"; then
+    echo "  ✅ PASS: Story list button event listener attached"
+    PASSED=$((PASSED + 1))
+  else
+    echo "  ❌ FAIL: Story list button event listener missing"
+    FAILED=$((FAILED + 1))
+  fi
+  echo ""
+fi
+
 # Test for US-VIZ-RTM-002: RTM row click updates details panel
 if [ "$1" = "1771076494719" ]; then
   echo "Test 17: US-VIZ-RTM-002 - RTM row click handler"
