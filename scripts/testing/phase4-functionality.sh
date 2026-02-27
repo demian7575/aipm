@@ -753,6 +753,58 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# Story-Specific Tests (if STORY_ID provided)
+# ============================================
+if [ -n "$STORY_ID" ]; then
+  echo "=============================================="
+  echo "📋 Story-Specific Tests (ID: $STORY_ID)"
+  echo "=============================================="
+  
+  # Test: Story List Modal Button (Story 1772153156677)
+  if [ "$STORY_ID" = "1772153156677" ]; then
+    echo "Test: Story List Modal Button"
+    
+    # Check button exists in HTML
+    if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+      echo "  ✅ PASS: Story list button exists in HTML"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button missing from HTML"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check button reference in JS
+    if grep -q "getElementById('story-list-btn')" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Story list button referenced in JS"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button not referenced in JS"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check click handler
+    if grep -q "storyListBtn.addEventListener('click'" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: Story list button click handler exists"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: Story list button click handler missing"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    # Check modal function exists
+    if grep -q "function openStoryListModal" apps/frontend/public/app.js; then
+      echo "  ✅ PASS: openStoryListModal function exists"
+      PASSED=$((PASSED + 1))
+    else
+      echo "  ❌ FAIL: openStoryListModal function missing"
+      FAILED=$((FAILED + 1))
+    fi
+    
+    echo ""
+  fi
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
