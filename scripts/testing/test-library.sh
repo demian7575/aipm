@@ -149,19 +149,22 @@ test_story_draft_generation() {
 
 test_frontend_availability() {
     local frontend_url="${1:-$FRONTEND_URL}"
-    test_endpoint "Frontend Availability" "$frontend_url" "html"
+    local test_id="${2:-}"
+    test_endpoint "Frontend Availability" "$frontend_url" "html" "$test_id"
 }
 
 test_s3_config() {
     local frontend_url="${1:-$FRONTEND_URL}"
     local env="${2:-$TARGET_ENV}"
+    local test_id="${3:-}"
     # config.js auto-detects environment - no env-specific files
-    test_endpoint "S3 Config" "$frontend_url/config.js" "API_BASE_URL"
+    test_endpoint "S3 Config" "$frontend_url/config.js" "API_BASE_URL" "$test_id"
 }
 
 test_network_connectivity() {
     local api_base="${1:-$API_BASE}"
-    test_endpoint "Network Connectivity" "$api_base/api/version" "version"
+    local test_id="${2:-}"
+    test_endpoint "Network Connectivity" "$api_base/api/version" "version" "$test_id"
 }
 
 # ============================================
@@ -557,15 +560,18 @@ test_mcp_server_integration() {
 
 test_frontend_backend_integration() {
     local frontend_url="${1:-$FRONTEND_URL}"
+    local test_id="${2:-}"
     log_test "Frontend-Backend Integration"
     
+    local start_time=$(date +%s)
     local html=$(curl -s "$frontend_url")
     local config=$(curl -s "$frontend_url/config.js")
+    local duration=$(($(date +%s) - start_time))
     
     if echo "$html" | grep -q "AI Project Manager" && echo "$config" | grep -q "API_BASE_URL"; then
-        pass_test "Frontend-Backend Integration"
+        pass_test "Frontend-Backend Integration" "$test_id" "$duration"
     else
-        fail_test "Frontend-Backend Integration"
+        fail_test "Frontend-Backend Integration" "$test_id" "$duration"
     fi
 }
 
@@ -720,33 +726,40 @@ test_version_consistency() {
 test_environment_health() {
     local api_base="${1:-$API_BASE}"
     local env_name="${2:-production}"
+    local test_id="${3:-}"
     log_test "Environment Health ($env_name)"
     
+    local start_time=$(date +%s)
     local health=$(curl -s "$api_base/health")
+    local duration=$(($(date +%s) - start_time))
+    
     if json_check "$health" '.status == "running"'; then
-        pass_test "Environment Health ($env_name)"
+        pass_test "Environment Health ($env_name)" "$test_id" "$duration"
     else
-        fail_test "Environment Health ($env_name)"
+        fail_test "Environment Health ($env_name)" "$test_id" "$duration"
     fi
 }
 
 test_mindmap_story_loading() {
     local api_base="${1:-$API_BASE}"
+    local test_id="${2:-}"
     log_test "Mindmap Story Loading"
     
     # Test the /api/stories endpoint that mindmap uses
+    local start_time=$(date +%s)
     local response=$(curl -s "$api_base/api/stories")
+    local duration=$(($(date +%s) - start_time))
     
     # Check if response is valid JSON array
     if ! echo "$response" | jq -e 'type == "array"' > /dev/null 2>&1; then
-        fail_test "Mindmap Story Loading (Invalid JSON response)"
+        fail_test "Mindmap Story Loading (Invalid JSON response)" "$test_id" "$duration"
         return
     fi
     
     # Check if we can parse the response
     local story_count=$(echo "$response" | jq 'length')
     if [[ -z "$story_count" || "$story_count" == "null" ]]; then
-        fail_test "Mindmap Story Loading (Cannot count stories)"
+        fail_test "Mindmap Story Loading (Cannot count stories)" "$test_id" "$duration"
         return
     fi
     
@@ -760,7 +773,7 @@ test_mindmap_story_loading() {
     # Check for nested children structure (mindmap requires this)
     local has_children=$(echo "$response" | jq '[.[] | select(.children != null)] | length')
     
-    pass_test "Mindmap Story Loading ($story_count stories, $has_children with children)"
+    pass_test "Mindmap Story Loading ($story_count stories, $has_children with children)" "$test_id" "$duration"
 }
 
 # Source test-functions.sh for helper functions

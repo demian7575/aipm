@@ -55,7 +55,7 @@ echo ""
 pids=()
 (test_version_endpoint "$API_BASE" "health-001-version-endpoint") & pids+=($!)
 (test_database_connection "$API_BASE" "health-002-database-connection") & pids+=($!)
-(test_api_response_time "$API_BASE" "health-003-api-response-time") & pids+=($!)
+(test_api_response_time "$API_BASE" 5 "health-003-api-response-time") & pids+=($!)
 (test_semantic_api_health "$SEMANTIC_API_BASE" "health-004-semantic-api") & pids+=($!)
 (test_session_pool_health "$SEMANTIC_API_BASE" "health-005-session-pool") & pids+=($!)
 (test_environment_health "$API_BASE" "$TARGET_ENV" "health-006-environment") & pids+=($!)
