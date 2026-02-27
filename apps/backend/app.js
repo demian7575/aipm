@@ -7250,7 +7250,7 @@ export async function createApp() {
           const storyId = test?.storyId;
           
           testInfo[testId] = {
-            testTitle: test?.title || items.find(i => i.testId === testId)?.testName || `Test ${testId}`,
+            testTitle: test?.title || items.find(i => i.testId === testId)?.testName || items.find(i => i.testId === testId)?.title || `Test ${testId}`,
             storyId: storyId,
             storyTitle: storyId ? stories[storyId] || `Story ${storyId}` : null
           };
