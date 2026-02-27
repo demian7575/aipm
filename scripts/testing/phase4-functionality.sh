@@ -11,6 +11,7 @@ source "$TEST_SCRIPT_DIR/test-library.sh"
 PASSED=0
 FAILED=0
 PHASE="phase4"
+export TEST_PHASE="phase4"
 
 echo "🧪 Phase 4: Comprehensive Functionality Tests"
 echo "=============================================="

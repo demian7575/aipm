@@ -765,14 +765,28 @@ PHASE_FAILED=${PHASE_FAILED:-0}
 # Test result functions
 pass_test() {
     local test_name="$1"
+    local test_id="${2:-}"
+    local duration="${3:-0}"
     echo "    ✅ $test_name"
     echo "1" >> "$TEST_COUNTER_DIR/passed"
+    
+    # Record result if test_id provided
+    if [ -n "$test_id" ]; then
+        record_test_result "$test_id" "$test_name" "PASS" "${TEST_PHASE:-unknown}" "$duration"
+    fi
 }
 
 fail_test() {
     local test_name="$1"
+    local test_id="${2:-}"
+    local duration="${3:-0}"
     echo "    ❌ $test_name"
     echo "1" >> "$TEST_COUNTER_DIR/failed"
+    
+    # Record result if test_id provided
+    if [ -n "$test_id" ]; then
+        record_test_result "$test_id" "$test_name" "FAIL" "${TEST_PHASE:-unknown}" "$duration"
+    fi
 }
 
 log_test() {

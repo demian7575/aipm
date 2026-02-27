@@ -19,6 +19,9 @@ SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-$SEMANTIC_API_BASE}"
 # Use dev tables via header for data isolation
 # Headers are used inline in curl commands: -H 'X-Use-Dev-Tables: true' -H 'X-Project-Id: aipm'
 
+# Set test phase for result recording
+export TEST_PHASE="phase2"
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🎯 PHASE 2: UI-Driven Complete E2E Workflow"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
