@@ -42,6 +42,8 @@ else
   SEMANTIC_API_BASE="${SEMANTIC_API_BASE:-http://localhost:8083}"
 fi
 
+FRONTEND_URL="${FRONTEND_URL:-$S3_URL}"
+
 # Generate unique run ID for this test execution
 export TEST_RUN_ID="${TEST_RUN_ID:-$(date +%s)-$$}"
 export TEST_PHASE="phase1"
