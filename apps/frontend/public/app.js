@@ -778,6 +778,14 @@ if (referenceBtn) {
   });
 }
 
+// Story List Button Handler
+const storyListBtn = document.getElementById('story-list-btn');
+if (storyListBtn) {
+  storyListBtn.addEventListener('click', () => {
+    openStoryListModal();
+  });
+}
+
 if (dependencyToggleBtn) {
   dependencyToggleBtn.addEventListener('click', () => {
     toggleDependencyOverlay();
@@ -8307,6 +8315,46 @@ function openAcceptanceTestModal(storyId, options = {}) {
 /**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
+/**
+ * Open modal showing list of all story titles
+ */
+function openStoryListModal() {
+  try {
+    const allStories = getAllStoriesFlat(state.stories);
+    const storiesToShow = allStories.slice(0, 50);
+    
+    const container = document.createElement('div');
+    container.className = 'story-list-container';
+    container.style.maxHeight = '400px';
+    container.style.overflowY = 'auto';
+    
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    storiesToShow.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px';
+      item.style.borderBottom = '1px solid #eee';
+      item.textContent = story.title || 'Untitled Story';
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+    
+    openModal({
+      title: 'Story List',
+      content: container,
+      actions: [],
+      cancelLabel: 'Close'
+    });
+  } catch (error) {
+    console.error('Failed to open story list modal:', error);
+    showToast('Failed to load story list', 'error');
+  }
+}
+
 function openFilterModal() {
   const container = document.createElement('div');
   container.className = 'modal-form filter-form';
