@@ -18,13 +18,21 @@ function getApiBaseUrl() {
 
 const DEFAULT_REPO_API_URL = 'https://api.github.com';
 
-// Helper to add project header to fetch calls
-function fetchWithProject(url, options = {}) {
+// Helper to add project header to fetch calls (with retry on failure)
+async function fetchWithProject(url, options = {}, retries = 2) {
   const headers = {
     ...options.headers,
     'X-Project-Id': activeProjectId
   };
-  return fetch(url, { ...options, headers });
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url, { ...options, headers });
+      if (res.ok || i === retries) return res;
+    } catch (e) {
+      if (i === retries) throw e;
+    }
+    await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+  }
 }
 
 function resolveApiUrl(path) {
