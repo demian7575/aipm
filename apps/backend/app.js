@@ -7242,12 +7242,54 @@ export async function createApp() {
         }
         
         // Build matrix with titles
+        // Map new string-based test IDs to story IDs
+        const testStoryMap = {
+          // Phase 4: API
+          'api-001-stories-list': 1001, 'api-002-stories-create': 1101, 'api-003-stories-get': 1001,
+          'api-004-stories-update': 1001, 'api-005-stories-delete': 1001, 'api-006-templates-list': 1111,
+          'api-007-rtm-matrix': 1113, 'api-008-health-check': 1113, 'api-009-version-info': 1113,
+          'api-010-rtm-metrics': 1113, 'api-011-create-pr': 1109, 'api-012-code-generation': 1110,
+          'api-013-personal-delegate': 1112, 'api-014-templates-list-v2': 1111, 'api-015-template-upload': 1111,
+          'api-016-trigger-deployment': 1114, 'api-017-deploy-pr': 1109, 'api-018-merge-pr': 1109,
+          'api-019-test-log': 4109,
+          // Phase 4: Integration
+          'integration-001-semantic-health': 6207, 'integration-002-session-pool-health': 6208,
+          'integration-003-session-pool-status': 6208, 'integration-004-stories-table': 2102,
+          'integration-005-tests-table': 2103, 'integration-006-test-results-table': 6203,
+          'integration-007-prs-table': 1109, 'integration-008-env-config': 2204,
+          'integration-009-backend-process': 5101, 'integration-010-semantic-process': 6207,
+          'integration-011-session-pool-process': 6208, 'integration-012-stories-count': 2202,
+          'integration-013-tests-count': 2203, 'integration-014-storyid-index': 2103,
+          'integration-015-disk-space': 5101, 'integration-016-nodejs-version': 5101,
+          'integration-017-workflow-file': 6101, 'integration-018-workflow-yaml': 6201,
+          'integration-019-workflow-gating': 6102, 'integration-020-workflow-deployment': 6101,
+          'integration-021-workflow-run-status': 6102, 'integration-022-workflow-triggers': 6101,
+          // Phase 4: UI
+          'ui-001-rtm-click-handler': 4103, 'ui-002-frontend-accessibility': 4001,
+          'ui-003-frontend-javascript': 4001, 'ui-004-frontend-css': 4001,
+          'ui-005-rtm-row-click': 4103, 'ui-006-rtm-test-metrics': 4109,
+          // Phase 1: Health
+          'health-001-version-endpoint': 5102, 'health-002-database-connection': 2102,
+          'health-003-api-response-time': 5101, 'health-004-semantic-api': 6207,
+          'health-005-session-pool': 6208, 'health-006-environment': 2204,
+          'health-007-frontend-availability': 4001, 'health-008-frontend-backend-integration': 5101,
+          'health-009-s3-config': 2204, 'health-010-network-connectivity': 5101,
+          'health-011-security-headers': 5101, 'health-012-mindmap-loading': 2202,
+          // Phase 2: E2E
+          'e2e-001-story-draft-generation': 3102, 'e2e-002-create-story': 1101,
+          'e2e-003-edit-story': 1001, 'e2e-004-invest-analysis': 3102,
+          'e2e-005-acceptance-test-draft': 3103, 'e2e-005-acceptance-test-attached': 1106,
+          'e2e-006-create-pr': 1109, 'e2e-006-pr-attached': 4117,
+          'e2e-007-generate-code': 1110, 'e2e-008-test-in-dev': 6204,
+          'e2e-009-stop-tracking': 1109, 'e2e-010-delete-story': 1001,
+        };
+
         const matrix = {};
         const testInfo = {};
         
         testIds.forEach(testId => {
           const test = acceptanceTests[testId];
-          const storyId = test?.storyId;
+          const storyId = test?.storyId || testStoryMap[testId] || null;
           
           testInfo[testId] = {
             testTitle: test?.title || items.find(i => i.testId === testId)?.testName || items.find(i => i.testId === testId)?.title || `Test ${testId}`,
