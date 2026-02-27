@@ -5461,11 +5461,9 @@ export async function createApp() {
     
     if (!pathname.startsWith('/api/projects') && pathname !== '/health') {
       const projectId = url.searchParams.get('projectId') || req.headers['x-project-id'] || 'aipm';
-      console.log('🔍 Project resolution:', { pathname, projectId, queryString: url.search });
       const project = getProject(projectId);
       
       if (!project) {
-        console.log('❌ Project not found:', projectId);
         res.writeHead(404, {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
@@ -5474,7 +5472,6 @@ export async function createApp() {
         return;
       }
       
-      console.log('✅ Project found:', project.id, '-', project.name);
       req.project = project;
     }
     
