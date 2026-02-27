@@ -597,6 +597,58 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# Story-Specific Tests (if story ID provided)
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "=============================================="
+  echo "📝 Story-Specific Tests for Story ID: $STORY_ID"
+  echo "=============================================="
+  
+  # Test for Story 1772213866557: Add Story List Button
+  if [ "$STORY_ID" = "1772213866557" ]; then
+    echo "Testing: Add Story List Button"
+    
+    # Test 1: View Stories button exists in HTML
+    if grep -q 'id="view-stories-btn"' apps/frontend/public/index.html; then
+      p4_pass "story-1772213866557-1" "View Stories button exists in header" 0
+    else
+      p4_fail "story-1772213866557-1" "View Stories button missing from header" 0
+    fi
+    
+    # Test 2: openStoryListModal function exists
+    if grep -q "function openStoryListModal()" apps/frontend/public/app.js; then
+      p4_pass "story-1772213866557-2" "openStoryListModal function implemented" 0
+    else
+      p4_fail "story-1772213866557-2" "openStoryListModal function missing" 0
+    fi
+    
+    # Test 3: Pagination logic exists (20 items per page)
+    if grep -q "ITEMS_PER_PAGE = 20" apps/frontend/public/app.js; then
+      p4_pass "story-1772213866557-3" "Pagination with 20 items per page configured" 0
+    else
+      p4_fail "story-1772213866557-3" "Pagination configuration missing or incorrect" 0
+    fi
+    
+    # Test 4: Event listener for View Stories button
+    if grep -q "view-stories-btn.*addEventListener.*openStoryListModal" apps/frontend/public/app.js; then
+      p4_pass "story-1772213866557-4" "View Stories button event listener attached" 0
+    else
+      p4_fail "story-1772213866557-4" "View Stories button event listener missing" 0
+    fi
+    
+    # Test 5: CSS styling for story list modal
+    if grep -q "\.story-list-modal" apps/frontend/public/styles.css; then
+      p4_pass "story-1772213866557-5" "Story list modal CSS styling exists" 0
+    else
+      p4_fail "story-1772213866557-5" "Story list modal CSS styling missing" 0
+    fi
+    
+    echo ""
+  fi
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
