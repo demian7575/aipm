@@ -9482,13 +9482,21 @@ async function initializeEC2AutoStart() {
     if (status.state === 'running') {
       updateStatus('running', 'Running');
       
-      // Store EC2 info for reference only - don't override API Gateway URLs
-      window.__EC2_CONFIG__ = {
-        publicIp: status.publicIp,
+      // Use IP from Lambda status (always current) instead of S3 config (may be stale)
+      const config = {
+        apiBaseUrl: `http://${status.publicIp}:4000`,
+        semanticApiUrl: `http://${status.publicIp}:8083`,
         instanceId: status.instanceId,
         status: 'running',
         updatedAt: new Date().toISOString()
       };
+      console.log(`[EC2] ${env} config from Lambda:`, config);
+      
+      // Update global config
+      window.__EC2_CONFIG__ = config;
+      window.__AIPM_API_BASE__ = config.apiBaseUrl;
+      window.CONFIG.API_BASE_URL = config.apiBaseUrl;
+      window.CONFIG.SEMANTIC_API_URL = config.semanticApiUrl;
       
       // Load stories
       await loadStories();
@@ -9500,7 +9508,11 @@ async function initializeEC2AutoStart() {
       const config = await EC2Manager.ensureRunning(env);
       console.log(`[EC2] ${env} ready:`, config);
       
+      // Update global config with IP from ensureRunning result
       window.__EC2_CONFIG__ = config;
+      window.__AIPM_API_BASE__ = config.apiBaseUrl;
+      window.CONFIG.API_BASE_URL = config.apiBaseUrl;
+      window.CONFIG.SEMANTIC_API_URL = config.semanticApiUrl;
       
       updateStatus('running', 'Running');
       showToast(`${env} EC2 started successfully!`, 'success');
@@ -9515,7 +9527,11 @@ async function initializeEC2AutoStart() {
       // Wait for it to be ready
       const config = await EC2Manager.waitForReady(env);
       
+      // Update global config
       window.__EC2_CONFIG__ = config;
+      window.__AIPM_API_BASE__ = config.apiBaseUrl;
+      window.CONFIG.API_BASE_URL = config.apiBaseUrl;
+      window.CONFIG.SEMANTIC_API_URL = config.semanticApiUrl;
       
       updateStatus('running', 'Running');
       showToast(`${env} EC2 ready!`, 'success');
