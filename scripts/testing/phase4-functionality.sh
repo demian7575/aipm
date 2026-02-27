@@ -596,6 +596,37 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story List Modal - Header button and modal functionality
+if [ "$1" = "1772179946256" ]; then
+  echo "Test 45: Story List Modal - Header button opens modal with story list"
+  
+  # Check frontend has story list button
+  FRONTEND_HTML=$(curl -s "$S3_URL"/index.html)
+  if echo "$FRONTEND_HTML" | grep -q "story-list-btn"; then
+    p4_pass "ui-007-story-list-btn" "Story list button exists in header" "$DURATION"
+  else
+    p4_fail "ui-007-story-list-btn" "Story list button missing from header" "$DURATION"
+  fi
+  
+  # Check frontend has openStoryListModal function
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
+  if echo "$FRONTEND_JS" | grep -q "openStoryListModal"; then
+    p4_pass "ui-008-story-list-modal" "Story list modal function exists" "$DURATION"
+  else
+    p4_fail "ui-008-story-list-modal" "Story list modal function missing" "$DURATION"
+  fi
+  
+  # Check CSS has story list styles
+  FRONTEND_CSS=$(curl -s "$S3_URL"/styles.css)
+  if echo "$FRONTEND_CSS" | grep -q "story-list-modal"; then
+    p4_pass "ui-009-story-list-styles" "Story list modal styles exist" "$DURATION"
+  else
+    p4_fail "ui-009-story-list-styles" "Story list modal styles missing" "$DURATION"
+  fi
+  
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
@@ -624,7 +655,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: 48 (42 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 
