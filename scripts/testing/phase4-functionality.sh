@@ -597,6 +597,41 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# Story-Specific Tests (if story ID provided)
+# ============================================
+if [ -n "$1" ] && [ "$1" = "1772197390602" ]; then
+  echo "📝 Story 1772197390602: View All Stories Button"
+  echo "-----------------------------------"
+  
+  # Test: View All Stories button exists in header
+  echo "Test: View All Stories button in header"
+  FRONTEND_HTML=$(curl -s "$S3_URL"/index.html)
+  if echo "$FRONTEND_HTML" | grep -q 'id="view-all-stories-btn"'; then
+    p4_pass "story-1772197390602-btn" "View All Stories button exists in header"
+  else
+    p4_fail "story-1772197390602-btn" "View All Stories button missing from header"
+  fi
+  
+  # Test: Button click handler implemented
+  echo "Test: View All Stories button handler"
+  if echo "$FRONTEND_JS" | grep -q "viewAllStoriesBtn.addEventListener"; then
+    p4_pass "story-1772197390602-handler" "Button click handler implemented"
+  else
+    p4_fail "story-1772197390602-handler" "Button click handler missing"
+  fi
+  
+  # Test: Modal opens with story list
+  echo "Test: Modal displays story titles"
+  if echo "$FRONTEND_JS" | grep -q "openModal" && echo "$FRONTEND_JS" | grep -q "flattenStories"; then
+    p4_pass "story-1772197390602-modal" "Modal implementation with story list"
+  else
+    p4_fail "story-1772197390602-modal" "Modal or story list implementation missing"
+  fi
+  
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
