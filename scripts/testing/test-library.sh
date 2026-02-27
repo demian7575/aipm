@@ -59,17 +59,20 @@ record_test_result() {
 
 test_api_security_headers() {
     local api_base="${1:-$API_BASE}"
-    test_endpoint "API Security Headers" "$api_base/api/stories" "\\["
+    local test_id="${2:-}"
+    test_endpoint "API Security Headers" "$api_base/api/stories" "\\[" "$test_id"
 }
 
 test_database_connection() {
     local api_base="${1:-$API_BASE}"
-    test_api_json "Database Connection" "$api_base/api/stories"
+    local test_id="${2:-}"
+    test_api_json "Database Connection" "$api_base/api/stories" "$test_id"
 }
 
 test_version_endpoint() {
     local api_base="${1:-$API_BASE}"
-    test_endpoint "Version Endpoint" "$api_base/api/version" "version"
+    local test_id="${2:-}"
+    test_endpoint "Version Endpoint" "$api_base/api/version" "version" "$test_id"
 }
 
 # ============================================
@@ -79,16 +82,19 @@ test_version_endpoint() {
 test_api_response_time() {
     local api_base="${1:-$API_BASE}"
     local max_time="${2:-5}"
-    test_response_time "API Response Time" "$api_base/api/version" "$max_time"
+    local test_id="${3:-}"
+    test_response_time "API Response Time" "$api_base/api/version" "$max_time" "$test_id"
 }
 
 test_semantic_api_health() {
     local semantic_base="${1:-$SEMANTIC_API_BASE}"
-    test_endpoint "Semantic API Health" "$semantic_base/health" "healthy"
+    local test_id="${2:-}"
+    test_endpoint "Semantic API Health" "$semantic_base/health" "healthy" "$test_id"
 }
 
 test_session_pool_health() {
     local session_pool_url="${1:-http://localhost:8082}"
+    local test_id="${2:-}"
     # Extract host from SEMANTIC_API_BASE if provided
     if [[ "$SEMANTIC_API_BASE" =~ ^http://([^:]+) ]]; then
         local host="${BASH_REMATCH[1]}"
@@ -96,11 +102,13 @@ test_session_pool_health() {
     fi
     
     log_test "Session Pool Health"
+    local start_time=$(date +%s)
     local response=$(curl -s "$session_pool_url/health" 2>&1)
+    local duration=$(($(date +%s) - start_time))
     
     if echo "$response" | grep -q '"status":"healthy"'; then
         local available=$(echo "$response" | jq -r '.available // 0')
-        pass_test "Session Pool Health (Available: $available)"
+        pass_test "Session Pool Health (Available: $available)" "$test_id" "$duration"
     else
         # Warning only - Session Pool requires local Kiro CLI with browser auth
         echo "    ⚠️  Session Pool Health (Unavailable - requires local setup)"

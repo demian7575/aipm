@@ -19,13 +19,29 @@ mkdir -p "$TEST_COUNTER_DIR"
 
 # Test utilities
 pass_test() {
-    echo "    ✅ $1"
+    local test_name="$1"
+    local test_id="${2:-}"
+    local duration="${3:-0}"
+    echo "    ✅ $test_name"
     echo "1" >> "$TEST_COUNTER_DIR/passed"
+    
+    # Record result if test_id provided
+    if [ -n "$test_id" ]; then
+        record_test_result "$test_id" "$test_name" "PASS" "${TEST_PHASE:-unknown}" "$duration"
+    fi
 }
 
 fail_test() {
-    echo "    ❌ $1"
+    local test_name="$1"
+    local test_id="${2:-}"
+    local duration="${3:-0}"
+    echo "    ❌ $test_name"
     echo "1" >> "$TEST_COUNTER_DIR/failed"
+    
+    # Record result if test_id provided
+    if [ -n "$test_id" ]; then
+        record_test_result "$test_id" "$test_name" "FAIL" "${TEST_PHASE:-unknown}" "$duration"
+    fi
     return 1
 }
 
@@ -48,18 +64,21 @@ test_endpoint() {
     local name=$1
     local url=$2
     local expected=$3
+    local test_id="${4:-}"
     
+    local start_time=$(date +%s)
     local response
     if [[ -n "$SSH_HOST" ]]; then
         response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "curl -s -m 10 '$url'" 2>/dev/null)
     else
         response=$(curl -s -m 10 "$url")
     fi
+    local duration=$(($(date +%s) - start_time))
     
     if echo "$response" | grep -q "$expected"; then
-        pass_test "$name"
+        pass_test "$name" "$test_id" "$duration"
     else
-        fail_test "$name"
+        fail_test "$name" "$test_id" "$duration"
     fi
 }
 
@@ -67,18 +86,21 @@ test_endpoint() {
 test_api_json() {
     local name=$1
     local url=$2
+    local test_id="${3:-}"
     
+    local start_time=$(date +%s)
     local response
     if [[ -n "$SSH_HOST" ]]; then
         response=$(ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@$SSH_HOST "curl -s -m 10 '$url'" 2>/dev/null)
     else
         response=$(curl -s -m 10 "$url")
     fi
+    local duration=$(($(date +%s) - start_time))
     
     if echo "$response" | jq -e . > /dev/null 2>&1; then
-        pass_test "$name"
+        pass_test "$name" "$test_id" "$duration"
     else
-        fail_test "$name"
+        fail_test "$name" "$test_id" "$duration"
     fi
 }
 
@@ -87,14 +109,17 @@ test_response_time() {
     local name=$1
     local url=$2
     local max_time=$3
+    local test_id="${4:-}"
     
+    local start_time=$(date +%s)
     local response_time=$(curl -s -w "%{time_total}" -o /dev/null -m 10 "$url" 2>/dev/null || echo "10")
+    local duration=$(($(date +%s) - start_time))
     local time_check=$(echo "$response_time < $max_time" | bc -l 2>/dev/null || echo "0")
     
     if [ "$time_check" = "1" ]; then
-        pass_test "$name (${response_time}s)"
+        pass_test "$name (${response_time}s)" "$test_id" "$duration"
     else
-        fail_test "$name (${response_time}s > ${max_time}s)"
+        fail_test "$name (${response_time}s > ${max_time}s)" "$test_id" "$duration"
     fi
 }
 

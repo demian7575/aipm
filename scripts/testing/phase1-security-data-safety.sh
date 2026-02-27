@@ -53,18 +53,18 @@ echo ""
 
 # Run tests in parallel and capture exit codes
 pids=()
-(test_version_endpoint "$API_BASE") & pids+=($!)
-(test_database_connection "$API_BASE") & pids+=($!)
-(test_api_response_time "$API_BASE") & pids+=($!)
-(test_semantic_api_health "$SEMANTIC_API_BASE") & pids+=($!)
-(test_session_pool_health "$SEMANTIC_API_BASE") & pids+=($!)
-(test_environment_health "$API_BASE" "$TARGET_ENV") & pids+=($!)
-(test_frontend_availability "$FRONTEND_URL") & pids+=($!)
-(test_frontend_backend_integration "$FRONTEND_URL") & pids+=($!)
-(test_s3_config "$FRONTEND_URL") & pids+=($!)
-(test_network_connectivity "$API_BASE") & pids+=($!)
-(test_api_security_headers "$API_BASE") & pids+=($!)
-(test_mindmap_story_loading "$API_BASE") & pids+=($!)
+(test_version_endpoint "$API_BASE" "health-001-version-endpoint") & pids+=($!)
+(test_database_connection "$API_BASE" "health-002-database-connection") & pids+=($!)
+(test_api_response_time "$API_BASE" "health-003-api-response-time") & pids+=($!)
+(test_semantic_api_health "$SEMANTIC_API_BASE" "health-004-semantic-api") & pids+=($!)
+(test_session_pool_health "$SEMANTIC_API_BASE" "health-005-session-pool") & pids+=($!)
+(test_environment_health "$API_BASE" "$TARGET_ENV" "health-006-environment") & pids+=($!)
+(test_frontend_availability "$FRONTEND_URL" "health-007-frontend-availability") & pids+=($!)
+(test_frontend_backend_integration "$FRONTEND_URL" "health-008-frontend-backend-integration") & pids+=($!)
+(test_s3_config "$FRONTEND_URL" "health-009-s3-config") & pids+=($!)
+(test_network_connectivity "$API_BASE" "health-010-network-connectivity") & pids+=($!)
+(test_api_security_headers "$API_BASE" "health-011-security-headers") & pids+=($!)
+(test_mindmap_story_loading "$API_BASE" "health-012-mindmap-loading") & pids+=($!)
 
 # Wait for all parallel tests to complete
 for pid in "${pids[@]}"; do
