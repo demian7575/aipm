@@ -3867,7 +3867,7 @@ async function renderCICD() {
   console.log('renderCICD called');
   try {
     const cicdUrl = resolveApiUrl('/api/cicd/matrix');
-    const cicdResponse = await fetch(cicdUrl);
+    const cicdResponse = await fetchWithProject(cicdUrl);
     if (!cicdResponse.ok) throw new Error('Failed to fetch CI/CD matrix');
     
     const { runs, testIds, testInfo, matrix } = await cicdResponse.json();
