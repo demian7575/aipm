@@ -7201,7 +7201,7 @@ export async function createApp() {
             return { runId, timestamp: item.timestamp };
           })
           .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-          .slice(0, 10); // Last 10 runs
+          .slice(0, 50); // Last 50 runs
         
         // Get unique testIds (all types)
         const testIds = [...new Set(items.map(i => i.testId))]
