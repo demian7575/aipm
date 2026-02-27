@@ -98,6 +98,7 @@ const modalFooter = document.getElementById('modal-footer');
 const modalCloseBtn = document.getElementById('modal-close');
 const toastEl = document.getElementById('toast');
 const runtimeDataLink = document.getElementById('runtime-data-link');
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const viewTabs = Array.from(document.querySelectorAll('.view-tab'));
 const mindmapView = document.getElementById('mindmap-view');
 const kanbanView = document.getElementById('kanban-view');
@@ -8996,6 +8997,75 @@ async function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  viewStoriesBtn?.addEventListener('click', async () => {
+    try {
+      const stories = await fetchWithProject(resolveApiUrl('/api/stories'));
+      if (!stories.ok) throw new Error('Failed to fetch stories');
+      const data = await stories.json();
+      
+      const container = document.createElement('div');
+      container.className = 'story-list-container';
+      
+      const list = document.createElement('ul');
+      list.className = 'story-list';
+      
+      const itemsPerPage = 20;
+      const totalPages = Math.ceil(data.length / itemsPerPage);
+      let currentPage = 1;
+      
+      const renderPage = () => {
+        list.innerHTML = '';
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageItems = data.slice(start, end);
+        
+        pageItems.forEach(story => {
+          const li = document.createElement('li');
+          li.textContent = story.title;
+          list.appendChild(li);
+        });
+        
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+      };
+      
+      const pagination = document.createElement('div');
+      pagination.className = 'story-list-pagination';
+      
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = 'Previous';
+      prevBtn.className = 'secondary';
+      prevBtn.onclick = () => { currentPage--; renderPage(); };
+      
+      const pageInfo = document.createElement('span');
+      
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.className = 'secondary';
+      nextBtn.onclick = () => { currentPage++; renderPage(); };
+      
+      pagination.appendChild(prevBtn);
+      pagination.appendChild(pageInfo);
+      pagination.appendChild(nextBtn);
+      
+      container.appendChild(list);
+      container.appendChild(pagination);
+      
+      renderPage();
+      
+      openModal({
+        title: 'All Stories',
+        content: container,
+        cancelLabel: 'Close',
+        size: 'default'
+      });
+    } catch (error) {
+      console.error('Failed to load stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
   });
 
   autoLayoutToggle.addEventListener('click', () => {

@@ -596,6 +596,43 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1772214393206 - View Stories button functionality
+if [ "$1" = "1772214393206" ]; then
+  echo "Test 45: Story 1772214393206 - View Stories button"
+  
+  # Check frontend has View Stories button
+  FRONTEND_HTML=$(curl -s "$S3_URL"/index.html)
+  if echo "$FRONTEND_HTML" | grep -q "view-stories-btn"; then
+    p4_pass "ui-007-view-stories-btn" "View Stories button exists in HTML" "$DURATION"
+  else
+    p4_fail "ui-007-view-stories-btn" "View Stories button missing from HTML" "$DURATION"
+  fi
+  
+  # Check frontend has event listener
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
+  if echo "$FRONTEND_JS" | grep -q "viewStoriesBtn.*addEventListener"; then
+    p4_pass "ui-008-view-stories-handler" "View Stories event handler exists" "$DURATION"
+  else
+    p4_fail "ui-008-view-stories-handler" "View Stories event handler missing" "$DURATION"
+  fi
+  
+  # Check pagination implementation (20 items per page)
+  if echo "$FRONTEND_JS" | grep -q "itemsPerPage = 20"; then
+    p4_pass "ui-009-view-stories-pagination" "Pagination with 20 items per page implemented" "$DURATION"
+  else
+    p4_fail "ui-009-view-stories-pagination" "Pagination not properly configured" "$DURATION"
+  fi
+  
+  # Check CSS styling exists
+  FRONTEND_CSS=$(curl -s "$S3_URL"/styles.css)
+  if echo "$FRONTEND_CSS" | grep -q "story-list-container"; then
+    p4_pass "ui-010-view-stories-css" "Story list CSS styling exists" "$DURATION"
+  else
+    p4_fail "ui-010-view-stories-css" "Story list CSS styling missing" "$DURATION"
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
@@ -623,8 +660,9 @@ echo "  - DynamoDB Direct: 3 operations tested"
 echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
+echo "  - Story Features: 4 UI components tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: 49 (43 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 
