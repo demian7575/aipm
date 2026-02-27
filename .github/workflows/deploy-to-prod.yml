@@ -117,7 +117,7 @@ jobs:
           fi
           
           echo "DEV_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
-          echo "DEV_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
+          echo "DEV_API_BASE=https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com" >> $GITHUB_ENV
           echo "DEV_SEMANTIC_API_BASE=http://$CURRENT_IP:8083" >> $GITHUB_ENV
           echo "✅ Current IP: $CURRENT_IP"
           
@@ -171,16 +171,6 @@ jobs:
       - name: Deploy frontend to Development S3
         run: |
           echo "📦 Deploying frontend to Development S3..."
-          
-          # Create dev config
-          cat > apps/frontend/public/config.js << EOF
-          window.CONFIG = {
-            API_BASE_URL: '${{ env.DEV_API_BASE }}',
-            EC2_TERMINAL_URL: '${{ env.DEV_TERMINAL_URL }}',
-            ENVIRONMENT: 'dev'
-          };
-          EOF
-          
           aws s3 sync apps/frontend/public/ s3://${{ env.DEV_S3_BUCKET }} --delete --cache-control no-cache
           echo "✅ Frontend deployed to Development S3"
       
@@ -331,7 +321,7 @@ jobs:
           fi
           
           echo "PROD_EC2_IP=$CURRENT_IP" >> $GITHUB_ENV
-          echo "PROD_API_BASE=http://$CURRENT_IP:4000" >> $GITHUB_ENV
+          echo "PROD_API_BASE=https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com" >> $GITHUB_ENV
           echo "PROD_SEMANTIC_API_BASE=http://$CURRENT_IP:8083" >> $GITHUB_ENV
           echo "✅ Current IP: $CURRENT_IP"
           
@@ -386,16 +376,6 @@ jobs:
       - name: Deploy frontend to Production S3
         run: |
           echo "📦 Deploying frontend to Production S3..."
-          
-          # Create production config
-          cat > apps/frontend/public/config.js << EOF
-          window.CONFIG = {
-            API_BASE_URL: '${{ env.PROD_API_BASE }}',
-            EC2_TERMINAL_URL: '${{ env.PROD_TERMINAL_URL }}',
-            ENVIRONMENT: 'prod'
-          };
-          EOF
-          
           aws s3 sync apps/frontend/public/ s3://${{ env.PROD_S3_BUCKET }} --delete --cache-control no-cache
           echo "✅ Frontend deployed to Production S3"
       

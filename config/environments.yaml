@@ -1,6 +1,8 @@
 # Single Source of Truth for all environment configurations
 # Update IPs here only - all scripts and workflows read from this file
 
+api_gateway_url: "https://kx0u99e7o0.execute-api.us-east-1.amazonaws.com"
+
 prod:
   ec2_ip: "52.90.170.160"
   instance_id: "i-09971cca92b9bf3a9"
