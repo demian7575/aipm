@@ -8931,6 +8931,40 @@ async function initialize() {
   // Fetch version after EC2 is ready
   fetchVersion();
 
+  const storyListBtn = document.getElementById('story-list-btn');
+  storyListBtn?.addEventListener('click', async () => {
+    try {
+      const response = await fetchWithProject(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      const flatStories = flattenStories(stories);
+      
+      const content = document.createElement('div');
+      if (flatStories.length === 0) {
+        content.textContent = 'No stories found';
+      } else {
+        const list = document.createElement('ul');
+        list.style.listStyle = 'none';
+        list.style.padding = '0';
+        list.style.maxHeight = '400px';
+        list.style.overflowY = 'auto';
+        flatStories.forEach(story => {
+          const item = document.createElement('li');
+          item.textContent = story.title;
+          item.style.padding = '8px 0';
+          item.style.borderBottom = '1px solid #eee';
+          list.appendChild(item);
+        });
+        content.appendChild(list);
+      }
+      
+      openModal({ title: 'Story List', content, cancelLabel: 'Close' });
+    } catch (error) {
+      console.error('Failed to load story list:', error);
+      showToast('Failed to load story list', 'error');
+    }
+  });
+
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
