@@ -7203,10 +7203,17 @@ export async function createApp() {
           .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
           .slice(0, 10); // Last 10 runs
         
-        // Get unique testIds (only numeric - acceptance tests)
+        // Get unique testIds (all types)
         const testIds = [...new Set(items.map(i => i.testId))]
-          .filter(id => !isNaN(parseInt(id))) // Only numeric test IDs
-          .sort((a, b) => parseInt(a) - parseInt(b));
+          .sort((a, b) => {
+            // Sort numeric IDs first, then alphabetic
+            const aNum = parseInt(a);
+            const bNum = parseInt(b);
+            if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+            if (!isNaN(aNum)) return -1;
+            if (!isNaN(bNum)) return 1;
+            return a.localeCompare(b);
+          });
         
         // Get acceptance tests and stories for titles
         const acceptanceTests = {};
