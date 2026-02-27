@@ -5547,6 +5547,17 @@ export async function createApp() {
         return;
       }
 
+      if (pathname === '/api/stories' && method === 'GET') {
+        try {
+          const stories = await db.getAllStories();
+          sendJson(res, 200, stories);
+        } catch (error) {
+          console.error('Error fetching stories:', error);
+          sendJson(res, 500, { error: 'Failed to fetch stories' });
+        }
+        return;
+      }
+
       if (pathname === '/api/create-pr' && method === 'OPTIONS') {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',

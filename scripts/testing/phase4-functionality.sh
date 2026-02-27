@@ -596,6 +596,43 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1772207646245 - View Stories Button
+if [ "$1" = "1772207646245" ]; then
+  echo "Test 45: Story 1772207646245 - View Stories Button"
+  
+  # Check backend has GET /api/stories endpoint
+  APP_JS=$(cat apps/backend/app.js)
+  if echo "$APP_JS" | grep -q "pathname === '/api/stories' && method === 'GET'"; then
+    p4_pass "api-020-stories" "GET /api/stories endpoint exists" "$DURATION"
+  else
+    p4_fail "api-020-stories" "GET /api/stories endpoint missing" "$DURATION"
+  fi
+  
+  # Check frontend has View Stories button
+  INDEX_HTML=$(curl -s "$S3_URL"/index.html)
+  if echo "$INDEX_HTML" | grep -q "view-stories-btn"; then
+    p4_pass "ui-view-stories-btn" "View Stories button exists in header" "$DURATION"
+  else
+    p4_fail "ui-view-stories-btn" "View Stories button missing from header" "$DURATION"
+  fi
+  
+  # Check frontend has click handler
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
+  if echo "$FRONTEND_JS" | grep -q "viewStoriesBtn.addEventListener"; then
+    p4_pass "ui-view-stories-handler" "View Stories button click handler implemented" "$DURATION"
+  else
+    p4_fail "ui-view-stories-handler" "View Stories button click handler missing" "$DURATION"
+  fi
+  
+  # Check modal opens with story list
+  if echo "$FRONTEND_JS" | grep -q "story-list-modal"; then
+    p4_pass "ui-story-list-modal" "Story list modal implementation exists" "$DURATION"
+  else
+    p4_fail "ui-story-list-modal" "Story list modal implementation missing" "$DURATION"
+  fi
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
@@ -624,8 +661,8 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
-echo "API Endpoints Tested: 21/18 (117% coverage)"
+echo "Total Tests: 46 (40 executable + 6 workflow)"
+echo "API Endpoints Tested: 22/18 (122% coverage)"
 echo "=============================================="
 
 if [ $FAILED -gt 0 ]; then
