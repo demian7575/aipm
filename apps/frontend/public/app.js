@@ -73,6 +73,7 @@ const detailsPlaceholder = document.getElementById('details-placeholder');
 const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
+const viewStoriesBtn = document.getElementById('view-stories-btn');
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
@@ -7467,6 +7468,49 @@ function openDocumentPanel() {
   }
 
   loadTemplates();
+
+  // View Stories button handler
+  viewStoriesBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetchWithProject(resolveApiUrl('/api/stories'));
+      if (!response.ok) throw new Error('Failed to fetch stories');
+      const stories = await response.json();
+      
+      const content = document.createElement('div');
+      content.className = 'story-list-modal';
+      
+      const list = document.createElement('ul');
+      list.style.listStyle = 'none';
+      list.style.padding = '0';
+      list.style.margin = '0';
+      list.style.maxHeight = '400px';
+      list.style.overflowY = 'auto';
+      
+      const flatStories = flattenStories(stories);
+      const itemsPerPage = 20;
+      const displayStories = flatStories.slice(0, itemsPerPage);
+      
+      displayStories.forEach(story => {
+        const li = document.createElement('li');
+        li.style.padding = '8px';
+        li.style.borderBottom = '1px solid #eee';
+        li.textContent = story.title;
+        list.appendChild(li);
+      });
+      
+      content.appendChild(list);
+      
+      openModal({
+        title: 'View Stories',
+        content,
+        actions: [],
+        size: 'medium'
+      });
+    } catch (error) {
+      console.error('Failed to load stories:', error);
+      showToast('Failed to load stories', 'error');
+    }
+  });
 
   // Enable/disable generate button based on template selection
   templateSelect.addEventListener('change', () => {
