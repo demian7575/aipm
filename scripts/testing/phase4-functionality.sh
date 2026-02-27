@@ -595,6 +595,40 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# Story 1772165764708: Story List Button
+# ============================================
+if [ -z "$STORY_ID" ] || [ "$STORY_ID" = "1772165764708" ]; then
+  echo "Testing Story 1772165764708: Story List Button"
+  
+  START=$(date +%s%3N)
+  FRONTEND_HTML=$(cat apps/frontend/public/index.html 2>/dev/null || echo "")
+  FRONTEND_JS=$(cat apps/frontend/public/app.js 2>/dev/null || echo "")
+  DURATION=$(($(date +%s%3N) - START))
+  
+  # Check button exists in header
+  if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+    p4_pass "story-1772165764708-button" "Story list button added to header" "$DURATION"
+  else
+    p4_fail "story-1772165764708-button" "Story list button missing from header" "$DURATION"
+  fi
+  
+  # Check modal function exists
+  if echo "$FRONTEND_JS" | grep -q "function openStoryListModal"; then
+    p4_pass "story-1772165764708-modal" "Story list modal function implemented" "$DURATION"
+  else
+    p4_fail "story-1772165764708-modal" "Story list modal function missing" "$DURATION"
+  fi
+  
+  # Check button event listener
+  if echo "$FRONTEND_JS" | grep -q "storyListBtn.addEventListener"; then
+    p4_pass "story-1772165764708-listener" "Button click handler implemented" "$DURATION"
+  else
+    p4_fail "story-1772165764708-listener" "Button click handler missing" "$DURATION"
+  fi
+  echo ""
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
