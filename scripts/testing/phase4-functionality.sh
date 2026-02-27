@@ -597,6 +597,50 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# Story-Specific Tests (if STORY_ID provided)
+# ============================================
+if [ -n "$1" ]; then
+  echo "=============================================="
+  echo "📋 Story-Specific Tests (ID: $1)"
+  echo "=============================================="
+  
+  # Test: Story List Modal Button (Story 1772171226835)
+  if [ "$1" = "1772171226835" ]; then
+    echo "Test: Story List Modal Button"
+    
+    # Check button exists in HTML
+    if grep -q 'id="story-list-btn"' apps/frontend/public/index.html; then
+      p4_pass "story-list-btn-html" "Story list button exists in HTML" "$DURATION"
+    else
+      p4_fail "story-list-btn-html" "Story list button missing from HTML" "$DURATION"
+    fi
+    
+    # Check button reference in JS
+    if grep -q "getElementById('story-list-btn')" apps/frontend/public/app.js; then
+      p4_pass "story-list-btn-ref" "Story list button referenced in JS" "$DURATION"
+    else
+      p4_fail "story-list-btn-ref" "Story list button not referenced in JS" "$DURATION"
+    fi
+    
+    # Check click handler
+    if grep -q "storyListBtn.addEventListener('click'" apps/frontend/public/app.js; then
+      p4_pass "story-list-btn-handler" "Story list button click handler exists" "$DURATION"
+    else
+      p4_fail "story-list-btn-handler" "Story list button click handler missing" "$DURATION"
+    fi
+    
+    # Check modal function exists
+    if grep -q "function openStoryListModal" apps/frontend/public/app.js; then
+      p4_pass "story-list-modal-fn" "openStoryListModal function exists" "$DURATION"
+    else
+      p4_fail "story-list-modal-fn" "openStoryListModal function missing" "$DURATION"
+    fi
+    
+    echo ""
+  fi
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
