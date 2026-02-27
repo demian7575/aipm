@@ -8313,6 +8313,68 @@ function openAcceptanceTestModal(storyId, options = {}) {
 }
 
 /**
+ * Opens a modal displaying all story titles in a paginated list
+ */
+function openStoryListModal() {
+  const allStories = flattenStories(state.stories);
+  const ITEMS_PER_PAGE = 20;
+  let currentPage = 1;
+  const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+
+  const container = document.createElement('div');
+  container.className = 'story-list-modal';
+
+  const renderPage = () => {
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    const pageStories = allStories.slice(startIdx, endIdx);
+
+    container.innerHTML = `
+      <div class="story-list-content">
+        <ul class="story-list">
+          ${pageStories.map(story => `
+            <li class="story-list-item">${escapeHtml(story.title)}</li>
+          `).join('')}
+        </ul>
+        ${totalPages > 1 ? `
+          <div class="pagination-controls">
+            <button id="prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+            <span>Page ${currentPage} of ${totalPages}</span>
+            <button id="next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    const prevBtn = container.querySelector('#prev-page');
+    const nextBtn = container.querySelector('#next-page');
+
+    prevBtn?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage();
+      }
+    });
+
+    nextBtn?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPage();
+      }
+    });
+  };
+
+  renderPage();
+
+  openModal({
+    title: 'View Stories',
+    content: container,
+    cancelLabel: 'Close',
+    size: 'medium'
+  });
+}
+
+/**
  * Opens filter modal to filter user stories by status, component, and assignee
  */
 function openFilterModal() {
@@ -8996,6 +9058,11 @@ async function initialize() {
       size: 'content',
       onClose,
     });
+  });
+
+  const viewStoriesBtn = document.getElementById('view-stories-btn');
+  viewStoriesBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   autoLayoutToggle.addEventListener('click', () => {
