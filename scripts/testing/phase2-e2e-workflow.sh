@@ -59,7 +59,7 @@ phase2_step1_story_draft_generation() {
             -d '{"title": "Phase 2 Test Parent Story", "asA": "tester", "iWant": "run phase 2 tests", "soThat": "verify E2E workflow", "acceptWarnings": true}')
         parent_story=$(echo "$create_result" | jq -r '.id')
         if [[ -z "$parent_story" ]] || [[ "$parent_story" == "null" ]]; then
-            fail_test "Story Draft Generation (Failed to create parent story)"
+            fail_test "Story Draft Generation (Failed to create parent story)" "e2e-001-story-draft-generation"
             return
         fi
         echo "   ✅ Created parent story: $parent_story"
@@ -82,7 +82,7 @@ phase2_step1_story_draft_generation() {
         }" 2>&1)
     
     if [[ $? -ne 0 ]]; then
-        fail_test "Story Draft Generation (Timeout or connection error)"
+        fail_test "Story Draft Generation (Timeout or connection error)" "e2e-001-story-draft-generation"
         return
     fi
     
@@ -91,7 +91,7 @@ phase2_step1_story_draft_generation() {
     
     # Check for errors first (both .error field and status: 'error')
     if json_check "$draft_data" '.error' || json_check "$draft_data" '.status == "error"'; then
-        fail_test "Story Draft Generation (Error in response)"
+        fail_test "Story Draft Generation (Error in response)" "e2e-001-story-draft-generation"
         echo "   ❌ Error: $(echo "$draft_data" | jq -r '.error // .message // "Unknown error"')"
         return
     fi
@@ -100,15 +100,15 @@ phase2_step1_story_draft_generation() {
     if json_check "$draft_data" '.story.title' && json_check "$draft_data" '.status == "complete"'; then
         # New format: story is nested under .story
         PHASE2_STORY_DRAFT=$(echo "$draft_data" | jq '.story')
-        pass_test "Story Draft Generation (SSE)"
+        pass_test "Story Draft Generation (SSE)" "e2e-001-story-draft-generation"
         echo "   ✅ Draft Title: $(echo "$draft_data" | jq -r '.story.title')"
     elif json_check "$draft_data" '.title' && json_check "$draft_data" '.status == "complete"'; then
         # Old format: flat structure
         PHASE2_STORY_DRAFT="$draft_data"
-        pass_test "Story Draft Generation (SSE)"
+        pass_test "Story Draft Generation (SSE)" "e2e-001-story-draft-generation"
         echo "   ✅ Draft Title: $(echo "$draft_data" | jq -r '.title')"
     else
-        fail_test "Story Draft Generation (Invalid or incomplete response)"
+        fail_test "Story Draft Generation (Invalid or incomplete response)" "e2e-001-story-draft-generation"
         echo "   ❌ Expected status 'complete' with title, got: $(echo "$draft_data" | jq -r '.status // "none"')"
         echo "   ❌ Response: $response"
     fi
@@ -130,7 +130,7 @@ phase2_step2_create_story() {
     log_test "Create Story from Draft"
     
     if [[ -z "$PHASE2_STORY_DRAFT" ]]; then
-        fail_test "Create Story from Draft (No draft available)"
+        fail_test "Create Story from Draft (No draft available)" "e2e-002-create-story"
         return
     fi
     
@@ -148,11 +148,11 @@ phase2_step2_create_story() {
     
     if json_check "$response" '.id'; then
         PHASE2_CHILD_STORY_ID=$(echo "$response" | jq -r '.id')
-        pass_test "Create Story from Draft"
+        pass_test "Create Story from Draft" "e2e-002-create-story"
         echo "   ✅ Story ID: $PHASE2_CHILD_STORY_ID"
         echo "   ✅ Title: $(echo "$response" | jq -r '.title')"
     else
-        fail_test "Create Story from Draft (Creation failed)"
+        fail_test "Create Story from Draft (Creation failed)" "e2e-002-create-story"
         echo "   ❌ Response: $response"
     fi
     
@@ -173,7 +173,7 @@ phase2_step3_edit_story() {
     log_test "Edit Story"
     
     if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
-        fail_test "Edit Story (No story ID)"
+        fail_test "Edit Story (No story ID)" "e2e-003-edit-story"
         return
     fi
     
@@ -194,10 +194,10 @@ EOF
         -d "$updated_payload")
     
     if json_check "$response" '.success' 'true' || json_check "$response" '.message'; then
-        pass_test "Edit Story"
+        pass_test "Edit Story" "e2e-003-edit-story"
         echo "   ✅ Story updated successfully"
     else
-        fail_test "Edit Story (Update failed)"
+        fail_test "Edit Story (Update failed)" "e2e-003-edit-story"
         echo "   ❌ Response: $response"
     fi
     
@@ -218,7 +218,7 @@ phase2_step4_invest_analysis() {
     log_test "INVEST Analysis (SSE)"
     
     if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
-        fail_test "INVEST Analysis (No story ID)"
+        fail_test "INVEST Analysis (No story ID)" "e2e-004-invest-analysis"
         return
     fi
     
@@ -227,13 +227,13 @@ phase2_step4_invest_analysis() {
     
     # Debug: Check if story data was retrieved
     if [[ -z "$story_data" ]]; then
-        fail_test "INVEST Analysis (Failed to fetch story data)"
+        fail_test "INVEST Analysis (Failed to fetch story data)" "e2e-004-invest-analysis"
         echo "   ❌ Story ID: $PHASE2_CHILD_STORY_ID"
         return
     fi
     
     if ! json_check "$story_data" '.id'; then
-        fail_test "INVEST Analysis (Story not found)"
+        fail_test "INVEST Analysis (Story not found)" "e2e-004-invest-analysis"
         echo "   ❌ Response: $story_data"
         return
     fi
@@ -251,7 +251,7 @@ phase2_step4_invest_analysis() {
     # Debug: Verify payload has requestId
     local payload_rid=$(echo "$payload" | jq -r '.requestId // "MISSING"')
     if [[ "$payload_rid" == "MISSING" ]]; then
-        fail_test "INVEST Analysis (Payload missing requestId)"
+        fail_test "INVEST Analysis (Payload missing requestId)" "e2e-004-invest-analysis"
         echo "   ❌ Expected: $request_id"
         echo "   ❌ Payload: $(echo "$payload" | jq -c '.')"
         return
@@ -263,7 +263,7 @@ phase2_step4_invest_analysis() {
         -d "$payload" 2>&1)
     
     if [[ $? -ne 0 ]]; then
-        fail_test "INVEST Analysis (Timeout or connection error)"
+        fail_test "INVEST Analysis (Timeout or connection error)" "e2e-004-invest-analysis"
         return
     fi
     
@@ -272,7 +272,7 @@ phase2_step4_invest_analysis() {
     
     # Check for errors first (both .error field and status: 'error')
     if json_check "$analysis_data" '.error' || json_check "$analysis_data" '.status == "error"'; then
-        fail_test "INVEST Analysis (Error in response)"
+        fail_test "INVEST Analysis (Error in response)" "e2e-004-invest-analysis"
         echo "   ❌ Error: $(echo "$analysis_data" | jq -r '.error // .message // "Unknown error"')"
         return
     fi
@@ -287,15 +287,15 @@ phase2_step4_invest_analysis() {
         # Validate score threshold (minimum 60 for test environment)
         local min_score=60
         if [[ $score -lt $min_score ]]; then
-            fail_test "INVEST Analysis (Score too low: $score < $min_score)"
+            fail_test "INVEST Analysis (Score too low: $score < $min_score)" "e2e-004-invest-analysis"
             echo "   ❌ INVEST score must be at least $min_score for test to pass"
             echo "   ❌ This indicates the story draft has quality issues"
             return
         fi
         
-        pass_test "INVEST Analysis (SSE)"
+        pass_test "INVEST Analysis (SSE)" "e2e-004-invest-analysis"
     else
-        fail_test "INVEST Analysis (Invalid or incomplete response)"
+        fail_test "INVEST Analysis (Invalid or incomplete response)" "e2e-004-invest-analysis"
         echo "   ❌ Expected status 'complete' with score, got: $(echo "$analysis_data" | jq -r '.status // "none"')"
         echo "   ❌ Response: $response"
     fi
@@ -317,7 +317,7 @@ phase2_step5_acceptance_test_draft() {
     log_test "Acceptance Test Draft Generation (SSE)"
     
     if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
-        fail_test "Acceptance Test Draft (No story ID)"
+        fail_test "Acceptance Test Draft (No story ID)" "e2e-005-acceptance-test-draft"
         return
     fi
     
@@ -340,7 +340,7 @@ phase2_step5_acceptance_test_draft() {
         -d "$payload" 2>&1)
     
     if [[ $? -ne 0 ]]; then
-        fail_test "Acceptance Test Draft (Timeout or connection error)"
+        fail_test "Acceptance Test Draft (Timeout or connection error)" "e2e-005-acceptance-test-draft"
         return
     fi
     
@@ -349,7 +349,7 @@ phase2_step5_acceptance_test_draft() {
     
     # Check for errors first (both .error field and status: 'error')
     if json_check "$draft_data" '.error' || json_check "$draft_data" '.status == "error"'; then
-        fail_test "Acceptance Test Draft (Error in response)"
+        fail_test "Acceptance Test Draft (Error in response)" "e2e-005-acceptance-test-draft"
         echo "   ❌ Error: $(echo "$draft_data" | jq -r '.error // .message // "Unknown error"')"
         return
     fi
@@ -358,15 +358,15 @@ phase2_step5_acceptance_test_draft() {
     if json_check "$draft_data" '.acceptanceTest.title' && json_check "$draft_data" '.status == "complete"'; then
         # New format: test is nested under .acceptanceTest
         PHASE2_ACCEPTANCE_TEST_DRAFT=$(echo "$draft_data" | jq '.acceptanceTest')
-        pass_test "Acceptance Test Draft Generation (SSE)"
+        pass_test "Acceptance Test Draft Generation (SSE)" "e2e-005-acceptance-test-draft"
         echo "   ✅ Test Title: $(echo "$draft_data" | jq -r '.acceptanceTest.title')"
     elif json_check "$draft_data" '.title' && json_check "$draft_data" '.status == "complete"'; then
         # Old format: flat structure
         PHASE2_ACCEPTANCE_TEST_DRAFT="$draft_data"
-        pass_test "Acceptance Test Draft Generation (SSE)"
+        pass_test "Acceptance Test Draft Generation (SSE)" "e2e-005-acceptance-test-draft"
         echo "   ✅ Test Title: $(echo "$draft_data" | jq -r '.title')"
     else
-        fail_test "Acceptance Test Draft (Invalid or incomplete response)"
+        fail_test "Acceptance Test Draft (Invalid or incomplete response)" "e2e-005-acceptance-test-draft"
         echo "   ❌ Expected status 'complete' with title, got: $(echo "$draft_data" | jq -r '.status // "none"')"
         echo "   ❌ Response: $response"
     fi
@@ -378,10 +378,10 @@ phase2_step5_acceptance_test_draft() {
     
     if [[ "$test_count" -gt 0 ]]; then
         echo "   ✅ Story has $test_count acceptance test(s) attached"
-        pass_test "Acceptance Test Attached to Story"
+        pass_test "Acceptance Test Attached to Story" "e2e-005-acceptance-test-attached"
     else
         echo "   ❌ Story has no acceptance tests attached"
-        fail_test "Acceptance Test Attached to Story"
+        fail_test "Acceptance Test Attached to Story" "e2e-005-acceptance-test-attached"
     fi
     
     step_end=$(date +%s)
@@ -401,7 +401,7 @@ phase2_step6_create_pr() {
     log_test "Create PR (Real GitHub)"
     
     if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
-        fail_test "Create PR (No story ID)"
+        fail_test "Create PR (No story ID)" "e2e-006-create-pr"
         return
     fi
     
@@ -431,12 +431,12 @@ EOF
     if json_check "$response" '.success' 'true' && json_check "$response" '.prNumber'; then
         PHASE2_PR_NUMBER=$(echo "$response" | jq -r '.prNumber')
         local pr_url=$(echo "$response" | jq -r '.prUrl')
-        pass_test "Create PR (Real GitHub)"
+        pass_test "Create PR (Real GitHub)" "e2e-006-create-pr"
         echo "   ✅ PR #$PHASE2_PR_NUMBER created"
         echo "   ✅ Branch: $PHASE2_BRANCH_NAME"
         echo "   ✅ URL: $pr_url"
     else
-        fail_test "Create PR (Creation failed)"
+        fail_test "Create PR (Creation failed)" "e2e-006-create-pr"
         echo "   ❌ Response: $response"
     fi
     
@@ -450,14 +450,14 @@ EOF
         local attached_pr=$(echo "$story_with_prs" | jq -r ".prs[] | select(.number == $PHASE2_PR_NUMBER) | .number")
         if [[ "$attached_pr" == "$PHASE2_PR_NUMBER" ]]; then
             echo "   ✅ PR #$PHASE2_PR_NUMBER is attached to story"
-            pass_test "PR Attached to Story"
+            pass_test "PR Attached to Story" "e2e-006-pr-attached"
         else
             echo "   ❌ PR #$PHASE2_PR_NUMBER not found in story's PRs"
-            fail_test "PR Attached to Story"
+            fail_test "PR Attached to Story" "e2e-006-pr-attached"
         fi
     else
         echo "   ❌ Story has no PRs attached"
-        fail_test "PR Attached to Story"
+        fail_test "PR Attached to Story" "e2e-006-pr-attached"
     fi
     
     step_end=$(date +%s)
@@ -477,12 +477,12 @@ phase2_step7_generate_code() {
     log_test "Generate Code (Real)"
     
     if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
-        fail_test "Generate Code (No story ID)"
+        fail_test "Generate Code (No story ID)" "e2e-007-generate-code"
         return
     fi
     
     if [[ -z "$PHASE2_PR_NUMBER" ]] || [[ -z "$PHASE2_BRANCH_NAME" ]]; then
-        fail_test "Generate Code (No PR information)"
+        fail_test "Generate Code (No PR information)" "e2e-007-generate-code"
         return
     fi
     
@@ -511,7 +511,7 @@ phase2_step7_generate_code() {
         -d "$payload" 2>&1)
     
     if [[ $? -ne 0 ]]; then
-        fail_test "Generate Code (Timeout or connection error)"
+        fail_test "Generate Code (Timeout or connection error)" "e2e-007-generate-code"
         return
     fi
     
@@ -520,7 +520,7 @@ phase2_step7_generate_code() {
     
     # Check for errors first (both .error field and status: 'error')
     if json_check "$code_data" '.error' || json_check "$code_data" '.status == "error"'; then
-        fail_test "Generate Code (Error in response)"
+        fail_test "Generate Code (Error in response)" "e2e-007-generate-code"
         echo "   ❌ Error: $(echo "$code_data" | jq -r '.error // .message // "Unknown error"')"
         echo "   ❌ Response: $response"
         return
@@ -528,10 +528,10 @@ phase2_step7_generate_code() {
     
     # Check for successful completion
     if json_check "$code_data" '.status == "complete"' || json_check "$code_data" '.status == "success"'; then
-        pass_test "Generate Code (Real)"
+        pass_test "Generate Code (Real)" "e2e-007-generate-code"
         echo "   ✅ Code generated and committed to PR #$PHASE2_PR_NUMBER"
     else
-        fail_test "Generate Code (Invalid or incomplete response)"
+        fail_test "Generate Code (Invalid or incomplete response)" "e2e-007-generate-code"
         echo "   ❌ Expected status 'complete' or 'success', got: $(echo "$code_data" | jq -r '.status // "none"')"
         echo "   ❌ Response: $response"
     fi
@@ -553,7 +553,7 @@ phase2_step8_test_in_dev() {
     log_test "Deploy to Dev & Data Consistency"
     
     if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
-        fail_test "Test in Dev (No story ID)"
+        fail_test "Test in Dev (No story ID)" "e2e-008-test-in-dev"
         return
     fi
     
@@ -561,11 +561,11 @@ phase2_step8_test_in_dev() {
     local story_check=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if json_check "$story_check" '.id' && json_check "$story_check" '.title'; then
-        pass_test "Deploy to Dev & Data Consistency"
+        pass_test "Deploy to Dev & Data Consistency" "e2e-008-test-in-dev"
         echo "   ✅ Story data consistent"
         echo "   ✅ Ready for dev deployment"
     else
-        fail_test "Test in Dev (Data inconsistency)"
+        fail_test "Test in Dev (Data inconsistency)" "e2e-008-test-in-dev"
         echo "   ❌ Story check: $story_check"
     fi
     
@@ -586,7 +586,7 @@ phase2_step9_stop_tracking() {
     log_test "Stop Tracking (Delete PR)"
     
     if [[ -z "$PHASE2_CHILD_STORY_ID" ]] || [[ -z "$PHASE2_PR_NUMBER" ]]; then
-        fail_test "Stop Tracking (No story or PR information)"
+        fail_test "Stop Tracking (No story or PR information)" "e2e-009-stop-tracking"
         return
     fi
     
@@ -599,11 +599,11 @@ phase2_step9_stop_tracking() {
     local verify=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID/prs")
     
     if ! echo "$verify" | jq -e ".[] | select(.number == $PHASE2_PR_NUMBER)" > /dev/null 2>&1; then
-        pass_test "Stop Tracking (Delete PR)"
+        pass_test "Stop Tracking (Delete PR)" "e2e-009-stop-tracking"
         echo "   ✅ PR #$PHASE2_PR_NUMBER deleted"
         echo "   ✅ GitHub PR closed"
     else
-        fail_test "Stop Tracking (PR still exists)"
+        fail_test "Stop Tracking (PR still exists)" "e2e-009-stop-tracking"
         echo "   ❌ PR verification: $verify"
     fi
     
@@ -624,7 +624,7 @@ phase2_step10_delete_story() {
     log_test "Delete Story"
     
     if [[ -z "$PHASE2_CHILD_STORY_ID" ]]; then
-        fail_test "Delete Story (No story ID)"
+        fail_test "Delete Story (No story ID)" "e2e-010-delete-story"
         return
     fi
     
@@ -637,10 +637,10 @@ phase2_step10_delete_story() {
     local verify=$(curl -s -H 'X-Use-Dev-Tables: true' "$API_BASE/api/stories/$PHASE2_CHILD_STORY_ID")
     
     if json_check "$verify" '.message' '"Story not found"' || json_check "$verify" '.error' || [[ "$verify" == "null" ]] || [[ -z "$verify" ]]; then
-        pass_test "Delete Story"
+        pass_test "Delete Story" "e2e-010-delete-story"
         echo "   ✅ Story deleted successfully"
     else
-        fail_test "Delete Story (Deletion failed)"
+        fail_test "Delete Story (Deletion failed)" "e2e-010-delete-story"
         echo "   ❌ Story still exists: $verify"
     fi
     
