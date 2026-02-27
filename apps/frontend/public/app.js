@@ -64,6 +64,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -6634,6 +6635,95 @@ function openModal({
   modal.style.display = 'flex';
 }
 
+/**
+ * Opens a modal displaying all story titles in a paginated list
+ */
+function openStoryListModal() {
+  const ITEMS_PER_PAGE = 20;
+  let currentPage = 1;
+  
+  // Get all stories flattened
+  const allStories = flattenStories(state.stories);
+  const totalPages = Math.ceil(allStories.length / ITEMS_PER_PAGE);
+  
+  /**
+   * Renders the story list for the current page
+   */
+  function renderStoryList() {
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    const pageStories = allStories.slice(startIdx, endIdx);
+    
+    const container = document.createElement('div');
+    container.className = 'story-list-modal';
+    
+    // Story list
+    const list = document.createElement('ul');
+    list.className = 'story-list';
+    
+    pageStories.forEach(story => {
+      const item = document.createElement('li');
+      item.className = 'story-list-item';
+      item.textContent = story.title || `Story ${story.id}`;
+      item.addEventListener('click', () => {
+        state.selectedStoryId = story.id;
+        expandAncestors(story.id);
+        renderAll();
+        closeModal();
+      });
+      list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+    
+    // Pagination controls
+    if (totalPages > 1) {
+      const pagination = document.createElement('div');
+      pagination.className = 'story-list-pagination';
+      
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = 'Previous';
+      prevBtn.className = 'secondary';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          openStoryListModal();
+        }
+      });
+      
+      const pageInfo = document.createElement('span');
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      pageInfo.className = 'page-info';
+      
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.className = 'secondary';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          openStoryListModal();
+        }
+      });
+      
+      pagination.appendChild(prevBtn);
+      pagination.appendChild(pageInfo);
+      pagination.appendChild(nextBtn);
+      container.appendChild(pagination);
+    }
+    
+    return container;
+  }
+  
+  openModal({
+    title: 'Story List',
+    content: renderStoryList(),
+    actions: [],
+    size: 'medium'
+  });
+}
+
 // Automatic PR creation function
 async function createAutomaticPR(story) {
   if (!story) return;
@@ -8933,6 +9023,10 @@ async function initialize() {
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
+  });
+
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   generateDocBtn?.addEventListener('click', () => {
