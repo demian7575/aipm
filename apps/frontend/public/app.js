@@ -80,6 +80,7 @@ const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const dependencyToggleBtn = document.getElementById('dependency-toggle-btn');
 const autoLayoutToggle = document.getElementById('auto-layout-toggle');
 const layoutStatus = document.getElementById('layout-status');
@@ -7474,6 +7475,34 @@ function openDocumentPanel() {
   // Enable/disable generate button based on template selection
   templateSelect.addEventListener('change', () => {
     generateDocBtn.disabled = !templateSelect.value || state.stories.length === 0;
+  });
+
+  // Story list button handler
+  storyListBtn.addEventListener('click', () => {
+    const listContainer = document.createElement('div');
+    listContainer.style.maxHeight = '400px';
+    listContainer.style.overflowY = 'auto';
+    
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.padding = '0';
+    ul.style.margin = '0';
+    
+    state.stories.forEach(story => {
+      const li = document.createElement('li');
+      li.textContent = story.title;
+      li.style.padding = '8px';
+      li.style.borderBottom = '1px solid #eee';
+      ul.appendChild(li);
+    });
+    
+    listContainer.appendChild(ul);
+    
+    openModal({
+      title: 'Story List',
+      content: listContainer,
+      cancelLabel: 'Close'
+    });
   });
 
   // Generate document handler

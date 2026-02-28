@@ -597,6 +597,35 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# Story-specific tests (if STORY_ID provided)
+if [ -n "$STORY_ID" ]; then
+  echo ""
+  echo "🎯 Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "=============================================="
+  
+  # Test: Story List Modal functionality
+  if [ "$STORY_ID" = "1772284479139" ]; then
+    echo ""
+    echo "Test: Story List Modal (Story 1772284479139)"
+    
+    # Verify button exists in HTML
+    timed_curl "$(api_url /)"
+    if echo "$RESPONSE" | grep -q 'id="story-list-btn"'; then
+      p4_pass "story-list-btn-exists" "Story List button exists in header" "$DURATION"
+    else
+      p4_fail "story-list-btn-exists" "Story List button missing from header" "$DURATION"
+    fi
+    
+    # Verify JavaScript handler exists
+    timed_curl "$(api_url /app.js)"
+    if echo "$RESPONSE" | grep -q "storyListBtn.addEventListener"; then
+      p4_pass "story-list-handler" "Story List button handler implemented" "$DURATION"
+    else
+      p4_fail "story-list-handler" "Story List button handler missing" "$DURATION"
+    fi
+  fi
+fi
+
 # Summary
 # ============================================
 echo "=============================================="
