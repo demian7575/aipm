@@ -3,7 +3,11 @@
 
 // Project Management
 let projects = [];
-let activeProjectId = localStorage.getItem('aipm-active-project') || 'aipm';
+const storedProject = localStorage.getItem('aipm-active-project');
+if (!storedProject) {
+  throw new Error('No project selected. Please select a project from the dropdown.');
+}
+let activeProjectId = storedProject;
 console.log('🎯 Active project on load:', activeProjectId);
 
 function getApiBaseUrl() {

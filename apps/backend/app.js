@@ -5460,7 +5460,16 @@ export async function createApp() {
     const pathname = url.pathname;
     
     if (!pathname.startsWith('/api/projects') && pathname !== '/health') {
-      const projectId = url.searchParams.get('projectId') || req.headers['x-project-id'] || 'aipm';
+      const projectId = url.searchParams.get('projectId') || req.headers['x-project-id'];
+      if (!projectId) {
+        res.writeHead(400, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({ error: 'projectId is required' }));
+        return;
+      }
+      
       const project = getProject(projectId);
       
       if (!project) {
