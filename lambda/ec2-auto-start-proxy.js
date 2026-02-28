@@ -80,6 +80,8 @@ async function waitForInstance(instanceId) {
 
 async function proxyRequest(ip, event) {
   const path = event.path || event.rawPath || '/';
+  const queryString = event.rawQueryString || '';
+  const fullPath = queryString ? `${path}?${queryString}` : path;
   const method = event.httpMethod || event.requestContext?.http?.method || 'GET';
   const headers = event.headers || {};
   const body = event.body || '';
@@ -98,7 +100,7 @@ async function proxyRequest(ip, event) {
     const options = {
       hostname: ip,
       port: port,
-      path: path,
+      path: fullPath,
       method: method,
       headers: {
         ...headers,
