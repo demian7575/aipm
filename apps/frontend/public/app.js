@@ -77,6 +77,7 @@ const expandAllBtn = document.getElementById('expand-all');
 const collapseAllBtn = document.getElementById('collapse-all');
 
 const openKiroTerminalBtn = document.getElementById('open-kiro-terminal-btn');
+const storyListBtn = document.getElementById('story-list-btn');
 const generateDocBtn = document.getElementById('generate-doc-btn');
 const openHeatmapBtn = document.getElementById('open-heatmap-btn');
 const referenceBtn = document.getElementById('reference-btn');
@@ -7474,6 +7475,54 @@ function openDocumentPanel() {
   // Enable/disable generate button based on template selection
   templateSelect.addEventListener('change', () => {
     generateDocBtn.disabled = !templateSelect.value || state.stories.length === 0;
+  });
+
+  // Story List button handler
+  storyListBtn.addEventListener('click', () => {
+    try {
+      const listContainer = document.createElement('div');
+      listContainer.style.maxHeight = '400px';
+      listContainer.style.overflowY = 'auto';
+      
+      if (!state.stories || state.stories.length === 0) {
+        listContainer.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">No stories available</p>';
+      } else {
+        const ul = document.createElement('ul');
+        ul.style.listStyle = 'none';
+        ul.style.padding = '0';
+        ul.style.margin = '0';
+        
+        state.stories.forEach(story => {
+          const li = document.createElement('li');
+          li.style.padding = '10px';
+          li.style.borderBottom = '1px solid #eee';
+          li.style.cursor = 'pointer';
+          li.textContent = story.title || 'Untitled Story';
+          li.addEventListener('click', () => {
+            selectStory(story.id);
+            closeModal();
+          });
+          li.addEventListener('mouseenter', () => {
+            li.style.backgroundColor = '#f5f5f5';
+          });
+          li.addEventListener('mouseleave', () => {
+            li.style.backgroundColor = '';
+          });
+          ul.appendChild(li);
+        });
+        
+        listContainer.appendChild(ul);
+      }
+      
+      openModal({
+        title: 'Story List',
+        content: listContainer,
+        cancelLabel: 'Close'
+      });
+    } catch (error) {
+      console.error('Error opening story list:', error);
+      showToast('Failed to open story list', 'error');
+    }
   });
 
   // Generate document handler

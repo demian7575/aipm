@@ -283,6 +283,42 @@ if [ "$1" = "1771076494719" ]; then
   fi
 fi
 
+# Test for US-1772298361335: Story List Button
+if [ "$1" = "1772298361335" ]; then
+  echo "Test 17: US-1772298361335 - Story List Button"
+  APP_JS_CONTENT=$(curl -s "$S3_URL"/app.js)
+  
+  # Check for story list button element reference
+  if echo "$APP_JS_CONTENT" | grep -q "storyListBtn"; then
+    p4_pass "ui-007-story-list-btn" "Story list button element reference exists" "$DURATION"
+  else
+    p4_fail "ui-007-story-list-btn" "Story list button element reference missing" "$DURATION"
+  fi
+  
+  # Check for story list click handler
+  if echo "$APP_JS_CONTENT" | grep -q "storyListBtn.addEventListener('click'"; then
+    p4_pass "ui-007-story-list-btn" "Story list button click handler implemented" "$DURATION"
+  else
+    p4_fail "ui-007-story-list-btn" "Story list button click handler missing" "$DURATION"
+  fi
+  
+  # Check for modal opening with story titles
+  if echo "$APP_JS_CONTENT" | grep -q "openModal" && \
+     echo "$APP_JS_CONTENT" | grep -q "Story List"; then
+    p4_pass "ui-007-story-list-btn" "Story list modal implementation present" "$DURATION"
+  else
+    p4_fail "ui-007-story-list-btn" "Story list modal implementation missing" "$DURATION"
+  fi
+  
+  # Check for button in HTML
+  INDEX_HTML=$(curl -s "$S3_URL"/index.html)
+  if echo "$INDEX_HTML" | grep -q "story-list-btn"; then
+    p4_pass "ui-007-story-list-btn" "Story list button present in HTML" "$DURATION"
+  else
+    p4_fail "ui-007-story-list-btn" "Story list button missing from HTML" "$DURATION"
+  fi
+fi
+
 echo ""
 
 # ============================================
