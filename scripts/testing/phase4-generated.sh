@@ -169,6 +169,20 @@ SKIPPED=$((SKIPPED + 1))
 record_test_result "65" "AT-UX-UI-L5-001-01: Change status" "SKIP" "$PHASE" "0"
 
 
+# Test 1772281992188: Modal opens with story list when header button clicked (Story #1772281992074) - UI Test
+echo "Test 1772281992188: Modal opens with story list when header button clicked"
+echo "  ⚠️  SKIP: UI test (requires browser automation)"
+SKIPPED=$((SKIPPED + 1))
+record_test_result "1772281992188" "Modal opens with story list when header button clicked" "SKIP" "$PHASE" "0"
+
+
+# Test 1772281992226: Modal closes when user clicks close button or outside modal (Story #1772281992074) - UI Test
+echo "Test 1772281992226: Modal closes when user clicks close button or outside modal"
+echo "  ⚠️  SKIP: UI test (requires browser automation)"
+SKIPPED=$((SKIPPED + 1))
+record_test_result "1772281992226" "Modal closes when user clicks close button or outside modal" "SKIP" "$PHASE" "0"
+
+
 # Test 1771408421710: Header button opens modal with story list (Story #1771408421505) - UI Test
 echo "Test 1771408421710: Header button opens modal with story list"
 echo "  ⚠️  SKIP: UI test (requires browser automation)"
