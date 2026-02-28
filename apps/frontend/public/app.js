@@ -4,6 +4,7 @@
 // Project Management
 let projects = [];
 let activeProjectId = localStorage.getItem('aipm-active-project') || 'aipm';
+console.log('🎯 Active project on load:', activeProjectId);
 
 function getApiBaseUrl() {
   // Use static config from config.js (API Gateway URL)
@@ -9476,8 +9477,10 @@ function updateProjectDropdown() {
 }
 
 function switchProject(projectId) {
+  console.log('🔄 Switching project to:', projectId);
   localStorage.setItem('aipm-active-project', projectId);
   activeProjectId = projectId;
+  console.log('✅ Saved to localStorage, reloading...');
   location.reload();
 }
 
