@@ -414,7 +414,7 @@ jobs:
           fi
           
           # Backend API health
-          if curl -s "$API_BASE/api/version" | grep -q "version"; then
+          if curl -s "$API_BASE/api/version?projectId=aipm" | grep -q "version"; then
             echo "✅ Production backend healthy"
           else
             echo "❌ Production backend not healthy"
