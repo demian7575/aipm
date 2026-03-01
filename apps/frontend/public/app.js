@@ -6507,6 +6507,41 @@ function createSSEHandler(url, options = {}) {
   return eventSource;
 }
 
+/**
+ * Opens a modal displaying all story titles
+ */
+function openStoryListModal() {
+  const content = document.createElement('div');
+  content.style.maxHeight = '400px';
+  content.style.overflowY = 'auto';
+  
+  if (!stories || stories.length === 0) {
+    content.textContent = 'No stories available';
+  } else {
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.padding = '0';
+    list.style.margin = '0';
+    
+    stories.forEach(story => {
+      const item = document.createElement('li');
+      item.style.padding = '8px 0';
+      item.style.borderBottom = '1px solid #eee';
+      item.textContent = story.title || `Story ${story.id}`;
+      list.appendChild(item);
+    });
+    
+    content.appendChild(list);
+  }
+  
+  openModal({
+    title: 'Story List',
+    content,
+    actions: [],
+    size: 'default'
+  });
+}
+
 function closeModal() {
   modal.style.display = 'none';
   delete modal.dataset.size;
@@ -8949,6 +8984,11 @@ async function initialize() {
   openKiroTerminalBtn?.addEventListener('click', () => {
     const terminalUrl = new URL('terminal/kiro-live.html', window.location.href);
     window.open(terminalUrl.toString(), '_blank', 'noopener');
+  });
+
+  const storyListBtn = document.getElementById('story-list-btn');
+  storyListBtn?.addEventListener('click', () => {
+    openStoryListModal();
   });
 
   generateDocBtn?.addEventListener('click', () => {
