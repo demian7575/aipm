@@ -2351,9 +2351,17 @@ async function handleDeployPRRequest(req, res) {
       return;
     }
 
+    // Get project configuration
+    const projectId = req.projectId || 'aipm';
+    const project = getProject(projectId);
+    if (!project) {
+      sendJson(res, 400, { success: false, error: `Project not found: ${projectId}` });
+      return;
+    }
+
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-    const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
-    const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+    const REPO_OWNER = project.github.owner;
+    const REPO_NAME = project.github.repo;
     
     if (!GITHUB_TOKEN) {
       sendJson(res, 400, { success: false, error: 'GitHub token not configured' });
@@ -2411,9 +2419,17 @@ async function handleMergePR(req, res) {
       return;
     }
 
+    // Get project configuration
+    const projectId = req.projectId || 'aipm';
+    const project = getProject(projectId);
+    if (!project) {
+      sendJson(res, 400, { success: false, error: `Project not found: ${projectId}` });
+      return;
+    }
+
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-    const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
-    const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+    const REPO_OWNER = project.github.owner;
+    const REPO_NAME = project.github.repo;
     
     if (!GITHUB_TOKEN) {
       sendJson(res, 400, { success: false, error: 'GitHub token not configured' });
@@ -2617,10 +2633,25 @@ async function handleCreatePRRequest(req, res) {
         const payload = JSON.parse(body);
         const { storyId, branchName, prTitle, prBody, story } = payload;
         
-        // GitHub API configuration
+        // Get project configuration
+        const projectId = req.projectId || 'aipm';
+        const project = getProject(projectId);
+        if (!project) {
+          res.writeHead(400, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify({ 
+            success: false, 
+            error: `Project not found: ${projectId}` 
+          }));
+          return;
+        }
+        
+        // GitHub API configuration from project
         const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-        const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
-        const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+        const REPO_OWNER = project.github.owner;
+        const REPO_NAME = project.github.repo;
         
         if (!GITHUB_TOKEN) {
           res.writeHead(400, {
@@ -5849,9 +5880,17 @@ export async function createApp() {
           return;
         }
 
+        // Get project configuration
+        const projectId = req.projectId || 'aipm';
+        const project = getProject(projectId);
+        if (!project) {
+          sendJson(res, 400, { success: false, error: `Project not found: ${projectId}` });
+          return;
+        }
+
         const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-        const REPO_OWNER = process.env.GITHUB_OWNER || 'demian7575';
-        const REPO_NAME = process.env.GITHUB_REPO || 'aipm';
+        const REPO_OWNER = project.github.owner;
+        const REPO_NAME = project.github.repo;
         
         if (!GITHUB_TOKEN) {
           sendJson(res, 400, { success: false, error: 'GitHub token not configured' });
