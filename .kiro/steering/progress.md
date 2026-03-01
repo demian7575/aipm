@@ -4,9 +4,15 @@ inclusion: always
 
 # Project Status & Progress
 
-**Last Updated**: 2026-03-01 11:06 KST
+**Last Updated**: 2026-03-01 12:04 KST
 
 ## Recent Changes (Today)
+- **FIXED**: Lambda deployment script now correctly updates aipm-ec2-proxy
+  - Script was looking for env-specific function names (aipm-prod-ec2-auto-start-proxy)
+  - Actual function is named aipm-ec2-proxy (shared across environments)
+  - Added fallback logic to find correct function name
+  - Lambda now deployed with query parameter forwarding fix
+  - All API calls with projectId parameter now work correctly
 - **MAJOR**: Implemented API Gateway Proxy architecture
   - Created API Gateway `aipm-api-proxy` (kx0u99e7o0.execute-api.us-east-1.amazonaws.com)
   - All frontend requests now go through Lambda proxy

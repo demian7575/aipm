@@ -49,7 +49,12 @@ npm init -y >/dev/null 2>&1
 npm install --silent @aws-sdk/client-ec2 >/dev/null 2>&1
 zip -qr ec2-auto-start-proxy.zip ec2-auto-start-proxy.js node_modules/
 
+# Try environment-specific name first, fall back to shared name
 FUNCTION_NAME="aipm-${ENV}-ec2-auto-start-proxy"
+if ! aws lambda get-function --function-name "$FUNCTION_NAME" --region us-east-1 >/dev/null 2>&1; then
+    FUNCTION_NAME="aipm-ec2-proxy"
+fi
+
 if aws lambda get-function --function-name "$FUNCTION_NAME" --region us-east-1 >/dev/null 2>&1; then
     echo "🔄 Updating $FUNCTION_NAME..."
     if aws lambda update-function-code \
@@ -62,7 +67,7 @@ if aws lambda get-function --function-name "$FUNCTION_NAME" --region us-east-1 >
         echo "⚠️  Failed to update $FUNCTION_NAME"
     fi
 else
-    echo "⚠️  $FUNCTION_NAME not found, skipping"
+    echo "⚠️  No ec2-proxy Lambda function found, skipping"
 fi
 
 rm -rf "$TEMP_DIR"
