@@ -74,13 +74,13 @@ for pid in "${pids[@]}"; do
 done
 
 # Check test results from counter
-failed=$(cat "$TEST_COUNTER_DIR/failed" 2>/dev/null || echo "0")
+failed=$(cat "$TEST_COUNTER_DIR/failed" 2>/dev/null | awk '{s+=$1} END {print s+0}')
 
 # Check if any tests failed
 if [ "$failed" -gt 0 ]; then
   echo "❌ Phase 1 failed: $failed tests failed"
-  return 1
+  exit 1
 fi
 
 echo "✅ Phase 1 completed: all tests passed"
-return 0
+exit 0

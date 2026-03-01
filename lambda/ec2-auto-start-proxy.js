@@ -134,6 +134,20 @@ exports.handler = async (event) => {
   try {
     console.log('Request received:', JSON.stringify(event, null, 2));
     
+    // Handle OPTIONS preflight
+    const method = event.httpMethod || event.requestContext?.http?.method || 'GET';
+    if (method === 'OPTIONS') {
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Use-Dev-Tables, X-Environment'
+        },
+        body: ''
+      };
+    }
+    
     // Determine environment
     const env = getEnvironment(event);
     const instanceId = INSTANCE_IDS[env];

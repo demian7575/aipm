@@ -5416,7 +5416,7 @@ function _renderDetailsImmediate() {
   }
 
   // Fetch complete story data and update cached story
-  fetch(resolveApiUrl(`/api/stories/${story.id}`))
+  fetchWithProject(resolveApiUrl(`/api/stories/${story.id}`))
     .then(response => response.json())
     .then(completeStory => {
       console.log('📊 Complete story data:', {
@@ -7823,7 +7823,8 @@ function openChildStoryModal(parentId) {
       const params = new URLSearchParams({
         idea: idea,
         parentId: String(parentId),
-        components: components.join(',')
+        components: components.join(','),
+        projectId: activeProjectId
       });
       
       const eventSource = new EventSource(`${apiBaseUrl}/api/stories/draft-stream?${params}`);
@@ -8196,7 +8197,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
       try {
         const apiBaseUrl = getApiBaseUrl();
         const eventSource = createSSEHandler(
-          `${apiBaseUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}`,
+          `${apiBaseUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}&projectId=${encodeURIComponent(activeProjectId)}`,
           {
             onProgress: (data) => {
               if (draftStatus) draftStatus.textContent = data.message;
@@ -8589,10 +8590,12 @@ async function createRootStory() {
   };
   
   try {
-    const created = await sendJson(resolveApiUrl('/api/stories'), { 
-      method: 'POST', 
-      body: { ...rootStory, acceptWarnings: true }
+    const response = await fetchWithProject(resolveApiUrl('/api/stories'), { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...rootStory, acceptWarnings: true })
     });
+    const created = await response.json();
     state.stories = [created];
     rebuildStoryIndex();
     renderAll();
@@ -8825,7 +8828,7 @@ async function confirmAndDeleteStory(storyId, options = {}) {
   }
 
   try {
-    await sendJson(resolveApiUrl(`/api/stories/${storyId}`), { method: 'DELETE' });
+    await fetchWithProject(resolveApiUrl(`/api/stories/${storyId}`), { method: 'DELETE' });
     subtree.forEach((id) => state.expanded.delete(id));
     persistExpanded();
 

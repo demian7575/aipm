@@ -60,19 +60,19 @@ record_test_result() {
 test_api_security_headers() {
     local api_base="${1:-$API_BASE}"
     local test_id="${2:-}"
-    test_endpoint "API Security Headers" "$api_base/api/stories" "\\[" "$test_id"
+    test_endpoint "API Security Headers" "$api_base/api/stories?projectId=aipm" "\\[" "$test_id"
 }
 
 test_database_connection() {
     local api_base="${1:-$API_BASE}"
     local test_id="${2:-}"
-    test_api_json "Database Connection" "$api_base/api/stories" "$test_id"
+    test_api_json "Database Connection" "$api_base/api/stories?projectId=aipm" "$test_id"
 }
 
 test_version_endpoint() {
     local api_base="${1:-$API_BASE}"
     local test_id="${2:-}"
-    test_endpoint "Version Endpoint" "$api_base/api/version" "version" "$test_id"
+    test_endpoint "Version Endpoint" "$api_base/api/version?projectId=aipm" "version" "$test_id"
 }
 
 # ============================================
@@ -164,7 +164,7 @@ test_s3_config() {
 test_network_connectivity() {
     local api_base="${1:-$API_BASE}"
     local test_id="${2:-}"
-    test_endpoint "Network Connectivity" "$api_base/api/version" "version" "$test_id"
+    test_endpoint "Network Connectivity" "$api_base/api/version?projectId=aipm" "version" "$test_id"
 }
 
 # ============================================
@@ -747,7 +747,7 @@ test_mindmap_story_loading() {
     
     # Test the /api/stories endpoint that mindmap uses
     local start_time=$(date +%s)
-    local response=$(curl -s "$api_base/api/stories")
+    local response=$(curl -s "$api_base/api/stories?projectId=aipm")
     local duration=$(($(date +%s) - start_time))
     
     # Check if response is valid JSON array

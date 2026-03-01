@@ -34,8 +34,17 @@ p4_skip() {
   SKIPPED=$((SKIPPED + 1))
 }
 
-# api_url PATH - build full API URL with env param
-api_url() { echo "${API_BASE}${1}${AIPM_ENV:+?env=$AIPM_ENV}"; }
+# api_url PATH - build full API URL with env param and projectId
+api_url() { 
+  local path="$1"
+  local url="${API_BASE}${path}"
+  local sep="?"
+  [[ "$path" == *"?"* ]] && sep="&"
+  [[ -n "$AIPM_ENV" ]] && url="${url}${sep}env=$AIPM_ENV" && sep="&"
+  # Add projectId for all non-project API calls
+  [[ "$path" != "/api/projects"* ]] && [[ "$path" != "/health" ]] && url="${url}${sep}projectId=aipm"
+  echo "$url"
+}
 
 # timed_curl ARGS... - curl with timing, sets RESPONSE and DURATION
 timed_curl() {
