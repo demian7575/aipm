@@ -606,6 +606,47 @@ if [ "$1" = "1771138996374" ]; then
 fi
 
 # ============================================
+# SECTION 8: Story-Specific Tests
+# ============================================
+if [ -n "$1" ]; then
+  STORY_ID="$1"
+  echo "🎯 SECTION 8: Story-Specific Tests (Story ID: $STORY_ID)"
+  echo "-----------------------------------"
+  
+  # Test for Story 1772336933289: Add Story List Button
+  if [ "$STORY_ID" = "1772336933289" ]; then
+    echo "Test: Story List Button Implementation"
+    START=$(date +%s%3N)
+    FRONTEND_HTML=$(curl -s "$S3_URL/index.html")
+    FRONTEND_JS=$(curl -s "$S3_URL/app.js")
+    DURATION=$(($(date +%s%3N) - START))
+    
+    # Check if button exists in HTML
+    if echo "$FRONTEND_HTML" | grep -q 'id="story-list-btn"'; then
+      p4_pass "story-1772336933289-btn" "Story list button exists in header" "$DURATION"
+    else
+      p4_fail "story-1772336933289-btn" "Story list button missing from header" "$DURATION"
+    fi
+    
+    # Check if modal function exists
+    if echo "$FRONTEND_JS" | grep -q "openStoryListModal"; then
+      p4_pass "story-1772336933289-modal" "Story list modal function implemented" "$DURATION"
+    else
+      p4_fail "story-1772336933289-modal" "Story list modal function missing" "$DURATION"
+    fi
+    
+    # Check if event listener is wired up
+    if echo "$FRONTEND_JS" | grep -q "story-list-btn.*addEventListener"; then
+      p4_pass "story-1772336933289-event" "Story list button event listener wired" "$DURATION"
+    else
+      p4_fail "story-1772336933289-event" "Story list button event listener missing" "$DURATION"
+    fi
+    
+    echo ""
+  fi
+fi
+
+# ============================================
 # Summary
 # ============================================
 echo "=============================================="
