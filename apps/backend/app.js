@@ -5513,6 +5513,7 @@ export async function createApp() {
       }
       
       req.project = project;
+      req.projectId = projectId;  // Also set projectId for handlers
     }
     
     // Create db instance per-request to support X-Use-Dev-Tables header and project context
