@@ -2043,7 +2043,7 @@ function renderCodeWhispererSectionList(container, story) {
         // Use SSE for real-time progress updates
         const apiBaseUrl = getApiBaseUrl();
         const eventSource = createSSEHandler(
-          `${apiBaseUrl}/api/stories/${story.id}/generate-code-stream?prNumber=${prNum}&branchName=${encodeURIComponent(branchName)}`,
+          `${apiBaseUrl}/api/stories/${story.id}/generate-code-stream?prNumber=${prNum}&branchName=${encodeURIComponent(branchName)}&projectId=${encodeURIComponent(activeProjectId)}`,
           {
             onProgress: (data) => {
               const message = data.message || 'Generating...';
