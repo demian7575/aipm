@@ -21,6 +21,12 @@ function getApiBaseUrl() {
   return baseUrl;
 }
 
+// Get direct EC2 URL for SSE endpoints (SSE doesn't work through Lambda proxy)
+// SSE requires direct connection to EC2, bypassing Lambda
+function getDirectApiUrl() {
+  return window.CONFIG?.EC2_DIRECT_URL || getApiBaseUrl();
+}
+
 const DEFAULT_REPO_API_URL = 'https://api.github.com';
 
 // Helper to add project context to fetch calls (with retry on failure)
@@ -2041,7 +2047,7 @@ function renderCodeWhispererSectionList(container, story) {
         console.log('📤 Parameters:', { storyId: story.id, prNum, branchName });
         
         // Use SSE for real-time progress updates
-        const apiBaseUrl = getApiBaseUrl();
+        const apiBaseUrl = getDirectApiUrl(); // Use direct EC2 for SSE
         const eventSource = createSSEHandler(
           `${apiBaseUrl}/api/stories/${story.id}/generate-code-stream?prNumber=${prNum}&branchName=${encodeURIComponent(branchName)}&projectId=${encodeURIComponent(activeProjectId)}`,
           {
@@ -8195,7 +8201,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
       if (draftStatus) draftStatus.textContent = 'Connecting to Semantic API...';
       
       try {
-        const apiBaseUrl = getApiBaseUrl();
+        const apiBaseUrl = getDirectApiUrl(); // Use direct EC2 for SSE
         const eventSource = createSSEHandler(
           `${apiBaseUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}&projectId=${encodeURIComponent(activeProjectId)}`,
           {
