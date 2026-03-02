@@ -106,6 +106,17 @@
           >
             CI/CD
           </button>
+          <button
+            class="view-tab"
+            type="button"
+            role="tab"
+            id="view-tab-document"
+            aria-selected="false"
+            aria-controls="document-view"
+            data-view="document"
+          >
+            Document
+          </button>
         </div>
         <div class="view-panel">
           <div id="mindmap-view" class="view-content is-active" role="tabpanel" tabindex="0" aria-labelledby="view-tab-mindmap">
@@ -191,6 +202,27 @@
                 <span class="cicd-legend-item"><span class="cicd-cell-documented">📝</span> Documented</span>
                 <span class="cicd-legend-item"><span class="cicd-cell-skip">○</span> Skip</span>
                 <span class="cicd-legend-item"><span class="cicd-cell-none">-</span> Not Run</span>
+              </div>
+            </div>
+          </div>
+          <div id="document-view" class="view-content" role="tabpanel" tabindex="0" aria-labelledby="view-tab-document" hidden>
+            <div class="document-dashboard">
+              <h2>Documentation Generator</h2>
+              
+              <div class="document-controls">
+                <div class="document-selector">
+                  <label for="document-story-selector">Select Stories:</label>
+                  <select id="document-story-selector" multiple size="10" class="document-story-list">
+                  </select>
+                </div>
+                <button id="document-generate-btn" class="primary">Generate Documentation</button>
+              </div>
+              
+              <div class="document-preview-container">
+                <h3>Preview</h3>
+                <div id="document-preview" class="document-preview">
+                  <p class="document-placeholder">Select stories and click "Generate Documentation" to preview.</p>
+                </div>
               </div>
             </div>
           </div>
