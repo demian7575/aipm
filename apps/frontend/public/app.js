@@ -528,6 +528,7 @@ const mindmapPanState = {
 function updateViewVisibility(activeView) {
   const rtmView = document.getElementById('rtm-view');
   const cicdView = document.getElementById('cicd-view');
+  const documentView = document.getElementById('document-view');
   
   if (mindmapView) {
     mindmapView.classList.toggle('is-active', activeView === 'mindmap');
@@ -544,6 +545,10 @@ function updateViewVisibility(activeView) {
   if (cicdView) {
     cicdView.classList.toggle('is-active', activeView === 'cicd');
     cicdView.hidden = activeView !== 'cicd';
+  }
+  if (documentView) {
+    documentView.classList.toggle('is-active', activeView === 'document');
+    documentView.hidden = activeView !== 'document';
   }
   viewTabs.forEach((tab) => {
     const isActive = tab.dataset.view === activeView;
@@ -579,6 +584,8 @@ function setActiveView(nextView, { force = false } = {}) {
     renderRTM();
   } else if (state.activeView === 'cicd') {
     renderCICD();
+  } else if (state.activeView === 'document') {
+    renderDocument();
   }
 }
 
@@ -3867,6 +3874,75 @@ function handleCicdColumnResizePointerUp() {
   document.removeEventListener('pointercancel', handleCicdColumnResizePointerUp);
 }
 
+
+/**
+ * Render Document view
+ */
+async function renderDocument() {
+  try {
+    const selector = document.getElementById('document-story-selector');
+    if (!selector) return;
+    
+    selector.innerHTML = '';
+    state.stories.forEach(story => {
+      const option = document.createElement('option');
+      option.value = story.id;
+      option.textContent = `${story.id} - ${story.title}`;
+      selector.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error rendering document view:', error);
+  }
+}
+
+/**
+ * Generate documentation from selected stories
+ */
+async function generateDocumentation() {
+  try {
+    const selector = document.getElementById('document-story-selector');
+    const previewPane = document.getElementById('document-preview-pane');
+    if (!selector || !previewPane) return;
+    
+    const selectedIds = Array.from(selector.selectedOptions).map(opt => parseInt(opt.value));
+    if (selectedIds.length === 0) {
+      previewPane.innerHTML = '<p class="placeholder">Please select at least one story.</p>';
+      return;
+    }
+    
+    const selectedStories = state.stories.filter(s => selectedIds.includes(s.id));
+    
+    let html = '<h4>Requirements</h4>';
+    selectedStories.forEach(story => {
+      html += `<p><strong>${story.id} - ${story.title}</strong></p>`;
+      html += `<p>${story.description || 'No description provided.'}</p>`;
+      html += `<p><em>As a</em> ${story.asA}, <em>I want</em> ${story.iWant}, <em>so that</em> ${story.soThat}</p>`;
+    });
+    
+    html += '<h4>Acceptance Criteria</h4>';
+    selectedStories.forEach(story => {
+      if (story.acceptanceTests && story.acceptanceTests.length > 0) {
+        html += `<p><strong>${story.title}</strong></p><ul>`;
+        story.acceptanceTests.forEach(test => {
+          html += `<li>${test.title}</li>`;
+        });
+        html += '</ul>';
+      }
+    });
+    
+    html += '<h4>Technical Details</h4>';
+    selectedStories.forEach(story => {
+      html += `<p><strong>${story.title}</strong></p>`;
+      html += `<p>Components: ${story.components && story.components.length > 0 ? story.components.join(', ') : 'None specified'}</p>`;
+      html += `<p>Story Points: ${story.storyPoint || 'Not estimated'}</p>`;
+    });
+    
+    previewPane.innerHTML = html;
+  } catch (error) {
+    console.error('Error generating documentation:', error);
+    showToast('Failed to generate documentation', 'error');
+  }
+}
 
 async function renderCICD() {
   console.log('renderCICD called');
@@ -8935,6 +9011,8 @@ async function initialize() {
     renderRTM();
   } else if (state.activeView === 'cicd') {
     renderCICD();
+  } else if (state.activeView === 'document') {
+    renderDocument();
   }
   
   renderDetails();
@@ -8954,6 +9032,12 @@ async function initialize() {
   generateDocBtn?.addEventListener('click', () => {
     openDocumentPanel();
   });
+
+  // Document tab event listeners
+  const documentGenerateBtn = document.getElementById('document-generate-btn');
+  if (documentGenerateBtn) {
+    documentGenerateBtn.addEventListener('click', generateDocumentation);
+  }
 
 
 

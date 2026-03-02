@@ -2945,6 +2945,94 @@ dialog[data-size='content'] .modal-shell {
 }
 
 
+/* Document Interface Styles */
+.document-interface {
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.document-interface h2 {
+  margin: 0;
+}
+
+.document-controls {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.document-selector {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.document-selector label {
+  font-weight: 600;
+}
+
+#document-story-selector {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+#document-generate-btn {
+  align-self: flex-start;
+  margin-top: 28px;
+}
+
+.document-preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.document-preview h3 {
+  margin: 0;
+}
+
+.preview-pane {
+  flex: 1;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  overflow: auto;
+}
+
+.preview-pane .placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.preview-pane h4 {
+  margin: 20px 0 10px 0;
+  color: #333;
+}
+
+.preview-pane h4:first-child {
+  margin-top: 0;
+}
+
+.preview-pane p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.preview-pane ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
 /* CI/CD Dashboard Styles */
 .cicd-dashboard {
   padding: 20px;

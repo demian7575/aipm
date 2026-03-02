@@ -612,6 +612,64 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Story 1772439247801 - Document Tab for Documentation Generation
+if [ "$1" = "1772439247801" ]; then
+  echo "Test 45: Document Tab for Documentation Generation"
+  
+  # Test 1: Document tab appears in navigation
+  FRONTEND_HTML=$(curl -s "$S3_URL"/index.html)
+  if echo "$FRONTEND_HTML" | grep -q 'id="view-tab-document"'; then
+    p4_pass "ui-007-document-tab" "Document tab exists in HTML" "$DURATION"
+  else
+    p4_fail "ui-007-document-tab" "Document tab missing from HTML" "$DURATION"
+  fi
+  
+  # Test 2: Document view content exists
+  if echo "$FRONTEND_HTML" | grep -q 'id="document-view"'; then
+    p4_pass "ui-008-document-view" "Document view content exists" "$DURATION"
+  else
+    p4_fail "ui-008-document-view" "Document view content missing" "$DURATION"
+  fi
+  
+  # Test 3: Story selector exists
+  if echo "$FRONTEND_HTML" | grep -q 'id="document-story-selector"'; then
+    p4_pass "ui-009-story-selector" "Story selector exists" "$DURATION"
+  else
+    p4_fail "ui-009-story-selector" "Story selector missing" "$DURATION"
+  fi
+  
+  # Test 4: Generate button exists
+  if echo "$FRONTEND_HTML" | grep -q 'id="document-generate-btn"'; then
+    p4_pass "ui-010-generate-btn" "Generate button exists" "$DURATION"
+  else
+    p4_fail "ui-010-generate-btn" "Generate button missing" "$DURATION"
+  fi
+  
+  # Test 5: Preview pane exists
+  if echo "$FRONTEND_HTML" | grep -q 'id="document-preview-pane"'; then
+    p4_pass "ui-011-preview-pane" "Preview pane exists" "$DURATION"
+  else
+    p4_fail "ui-011-preview-pane" "Preview pane missing" "$DURATION"
+  fi
+  
+  # Test 6: renderDocument function exists
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
+  if echo "$FRONTEND_JS" | grep -q "function renderDocument"; then
+    p4_pass "ui-012-render-function" "renderDocument function exists" "$DURATION"
+  else
+    p4_fail "ui-012-render-function" "renderDocument function missing" "$DURATION"
+  fi
+  
+  # Test 7: generateDocumentation function exists
+  if echo "$FRONTEND_JS" | grep -q "function generateDocumentation"; then
+    p4_pass "ui-013-generate-function" "generateDocumentation function exists" "$DURATION"
+  else
+    p4_fail "ui-013-generate-function" "generateDocumentation function missing" "$DURATION"
+  fi
+  
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
