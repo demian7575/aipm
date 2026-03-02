@@ -22,9 +22,21 @@ function getApiBaseUrl() {
 }
 
 // Get direct EC2 URL for SSE endpoints (SSE doesn't work through Lambda proxy)
-// SSE requires direct connection to EC2, bypassing Lambda
-function getDirectApiUrl() {
-  return window.CONFIG?.EC2_DIRECT_URL || getApiBaseUrl();
+// Fetches current EC2 IP from Lambda
+let cachedDirectUrl = null;
+async function getDirectApiUrl() {
+  if (cachedDirectUrl) return cachedDirectUrl;
+  
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/ec2-ip?projectId=aipm`);
+    const data = await response.json();
+    cachedDirectUrl = data.url;
+    console.log('✅ Fetched EC2 direct URL:', cachedDirectUrl);
+    return cachedDirectUrl;
+  } catch (error) {
+    console.error('❌ Failed to fetch EC2 IP:', error);
+    throw new Error('Cannot get EC2 IP for SSE connection');
+  }
 }
 
 const DEFAULT_REPO_API_URL = 'https://api.github.com';
@@ -2047,7 +2059,7 @@ function renderCodeWhispererSectionList(container, story) {
         console.log('📤 Parameters:', { storyId: story.id, prNum, branchName });
         
         // Use SSE for real-time progress updates
-        const apiBaseUrl = getDirectApiUrl(); // Use direct EC2 for SSE
+        const apiBaseUrl = await getDirectApiUrl(); // Fetch EC2 IP dynamically
         const eventSource = createSSEHandler(
           `${apiBaseUrl}/api/stories/${story.id}/generate-code-stream?prNumber=${prNum}&branchName=${encodeURIComponent(branchName)}&projectId=${encodeURIComponent(activeProjectId)}`,
           {
@@ -8201,7 +8213,7 @@ function openAcceptanceTestModal(storyId, options = {}) {
       if (draftStatus) draftStatus.textContent = 'Connecting to Semantic API...';
       
       try {
-        const apiBaseUrl = getDirectApiUrl(); // Use direct EC2 for SSE
+        const apiBaseUrl = await getDirectApiUrl(); // Fetch EC2 IP dynamically
         const eventSource = createSSEHandler(
           `${apiBaseUrl}/api/stories/${storyId}/tests/generate-draft-stream?idea=${encodeURIComponent(idea)}&projectId=${encodeURIComponent(activeProjectId)}`,
           {

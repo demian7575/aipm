@@ -134,8 +134,30 @@ exports.handler = async (event) => {
   try {
     console.log('Request received:', JSON.stringify(event, null, 2));
     
-    // Handle OPTIONS preflight
+    const path = event.path || event.rawPath || '/';
     const method = event.httpMethod || event.requestContext?.http?.method || 'GET';
+    
+    // Special endpoint to get EC2 IP for SSE connections
+    if (path === '/ec2-ip' && method === 'GET') {
+      const env = getEnvironment(event);
+      const instanceId = INSTANCE_IDS[env];
+      const status = await getInstanceStatus(instanceId);
+      
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          ip: status.ip,
+          port: 4000,
+          url: `http://${status.ip}:4000`
+        })
+      };
+    }
+    
+    // Handle OPTIONS preflight
     if (method === 'OPTIONS') {
       return {
         statusCode: 200,
