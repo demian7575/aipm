@@ -612,6 +612,72 @@ if [ "$1" = "1771138996374" ]; then
   echo ""
 fi
 
+# Test 45: Document Tab for Documentation Generation and Review
+if [ "$1" = "1772439247801" ]; then
+  echo "Test 45: Document Tab - Navigation and Interface"
+  
+  # Check HTML has Document tab
+  INDEX_HTML=$(curl -s "$S3_URL"/index.html)
+  if echo "$INDEX_HTML" | grep -q 'id="view-tab-document"'; then
+    p4_pass "doc-001" "Document tab exists in navigation" "$DURATION"
+  else
+    p4_fail "doc-001" "Document tab missing from navigation" "$DURATION"
+  fi
+  
+  # Check HTML has document view panel
+  if echo "$INDEX_HTML" | grep -q 'id="document-view"'; then
+    p4_pass "doc-002" "Document view panel exists" "$DURATION"
+  else
+    p4_fail "doc-002" "Document view panel missing" "$DURATION"
+  fi
+  
+  # Check HTML has story selector
+  if echo "$INDEX_HTML" | grep -q 'id="document-story-selector"'; then
+    p4_pass "doc-003" "Story selector exists" "$DURATION"
+  else
+    p4_fail "doc-003" "Story selector missing" "$DURATION"
+  fi
+  
+  # Check HTML has generate button
+  if echo "$INDEX_HTML" | grep -q 'id="document-generate-btn"'; then
+    p4_pass "doc-004" "Generate button exists" "$DURATION"
+  else
+    p4_fail "doc-004" "Generate button missing" "$DURATION"
+  fi
+  
+  # Check HTML has preview pane
+  if echo "$INDEX_HTML" | grep -q 'id="document-preview"'; then
+    p4_pass "doc-005" "Preview pane exists" "$DURATION"
+  else
+    p4_fail "doc-005" "Preview pane missing" "$DURATION"
+  fi
+  
+  # Check frontend has renderDocument function
+  FRONTEND_JS=$(curl -s "$S3_URL"/app.js)
+  if echo "$FRONTEND_JS" | grep -q "function renderDocument"; then
+    p4_pass "doc-006" "renderDocument function exists" "$DURATION"
+  else
+    p4_fail "doc-006" "renderDocument function missing" "$DURATION"
+  fi
+  
+  # Check frontend has generateDocumentation function
+  if echo "$FRONTEND_JS" | grep -q "function generateDocumentation"; then
+    p4_pass "doc-007" "generateDocumentation function exists" "$DURATION"
+  else
+    p4_fail "doc-007" "generateDocumentation function missing" "$DURATION"
+  fi
+  
+  # Check CSS has document styles
+  STYLES_CSS=$(curl -s "$S3_URL"/styles.css)
+  if echo "$STYLES_CSS" | grep -q ".document-dashboard"; then
+    p4_pass "doc-008" "Document view styles exist" "$DURATION"
+  else
+    p4_fail "doc-008" "Document view styles missing" "$DURATION"
+  fi
+  
+  echo ""
+fi
+
 # ============================================
 # Summary
 # ============================================
@@ -640,7 +706,7 @@ echo "  - Configuration: 1 file verified"
 echo "  - Process Health: 3 services verified"
 echo "  - System Health: 2 checks tested"
 echo ""
-echo "Total Tests: 45 (39 executable + 6 workflow)"
+echo "Total Tests: 46 (40 executable + 6 workflow)"
 echo "API Endpoints Tested: 21/18 (117% coverage)"
 echo "=============================================="
 

@@ -546,6 +546,7 @@ const mindmapPanState = {
 function updateViewVisibility(activeView) {
   const rtmView = document.getElementById('rtm-view');
   const cicdView = document.getElementById('cicd-view');
+  const documentView = document.getElementById('document-view');
   
   if (mindmapView) {
     mindmapView.classList.toggle('is-active', activeView === 'mindmap');
@@ -562,6 +563,10 @@ function updateViewVisibility(activeView) {
   if (cicdView) {
     cicdView.classList.toggle('is-active', activeView === 'cicd');
     cicdView.hidden = activeView !== 'cicd';
+  }
+  if (documentView) {
+    documentView.classList.toggle('is-active', activeView === 'document');
+    documentView.hidden = activeView !== 'document';
   }
   viewTabs.forEach((tab) => {
     const isActive = tab.dataset.view === activeView;
@@ -597,6 +602,8 @@ function setActiveView(nextView, { force = false } = {}) {
     renderRTM();
   } else if (state.activeView === 'cicd') {
     renderCICD();
+  } else if (state.activeView === 'document') {
+    renderDocument();
   }
 }
 
@@ -9617,3 +9624,105 @@ async function createProject(event) {
 }
 
 // Load projects after EC2 is ready (called from initialize function)
+
+/**
+ * Render Document view
+ */
+function renderDocument() {
+  const selector = document.getElementById('document-story-selector');
+  if (!selector) return;
+  
+  selector.innerHTML = '';
+  
+  const allStories = getAllStories();
+  allStories.forEach(story => {
+    const option = document.createElement('option');
+    option.value = story.id;
+    option.textContent = `${story.id} - ${story.title}`;
+    selector.appendChild(option);
+  });
+}
+
+/**
+ * Generate documentation from selected stories
+ */
+async function generateDocumentation() {
+  const selector = document.getElementById('document-story-selector');
+  const preview = document.getElementById('document-preview');
+  
+  if (!selector || !preview) return;
+  
+  const selectedIds = Array.from(selector.selectedOptions).map(opt => parseInt(opt.value));
+  
+  if (selectedIds.length === 0) {
+    showToast('Please select at least one story', 'error');
+    return;
+  }
+  
+  preview.innerHTML = '<p class="document-placeholder">Generating documentation...</p>';
+  
+  try {
+    const allStories = getAllStories();
+    const selectedStories = allStories.filter(s => selectedIds.includes(s.id));
+    
+    let html = '<div>';
+    
+    selectedStories.forEach(story => {
+      html += `<h4>${story.id} - ${story.title}</h4>`;
+      
+      html += '<h5>Requirements</h5>';
+      html += `<p><strong>As a</strong> ${story.asA || 'N/A'}</p>`;
+      html += `<p><strong>I want</strong> ${story.iWant || 'N/A'}</p>`;
+      html += `<p><strong>So that</strong> ${story.soThat || 'N/A'}</p>`;
+      
+      if (story.description) {
+        html += '<h5>Description</h5>';
+        html += `<p>${story.description}</p>`;
+      }
+      
+      if (story.acceptanceTests && story.acceptanceTests.length > 0) {
+        html += '<h5>Acceptance Criteria</h5>';
+        story.acceptanceTests.forEach(test => {
+          html += `<p><strong>${test.title}</strong></p>`;
+          html += '<ul>';
+          if (test.given && test.given.length > 0) {
+            html += '<li><strong>Given:</strong> ' + test.given.join(', ') + '</li>';
+          }
+          if (test.when && test.when.length > 0) {
+            html += '<li><strong>When:</strong> ' + test.when.join(', ') + '</li>';
+          }
+          if (test.then && test.then.length > 0) {
+            html += '<li><strong>Then:</strong> ' + test.then.join(', ') + '</li>';
+          }
+          html += '</ul>';
+        });
+      }
+      
+      html += '<h5>Technical Details</h5>';
+      html += `<p><strong>Story Points:</strong> ${story.storyPoint || 'Not estimated'}</p>`;
+      html += `<p><strong>Status:</strong> ${story.status || 'Draft'}</p>`;
+      if (story.components && story.components.length > 0) {
+        html += `<p><strong>Components:</strong> ${story.components.join(', ')}</p>`;
+      }
+      
+      html += '<hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;">';
+    });
+    
+    html += '</div>';
+    
+    preview.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error generating documentation:', error);
+    preview.innerHTML = '<p class="document-placeholder" style="color: red;">Error generating documentation</p>';
+    showToast('Error generating documentation', 'error');
+  }
+}
+
+// Initialize document view event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const generateBtn = document.getElementById('document-generate-btn');
+  if (generateBtn) {
+    generateBtn.addEventListener('click', generateDocumentation);
+  }
+});
