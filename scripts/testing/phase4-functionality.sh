@@ -5,7 +5,14 @@
 set -e
 
 TEST_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$TEST_SCRIPT_DIR/../utilities/load-env-config.sh" "${TARGET_ENV:-prod}"
+
+# Only load env config if API_BASE is not already set (e.g., by GitHub Actions)
+if [ -z "$API_BASE" ]; then
+  source "$TEST_SCRIPT_DIR/../utilities/load-env-config.sh" "${TARGET_ENV:-prod}"
+else
+  echo "📍 Using pre-configured API_BASE: $API_BASE"
+fi
+
 source "$TEST_SCRIPT_DIR/test-library.sh"
 
 PASSED=0
